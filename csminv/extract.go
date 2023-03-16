@@ -35,25 +35,20 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// initCmd represents the init command
-var initCmd = &cobra.Command{
-	Use:   "init",
-	Short: "Initialize the inventory.",
-	Long:  `Initialize the inventory.`,
-	Args:  cobra.ArbitraryArgs,
+// extractCmd represents the extract command
+var extractCmd = &cobra.Command{
+	Use:   "extract [...FILES]",
+	Short: "Extract data from legacy files.",
+	Long:  `Extract data from legacy files.`,
+	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("init called")
-		initialize(args...)
-		// for _, arg := range args {
-		// 	fmt.Println(arg)
-		// }
+		extract(args)
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(initCmd)
-	initCmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
-		fmt.Println("init help called")
+	rootCmd.AddCommand(extractCmd)
+	extractCmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
 		// Make an empty uconfig.Config the usage can be printed (this overrides the default cobra --help behavior)
 		// This allows for users to feed the system in multiple ways:
 		//   - via flags
@@ -74,17 +69,16 @@ func init() {
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// cabinetCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// extractCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// cabinetCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// extractCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
 // initialize will accept a list of files and extract the data from them
 // this converts the data into a new CSM Inventory, while retaining the original data in a useable format
-func initialize(seed ...string) {
-
+func extract(args []string) {
 	// this will be the struct that holds the extracted data from three or more sources
 	//   - csi data
 	//   - canu data
@@ -97,7 +91,7 @@ func initialize(seed ...string) {
 	var um file.Unmarshal
 
 	// For each file passed in, determine the file type and add it to the slice of files
-	for _, s := range seed {
+	for _, s := range args {
 		// For now, this is a simple file-extension check, but further input-validation is still required
 		// Just because a file has a .yaml extension, doesn't mean it is a valid yaml file or data we want
 		extension := filepath.Ext(s)

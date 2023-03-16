@@ -36,7 +36,9 @@ var rootCmd = &cobra.Command{
 	Long:  `From subfloor to top-of-rack, manage your HPC cluster's inventory!`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return nil
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -47,6 +49,17 @@ func Execute() {
 		os.Exit(1)
 	}
 }
+
+// // execute is a helper function for testing to execute a command and return the output
+// func execute(args ...string) string {
+// 	actual := new(bytes.Buffer)
+// 	rootCmd.SetOut(actual)
+// 	rootCmd.SetErr(actual)
+// 	rootCmd.SetArgs(args)
+// 	rootCmd.Execute()
+
+// 	return actual.String()
+// }
 
 func init() {
 	// Here you will define your flags and configuration settings.
