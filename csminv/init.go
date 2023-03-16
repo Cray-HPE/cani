@@ -89,7 +89,7 @@ func initialize(seed ...string) {
 	//   - csi data
 	//   - canu data
 	//   - sls data
-	extract := Extract{}
+	extract := Inventory{}
 
 	// Since we will be extracting data from multiple files, we need to create a slice of files
 	var files = file.Files{}
@@ -134,14 +134,30 @@ func initialize(seed ...string) {
 	// csmInventory, err := inv.Transform()
 
 	// So for now, we will just use the extracted data as the new inventory
-	// Each of the files will be unmarshalled into the Extract struct
-	_, err := uconfig.Classic(&extract, files)
+	// Each of the three files we expect will be unmarshalled into the Extract struct
+	_, err := uconfig.Classic(&extract.Extract.SlsConfig, files)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
+	_, err = uconfig.Classic(&extract.Extract.CanuConfig, files)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	_, err = uconfig.Classic(&extract.Extract.CsiConfig, files)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 	// Now the data can be used however
+	// examples:
+	//   get the SLS hardware: extract.Extract.SlsConfig.Hardware
+	//   get the canu architecture: extract.Extract.CanuConfig.Architecture
+	//   get the csi version: extract.Extract.CsiConfig.Version
+
 	// let's pretty print it as JSON for example:
 	configAsJson, err := json.MarshalIndent(extract, "", " ")
 	if err != nil {
@@ -150,5 +166,4 @@ func initialize(seed ...string) {
 	}
 
 	fmt.Print(string(configAsJson))
-
 }

@@ -78,8 +78,10 @@ type Extract struct {
 	// The entire csi system_config.yaml file
 	CsiConfig CsiConfig `yaml:"csi"`
 	// The dumpstate from SLS
-	SlsConfig sls_common.SLSState `yaml:"sls"`
+	SlsConfig SlsConfig `yaml:"sls"`
 }
+
+type SlsConfig sls_common.SLSState
 
 // CsiConfig is the configuration that comes from CSI's system_config.yaml
 type CsiConfig struct {
