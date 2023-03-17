@@ -31,10 +31,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	env_prefix = "CSI_"
-)
-
 // schemaCmd represents the init command
 var schemaCmd = &cobra.Command{
 	Use:   "schema",
@@ -42,6 +38,13 @@ var schemaCmd = &cobra.Command{
 	Long:  `Interact with the schema.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("schema called")
+	},
+}
+var schemaCmd = &cobra.Command{
+	Use:   "schema",
+	Short: "Interact with the schema.",
+	Long:  `Interact with the schema.`,
+	Run: func(cmd *cobra.Command, args []string) {
 	},
 }
 
