@@ -23,7 +23,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 */
 package main
 
-import csminv "csminv/csminv"
+import "github.com/Cray-HPE/csminv/csminv"
 
 func main() {
 	csminv.Execute()

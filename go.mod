@@ -1,4 +1,4 @@
-module csminv
+module github.com/Cray-HPE/csminv
 
 go 1.20
 
