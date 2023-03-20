@@ -264,13 +264,13 @@ type CanuConfig struct {
 			// The port speed
 			Speed int `json:"speed" env:"CANU_PORTS_SPEED" default:"" flag:"ports-speed" usage:"The source port speed" jsonschema:"required"`
 			// The port slot
-			Slot any `json:"slot" env:"CANU_PORTS_SLOT" default:"" flag:"ports-slot" usage:"The source port slot" jsonschema:"required"`
+			Slot interface{} `json:"slot" env:"CANU_PORTS_SLOT" default:"" flag:"ports-slot" usage:"The source port slot" jsonschema:"required"`
 			// The destination node ID
 			DestinationNodeID int `json:"destination_node_id" env:"CANU_PORTS_DESTINATION_NODE_ID" default:"" flag:"ports-destination-node-id" usage:"The destination ID of the port being connected to" jsonschema:"required"`
 			// The destination port
 			DestinationPort int `json:"destination_port" env:"CANU_PORTS_DESTINATION_PORT" default:"" flag:"ports-destination-port" usage:"The destination port number of the port being connected to" jsonschema:"required"`
 			// The destination slot
-			DestinationSlot any `json:"destination_slot" env:"CANU_PORTS_DESTINATION_SLOT" default:"" flag:"ports-destination-slot" usage:"The destination slot of the port being connected to" jsonschema:"required"`
+			DestinationSlot interface{} `json:"destination_slot" env:"CANU_PORTS_DESTINATION_SLOT" default:"" flag:"ports-destination-slot" usage:"The destination slot of the port being connected to" jsonschema:"required"`
 		} `json:"ports" env:"CANU_PORTS" default:"" flag:"ports" usage:"A list of ports on the node" jsonschema:"required"`
 		// The location of the node as used in the xname
 		Location struct {
