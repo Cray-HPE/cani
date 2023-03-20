@@ -1,0 +1,108 @@
+application-node-config-yaml: application_node_config.yaml
+bgp-asn: "65533"
+bgp-chn-asn: "65530"
+bgp-cmn-asn: "65532"
+bgp-nmn-asn: "65531"
+bgp-peer-types:
+    - spine
+bgp-peers: spine
+bican-user-network-name: CAN
+bootstrap-ncn-bmc-pass: ""
+bootstrap-ncn-bmc-user: root
+cabinets-yaml: ""
+can-bootstrap-vlan: 6
+can-cidr: 127.127.127.127/26
+can-dynamic-pool: 127.127.127.127/27
+can-gateway: 127.127.127.127
+can-gw: 127.127.127.127
+can-static-pool: ""
+ceph-cephfs-image: cray-cephfs-provisioner:latest
+ceph-rbd-image: cray-rbd-provisioner:latest
+chart-repo: http://helm.example.com:8080
+chn-cidr: 127.127.127.127/26
+chn-dynamic-pool: 127.127.127.127/27
+chn-gateway: 127.127.127.127
+chn-static-pool: ""
+cmn-bootstrap-vlan: 7
+cmn-cidr: 127.127.127.0/25
+cmn-dynamic-pool: 127.127.127.127/26
+cmn-external-dns: 127.127.127.127
+cmn-gateway: 127.127.127.127
+cmn-gw: 127.127.127.127
+cmn-static-pool: 127.127.127.127/30
+config: /system_config.yaml
+csm-version: 1.4
+docker-image-registry: cr.example.com
+first-master-hostname: ncn-m002
+help: false
+hill-cabinets: 0
+hmn-bootstrap-vlan: 4
+hmn-cidr: 127.127.127.127/17
+hmn-connections: hmn_connections.json
+hmn-dynamic-pool: 127.127.127.127/24
+hmn-mtn-cidr: 127.127.127.127/17
+hmn-rvr-cidr: 127.127.127.127/17
+hmn-static-pool: ""
+hsn-cidr: 127.127.127.127/16
+hsn-dynamic-pool: ""
+hsn-static-pool: ""
+install-ncn: ncn-m001
+install-ncn-bond-members: p1p1,p1p2
+ipv4-resolvers: 127.127.53.53
+k8s-api-auditing-enabled: false
+macvlan-bootstrap-vlan: 2
+management-net-ips: 0
+manifest-release: ""
+mountain-cabinets: 0
+mtl-cidr: 127.127.127.127/16
+ncn-metadata: ncn_metadata.csv
+ncn-mgmt-node-auditing-enabled: false
+nmn-bootstrap-vlan: 2
+nmn-cidr: 127.127.127.127/17
+nmn-dynamic-pool: 127.127.127.127/24
+nmn-mtn-cidr: 127.127.127.127/17
+nmn-rvr-cidr: 127.127.127.127/17
+nmn-static-pool: ""
+notify-zones: ""
+ntp-peers:
+    - ncn-m001
+    - ncn-m002
+    - ncn-m003
+    - ncn-w001
+    - ncn-w002
+    - ncn-w003
+    - ncn-s001
+    - ncn-s002
+    - ncn-s003
+ntp-pools: []
+ntp-servers:
+    - ncn-m001
+    - ntp.example.com
+ntp-timezone: UTC
+primary-server-name: primary
+retain-unused-user-network: false
+river-cabinets: 1
+rpm-repository: https://example.com/repository
+secondary-servers: ""
+site-dns: 127.127.127.127
+site-domain: example.com
+site-gw: 127.127.127.127
+site-ip: 127.127.127.127/24
+site-nic: em1
+starting-hill-cabinet: 9000
+starting-mountain-cabinet: 1000
+starting-mountain-nid: 1000
+starting-river-cabinet: 3000
+starting-river-nid: 1
+supernet: true
+switch-metadata: switch_metadata.csv
+system-name: seymour
+upstream_ntp_server: 127.127.127.127
+v2-registry: https://registry.nmn/
+versioninfo:
+    version: v1.2.3
+    gitcommit: c0836903215f5cd65025976364297e665077c994-heads-v1.26.3
+    builddate: "2022-09-26T17:21:25Z"
+    goversion: go1.18
+    compiler: gc
+    platform: linux/amd64

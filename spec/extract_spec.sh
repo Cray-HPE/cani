@@ -50,7 +50,7 @@ End
 It 'extract testdata/fixtures/canu/paddle_valid.json'
   When call bin/csminv extract testdata/fixtures/canu/paddle_valid.json
   The status should equal 0
-  The lines of stdout should equal 436
+  The lines of stdout should equal 356
   The line 6 of stdout should equal '   "shcd_file": "Full_Architecture_Golden_Config_1.1.5.xlsx",'
   The line 13 of stdout should equal '     "model": "8325_JL627A",'
 End
@@ -59,16 +59,16 @@ It 'extract testdata/fixtures/csi/system_config_valid.yaml'
   When call bin/csminv extract testdata/fixtures/csi/system_config_valid.yaml    
   The status should equal 0
   The lines of stdout should equal 126
-  The line 49 of stdout should equal '   "hmn_dynamic_pool": "127.127.100.0/24",'
+  The line 49 of stdout should equal '   "hmn_dynamic_pool": "127.127.127.127/24",'
   The line 107 of stdout should equal '   "system_name": "seymour",'
 End
 
 It 'extract testdata/fixtures/csi/system_config_valid.yaml testdata/fixtures/canu/paddle_valid.json testdata/fixtures/sls/sls_input_file_valid.json'
   When call bin/csminv extract testdata/fixtures/csi/system_config_valid.yaml testdata/fixtures/canu/paddle_valid.json testdata/fixtures/sls/sls_input_file_valid.json 
   The status should equal 0
-  The lines of stdout should equal 493
+  The lines of stdout should equal 413
   The line 5 of stdout should equal '   "architecture": "network_v2",'
-  The line 332 of stdout should equal '   "cabinets_yaml": "",'
-  The line 473 of stdout should equal '          "Comment": "x3000c0h12s1",'
+  The line 252 of stdout should equal '   "cabinets_yaml": "",'
+  The line 393 of stdout should equal '          "Comment": "x3000c0h12s1",'
 End
 

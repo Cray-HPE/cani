@@ -1,7 +1,7 @@
-#!/usr/bin/env sh
+#
 # MIT License
 #
-# (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2022-2023 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -20,13 +20,42 @@
 # OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
+#
+name: shell (unit tests)
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  shellspec:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
+      - if: ${{ matrix.os == 'ubuntu-latest' }}
+        uses: cachix/install-nix-action@v18
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            experimental-features = nix-command flakes
 
-It 'The interface for adding and removing hardware must have a versioned schema/CLI signature'
-End
-It 'The interface for adding and removing hardware should be reasonably stable when it ships in CSM 1.5, meaning it should not change in future versions, even as we change the backend system(s)'
-End
-It 'If a change is necessary, the old CLI signature should be supported'
-End
-It 'The first release of the hardware add/remove CLI should only plan to work with existing APIs and data structures'
-End
+      - if: ${{ matrix.os == 'ubuntu-latest' }}
+        name: Run shellspec
+        run: |
+          nix-shell -p shellspec --run 'shellspec'
+
+      - if: ${{ matrix.os == 'macos-latest' }}
+        name: Install shellspec (macOS)
+        run: |
+          brew tap shellspec/shellspec
+          brew update
+          brew install shellspec ksh93 bash
+
+      - if: ${{ matrix.os == 'macos-latest' }}
+        name: Run shellspec
+        run: |
+          shellspec --jobs 2 --random specfiles

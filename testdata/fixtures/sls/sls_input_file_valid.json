@@ -1,0 +1,62 @@
+{
+  "Hardware": {
+    "x3000": {
+      "Parent": "s0",
+      "Children": [
+        "x3000m0"
+      ],
+      "Xname": "x3000",
+      "Type": "comptype_cabinet",
+      "Class": "River",
+      "TypeString": "Cabinet",
+      "LastUpdated": 1669049199,
+      "LastUpdatedTime": "2022-11-21 16:46:39.615062 +0000 +0000",
+      "ExtraProperties": {
+        "Networks": {
+          "ncn": {
+            "HMN": {
+              "CIDR": "127.127.127.127/22",
+              "Gateway": "127.127.127.127",
+              "VLan": 1513
+            }
+          }
+        }
+      }
+    }
+  },
+  "Networks": {
+    "HMN": {
+      "Name": "HMN",
+      "FullName": "Hardware Management Network",
+      "IPRanges": [
+        "127.127.127.127/17"
+      ],
+      "Type": "ethernet",
+      "LastUpdated": 1669049199,
+      "LastUpdatedTime": "2022-11-21 16:46:39.675539 +0000 +0000",
+      "ExtraProperties": {
+        "CIDR": "127.127.127.127/17",
+        "MTU": 9000,
+        "Subnets": [
+          {
+            "CIDR": "127.127.127.127/17",
+            "FullName": "HMN Management Network Infrastructure",
+            "Gateway": "127.127.127.127",
+            "IPReservations": [
+              {
+                "Comment": "x3000c0h12s1",
+                "IPAddress": "127.127.127.127",
+                "Name": "sw-spine-001"
+              }
+            ],
+            "Name": "network_hardware",
+            "VlanID": 4
+          }
+        ],
+        "VlanRange": [
+          4
+        ]
+      }
+    }
+  }
+}

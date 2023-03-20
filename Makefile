@@ -30,10 +30,6 @@ ifeq ($(ARCH),)
 export ARCH := $(shell uname -m)
 endif
 
-ifeq ($(VERSION),)
-export VERSION := $(shell git describe --tags | tr -s '-' '~' | tr -d '^v')
-endif
-
 # By default, if these are not set then set them to match the host.
 ifeq ($(GOOS),)
 OS := $(shell uname)
@@ -50,7 +46,7 @@ endif
 GO_FILES?=$$(find . -name '*.go' |grep -v vendor)
 TAG?=latest
 
-.GIT_COMMIT=$(shell git rev-parse HEAD)
+.GIT_COMMIT=$(shell git rev-parse --short HEAD)
 .GIT_BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 .GIT_COMMIT_AND_BRANCH=$(.GIT_COMMIT)-$(subst /,-,$(.GIT_BRANCH))
 .GIT_VERSION=$(shell git describe --tags 2>/dev/null || echo "$(.GIT_COMMIT)")
@@ -59,7 +55,7 @@ CHANGELOG_VERSION_ORIG=$(grep -m1 \## CHANGELOG.MD | sed -e "s/\].*\$//" |sed -e
 CHANGELOG_VERSION=$(shell grep -m1 \ \[[0-9]*.[0-9]*.[0-9]*\] CHANGELOG.MD | sed -e "s/\].*$$//" |sed -e "s/^.*\[//")
 BUILD_DIR ?= $(PWD)/dist/rpmbuild
 SPEC_FILE ?= ${NAME}.spec
-SOURCE_NAME ?= ${NAME}-${VERSION}
+SOURCE_NAME ?= ${NAME}-${.GIT_VERSION}
 SOURCE_PATH := ${BUILD_DIR}/SOURCES/${SOURCE_NAME}.tar.bz2
 TEST_OUTPUT_DIR ?= $(CURDIR)/build/results
 
@@ -122,7 +118,7 @@ clean:
 	  bin \
 	  $(BUILD_DIR)
 
-test:
+test: bin
 	shellspec --format tap --no-warning-as-failure --jobs 3
 
 tools:
@@ -149,9 +145,9 @@ tidy:
 
 bin:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o bin/csminv -ldflags "\
-	-X github.com/Cray-HPE/cray-site-init/pkg/version.version=${.GIT_VERSION} \
-	-X github.com/Cray-HPE/cray-site-init/pkg/version.buildDate=${.BUILDTIME} \
-	-X github.com/Cray-HPE/cray-site-init/pkg/version.sha1ver=${.GIT_COMMIT_AND_BRANCH}"
+	-X github.com/Cray-HPE/csminv/csminv.version=${.GIT_VERSION} \
+	-X github.com/Cray-HPE/csminv/csminv.buildDate=${.BUILDTIME} \
+	-X github.com/Cray-HPE/csminv/csminv.sha1ver=${.GIT_COMMIT_AND_BRANCH}"
 
 rpm_prepare:
 	rm -rf $(BUILD_DIR)
