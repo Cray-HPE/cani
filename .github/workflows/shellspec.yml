@@ -46,7 +46,7 @@ jobs:
       - if: ${{ matrix.os == 'ubuntu-latest' }}
         name: Run shellspec
         run: |
-          nix-shell -p shellspec --run 'shellspec'
+          nix-shell -p shellspec --run 'make test'
 
       - if: ${{ matrix.os == 'macos-latest' }}
         name: Install shellspec (macOS)
@@ -58,4 +58,4 @@ jobs:
       - if: ${{ matrix.os == 'macos-latest' }}
         name: Run shellspec
         run: |
-          shellspec --jobs 2 --random specfiles
+          make test
