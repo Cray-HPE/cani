@@ -30,6 +30,10 @@ ifeq ($(ARCH),)
 export ARCH := $(shell uname -m)
 endif
 
+ifeq ($(VERSION),)
+export VERSION := $(shell git describe --tags --always | tr -s '-' '~' | tr -d '^v')
+endif
+
 # By default, if these are not set then set them to match the host.
 ifeq ($(GOOS),)
 OS := $(shell uname)
