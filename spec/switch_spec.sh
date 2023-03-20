@@ -20,32 +20,3 @@
 # OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
-
-It 'switch (with no args)'
-  When call bin/csminv switch
-  The status should equal 0
-  The lines of stdout should equal 1
-  The stdout should equal "switch called"
-End
-
-It 'switch list (with no args)'
-  When call bin/csminv switch list
-  The status should equal 0
-  The lines of stdout should equal 1
-  The stdout should equal "switch list called"
-End
-
-It 'switch add (with no args)'
-  When call bin/csminv switch add
-  The status should equal 0
-  The lines of stdout should equal 1
-  The stdout should equal "switch add called"
-End
-
-It 'switch remove (with no args)'
-  When call bin/csminv switch remove
-  The status should equal 0
-  The lines of stdout should equal 1
-  The stdout should equal "switch remove called"
-End
-  

@@ -74,6 +74,7 @@ ifneq "$(origin BUILD_NUMBER)" "environment"
 endif
 
 .PHONY: \
+	bin \
 	help \
 	clean \
 	tools \
@@ -88,7 +89,7 @@ endif
 	doc \
 	version
 
-all: bin/csminv
+all: bin
 
 rpm: rpm_prepare rpm_package_source rpm_build_source rpm_build
 
@@ -146,7 +147,7 @@ env:
 tidy:
 	go mod tidy
 
-bin/csminv:
+bin:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o bin/csminv -ldflags "\
 	-X github.com/Cray-HPE/cray-site-init/pkg/version.version=${.GIT_VERSION} \
 	-X github.com/Cray-HPE/cray-site-init/pkg/version.buildDate=${.BUILDTIME} \

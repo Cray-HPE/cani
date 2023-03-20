@@ -29,26 +29,26 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// switchListCmd represents the switch list command
-var switchListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List assets in the inventory.",
-	Long:  `List assets in the inventory.`,
+// addSwitchCmd represents the cabinet add command
+var addSwitchCmd = &cobra.Command{
+	Use:   "switch",
+	Short: "Add switches to the inventory.",
+	Long:  `Add switches to the inventory.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("switch list called")
+		fmt.Println("add switch called")
 	},
 }
 
 func init() {
-	switchCmd.AddCommand(switchListCmd)
+	addCmd.AddCommand(addSwitchCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// switchListCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// addSwitchCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// switchListCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// addSwitchCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

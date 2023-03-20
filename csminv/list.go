@@ -29,26 +29,26 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// cabinetCmd represents the cabinet command
-var cabinetCmd = &cobra.Command{
-	Use:   "cabinet",
-	Short: "Interact with cabinets.",
-	Long:  `Interact with cabinets.`,
+// listCmd represents the switch list command
+var listCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List assets in the inventory.",
+	Long:  `List assets in the inventory.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("cabinet called")
+		fmt.Println("list called")
 	},
 }
 
 func init() {
-	// rootCmd.AddCommand(cabinetCmd)
+	rootCmd.AddCommand(listCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// cabinetCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// listCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// cabinetCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// listCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

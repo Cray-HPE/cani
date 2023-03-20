@@ -40,7 +40,7 @@ var switchCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(switchCmd)
+	// rootCmd.AddCommand(switchCmd)
 
 	// Here you will define your flags and configuration settings.
 

@@ -40,13 +40,6 @@ var schemaCmd = &cobra.Command{
 		fmt.Println("schema called")
 	},
 }
-var schemaCmd = &cobra.Command{
-	Use:   "schema",
-	Short: "Interact with the schema.",
-	Long:  `Interact with the schema.`,
-	Run: func(cmd *cobra.Command, args []string) {
-	},
-}
 
 func init() {
 	rootCmd.AddCommand(schemaCmd)
