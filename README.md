@@ -67,9 +67,13 @@ type CanuConfig struct {
 Once the data is transformed to the new format, we have both the existing data and the new, so we can add or remove hardware using the existing procedures, while maintaining the new inventory at the same time.
 
 ```shell
-# might make more sense to use `csminv add thing` instead of `csminv thing add`...
-csminv switch list
-csminv switch add [FLAGS]...
-csminv cabinet remove [FLAGS]...
+csminv list
+csminv add switch [FLAGS]...
+csminv remove cabinet [FLAGS]...
 ```
 
+# Tests
+
+Install [shellspec](https://shellspec.info) and run `make test`.
+
+This builds the binary and then runs it under several scenarios to determine that the correct output is seen.
