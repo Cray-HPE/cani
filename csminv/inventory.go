@@ -38,8 +38,31 @@ type Inventory struct {
 }
 
 type Hardware struct {
-	GUID string
+	Cabinets []Cabinet
+	Switches []Switch
+	Nodes    []Node
+	PDUs     []Pdu
 	// New keys we want to add
+}
+
+type Cabinet struct {
+	Name string
+	GUID string
+}
+
+type Switch struct {
+	Name string
+	GUID string
+}
+
+type Node struct {
+	Name string
+	GUID string
+}
+
+type Pdu struct {
+	Name string
+	GUID string
 }
 
 // Extract is any data coming in from an external system
