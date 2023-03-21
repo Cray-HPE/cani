@@ -21,26 +21,26 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-It 'add cabinet (with no args)'
-  When call bin/csminv add cabinet
+It 'remove cabinet (with no args)'
+  When call bin/csminv remove cabinet
   The status should equal 0
   The lines of stdout should equal 1
-  The stdout should equal 'add cabinet called'
+  The stdout should equal "remove cabinet called"
 End
 
-It '--debug add cabinet'
-  When call bin/csminv --debug add cabinet
+It '--debug remove cabinet'
+  When call bin/csminv --debug remove cabinet
   The status should equal 0
   The lines of stdout should equal 1
-  The stdout should equal 'add cabinet called'
+  The stdout should equal 'remove cabinet called'
 End
 
-It '--debug add cabinet cabinet1'
-  When call bin/csminv --debug add cabinet cabinet1
+It '--debug remove cabinet cabinet1'
+  When call bin/csminv --debug remove cabinet cabinet1
   The status should equal 0
   The lines of stdout should equal 1
-  The stdout should equal 'add cabinet called'
+  The stdout should equal 'remove cabinet called'
   The lines of stderr should equal 1
   The stderr should include '{"level":"debug","time":'
-  The stderr should include '"message":"Added cabinet cabinet1"}'
+  The stderr should include '"message":"Removed cabinet cabinet1"}'
 End

@@ -63,7 +63,8 @@ func showSchema() {
 	// add comments to the schema, which have been added to the struct definitions
 	// the path is the path to the package, the second is the path to the source
 	if err := r.AddGoComments("csminv/", "./"); err != nil {
-		fmt.Println("Error adding comments:", err)
+		logger.Error().Msgf("Error adding commnts %s", err.Error())
+		os.Exit(1)
 	}
 	// create the schema
 	// this is Extract right now for demo purposes, but should be CsmInventory
@@ -72,7 +73,7 @@ func showSchema() {
 	// marshal the schema to JSON for pretty print
 	configAsJson, err := json.MarshalIndent(schema, "", " ")
 	if err != nil {
-		fmt.Println(err)
+		logger.Error().Msg(err.Error())
 		os.Exit(1)
 	}
 	fmt.Println(string(configAsJson))

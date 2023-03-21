@@ -26,6 +26,7 @@ package csminv
 import (
 	"os"
 
+	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 )
 
@@ -37,9 +38,19 @@ var rootCmd = &cobra.Command{
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	RunE: func(cmd *cobra.Command, args []string) error {
+		setupLogging()
 		return nil
 	},
 }
+
+const (
+	app = "csminv"
+)
+
+var (
+	debug  bool
+	logger zerolog.Logger
+)
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
@@ -49,17 +60,6 @@ func Execute() {
 		os.Exit(1)
 	}
 }
-
-// // execute is a helper function for testing to execute a command and return the output
-// func execute(args ...string) string {
-// 	actual := new(bytes.Buffer)
-// 	rootCmd.SetOut(actual)
-// 	rootCmd.SetErr(actual)
-// 	rootCmd.SetArgs(args)
-// 	rootCmd.Execute()
-
-// 	return actual.String()
-// }
 
 func init() {
 	// Here you will define your flags and configuration settings.
@@ -71,4 +71,18 @@ func init() {
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "D", false, "additional debug output")
+}
+
+func setupLogging() {
+	logger := zerolog.New(os.Stdout)
+	// Default level for this example is info, unless debug flag is present
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	if debug {
+		// enable debug output globally
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		logger.Debug().Msg("Debug logging enabled")
+		// include file and line number in debug output
+		logger = logger.With().Caller().Logger()
+	}
 }

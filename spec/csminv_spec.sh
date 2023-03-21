@@ -32,3 +32,9 @@ It '--help'
   The status should equal 0
   The stdout should include "From subfloor to top-of-rack, manage your HPC cluster's inventory!"
 End
+
+It '--debug'
+  When call bin/csminv --debug
+  The status should equal 0
+  The stdout should include '{"level":"debug","message":"Debug logging enabled"}'
+End

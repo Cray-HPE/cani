@@ -27,3 +27,20 @@ It 'add switch (with no args)'
   The lines of stdout should equal 1
   The stdout should equal "add switch called"
 End
+
+It '--debug add switch'
+  When call bin/csminv --debug add switch
+  The status should equal 0
+  The lines of stdout should equal 1
+  The stdout should equal 'add switch called'
+End
+
+It '--debug add switch switch1'
+  When call bin/csminv --debug add switch switch1
+  The status should equal 0
+  The lines of stdout should equal 1
+  The stdout should equal 'add switch called'
+  The lines of stderr should equal 1
+  The stderr should include '{"level":"debug","time":'
+  The stderr should include '"message":"Added switch switch1"}'
+End

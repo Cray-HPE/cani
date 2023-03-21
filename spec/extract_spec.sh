@@ -27,7 +27,7 @@ It 'extract (with no args)'
   The status should equal 1
   # https://github.com/shellspec/shellspec/issues/295
   # The stderr should equal the contents of file "testdata/extract/extract_no_args.stderr"
-  The lines of stderr should equal 6
+  The lines of stderr should equal 9
   The line 1 of stderr should equal "Error: requires at least 1 arg(s), only received 0"
   The line 3 of stderr should equal "  csminv extract [...FILES] [flags]"
 End

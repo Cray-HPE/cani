@@ -26,6 +26,7 @@ package csminv
 import (
 	"fmt"
 
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -34,8 +35,9 @@ var removeCabinetCmd = &cobra.Command{
 	Use:   "cabinet",
 	Short: "Remove cabinets from the inventory.",
 	Long:  `Remove cabinets from the inventory.`,
+	Args:  cobra.ArbitraryArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("remove cabinet called")
+		removeCabinet(args)
 	},
 }
 
@@ -51,4 +53,16 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// removeCabinetCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+func removeCabinet(args []string) {
+	fmt.Println("remove cabinet called")
+	for _, arg := range args {
+		// code to remove cabinet
+		// ...
+
+		if debug {
+			log.Debug().Msgf("Removed cabinet %s", arg)
+		}
+	}
 }
