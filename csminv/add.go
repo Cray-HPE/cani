@@ -24,8 +24,13 @@ OTHER DEALINGS IN THE SOFTWARE.
 package csminv
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/network"
+	client "github.com/docker/docker/client"
 	"github.com/spf13/cobra"
 )
 
@@ -51,4 +56,63 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// addCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+func CreateNewContainer(image string) (string, error) {
+	cli, err := client.NewEnvClient()
+	if err != nil {
+		fmt.Println("Unable to create container client")
+		panic(err)
+	}
+
+	cont, err := cli.ContainerCreate(
+		context.Background(),
+		&container.Config{
+			Image: image,
+		},
+		&container.HostConfig{},
+		&network.NetworkingConfig{},
+		image)
+	if err != nil {
+		panic(err)
+	}
+
+	cli.ContainerStart(context.Background(), cont.ID, types.ContainerStartOptions{})
+	fmt.Printf("Container %s is started\n", cont.ID)
+	cli.ContainerRemove(context.Background(), cont.ID, types.ContainerRemoveOptions{})
+	return cont.ID, nil
+}
+
+func StopContainer(containerID string) error {
+	cli, err := client.NewEnvClient()
+	if err != nil {
+		panic(err)
+	}
+
+	err = cli.ContainerStop(context.Background(), containerID, nil)
+	if err != nil {
+		panic(err)
+	}
+	return err
+}
+
+func ListContainers() error {
+	cli, err := client.NewEnvClient()
+	if err != nil {
+		panic(err)
+	}
+
+	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{})
+	if err != nil {
+		panic(err)
+	}
+
+	if len(containers) > 0 {
+		for _, container := range containers {
+			fmt.Printf("Container ID: %s", container.ID)
+		}
+	} else {
+		fmt.Println("There are no containers running")
+	}
+	return nil
 }

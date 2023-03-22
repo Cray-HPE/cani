@@ -24,22 +24,38 @@
 It 'add cabinet (with no args)'
   When call bin/csminv add cabinet
   The status should equal 0
-  The lines of stdout should equal 1
-  The stdout should equal 'add cabinet called'
+  The lines of stdout should equal 7
+  The line 1 of stdout should equal "Unpacking add_liquid_cooled_cabinet.py..."
+  The line 2 of stdout should equal "Unpacking backup_sls_postgres.sh..."
+  The line 3 of stdout should equal "Unpacking inspect_sls_cabinets.py..."
+  The line 4 of stdout should equal "Unpacking update-ncn-cabinet-routes.sh..."
+  The line 5 of stdout should equal "Unpacking update_ncn_etc_hosts.py..."
+  The line 6 of stdout should equal "Unpacking verify_bmc_credentials.sh..."
 End
 
 It '--debug add cabinet'
   When call bin/csminv --debug add cabinet
   The status should equal 0
-  The lines of stdout should equal 1
-  The stdout should equal 'add cabinet called'
+  The lines of stdout should equal 7
+  The line 1 of stdout should equal "Unpacking add_liquid_cooled_cabinet.py..."
+  The line 2 of stdout should equal "Unpacking backup_sls_postgres.sh..."
+  The line 3 of stdout should equal "Unpacking inspect_sls_cabinets.py..."
+  The line 4 of stdout should equal "Unpacking update-ncn-cabinet-routes.sh..."
+  The line 5 of stdout should equal "Unpacking update_ncn_etc_hosts.py..."
+  The line 6 of stdout should equal "Unpacking verify_bmc_credentials.sh..."
 End
 
 It '--debug add cabinet cabinet1'
   When call bin/csminv --debug add cabinet cabinet1
   The status should equal 0
-  The lines of stdout should equal 1
-  The stdout should equal 'add cabinet called'
+  The lines of stdout should equal 7
+  The line 1 of stdout should equal "Unpacking add_liquid_cooled_cabinet.py..."
+  The line 2 of stdout should equal "Unpacking backup_sls_postgres.sh..."
+  The line 3 of stdout should equal "Unpacking inspect_sls_cabinets.py..."
+  The line 4 of stdout should equal "Unpacking update-ncn-cabinet-routes.sh..."
+  The line 5 of stdout should equal "Unpacking update_ncn_etc_hosts.py..."
+  The line 6 of stdout should equal "Unpacking verify_bmc_credentials.sh..."
+  The line 7 of stdout should equal 'add cabinet called'
   The lines of stderr should equal 1
   The stderr should include '{"level":"debug","time":'
   The stderr should include '"message":"Added cabinet cabinet1"}'

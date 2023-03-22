@@ -24,7 +24,10 @@ OTHER DEALINGS IN THE SOFTWARE.
 package csminv
 
 import (
+	"embed"
 	"fmt"
+	"io/fs"
+	"os"
 
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -37,22 +40,59 @@ var addCabinetCmd = &cobra.Command{
 	Long:  `Add cabinets to the inventory.`,
 	Args:  cobra.ArbitraryArgs,
 	Run: func(cmd *cobra.Command, args []string) {
+		// ensure the scripts are written to disk
+		// TODO: running direct from memory takes a bit more effort in code
+		writeHelperScriptsToDisk()
+
+		// if addLiquidCooledCabinet {
+		// 	_, stderr, err := shell("echo", []string{"test from shell command wrapper"})
+		// 	if err != nil {
+		// 		fmt.Println(stderr)
+		// 		panic(err)
+		// 	}
+		// }
+		// CreateNewContainer("hello-world")
+		// ListContainers()
 		addCabinet(args)
 	},
 }
 
+var (
+	//go:embed scripts/*
+	helperScripts              embed.FS
+	addLiquidCooledCabinet     bool
+	addLiquidCooledCabinetName = "add_liquid_cooled_cabinet.py"
+	addLiqudCooledCabinetFlag  = "add-liquid-cooled-cabinet"
+	backupSlsPostgres          bool
+	backupSlsPostgresName      = "backup_sls_postgres.sh"
+	backupSlsPostgresFlag      = "backup-sls-postgres"
+	inspectSlsCabinets         bool
+	inspectSlsCabinetsName     = "inspect_sls_cabinets.py"
+	inspectSlsCabinetsFlag     = "inspect-sls-cabinets"
+	updateNcnEtcHosts          bool
+	updateNcnEtcHostsName      = "update_ncn_etc_hosts.py"
+	updateNcnEtcHostsNameFlag  = "update-ncn-etc-hosts"
+	updateNcnCabinetRoutes     bool
+	updateNcnCabinetRoutesName = "update_ncn_cabinet_routes.py"
+	updateNcnCabinetRoutesFlag = "update-ncn-cabionet-routes"
+	verifyBmcCredentials       bool
+	verifyBmcCredentialsName   = "verify_bmc_credentials.sh"
+	verifyBmcCredentialsFlag   = "verify-bmc-credentials"
+	runScriptUsage             = "Run the %s script"
+)
+
 func init() {
 	addCmd.AddCommand(addCabinetCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// addCabinetCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// addCabinetCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// flags for running different helper scripts from the legacy procedures
+	addCabinetCmd.Flags().BoolVarP(&addLiquidCooledCabinet, "add-liquid-cooled-cabinet", "a", false, fmt.Sprintf(runScriptUsage, addLiquidCooledCabinetName))
+	addCabinetCmd.Flags().BoolVarP(&backupSlsPostgres, "backup-sls-postgres", "b", false, fmt.Sprintf(runScriptUsage, backupSlsPostgresName))
+	addCabinetCmd.Flags().BoolVarP(&inspectSlsCabinets, "inspect-sls-cabinets", "i", false, fmt.Sprintf(runScriptUsage, inspectSlsCabinetsName))
+	addCabinetCmd.Flags().BoolVarP(&updateNcnEtcHosts, "update-ncn-etc-hosts", "u", false, fmt.Sprintf(runScriptUsage, updateNcnEtcHostsName))
+	addCabinetCmd.Flags().BoolVarP(&updateNcnCabinetRoutes, "update-ncn-cabionet-routes", "U", false, fmt.Sprintf(runScriptUsage, updateNcnCabinetRoutesName))
+	addCabinetCmd.Flags().BoolVarP(&verifyBmcCredentials, "verify-bmc-credentials", "V", false, fmt.Sprintf(runScriptUsage, verifyBmcCredentialsName))
+	// run each script independently
+	addCabinetCmd.MarkFlagsMutuallyExclusive(addLiqudCooledCabinetFlag, backupSlsPostgresFlag, inspectSlsCabinetsFlag, updateNcnEtcHostsNameFlag, updateNcnCabinetRoutesFlag, verifyBmcCredentialsFlag)
 }
 
 func addCabinet(args []string) {
@@ -63,6 +103,30 @@ func addCabinet(args []string) {
 
 		if debug {
 			log.Debug().Msgf("Added cabinet %s", arg)
+		}
+	}
+}
+
+func writeHelperScriptsToDisk() {
+	// loop through all files in the helperScripts embed.FS
+	files, err := fs.ReadDir(helperScripts, "scripts")
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
+	for _, file := range files {
+		src := fmt.Sprintf("scripts/%s", file.Name())
+		content, err := helperScripts.ReadFile(src)
+		if err != nil {
+			fmt.Println(err)
+			panic(err)
+		}
+		fmt.Printf("Unpacking %s...\n", file.Name())
+		dest := fmt.Sprintf("/tmp/%s", file.Name())
+		err = os.WriteFile(dest, content, 0755)
+		if err != nil {
+			fmt.Println(err)
+			panic(err)
 		}
 	}
 }

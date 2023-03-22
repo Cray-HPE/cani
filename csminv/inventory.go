@@ -24,46 +24,12 @@ OTHER DEALINGS IN THE SOFTWARE.
 package csminv
 
 import (
+	"net"
 	"net/http"
 	"time"
 
 	sls_common "github.com/Cray-HPE/hms-sls/pkg/sls-common"
 )
-
-// Inventory is greenfield data structures for the new inventory
-// An Extract is transformed into this portable inventory data structure, which is loaded somewhere
-type Inventory struct {
-	Extract  Extract
-	Hardware Hardware
-}
-
-type Hardware struct {
-	Cabinets []Cabinet
-	Switches []Switch
-	Nodes    []Node
-	PDUs     []Pdu
-	// New keys we want to add
-}
-
-type Cabinet struct {
-	Name string
-	GUID string
-}
-
-type Switch struct {
-	Name string
-	GUID string
-}
-
-type Node struct {
-	Name string
-	GUID string
-}
-
-type Pdu struct {
-	Name string
-	GUID string
-}
 
 // Extract is any data coming in from an external system
 type Extract struct {
@@ -73,6 +39,65 @@ type Extract struct {
 	CsiConfig CsiConfig `yaml:"csi"`
 	// The dumpstate from SLS
 	SlsConfig SlsConfig `yaml:"sls"`
+	// any other arbitrary data
+	// ....
+	// FromRedfish RedfishConfig `yaml:"redfish"`
+	// FromHMS HMSConfig `yaml:"hms"`
+}
+
+// Inventory is greenfield data structures for the new inventory
+// An Extract is transformed into this portable inventory data structure, which is loaded somewhere
+type Inventory struct {
+	// This is everything from the legacy "inventory"
+	Extract Extract
+	// Slice of all cabinets in the system
+	Cabinets []Hardware
+	// Slice of all switches in the system
+	Switches []Hardware
+	// Slice of all nodes in the system
+	Nodes []Hardware
+	// Slice of all PDUs in the system
+	PDUs []Hardware
+}
+
+type Hardware struct {
+	// SLS:   "Hardware.ExtraProperties.Aliases" ===> "Hardware.Names"
+	// CANU:  "Topology.CommonName" ===> "Hardware.Names"
+	Names []string
+	// SLS:   "Hardware.Type" ===> "Hardware.Type"
+	// SLS:   "Hardware.TypeString" ===> "Hardware.Type"
+	// CANU:  "Topology.Type" ===> "Hardware.Type"
+	Type string
+	// SLS:   "Hardware.TypeString" ===> "Hardware.Type"
+	// SLS:   "Hardware.Class" ===> "Hardware.Class"
+	Class string
+	// CANU:  "Topology.Model" ===> "Hardware.Model"
+	Model string
+	// CANU:  "Architechture" ===> "Hardware.Architechture"
+	Architechture string
+	// SLS:   "Hardware.ExtraProperties.Brand" ===> "Hardware.Manufacturer"
+	// CANU:  "Topology.Vendor" ===> "Hardware.Manufacturer"
+	Manufacturer string
+	// SLS:   "Hardware.ExtraProperties.Brand" ===> "Hardware.Vendor"
+	// CANU:  "Topology.Vendor" ===> "Hardware.Vendor"
+	Vendor string
+	// CSI:   "csm_version" ===> "Hardware.CsmVersion"
+	CsmVersion string
+	Networking Networking
+	// SLS:   "Hardware.ExtraProperties.IP4Addr" ===> "Hardware.IP"
+	IP net.IP
+	// TODO: Generate or pull from Redfish
+	GUID string
+	// New keys we want to add
+	// ...
+}
+
+type Networking struct {
+	// The name of the interface
+	SiteIP     net.IP
+	CanGW      net.IP
+	SiteDNS    []net.IP
+	SiteDomain string
 }
 
 type SlsConfig sls_common.SLSState
