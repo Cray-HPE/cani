@@ -31,6 +31,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	client "github.com/docker/docker/client"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/spf13/cobra"
 )
 
@@ -72,6 +73,7 @@ func CreateNewContainer(image string) (string, error) {
 		},
 		&container.HostConfig{},
 		&network.NetworkingConfig{},
+		&v1.Platform{},
 		image)
 	if err != nil {
 		panic(err)
@@ -89,7 +91,7 @@ func StopContainer(containerID string) error {
 		panic(err)
 	}
 
-	err = cli.ContainerStop(context.Background(), containerID, nil)
+	err = cli.ContainerStop(context.Background(), containerID, container.StopOptions{})
 	if err != nil {
 		panic(err)
 	}

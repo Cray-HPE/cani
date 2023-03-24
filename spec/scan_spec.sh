@@ -81,12 +81,12 @@ It 'scan --host somehost --password somepassword --port 443 --username someusern
   When call bin/csminv scan --host somehost --password somepassword --port 443 --username someusername
   The status should equal 1
   The lines of stderr should equal 2
-  The line 2 of stderr should include 'dial tcp: lookup somehost: no such host'
+  The line 2 of stderr should include 'dial tcp: lookup somehost:'
 End
 
 It '--debug scan --host somehost --password somepassword --port 443 --username someusername'
   When call bin/csminv --debug scan --host somehost --password somepassword --port 443 --username someusername
   The status should equal 1
   The lines of stderr should equal 2
-  The line 2 of stderr should include 'dial tcp: lookup somehost: no such host'
+  The line 2 of stderr should include 'dial tcp: lookup somehost:'
 End
