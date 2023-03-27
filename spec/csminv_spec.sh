@@ -24,7 +24,7 @@
 It '(with no args)'
   When call bin/csminv
   The status should equal 0
-  The stdout should equal ""
+  The stdout should include "From subfloor to top-of-rack, manage your HPC cluster's inventory!"
 End
 
 It '--help'

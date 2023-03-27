@@ -23,7 +23,10 @@ This will return JSON with a key that contains the extracted data (the "old") as
   "CsiConfig": {},
   "SlsConfig": {},
  },
- "NewCsmInventory": {}, <-- key to be determined (right now it is just "Hardware")
+ "Inventory": { <-- keys to be determined as the inventory evolves
+  "Cabinets": [],
+  "Switches": [],
+ },
 }
 ```
 
@@ -42,7 +45,8 @@ csminv schema show
 ```json
 {
  "$schema": "https://json-schema.org/draft/2020-12/schema",
- "$ref": "#/$defs/Extract",
+ "$id": "https://github.com/Cray-HPE/csminv/csminv/inventory",
+ "$ref": "#/$defs/Inventory",
  "$defs": {
   "CanuConfig": {
    "properties": {
@@ -77,3 +81,18 @@ csminv remove cabinet [FLAGS]...
 Install [shellspec](https://shellspec.info) and run `make test`.
 
 This builds the binary and then runs it under several scenarios to determine that the correct output is seen.
+
+## Writing Tests
+
+If you add a new command, create a new `spec/something_spec.sh` that follows the format of the other files.  Each flag and different output should be accounted for in the tests.  If you need to test for something, but it is not ready yet, add a Todo-style test:
+
+```shell
+It 'is a Todo'
+End
+```
+
+This will let it show up as a tests in `# TODO` format, while still allowing the suite to pass.
+
+```
+not ok 54 - is a Todo # TODO Not yet implemented
+```

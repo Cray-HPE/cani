@@ -152,6 +152,7 @@ func (ps *PortScan) Start(f, l int, timeout time.Duration) {
 	}
 }
 
+// scanPorts scans a range of ports
 func scanPorts() {
 	if host != "" {
 		ps := &PortScan{
@@ -176,6 +177,7 @@ func scanPorts() {
 
 }
 
+// getRedfishData gets the Redfish data from the BMC
 func getRedfishData() {
 	endpoint := fmt.Sprintf("https://%s:%d", host, port)
 	log.Print(endpoint)

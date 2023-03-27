@@ -57,6 +57,7 @@ func init() {
 	// schemaShowCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
+// showSchema will show the schema
 func showSchema() {
 	// Validate the schema
 	r := new(jsonschema.Reflector)
@@ -66,9 +67,8 @@ func showSchema() {
 		logger.Error().Msgf("Error adding commnts %s", err.Error())
 		os.Exit(1)
 	}
-	// create the schema
-	// this is Extract right now for demo purposes, but should be CsmInventory
-	schema := r.Reflect(&Extract{})
+	// create the schema from the Inventory type
+	schema := r.Reflect(&Inventory{})
 
 	// marshal the schema to JSON for pretty print
 	configAsJson, err := json.MarshalIndent(schema, "", " ")

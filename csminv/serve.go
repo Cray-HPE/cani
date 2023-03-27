@@ -101,6 +101,7 @@ func serve() {
 	http.ListenAndServe(listenPort, mux)
 }
 
+// indexHandler handles the index page
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`<!DOCTYPE html>
 <html lang="en">
@@ -124,6 +125,27 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 </html>`))
 }
 
+// ServeHTTP handles the inventory page
+func (ih Inventory) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("Insert inventory here"))
+}
+
+// ServeHTTP handles the CSI config page
+func (csih CsiConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("Insert CSI config here"))
+}
+
+// ServeHTTP handles the CANU config page
+func (canuh CanuConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("Insert CANU config here"))
+}
+
+// ServeHTTP handles the SLS config page
+func (slsh SlsConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("Insert SLS config here"))
+}
+
+// uploadHandler handles the upload page
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

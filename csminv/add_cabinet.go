@@ -74,7 +74,7 @@ var (
 	updateNcnEtcHostsNameFlag  = "update-ncn-etc-hosts"
 	updateNcnCabinetRoutes     bool
 	updateNcnCabinetRoutesName = "update_ncn_cabinet_routes.py"
-	updateNcnCabinetRoutesFlag = "update-ncn-cabionet-routes"
+	updateNcnCabinetRoutesFlag = "update-ncn-cabinet-routes"
 	verifyBmcCredentials       bool
 	verifyBmcCredentialsName   = "verify_bmc_credentials.sh"
 	verifyBmcCredentialsFlag   = "verify-bmc-credentials"
@@ -85,12 +85,12 @@ func init() {
 	addCmd.AddCommand(addCabinetCmd)
 
 	// flags for running different helper scripts from the legacy procedures
-	addCabinetCmd.Flags().BoolVarP(&addLiquidCooledCabinet, "add-liquid-cooled-cabinet", "a", false, fmt.Sprintf(runScriptUsage, addLiquidCooledCabinetName))
-	addCabinetCmd.Flags().BoolVarP(&backupSlsPostgres, "backup-sls-postgres", "b", false, fmt.Sprintf(runScriptUsage, backupSlsPostgresName))
-	addCabinetCmd.Flags().BoolVarP(&inspectSlsCabinets, "inspect-sls-cabinets", "i", false, fmt.Sprintf(runScriptUsage, inspectSlsCabinetsName))
-	addCabinetCmd.Flags().BoolVarP(&updateNcnEtcHosts, "update-ncn-etc-hosts", "u", false, fmt.Sprintf(runScriptUsage, updateNcnEtcHostsName))
-	addCabinetCmd.Flags().BoolVarP(&updateNcnCabinetRoutes, "update-ncn-cabionet-routes", "U", false, fmt.Sprintf(runScriptUsage, updateNcnCabinetRoutesName))
-	addCabinetCmd.Flags().BoolVarP(&verifyBmcCredentials, "verify-bmc-credentials", "V", false, fmt.Sprintf(runScriptUsage, verifyBmcCredentialsName))
+	addCabinetCmd.Flags().BoolVarP(&addLiquidCooledCabinet, addLiqudCooledCabinetFlag, "a", false, fmt.Sprintf(runScriptUsage, addLiquidCooledCabinetName))
+	addCabinetCmd.Flags().BoolVarP(&backupSlsPostgres, backupSlsPostgresFlag, "b", false, fmt.Sprintf(runScriptUsage, backupSlsPostgresName))
+	addCabinetCmd.Flags().BoolVarP(&inspectSlsCabinets, inspectSlsCabinetsFlag, "i", false, fmt.Sprintf(runScriptUsage, inspectSlsCabinetsName))
+	addCabinetCmd.Flags().BoolVarP(&updateNcnEtcHosts, updateNcnEtcHostsNameFlag, "u", false, fmt.Sprintf(runScriptUsage, updateNcnEtcHostsName))
+	addCabinetCmd.Flags().BoolVarP(&updateNcnCabinetRoutes, updateNcnCabinetRoutesFlag, "U", false, fmt.Sprintf(runScriptUsage, updateNcnCabinetRoutesName))
+	addCabinetCmd.Flags().BoolVarP(&verifyBmcCredentials, verifyBmcCredentialsFlag, "V", false, fmt.Sprintf(runScriptUsage, verifyBmcCredentialsName))
 	// run each script independently
 	addCabinetCmd.MarkFlagsMutuallyExclusive(addLiqudCooledCabinetFlag, backupSlsPostgresFlag, inspectSlsCabinetsFlag, updateNcnEtcHostsNameFlag, updateNcnCabinetRoutesFlag, verifyBmcCredentialsFlag)
 }
@@ -107,6 +107,7 @@ func addCabinet(args []string) {
 	}
 }
 
+// writeHelperScriptsToDisk writes the helper scripts for adding a cabinet to disk
 func writeHelperScriptsToDisk() {
 	// loop through all files in the helperScripts embed.FS
 	files, err := fs.ReadDir(helperScripts, "scripts")

@@ -59,6 +59,7 @@ func init() {
 	// addCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
+// CreateNewContainer creates a container from an image
 func CreateNewContainer(image string) (string, error) {
 	cli, err := client.NewEnvClient()
 	if err != nil {
@@ -85,6 +86,7 @@ func CreateNewContainer(image string) (string, error) {
 	return cont.ID, nil
 }
 
+// StopContainer stops a running container
 func StopContainer(containerID string) error {
 	cli, err := client.NewEnvClient()
 	if err != nil {
@@ -98,6 +100,7 @@ func StopContainer(containerID string) error {
 	return err
 }
 
+// ListContainers lists all running containers
 func ListContainers() error {
 	cli, err := client.NewEnvClient()
 	if err != nil {

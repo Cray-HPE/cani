@@ -25,7 +25,6 @@ package csminv
 
 import (
 	"net"
-	"net/http"
 	"time"
 
 	sls_common "github.com/Cray-HPE/hms-sls/pkg/sls-common"
@@ -328,23 +327,4 @@ type CanuConfig struct {
 			Elevation string `json:"elevation" env:"CANU_LOCATION_ELEVATION" default:"" flag:"location-elevation" usage:"The elevation of the node (Rack Unit)" jsonschema:"required"`
 		} `json:"location" env:"CANU_LOCATION" default:"" flag:"location" usage:"Location of the node" jsonschema:"required"`
 	} `json:"topology" env:"CANU_TOPOLOGY" default:"" flag:"topology" usage:"Topology of the system" jsonschema:"required"`
-}
-
-func init() {
-}
-
-func (ih Inventory) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Insert inventory here"))
-}
-
-func (csih CsiConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Insert CSI config here"))
-}
-
-func (canuh CanuConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Insert CANU config here"))
-}
-
-func (slsh SlsConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Insert SLS config here"))
 }

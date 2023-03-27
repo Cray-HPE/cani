@@ -78,6 +78,7 @@ func GetCommonNames(s sls_common.GenericHardware) (names []string, err error) {
 	return names, nil
 }
 
+// GetIPAddress transforms the ExtraPropertiesRaw interface from SLS into a net.IP
 func GetIPAddress(s sls_common.GenericHardware) (ip net.IP, err error) {
 	if s.ExtraPropertiesRaw != nil {
 		// type assert the ExtraPropertiesRaw interface and error if it fails
@@ -99,10 +100,10 @@ func GetIPAddress(s sls_common.GenericHardware) (ip net.IP, err error) {
 	return ip, nil
 }
 
+// GetClass transforms the ExtraPropertiesRaw interface from SLS into a string
 func GetClass(s sls_common.GenericHardware) (class string, err error) {
 	if s.Class != "" {
 		class = string(s.GetClass())
 	}
-	// Convert the string to a net.IPAddr
 	return class, nil
 }
