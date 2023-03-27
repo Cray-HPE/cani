@@ -26,7 +26,6 @@ package csminv
 import (
 	"encoding/json"
 	"fmt"
-	"net"
 	"os"
 	"path/filepath"
 
@@ -43,16 +42,22 @@ var extractCmd = &cobra.Command{
 	Long:  `Extract data from legacy files.`,
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		// Extract, transform, load
-		_, err := extract(args)
+		// Extract and transform existing data
+		inv, err := extractAndTransform(args)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		// transformed, _ := transform(extracted)
+		// TODO: load the transformed data somewhere
 		// loaded, _ := load(transformed)
-		// fmt.Println(extracted)
-		// Transform
+		// for now, just pretty print it as JSON as an example
+		transformed, err := json.MarshalIndent(inv, "", " ")
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		fmt.Print(string(transformed))
 	},
 }
 
@@ -75,25 +80,16 @@ func init() {
 			os.Exit(1)
 		}
 	})
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// extractCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// extractCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
 // initialize will accept a list of files and extract the data from them
 // this converts the data into a new CSM Inventory, while retaining the original data in a useable format
-func extract(args []string) (Inventory, error) {
+func extractAndTransform(args []string) (Inventory, error) {
 	// this will be the struct that holds the extracted data from three or more sources
 	//   - csi data
 	//   - canu data
 	//   - sls data
-	extract := Inventory{}
+	newInventory := Inventory{}
 
 	// Since we will be extracting data from multiple files, we need to create a slice of files
 	var files = file.Files{}
@@ -130,28 +126,21 @@ func extract(args []string) (Inventory, error) {
 
 	}
 
-	// TODO: Transform the extracted data into a new CSM Inventory via way of .Transform() method
-	// This method would do all the business-logic to transform the data into our new inventory
-	// The extracted data is a key in the new inventory
-	// This object will hold the old data "Extract" and define the new data
-	// inv := Inventory{}
-	// csmInventory, err := inv.Transform()
-
 	// So for now, we will just use the extracted data as the new inventory
 	// Each of the three files we expect will be unmarshalled into the Extract struct
-	_, err := uconfig.Classic(&extract.Extract.SlsConfig, files)
+	_, err := uconfig.Classic(&newInventory.Extract.SlsConfig, files)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	_, err = uconfig.Classic(&extract.Extract.CanuConfig, files)
+	_, err = uconfig.Classic(&newInventory.Extract.CanuConfig, files)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	_, err = uconfig.Classic(&extract.Extract.CsiConfig, files)
+	_, err = uconfig.Classic(&newInventory.Extract.CsiConfig, files)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -161,89 +150,24 @@ func extract(args []string) (Inventory, error) {
 	//   get the SLS hardware: extract.Extract.SlsConfig.Hardware
 	//   get the canu architecture: extract.Extract.CanuConfig.Architecture
 	//   get the csi version: extract.Extract.CsiConfig.Version
-	// allHw := []Hardware{}
-	var names []string
-	for _, s := range extract.Extract.SlsConfig.Hardware {
-		// Create a new Hardware struct for each SLS Hardware
-		hw := Hardware{}
 
-		// The SLS type becomes the Type in the new Inventory
-		hw.Type = s.Type.String()
-		names, err = GetCommonNames(s)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		hw.Names = names
-
-		// The SLS brand becomes the Manufacturer in the new Inventory
-		brand, err := GetBrand(s)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		if brand != "" {
-			hw.Manufacturer = brand
-		}
-
-		// The SLS IP becomes the IP in the new Inventory
-		ip, err := GetIPAddress(s)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		if ip != nil {
-			hw.IP = ip
-		}
-
-		// The SLS IP becomes the IP in the new Inventory
-		class, err := GetClass(s)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		hw.Class = class
-
-		// hw.Model = ""
-		// The GUID comes from Redfish (or is generated)
-		// hw.GUID = ""
-		// fmt.Printf("FROM SLS: %s %+v\n", i, hw)
-	}
-	for _, canu := range extract.Extract.CanuConfig.Topology {
-		// Create a new Hardware struct for each SLS Hardware
-		hw := Hardware{}
-		hw.Architechture = canu.Architecture
-		hw.Manufacturer = canu.Vendor
-		hw.Vendor = canu.Vendor
-		// fmt.Printf("FROM CANU: %d %+v\n", i, hw)
-	}
-
-	// Create a new Hardware struct for each SLS Hardware
-	hw := Hardware{}
-	hw.CsmVersion = extract.Extract.CsiConfig.CsmVersion
-	if extract.Extract.CsiConfig.SiteDNS != "" {
-		hw.Networking.SiteDNS = []net.IP{net.ParseIP(extract.Extract.CsiConfig.SiteDNS)}
-	}
-	if extract.Extract.CsiConfig.SiteDomain != "" {
-		hw.Networking.SiteDomain = extract.Extract.CsiConfig.SiteDomain
-	}
-
-	if extract.Extract.CsiConfig.CanGateway != "" {
-		hw.Networking.CanGW = net.ParseIP(extract.Extract.CsiConfig.CanGateway)
-	}
-
-	if extract.Extract.CsiConfig.SiteIP != "" {
-		hw.Networking.SiteIP = net.ParseIP(extract.Extract.CsiConfig.SiteIP)
-	}
-
-	// fmt.Printf("FROM CSI: %+v\n", hw)
-	// let's pretty print it as JSON for example:
-	configAsJson, err := json.MarshalIndent(extract, "", " ")
+	err = newInventory.TransformSlsExtract()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	fmt.Print(string(configAsJson))
-	return extract, nil
+	err = newInventory.TransformCanuExtract()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	err = newInventory.TransformCsiExtract()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	return newInventory, nil
 }

@@ -171,7 +171,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		// a specified value, use the http.MaxBytesReader() method
 		// before calling ParseMultipartForm()
 		if fileHeader.Size > MAX_UPLOAD_SIZE {
-			http.Error(w, fmt.Sprintf("The uploaded image is too big: %s. Please use an image less than 1MB in size", fileHeader.Filename), http.StatusBadRequest)
+			http.Error(w, fmt.Sprintf("The uploaded file is too big: %s. Please use an image less than 1MB in size", fileHeader.Filename), http.StatusBadRequest)
 			return
 		}
 
@@ -184,6 +184,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		defer file.Close()
 
+		// Create a buffer for the file contents
 		buff := make([]byte, 512)
 		_, err = file.Read(buff)
 		if err != nil {
@@ -191,24 +192,14 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// filetype := http.DetectContentType(buff)
-		// if filetype != "image/jpeg" && filetype != "image/png" {
-		// 	http.Error(w, "The provided file format is not allowed. Please upload a JPEG or PNG image", http.StatusBadRequest)
-		// 	return
-		// }
-
+		// Seek the start of the file
 		_, err = file.Seek(0, io.SeekStart)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		err = os.MkdirAll("./uploads", os.ModePerm)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
+		// Create the file
 		f, err := os.Create(fmt.Sprintf("./uploads/%d%s", time.Now().UnixNano(), filepath.Ext(fileHeader.Filename)))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -216,21 +207,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		defer f.Close()
-
-		_, err = io.Copy(f, file)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		pr := &Progress{
-			TotalSize: fileHeader.Size,
-		}
-
-		_, err = io.Copy(f, io.TeeReader(file, pr))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
+		log.Println("Upload successful:", fileHeader.Filename)
 	}
 	fmt.Fprintf(w, "Upload successful")
 }

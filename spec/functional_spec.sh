@@ -35,7 +35,7 @@ End
 
 It 'Users must be able to add a single unit of hardware'
 End
-It 'Users must be able to bulk at several units of hardware'
+It 'Users must be able to bulk add several units of hardware'
 End
 It 'Users must be able to remove a single unit of hardware'
 End
