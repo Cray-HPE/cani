@@ -21,16 +21,16 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-It 'list cabinet (with no args)'
-  When call bin/csminv list cabinet
+It 'list blade (with no args)'
+  When call bin/csminv list blade
   The status should equal 0
   The lines of stdout should equal 1
-  The stdout should equal "list cabinet called"
+  The stdout should equal "list blade called"
 End
 
-It '--debug list cabinet'
-  When call bin/csminv --debug list cabinet
+It '--debug list blade'
+  When call bin/csminv --debug list blade
   The status should equal 0
   The lines of stdout should equal 1
-  The stdout should equal "list cabinet called"
+  The stdout should equal 'list blade called'
 End

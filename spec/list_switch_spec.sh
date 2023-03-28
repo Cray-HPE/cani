@@ -27,3 +27,10 @@ It 'list switch (with no args)'
   The lines of stdout should equal 1
   The stdout should equal "list switch called"
 End
+
+It '--debug list switch'
+  When call bin/csminv --debug list switch
+  The status should equal 0
+  The lines of stdout should equal 1
+  The stdout should equal "list switch called"
+End

@@ -21,16 +21,26 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-It 'list cabinet (with no args)'
-  When call bin/csminv list cabinet
+It 'remove blade (with no args)'
+  When call bin/csminv remove blade
   The status should equal 0
   The lines of stdout should equal 1
-  The stdout should equal "list cabinet called"
+  The stdout should equal "remove blade called"
 End
 
-It '--debug list cabinet'
-  When call bin/csminv --debug list cabinet
+It '--debug remove blade'
+  When call bin/csminv --debug remove blade
   The status should equal 0
   The lines of stdout should equal 1
-  The stdout should equal "list cabinet called"
+  The stdout should equal 'remove blade called'
+End
+
+It '--debug remove blade blade1'
+  When call bin/csminv --debug remove blade blade1
+  The status should equal 0
+  The lines of stdout should equal 1
+  The stdout should equal 'remove blade called'
+  The lines of stderr should equal 1
+  The stderr should include '{"level":"debug","time":'
+  The stderr should include '"message":"Removed blade blade1"}'
 End
