@@ -1,0 +1,17 @@
+{
+  "ID": "x3000c0s7b0",
+  "Type": "NodeBMC",
+  "Hostname": "",
+  "Domain": "",
+  "FQDN": "x3000c0s7b0",
+  "Enabled": true,
+  "UUID": "12345678-abcd-9012-edab-cd1234567890",
+  "User": "root",
+  "Password": "",
+  "RediscoverOnUpdate": true,
+  "DiscoveryInfo": {
+    "LastDiscoveryAttempt": "2023-03-31T11:40:42.048047Z",
+    "LastDiscoveryStatus": "DiscoverOK",
+    "RedfishVersion": "1.7.0"
+  }
+}

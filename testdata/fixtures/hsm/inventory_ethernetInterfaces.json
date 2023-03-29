@@ -1,0 +1,1310 @@
+[
+  {
+    "ID": "48df37b23149",
+    "Description": "",
+    "MACAddress": "48:df:37:b2:31:49",
+    "LastUpdate": "2023-02-07T13:06:42.420641Z",
+    "ComponentID": "x3000c0s4b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "000a9c624681",
+    "Description": "Node Maintenance Network",
+    "MACAddress": "00:0a:9c:62:46:81",
+    "LastUpdate": "2023-02-07T10:07:04.436574Z",
+    "ComponentID": "",
+    "Type": "",
+    "IPAddresses": [
+      {
+        "IPAddress": "127.254.1.21"
+      }
+    ]
+  },
+  {
+    "ID": "a4bf013f74aa",
+    "Description": "Missing interface 1, MAC computed via workaround",
+    "MACAddress": "a4:bf:01:3f:74:aa",
+    "LastUpdate": "2023-02-07T22:35:49.062315Z",
+    "ComponentID": "x3000c0s10b4n0",
+    "Type": "Node",
+    "IPAddresses": [
+      {
+        "IPAddress": "127.252.1.13"
+      }
+    ]
+  },
+  {
+    "ID": "a4bf013f6f91",
+    "Description": "Missing interface 1, MAC computed via workaround",
+    "MACAddress": "a4:bf:01:3f:6f:91",
+    "LastUpdate": "2023-02-13T22:03:03.435712Z",
+    "ComponentID": "x3000c0s10b2n0",
+    "Type": "Node",
+    "IPAddresses": [
+      {
+        "IPAddress": "127.252.1.14"
+      }
+    ]
+  },
+  {
+    "ID": "48df37aec23f",
+    "Description": "Node Maintenance Network",
+    "MACAddress": "48:df:37:ae:c2:3f",
+    "LastUpdate": "2023-02-07T13:06:41.752353Z",
+    "ComponentID": "x3000c0s3b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "b8599ff91d1b",
+    "Description": "",
+    "MACAddress": "b8:59:9f:f9:1d:1b",
+    "LastUpdate": "2023-02-07T13:06:42.228154Z",
+    "ComponentID": "x3000c0s6b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "98039baa9720",
+    "Description": "",
+    "MACAddress": "98:03:9b:aa:97:20",
+    "LastUpdate": "2023-02-07T13:06:42.003922Z",
+    "ComponentID": "x3000c0s6b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b2369c",
+    "Description": "",
+    "MACAddress": "48:df:37:b2:36:9c",
+    "LastUpdate": "2023-02-07T13:06:42.043655Z",
+    "ComponentID": "x3000c0s6b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b2369d",
+    "Description": "",
+    "MACAddress": "48:df:37:b2:36:9d",
+    "LastUpdate": "2023-02-07T13:06:42.064101Z",
+    "ComponentID": "x3000c0s6b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b2369e",
+    "Description": "",
+    "MACAddress": "48:df:37:b2:36:9e",
+    "LastUpdate": "2023-02-07T13:06:42.087371Z",
+    "ComponentID": "x3000c0s6b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "a4bf013efa7b",
+    "Description": "",
+    "MACAddress": "a4:bf:01:3e:fa:7b",
+    "LastUpdate": "2023-02-07T10:09:47.330556Z",
+    "ComponentID": "x3000c0s10b3",
+    "Type": "NodeBMC",
+    "IPAddresses": [
+      {
+        "IPAddress": "127.254.1.26"
+      }
+    ]
+  },
+  {
+    "ID": "48df37b2369f",
+    "Description": "",
+    "MACAddress": "48:df:37:b2:36:9f",
+    "LastUpdate": "2023-02-07T13:06:42.106841Z",
+    "ComponentID": "x3000c0s6b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "ec0d9ac1b340",
+    "Description": "",
+    "MACAddress": "ec:0d:9a:c1:b3:40",
+    "LastUpdate": "2023-02-07T10:16:32.466174Z",
+    "ComponentID": "x3000c0s23b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b2314a",
+    "Description": "",
+    "MACAddress": "48:df:37:b2:31:4a",
+    "LastUpdate": "2023-02-07T13:06:42.442073Z",
+    "ComponentID": "x3000c0s4b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b57644",
+    "Description": "",
+    "MACAddress": "48:df:37:b5:76:44",
+    "LastUpdate": "2023-02-07T10:16:32.466174Z",
+    "ComponentID": "x3000c0s23b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b2314b",
+    "Description": "",
+    "MACAddress": "48:df:37:b2:31:4b",
+    "LastUpdate": "2023-02-07T13:06:42.467403Z",
+    "ComponentID": "x3000c0s4b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "0040a6830847",
+    "Description": "",
+    "MACAddress": "00:40:a6:83:08:47",
+    "LastUpdate": "2023-02-07T10:09:46.887647Z",
+    "ComponentID": "x3000c0r16b0",
+    "Type": "RouterBMC",
+    "IPAddresses": [
+      {
+        "IPAddress": "127.254.1.27"
+      }
+    ]
+  },
+  {
+    "ID": "b8599ff91d57",
+    "Description": "",
+    "MACAddress": "b8:59:9f:f9:1d:57",
+    "LastUpdate": "2023-02-07T13:06:42.602024Z",
+    "ComponentID": "x3000c0s4b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "506b4b285018",
+    "Description": "",
+    "MACAddress": "50:6b:4b:28:50:18",
+    "LastUpdate": "2023-02-07T13:06:42.357791Z",
+    "ComponentID": "x3000c0s4b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b23148",
+    "Description": "",
+    "MACAddress": "48:df:37:b2:31:48",
+    "LastUpdate": "2023-02-07T13:06:42.399686Z",
+    "ComponentID": "x3000c0s4b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "a4bf013f6f92",
+    "Description": "Missing interface 2, MAC computed via workaround",
+    "MACAddress": "a4:bf:01:3f:6f:92",
+    "LastUpdate": "2023-02-07T10:17:16.819735Z",
+    "ComponentID": "x3000c0s10b2n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "54802852b702",
+    "Description": "",
+    "MACAddress": "54:80:28:52:b7:02",
+    "LastUpdate": "2023-02-07T10:11:05.544542Z",
+    "ComponentID": "",
+    "Type": "",
+    "IPAddresses": [
+      {
+        "IPAddress": "127.252.1.23"
+      }
+    ]
+  },
+  {
+    "ID": "a4bf013f74ab",
+    "Description": "Missing interface 2, MAC computed via workaround",
+    "MACAddress": "a4:bf:01:3f:74:ab",
+    "LastUpdate": "2023-02-07T10:14:17.106023Z",
+    "ComponentID": "x3000c0s10b4n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "a4bf013f74ac",
+    "Description": "Network Interface on the Baseboard Management Controller",
+    "MACAddress": "a4:bf:01:3f:74:ac",
+    "LastUpdate": "2023-02-07T10:14:17.106023Z",
+    "ComponentID": "x3000c0s10b4",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "b8599ff91bf2",
+    "Description": "Bond0 - bond0.nmn0- kea",
+    "MACAddress": "b8:59:9f:f9:1b:f2",
+    "LastUpdate": "2023-02-07T13:07:41.994882Z",
+    "ComponentID": "x3000c0s3b0n0",
+    "Type": "Node",
+    "IPAddresses": [
+      {
+        "IPAddress": "127.252.1.6"
+      },
+      {
+        "IPAddress": "127.101.8.37"
+      },
+      {
+        "IPAddress": "127.1.1.4"
+      },
+      {
+        "IPAddress": "127.101.11.5"
+      },
+      {
+        "IPAddress": "127.254.1.8"
+      }
+    ]
+  },
+  {
+    "ID": "48df37b23a1f",
+    "Description": "",
+    "MACAddress": "48:df:37:b2:3a:1f",
+    "LastUpdate": "2023-02-07T13:06:41.167876Z",
+    "ComponentID": "x3000c0s8b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "08f1ea7facf8",
+    "Description": "Configuration of this Manager Network Interface",
+    "MACAddress": "08:f1:ea:7f:ac:f8",
+    "LastUpdate": "2023-02-07T09:41:03.880826Z",
+    "ComponentID": "x3000c0s4b0",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "08f1ea7facf9",
+    "Description": "Configuration of this Manager Network Interface",
+    "MACAddress": "08:f1:ea:7f:ac:f9",
+    "LastUpdate": "2023-02-07T09:41:03.880826Z",
+    "ComponentID": "x3000c0s4b0",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b22f4f",
+    "Description": "",
+    "MACAddress": "48:df:37:b2:2f:4f",
+    "LastUpdate": "2023-02-07T13:06:41.449567Z",
+    "ComponentID": "x3000c0s7b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "b8599ff91d23",
+    "Description": "",
+    "MACAddress": "b8:59:9f:f9:1d:23",
+    "LastUpdate": "2023-02-07T13:06:41.535137Z",
+    "ComponentID": "x3000c0s7b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b22f4c",
+    "Description": "",
+    "MACAddress": "48:df:37:b2:2f:4c",
+    "LastUpdate": "2023-02-07T13:06:41.387057Z",
+    "ComponentID": "x3000c0s7b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b22f4d",
+    "Description": "",
+    "MACAddress": "48:df:37:b2:2f:4d",
+    "LastUpdate": "2023-02-07T13:06:41.407358Z",
+    "ComponentID": "x3000c0s7b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b22f4e",
+    "Description": "",
+    "MACAddress": "48:df:37:b2:2f:4e",
+    "LastUpdate": "2023-02-07T13:06:41.429991Z",
+    "ComponentID": "x3000c0s7b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "b8599ff91d27",
+    "Description": "",
+    "MACAddress": "b8:59:9f:f9:1d:27",
+    "LastUpdate": "2023-02-07T13:06:40.424231Z",
+    "ComponentID": "x3000c0s2b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "b8599ff91d1e",
+    "Description": "Bond0 - bond0.nmn0- kea",
+    "MACAddress": "b8:59:9f:f9:1d:1e",
+    "LastUpdate": "2023-02-07T13:07:42.029006Z",
+    "ComponentID": "x3000c0s5b0n0",
+    "Type": "Node",
+    "IPAddresses": [
+      {
+        "IPAddress": "127.252.1.8"
+      },
+      {
+        "IPAddress": "127.101.11.7"
+      },
+      {
+        "IPAddress": "127.254.1.12"
+      },
+      {
+        "IPAddress": "127.101.8.39"
+      },
+      {
+        "IPAddress": "127.1.1.6"
+      }
+    ]
+  },
+  {
+    "ID": "b8599ff91d1f",
+    "Description": "",
+    "MACAddress": "b8:59:9f:f9:1d:1f",
+    "LastUpdate": "2023-02-07T13:06:40.004782Z",
+    "ComponentID": "x3000c0s5b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "98039baa9518",
+    "Description": "",
+    "MACAddress": "98:03:9b:aa:95:18",
+    "LastUpdate": "2023-02-07T13:06:39.804917Z",
+    "ComponentID": "x3000c0s5b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "08f1ea7fccb0",
+    "Description": "Configuration of this Manager Network Interface",
+    "MACAddress": "08:f1:ea:7f:cc:b0",
+    "LastUpdate": "2023-02-07T09:40:59.249458Z",
+    "ComponentID": "x3000c0s5b0",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b23c0e",
+    "Description": "",
+    "MACAddress": "48:df:37:b2:3c:0e",
+    "LastUpdate": "2023-02-07T13:06:40.587807Z",
+    "ComponentID": "x3000c0s9b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b23c0f",
+    "Description": "",
+    "MACAddress": "48:df:37:b2:3c:0f",
+    "LastUpdate": "2023-02-07T13:06:40.608748Z",
+    "ComponentID": "x3000c0s9b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "b8599ff91bfb",
+    "Description": "",
+    "MACAddress": "b8:59:9f:f9:1b:fb",
+    "LastUpdate": "2023-02-07T13:06:40.694926Z",
+    "ComponentID": "x3000c0s9b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b23c0c",
+    "Description": "",
+    "MACAddress": "48:df:37:b2:3c:0c",
+    "LastUpdate": "2023-02-07T13:06:40.547411Z",
+    "ComponentID": "x3000c0s9b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b23c0d",
+    "Description": "",
+    "MACAddress": "48:df:37:b2:3c:0d",
+    "LastUpdate": "2023-02-07T13:06:40.566429Z",
+    "ComponentID": "x3000c0s9b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "b8599ff91bc3",
+    "Description": "",
+    "MACAddress": "b8:59:9f:f9:1b:c3",
+    "LastUpdate": "2023-02-07T13:06:41.254338Z",
+    "ComponentID": "x3000c0s8b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b23a1c",
+    "Description": "",
+    "MACAddress": "48:df:37:b2:3a:1c",
+    "LastUpdate": "2023-02-07T13:06:41.100892Z",
+    "ComponentID": "x3000c0s8b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b23a1d",
+    "Description": "",
+    "MACAddress": "48:df:37:b2:3a:1d",
+    "LastUpdate": "2023-02-07T13:06:41.123014Z",
+    "ComponentID": "x3000c0s8b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b23a1e",
+    "Description": "",
+    "MACAddress": "48:df:37:b2:3a:1e",
+    "LastUpdate": "2023-02-07T13:06:41.146401Z",
+    "ComponentID": "x3000c0s8b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "08f1ea7fdfba",
+    "Description": "Configuration of this Manager Network Interface",
+    "MACAddress": "08:f1:ea:7f:df:ba",
+    "LastUpdate": "2023-02-07T09:41:08.115688Z",
+    "ComponentID": "x3000c0s7b0",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "08f1ea7fdfbb",
+    "Description": "Configuration of this Manager Network Interface",
+    "MACAddress": "08:f1:ea:7f:df:bb",
+    "LastUpdate": "2023-02-07T09:41:08.115688Z",
+    "ComponentID": "x3000c0s7b0",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "08f1ea7fcff4",
+    "Description": "Configuration of this Manager Network Interface",
+    "MACAddress": "08:f1:ea:7f:cf:f4",
+    "LastUpdate": "2023-02-07T09:41:08.349546Z",
+    "ComponentID": "x3000c0s9b0",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "b8599ff91bf3",
+    "Description": "",
+    "MACAddress": "b8:59:9f:f9:1b:f3",
+    "LastUpdate": "2023-02-07T13:06:41.878346Z",
+    "ComponentID": "x3000c0s3b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37aec23c",
+    "Description": "",
+    "MACAddress": "48:df:37:ae:c2:3c",
+    "LastUpdate": "2023-02-07T13:06:41.680093Z",
+    "ComponentID": "x3000c0s3b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37aec23d",
+    "Description": "",
+    "MACAddress": "48:df:37:ae:c2:3d",
+    "LastUpdate": "2023-02-07T13:06:41.700881Z",
+    "ComponentID": "x3000c0s3b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37aec23e",
+    "Description": "",
+    "MACAddress": "48:df:37:ae:c2:3e",
+    "LastUpdate": "2023-02-07T13:06:41.723455Z",
+    "ComponentID": "x3000c0s3b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "08f1ea7fcff5",
+    "Description": "Configuration of this Manager Network Interface",
+    "MACAddress": "08:f1:ea:7f:cf:f5",
+    "LastUpdate": "2023-02-07T09:41:08.349546Z",
+    "ComponentID": "x3000c0s9b0",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "08f1ea7fdf39",
+    "Description": "Configuration of this Manager Network Interface",
+    "MACAddress": "08:f1:ea:7f:df:39",
+    "LastUpdate": "2023-02-07T09:41:127.298333Z",
+    "ComponentID": "x3000c0s8b0",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "08f1ea7fdf38",
+    "Description": "Configuration of this Manager Network Interface",
+    "MACAddress": "08:f1:ea:7f:df:38",
+    "LastUpdate": "2023-02-07T09:41:127.298333Z",
+    "ComponentID": "x3000c0s8b0",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "08f1ea7fccb1",
+    "Description": "Configuration of this Manager Network Interface",
+    "MACAddress": "08:f1:ea:7f:cc:b1",
+    "LastUpdate": "2023-02-07T09:40:59.249458Z",
+    "ComponentID": "x3000c0s5b0",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "08f1ea7facbc",
+    "Description": "Configuration of this Manager Network Interface",
+    "MACAddress": "08:f1:ea:7f:ac:bc",
+    "LastUpdate": "2023-02-07T09:41:00.917849Z",
+    "ComponentID": "x3000c0s6b0",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "08f1ea7facbd",
+    "Description": "Configuration of this Manager Network Interface",
+    "MACAddress": "08:f1:ea:7f:ac:bd",
+    "LastUpdate": "2023-02-07T09:41:00.917849Z",
+    "ComponentID": "x3000c0s6b0",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "a4bf013f74ad",
+    "Description": "Network Interface on the Baseboard Management Controller",
+    "MACAddress": "a4:bf:01:3f:74:ad",
+    "LastUpdate": "2023-02-07T10:14:17.106023Z",
+    "ComponentID": "x3000c0s10b4",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "a4bf013f74ae",
+    "Description": "",
+    "MACAddress": "a4:bf:01:3f:74:ae",
+    "LastUpdate": "2023-02-07T10:09:46.197695Z",
+    "ComponentID": "x3000c0s10b4",
+    "Type": "NodeBMC",
+    "IPAddresses": [
+      {
+        "IPAddress": "127.254.1.24"
+      }
+    ]
+  },
+  {
+    "ID": "a4bf013f70c8",
+    "Description": "Missing interface 2, MAC computed via workaround",
+    "MACAddress": "a4:bf:01:3f:70:c8",
+    "LastUpdate": "2023-02-07T10:14:17.77824Z",
+    "ComponentID": "x3000c0s10b1n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "a4bf013f70c9",
+    "Description": "Network Interface on the Baseboard Management Controller",
+    "MACAddress": "a4:bf:01:3f:70:c9",
+    "LastUpdate": "2023-02-07T10:14:17.77824Z",
+    "ComponentID": "x3000c0s10b1",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "a4bf013f70ca",
+    "Description": "Network Interface on the Baseboard Management Controller",
+    "MACAddress": "a4:bf:01:3f:70:ca",
+    "LastUpdate": "2023-02-07T10:14:17.77824Z",
+    "ComponentID": "x3000c0s10b1",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "a4bf013f70cb",
+    "Description": "",
+    "MACAddress": "a4:bf:01:3f:70:cb",
+    "LastUpdate": "2023-02-07T10:09:46.74968Z",
+    "ComponentID": "x3000c0s10b1",
+    "Type": "NodeBMC",
+    "IPAddresses": [
+      {
+        "IPAddress": "127.254.1.25"
+      }
+    ]
+  },
+  {
+    "ID": "b8599ff91bfe",
+    "Description": "Bond0 - bond0.nmn0- kea",
+    "MACAddress": "b8:59:9f:f9:1b:fe",
+    "LastUpdate": "2023-02-07T13:07:41.959015Z",
+    "ComponentID": "x3000c0s1b0n0",
+    "Type": "Node",
+    "IPAddresses": [
+      {
+        "IPAddress": "127.252.1.4"
+      },
+      {
+        "IPAddress": "127.101.8.35"
+      },
+      {
+        "IPAddress": "127.1.1.2"
+      },
+      {
+        "IPAddress": "127.101.11.3"
+      },
+      {
+        "IPAddress": "127.254.1.4"
+      }
+    ]
+  },
+  {
+    "ID": "cec6808f04dd",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "ce:c6:80:8f:04:dd",
+    "LastUpdate": "2023-02-07T13:06:40.211367Z",
+    "ComponentID": "x3000c0s2b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "7a6ae0e74b4e",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "7a:6a:e0:e7:4b:4e",
+    "LastUpdate": "2023-02-07T13:06:40.528581Z",
+    "ComponentID": "x3000c0s9b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "a4bf013f70c7",
+    "Description": "Missing interface 1, MAC computed via workaround",
+    "MACAddress": "a4:bf:01:3f:70:c7",
+    "LastUpdate": "2023-02-15T16:13:13.022481Z",
+    "ComponentID": "x3000c0s10b1n0",
+    "Type": "Node",
+    "IPAddresses": [
+      {
+        "IPAddress": "127.252.1.17"
+      }
+    ]
+  },
+  {
+    "ID": "b8599ff91d26",
+    "Description": "Bond0 - bond0.nmn0- kea",
+    "MACAddress": "b8:59:9f:f9:1d:26",
+    "LastUpdate": "2023-02-07T13:07:41.977909Z",
+    "ComponentID": "x3000c0s2b0n0",
+    "Type": "Node",
+    "IPAddresses": [
+      {
+        "IPAddress": "127.252.1.5"
+      },
+      {
+        "IPAddress": "127.101.11.4"
+      },
+      {
+        "IPAddress": "127.254.1.6"
+      },
+      {
+        "IPAddress": "127.101.8.36"
+      },
+      {
+        "IPAddress": "127.1.1.3"
+      }
+    ]
+  },
+  {
+    "ID": "48df37aec406",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "48:df:37:ae:c4:06",
+    "LastUpdate": "2023-02-07T13:06:40.839005Z",
+    "ComponentID": "x3000c0s1b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "b8599ff91bff",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "b8:59:9f:f9:1b:ff",
+    "LastUpdate": "2023-02-07T13:06:40.967191Z",
+    "ComponentID": "x3000c0s1b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "26b9870527eb",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "26:b9:87:05:27:eb",
+    "LastUpdate": "2023-02-07T13:06:42.189034Z",
+    "ComponentID": "x3000c0s6b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "da41c342e3e2",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "da:41:c3:42:e3:e2",
+    "LastUpdate": "2023-02-07T13:06:42.378904Z",
+    "ComponentID": "x3000c0s4b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b57645",
+    "Description": "",
+    "MACAddress": "48:df:37:b5:76:45",
+    "LastUpdate": "2023-02-07T10:16:32.466174Z",
+    "ComponentID": "x3000c0s23b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b57646",
+    "Description": "",
+    "MACAddress": "48:df:37:b5:76:46",
+    "LastUpdate": "2023-02-07T10:16:32.466174Z",
+    "ComponentID": "x3000c0s23b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b57647",
+    "Description": "",
+    "MACAddress": "48:df:37:b5:76:47",
+    "LastUpdate": "2023-02-07T10:16:32.466174Z",
+    "ComponentID": "x3000c0s23b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "08f1ea804d07",
+    "Description": "Configuration of this Manager Network Interface",
+    "MACAddress": "08:f1:ea:80:4d:07",
+    "LastUpdate": "2023-02-07T10:16:32.466174Z",
+    "ComponentID": "x3000c0s23b0",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "08f1ea804d06",
+    "Description": "",
+    "MACAddress": "08:f1:ea:80:4d:06",
+    "LastUpdate": "2023-02-07T10:09:48.816648Z",
+    "ComponentID": "x3000c0s23b0",
+    "Type": "NodeBMC",
+    "IPAddresses": [
+      {
+        "IPAddress": "127.254.1.46"
+      }
+    ]
+  },
+  {
+    "ID": "a4bf013efa78",
+    "Description": "Missing interface 2, MAC computed via workaround",
+    "MACAddress": "a4:bf:01:3e:fa:78",
+    "LastUpdate": "2023-02-07T10:17:16.829001Z",
+    "ComponentID": "x3000c0s10b3n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "a4bf013efa79",
+    "Description": "Network Interface on the Baseboard Management Controller",
+    "MACAddress": "a4:bf:01:3e:fa:79",
+    "LastUpdate": "2023-02-07T10:17:16.829001Z",
+    "ComponentID": "x3000c0s10b3",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "a4bf013efa7a",
+    "Description": "Network Interface on the Baseboard Management Controller",
+    "MACAddress": "a4:bf:01:3e:fa:7a",
+    "LastUpdate": "2023-02-07T10:17:16.829001Z",
+    "ComponentID": "x3000c0s10b3",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "a4bf013efa77",
+    "Description": "Missing interface 1, MAC computed via workaround",
+    "MACAddress": "a4:bf:01:3e:fa:77",
+    "LastUpdate": "2023-02-15T16:13:13.0092Z",
+    "ComponentID": "x3000c0s10b3n0",
+    "Type": "Node",
+    "IPAddresses": [
+      {
+        "IPAddress": "127.252.1.15"
+      }
+    ]
+  },
+  {
+    "ID": "1ebb159e5291",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "1e:bb:15:9e:52:91",
+    "LastUpdate": "2023-02-07T13:06:41.660911Z",
+    "ComponentID": "x3000c0s3b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "b638b200b660",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "b6:38:b2:00:b6:60",
+    "LastUpdate": "2023-02-07T13:06:42.56332Z",
+    "ComponentID": "x3000c0s4b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "b8599ff91d56",
+    "Description": "Bond0 - bond0.nmn0- kea",
+    "MACAddress": "b8:59:9f:f9:1d:56",
+    "LastUpdate": "2023-02-07T13:07:42.011158Z",
+    "ComponentID": "x3000c0s4b0n0",
+    "Type": "Node",
+    "IPAddresses": [
+      {
+        "IPAddress": "127.252.1.7"
+      },
+      {
+        "IPAddress": "127.1.1.5"
+      },
+      {
+        "IPAddress": "127.101.11.6"
+      },
+      {
+        "IPAddress": "127.254.1.10"
+      },
+      {
+        "IPAddress": "127.101.8.38"
+      }
+    ]
+  },
+  {
+    "ID": "b8599ff91d22",
+    "Description": "Bond0 - bond0.nmn0- kea",
+    "MACAddress": "b8:59:9f:f9:1d:22",
+    "LastUpdate": "2023-02-07T13:07:42.064677Z",
+    "ComponentID": "x3000c0s7b0n0",
+    "Type": "Node",
+    "IPAddresses": [
+      {
+        "IPAddress": "127.252.1.10"
+      },
+      {
+        "IPAddress": "127.101.8.41"
+      },
+      {
+        "IPAddress": "127.1.1.8"
+      },
+      {
+        "IPAddress": "127.101.11.9"
+      },
+      {
+        "IPAddress": "127.254.1.16"
+      }
+    ]
+  },
+  {
+    "ID": "0acafef00d04",
+    "Description": "Configuration of this Manager USB Ethernet Interface available for access from Host.",
+    "MACAddress": "0a:ca:fe:f0:0d:04",
+    "LastUpdate": "2023-02-07T09:40:59.249458Z",
+    "ComponentID": "x3000c0s8b0",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "a4bf013f6f93",
+    "Description": "Network Interface on the Baseboard Management Controller",
+    "MACAddress": "a4:bf:01:3f:6f:93",
+    "LastUpdate": "2023-02-07T10:17:16.819735Z",
+    "ComponentID": "x3000c0s10b2",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "a4bf013f6f94",
+    "Description": "Network Interface on the Baseboard Management Controller",
+    "MACAddress": "a4:bf:01:3f:6f:94",
+    "LastUpdate": "2023-02-07T10:17:16.819735Z",
+    "ComponentID": "x3000c0s10b2",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "a4bf013f6f95",
+    "Description": "",
+    "MACAddress": "a4:bf:01:3f:6f:95",
+    "LastUpdate": "2023-02-07T10:09:45.560111Z",
+    "ComponentID": "x3000c0s10b2",
+    "Type": "NodeBMC",
+    "IPAddresses": [
+      {
+        "IPAddress": "127.254.1.22"
+      }
+    ]
+  },
+  {
+    "ID": "7ec5ef96d47f",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "7e:c5:ef:96:d4:7f",
+    "LastUpdate": "2023-02-07T13:06:39.853718Z",
+    "ComponentID": "x3000c0s5b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "a2b0d5f67010",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "a2:b0:d5:f6:70:10",
+    "LastUpdate": "2023-02-07T13:06:39.94784Z",
+    "ComponentID": "x3000c0s5b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "560ad1a804a5",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "56:0a:d1:a8:04:a5",
+    "LastUpdate": "2023-02-07T13:06:40.140288Z",
+    "ComponentID": "x3000c0s2b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "961fd1b02b23",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "96:1f:d1:b0:2b:23",
+    "LastUpdate": "2023-02-07T13:06:40.186603Z",
+    "ComponentID": "x3000c0s2b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "dece51d97a63",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "de:ce:51:d9:7a:63",
+    "LastUpdate": "2023-02-07T13:06:40.367013Z",
+    "ComponentID": "x3000c0s2b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "4649ee066401",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "46:49:ee:06:64:01",
+    "LastUpdate": "2023-02-07T13:06:40.38457Z",
+    "ComponentID": "x3000c0s2b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37aec405",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "48:df:37:ae:c4:05",
+    "LastUpdate": "2023-02-07T13:06:40.819984Z",
+    "ComponentID": "x3000c0s1b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37aec407",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "48:df:37:ae:c4:07",
+    "LastUpdate": "2023-02-07T13:06:40.857691Z",
+    "ComponentID": "x3000c0s1b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37aec404",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "48:df:37:ae:c4:04",
+    "LastUpdate": "2023-02-07T13:06:40.879306Z",
+    "ComponentID": "x3000c0s1b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "4e1db7d4dfd8",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "4e:1d:b7:d4:df:d8",
+    "LastUpdate": "2023-02-07T13:06:41.071575Z",
+    "ComponentID": "x3000c0s8b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "8ae7e17346a7",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "8a:e7:e1:73:46:a7",
+    "LastUpdate": "2023-02-07T13:06:41.641647Z",
+    "ComponentID": "x3000c0s3b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "d6dd33adefce",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "d6:dd:33:ad:ef:ce",
+    "LastUpdate": "2023-02-07T13:06:41.835114Z",
+    "ComponentID": "x3000c0s3b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b22f5e",
+    "Description": "",
+    "MACAddress": "48:df:37:b2:2f:5e",
+    "LastUpdate": "2023-02-07T13:06:40.282361Z",
+    "ComponentID": "x3000c0s2b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b22f5f",
+    "Description": "",
+    "MACAddress": "48:df:37:b2:2f:5f",
+    "LastUpdate": "2023-02-07T13:06:40.302937Z",
+    "ComponentID": "x3000c0s2b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "4a6701940fe0",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "4a:67:01:94:0f:e0",
+    "LastUpdate": "2023-02-07T13:06:41.98348Z",
+    "ComponentID": "x3000c0s6b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "b296d97a9adf",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "b2:96:d9:7a:9a:df",
+    "LastUpdate": "2023-02-07T13:06:42.025412Z",
+    "ComponentID": "x3000c0s6b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b22f5c",
+    "Description": "",
+    "MACAddress": "48:df:37:b2:2f:5c",
+    "LastUpdate": "2023-02-07T13:06:40.236519Z",
+    "ComponentID": "x3000c0s2b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "48df37b22f5d",
+    "Description": "",
+    "MACAddress": "48:df:37:b2:2f:5d",
+    "LastUpdate": "2023-02-07T13:06:40.260969Z",
+    "ComponentID": "x3000c0s2b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "f676ebaaa98d",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "f6:76:eb:aa:a9:8d",
+    "LastUpdate": "2023-02-07T13:06:42.170432Z",
+    "ComponentID": "x3000c0s6b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "daba5829c75b",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "da:ba:58:29:c7:5b",
+    "LastUpdate": "2023-02-07T13:06:42.338331Z",
+    "ComponentID": "x3000c0s4b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "08f1ea7fef5a",
+    "Description": "Configuration of this Manager Network Interface",
+    "MACAddress": "08:f1:ea:7f:ef:5a",
+    "LastUpdate": "2023-02-07T09:41:00.45072Z",
+    "ComponentID": "x3000c0s2b0",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "08f1ea7fef5b",
+    "Description": "Configuration of this Manager Network Interface",
+    "MACAddress": "08:f1:ea:7f:ef:5b",
+    "LastUpdate": "2023-02-07T09:41:00.45072Z",
+    "ComponentID": "x3000c0s2b0",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "b8599ff91d1a",
+    "Description": "Bond0 - bond0.nmn0- kea",
+    "MACAddress": "b8:59:9f:f9:1d:1a",
+    "LastUpdate": "2023-02-07T13:07:42.047156Z",
+    "ComponentID": "x3000c0s6b0n0",
+    "Type": "Node",
+    "IPAddresses": [
+      {
+        "IPAddress": "127.252.1.9"
+      },
+      {
+        "IPAddress": "127.101.8.40"
+      },
+      {
+        "IPAddress": "127.1.1.7"
+      },
+      {
+        "IPAddress": "127.101.11.8"
+      },
+      {
+        "IPAddress": "127.254.1.14"
+      }
+    ]
+  },
+  {
+    "ID": "b8599ff91bc2",
+    "Description": "Bond0 - bond0.nmn0- kea",
+    "MACAddress": "b8:59:9f:f9:1b:c2",
+    "LastUpdate": "2023-02-07T13:07:42.083088Z",
+    "ComponentID": "x3000c0s8b0n0",
+    "Type": "Node",
+    "IPAddresses": [
+      {
+        "IPAddress": "127.252.1.11"
+      },
+      {
+        "IPAddress": "127.1.1.9"
+      },
+      {
+        "IPAddress": "127.101.11.10"
+      },
+      {
+        "IPAddress": "127.254.1.18"
+      },
+      {
+        "IPAddress": "127.101.8.42"
+      }
+    ]
+  },
+  {
+    "ID": "08f1ea803d7e",
+    "Description": "Configuration of this Manager Network Interface",
+    "MACAddress": "08:f1:ea:80:3d:7e",
+    "LastUpdate": "2023-02-07T09:41:00.278353Z",
+    "ComponentID": "x3000c0s3b0",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "08f1ea803d7f",
+    "Description": "Configuration of this Manager Network Interface",
+    "MACAddress": "08:f1:ea:80:3d:7f",
+    "LastUpdate": "2023-02-07T09:41:00.278353Z",
+    "ComponentID": "x3000c0s3b0",
+    "Type": "NodeBMC",
+    "IPAddresses": []
+  },
+  {
+    "ID": "b8599ff91bfa",
+    "Description": "Bond0 - bond0.nmn0- kea",
+    "MACAddress": "b8:59:9f:f9:1b:fa",
+    "LastUpdate": "2023-02-07T13:07:42.099295Z",
+    "ComponentID": "x3000c0s9b0n0",
+    "Type": "Node",
+    "IPAddresses": [
+      {
+        "IPAddress": "127.252.1.12"
+      },
+      {
+        "IPAddress": "127.101.11.11"
+      },
+      {
+        "IPAddress": "127.254.1.20"
+      },
+      {
+        "IPAddress": "127.101.8.43"
+      },
+      {
+        "IPAddress": "127.1.1.10"
+      }
+    ]
+  },
+  {
+    "ID": "2e2f59879d5c",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "2e:2f:59:87:9d:5c",
+    "LastUpdate": "2023-02-07T13:06:42.544969Z",
+    "ComponentID": "x3000c0s4b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "6e9ca7a23d59",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "6e:9c:a7:a2:3d:59",
+    "LastUpdate": "2023-02-07T13:06:39.774713Z",
+    "ComponentID": "x3000c0s5b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "26d22ff7227e",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "26:d2:2f:f7:22:7e",
+    "LastUpdate": "2023-02-07T13:06:39.967153Z",
+    "ComponentID": "x3000c0s5b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "5ec289a83a7c",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "5e:c2:89:a8:3a:7c",
+    "LastUpdate": "2023-02-07T13:06:41.369209Z",
+    "ComponentID": "x3000c0s7b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  },
+  {
+    "ID": "16e6c8b2347c",
+    "Description": "CSI Handoff MAC",
+    "MACAddress": "16:e6:c8:b2:34:7c",
+    "LastUpdate": "2023-02-07T13:06:41.81621Z",
+    "ComponentID": "x3000c0s3b0n0",
+    "Type": "Node",
+    "IPAddresses": []
+  }
+]

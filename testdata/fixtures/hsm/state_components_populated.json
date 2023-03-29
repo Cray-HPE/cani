@@ -1,0 +1,14 @@
+{
+  "ID": "x3000c0s1b0n0",
+  "Type": "Node",
+  "State": "Populated",
+  "Flag": "OK",
+  "Enabled": true,
+  "Role": "Management",
+  "SubRole": "Master",
+  "NID": 100009,
+  "NetType": "Sling",
+  "Arch": "X86",
+  "Class": "River",
+  "Locked": true
+}

@@ -25,7 +25,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 package csminv
 
 import (
-	"errors"
 	"fmt"
 	_ "image/png"
 	"io"
@@ -77,9 +76,9 @@ func shell(command string, args []string) (stdout []byte, stderr []byte, err err
 	stderrIn, _ := cmd.StderrPipe()
 	err = cmd.Start()
 	if err != nil {
-		return stdout, stderr, errors.New(fmt.Sprintf("cmd.Start() failed with '%s'\n", err))
+		log.Fatalf("cmd.Start() failed with '%s'\n", err)
+		return nil, nil, err
 	}
-
 	// cmd.Wait() should be called only after we finish reading
 	// from stdoutIn and stderrIn.
 	// wg ensures that we finish
@@ -91,7 +90,6 @@ func shell(command string, args []string) (stdout []byte, stderr []byte, err err
 	}()
 
 	stderr, errStderr = copyAndCapture(os.Stderr, stderrIn)
-	// fmt.Println("waiting for cmd.Wait()...")
 	wg.Wait()
 
 	err = cmd.Wait()
@@ -101,13 +99,11 @@ func shell(command string, args []string) (stdout []byte, stderr []byte, err err
 	if errStdout != nil || errStderr != nil {
 		log.Fatal("failed to capture stdout or stderr\n")
 	}
-	return stdout, stderr, nil
-	// outStr, errStr := string(stdout), string(stderr)
-	// if errStr != "" {
-	// 	fmt.Println(errStr)
-	// }
-	// if outStr != "" {
-	// 	fmt.Println(outStr)
-	// }
-	// fmt.Printf("\nout:\n%s\nerr:\n%s\n", outStr, errStr)
+	if stderr != nil {
+		return nil, stderr, err
+	}
+	if stdout != nil {
+		return stdout, nil, err
+	}
+	return stdout, stderr, err
 }

@@ -35,6 +35,30 @@ It '--debug add blade'
   The stdout should equal 'add blade called'
 End
 
+It 'add blade --status'
+  When call bin/csminv add blade --status
+  The status should equal 0
+  The lines of stdout should equal 6
+  The line 1 of stdout should satisfy match_colored_text 'OK cray CLI is initialized'
+  The line 2 of stdout should satisfy match_colored_text 'OK DVS is on NMN or HMN'
+  The line 3 of stdout should satisfy match_colored_text 'OK Use existing cabinet'
+  The line 4 of stdout should satisfy match_colored_text 'OK Slingshot fabric is configured with the desired topology'
+  The line 5 of stdout should satisfy match_colored_text 'OK SLS has the desired HSN configuration'
+  The line 6 of stdout should satisfy match_colored_text 'OK Check HSN and link status'
+End
+
+It '--debug add blade --status'
+  When call bin/csminv --debug add blade --status
+  The status should equal 0
+  The lines of stdout should equal 6
+  The line 1 of stdout should satisfy match_colored_text 'OK cray CLI is initialized'
+  The line 2 of stdout should satisfy match_colored_text 'OK DVS is on NMN or HMN'
+  The line 3 of stdout should satisfy match_colored_text 'OK Use existing cabinet'
+  The line 4 of stdout should satisfy match_colored_text 'OK Slingshot fabric is configured with the desired topology'
+  The line 5 of stdout should satisfy match_colored_text 'OK SLS has the desired HSN configuration'
+  The line 6 of stdout should satisfy match_colored_text 'OK Check HSN and link status'
+End
+
 It '--debug add blade blade1'
   When call bin/csminv --debug add blade blade1
   The status should equal 0

@@ -1,0 +1,262 @@
+{
+  "RedfishEndpoints": [
+    {
+      "ID": "x3000c0s17b0",
+      "Type": "NodeBMC",
+      "Hostname": "",
+      "Domain": "",
+      "FQDN": "x3000c0s17b0",
+      "Enabled": true,
+      "UUID": "e005dd6e-debf-0010-e603-b42e993a25fa",
+      "User": "root",
+      "Password": "",
+      "RediscoverOnUpdate": true,
+      "DiscoveryInfo": {
+        "LastDiscoveryAttempt": "2023-03-31T11:40:42.954738Z",
+        "LastDiscoveryStatus": "DiscoverOK",
+        "RedfishVersion": "1.7.0"
+      }
+    },
+    {
+      "ID": "x3000c0s11b0",
+      "Type": "NodeBMC",
+      "Hostname": "",
+      "Domain": "",
+      "FQDN": "x3000c0s11b0",
+      "Enabled": true,
+      "UUID": "808cde6e-debf-0010-e703-e0d55e659164",
+      "User": "root",
+      "Password": "",
+      "RediscoverOnUpdate": true,
+      "DiscoveryInfo": {
+        "LastDiscoveryAttempt": "2023-03-31T11:40:44.076692Z",
+        "LastDiscoveryStatus": "DiscoverOK",
+        "RedfishVersion": "1.7.0"
+      }
+    },
+    {
+      "ID": "x3000c0s5b0",
+      "Type": "NodeBMC",
+      "Hostname": "",
+      "Domain": "",
+      "FQDN": "x3000c0s5b0",
+      "Enabled": true,
+      "UUID": "e005dd6e-debf-0010-e603-b42e99a52287",
+      "User": "root",
+      "Password": "",
+      "RediscoverOnUpdate": true,
+      "DiscoveryInfo": {
+        "LastDiscoveryAttempt": "2023-03-31T11:40:44.873992Z",
+        "LastDiscoveryStatus": "DiscoverOK",
+        "RedfishVersion": "1.7.0"
+      }
+    },
+    {
+      "ID": "x3000c0s29b0",
+      "Type": "NodeBMC",
+      "Hostname": "",
+      "Domain": "",
+      "FQDN": "x3000c0s29b0",
+      "Enabled": true,
+      "UUID": "b42e99a5-22e7-cd03-0010-debf00f6456e",
+      "User": "root",
+      "Password": "",
+      "RediscoverOnUpdate": true,
+      "DiscoveryInfo": {
+        "LastDiscoveryAttempt": "2023-03-31T11:40:58.217978Z",
+        "LastDiscoveryStatus": "DiscoverOK",
+        "RedfishVersion": "1.7.0"
+      }
+    },
+    {
+      "ID": "x3000c0s19b1",
+      "Type": "NodeBMC",
+      "Hostname": "x3000c0s19b1",
+      "Domain": "",
+      "FQDN": "x3000c0s19b1",
+      "Enabled": true,
+      "UUID": "029649c5-9569-41a8-8858-ab6f513d83f1",
+      "User": "root",
+      "Password": "",
+      "MACAddr": "a4bf013ed1fe",
+      "RediscoverOnUpdate": true,
+      "DiscoveryInfo": {
+        "LastDiscoveryAttempt": "2023-03-31T12:09:51.536119Z",
+        "LastDiscoveryStatus": "DiscoverOK",
+        "RedfishVersion": "1.7.0"
+      }
+    },
+    {
+      "ID": "x3000c0s19b4",
+      "Type": "NodeBMC",
+      "Hostname": "x3000c0s19b4",
+      "Domain": "",
+      "FQDN": "x3000c0s19b4",
+      "Enabled": true,
+      "UUID": "14007c57-da40-4f23-ae14-066e5117733c",
+      "User": "root",
+      "Password": "",
+      "MACAddr": "a4bf013ed294",
+      "RediscoverOnUpdate": true,
+      "DiscoveryInfo": {
+        "LastDiscoveryAttempt": "2023-03-31T12:09:51.548192Z",
+        "LastDiscoveryStatus": "DiscoverOK",
+        "RedfishVersion": "1.7.0"
+      }
+    },
+    {
+      "ID": "x3000c0s19b3",
+      "Type": "NodeBMC",
+      "Hostname": "x3000c0s19b3",
+      "Domain": "",
+      "FQDN": "x3000c0s19b3",
+      "Enabled": true,
+      "UUID": "4970d119-e1b1-4b9f-8002-39504b1869c7",
+      "User": "root",
+      "Password": "",
+      "MACAddr": "a4bf013ecf6a",
+      "RediscoverOnUpdate": true,
+      "DiscoveryInfo": {
+        "LastDiscoveryAttempt": "2023-03-31T12:10:03.390118Z",
+        "LastDiscoveryStatus": "DiscoverOK",
+        "RedfishVersion": "1.7.0"
+      }
+    },
+    {
+      "ID": "x3000c0s19b2",
+      "Type": "NodeBMC",
+      "Hostname": "x3000c0s19b2",
+      "Domain": "",
+      "FQDN": "x3000c0s19b2",
+      "Enabled": true,
+      "UUID": "6143d866-fd48-468e-957b-72dd317d14bc",
+      "User": "root",
+      "Password": "",
+      "MACAddr": "a4bf013ec02e",
+      "RediscoverOnUpdate": true,
+      "DiscoveryInfo": {
+        "LastDiscoveryAttempt": "2023-03-31T12:10:03.593504Z",
+        "LastDiscoveryStatus": "DiscoverOK",
+        "RedfishVersion": "1.7.0"
+      }
+    },
+    {
+      "ID": "x3000c0s27b0",
+      "Type": "NodeBMC",
+      "Hostname": "x3000c0s27b0",
+      "Domain": "",
+      "FQDN": "x3000c0s27b0",
+      "Enabled": true,
+      "UUID": "407fdb6e-debf-0010-e603-b42e99a5233b",
+      "User": "root",
+      "Password": "",
+      "MACAddr": "b42e99a5233b",
+      "RediscoverOnUpdate": true,
+      "DiscoveryInfo": {
+        "LastDiscoveryAttempt": "2023-03-31T12:11:46.321299Z",
+        "LastDiscoveryStatus": "DiscoverOK",
+        "RedfishVersion": "1.7.0"
+      }
+    },
+    {
+      "ID": "x3000c0s1b0",
+      "Type": "NodeBMC",
+      "Hostname": "",
+      "Domain": "",
+      "FQDN": "x3000c0s1b0",
+      "Enabled": true,
+      "User": "root",
+      "Password": "",
+      "RediscoverOnUpdate": true,
+      "DiscoveryInfo": {
+        "LastDiscoveryAttempt": "2023-03-31T11:38:50.803205Z",
+        "LastDiscoveryStatus": "HTTPsGetFailed"
+      }
+    },
+    {
+      "ID": "x3000c0s13b0",
+      "Type": "NodeBMC",
+      "Hostname": "",
+      "Domain": "",
+      "FQDN": "x3000c0s13b0",
+      "Enabled": true,
+      "UUID": "b42e99ab-2594-cb03-0010-debf40e8916d",
+      "User": "root",
+      "Password": "",
+      "RediscoverOnUpdate": true,
+      "DiscoveryInfo": {
+        "LastDiscoveryAttempt": "2023-03-31T11:40:34.023312Z",
+        "LastDiscoveryStatus": "DiscoverOK",
+        "RedfishVersion": "1.7.0"
+      }
+    },
+    {
+      "ID": "x3000c0s15b0",
+      "Type": "NodeBMC",
+      "Hostname": "",
+      "Domain": "",
+      "FQDN": "x3000c0s15b0",
+      "Enabled": true,
+      "UUID": "808cde6e-debf-0010-e603-b42e993a261a",
+      "User": "root",
+      "Password": "",
+      "RediscoverOnUpdate": true,
+      "DiscoveryInfo": {
+        "LastDiscoveryAttempt": "2023-03-31T11:40:39.799561Z",
+        "LastDiscoveryStatus": "DiscoverOK",
+        "RedfishVersion": "1.7.0"
+      }
+    },
+    {
+      "ID": "x3000c0s9b0",
+      "Type": "NodeBMC",
+      "Hostname": "",
+      "Domain": "",
+      "FQDN": "x3000c0s9b0",
+      "Enabled": true,
+      "UUID": "407fdb6e-debf-0010-e603-b42e993a2606",
+      "User": "root",
+      "Password": "",
+      "RediscoverOnUpdate": true,
+      "DiscoveryInfo": {
+        "LastDiscoveryAttempt": "2023-03-31T11:40:41.572372Z",
+        "LastDiscoveryStatus": "DiscoverOK",
+        "RedfishVersion": "1.7.0"
+      }
+    },
+    {
+      "ID": "x3000c0s3b0",
+      "Type": "NodeBMC",
+      "Hostname": "",
+      "Domain": "",
+      "FQDN": "x3000c0s3b0",
+      "Enabled": true,
+      "UUID": "808cde6e-debf-0010-e603-b42e99a52273",
+      "User": "root",
+      "Password": "",
+      "RediscoverOnUpdate": true,
+      "DiscoveryInfo": {
+        "LastDiscoveryAttempt": "2023-03-31T11:40:41.659516Z",
+        "LastDiscoveryStatus": "DiscoverOK",
+        "RedfishVersion": "1.7.0"
+      }
+    },
+    {
+      "ID": "x3000c0s7b0",
+      "Type": "NodeBMC",
+      "Hostname": "",
+      "Domain": "",
+      "FQDN": "x3000c0s7b0",
+      "Enabled": true,
+      "UUID": "e005dd6e-debf-0010-e603-b42e99a52267",
+      "User": "root",
+      "Password": "",
+      "RediscoverOnUpdate": true,
+      "DiscoveryInfo": {
+        "LastDiscoveryAttempt": "2023-03-31T11:40:42.048047Z",
+        "LastDiscoveryStatus": "DiscoverOK",
+        "RedfishVersion": "1.7.0"
+      }
+    }
+  ]
+}

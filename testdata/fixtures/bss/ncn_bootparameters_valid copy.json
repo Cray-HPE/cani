@@ -1,0 +1,115 @@
+[
+  {
+    "hosts": [
+      "x3000c0s1b0n0"
+    ],
+    "params": "biosdevname=1 ifname=lan3:00:00:00:00:00:00 ip=lan3:auto6 ifname=lan2:00:00:00:00:00:00 ip=lan2:auto6 ifname=lan1:00:00:00:00:00:00 ip=lan1:auto6 ifname=lan0:00:00:00:00:00:00 ip=lan0:auto6 ifname=mgmt0:00:00:00:00:00:00 ip=mgmt0:dhcp ifname=mgmt1:00:00:00:00:00:00 ip=mgmt1:auto6 psi=1 pcie_ports=native transparent_hugepage=never console=tty0 console=ttyS0,115200 iommu=pt split_lock_detect=off metal.server=s3://boot-images/12345657-abcd-8901-ef12-123456789012/rootfs metal.no-wipe=1 ds=nocloud-net;s=http://127.92.100.81:8888/ rootfallback=LABEL=BOOTRAID initrd=initrd.img.xz rd.live.dir=1.4.0 root=live:LABEL=SQFSRAID rd.live.ram=0 rd.writable.fsimg=0 rd.skipfsck rd.live.squashimg=rootfs rd.live.overlay=LABEL=ROOTRAID rd.live.overlay.thin=1 rd.live.overlay.overlayfs=1 rd.luks rd.luks.crypttab=0 rd.lvm.conf=0 rd.lvm=1 rd.auto=1 rd.md=1 rd.dm=0 rd.neednet=0 rd.peerdns=0 rd.md.waitclean=1 rd.multipath=0 rd.md.conf=1 rd.bootif=0 hostname=ncn-m001 rd.net.timeout.carrier=120 rd.net.timeout.ifup=120 rd.net.timeout.iflink=120 rd.net.dhcp.retry=5 rd.net.timeout.ipv6auto=0 rd.net.timeout.ipv6dad=0 append nosplash quiet crashkernel=360M log_buf_len=1 rd.retry=10 rd.shell",
+    "kernel": "s3://boot-images/12345657-abcd-8901-ef12-123456789012/kernel",
+    "initrd": "s3://boot-images/12345657-abcd-8901-ef12-123456789012/initrd",
+    "cloud-init": {
+      "meta-data": {
+        "availability-zone": "x3000",
+        "instance-id": "i-ABCD1234",
+        "ipam": {
+          "cmn": {
+            "gateway": "127.101.8.1",
+            "ip": "127.101.8.35/24",
+            "parent_device": "bond0",
+            "vlanid": 7
+          },
+          "hmn": {
+            "gateway": "127.254.0.1",
+            "ip": "127.254.1.4/17",
+            "parent_device": "bond0",
+            "vlanid": 4
+          },
+          "mtl": {
+            "gateway": "127.1.0.1",
+            "ip": "127.1.1.2/16",
+            "parent_device": "bond0",
+            "vlanid": 0
+          },
+          "nmn": {
+            "gateway": "127.252.0.1",
+            "ip": "127.252.1.4/17",
+            "parent_device": "bond0",
+            "vlanid": 2
+          }
+        },
+        "local-hostname": "ncn-m001",
+        "region": "wasp",
+        "shasta-role": "ncn-master",
+        "xname": "x3000c0s1b0n0"
+      },
+      "user-data": {
+        "hostname": "ncn-m001",
+        "local_hostname": "ncn-m001",
+        "mac0": {
+          "gateway": "127.252.0.1",
+          "ip": "",
+          "mask": "127.252.2.0/23"
+        },
+        "ntp": {
+          "allow": [
+            "127.252.0.0/17",
+            "127.254.0.0/17",
+            "127.107.0.0/17",
+            "127.106.0.0/17"
+          ],
+          "config": {
+            "confpath": "/etc/chrony.d/cray.conf",
+            "template": "## template: jinja\n{{ server }}n"
+          },
+          "enabled": true,
+          "ntp_client": "chrony",
+          "peers": [
+            "ncn-m001",
+            "ncn-m002",
+            "ncn-m003",
+            "ncn-w001",
+            "ncn-w002",
+            "ncn-w003",
+            "ncn-s001",
+            "ncn-s002",
+            "ncn-s003"
+          ],
+          "servers": [
+            "ncn-m001",
+            "ntp.hpecorp.net"
+          ]
+        },
+        "runcmd": [
+          "/srv/cray/scripts/metal/net-init.sh",
+          "/srv/cray/scripts/common/update_ca_certs.py",
+          "/srv/cray/scripts/metal/install.sh",
+          "/srv/cray/scripts/common/kubernetes-cloudinit.sh",
+          "/srv/cray/scripts/common/join-spire-on-storage.sh",
+          "touch /etc/cloud/cloud-init.disabled"
+        ],
+        "timezone": "UTC",
+        "write_files": [
+          {
+            "content": "127.106.0.0/22 127.252.0.1 - bond0.nmn0\n127.1.0.0/16 127.252.0.1 - bond0.nmn0\n127.92.100.0/24 127.252.0.1 - bond0.nmn0\n",
+            "owner": "root:root",
+            "path": "/etc/sysconfig/network/ifroute-bond0.nmn0",
+            "permissions": "0644"
+          },
+          {
+            "content": "127.107.0.0/22 127.254.0.1 - bond0.hmn0\n127.94.100.0/24 127.254.0.1 - bond0.hmn0\n",
+            "owner": "root:root",
+            "path": "/etc/sysconfig/network/ifroute-bond0.hmn0",
+            "permissions": "0644"
+          }
+        ]
+      },
+      "phone-home": {
+        "pub_key_dsa": "",
+        "pub_key_rsa": "",
+        "pub_key_ecdsa": "",
+        "instance_id": "",
+        "hostname": "",
+        "fqdn": ""
+      }
+    }
+  }
+]
