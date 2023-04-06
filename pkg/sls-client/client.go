@@ -118,6 +118,36 @@ func (sc *SLSClient) GetAllHardware(ctx context.Context) ([]sls_common.GenericHa
 	return allHardware, nil
 }
 
+func (sc *SLSClient) GetHardware(ctx context.Context, xname string) (sls_common.GenericHardware, error) {
+	xname = xnametypes.NormalizeHMSCompID(xname)
+
+	// Build up the request
+	request, err := http.NewRequestWithContext(ctx, "GET", sc.baseURL+"/v1/hardware/"+xname, nil)
+	if err != nil {
+		return sls_common.GenericHardware{}, err
+	}
+	base.SetHTTPUserAgent(request, sc.instanceName)
+	sc.addAPITokenHeader(request)
+
+	// Perform the request!
+	response, err := sc.client.Do(request)
+	if err != nil {
+		return sls_common.GenericHardware{}, err
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		return sls_common.GenericHardware{}, fmt.Errorf("unexpected status code %d expected 200", response.StatusCode)
+	}
+
+	var hardware sls_common.GenericHardware
+	if err := json.NewDecoder(response.Body).Decode(&hardware); err != nil {
+		return sls_common.GenericHardware{}, err
+	}
+
+	return hardware, nil
+}
+
 func (sc *SLSClient) PutHardware(ctx context.Context, hardware sls_common.GenericHardware) error {
 	if !xnametypes.IsHMSCompIDValid(hardware.Xname) {
 		return fmt.Errorf("hardware has invalid xname %s", hardware.Xname)

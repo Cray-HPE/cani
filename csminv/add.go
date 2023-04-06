@@ -26,6 +26,7 @@ package csminv
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -33,6 +34,8 @@ import (
 	client "github.com/docker/docker/client"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/spf13/cobra"
+
+	"github.com/Cray-HPE/csminv/csminv/node"
 )
 
 // addCmd represents the switch add command
@@ -41,11 +44,16 @@ var addCmd = &cobra.Command{
 	Short: "Add assets to the inventory.",
 	Long:  `Add assets to the inventory.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("add called")
+		if len(args) == 0 {
+			cmd.Help()
+			os.Exit(0)
+		}
 	},
 }
 
 func init() {
+	addCmd.AddCommand(node.AddNodeCmd)
+
 	rootCmd.AddCommand(addCmd)
 
 	// Here you will define your flags and configuration settings.
