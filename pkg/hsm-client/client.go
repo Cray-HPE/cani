@@ -3,12 +3,16 @@ package hms_client
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 
 	base "github.com/Cray-HPE/hms-base/v2"
+	"github.com/Cray-HPE/hms-xname/xnametypes"
 )
+
+var ErrNotFound = errors.New("not found")
 
 type HSMClient struct {
 	baseURL      string
@@ -130,4 +134,37 @@ func (sc *HSMClient) GetStateComponentsFilter(ctx context.Context, filter *State
 	}
 
 	return serviceValues, nil
+}
+
+func (sc *HSMClient) GetStateComponent(ctx context.Context, xname string) (base.Component, error) {
+	// Build up the request
+	request, err := http.NewRequestWithContext(ctx, "GET", sc.baseURL+"/v2/State/Components/"+xnametypes.NormalizeHMSCompID(xname), nil)
+	if err != nil {
+		return base.Component{}, err
+	}
+	base.SetHTTPUserAgent(request, sc.instanceName)
+	sc.addAPITokenHeader(request)
+
+	// Perform the request!
+	response, err := sc.client.Do(request)
+	if err != nil {
+		return base.Component{}, err
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		var errs []error
+		if response.StatusCode == http.StatusNotFound {
+			errs = append(errs, ErrNotFound)
+		}
+		errs = append(errs, fmt.Errorf("unexpected status code %d expected 200", response.StatusCode))
+		return base.Component{}, errors.Join(errs...)
+	}
+
+	var component base.Component
+	if err := json.NewDecoder(response.Body).Decode(&component); err != nil {
+		return base.Component{}, err
+	}
+
+	return component, nil
 }

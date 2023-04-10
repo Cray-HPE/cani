@@ -26,6 +26,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -35,6 +36,8 @@ import (
 	sls_common "github.com/Cray-HPE/hms-sls/v2/pkg/sls-common"
 	"github.com/Cray-HPE/hms-xname/xnametypes"
 )
+
+var ErrHardwareNotFound = errors.New("hardware object not found")
 
 type SLSClient struct {
 	baseURL      string
@@ -137,7 +140,12 @@ func (sc *SLSClient) GetHardware(ctx context.Context, xname string) (sls_common.
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		return sls_common.GenericHardware{}, fmt.Errorf("unexpected status code %d expected 200", response.StatusCode)
+		var errs []error
+		if response.StatusCode == http.StatusNotFound {
+			errs = append(errs, ErrHardwareNotFound)
+		}
+		errs = append(errs, fmt.Errorf("unexpected status code %d expected 200", response.StatusCode))
+		return sls_common.GenericHardware{}, errors.Join(errs...)
 	}
 
 	var hardware sls_common.GenericHardware
