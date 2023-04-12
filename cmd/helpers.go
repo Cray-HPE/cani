@@ -21,10 +21,21 @@ OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
-package main
+package cmd
 
-import "github.com/Cray-HPE/csminv/cmd"
+import "fmt"
 
-func main() {
-	cmd.Execute()
+var (
+	ok = fmt.Sprintf("\x1b[%dm%s\x1b[0m", 32, "OK")
+	no = fmt.Sprintf("\x1b[%dm%s\x1b[0m", 31, "NO")
+)
+
+// padRight adds nice formatting for strings
+func padRight(str, pad string, lenght int) string {
+	for {
+		str += pad
+		if len(str) > lenght {
+			return str[0:lenght]
+		}
+	}
 }

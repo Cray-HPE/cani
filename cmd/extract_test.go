@@ -21,10 +21,10 @@ OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
-package main
+package cmd
 
-import "github.com/Cray-HPE/csminv/cmd"
-
-func main() {
-	cmd.Execute()
-}
+const (
+	system_config_valid = "testdata/fixtures/csi/system_config_valid.yaml"
+	paddle_valid        = "testdata/fixtures/canu/paddle.json"
+	sls_input_valid     = "testdata/fixtures/sls/sls_input_file_valid.json"
+)

@@ -21,10 +21,48 @@ OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
-package main
+package cmd
 
-import "github.com/Cray-HPE/csminv/cmd"
+import (
+	"fmt"
 
-func main() {
-	cmd.Execute()
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
+)
+
+// removeSwitchCmd represents the cabinet add command
+var removeSwitchCmd = &cobra.Command{
+	Use:   "switch",
+	Short: "Remove switches from the inventory.",
+	Long:  `Remove switches from the inventory.`,
+	Args:  cobra.ArbitraryArgs,
+	Run: func(cmd *cobra.Command, args []string) {
+		removeSwitch(args)
+	},
+}
+
+func init() {
+	removeCmd.AddCommand(removeSwitchCmd)
+
+	// Here you will define your flags and configuration settings.
+
+	// Cobra supports Persistent Flags which will work for this command
+	// and all subcommands, e.g.:
+	// removeSwitchCmd.PersistentFlags().String("foo", "", "A help for foo")
+
+	// Cobra supports local flags which will only run when this command
+	// is called directly, e.g.:
+	// removeSwitchCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+func removeSwitch(args []string) {
+	fmt.Println("remove switch called")
+	for _, arg := range args {
+		// code to remove switch
+		// ...
+
+		if debug {
+			log.Debug().Msgf("Removed switch %s", arg)
+		}
+	}
 }
