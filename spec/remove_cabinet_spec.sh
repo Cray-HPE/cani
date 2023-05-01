@@ -22,21 +22,21 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 It 'remove cabinet (with no args)'
-  When call bin/csminv remove cabinet
+  When call bin/cani remove cabinet
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal "remove cabinet called"
 End
 
 It '--debug remove cabinet'
-  When call bin/csminv --debug remove cabinet
+  When call bin/cani --debug remove cabinet
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal 'remove cabinet called'
 End
 
 It '--debug remove cabinet cabinet1'
-  When call bin/csminv --debug remove cabinet cabinet1
+  When call bin/cani --debug remove cabinet cabinet1
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal 'remove cabinet called'

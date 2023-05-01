@@ -22,14 +22,14 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 It 'schema (with no args)'
-  When call bin/csminv schema
+  When call bin/cani schema
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal "schema called"
 End
 
 It 'schema validate (with no args)'
-  When call bin/csminv schema
+  When call bin/cani schema
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal "schema called"

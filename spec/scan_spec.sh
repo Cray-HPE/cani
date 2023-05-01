@@ -22,71 +22,71 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 It 'scan (with no args)'
-  When call bin/csminv scan
+  When call bin/cani scan
   The status should equal 1
   The lines of stderr should equal 14
   The line 1 of stderr should equal 'Error: required flag(s) "host", "password", "port", "username" not set'
 End
 
 It '--debug scan'
-  When call bin/csminv --debug scan
+  When call bin/cani --debug scan
   The status should equal 1
   The lines of stderr should equal 14
   The line 1 of stderr should equal 'Error: required flag(s) "host", "password", "port", "username" not set'
 End
 
 It 'scan --host somehost'
-  When call bin/csminv scan --host somehost
+  When call bin/cani scan --host somehost
   The status should equal 1
   The lines of stderr should equal 14
   The line 1 of stderr should equal 'Error: required flag(s) "password", "port", "username" not set'
 End
 
 It '--debug scan --host somehost'
-  When call bin/csminv --debug scan --host somehost
+  When call bin/cani --debug scan --host somehost
   The status should equal 1
   The lines of stderr should equal 14
   The line 1 of stderr should equal 'Error: required flag(s) "password", "port", "username" not set'
 End
 
 It 'scan --host somehost --password somepassword'
-  When call bin/csminv scan --host somehost --password somepassword
+  When call bin/cani scan --host somehost --password somepassword
   The status should equal 1
   The lines of stderr should equal 14
   The line 1 of stderr should equal 'Error: required flag(s) "port", "username" not set'
 End
 
 It '--debug scan --host somehost --password somepassword'
-  When call bin/csminv --debug scan --host somehost --password somepassword
+  When call bin/cani --debug scan --host somehost --password somepassword
   The status should equal 1
   The lines of stderr should equal 14
   The line 1 of stderr should equal 'Error: required flag(s) "port", "username" not set'
 End
 
 It 'scan --host somehost --password somepassword --port 443'
-  When call bin/csminv scan --host somehost --password somepassword --port 443
+  When call bin/cani scan --host somehost --password somepassword --port 443
   The status should equal 1
   The lines of stderr should equal 14
   The line 1 of stderr should equal 'Error: required flag(s) "username" not set'
 End
 
 It '--debug scan --host somehost --password somepassword --port 443'
-  When call bin/csminv --debug scan --host somehost --password somepassword --port 443
+  When call bin/cani --debug scan --host somehost --password somepassword --port 443
   The status should equal 1
   The lines of stderr should equal 14
   The line 1 of stderr should equal 'Error: required flag(s) "username" not set'
 End
 
 It 'scan --host somehost --password somepassword --port 443 --username someusername'
-  When call bin/csminv scan --host somehost --password somepassword --port 443 --username someusername
+  When call bin/cani scan --host somehost --password somepassword --port 443 --username someusername
   The status should equal 1
   The lines of stderr should equal 2
-  The line 2 of stderr should include 'dial tcp: lookup somehost:'
+  The line 2 of stderr should include 'dial tcp: lookup somehost'
 End
 
 It '--debug scan --host somehost --password somepassword --port 443 --username someusername'
-  When call bin/csminv --debug scan --host somehost --password somepassword --port 443 --username someusername
+  When call bin/cani --debug scan --host somehost --password somepassword --port 443 --username someusername
   The status should equal 1
   The lines of stderr should equal 2
-  The line 2 of stderr should include 'dial tcp: lookup somehost:'
+  The line 2 of stderr should include 'dial tcp: lookup somehost'
 End

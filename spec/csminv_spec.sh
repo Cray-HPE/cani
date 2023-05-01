@@ -22,19 +22,19 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 It '(with no args)'
-  When call bin/csminv
+  When call bin/cani
   The status should equal 0
   The stdout should include "From subfloor to top-of-rack, manage your HPC cluster's inventory!"
 End
 
 It '--help'
-  When call bin/csminv --help
+  When call bin/cani --help
   The status should equal 0
   The stdout should include "From subfloor to top-of-rack, manage your HPC cluster's inventory!"
 End
 
 It '--debug'
-  When call bin/csminv --debug
+  When call bin/cani --debug
   The status should equal 0
   The stdout should include '{"level":"debug","message":"Debug logging enabled"}'
 End

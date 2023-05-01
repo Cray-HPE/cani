@@ -23,8 +23,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 */
 package main
 
-import "github.com/Cray-HPE/csminv/csminv"
+import cani "github.com/Cray-HPE/cani/cmd"
 
 func main() {
-	csminv.Execute()
+	cani.Execute()
 }

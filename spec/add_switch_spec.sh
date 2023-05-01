@@ -22,21 +22,21 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 It 'add switch (with no args)'
-  When call bin/csminv add switch
+  When call bin/cani add switch
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal "add switch called"
 End
 
 It '--debug add switch'
-  When call bin/csminv --debug add switch
+  When call bin/cani --debug add switch
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal 'add switch called'
 End
 
 It '--debug add switch switch1'
-  When call bin/csminv --debug add switch switch1
+  When call bin/cani --debug add switch switch1
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal 'add switch called'

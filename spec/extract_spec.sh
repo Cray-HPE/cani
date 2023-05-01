@@ -23,24 +23,24 @@
 
 
 It 'extract (with no args)'
-  When call bin/csminv extract
+  When call bin/cani extract
   The status should equal 1
   # https://github.com/shellspec/shellspec/issues/295
   # The stderr should equal the contents of file "testdata/extract/extract_no_args.stderr"
   The lines of stderr should equal 9
   The line 1 of stderr should equal "Error: requires at least 1 arg(s), only received 0"
-  The line 3 of stderr should equal "  csminv extract [...FILES] [flags]"
+  The line 3 of stderr should equal "  cani extract [...FILES] [flags]"
 End
 
 It 'extract --help'
-  When call bin/csminv extract --help
+  When call bin/cani extract --help
   The status should equal 0
   The lines of stdout should equal 102
   The line 3 of stdout should equal "FIELD                                   FLAG                                     ENV                                     DEFAULT"
 End
 
 It 'extract testdata/fixtures/sls/sls_input_file_valid.json'
-  When call bin/csminv extract testdata/fixtures/sls/sls_input_file_valid.json
+  When call bin/cani extract testdata/fixtures/sls/sls_input_file_valid.json
   The status should equal 0
   The lines of stdout should equal 186
   The line 121 of stdout should equal '    "x3000": {'
@@ -48,7 +48,7 @@ It 'extract testdata/fixtures/sls/sls_input_file_valid.json'
 End
 
 It 'extract testdata/fixtures/canu/paddle_valid.json'
-  When call bin/csminv extract testdata/fixtures/canu/paddle_valid.json
+  When call bin/cani extract testdata/fixtures/canu/paddle_valid.json
   The status should equal 0
   The lines of stdout should equal 357
   The line 6 of stdout should equal '   "shcd_file": "Full_Architecture_Golden_Config_1.1.5.xlsx",'
@@ -56,7 +56,7 @@ It 'extract testdata/fixtures/canu/paddle_valid.json'
 End
 
 It 'extract testdata/fixtures/csi/system_config_valid.yaml'
-  When call bin/csminv extract testdata/fixtures/csi/system_config_valid.yaml    
+  When call bin/cani extract testdata/fixtures/csi/system_config_valid.yaml    
   The status should equal 0
   The lines of stdout should equal 127
   The line 49 of stdout should equal '   "hmn_dynamic_pool": "127.127.127.127/24",'
@@ -64,7 +64,7 @@ It 'extract testdata/fixtures/csi/system_config_valid.yaml'
 End
 
 It 'extract testdata/fixtures/csi/system_config_valid.yaml testdata/fixtures/canu/paddle_valid.json testdata/fixtures/sls/sls_input_file_valid.json'
-  When call bin/csminv extract testdata/fixtures/csi/system_config_valid.yaml testdata/fixtures/canu/paddle_valid.json testdata/fixtures/sls/sls_input_file_valid.json 
+  When call bin/cani extract testdata/fixtures/csi/system_config_valid.yaml testdata/fixtures/canu/paddle_valid.json testdata/fixtures/sls/sls_input_file_valid.json 
   The status should equal 0
   The lines of stdout should equal 414
   The line 5 of stdout should equal '   "architecture": "network_v2",'

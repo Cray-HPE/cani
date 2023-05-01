@@ -22,21 +22,21 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 It 'add blade (with no args)'
-  When call bin/csminv add blade
+  When call bin/cani add blade
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal "add blade called"
 End
 
 It '--debug add blade'
-  When call bin/csminv --debug add blade
+  When call bin/cani --debug add blade
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal 'add blade called'
 End
 
 It '--debug add blade blade1'
-  When call bin/csminv --debug add blade blade1
+  When call bin/cani --debug add blade blade1
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal 'add blade called'

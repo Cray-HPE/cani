@@ -22,7 +22,7 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 It 'add cabinet (with no args)'
-  When call bin/csminv add cabinet
+  When call bin/cani add cabinet
   The status should equal 0
   The lines of stdout should equal 7
   The line 1 of stdout should equal "Unpacking add_liquid_cooled_cabinet.py..."
@@ -34,7 +34,7 @@ It 'add cabinet (with no args)'
 End
 
 It '--debug add cabinet'
-  When call bin/csminv --debug add cabinet
+  When call bin/cani --debug add cabinet
   The status should equal 0
   The lines of stdout should equal 7
   The line 1 of stdout should equal "Unpacking add_liquid_cooled_cabinet.py..."
@@ -46,7 +46,7 @@ It '--debug add cabinet'
 End
 
 It '--debug add cabinet cabinet1'
-  When call bin/csminv --debug add cabinet cabinet1
+  When call bin/cani --debug add cabinet cabinet1
   The status should equal 0
   The lines of stdout should equal 7
   The line 1 of stdout should equal "Unpacking add_liquid_cooled_cabinet.py..."

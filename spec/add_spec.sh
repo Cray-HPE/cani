@@ -22,7 +22,7 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 It 'add (with no args)'
-  When call bin/csminv add
+  When call bin/cani add
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal "add called"
