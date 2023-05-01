@@ -22,7 +22,7 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 It 'list (with no args)'
-  When call bin/csminv list
+  When call bin/cani list
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal "list called"

@@ -22,7 +22,7 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 It 'version (with no args)'
-  When call bin/csminv version
+  When call bin/cani version
   The lines of stdout should equal 1
-  The line 1 of stdout should include 'csminv, '
+  The line 1 of stdout should include 'cani, '
 End

@@ -19,6 +19,7 @@
 # OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
+NAME := cani
 SHELL := /bin/bash -o pipefail
 lc =$(subst A,a,$(subst B,b,$(subst C,c,$(subst D,d,$(subst E,e,$(subst F,f,$(subst G,g,$(subst H,h,$(subst I,i,$(subst J,j,$(subst K,k,$(subst L,l,$(subst M,m,$(subst N,n,$(subst O,o,$(subst P,p,$(subst Q,q,$(subst R,r,$(subst S,s,$(subst T,t,$(subst U,u,$(subst V,v,$(subst W,w,$(subst X,x,$(subst Y,y,$(subst Z,z,$1))))))))))))))))))))))))))
 
@@ -148,10 +149,10 @@ tidy:
 	go mod tidy
 
 bin:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o bin/csminv -ldflags "\
-	-X github.com/Cray-HPE/csminv/csminv.version=${.GIT_VERSION} \
-	-X github.com/Cray-HPE/csminv/csminv.buildDate=${.BUILDTIME} \
-	-X github.com/Cray-HPE/csminv/csminv.sha1ver=${.GIT_COMMIT_AND_BRANCH}"
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o bin/${NAME} -ldflags "\
+	-X github.com/Cray-HPE/${NAME}/cmd.version=${.GIT_VERSION} \
+	-X github.com/Cray-HPE/${NAME}/cmd.buildDate=${.BUILDTIME} \
+	-X github.com/Cray-HPE/${NAME}/cmd.sha1ver=${.GIT_COMMIT_AND_BRANCH}"
 
 rpm_prepare:
 	rm -rf $(BUILD_DIR)

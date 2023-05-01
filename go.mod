@@ -1,4 +1,4 @@
-module github.com/Cray-HPE/csminv
+module github.com/Cray-HPE/cani
 
 go 1.20
 

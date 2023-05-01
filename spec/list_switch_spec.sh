@@ -22,14 +22,14 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 It 'list switch (with no args)'
-  When call bin/csminv list switch
+  When call bin/cani list switch
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal "list switch called"
 End
 
 It '--debug list switch'
-  When call bin/csminv --debug list switch
+  When call bin/cani --debug list switch
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal "list switch called"

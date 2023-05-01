@@ -22,14 +22,14 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 It 'list cabinet (with no args)'
-  When call bin/csminv list cabinet
+  When call bin/cani list cabinet
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal "list cabinet called"
 End
 
 It '--debug list cabinet'
-  When call bin/csminv --debug list cabinet
+  When call bin/cani --debug list cabinet
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal "list cabinet called"

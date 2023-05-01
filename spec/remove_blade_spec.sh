@@ -22,21 +22,21 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 It 'remove blade (with no args)'
-  When call bin/csminv remove blade
+  When call bin/cani remove blade
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal "remove blade called"
 End
 
 It '--debug remove blade'
-  When call bin/csminv --debug remove blade
+  When call bin/cani --debug remove blade
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal 'remove blade called'
 End
 
 It '--debug remove blade blade1'
-  When call bin/csminv --debug remove blade blade1
+  When call bin/cani --debug remove blade blade1
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal 'remove blade called'

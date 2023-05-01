@@ -22,21 +22,21 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 It 'remove switch (with no args)'
-  When call bin/csminv remove switch
+  When call bin/cani remove switch
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal "remove switch called"
 End
 
 It '--debug remove switch'
-  When call bin/csminv --debug remove switch
+  When call bin/cani --debug remove switch
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal 'remove switch called'
 End
 
 It '--debug remove switch switch1'
-  When call bin/csminv --debug remove switch switch1
+  When call bin/cani --debug remove switch switch1
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal 'remove switch called'
