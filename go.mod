@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/Cray-HPE/hms-sls v1.29.0
-	github.com/docker/docker v23.0.1+incompatible
+	github.com/docker/docker v23.0.3+incompatible
 	github.com/invopop/jsonschema v0.7.0
 	github.com/omeid/uconfig v1.2.0
 	github.com/opencontainers/image-spec v1.0.2
