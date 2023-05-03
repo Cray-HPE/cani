@@ -1,0 +1,23 @@
+Add assets to the inventory.
+
+Usage:
+  cani add [flags]
+  cani add [command]
+
+Available Commands:
+  blade       Add blades to the inventory.
+  cabinet     Add cabinets to the inventory.
+  hsn         Add high speed hardware to the inventory.
+  node        Add nodes to the inventory.
+  pdu         Add PDUs to the inventory.
+  switch      Add switches to the inventory.
+
+Flags:
+  -h, --help   help for add
+
+Global Flags:
+      --config string   Path to the configuration file
+  -D, --debug           additional debug output
+  -S, --simulation      Use simulation mode for hsm-simulation-environment
+
+Use "cani add [command] --help" for more information about a command.

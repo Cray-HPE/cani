@@ -44,3 +44,36 @@ spec_helper_configure() {
   # Available functions: import, before_each, after_each, before_all, after_all
   : import 'support/custom_matcher'
 }
+
+# Custom matcher used to find a string inside of a text containing ANSI escape codes.
+# https://github.com/shellspec/shellspec/issues/278
+match_colored_text() {
+	# Source: https://unix.stackexchange.com/a/18979/348102
+	sanitized_text="$(echo "${match_colored_text:?}" | perl -e '
+		while (<>) {
+			s/ \e[ #%()*+\-.\/]. |
+				\r | # Remove extra carriage returns also
+				(?:\e\[|\x9b) [ -?]* [@-~] | # CSI ... Cmd
+				(?:\e\]|\x9d) .*? (?:\e\\|[\a\x9c]) | # OSC ... (ST|BEL)
+				(?:\e[P^_]|[\x90\x9e\x9f]) .*? (?:\e\\|\x9c) | # (DCS|PM|APC) ... ST
+				\e.|[\x80-\x9f] //xg;
+				1 while s/[^\b][\b]//g;  # remove all non-backspace followed by backspace
+			print;
+		}
+	')"
+	echo "${sanitized_text}" | grep -q "$1"
+}
+
+# Custom matcher used to find a string inside of a text containing ANSI escape codes.
+match_rich_text() {
+	if [ -z "${1}" ]; then
+		printf "ERROR: You cannot pass an empty string!\n" >&2;
+		return 1;
+	fi
+	
+	# shellcheck disable=SC2059
+	rich_search_term="$(printf "$1")"
+	match="$(echo "${match_rich_text:-}" | perl -ne "print if /\Q${rich_search_term}/")"
+
+	[ -n "${match}" ]
+}

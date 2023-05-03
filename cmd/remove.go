@@ -21,11 +21,14 @@ OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
-package cani
+package cmd
 
 import (
 	"fmt"
 
+	"github.com/Cray-HPE/cani/cmd/blade"
+	"github.com/Cray-HPE/cani/cmd/cabinet"
+	sw "github.com/Cray-HPE/cani/cmd/switch"
 	"github.com/spf13/cobra"
 )
 
@@ -40,7 +43,9 @@ var removeCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(removeCmd)
+	removeCmd.AddCommand(blade.RemoveBladeCmd)
+	removeCmd.AddCommand(cabinet.RemoveCabinetCmd)
+	removeCmd.AddCommand(sw.RemoveSwitchCmd)
 
 	// Here you will define your flags and configuration settings.
 
