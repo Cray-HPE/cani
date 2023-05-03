@@ -33,4 +33,6 @@ It '--debug list switch'
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal "list switch called"
+  The lines of stderr should equal 1
+  The stderr should include '"message":"Using'
 End

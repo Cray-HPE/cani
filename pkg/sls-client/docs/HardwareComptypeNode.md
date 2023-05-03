@@ -1,0 +1,10 @@
+# HardwareComptypeNode
+
+## Properties
+Name | Type | Description | Notes
+------------ | ------------- | ------------- | -------------
+**NodeType** | **string** | The role type assigned to this node. | [default to null]
+**Nid** | **int32** |  | [optional] [default to null]
+
+[[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
+

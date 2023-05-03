@@ -26,3 +26,8 @@ go.work
 bin/
 report/
 coverage/
+
+# cani
+.cani/
+cani.yml
+cani.yaml

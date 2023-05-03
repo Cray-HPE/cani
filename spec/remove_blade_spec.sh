@@ -33,14 +33,6 @@ It '--debug remove blade'
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal 'remove blade called'
-End
-
-It '--debug remove blade blade1'
-  When call bin/cani --debug remove blade blade1
-  The status should equal 0
-  The lines of stdout should equal 1
-  The stdout should equal 'remove blade called'
   The lines of stderr should equal 1
-  The stderr should include '{"level":"debug","time":'
-  The stderr should include '"message":"Removed blade blade1"}'
+  The stderr should include '"message":"Using'
 End

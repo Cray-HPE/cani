@@ -1,0 +1,6 @@
+
+Supported Fields:
+FIELD                 FLAG                   ENV
+-----                 -----                  -----
+SlsConfig.Hardware    -slsconfig-hardware    SLSCONFIG_HARDWARE
+SlsConfig.Networks    -slsconfig-networks    SLSCONFIG_NETWORKS

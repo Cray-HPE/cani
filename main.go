@@ -23,8 +23,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 */
 package main
 
-import cani "github.com/Cray-HPE/cani/cmd"
+import "github.com/Cray-HPE/cani/cmd"
 
 func main() {
-	cani.Execute()
+	cmd.Execute()
 }

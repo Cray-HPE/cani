@@ -25,12 +25,14 @@ It 'list blade (with no args)'
   When call bin/cani list blade
   The status should equal 0
   The lines of stdout should equal 1
-  The stdout should equal "list blade called"
+  The line 1 of stdout should equal "list blade called"
 End
 
 It '--debug list blade'
   When call bin/cani --debug list blade
   The status should equal 0
   The lines of stdout should equal 1
-  The stdout should equal 'list blade called'
+  The line 1 of stdout should equal "list blade called"
+  The lines of stderr should equal 1
+  The stderr should include '"message":"Using'
 End

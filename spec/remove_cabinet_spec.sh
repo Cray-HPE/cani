@@ -33,14 +33,7 @@ It '--debug remove cabinet'
   The status should equal 0
   The lines of stdout should equal 1
   The stdout should equal 'remove cabinet called'
+  The lines of stderr should equal 1
+  The stderr should include '"message":"Using'
 End
 
-It '--debug remove cabinet cabinet1'
-  When call bin/cani --debug remove cabinet cabinet1
-  The status should equal 0
-  The lines of stdout should equal 1
-  The stdout should equal 'remove cabinet called'
-  The lines of stderr should equal 1
-  The stderr should include '{"level":"debug","time":'
-  The stderr should include '"message":"Removed cabinet cabinet1"}'
-End

@@ -21,11 +21,16 @@ OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
-package cani
+package cmd
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/Cray-HPE/cani/cmd/blade"
+	"github.com/Cray-HPE/cani/cmd/cabinet"
+	sw "github.com/Cray-HPE/cani/cmd/switch"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -35,20 +40,22 @@ var listCmd = &cobra.Command{
 	Short: "List assets in the inventory.",
 	Long:  `List assets in the inventory.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("list called")
+		err := listInventory(args)
+		if err != nil {
+			log.Error().Err(err).Msg(err.Error())
+			os.Exit(1)
+		}
+
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(listCmd)
+	listCmd.AddCommand(blade.ListBladeCmd)
+	listCmd.AddCommand(cabinet.ListCabinetCmd)
+	listCmd.AddCommand(sw.ListSwitchCmd)
+}
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// listCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// listCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+func listInventory(args []string) error {
+	fmt.Println("list called")
+	return nil
 }

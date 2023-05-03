@@ -21,11 +21,12 @@ OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
-package cani
+package cmd
 
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -33,6 +34,13 @@ import (
 	client "github.com/docker/docker/client"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/spf13/cobra"
+
+	"github.com/Cray-HPE/cani/cmd/blade"
+	"github.com/Cray-HPE/cani/cmd/cabinet"
+	"github.com/Cray-HPE/cani/cmd/hsn"
+	"github.com/Cray-HPE/cani/cmd/node"
+	"github.com/Cray-HPE/cani/cmd/pdu"
+	sw "github.com/Cray-HPE/cani/cmd/switch"
 )
 
 // addCmd represents the switch add command
@@ -41,22 +49,23 @@ var addCmd = &cobra.Command{
 	Short: "Add assets to the inventory.",
 	Long:  `Add assets to the inventory.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("add called")
+		if len(args) == 0 {
+			cmd.Help()
+			os.Exit(0)
+		}
+		if simulation {
+			blade.AddBladeCmd.SetArgs([]string{"-S"})
+		}
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(addCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// addCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// addCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	addCmd.AddCommand(blade.AddBladeCmd)
+	addCmd.AddCommand(cabinet.AddCabinetCmd)
+	addCmd.AddCommand(hsn.AddHsnCmd)
+	addCmd.AddCommand(node.AddNodeCmd)
+	addCmd.AddCommand(pdu.AddPduCmd)
+	addCmd.AddCommand(sw.AddSwitchCmd)
 }
 
 // CreateNewContainer creates a container from an image

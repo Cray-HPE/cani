@@ -20,43 +20,111 @@
 # OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
+Describe 'add cabinet'
+# Fixtures location ./spec/fixtures
+FIXTURES="$SHELLSPEC_HELPERDIR/testdata/fixtures"
 
-It 'add cabinet (with no args)'
+# compare value to file content
+fixture(){
+  test "${fixture:?}" == "$( cat "$FIXTURES/$1" )"
+}
+
+It '(with no args)'
   When call bin/cani add cabinet
   The status should equal 0
-  The lines of stdout should equal 7
-  The line 1 of stdout should equal "Unpacking add_liquid_cooled_cabinet.py..."
-  The line 2 of stdout should equal "Unpacking backup_sls_postgres.sh..."
-  The line 3 of stdout should equal "Unpacking inspect_sls_cabinets.py..."
-  The line 4 of stdout should equal "Unpacking update-ncn-cabinet-routes.sh..."
-  The line 5 of stdout should equal "Unpacking update_ncn_etc_hosts.py..."
-  The line 6 of stdout should equal "Unpacking verify_bmc_credentials.sh..."
+  The lines of stdout should equal 1
+  The line 1 of stdout should equal 'add cabinet called'
 End
 
 It '--debug add cabinet'
   When call bin/cani --debug add cabinet
   The status should equal 0
-  The lines of stdout should equal 7
-  The line 1 of stdout should equal "Unpacking add_liquid_cooled_cabinet.py..."
-  The line 2 of stdout should equal "Unpacking backup_sls_postgres.sh..."
-  The line 3 of stdout should equal "Unpacking inspect_sls_cabinets.py..."
-  The line 4 of stdout should equal "Unpacking update-ncn-cabinet-routes.sh..."
-  The line 5 of stdout should equal "Unpacking update_ncn_etc_hosts.py..."
-  The line 6 of stdout should equal "Unpacking verify_bmc_credentials.sh..."
+  The lines of stdout should equal 1
+  The line 1 of stdout should equal 'add cabinet called'
+  The lines of stderr should equal 1
+  The line 1 of stderr should include '{"level":"debug","time":'
 End
 
-It '--debug add cabinet cabinet1'
-  When call bin/cani --debug add cabinet cabinet1
+It '--help'
+  When call bin/cani add cabinet --help
   The status should equal 0
-  The lines of stdout should equal 7
-  The line 1 of stdout should equal "Unpacking add_liquid_cooled_cabinet.py..."
-  The line 2 of stdout should equal "Unpacking backup_sls_postgres.sh..."
-  The line 3 of stdout should equal "Unpacking inspect_sls_cabinets.py..."
-  The line 4 of stdout should equal "Unpacking update-ncn-cabinet-routes.sh..."
-  The line 5 of stdout should equal "Unpacking update_ncn_etc_hosts.py..."
-  The line 6 of stdout should equal "Unpacking verify_bmc_credentials.sh..."
-  The line 7 of stdout should equal 'add cabinet called'
-  The lines of stderr should equal 1
-  The stderr should include '{"level":"debug","time":'
-  The stderr should include '"message":"Added cabinet cabinet1"}'
+  The stdout should satisfy fixture 'cani/add/cabinet/help'
+End
+
+It '-C'
+  When call bin/cani add cabinet -C
+  The status should equal 1
+  The line 1 of stderr should equal "Error: flag needs an argument: 'C' in -C"
+End
+
+It '-C 1000'
+  When call bin/cani add cabinet -C 1000
+  The status should equal 0
+  The lines of stdout should equal 1
+  The line 1 of stdout should equal 'add cabinet called'
+End
+
+It '-C junk'
+  When call bin/cani add cabinet -C junk
+  The status should equal 1
+  The line 1 of stderr should equal 'Error: invalid argument "junk" for "-C, --cabinet" flag: strconv.ParseInt: parsing "junk": invalid syntax'
+End
+
+It '--chassis'
+  When call bin/cani add cabinet --chassis
+  The status should equal 1
+  The line 1 of stderr should equal "Error: flag needs an argument: --chassis"
+End
+
+It '--chassis 12'
+  When call bin/cani add cabinet --chassis 12
+  The status should equal 0
+  The lines of stdout should equal 1
+  The line 1 of stdout should equal 'add cabinet called'
+End
+
+It '--chassis junk'
+  When call bin/cani add cabinet --chassis junk
+  The status should equal 1
+  The line 1 of stderr should equal 'Error: invalid argument "junk" for "-c, --chassis" flag: strconv.ParseInt: parsing "junk": invalid syntax'
+End
+
+It '--hmn-vlan'
+  When call bin/cani add cabinet --hmn-vlan
+  The status should equal 1
+  The line 1 of stderr should equal "Error: flag needs an argument: --hmn-vlan"
+End
+
+It '--hmn-vlan 12'
+  When call bin/cani add cabinet --hmn-vlan 12
+  The status should equal 0
+  The lines of stdout should equal 1
+  The line 1 of stdout should equal 'add cabinet called'
+End
+
+It '--hmn-vlan junk'
+  When call bin/cani add cabinet --hmn-vlan junk
+  The status should equal 1
+  The line 1 of stderr should equal 'Error: invalid argument "junk" for "-v, --hmn-vlan" flag: strconv.ParseInt: parsing "junk": invalid syntax'
+End
+
+It '--list-supported-types'
+  When call bin/cani add cabinet --list-supported-types
+  The status should equal 0
+  The line 1 of stdout should equal 'add cabinet called'
+End
+
+It '--type'
+  When call bin/cani add cabinet --type
+  The status should equal 1
+  The line 1 of stderr should equal "Error: flag needs an argument: --type"
+End
+
+It '--type junk'
+  When call bin/cani add cabinet --type junk
+  The status should equal 0
+  The lines of stdout should equal 1
+  The line 1 of stdout should equal 'add cabinet called'
+End
+
 End

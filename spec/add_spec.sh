@@ -21,9 +21,25 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-It 'add (with no args)'
+Describe 'add'
+# Fixtures location ./spec/fixtures
+FIXTURES="$SHELLSPEC_HELPERDIR/testdata/fixtures"
+
+# compare value to file content
+fixture(){
+  test "${fixture:?}" == "$( cat "$FIXTURES/$1" )"
+}
+
+It '(no args)'
   When call bin/cani add
   The status should equal 0
-  The lines of stdout should equal 1
-  The stdout should equal "add called"
+  The stdout should satisfy fixture 'cani/add/help'
+End
+
+It '--help'
+  When call bin/cani add --help
+  The status should equal 0
+  The stdout should satisfy fixture 'cani/add/help'
+End
+
 End
