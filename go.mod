@@ -18,6 +18,10 @@ require internal/sls v1.0.0
 
 replace internal/sls => ./internal/sls
 
+require internal/shellspec v1.0.0
+
+replace internal/shellspec => ./internal/shellspec
+
 require (
 	github.com/Cray-HPE/hms-sls/v2 v2.1.0
 	github.com/Cray-HPE/hms-xname v1.1.0

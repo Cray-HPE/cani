@@ -123,6 +123,9 @@ clean:
 	  bin \
 	  $(BUILD_DIR)
 
+specfiles:
+	go run cmd/shellspec/main.go
+
 test: bin
 	shellspec --format tap --no-warning-as-failure --jobs 3
 
