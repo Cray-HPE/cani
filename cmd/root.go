@@ -37,8 +37,8 @@ import (
 	"github.com/Cray-HPE/cani/cmd/inventory"
 )
 
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
+// RootCmd represents the base command when called without any subcommands
+var RootCmd = &cobra.Command{
 	Use:   "cani",
 	Short: "From subfloor to top-of-rack, manage your HPC cluster's inventory!",
 	Long:  `From subfloor to top-of-rack, manage your HPC cluster's inventory!`,
@@ -70,12 +70,13 @@ var (
 	simulation bool
 	cfgFile    string
 	conf       *config.Config
+	spec       bool
 )
 
 // Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
+// This is called by main.main(). It only needs to happen once to the RootCmd.
 func Execute() {
-	err := rootCmd.Execute()
+	err := RootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
 	}
@@ -84,15 +85,16 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.AddCommand(addCmd)
-	rootCmd.AddCommand(listCmd)
-	rootCmd.AddCommand(removeCmd)
-	rootCmd.AddCommand(versionCmd)
+	RootCmd.AddCommand(addCmd)
+	RootCmd.AddCommand(listCmd)
+	RootCmd.AddCommand(removeCmd)
+	RootCmd.AddCommand(versionCmd)
 
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", cfgFile, "Path to the configuration file")
-	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "D", false, "additional debug output")
-	rootCmd.PersistentFlags().BoolVarP(&simulation, "simulation", "S", false, "Use simulation mode for hsm-simulation-environment")
+	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", cfgFile, "Path to the configuration file")
+	RootCmd.PersistentFlags().BoolVarP(&debug, "debug", "D", false, "additional debug output")
+	RootCmd.PersistentFlags().BoolVarP(&simulation, "simulation", "S", false, "Use simulation mode for hsm-simulation-environment")
+
 }
 
 // setupLogging sets up the global logger
