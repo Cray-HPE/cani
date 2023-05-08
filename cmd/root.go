@@ -80,6 +80,7 @@ func init() {
 
 	RootCmd.AddCommand(addCmd)
 	RootCmd.AddCommand(listCmd)
+	RootCmd.AddCommand(validateCmd)
 	RootCmd.AddCommand(removeCmd)
 	RootCmd.AddCommand(sessionCmd)
 	RootCmd.AddCommand(versionCmd)

@@ -10,6 +10,7 @@ Available Commands:
   help        Help about any command
   list        List assets in the inventory.
   remove      Remove assets from the inventory.
+  validate    Validate assets in the inventory.
   version     Show the version of this utility.
 
 Flags:
