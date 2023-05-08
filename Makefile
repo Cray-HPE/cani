@@ -88,7 +88,8 @@ endif
 	build \
 	rpm \
 	doc \
-	version
+	version \
+	spec
 
 all: bin
 
@@ -123,11 +124,11 @@ clean:
 	  bin \
 	  $(BUILD_DIR)
 
-specfiles:
+spec:
 	go run cmd/shellspec/main.go
 
 test: bin
-	shellspec --format tap --no-warning-as-failure --jobs 3
+	shellspec --format tap --no-warning-as-failure
 
 tools:
 	go install golang.org/x/lint/golint@latest

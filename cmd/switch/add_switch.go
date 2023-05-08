@@ -24,48 +24,30 @@ OTHER DEALINGS IN THE SOFTWARE.
 package sw
 
 import (
-	"fmt"
-	"os"
-	"strings"
-
 	"github.com/Cray-HPE/cani/cmd/inventory"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
-var (
-	listSupportedTypes bool
-	horizontalU        string
-	models             []string
-	hwType             string
-)
-
-// AddSwitchCmd represents the switch add command
+// AddSwitchCmd represents the HSN add command
 var AddSwitchCmd = &cobra.Command{
 	Use:   "switch",
 	Short: "Add switches to the inventory.",
 	Long:  `Add switches to the inventory.`,
 	Args:  cobra.ArbitraryArgs,
-	Run: func(cmd *cobra.Command, args []string) {
-		err := addSwitch(args)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		err := addSwitch(cmd, args)
 		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
-			os.Exit(1)
+			return err
 		}
+		return nil
 	},
 }
 
-func init() {
-	supportedHw := inventory.SupportedHardware()
-	for _, hw := range supportedHw {
-		models = append(models, hw.Model)
+// addSwitch adds switches to the inventory
+func addSwitch(cmd *cobra.Command, args []string) error {
+	_, err := inventory.Add(cmd, args)
+	if err != nil {
+		return err
 	}
-	AddSwitchCmd.Flags().BoolVarP(&listSupportedTypes, "list-supported-types", "l", false, "List supported hardware types.")
-	AddSwitchCmd.Flags().StringVarP(&hwType, "type", "t", "", fmt.Sprintf("Hardware type.  Allowed values: [%+v]", strings.Join(models, "\", \"")))
-	AddSwitchCmd.Flags().StringVarP(&horizontalU, "horizontal", "u", "L", "Horizontal U location.")
-}
-
-func addSwitch(args []string) error {
-	fmt.Println("add switch called")
 	return nil
 }

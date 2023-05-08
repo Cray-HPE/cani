@@ -24,10 +24,11 @@ OTHER DEALINGS IN THE SOFTWARE.
 package hsn
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
-	"os"
 
-	"github.com/rs/zerolog/log"
+	"github.com/Cray-HPE/cani/cmd/inventory"
 	"github.com/spf13/cobra"
 )
 
@@ -36,17 +37,34 @@ var ListHsnCmd = &cobra.Command{
 	Use:   "hsn",
 	Short: "List PDUs in the inventory.",
 	Long:  `List PDUs in the inventory.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		err := listHsn(args)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		err := listHsn(cmd, args)
 		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
-			os.Exit(1)
+			return err
 		}
+		return nil
 	},
 }
 
 // listHsn adds a high speed network device to the inventory.
-func listHsn(args []string) error {
-	fmt.Println("list hsn called")
+func listHsn(cmd *cobra.Command, args []string) error {
+	inv, err := inventory.List(cmd, args)
+	if err != nil {
+		return err
+	}
+
+	filtered := inventory.Inventory{}
+	for key, hw := range inv {
+		if hw.Type == "Hsn" {
+			filtered[key] = hw
+		}
+	}
+	// Convert the filtered inventory into a formatted JSON string
+	inventoryJSON, err := json.MarshalIndent(filtered, "", "  ")
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error marshaling inventory to JSON: %v", err))
+	}
+
+	fmt.Println(string(inventoryJSON))
 	return nil
 }

@@ -24,10 +24,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 package blade
 
 import (
-	"fmt"
-	"os"
-
-	"github.com/rs/zerolog/log"
+	"github.com/Cray-HPE/cani/cmd/inventory"
 	"github.com/spf13/cobra"
 )
 
@@ -37,16 +34,19 @@ var RemoveBladeCmd = &cobra.Command{
 	Short: "Remove blades from the inventory.",
 	Long:  `Remove blades from the inventory.`,
 	Args:  cobra.ArbitraryArgs,
-	Run: func(cmd *cobra.Command, args []string) {
-		err := removeBlade(args)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		err := removeBlade(cmd, args)
 		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
-			os.Exit(1)
+			return err
 		}
+		return nil
 	},
 }
 
-func removeBlade(args []string) error {
-	fmt.Println("remove blade called")
+func removeBlade(cmd *cobra.Command, args []string) error {
+	_, err := inventory.Remove(cmd, args)
+	if err != nil {
+		return err
+	}
 	return nil
 }

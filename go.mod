@@ -6,6 +6,8 @@ replace github.com/Cray-HPE/cani/pkg/sls-client => ./pkg/sls-client
 
 replace github.com/Cray-HPE/cani/pkg/hsm-client => ./pkg/hsm-client
 
+replace github.com/Cray-HPE/cani/pkg/sls-plugin => ./pkg/sls-plugin
+
 require internal/shell v1.0.0
 
 replace internal/shell => ./internal/shell

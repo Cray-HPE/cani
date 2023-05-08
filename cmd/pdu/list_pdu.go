@@ -24,10 +24,11 @@ OTHER DEALINGS IN THE SOFTWARE.
 package pdu
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
-	"os"
 
-	"github.com/rs/zerolog/log"
+	"github.com/Cray-HPE/cani/cmd/inventory"
 	"github.com/spf13/cobra"
 )
 
@@ -36,16 +37,33 @@ var ListPduCmd = &cobra.Command{
 	Use:   "pdu",
 	Short: "List PDUs in the inventory.",
 	Long:  `List PDUs in the inventory.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		err := listPdu(args)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		err := listPdu(cmd, args)
 		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
-			os.Exit(1)
+			return err
 		}
+		return nil
 	},
 }
 
-func listPdu(args []string) error {
-	fmt.Println("list pdu called")
+func listPdu(cmd *cobra.Command, args []string) error {
+	inv, err := inventory.List(cmd, args)
+	if err != nil {
+		return err
+	}
+
+	filtered := inventory.Inventory{}
+	for key, hw := range inv {
+		if hw.Type == "PDU" {
+			filtered[key] = hw
+		}
+	}
+	// Convert the filtered inventory into a formatted JSON string
+	inventoryJSON, err := json.MarshalIndent(filtered, "", "  ")
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error marshaling inventory to JSON: %v", err))
+	}
+
+	fmt.Println(string(inventoryJSON))
 	return nil
 }

@@ -24,23 +24,29 @@ OTHER DEALINGS IN THE SOFTWARE.
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"os"
+	"strings"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/network"
-	client "github.com/docker/docker/client"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/spf13/cobra"
 
 	"github.com/Cray-HPE/cani/cmd/blade"
 	"github.com/Cray-HPE/cani/cmd/cabinet"
+	"github.com/Cray-HPE/cani/cmd/chassis"
 	"github.com/Cray-HPE/cani/cmd/hsn"
+	"github.com/Cray-HPE/cani/cmd/inventory"
 	"github.com/Cray-HPE/cani/cmd/node"
 	"github.com/Cray-HPE/cani/cmd/pdu"
 	sw "github.com/Cray-HPE/cani/cmd/switch"
+)
+
+var (
+	vendor string
+	name   string
+	staged string
+	models []string
+	hwType string
+	u      string
 )
 
 // addCmd represents the switch add command
@@ -49,84 +55,39 @@ var addCmd = &cobra.Command{
 	Short: "Add assets to the inventory.",
 	Long:  `Add assets to the inventory.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) == 0 {
-			cmd.Help()
+		if cmd.Flags().Changed("list-supported-types") {
+			fmt.Println("Supported hardware types:")
+			inventory.ListSupportedTypes()
 			os.Exit(0)
 		}
 		if simulation {
 			blade.AddBladeCmd.SetArgs([]string{"-S"})
 		}
+		if len(args) == 0 {
+			fmt.Println("Error: No asset type specified.")
+			cmd.Help()
+			os.Exit(1)
+		}
 	},
 }
 
 func init() {
+	supportedHw := inventory.SupportedHardware()
+	for _, hw := range supportedHw {
+		models = append(models, hw.Model)
+	}
+
 	addCmd.AddCommand(blade.AddBladeCmd)
 	addCmd.AddCommand(cabinet.AddCabinetCmd)
+	addCmd.AddCommand(chassis.AddChassisCmd)
 	addCmd.AddCommand(hsn.AddHsnCmd)
 	addCmd.AddCommand(node.AddNodeCmd)
 	addCmd.AddCommand(pdu.AddPduCmd)
 	addCmd.AddCommand(sw.AddSwitchCmd)
-}
-
-// CreateNewContainer creates a container from an image
-func CreateNewContainer(image string) (string, error) {
-	cli, err := client.NewEnvClient()
-	if err != nil {
-		fmt.Println("Unable to create container client")
-		panic(err)
-	}
-
-	cont, err := cli.ContainerCreate(
-		context.Background(),
-		&container.Config{
-			Image: image,
-		},
-		&container.HostConfig{},
-		&network.NetworkingConfig{},
-		&v1.Platform{},
-		image)
-	if err != nil {
-		panic(err)
-	}
-
-	cli.ContainerStart(context.Background(), cont.ID, types.ContainerStartOptions{})
-	fmt.Printf("Container %s is started\n", cont.ID)
-	cli.ContainerRemove(context.Background(), cont.ID, types.ContainerRemoveOptions{})
-	return cont.ID, nil
-}
-
-// StopContainer stops a running container
-func StopContainer(containerID string) error {
-	cli, err := client.NewEnvClient()
-	if err != nil {
-		panic(err)
-	}
-
-	err = cli.ContainerStop(context.Background(), containerID, container.StopOptions{})
-	if err != nil {
-		panic(err)
-	}
-	return err
-}
-
-// ListContainers lists all running containers
-func ListContainers() error {
-	cli, err := client.NewEnvClient()
-	if err != nil {
-		panic(err)
-	}
-
-	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{})
-	if err != nil {
-		panic(err)
-	}
-
-	if len(containers) > 0 {
-		for _, container := range containers {
-			fmt.Printf("Container ID: %s", container.ID)
-		}
-	} else {
-		fmt.Println("There are no containers running")
-	}
-	return nil
+	addCmd.PersistentFlags().StringVarP(&vendor, "vendor", "m", "HPE", "Vendor")
+	addCmd.PersistentFlags().StringVarP(&name, "name", "n", "", "Name")
+	addCmd.PersistentFlags().StringVarP(&staged, "staged", "s", "Staged", "Hardware can be [staged, provisioned, decomissioned]")
+	addCmd.PersistentFlags().StringVarP(&hwType, "type", "t", "", fmt.Sprintf("Hardware type.  Allowed values: [%+v]", strings.Join(models, "\", \"")))
+	addCmd.PersistentFlags().StringVarP(&u, "uuid", "u", "", "Specific UUID to use")
+	addCmd.PersistentFlags().BoolP("list-supported-types", "L", false, "List supported hardware types.")
 }

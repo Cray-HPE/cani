@@ -24,23 +24,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 package pdu
 
 import (
-	"fmt"
-	"os"
-	"strings"
-
 	"github.com/Cray-HPE/cani/cmd/inventory"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-)
-
-var (
-	listSupportedTypes bool
-	horizontalU        string
-	models             []string
-	hwType             string
-	id                 string
-	port               int
-	cabinet            int
 )
 
 // AddPduCmd represents the PDU add command
@@ -49,28 +34,20 @@ var AddPduCmd = &cobra.Command{
 	Short: "Add PDUs to the inventory.",
 	Long:  `Add PDUs to the inventory.`,
 	Args:  cobra.ArbitraryArgs,
-	Run: func(cmd *cobra.Command, args []string) {
-		err := addPdu(args)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		err := addPdu(cmd, args)
 		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
-			os.Exit(1)
+			return err
 		}
+		return nil
 	},
 }
 
-func init() {
-	supportedHw := inventory.SupportedHardware()
-	for _, hw := range supportedHw {
-		models = append(models, hw.Model)
+// addPdu adds PDUs to the inventory
+func addPdu(cmd *cobra.Command, args []string) error {
+	_, err := inventory.Add(cmd, args)
+	if err != nil {
+		return err
 	}
-	AddPduCmd.Flags().BoolVarP(&listSupportedTypes, "list-supported-types", "l", false, "List supported hardware types.")
-	AddPduCmd.Flags().StringVarP(&hwType, "type", "t", "", fmt.Sprintf("Hardware type.  Allowed values: [%+v]", strings.Join(models, "\", \"")))
-	AddPduCmd.Flags().IntVarP(&cabinet, "cabinet", "C", 1000, "Cabinet ID.")
-	AddPduCmd.Flags().StringVarP(&id, "id", "i", "L", "ID")
-	AddPduCmd.Flags().IntVarP(&port, "port", "p", 0, "Switchport")
-}
-
-func addPdu(args []string) error {
-	fmt.Println("add pdu called")
 	return nil
 }

@@ -24,11 +24,16 @@ OTHER DEALINGS IN THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
+	"os"
 
 	"github.com/Cray-HPE/cani/cmd/blade"
 	"github.com/Cray-HPE/cani/cmd/cabinet"
+	"github.com/Cray-HPE/cani/cmd/chassis"
+	"github.com/Cray-HPE/cani/cmd/hsn"
+	"github.com/Cray-HPE/cani/cmd/inventory"
+	"github.com/Cray-HPE/cani/cmd/pdu"
 	sw "github.com/Cray-HPE/cani/cmd/switch"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -37,23 +42,29 @@ var removeCmd = &cobra.Command{
 	Use:   "remove",
 	Short: "Remove assets from the inventory.",
 	Long:  `Remove assets from the inventory.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("remove called")
+	RunE: func(cmd *cobra.Command, args []string) error {
+		err := remove(cmd, args)
+		if err != nil {
+			log.Error().Err(err).Msg(err.Error())
+			os.Exit(1)
+		}
+		return err
 	},
 }
 
 func init() {
 	removeCmd.AddCommand(blade.RemoveBladeCmd)
 	removeCmd.AddCommand(cabinet.RemoveCabinetCmd)
+	removeCmd.AddCommand(chassis.RemoveChassisCmd)
+	removeCmd.AddCommand(hsn.RemoveHsnCmd)
+	removeCmd.AddCommand(pdu.RemovePduCmd)
 	removeCmd.AddCommand(sw.RemoveSwitchCmd)
+}
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// removeCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// removeCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+func remove(cmd *cobra.Command, args []string) error {
+	_, err := inventory.Remove(cmd, args)
+	if err != nil {
+		return err
+	}
+	return nil
 }

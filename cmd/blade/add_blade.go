@@ -24,9 +24,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 package blade
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/Cray-HPE/cani/cmd/inventory"
 	"github.com/spf13/cobra"
 )
@@ -36,46 +33,26 @@ var AddBladeCmd = &cobra.Command{
 	Use:   "blade",
 	Short: "Add blades to the inventory.",
 	Long:  `Add blades to the inventory.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		addBlade(args)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		err := addBlade(cmd, args)
+		if err != nil {
+			return err
+		}
+		return nil
 	},
 }
 
-var (
-	listSupportedTypes bool
-	hmnVlanId          int
-	cabinetId          int
-	chassis            int
-	models             []string
-	hwType             string
-	slot               int
-	port               int
-	role               string
-	subRole            string
-)
-
 func init() {
-	// Get the supported hardware types
-	supportedHw := inventory.SupportedHardware()
-	// Append the blade types to the models slice for use in the --help output
-	for _, hw := range supportedHw {
-		if hw.Type == "ComputeModule" {
-			models = append(models, hw.Model)
-		}
-	}
-	AddBladeCmd.Flags().BoolVarP(&listSupportedTypes, "list-supported-types", "l", false, "List supported hardware types.")
-	AddBladeCmd.Flags().StringVarP(&hwType, "type", "t", "", fmt.Sprintf("Hardware type.  Allowed values: [%+v]", strings.Join(models, "\", \"")))
-	AddBladeCmd.Flags().IntVarP(&cabinetId, "cabinet", "C", 1000, "Cabinet ID")
-	AddBladeCmd.Flags().IntVarP(&chassis, "chassis", "c", 0, "Chassis ID")
-	AddBladeCmd.Flags().IntVarP(&slot, "slot", "s", 0, "Slot ID")
-	AddBladeCmd.Flags().IntVarP(&hmnVlanId, "hmn-vlan", "v", 0, "HMN VLAN ID")
-	AddBladeCmd.Flags().IntVarP(&port, "port", "p", 0, "Switchport")
-	AddBladeCmd.Flags().StringVarP(&role, "role", "R", "", "Role")
-	AddBladeCmd.Flags().StringVarP(&subRole, "sub-role", "r", "", "Sub-role")
+	AddBladeCmd.Flags().String("chassis", "", "Parent chassis")
+	// cobra.MarkFlagRequired(AddBladeCmd.Flags(), "chassis")
 }
 
 // addBlade adds a blade to the inventory
-func addBlade(args []string) error {
-	fmt.Println("add blade called")
+func addBlade(cmd *cobra.Command, args []string) error {
+	_, err := inventory.Add(cmd, args)
+	if err != nil {
+		return err
+	}
 	return nil
+
 }
