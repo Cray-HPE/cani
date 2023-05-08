@@ -11,6 +11,7 @@ Available Commands:
   list        List assets in the inventory.
   remove      Remove assets from the inventory.
   session     Interact with a session.
+  validate    Validate assets in the inventory.
   version     Show the version of this utility.
 
 Flags:
