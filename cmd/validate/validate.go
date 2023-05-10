@@ -25,11 +25,20 @@ OTHER DEALINGS IN THE SOFTWARE.
 package validate
 
 import (
+	"embed"
 	"fmt"
+	"io/fs"
 	"net"
+	"strings"
 
 	"github.com/Cray-HPE/cani/cmd/inventory"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
+	"github.com/santhosh-tekuri/jsonschema/v5"
+)
+
+var (
+	//go:embed schemas/*
+	schemas embed.FS
 )
 
 type ValidationResult struct {
@@ -53,7 +62,65 @@ const (
 	Pass    Result = "pass"
 )
 
+func loadSchemas() (networksSchema *jsonschema.Schema, reservationsSchema *jsonschema.Schema, subnetsSchema *jsonschema.Schema, err error) {
+
+	files, err := fs.ReadDir(schemas, "schemas")
+	if err != nil {
+		return
+	}
+	for _, file := range files {
+		if strings.HasSuffix(file.Name(), ".json") {
+			switch file.Name() {
+			case "sls_networks_schema.json":
+				if networksSchema != nil {
+					continue
+				}
+			case "sls_reservations_schema.json":
+				if reservationsSchema != nil {
+					continue
+				}
+			case "sls_subnets_schema.json":
+				if subnetsSchema != nil {
+					continue
+				}
+			}
+
+			filePath := fmt.Sprintf("schemas/%s", file.Name())
+			content, err := schemas.ReadFile(filePath)
+			if err != nil {
+				fmt.Printf("Error reading embeded schema file: %s. %s\n", filePath, err)
+				return networksSchema, reservationsSchema, nil, err
+			}
+			s, err := jsonschema.CompileString(file.Name(), string(content))
+			if err != nil {
+				fmt.Printf("Error compiling embeded schema. file: %s. %s\n", filePath, err)
+				return networksSchema, reservationsSchema, nil, err
+			}
+
+			switch file.Name() {
+			case "sls_networks_schema.json":
+				networksSchema = s
+			case "sls_reservations_schema.json":
+				reservationsSchema = s
+			case "sls_subnets_schema.json":
+				subnetsSchema = s
+			default:
+				fmt.Printf("Unused schema: %s\n", file.Name())
+			}
+		}
+	}
+	return
+}
+
 func Validate(system *inventory.Hardware) {
+	networksSchema, reservationsSchema, subnetsSchema, err := loadSchemas()
+	if err != nil {
+		return
+	}
+	fmt.Printf("networks schema: %v\n", networksSchema)
+	fmt.Printf("reservations schema: %v\n", reservationsSchema)
+	fmt.Printf("subnets schema: %v\n", subnetsSchema)
+
 	// for xname, hardware := range system.Extract.SlsConfig.Hardware {
 	// 	fmt.Printf("xname: %s\n%v\n\n", xname, hardware)
 	// }
