@@ -1,0 +1,22 @@
+---
+manufacturer: HPE
+model: EX2000
+slug: hpe-ex2000
+
+device-bays:
+- name: CEC Bay
+  allowed:
+    slug: hpe-crayex-cabinet-environmental-controller
+  default:
+    slug: hpe-crayex-cabinet-environmental-controller
+
+- name: Chassis 1
+  allowed:
+    slug: hpe-crayex-chassis
+  default:
+    slug: hpe-crayex-chassis
+- name: Chassis 3
+  allowed:
+    slug: hpe-crayex-chassis
+  default:
+    slug: hpe-crayex-chassis

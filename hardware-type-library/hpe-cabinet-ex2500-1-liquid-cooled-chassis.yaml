@@ -1,0 +1,22 @@
+---
+manufacturer: HPE
+model: EX2500 1 Liquid Cooled Chassis
+slug: hpe-ex2500-1-liquid-cooled-chassis
+
+device-bays:
+- name: CEC Bay
+  allowed:
+    slug: hpe-crayex-cabinet-environmental-controller
+  default:
+    slug: hpe-crayex-cabinet-environmental-controller
+
+- name: Chassis 0
+  allowed:
+    slug: hpe-crayex-chassis
+  default:
+    slug: hpe-crayex-chassis
+
+# TODO Need to denote that this is a normal EIA chassis/equipment
+# - name: Chassis 4
+#   default:
+#     slug: hpe-crayex-chassis-management-module

@@ -1,0 +1,59 @@
+---
+manufacturer: HPE
+model: EX4000
+slug:  
+
+device-bays:
+- name: CEC 0 Bay
+  allowed:
+    slug: hpe-crayex-chassis-management-module
+  default:
+    slug: hpe-crayex-chassis-management-module
+- name: CEC 1 Bay
+  allowed:
+    slug: hpe-crayex-chassis-management-module
+  default:
+    slug: hpe-crayex-chassis-management-module
+
+- name: Chassis 0
+  allowed:
+    slug: hpe-crayex-chassis-management-module
+  default:
+    slug: hpe-crayex-chassis-management-module
+- name: Chassis 1
+  allowed:
+    slug: hpe-crayex-chassis-management-module
+  default:
+    slug: hpe-crayex-chassis-management-module
+- name: Chassis 2
+  allowed:
+    slug: hpe-crayex-chassis-management-module
+  default:
+    slug: hpe-crayex-chassis-management-module
+- name: Chassis 3
+  allowed:
+    slug: hpe-crayex-chassis-management-module
+  default:
+    slug: hpe-crayex-chassis-management-module
+- name: Chassis 4
+  allowed:
+    slug: hpe-crayex-chassis-management-module
+  default:
+    slug: hpe-crayex-chassis-management-module
+- name: Chassis 5
+  allowed:
+    slug: hpe-crayex-chassis-management-module
+  default:
+    slug: hpe-crayex-chassis-management-module
+- name: Chassis 6
+  allowed:
+    slug: hpe-crayex-chassis-management-module
+  default:
+    slug: hpe-crayex-chassis-management-module
+- name: Chassis 7
+  allowed:
+    slug: hpe-crayex-chassis-management-module
+  default:
+    slug: hpe-crayex-chassis-management-module
+
+

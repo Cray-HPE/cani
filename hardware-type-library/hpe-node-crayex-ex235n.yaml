@@ -1,0 +1,43 @@
+---
+manufacturer: HPE
+model: EX235N AMD NVIDIA accelerator blade (Grizzly Peak)
+slug: hpe-crayex-ex235n-compute-blade
+device-bays:
+- name: Node Card 0
+  allowed:
+    slug: hpe-crayex-ex235n-compute-blade-grizzly-peak-node-card
+  default:
+    slug: hpe-crayex-ex235n-compute-blade-grizzly-peak-node-card
+---
+manufacturer: HPE
+model: EX235N AMD NVIDIA accelerator blade, Grizzly Peak Node Card (GPNC)
+slug: hpe-crayex-ex235n-compute-blade-grizzly-peak-node-card
+interfaces:
+- name: BMC
+  type: 1000base-t
+  mgmt_only: true
+device-bays:
+- name: Node 0
+  allowed: 
+    slug: hpe-crayex-ex235n-compute-node
+  default: 
+    slug: hpe-crayex-ex235n-compute-node
+- name: Node 1
+  allowed: 
+    slug: hpe-crayex-ex235n-compute-node
+  default: 
+    slug: hpe-crayex-ex235n-compute-node
+---
+manufacturer: HPE
+model: EX235N AMD NVIDIA accelerator compute node
+slug: hpe-crayex-ex235n-compute-node
+interfaces:
+- name: NMN
+  type: 1000base-t
+# Single Injection or Dual Injection
+# - name: HSN 0
+# - name: HSN 1
+
+# Dual Injection only
+# - name: HSN 2
+# - name: HSN 3

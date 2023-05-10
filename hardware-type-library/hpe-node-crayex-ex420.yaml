@@ -1,0 +1,48 @@
+---
+manufacturer: HPE
+model: EX420 Intel Xeon compute blade (Castle)
+slug: hpe-crayex-ex420-compute-blade
+device-bays:
+- name: Node Card 0
+  allowed:
+    slug: hpe-crayex-ex420-compute-blade-castle-node-card
+  default:
+    slug: hpe-crayex-ex420-compute-blade-castle-node-card
+- name: Node Card 1
+  allowed:
+    slug: hpe-crayex-ex420-compute-blade-castle-node-card
+  default:
+    slug: hpe-crayex-ex420-compute-blade-castle-node-card
+---
+manufacturer: HPE
+model: EX420 Intel Xeon compute blade, Castle Node Card (CNC)
+slug: hpe-crayex-ex420-compute-blade-castle-node-card
+interfaces:
+- name: BMC
+  type: 1000base-t
+  mgmt_only: true
+device-bays:
+- name: Node 0
+  allowed: 
+    slug: hpe-crayex-ex420-compute-node
+  default: 
+    slug: hpe-crayex-ex420-compute-node
+- name: Node 1
+  allowed: 
+    slug: hpe-crayex-ex420-compute-node
+  default: 
+    slug: hpe-crayex-ex420-compute-node
+---
+manufacturer: HPE
+model: EX420 Intel Xeon compute node
+slug: hpe-crayex-ex420-compute-node
+interfaces:
+- name: NMN
+  type: 1000base-t
+# Single Injection or Dual Injection
+# - name: HSN 0
+# - name: HSN 1
+
+# Dual Injection only
+# - name: HSN 2
+# - name: HSN 3
