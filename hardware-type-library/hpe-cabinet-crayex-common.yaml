@@ -1,6 +1,7 @@
 ---
 manufacturer: HPE
 model: CrayEX Cabinet Environmental Controller
+hardware-type: CabinetEnvironmentalController
 slug: hpe-crayex-cabinet-environmental-controller
 interfaces:
 - name: Ethernet
@@ -9,6 +10,7 @@ interfaces:
 ---
 manufacturer: HPE
 model: CrayEX liquid-cooled cabinet chassis 
+hardware-type: Chassis
 slug: hpe-crayex-chassis
 
 device-bays:
@@ -17,7 +19,6 @@ device-bays:
     types: [CabinetManagementModule]
   default:
     slug: hpe-crayex-chassis-management-module
-
 
 - name: Compute Blade Bay 0
   allowed:
@@ -72,6 +73,7 @@ device-bays:
 ---
 manufacturer: HPE
 model: CrayEX Chassis Management Module
+hardware-type: ChassisManagementModule
 slug: hpe-crayex-chassis-management-module
 interfaces:
 - name: Ethernet A

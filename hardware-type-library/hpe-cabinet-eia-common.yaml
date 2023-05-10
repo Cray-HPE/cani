@@ -1,5 +1,6 @@
 ---
 manufacturer: HPE
 model: Standard/EIA Chassis 
+hardware-type: Chassis
 slug: hpe-eia-chassis
 

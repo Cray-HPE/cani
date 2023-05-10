@@ -1,21 +1,23 @@
 ---
 manufacturer: HPE
 model: EX420 Intel Xeon compute blade (Castle)
+hardware-type: NodeBlade
 slug: hpe-crayex-ex420-compute-blade
 device-bays:
 - name: Node Card 0
   allowed:
-    slug: hpe-crayex-ex420-compute-blade-castle-node-card
+    slug: [hpe-crayex-ex420-compute-blade-castle-node-card]
   default:
     slug: hpe-crayex-ex420-compute-blade-castle-node-card
 - name: Node Card 1
   allowed:
-    slug: hpe-crayex-ex420-compute-blade-castle-node-card
+    slug: [hpe-crayex-ex420-compute-blade-castle-node-card]
   default:
     slug: hpe-crayex-ex420-compute-blade-castle-node-card
 ---
 manufacturer: HPE
 model: EX420 Intel Xeon compute blade, Castle Node Card (CNC)
+hardware-type: NodeCard
 slug: hpe-crayex-ex420-compute-blade-castle-node-card
 interfaces:
 - name: BMC
@@ -24,17 +26,18 @@ interfaces:
 device-bays:
 - name: Node 0
   allowed: 
-    slug: hpe-crayex-ex420-compute-node
+    slug: [hpe-crayex-ex420-compute-node]
   default: 
     slug: hpe-crayex-ex420-compute-node
 - name: Node 1
   allowed: 
-    slug: hpe-crayex-ex420-compute-node
+    slug: [hpe-crayex-ex420-compute-node]
   default: 
     slug: hpe-crayex-ex420-compute-node
 ---
 manufacturer: HPE
 model: EX420 Intel Xeon compute node
+hardware-type: Node
 slug: hpe-crayex-ex420-compute-node
 interfaces:
 - name: NMN
