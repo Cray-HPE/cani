@@ -8,10 +8,9 @@
             "enum": [
                 "Cabinet",
                 "Chassis",
-                "ChassisBMC",
+                "ChassisManagementModule",
                 "CabinetEnvironmentalController",
                 "NodeBlade",
-                "NodeBMC",
                 "NodeCard",
                 "NodeBMC",
                 "Node",

@@ -77,9 +77,9 @@ hardware-type: ChassisManagementModule
 slug: hpe-crayex-chassis-management-module
 interfaces:
 - name: Ethernet A
-  type: [10000base-t, 1000base-t]
+  type: 10gbase-t
 - name: Ethernet B
-  type: [10000base-t, 1000base-t]
+  type: 10gbase-t
 - name: Ethernet C
-  type: [10000base-t, 1000base-t]
+  type: 10gbase-t
 
