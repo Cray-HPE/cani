@@ -24,7 +24,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/Cray-HPE/cani/cmd/inventory"
@@ -52,7 +51,7 @@ func init() {
 }
 
 func validateInventory(args []string) error {
-	fmt.Println("validate called")
+	// fmt.Println("validate called")
 
 	hardware, err := inventory.Get()
 	if err != nil {
