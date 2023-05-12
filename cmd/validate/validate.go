@@ -1,7 +1,7 @@
 /*
 MIT License
 
-(C) Copyright 2022 Hewlett Packard Enterprise Development LP
+(C) Copyright 2023 Hewlett Packard Enterprise Development LP
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),
@@ -26,15 +26,11 @@ package validate
 
 import (
 	"embed"
-	"encoding/json"
 	"fmt"
-	"io/fs"
 	"net"
-	"strings"
 
 	"github.com/Cray-HPE/cani/cmd/inventory"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
-	"github.com/santhosh-tekuri/jsonschema/v5"
 )
 
 var (
@@ -64,154 +60,11 @@ const (
 	Pass    Result = "pass"
 )
 
-func loadSchemas() (networksSchema *jsonschema.Schema, reservationsSchema *jsonschema.Schema, subnetsSchema *jsonschema.Schema, err error) {
-
-	files, err := fs.ReadDir(schemas, "schemas")
-	if err != nil {
-		return
-	}
-	for _, file := range files {
-		if strings.HasSuffix(file.Name(), ".json") {
-			switch file.Name() {
-			case "sls_networks_schema.json":
-				if networksSchema != nil {
-					continue
-				}
-			case "sls_reservations_schema.json":
-				if reservationsSchema != nil {
-					continue
-				}
-			case "sls_subnets_schema.json":
-				if subnetsSchema != nil {
-					continue
-				}
-			}
-
-			filePath := fmt.Sprintf("schemas/%s", file.Name())
-			content, err := schemas.ReadFile(filePath)
-			if err != nil {
-				fmt.Printf("Error reading embeded schema file: %s. %s\n", filePath, err)
-				return networksSchema, reservationsSchema, nil, err
-			}
-			s, err := jsonschema.CompileString(file.Name(), string(content))
-			if err != nil {
-				fmt.Printf("Error compiling embeded schema. file: %s. %s\n", filePath, err)
-				return networksSchema, reservationsSchema, nil, err
-			}
-
-			switch file.Name() {
-			case "sls_networks_schema.json":
-				networksSchema = s
-			case "sls_reservations_schema.json":
-				reservationsSchema = s
-			case "sls_subnets_schema.json":
-				subnetsSchema = s
-			default:
-				fmt.Printf("Unused schema: %s\n", file.Name())
-			}
-		}
-	}
-	return
-}
-
-func loadSchema(filename string) (schema *jsonschema.Schema, err error) {
-	files, err := fs.ReadDir(schemas, "schemas")
-	if err != nil {
-		return
-	}
-	for _, file := range files {
-		if filename == file.Name() {
-
-			filePath := fmt.Sprintf("schemas/%s", file.Name())
-			content, err := schemas.ReadFile(filePath)
-			if err != nil {
-				fmt.Printf("Error reading embeded schema file: %s. %s\n", filePath, err)
-				return nil, err
-			}
-			schema, err := jsonschema.CompileString(file.Name(), string(content))
-			if err != nil {
-				fmt.Printf("Error compiling embeded schema. file: %s. %s\n", filePath, err)
-				return nil, err
-			}
-			return schema, nil
-		}
-	}
-	err = fmt.Errorf("failed to find schema file: %s", filename)
-	return nil, err
-}
-
-func validateNetworksSchema(networksSchema *jsonschema.Schema, system *inventory.Hardware) []ValidationResult {
-	results := make([]ValidationResult, 0)
-
-	// todo use raw response from sls
-	networksJson, _ := json.MarshalIndent(system.Extract.SlsConfig.Networks, "", "  ")
-
-	var v interface{}
-	if err := json.Unmarshal([]byte(networksJson), &v); err != nil {
-		results = append(results,
-			ValidationResult{
-				CheckID:     SLSSchemaCheck,
-				Result:      Pass,
-				ComponentID: "SLS Networks",
-				Description: fmt.Sprintf("SLS Networks error unmarshaling json. %s", err)})
-		return results
-	}
-
-	if err := networksSchema.Validate(v); err != nil {
-		results = append(results,
-			ValidationResult{
-				CheckID:     SLSSchemaCheck,
-				Result:      Pass,
-				ComponentID: "SLS Networks",
-				Description: fmt.Sprintf("SLS Networks error validating schema. %s", err)})
-		return results
-	}
-	results = append(results,
-		ValidationResult{
-			CheckID:     SLSSchemaCheck,
-			Result:      Pass,
-			ComponentID: "SLS Networks",
-			Description: "SLS Networks valid json"})
-
-	return results
-}
-
-func validateReservationsSchema(networksSchema *jsonschema.Schema, system *inventory.Hardware) []ValidationResult {
-	results := make([]ValidationResult, 0)
-	return results
-}
-
-func validateSubnetsSchema(networksSchema *jsonschema.Schema, system *inventory.Hardware) []ValidationResult {
-	results := make([]ValidationResult, 0)
-	return results
-}
-
 func Validate(system *inventory.Hardware) {
 	results := make([]ValidationResult, 0)
 
-	networksSchema, err := loadSchema("sls_networks_schema.json")
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		r := validateNetworksSchema(networksSchema, system)
-		results = append(results, r...)
-	}
-
-	reservationsSchema, err := loadSchema("sls_reservations_schema.json")
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		r := validateReservationsSchema(reservationsSchema, system)
-		results = append(results, r...)
-	}
-
-	subnetsSchema, err := loadSchema("sls_subnets_schema.json")
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		r := validateSubnetsSchema(subnetsSchema, system)
-		results = append(results, r...)
-	}
+	r := validateAgainstSchemas(system)
+	results = append(results, r...)
 
 	passFailResults := make(map[string]bool)
 	ipRangeMap := make(map[string]*sls_client.Network)
