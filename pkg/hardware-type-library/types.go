@@ -45,10 +45,10 @@ const (
 )
 
 type DeviceType struct {
-	Manufacturer string `yaml:"manufacturer"`
-	Model        string `yaml:"model"`
-	HardwareType string `yaml:"hardware-type"`
-	Slug         string `yaml:"slug"`
+	Manufacturer string       `yaml:"manufacturer"`
+	Model        string       `yaml:"model"`
+	HardwareType HardwareType `yaml:"hardware-type"`
+	Slug         string       `yaml:"slug"`
 
 	PartNumber  *string     `yaml:"part_number"`
 	UHeight     *float64    `yaml:"u_height"`
@@ -71,13 +71,14 @@ type DeviceType struct {
 }
 
 type DeviceBay struct {
-	Name    string           `yaml:"slug"`
+	Name    string           `yaml:"name"`
 	Allowed *AllowedHardware `yaml:"allowed"`
-	Default *AllowedHardware `yaml:"default"`
+	Default *DefaultHardware `yaml:"default"`
 }
 
 type AllowedHardware struct {
-	Slug []string `yaml:"slug"`
+	HardwareTypes []HardwareType `yaml:"hardware-type"`
+	Slug          []string       `yaml:"slug"`
 }
 
 type DefaultHardware struct {

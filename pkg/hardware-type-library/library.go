@@ -3,6 +3,7 @@ package hardware_type_library
 import (
 	"bytes"
 	"embed"
+	"errors"
 	"fmt"
 	"io"
 	"path"
@@ -16,7 +17,10 @@ var defaultHardwareTypesFS embed.FS
 //go:embed hardware-types/schema/*.json
 var hardwareTypeSchemas embed.FS
 
+var ErrDeviceTypeAlreadyExists = fmt.Errorf("device type already exists")
+
 type Library struct {
+	DeviceTypes map[string]DeviceType
 }
 
 func unmarshalMultiple(in []byte, out *[]DeviceType) error {
@@ -43,6 +47,10 @@ func unmarshalMultiple(in []byte, out *[]DeviceType) error {
 }
 
 func NewEmbeddedLibrary() (*Library, error) {
+	library := &Library{
+		DeviceTypes: map[string]DeviceType{},
+	}
+
 	// Load the embedded hardware type embedded files
 	basePath := "hardware-types"
 	files, err := defaultHardwareTypesFS.ReadDir(basePath)
@@ -53,7 +61,7 @@ func NewEmbeddedLibrary() (*Library, error) {
 	// Parse hardware type files
 	for _, file := range files {
 		filePath := path.Join(basePath, file.Name())
-		fmt.Println(filePath)
+		fmt.Println("Parsing file:", filePath)
 
 		fileRaw, err := defaultHardwareTypesFS.ReadFile(filePath)
 		if err != nil {
@@ -64,18 +72,44 @@ func NewEmbeddedLibrary() (*Library, error) {
 		if err := unmarshalMultiple(fileRaw, &fileDeviceTypes); err != nil {
 			return nil, err
 		}
+
+		for _, deviceType := range fileDeviceTypes {
+			fmt.Println("  Registering device type:", deviceType.Slug)
+			if err := library.RegisterDeviceType(deviceType); err != nil {
+				return nil, errors.Join(
+					fmt.Errorf("failed to register device type '%s'", deviceType.Slug),
+					err,
+				)
+			}
+		}
 	}
 
-	return &Library{}, nil
+	return library, nil
 }
 
 func NewLibraryFromPath(path string) (*Library, error) {
 	return &Library{}, nil
 }
 
-// func GetDeviceTypesByHardwareType(hardwareClass HardwareType) []DeviceType {
+func (l *Library) RegisterDeviceType(deviceType DeviceType) error {
+	if _, exists := l.DeviceTypes[deviceType.Slug]; exists {
+		return ErrDeviceTypeAlreadyExists
+	}
 
-// }
+	l.DeviceTypes[deviceType.Slug] = deviceType
+	return nil
+}
+
+func (l *Library) GetDeviceTypesByHardwareType(hardwareType HardwareType) []DeviceType {
+	var result []DeviceType
+	for _, deviceType := range l.DeviceTypes {
+		if deviceType.HardwareType == hardwareType {
+			result = append(result, deviceType)
+		}
+	}
+
+	return result
+}
 
 // func GetDeviceType(name string) DeviceType {
 
