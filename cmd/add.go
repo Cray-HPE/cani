@@ -55,11 +55,6 @@ var addCmd = &cobra.Command{
 	Short: "Add assets to the inventory.",
 	Long:  `Add assets to the inventory.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if cmd.Flags().Changed("list-supported-types") {
-			fmt.Println("Supported hardware types:")
-			inventory.ListSupportedTypes()
-			os.Exit(0)
-		}
 		if simulation {
 			blade.AddBladeCmd.SetArgs([]string{"-S"})
 		}

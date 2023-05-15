@@ -24,7 +24,11 @@ OTHER DEALINGS IN THE SOFTWARE.
 package blade
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/Cray-HPE/cani/cmd/inventory"
+	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
 	"github.com/spf13/cobra"
 )
 
@@ -34,6 +38,11 @@ var AddBladeCmd = &cobra.Command{
 	Short: "Add blades to the inventory.",
 	Long:  `Add blades to the inventory.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if cmd.Flags().Changed("list-supported-types") {
+			fmt.Println("Supported hardware types:")
+			inventory.ListSupportedTypes(hardware_type_library.HardwareTypeNodeBlade)
+			os.Exit(0)
+		}
 		err := addBlade(cmd, args)
 		if err != nil {
 			return err
@@ -43,6 +52,7 @@ var AddBladeCmd = &cobra.Command{
 }
 
 func init() {
+	AddBladeCmd.Flags().BoolP("list-supported-types", "L", false, "List supported hardware types.")
 	AddBladeCmd.Flags().String("chassis", "", "Parent chassis")
 	// cobra.MarkFlagRequired(AddBladeCmd.Flags(), "chassis")
 }
@@ -55,4 +65,19 @@ func addBlade(cmd *cobra.Command, args []string) error {
 	}
 	return nil
 
+}
+
+func listSupportedBlades() {
+	library, err := hardware_type_library.NewEmbeddedLibrary()
+	if err != nil {
+		panic(err)
+	}
+
+	// List cabinets
+	fmt.Println()
+	fmt.Println("Cabinets")
+	cabinetDeviceTypes := library.GetDeviceTypesByHardwareType(hardware_type_library.HardwareTypeCabinet)
+	for _, cabinetDeviceType := range cabinetDeviceTypes {
+		fmt.Println(cabinetDeviceType.Slug)
+	}
 }
