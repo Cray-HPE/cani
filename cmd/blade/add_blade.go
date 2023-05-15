@@ -66,18 +66,3 @@ func addBlade(cmd *cobra.Command, args []string) error {
 	return nil
 
 }
-
-func listSupportedBlades() {
-	library, err := hardware_type_library.NewEmbeddedLibrary()
-	if err != nil {
-		panic(err)
-	}
-
-	// List cabinets
-	fmt.Println()
-	fmt.Println("Cabinets")
-	cabinetDeviceTypes := library.GetDeviceTypesByHardwareType(hardware_type_library.HardwareTypeCabinet)
-	for _, cabinetDeviceType := range cabinetDeviceTypes {
-		fmt.Println(cabinetDeviceType.Slug)
-	}
-}
