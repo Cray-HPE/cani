@@ -120,7 +120,7 @@ func validateNetworksSchema(schema *jsonschema.Schema, networks map[string]inter
 		results = append(results,
 			ValidationResult{
 				CheckID:     SLSSchemaCheck,
-				Result:      Pass,
+				Result:      Fail,
 				ComponentID: "SLS Networks",
 				Description: fmt.Sprintf("SLS Networks error validating schema. %s", err)})
 		return results
@@ -135,22 +135,25 @@ func validateNetworksSchema(schema *jsonschema.Schema, networks map[string]inter
 	return results
 }
 
-func validateReservationsSchema(schema *jsonschema.Schema, reservation map[string]interface{}) []ValidationResult {
+// func validateReservationsSchema(schema *jsonschema.Schema, reservation map[string]interface{}) []ValidationResult {
+func validateReservationsSchema(schema *jsonschema.Schema, reservation []map[string]interface{}, id *ID) []ValidationResult {
 	results := make([]ValidationResult, 0)
 	if err := schema.Validate(reservation); err != nil {
 		results = append(results,
 			ValidationResult{
-				CheckID:     SLSSchemaCheck,
-				Result:      Pass,
-				ComponentID: "SLS Networks",
+				CheckID: SLSSchemaCheck,
+				Result:  Fail,
+				// ComponentID: "SLS Networks",
+				ComponentID: "SLS Networks: " + id.str(),
 				Description: fmt.Sprintf("SLS Networks error validating schema. %s", err)})
 		return results
 	}
 	results = append(results,
 		ValidationResult{
-			CheckID:     SLSSchemaCheck,
-			Result:      Pass,
-			ComponentID: "SLS Networks",
+			CheckID: SLSSchemaCheck,
+			Result:  Pass,
+			// ComponentID: "SLS Networks",
+			ComponentID: "SLS Networks: " + id.str(),
 			Description: "SLS Networks valid json"})
 	return results
 }
@@ -161,7 +164,7 @@ func validateSubnetsSchema(schema *jsonschema.Schema, subnet map[string]interfac
 		results = append(results,
 			ValidationResult{
 				CheckID:     SLSSchemaCheck,
-				Result:      Pass,
+				Result:      Fail,
 				ComponentID: "SLS Networks",
 				Description: fmt.Sprintf("SLS Networks error validating schema. %s", err)})
 		return results
@@ -232,18 +235,27 @@ func validateAgainstSchemas(system *inventory.Hardware) []ValidationResult {
 
 	r := validateNetworksSchema(networksSchema, networks)
 	results = append(results, r...)
-	for _, networkRaw := range networks {
+	for name, networkRaw := range networks {
+		networkId := NewID("Network", name)
+		fmt.Println(networkId.strYaml())
 		subnets, found := toSliceOfMaps([]string{"ExtraProperties", "Subnets"}, networkRaw)
 		if found {
 			for _, subnet := range subnets {
-				r := validateReservationsSchema(reservationsSchema, subnet)
+				cidr := subnet["CIDR"]
+				subnetId := networkId.append(Pair{"SubnetCIDR", cidr.(string)})
+				fmt.Println(subnetId.strYaml())
+
+				// r := validateReservationsSchema(reservationsSchema, subnet)
+				r := validateSubnetsSchema(subnetsSchema, subnet)
 				results = append(results, r...)
 				reservations, found := toSliceOfMaps([]string{"IPReservations"}, subnet)
 				if found {
-					for _, reservation := range reservations {
-						r := validateSubnetsSchema(subnetsSchema, reservation)
-						results = append(results, r...)
-					}
+					r := validateReservationsSchema(reservationsSchema, reservations, subnetId)
+					results = append(results, r...)
+					// 	for _, reservation := range reservations {
+					// 		r := validateSubnetsSchema(subnetsSchema, reservation)
+					// 		results = append(results, r...)
+					// 	}
 				}
 			}
 

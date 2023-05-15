@@ -63,6 +63,16 @@ const (
 func Validate(system *inventory.Hardware) {
 	results := make([]ValidationResult, 0)
 
+	id := NewID("Network", "CAN")
+	id2 := id.append(Pair{"fish", "bones"})
+	fmt.Printf("ID: %v\n", id)
+	fmt.Printf("ID2: %v\n", id2)
+	fmt.Printf("ID str: %s\n", id.str())
+	fmt.Printf("ID str pair: %s\n", id.strPair())
+	fmt.Printf("ID2 str: %s\n", id2.str())
+	fmt.Printf("ID2 str pair: %s\n", id2.strPair())
+	fmt.Printf("ID2 str pair: %s\n", id2.strYaml())
+
 	r := validateAgainstSchemas(system)
 	results = append(results, r...)
 
