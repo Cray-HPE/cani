@@ -27,6 +27,7 @@ import (
 	"errors"
 	"fmt"
 
+	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
@@ -37,14 +38,14 @@ type Inventory map[uuid.UUID]Hardware
 // Hardware is the smallest unit of inventory
 // It has all the potential fields that hardware can have
 type Hardware struct {
-	Name          string      `json:"Name,omitempty" yaml:"Name,omitempty" default:"" usage:"Friendly name"`
-	Type          string      `json:"Type,omitempty" yaml:"Type,omitempty" default:"" usage:"Type"`
-	Vendor        string      `json:"Vendor,omitempty" yaml:"Vendor,omitempty" default:"" usage:"Vendor"`
-	Architechture string      `json:"Architechture,omitempty" yaml:"Architechture,omitempty" default:"" usage:"Architechture"`
-	Model         string      `json:"Model,omitempty" yaml:"Model,omitempty" default:"" usage:"Model"`
-	Status        string      `json:"Status,omitempty" yaml:"Status,omitempty" default:"Staged" usage:"Hardware can be [staged, provisioned, decomissioned]"`
-	Properties    interface{} `json:"Properties,omitempty" yaml:"Properties,omitempty" default:"" usage:"Properties"`
-	Parent        uuid.UUID   `json:"Parent,omitempty" yaml:"Parent,omitempty" default:"00000000-0000-0000-0000-000000000000" usage:"Parent hardware"`
+	Name          string                             `json:"Name,omitempty" yaml:"Name,omitempty" default:"" usage:"Friendly name"`
+	Type          hardware_type_library.HardwareType `json:"Type,omitempty" yaml:"Type,omitempty" default:"" usage:"Type"`
+	Vendor        string                             `json:"Vendor,omitempty" yaml:"Vendor,omitempty" default:"" usage:"Vendor"`
+	Architechture string                             `json:"Architechture,omitempty" yaml:"Architechture,omitempty" default:"" usage:"Architechture"`
+	Model         string                             `json:"Model,omitempty" yaml:"Model,omitempty" default:"" usage:"Model"`
+	Status        string                             `json:"Status,omitempty" yaml:"Status,omitempty" default:"Staged" usage:"Hardware can be [staged, provisioned, decomissioned]"`
+	Properties    interface{}                        `json:"Properties,omitempty" yaml:"Properties,omitempty" default:"" usage:"Properties"`
+	Parent        uuid.UUID                          `json:"Parent,omitempty" yaml:"Parent,omitempty" default:"00000000-0000-0000-0000-000000000000" usage:"Parent hardware"`
 	// Children      []uuid.UUID `json:"Children,omitempty" yaml:"Children,omitempty" default:"" usage:"Child hardware"`
 }
 
@@ -94,19 +95,22 @@ func NewBlade(cmd *cobra.Command, args []string) Hardware {
 	var hw Hardware
 	var u uuid.UUID
 	var err error
+	// Check the chassis flag to see if we need to set the parent
 	uu := cmd.Flags().Lookup("chassis").Value.String()
 	if uu != "" {
 		u, err = uuid.Parse(uu)
 		if err != nil {
 			return Hardware{}
 		}
+		// Set the type and parent
 		hw = Hardware{
-			Type:   "Blade",
+			Type:   hardware_type_library.HardwareTypeNodeBlade,
 			Parent: u,
 		}
 	} else {
+		// If the chassis flag is not set, then we need to check the cabi
 		hw = Hardware{
-			Type: "Blade",
+			Type: hardware_type_library.HardwareTypeNodeBlade,
 		}
 		return hw
 	}
