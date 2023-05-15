@@ -2,27 +2,16 @@ package main
 
 import (
 	"fmt"
-	"regexp"
-	"strconv"
 	"strings"
 
 	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
+	"github.com/Cray-HPE/hms-xname/xnames"
 )
 
 // type HardwarePath struct {
 // 	DeviceBay string
 
 // }
-
-type HardwareBuildOut struct {
-	// HardwareType hardware_type_library.HardwareType
-	DeviceTypeString string
-	DeviceType       hardware_type_library.DeviceType
-	Path             []string
-	Ordinal          int
-	OrdinalPath      []int
-	HardwareTypePath []hardware_type_library.HardwareType
-}
 
 func joinInts(ints []int, sep string) string {
 	intsStr := []string{}
@@ -40,6 +29,47 @@ func joinHardwareTypes(in []hardware_type_library.HardwareType, sep string) stri
 	}
 
 	return strings.Join(out, sep)
+}
+
+func buildChassisPath(cabinet, chassis int) hardware_type_library.HardwareBuildOut {
+	return hardware_type_library.HardwareBuildOut{
+		OrdinalPath: []int{cabinet, chassis},
+		HardwareTypePath: []hardware_type_library.HardwareType{
+			hardware_type_library.HardwareTypeCabinet,
+			hardware_type_library.HardwareTypeChassis,
+		},
+	}
+}
+
+func buildXname(hardwareTypePath []hardware_type_library.HardwareType, locationPath []int) xnames.Xname {
+	type typeConverter struct {
+		hardwareTypePath []hardware_type_library.HardwareType
+		convert          func() xnames.Xname
+	}
+
+	// TODO this could probably be auto generated, assuming a type mapping table exists
+	// typeConverters := []typeConverter{
+	// 	{
+	// 		// Slot/Node Blade
+	// 		hardwareTypePath: []hardware_type_library.HardwareType{
+	// 			hardware_type_library.HardwareTypeCabinet,
+	// 			hardware_type_library.HardwareTypeChassis,
+	// 			hardware_type_library.HardwareTypeNodeBlade,
+	// 		},
+
+	// 		convert: func() xnames.Xname {
+	// 			return xnames.ComputeModule{
+	// 				Cabinet:       locationPath[0],
+	// 				Chassis:       locationPath[1],
+	// 				ComputeModule: locationPath[2],
+	// 			}
+	// 		},
+	// 	},
+	// }
+
+	// TODO work in progress
+	return nil
+
 }
 
 func main() {
@@ -64,97 +94,16 @@ func main() {
 		fmt.Println(nodeBladeDeviceType.Slug)
 	}
 
-	// results := []HardwareBuildOut{}
-
-	// deviceTypes := []string{"hpe-crayex-ex420-compute-blade"}
-	// for len(deviceTypes) != 0 {
-	// 	currentDeviceType := deviceTypes[0]
-	// 	deviceTypes = deviceTypes[1:]
-
-	// 	fmt.Println(currentDeviceType)
-
-	// 	deviceType, ok := library.DeviceTypes[currentDeviceType]
-	// 	if !ok {
-	// 		panic(fmt.Sprint("Device type does not exist", currentDeviceType))
-	// 	}
-
-	// 	for _, deviceBay := range deviceType.DeviceBays {
-	// 		fmt.Println("  Device bay:", deviceBay.Name)
-	// 		if deviceBay.Default != nil {
-	// 			fmt.Println("    Default:", deviceBay.Default.Slug)
-	// 			deviceTypes = append(deviceTypes, deviceBay.Default.Slug)
-	// 		}
-	// 	}
-	// }
-
-	results := []HardwareBuildOut{}
-	queue := []HardwareBuildOut{
-		{
-			DeviceTypeString: "hpe-crayex-ex420-compute-blade",
-			Path:             []string{}, // This is the root of the path
-			Ordinal:          -1,
-		},
-		// {
-		// 	DeviceTypeString: "hpe-ex4000",
-		// 	Path:             []string{}, // This is the root of the path
-		// 	Ordinal:          -1,
-		// },
-	}
-	for len(queue) != 0 {
-		current := queue[0]
-		queue = queue[1:]
-
-		fmt.Println("Visiting: ", current.DeviceTypeString)
-		currentDeviceType, ok := library.DeviceTypes[current.DeviceTypeString]
-		if !ok {
-			panic(fmt.Sprint("Device type does not exist", current.DeviceType))
-		}
-
-		// Retrieve the hardware type at this point in time, so we only lookup in the map once
-		current.DeviceType = currentDeviceType
-		current.HardwareTypePath = append(current.HardwareTypePath, current.DeviceType.HardwareType)
-
-		for _, deviceBay := range currentDeviceType.DeviceBays {
-			fmt.Println("  Device bay:", deviceBay.Name)
-			if deviceBay.Default != nil {
-				fmt.Println("    Default:", deviceBay.Default.Slug)
-
-				// Extract the ordinal
-				// This is one way of going about, but it assumes that each name has a number
-				// There are two other ways to consider:
-				// - Embed an actual ordinal number in the yaml files
-				// - Get all of the device base with that type, and then sort them lexicographically. This is how HSM does it, but assumes the names can be sorted in a predictable order
-				r := regexp.MustCompile(`\d+`)
-				match := r.FindString(deviceBay.Name)
-				fmt.Printf("%s|%s\n", deviceBay.Name, match)
-
-				var ordinal int
-				if match != "" {
-					ordinal, err = strconv.Atoi(match)
-					if err != nil {
-						panic(err)
-					}
-				}
-
-				queue = append(queue, HardwareBuildOut{
-					// Hardware type is defered until when it is processed
-					DeviceTypeString: deviceBay.Default.Slug,
-					Path:             append(current.Path, deviceBay.Name),
-					Ordinal:          ordinal,
-					OrdinalPath:      append(current.OrdinalPath, ordinal),
-					HardwareTypePath: current.HardwareTypePath,
-				})
-			}
-		}
-
-		results = append(results, current)
+	allChildHardware, err := library.GetDefaultChildHardwareBuildOut("hpe-crayex-ex420-compute-blade")
+	if err != nil {
+		panic(err)
 	}
 
 	seperator := fmt.Sprintf("|%s|%s|%s|%s|%s|%s|%s|", strings.Repeat("-", 40+1), strings.Repeat("-", 20+1), strings.Repeat("-", 60+1), strings.Repeat("-", 40+1), strings.Repeat("-", 40+1), strings.Repeat("-", 40+1), strings.Repeat("-", 40+1))
 	fmt.Println(seperator)
 	fmt.Printf("| %-40s| %-20s| %-60s| %-40s| %-40s| %-40s| %-40s|\n", "Hardware Type", "Manufacturer", "Model", "Ordinal", "Path", "Ordinal Path", "Hardware Type Path")
 	fmt.Println(seperator)
-	for _, result := range results {
+	for _, result := range allChildHardware {
 		fmt.Printf("| %-40s| %-20s| %-60s| %-40d| %-40s| %-40s| %-40s|\n", result.DeviceType.HardwareType, result.DeviceType.Manufacturer, result.DeviceType.Model, result.Ordinal, strings.Join(result.Path, "->"), joinInts(result.OrdinalPath, "->"), joinHardwareTypes(result.HardwareTypePath, "->"))
 	}
 	fmt.Println(seperator)
@@ -164,6 +113,26 @@ func main() {
 	// chassis := 1
 	// slot := 7
 
-	// mySlot := hardware_type_library.Ch
+	// TODO Interact with the inventory
+	// - Check to see if the cabinet exists
+	// - Check to see if the chassis exists
+	// - Check to see if the slot is empty
+	//	- TODO also should check to see if the slot is within bounds
+	// TODO Ask the inventory to see if node blade exists at cabinet: 1001, chassis: 1, slot: 7
 
+	// TODO Ask the inventory for the paths to the chassis in the tree
+	// locationPath := []int{1001, 1, 7}
+	// deviceTypePath := []hardware_type_library.HardwareType{
+	// 	hardware_type_library.HardwareTypeCabinet,
+	// 	hardware_type_library.HardwareTypeChassis,
+	// 	hardware_type_library.HardwareTypeNodeBlade,
+	// }
+
+	// for _, childHardware := range allChildHardware {
+	// 	// Get full hardware type path
+	// 	childHardwareTypePath := append(deviceTypePath, childHardware.HardwareTypePath...)
+
+	// 	// Get full location/ordinal path
+	// 	childLocationPath := append(locationPath, childHardware.OrdinalPath...)
+	// }
 }
