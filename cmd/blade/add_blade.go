@@ -37,6 +37,7 @@ var AddBladeCmd = &cobra.Command{
 	Use:   "blade",
 	Short: "Add blades to the inventory.",
 	Long:  `Add blades to the inventory.`,
+	Args:  validHardware,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if cmd.Flags().Changed("list-supported-types") {
 			fmt.Println("Supported hardware types:")

@@ -25,16 +25,16 @@ package blade
 
 import (
 	"crypto/tls"
-	"fmt"
+	"errors"
 	"net/http"
 	"os"
 
 	"internal/hsm"
 	"internal/sls"
 
+	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
 	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
-	X "github.com/Cray-HPE/cani/pkg/xname"
 	"github.com/spf13/cobra"
 )
 
@@ -65,22 +65,27 @@ func EnableDebug() {
 	debug = true
 }
 
-// validateArgsAreValidBladeXnames validates that the arguments passed to the command are valid blade/slot/ComputeModule xnames.
-func validateArgsAreValidBladeXnames(cmd *cobra.Command, args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("At least one blade xname must be specified, received %d", len(args))
+// validHardware checks that the hardware type is valid by comparing it against the list of hardware types
+func validHardware(cmd *cobra.Command, args []string) error {
+	library, err := hardware_type_library.NewEmbeddedLibrary()
+	if err != nil {
+		return err
 	}
+
+	// Get the list of hardware types that are blades
+	deviceTypes := library.GetDeviceTypesByHardwareType(hardware_type_library.HardwareTypeNodeBlade)
 
 	// Check that each arg is a valid blade xname
 	for _, arg := range args {
-		xn := X.Xname(arg)
-		if xn.IsValid() {
-			blade := xn.Type()
-			if blade.Type != "ComputeModule" {
-				return fmt.Errorf("Invalid blade xname %s: %s", blade.Letters, arg)
+		matchFound := false
+		for _, device := range deviceTypes {
+			if arg == device.Slug {
+				matchFound = true
+				break
 			}
-		} else {
-			return fmt.Errorf("Not an xname: %s", arg)
+		}
+		if !matchFound {
+			return errors.New("Invalid hardware type: " + arg)
 		}
 	}
 
