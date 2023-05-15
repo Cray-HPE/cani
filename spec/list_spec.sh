@@ -24,6 +24,6 @@
 It 'list (with no args)'
   When call bin/cani list
   The status should equal 0
-  The lines of stdout should equal 1
-  The stdout should equal "list called"
+  The stderr should include '"operation":"GET","key":"","value":"","status":"SUCCESS"'
+  The stdout should include '"Parent": "00000000-0000-0000-0000-000000000000"'
 End

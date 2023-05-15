@@ -24,6 +24,5 @@
 It 'remove (with no args)'
   When call bin/cani remove
   The status should equal 0
-  The lines of stdout should equal 1
-  The stdout should equal "remove called"
+  The lines of stdout should equal 0
 End

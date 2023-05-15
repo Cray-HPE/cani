@@ -24,9 +24,11 @@ OTHER DEALINGS IN THE SOFTWARE.
 package blade
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 
-	"github.com/rs/zerolog/log"
+	"github.com/Cray-HPE/cani/cmd/inventory"
 	"github.com/spf13/cobra"
 )
 
@@ -36,15 +38,34 @@ var ListBladeCmd = &cobra.Command{
 	Short: "List blades in the inventory.",
 	Long:  `List blades in the inventory.`,
 	Args:  cobra.ArbitraryArgs,
-	Run: func(cmd *cobra.Command, args []string) {
-		err := listBlade(args)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		err := listBlade(cmd, args)
 		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
+			return err
 		}
+		return nil
 	},
 }
 
-func listBlade(args []string) error {
-	fmt.Println("list blade called")
+// listBlade lists all assets in the inventory
+func listBlade(cmd *cobra.Command, args []string) error {
+	inv, err := inventory.List(cmd, args)
+	if err != nil {
+		return err
+	}
+
+	filtered := inventory.Inventory{}
+	for key, hw := range inv {
+		if hw.Type == "Blade" {
+			filtered[key] = hw
+		}
+	}
+	// Convert the filtered inventory into a formatted JSON string
+	inventoryJSON, err := json.MarshalIndent(filtered, "", "  ")
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error marshaling inventory to JSON: %v", err))
+	}
+
+	fmt.Println(string(inventoryJSON))
 	return nil
 }

@@ -80,6 +80,10 @@ func GetCommandInfo(cmd *cobra.Command) map[string]CommandInfo {
 		cmdInfo.Flags[flag.Name] = getFlagInfo(flag)
 	})
 
+	cmd.Root().PersistentFlags().VisitAll(func(flag *pflag.Flag) {
+		cmdInfo.Flags[flag.Name] = getFlagInfo(flag)
+	})
+
 	commandMap[cmd.CommandPath()] = cmdInfo
 
 	for _, subCmd := range cmd.Commands() {

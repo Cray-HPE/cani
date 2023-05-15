@@ -43,15 +43,6 @@ var RootCmd = &cobra.Command{
 	Short: "From subfloor to top-of-rack, manage your HPC cluster's inventory!",
 	Long:  `From subfloor to top-of-rack, manage your HPC cluster's inventory!`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		// Set the value for the internal variable in the subcommand package
-		if simulation {
-			log.Info().Msg("Using Simulation Mode")
-			blade.EnableSimulation()
-			inventory.EnableSimulation()
-		} else {
-			blade.DisableSimulation()
-		}
-		// Set the value for the internal variable in the subcommand package
 		if debug {
 			blade.EnableDebug()
 		}
@@ -71,6 +62,9 @@ var (
 	cfgFile    string
 	conf       *config.Config
 	spec       bool
+	dbFile     string
+	// the database is exported so it can be used in the subcommands
+	Db *inventory.Database
 )
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -83,7 +77,8 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
+	// Create or load a yaml config and the database
+	cobra.OnInitialize(initConfig, initDb)
 
 	RootCmd.AddCommand(addCmd)
 	RootCmd.AddCommand(listCmd)
@@ -94,6 +89,7 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", cfgFile, "Path to the configuration file")
 	RootCmd.PersistentFlags().BoolVarP(&debug, "debug", "D", false, "additional debug output")
 	RootCmd.PersistentFlags().BoolVarP(&simulation, "simulation", "S", false, "Use simulation mode for hsm-simulation-environment")
+	RootCmd.PersistentFlags().StringVar(&dbFile, "database", dbFile, "JSON database file")
 
 }
 
@@ -140,4 +136,45 @@ func initConfig() {
 		os.Exit(1)
 	}
 	// Set up other global flags or settings based on the loaded configuration
+}
+
+func initDb() {
+	homeDir, err := os.UserHomeDir()
+	cobra.CheckErr(err)
+	if dbFile != "" {
+		// global debug cannot be run during init() so check for debug flag here
+		if debug {
+			log.Debug().Msg(fmt.Sprintf("Using user-defined database file: %s", dbFile))
+		}
+	} else {
+		// Set a default database file
+		dbFile = filepath.Join(homeDir, config.CfgDir, inventory.DbPath)
+		if debug {
+			log.Debug().Msg(fmt.Sprintf("Using default database file %s", dbFile))
+		}
+	}
+	// Initialize the database file if it does not exist
+	Db, err = inventory.InitDb(dbFile)
+	if err != nil {
+		log.Error().Msg(fmt.Sprintf("Error initializing database file: %s", err))
+		os.Exit(1)
+	}
+
+	// Load the configuration file
+	Db, err = inventory.LoadDb(dbFile, Db)
+	if err != nil {
+		log.Error().Msg(fmt.Sprintf("Error loading database file: %s", err))
+		os.Exit(1)
+	}
+
+	if debug {
+		log.Debug().Msg(fmt.Sprintf("Loaded %s", dbFile))
+	}
+
+	defer inventory.CloseTransactionLog()
+}
+
+// GetDbPointer returns a pointer to the database
+func GetDbPointer() *inventory.Database {
+	return Db
 }

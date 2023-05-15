@@ -24,13 +24,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 package cabinet
 
 import (
-	"embed"
-	"fmt"
-	"os"
-	"strings"
-
 	"github.com/Cray-HPE/cani/cmd/inventory"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -39,63 +33,20 @@ var AddCabinetCmd = &cobra.Command{
 	Use:   "cabinet",
 	Short: "Add cabinets to the inventory.",
 	Long:  `Add cabinets to the inventory.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		err := addCabinet(args)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		err := addCabinet(cmd, args)
 		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
-			os.Exit(1)
+			return err
 		}
+		return nil
 	},
 }
 
-var (
-	listSupportedTypes bool
-	hmnVlanId          int
-	cabinetId          int
-	chassis            int
-	models             []string
-	hwType             string
-	slot               int
-	port               int
-	role               string
-	subRole            string
-	//go:embed scripts/*
-	helperScripts              embed.FS
-	addLiquidCooledCabinet     bool
-	addLiquidCooledCabinetName = "add_liquid_cooled_cabinet.py"
-	addLiqudCooledCabinetFlag  = "add-liquid-cooled-cabinet"
-	backupSlsPostgres          bool
-	backupSlsPostgresName      = "backup_sls_postgres.sh"
-	backupSlsPostgresFlag      = "backup-sls-postgres"
-	inspectSlsCabinets         bool
-	inspectSlsCabinetsName     = "inspect_sls_cabinets.py"
-	inspectSlsCabinetsFlag     = "inspect-sls-cabinets"
-	updateNcnEtcHosts          bool
-	updateNcnEtcHostsName      = "update_ncn_etc_hosts.py"
-	updateNcnEtcHostsNameFlag  = "update-ncn-etc-hosts"
-	updateNcnCabinetRoutes     bool
-	updateNcnCabinetRoutesName = "update_ncn_cabinet_routes.py"
-	updateNcnCabinetRoutesFlag = "update-ncn-cabinet-routes"
-	verifyBmcCredentials       bool
-	verifyBmcCredentialsName   = "verify_bmc_credentials.sh"
-	verifyBmcCredentialsFlag   = "verify-bmc-credentials"
-	runScriptUsage             = "Run the %s script"
-)
-
-func init() {
-	supportedHw := inventory.SupportedHardware()
-	for _, hw := range supportedHw {
-		models = append(models, hw.Model)
+// addCabinet adds a cabinet to the inventory
+func addCabinet(cmd *cobra.Command, args []string) error {
+	_, err := inventory.Add(cmd, args)
+	if err != nil {
+		return err
 	}
-	AddCabinetCmd.Flags().BoolVarP(&listSupportedTypes, "list-supported-types", "l", false, "List supported hardware types.")
-	AddCabinetCmd.Flags().StringVarP(&hwType, "type", "t", "", fmt.Sprintf("Hardware type.  Allowed values: [%+v]", strings.Join(models, "\", \"")))
-	AddCabinetCmd.Flags().IntVarP(&cabinetId, "cabinet", "C", 1000, "Cabinet ID")
-	AddCabinetCmd.Flags().IntVarP(&chassis, "chassis", "c", 0, "Chassis ID")
-	AddCabinetCmd.Flags().IntVarP(&slot, "slot", "s", 0, "Slot ID")
-	AddCabinetCmd.Flags().IntVarP(&hmnVlanId, "hmn-vlan", "v", 0, "HMN VLAN ID")
-}
-
-func addCabinet(args []string) error {
-	fmt.Println("add cabinet called")
 	return nil
 }

@@ -21,18 +21,32 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-It 'remove blade (with no args)'
-  When call bin/cani remove blade
+
+Describe 'cani add'
+# Fixtures location ./spec/fixtures
+FIXTURES="$SHELLSPEC_HELPERDIR/testdata/fixtures"
+
+# compare value to file content
+fixture(){
+  test "${fixture:?}" == "$( cat "$FIXTURES/$1" )"
+}
+
+# Removes the db to start fresh 
+# Not called for all tests, but when no duplicate uuids are expected this is called
+cleanup(){ rm -rf testdb.json; }
+
+It '--help'
+  When call bin/cani add --help
   The status should equal 0
-  The lines of stdout should equal 1
-  The stdout should equal "remove blade called"
+  The stdout should satisfy fixture 'cani/add/help'
 End
 
-It '--debug remove blade'
-  When call bin/cani --debug remove blade
-  The status should equal 0
-  The lines of stdout should equal 1
-  The stdout should equal 'remove blade called'
-  The lines of stderr should equal 1
-  The stderr should include '"message":"Using'
+It '--database testdb.json'
+  BeforeCall 'cleanup' # Remove the db to start fresh
+  When call bin/cani add --database testdb.json --uuid abcdef12-3456-abcd-1234-abcdef123456
+  The status should equal 1
+  The line 1 of stdout should equal 'Error: No asset type specified.'
+  The line 1 of stderr should include '"message":"testdb.json does not exist, creating default database"'
+End
+
 End

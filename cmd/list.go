@@ -24,13 +24,18 @@ OTHER DEALINGS IN THE SOFTWARE.
 package cmd
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
-	"os"
 
 	"github.com/Cray-HPE/cani/cmd/blade"
 	"github.com/Cray-HPE/cani/cmd/cabinet"
+	"github.com/Cray-HPE/cani/cmd/chassis"
+	"github.com/Cray-HPE/cani/cmd/hsn"
+	"github.com/Cray-HPE/cani/cmd/inventory"
+	"github.com/Cray-HPE/cani/cmd/node"
+	"github.com/Cray-HPE/cani/cmd/pdu"
 	sw "github.com/Cray-HPE/cani/cmd/switch"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -39,23 +44,38 @@ var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List assets in the inventory.",
 	Long:  `List assets in the inventory.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		err := listInventory(args)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		err := listInventory(cmd, args)
 		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
-			os.Exit(1)
+			return err
 		}
-
+		return nil
 	},
 }
 
 func init() {
 	listCmd.AddCommand(blade.ListBladeCmd)
 	listCmd.AddCommand(cabinet.ListCabinetCmd)
+	listCmd.AddCommand(chassis.ListChassisCmd)
+	listCmd.AddCommand(hsn.ListHsnCmd)
+	listCmd.AddCommand(node.ListNodeCmd)
+	listCmd.AddCommand(pdu.ListPduCmd)
 	listCmd.AddCommand(sw.ListSwitchCmd)
 }
 
-func listInventory(args []string) error {
-	fmt.Println("list called")
+// listInventory lists all assets in the inventory
+func listInventory(cmd *cobra.Command, args []string) error {
+	inv, err := inventory.List(cmd, args)
+	if err != nil {
+		return err
+	}
+
+	// Convert the filtered inventory into a formatted JSON string
+	inventoryJSON, err := json.MarshalIndent(inv, "", "  ")
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error marshaling inventory to JSON: %v", err))
+	}
+
+	fmt.Println(string(inventoryJSON))
 	return nil
 }

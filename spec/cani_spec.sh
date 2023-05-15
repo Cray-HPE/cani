@@ -21,6 +21,7 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
+
 Describe 'cani'
 # Fixtures location ./spec/fixtures
 FIXTURES="$SHELLSPEC_HELPERDIR/testdata/fixtures"
@@ -30,16 +31,67 @@ fixture(){
   test "${fixture:?}" == "$( cat "$FIXTURES/$1" )"
 }
 
-It '(no args)'
+# Removes the db to start fresh 
+# Not called for all tests, but when no duplicate uuids are expected this is called
+rm_cfg(){ rm -rf testcfg.yml; }
+rm_db(){ rm -rf testdb.json; }
+
+It '(with no args)'
+  BeforeCall rm_cfg rm_db
   When call bin/cani
   The status should equal 0
   The stdout should satisfy fixture 'cani/help'
 End
 
-It '--help'
-  When call bin/cani --help
+It 'cani --config testcfg.yml'
+  BeforeCall rm_cfg # Remove the cfg to start fresh
+  When call bin/cani --config testcfg.yml
   The status should equal 0
   The stdout should satisfy fixture 'cani/help'
+  The stderr should include 'does not exist, creating default config file"}'
+End
+
+It 'cani --config testcfg.yml'
+  When call bin/cani --config testcfg.yml
+  The status should equal 0
+  The stdout should satisfy fixture 'cani/help'
+  The stderr should equal ""
+End
+
+It 'cani --database testdb.json'
+  BeforeCall rm_db # Remove the cfg to start fresh
+  When call bin/cani --database testdb.json
+  The status should equal 0
+  The stdout should satisfy fixture 'cani/help'
+  The stderr should include 'does not exist, creating default database"}'
+End
+
+It 'cani --database testdb.log'
+  When call bin/cani --database testdb.log
+  The status should equal 1
+  The stderr should include '"Error loading database file: unexpected end of JSON input"'
+End
+
+It '--config testcfg.yml --database testdb.json'
+  When call bin/cani --config testcfg.yml --database testdb.json
+  The status should equal 0
+  The stdout should satisfy fixture 'cani/help'
+End
+
+It '--config testdb.json --database testcfg.yml'
+  When call bin/cani --config testdb.json --database testcfg.yml
+  The status should equal 1
+  The stderr should include '"Error loading database file: invalid character '
+End
+
+It '--debug'
+  When call bin/cani --debug
+  The status should equal 0
+  The stdout should satisfy fixture 'cani/help'
+  The stderr should include '"Using default config file '
+  The stderr should include '"message":"Using default database file '
+  The stderr should include '"message":"Loaded '
+  The stderr should include '"message":"Debug logging enabled"}'
 End
 
 End

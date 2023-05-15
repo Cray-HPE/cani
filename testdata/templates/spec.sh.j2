@@ -31,19 +31,22 @@ fixture(){
   test "${fixture:?}" == "$( cat "$FIXTURES/$1" )"
 }
 
+# Removes the db to start fresh 
+# Not called for all tests, but when no duplicate uuids are expected this is called
+cleanup(){ rm -rf testdb.json; }
+
 {{/* Check each flag individually */}}
-It '(with no args)'
+It '--help'
   When call bin/{{ $cmd }}
-  The status should equal {{ $cmd }}
+  The status should equal 0
   The stdout should satisfy fixture '{{ replaceString $cmd " " "/" }}/help'
 End
 {{- range $flagName, $flagInfo := .Flags }}
 {{/* Check each flag individually */}}
-It '{{ $cmd }} --{{ $flagName }} arg'
+It '--{{ $flagName }} arg'
   When call bin/{{ $cmd }} --{{ $flagName }} arg
   The status should equal 0
-  The stdout should equal ""
-  The stderr should equal ""
+  The stderr should include 'value":{"Type":""},"status":"SUCCESS"'
 End
 {{- end }}
 

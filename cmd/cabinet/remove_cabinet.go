@@ -24,9 +24,9 @@ OTHER DEALINGS IN THE SOFTWARE.
 package cabinet
 
 import (
-	"fmt"
 	"os"
 
+	"github.com/Cray-HPE/cani/cmd/inventory"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -38,7 +38,7 @@ var RemoveCabinetCmd = &cobra.Command{
 	Long:  `Remove cabinets from the inventory.`,
 	Args:  cobra.ArbitraryArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		err := removeCabinet(args)
+		err := removeCabinet(cmd, args)
 		if err != nil {
 			log.Error().Err(err).Msg(err.Error())
 			os.Exit(1)
@@ -46,7 +46,11 @@ var RemoveCabinetCmd = &cobra.Command{
 	},
 }
 
-func removeCabinet(args []string) error {
-	fmt.Println("remove cabinet called")
+// removeCabinet removes a cabinet from the inventory
+func removeCabinet(cmd *cobra.Command, args []string) error {
+	_, err := inventory.Remove(cmd, args)
+	if err != nil {
+		return err
+	}
 	return nil
 }

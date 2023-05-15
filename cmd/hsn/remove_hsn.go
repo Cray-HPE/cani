@@ -24,9 +24,9 @@ OTHER DEALINGS IN THE SOFTWARE.
 package hsn
 
 import (
-	"fmt"
 	"os"
 
+	"github.com/Cray-HPE/cani/cmd/inventory"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -38,16 +38,18 @@ var RemoveHsnCmd = &cobra.Command{
 	Long:  `Remove high speed hardware from the inventory.`,
 	Args:  cobra.ArbitraryArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		err := removeHsn(args)
+		err := removeHsn(cmd, args)
 		if err != nil {
 			log.Error().Err(err).Msg(err.Error())
 			os.Exit(1)
 		}
-		removeHsn(args)
 	},
 }
 
-func removeHsn(args []string) error {
-	fmt.Println("remove hsn called")
+func removeHsn(cmd *cobra.Command, args []string) error {
+	_, err := inventory.Remove(cmd, args)
+	if err != nil {
+		return err
+	}
 	return nil
 }

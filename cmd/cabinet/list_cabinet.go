@@ -24,10 +24,11 @@ OTHER DEALINGS IN THE SOFTWARE.
 package cabinet
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
-	"os"
 
-	"github.com/rs/zerolog/log"
+	"github.com/Cray-HPE/cani/cmd/inventory"
 	"github.com/spf13/cobra"
 )
 
@@ -36,16 +37,34 @@ var ListCabinetCmd = &cobra.Command{
 	Use:   "cabinet",
 	Short: "List cabinets in the inventory.",
 	Long:  `List cabinets in the inventory.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		err := listCabinet(args)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		err := listCabinet(cmd, args)
 		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
-			os.Exit(1)
+			return err
 		}
+		return nil
 	},
 }
 
-func listCabinet(args []string) error {
-	fmt.Println("list cabinet called")
+// listCabinet lists cabinets in the inventory
+func listCabinet(cmd *cobra.Command, args []string) error {
+	inv, err := inventory.List(cmd, args)
+	if err != nil {
+		return err
+	}
+
+	filtered := inventory.Inventory{}
+	for key, hw := range inv {
+		if hw.Type == "Cabinet" {
+			filtered[key] = hw
+		}
+	}
+	// Convert the filtered inventory into a formatted JSON string
+	inventoryJSON, err := json.MarshalIndent(filtered, "", "  ")
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error marshaling inventory to JSON: %v", err))
+	}
+
+	fmt.Println(string(inventoryJSON))
 	return nil
 }

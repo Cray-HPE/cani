@@ -24,8 +24,10 @@ OTHER DEALINGS IN THE SOFTWARE.
 package sw
 
 import (
-	"fmt"
+	"os"
 
+	"github.com/Cray-HPE/cani/cmd/inventory"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -35,11 +37,20 @@ var RemoveSwitchCmd = &cobra.Command{
 	Short: "Remove switches from the inventory.",
 	Long:  `Remove switches from the inventory.`,
 	Args:  cobra.ArbitraryArgs,
-	Run: func(cmd *cobra.Command, args []string) {
-		removeSwitch(args)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		err := removeSwitch(cmd, args)
+		if err != nil {
+			log.Error().Err(err).Msg(err.Error())
+			os.Exit(1)
+		}
+		return err
 	},
 }
 
-func removeSwitch(args []string) {
-	fmt.Println("remove switch called")
+func removeSwitch(cmd *cobra.Command, args []string) error {
+	_, err := inventory.Remove(cmd, args)
+	if err != nil {
+		return err
+	}
+	return nil
 }
