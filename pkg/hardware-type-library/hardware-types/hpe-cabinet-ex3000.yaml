@@ -1,0 +1,58 @@
+---
+manufacturer: HPE
+model: EX3000
+hardware-type: Cabinet
+slug: hpe-ex3000
+
+device-bays:
+  - name: CEC 0 Bay
+    allowed:
+      slug: [hpe-crayex-cabinet-environmental-controller]
+    default:
+      slug: hpe-crayex-cabinet-environmental-controller
+  - name: CEC 1 Bay
+    allowed:
+      slug: [hpe-crayex-cabinet-environmental-controller]
+    default:
+      slug: hpe-crayex-cabinet-environmental-controller
+
+  - name: Chassis 0
+    allowed:
+      slug: [hpe-crayex-chassis]
+    default:
+      slug: hpe-crayex-chassis
+  - name: Chassis 1
+    allowed:
+      slug: [hpe-crayex-chassis]
+    default:
+      slug: hpe-crayex-chassis
+  - name: Chassis 2
+    allowed:
+      slug: [hpe-crayex-chassis]
+    default:
+      slug: hpe-crayex-chassis
+  - name: Chassis 3
+    allowed:
+      slug: [hpe-crayex-chassis]
+    default:
+      slug: hpe-crayex-chassis
+  - name: Chassis 4
+    allowed:
+      slug: [hpe-crayex-chassis]
+    default:
+      slug: hpe-crayex-chassis
+  - name: Chassis 5
+    allowed:
+      slug: [hpe-crayex-chassis]
+    default:
+      slug: hpe-crayex-chassis
+  - name: Chassis 6
+    allowed:
+      slug: [hpe-crayex-chassis]
+    default:
+      slug: hpe-crayex-chassis
+  - name: Chassis 7
+    allowed:
+      slug: [hpe-crayex-chassis]
+    default:
+      slug: hpe-crayex-chassis

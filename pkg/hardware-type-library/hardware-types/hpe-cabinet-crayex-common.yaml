@@ -1,0 +1,84 @@
+---
+manufacturer: HPE
+model: CrayEX Cabinet Environmental Controller
+hardware-type: CabinetEnvironmentalController
+slug: hpe-crayex-cabinet-environmental-controller
+interfaces:
+  - name: Ethernet
+    type: 1000base-t
+
+---
+manufacturer: HPE
+model: CrayEX liquid-cooled cabinet chassis
+hardware-type: Chassis
+slug: hpe-crayex-chassis
+
+device-bays:
+  - name: CMM Bay
+    allowed:
+      types: [CabinetManagementModule]
+    default:
+      slug: hpe-crayex-chassis-management-module
+
+  - name: Compute Blade Bay 0
+    allowed:
+      types: [ComputeBlade]
+  - name: Compute Blade Bay 1
+    allowed:
+      types: [ComputeBlade]
+  - name: Compute Blade Bay 2
+    allowed:
+      types: [ComputeBlade]
+  - name: Compute Blade Bay 3
+    allowed:
+      types: [ComputeBlade]
+  - name: Compute Blade Bay 4
+    allowed:
+      types: [ComputeBlade]
+  - name: Compute Blade Bay 5
+    allowed:
+      types: [ComputeBlade]
+  - name: Compute Blade Bay 6
+    allowed:
+      types: [ComputeBlade]
+  - name: Compute Blade Bay 7
+    allowed:
+      types: [ComputeBlade]
+
+  - name: Switch/Peripheral Blade Bay 0
+    allowed:
+      types: [HighSpeedSwitchBlade]
+  - name: Switch/Peripheral Blade Bay 1
+    allowed:
+      types: [HighSpeedSwitchBlade]
+  - name: Switch/Peripheral Blade Bay 2
+    allowed:
+      types: [HighSpeedSwitchBlade]
+  - name: Switch/Peripheral Blade Bay 3
+    allowed:
+      types: [HighSpeedSwitchBlade]
+  - name: Switch/Peripheral Blade Bay 4
+    allowed:
+      types: [HighSpeedSwitchBlade]
+  - name: Switch/Peripheral Blade Bay 5
+    allowed:
+      types: [HighSpeedSwitchBlade]
+  - name: Switch/Peripheral Blade Bay 6
+    allowed:
+      types: [HighSpeedSwitchBlade]
+  - name: Switch/Peripheral Blade Bay 7
+    allowed:
+      types: [HighSpeedSwitchBlade]
+
+---
+manufacturer: HPE
+model: CrayEX Chassis Management Module
+hardware-type: ChassisManagementModule
+slug: hpe-crayex-chassis-management-module
+interfaces:
+  - name: Ethernet A
+    type: 10gbase-t
+  - name: Ethernet B
+    type: 10gbase-t
+  - name: Ethernet C
+    type: 10gbase-t
