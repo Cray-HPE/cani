@@ -32,6 +32,7 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v3"
@@ -157,6 +158,8 @@ func (l *Library) GetDeviceType(slug string) (DeviceType, error) {
 
 // TODO needs a different name
 type HardwareBuildOut struct {
+	ID               uuid.UUID
+	ParentID         uuid.UUID
 	DeviceTypeString string
 	DeviceType       DeviceType
 	Path             []string // TODO remove
@@ -168,9 +171,11 @@ type HardwareBuildOut struct {
 }
 
 // TODO make this should work the inventory data structure
-func (l *Library) GetDefaultHardwareBuildOut(deviceTypeString string, deviceOrdinal int) (results []HardwareBuildOut, err error) {
+func (l *Library) GetDefaultHardwareBuildOut(deviceTypeString string, deviceOrdinal int, parentID uuid.UUID) (results []HardwareBuildOut, err error) {
 	queue := []HardwareBuildOut{
 		{
+			ID:               uuid.New(),
+			ParentID:         parentID,
 			DeviceTypeString: deviceTypeString,
 			Path:             []string{}, // This is the root of the path
 			Ordinal:          deviceOrdinal,
@@ -219,6 +224,8 @@ func (l *Library) GetDefaultHardwareBuildOut(deviceTypeString string, deviceOrdi
 
 				queue = append(queue, HardwareBuildOut{
 					// Hardware type is deferred until when it is processed
+					ID:               uuid.New(),
+					ParentID:         current.ID,
 					DeviceTypeString: deviceBay.Default.Slug,
 					Path:             append(current.Path, deviceBay.Name),
 					Ordinal:          ordinal,

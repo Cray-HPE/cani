@@ -24,10 +24,9 @@ OTHER DEALINGS IN THE SOFTWARE.
 package blade
 
 import (
-	"fmt"
 	"os"
 
-	"github.com/Cray-HPE/cani/cmd/inventory"
+	"github.com/Cray-HPE/cani/internal/cani/domain"
 	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
 	"github.com/spf13/cobra"
 )
@@ -39,16 +38,21 @@ var AddBladeCmd = &cobra.Command{
 	Long:  `Add blades to the inventory.`,
 	Args:  validHardware,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if cmd.Flags().Changed("list-supported-types") {
-			fmt.Println("Supported hardware types:")
-			inventory.ListSupportedTypes(hardware_type_library.HardwareTypeNodeBlade)
-			os.Exit(0)
-		}
-		err := addBlade(cmd, args)
+		// Setup domain logic
+		d, err := domain.New()
 		if err != nil {
 			return err
 		}
-		return nil
+
+		if cmd.Flags().Changed("list-supported-types") {
+			d.ListSupportedTypes(hardware_type_library.HardwareTypeNodeBlade)
+			os.Exit(0)
+		}
+
+		// Gather user supplied input data
+		// TODO
+
+		return d.AddBlade("hpe-crayex-ex420-compute-blade", 1001, 7, 1)
 	},
 }
 
@@ -59,11 +63,11 @@ func init() {
 }
 
 // addBlade adds a blade to the inventory
-func addBlade(cmd *cobra.Command, args []string) error {
-	_, err := inventory.Add(cmd, args)
-	if err != nil {
-		return err
-	}
-	return nil
+// func addBlade(cmd *cobra.Command, args []string) error {
+// 	_, err := inventory.Add(cmd, args)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return nil
 
-}
+// }

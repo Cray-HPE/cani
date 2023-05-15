@@ -24,7 +24,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 package node
 
 import (
-	"github.com/Cray-HPE/cani/cmd/inventory"
+	"github.com/Cray-HPE/cani/internal/cani/domain"
 	"github.com/spf13/cobra"
 )
 
@@ -35,19 +35,23 @@ var AddNodeCmd = &cobra.Command{
 	Long:  `Add nodes to the inventory.`,
 	Args:  cobra.ArbitraryArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := addNode(cmd, args)
+		// Setup domain logic
+		d, err := domain.New()
 		if err != nil {
 			return err
 		}
+
+		_ = d
+
 		return nil
 	},
 }
 
-// addNode adds a node to the inventory
-func addNode(cmd *cobra.Command, args []string) error {
-	_, err := inventory.Add(cmd, args)
-	if err != nil {
-		return err
-	}
-	return nil
-}
+// // addNode adds a node to the inventory
+// func addNode(cmd *cobra.Command, args []string) error {
+// 	_, err := inventory.Add(cmd, args)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
