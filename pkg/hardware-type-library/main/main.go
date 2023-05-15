@@ -27,7 +27,7 @@ func joinHardwareTypes(in []hardware_type_library.HardwareType, sep string) stri
 	return strings.Join(out, sep)
 }
 
-// TODO this is something that should exist in the SLS provider
+// TODO this is something that should exist in the CSM provider
 func buildXname(hardwareTypePath []hardware_type_library.HardwareType, locationPath []int) xnames.Xname {
 	// TODO check that the length of hardware typePath and location path are the same
 	fmt.Println(hardwareTypePath, locationPath)
@@ -195,12 +195,10 @@ func main() {
 }
 
 func cabinetExample(library *hardware_type_library.Library) {
-	// Lets now say we know the cabinet, chassis, and slot that these devices are going into
+	// Lets now say we know the cabinet that these devices are going into
 	// cabinet := 1001
-	// chassis := 1
-	// slot := 7
 
-	// Lets now say we know the cabinet, chassis, and slot that these devices are going into
+	// Lets now say we know the cabinet that these devices are going into
 	cabinet := 1001
 
 	deviceTypeSlug := "hpe-ex4000"

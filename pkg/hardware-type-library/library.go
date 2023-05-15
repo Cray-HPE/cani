@@ -90,6 +90,7 @@ func NewEmbeddedLibrary() (*Library, error) {
 }
 
 func NewLibraryFromPath(path string) (*Library, error) {
+	panic("TODO")
 	return &Library{}, nil
 }
 

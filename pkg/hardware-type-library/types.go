@@ -8,7 +8,7 @@ const (
 	HardwareTypeChassisManagementModule        HardwareType = "ChassisManagementModule"
 	HardwareTypeCabinetEnvironmentalController HardwareType = "CabinetEnvironmentalController"
 	HardwareTypeNodeBlade                      HardwareType = "NodeBlade"
-	HardwareTypeNodeBMC                        HardwareType = "NodeBMC"
+	HardwareTypeNodeBMC                        HardwareType = "NodeBMC" // TODO figure out the difference between a node card and BMC
 	HardwareTypeNodeCard                       HardwareType = "NodeCard"
 	HardwareTypeNode                           HardwareType = "Node"
 	HardwareTypeManagementSwitch               HardwareType = "ManagementSwitch"
