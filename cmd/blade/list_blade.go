@@ -29,6 +29,7 @@ import (
 	"fmt"
 
 	"github.com/Cray-HPE/cani/cmd/inventory"
+	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
 	"github.com/spf13/cobra"
 )
 
@@ -56,7 +57,7 @@ func listBlade(cmd *cobra.Command, args []string) error {
 
 	filtered := inventory.Inventory{}
 	for key, hw := range inv {
-		if hw.Type == "Blade" {
+		if hw.Type == hardware_type_library.HardwareTypeNodeBlade {
 			filtered[key] = hw
 		}
 	}
