@@ -22,7 +22,7 @@ var hardwareTypeSchemas embed.FS
 var ErrDeviceTypeAlreadyExists = fmt.Errorf("device type already exists")
 
 type Library struct {
-	DeviceTypes map[string]DeviceType
+	DeviceTypes map[string]DeviceType // TODO make private?
 }
 
 func unmarshalMultiple(in []byte, out *[]DeviceType) error {
@@ -113,9 +113,14 @@ func (l *Library) GetDeviceTypesByHardwareType(hardwareType HardwareType) []Devi
 	return result
 }
 
-// func GetDeviceType(name string) DeviceType {
+func (l *Library) GetDeviceType(slug string) (DeviceType, error) {
+	deviceType, ok := l.DeviceTypes[slug]
+	if !ok {
+		return DeviceType{}, fmt.Errorf("no device type exists with slug (%s)", slug)
+	}
 
-// }
+	return deviceType, nil
+}
 
 // func GetDeviceTypeBuildOut(name string) []DeviceBay {
 
@@ -125,19 +130,22 @@ func (l *Library) GetDeviceTypesByHardwareType(hardwareType HardwareType) []Devi
 type HardwareBuildOut struct {
 	DeviceTypeString string
 	DeviceType       DeviceType
-	Path             []string
-	Ordinal          int
+	Path             []string // TODO remove
+	Ordinal          int      // TODO remove This can be grabbed by getting the last elemetry of the list
 	OrdinalPath      []int
 	HardwareTypePath []HardwareType
+
+	// TODO perhaps the OrdinalPath and HardwareTypePath should maybe become there down struct and be paired together.
 }
 
 // TODO make this should work the inventory data structure
-func (l *Library) GetDefaultChildHardwareBuildOut(deviceTypeString string) (results []HardwareBuildOut, err error) {
+func (l *Library) GetDefaultHardwareBuildOut(deviceTypeString string, deviceOrdinal int) (results []HardwareBuildOut, err error) {
 	queue := []HardwareBuildOut{
 		{
 			DeviceTypeString: deviceTypeString,
 			Path:             []string{}, // This is the root of the path
-			Ordinal:          -1,
+			Ordinal:          deviceOrdinal,
+			OrdinalPath:      []int{deviceOrdinal},
 		},
 	}
 
@@ -194,5 +202,5 @@ func (l *Library) GetDefaultChildHardwareBuildOut(deviceTypeString string) (resu
 		results = append(results, current)
 	}
 
-	return results[1:], nil
+	return results, nil
 }
