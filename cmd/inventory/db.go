@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/Cray-HPE/cani/cmd/taxonomy"
 	"github.com/rs/zerolog/log"
 )
 
@@ -21,8 +22,7 @@ type Database struct {
 }
 
 var (
-	// Default database file name
-	DbPath   = filepath.Join(App + "db.json")
+	DbPath   = taxonomy.DbFile
 	instance *Database
 	once     sync.Once
 )

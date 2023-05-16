@@ -12,15 +12,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const (
-	CfgFile = inventory.App + ".yml"
-	CfgDir  = "." + inventory.App
-)
-
-var (
-	CfgPath = filepath.Join(CfgDir, CfgFile)
-)
-
 type Config struct {
 	AvailableHardware []inventory.Hardware `yaml:"available_hardware"`
 	Inventory         []inventory.Hardware `yaml:"inventory"`
@@ -43,7 +34,7 @@ func InitConfig(cfg string) (err error) {
 
 		// Create a config with default values since one does not exist
 		conf := &Config{}
-		conf.AvailableHardware = inventory.SupportedHardware()
+
 		// Create the config file
 		WriteConfig(cfg, conf)
 	}

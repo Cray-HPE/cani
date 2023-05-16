@@ -35,6 +35,7 @@ import (
 	"github.com/Cray-HPE/cani/cmd/blade"
 	"github.com/Cray-HPE/cani/cmd/config"
 	"github.com/Cray-HPE/cani/cmd/inventory"
+	"github.com/Cray-HPE/cani/cmd/taxonomy"
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -117,7 +118,7 @@ func initConfig() {
 		}
 	} else {
 		// Set a default configuration file
-		cfgFile = filepath.Join(homeDir, config.CfgDir, config.CfgFile)
+		cfgFile = filepath.Join(homeDir, taxonomy.CfgDir, taxonomy.CfgFile)
 		if debug {
 			log.Debug().Msg(fmt.Sprintf("Using default config file %s", cfgFile))
 		}
@@ -148,7 +149,7 @@ func initDb() {
 		}
 	} else {
 		// Set a default database file
-		dbFile = filepath.Join(homeDir, config.CfgDir, inventory.DbPath)
+		dbFile = filepath.Join(homeDir, taxonomy.CfgDir, inventory.DbPath)
 		if debug {
 			log.Debug().Msg(fmt.Sprintf("Using default database file %s", dbFile))
 		}
