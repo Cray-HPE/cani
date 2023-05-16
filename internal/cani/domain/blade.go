@@ -10,9 +10,6 @@ import (
 )
 
 func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal, slotOrdinal int) error {
-	// Validate provide device type is valid
-	// TODO
-
 	// Validate provided cabinet exists
 	// TODO
 
