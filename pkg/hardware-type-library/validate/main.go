@@ -30,7 +30,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/santhosh-tekuri/jsonschema"
+	"github.com/santhosh-tekuri/jsonschema/v5"
 	"gopkg.in/yaml.v3"
 )
 
@@ -121,7 +121,7 @@ func main() {
 		for i, document := range documents {
 			fmt.Println("Validating document", i, "of", len(documents), "in", yamlPath)
 
-			err := schema.ValidateInterface(document)
+			err := schema.Validate(document)
 			if err != nil {
 				fmt.Println(err)
 				failed = true
