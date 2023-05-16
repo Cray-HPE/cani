@@ -89,7 +89,8 @@ endif
 	rpm \
 	doc \
 	version \
-	spec
+	spec \
+	validate-hardware-type-schemas
 
 all: bin
 
@@ -127,7 +128,10 @@ clean:
 spec:
 	go run cmd/shellspec/main.go
 
-test: bin
+validate-hardware-type-schemas:
+	go run ./pkg/hardware-type-library/validate pkg/hardware-type-library/hardware-types/schema  pkg/hardware-type-library/hardware-types/
+
+test: bin validate-hardware-type-schemas
 	shellspec --format tap --no-warning-as-failure
 
 tools:
