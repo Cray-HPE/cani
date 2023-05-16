@@ -28,8 +28,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Cray-HPE/cani/cmd/inventory"
+	"github.com/Cray-HPE/cani/internal/cani/domain"
+	"github.com/Cray-HPE/cani/internal/cani/inventory"
 	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
@@ -50,13 +52,12 @@ var ListBladeCmd = &cobra.Command{
 
 // listBlade lists all assets in the inventory
 func listBlade(cmd *cobra.Command, args []string) error {
-	inv, err := inventory.List(cmd, args)
+	inv, err := domain.Data.List()
 	if err != nil {
 		return err
 	}
-
-	filtered := inventory.Inventory{}
-	for key, hw := range inv {
+	filtered := make(map[uuid.UUID]inventory.Hardware, 0)
+	for key, hw := range inv.Hardware {
 		if hw.Type == hardware_type_library.HardwareTypeNodeBlade {
 			filtered[key] = hw
 		}

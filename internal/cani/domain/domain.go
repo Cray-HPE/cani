@@ -10,7 +10,12 @@ import (
 	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
 )
 
+var (
+	Data *Domain
+)
+
 type Domain struct {
+	SessionActive       bool
 	hardwareTypeLibrary *hardware_type_library.Library
 	datastore           inventory.Datastore
 
@@ -18,7 +23,9 @@ type Domain struct {
 }
 
 type NewOpts struct {
-	EIPCSMOpts csm.NewOpts
+	DatastorePath string
+	Provider      string
+	EIPCSMOpts    csm.NewOpts
 }
 
 func New(opts *NewOpts) (*Domain, error) {
@@ -36,7 +43,7 @@ func New(opts *NewOpts) (*Domain, error) {
 	}
 
 	// Load the datastore
-	domain.datastore, err = inventory.NewDatastoreJSON("cani_db.json")
+	domain.datastore, err = inventory.NewDatastoreJSON(opts.DatastorePath)
 	if err != nil {
 		return nil, errors.Join(
 			fmt.Errorf("failed to load inventory datastore from file"),
@@ -66,6 +73,5 @@ func New(opts *NewOpts) (*Domain, error) {
 	default:
 		return nil, fmt.Errorf("unknown external inventory provider provided (%s)", externalInventoryProviderName)
 	}
-
 	return domain, nil
 }

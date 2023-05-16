@@ -32,6 +32,7 @@ import (
 	"internal/hsm"
 	"internal/sls"
 
+	"github.com/Cray-HPE/cani/internal/cani/domain"
 	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
 	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
@@ -67,6 +68,15 @@ func EnableDebug() {
 
 // validHardware checks that the hardware type is valid by comparing it against the list of hardware types
 func validHardware(cmd *cobra.Command, args []string) error {
+	if cmd.Flags().Changed("list-supported-types") {
+		domain.Data.ListSupportedTypes(hardware_type_library.HardwareTypeNodeBlade)
+		os.Exit(0)
+	}
+
+	if len(args) == 0 {
+		return errors.New("No hardware type provided")
+	}
+
 	library, err := hardware_type_library.NewEmbeddedLibrary()
 	if err != nil {
 		return err

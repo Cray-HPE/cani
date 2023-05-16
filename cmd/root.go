@@ -34,8 +34,9 @@ import (
 
 	"github.com/Cray-HPE/cani/cmd/blade"
 	"github.com/Cray-HPE/cani/cmd/config"
-	"github.com/Cray-HPE/cani/cmd/inventory"
 	"github.com/Cray-HPE/cani/cmd/taxonomy"
+	"github.com/Cray-HPE/cani/internal/cani/domain"
+	"github.com/Cray-HPE/cani/internal/cani/external-inventory-provider/csm"
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -65,7 +66,6 @@ var (
 	spec       bool
 	dbFile     string
 	// the database is exported so it can be used in the subcommands
-	Db *inventory.Database
 )
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -79,11 +79,12 @@ func Execute() {
 
 func init() {
 	// Create or load a yaml config and the database
-	cobra.OnInitialize(initConfig, initDb)
+	cobra.OnInitialize(initConfig, initDomain)
 
 	RootCmd.AddCommand(addCmd)
 	RootCmd.AddCommand(listCmd)
 	RootCmd.AddCommand(removeCmd)
+	RootCmd.AddCommand(sessionCmd)
 	RootCmd.AddCommand(versionCmd)
 
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
@@ -139,43 +140,28 @@ func initConfig() {
 	// Set up other global flags or settings based on the loaded configuration
 }
 
-func initDb() {
+func initDomain() {
 	homeDir, err := os.UserHomeDir()
 	cobra.CheckErr(err)
 	if dbFile != "" {
 		// global debug cannot be run during init() so check for debug flag here
 		if debug {
-			log.Debug().Msg(fmt.Sprintf("Using user-defined database file: %s", dbFile))
+			log.Debug().Msg(fmt.Sprintf("Using user-defined datastore: %s", dbFile))
 		}
 	} else {
 		// Set a default database file
-		dbFile = filepath.Join(homeDir, taxonomy.CfgDir, inventory.DbPath)
+		dbFile = filepath.Join(homeDir, taxonomy.DsPath)
 		if debug {
-			log.Debug().Msg(fmt.Sprintf("Using default database file %s", dbFile))
+			log.Debug().Msg(fmt.Sprintf("Using default datastore: %s", dbFile))
 		}
 	}
-	// Initialize the database file if it does not exist
-	Db, err = inventory.InitDb(dbFile)
-	if err != nil {
-		log.Error().Msg(fmt.Sprintf("Error initializing database file: %s", err))
-		os.Exit(1)
+	// Initialize the domain options
+	dopts := &domain.NewOpts{
+		DatastorePath: dbFile,
+		Provider:      "csm",
+		EIPCSMOpts:    csm.NewOpts{},
 	}
-
-	// Load the configuration file
-	Db, err = inventory.LoadDb(dbFile, Db)
-	if err != nil {
-		log.Error().Msg(fmt.Sprintf("Error loading database file: %s", err))
-		os.Exit(1)
-	}
-
-	if debug {
-		log.Debug().Msg(fmt.Sprintf("Loaded %s", dbFile))
-	}
-
-	defer inventory.CloseTransactionLog()
-}
-
-// GetDbPointer returns a pointer to the database
-func GetDbPointer() *inventory.Database {
-	return Db
+	// Set the Global domain Data
+	domain.Data, err = domain.New(dopts)
+	cobra.CheckErr(err)
 }

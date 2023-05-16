@@ -24,10 +24,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 package blade
 
 import (
-	"os"
-
 	"github.com/Cray-HPE/cani/internal/cani/domain"
-	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -56,38 +54,25 @@ var (
 func init() {
 	AddBladeCmd.Flags().BoolP("list-supported-types", "L", false, "List supported hardware types.")
 
-	AddBladeCmd.Flags().IntVar(&cabinet, "cabinet", 0, "Parent cabinet")
+	AddBladeCmd.Flags().IntVar(&cabinet, "cabinet", 1001, "Parent cabinet")
 	// cobra.MarkFlagRequired(AddBladeCmd.Flags(), "cabinet")
 
-	AddBladeCmd.Flags().IntVar(&chassis, "chassis", 0, "Parent chassis")
+	AddBladeCmd.Flags().IntVar(&chassis, "chassis", 7, "Parent chassis")
 	// cobra.MarkFlagRequired(AddBladeCmd.Flags(), "chassis")
 
-	AddBladeCmd.Flags().IntVar(&slot, "slot", 0, "Parent slot")
+	AddBladeCmd.Flags().IntVar(&slot, "slot", 1, "Parent slot")
 	// cobra.MarkFlagRequired(AddBladeCmd.Flags(), "slot")
 }
 
 // addBlade adds a blade to the inventory
 func addBlade(cmd *cobra.Command, args []string) error {
-	// _, err := inventory.Add(cmd, args)
-	// if err != nil {
-	// 	return err
-	// }
-	// return nil
-
-	// Setup domain logic
-	d, err := domain.New()
-	if err != nil {
-		return err
-	}
-
-	if cmd.Flags().Changed("list-supported-types") {
-		d.ListSupportedTypes(hardware_type_library.HardwareTypeNodeBlade)
-		os.Exit(0)
-	}
-
-	// Gather user supplied input data
+	// Add each blade using domain logic
 	for _, arg := range args {
-		return d.AddBlade(arg, cabinet, chassis, slot)
+		err := domain.Data.AddBlade(arg, cabinet, chassis, slot)
+		if err != nil {
+			return err
+		}
+		log.Debug().Msgf("Added blade %s", arg)
 	}
 	return nil
 }

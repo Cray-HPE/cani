@@ -27,14 +27,14 @@ func NewDatastoreJSON(dataFilePath string) (*DatastoreJSON, error) {
 
 	if _, err := os.Stat(dataFilePath); os.IsNotExist(err) {
 		// Write a default config file if it doesn't exist
-		log.Info().Msgf("%s does not exist, creating default database", dataFilePath)
+		log.Info().Msgf("%s does not exist, creating default datastore", dataFilePath)
 
 		// Create the directory if it doesn't exist
 		dbDir := filepath.Dir(dataFilePath)
 		if _, err := os.Stat(dbDir); os.IsNotExist(err) {
 			err = os.Mkdir(dbDir, 0755)
 			if err != nil {
-				return nil, errors.New(fmt.Sprintf("Error creating database directory: %s", err))
+				return nil, errors.New(fmt.Sprintf("Error creating datastore directory: %s", err))
 			}
 		}
 
@@ -93,8 +93,8 @@ func (dj *DatastoreJSON) SetExternalInventoryProvider(provider ExternalInventory
 func (dj *DatastoreJSON) GetExternalInventoryProvider() (ExternalInventoryProvider, error) {
 	dj.inventoryLock.RLock()
 	defer dj.inventoryLock.RUnlock()
-
-	return dj.inventory.ExternalInventoryProvider, nil
+	return ExternalInventoryProvider("csm"), nil // FIXME hardcode
+	// return dj.inventory.ExternalInventoryProvider, nil
 }
 
 func (dj *DatastoreJSON) Flush() error {
@@ -204,6 +204,13 @@ func (dj *DatastoreJSON) Remove(id uuid.UUID) error {
 	delete(dj.inventory.Hardware, id)
 
 	return nil
+}
+
+func (dj *DatastoreJSON) List() (Inventory, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
+
+	return *dj.inventory, nil
 }
 
 // Graph functions

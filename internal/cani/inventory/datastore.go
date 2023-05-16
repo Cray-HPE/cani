@@ -21,6 +21,7 @@ type Datastore interface {
 	Get(uuid.UUID) (Hardware, error)
 	Update(hardware *Hardware) error
 	Remove(uuid uuid.UUID) error
+	List() (Inventory, error)
 
 	// Graph functions
 	GetLocation(hardware Hardware) ([]LocationToken, error)

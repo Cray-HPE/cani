@@ -32,10 +32,12 @@ import (
 	"github.com/Cray-HPE/cani/cmd/cabinet"
 	"github.com/Cray-HPE/cani/cmd/chassis"
 	"github.com/Cray-HPE/cani/cmd/hsn"
-	"github.com/Cray-HPE/cani/cmd/inventory"
 	"github.com/Cray-HPE/cani/cmd/node"
 	"github.com/Cray-HPE/cani/cmd/pdu"
 	sw "github.com/Cray-HPE/cani/cmd/switch"
+	"github.com/Cray-HPE/cani/internal/cani/domain"
+	"github.com/Cray-HPE/cani/internal/cani/inventory"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
@@ -65,13 +67,16 @@ func init() {
 
 // listInventory lists all assets in the inventory
 func listInventory(cmd *cobra.Command, args []string) error {
-	inv, err := inventory.List(cmd, args)
+	inv, err := domain.Data.List()
 	if err != nil {
 		return err
 	}
-
+	filtered := make(map[uuid.UUID]inventory.Hardware, 0)
+	for key, hw := range inv.Hardware {
+		filtered[key] = hw
+	}
 	// Convert the filtered inventory into a formatted JSON string
-	inventoryJSON, err := json.MarshalIndent(inv, "", "  ")
+	inventoryJSON, err := json.MarshalIndent(filtered, "", "  ")
 	if err != nil {
 		return errors.New(fmt.Sprintf("Error marshaling inventory to JSON: %v", err))
 	}
