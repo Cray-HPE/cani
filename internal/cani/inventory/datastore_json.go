@@ -40,8 +40,9 @@ func NewDatastoreJSON(dataFilePath string) (*DatastoreJSON, error) {
 
 		// Create a config with default values since one does not exist
 		datastore.inventory = &Inventory{
-			SchemaVersion: SchemaVersionV1Alpha1,
-			Hardware:      map[uuid.UUID]Hardware{},
+			SchemaVersion:             SchemaVersionV1Alpha1,
+			ExternalInventoryProvider: ExternalInventoryProviderCSM, // TODO THIS IS A BIG HACK TO GET THINGS GOING, THIS SHOULD BE PROVIDED VIA "cani session start csm"
+			Hardware:                  map[uuid.UUID]Hardware{},
 		}
 
 		if err := datastore.Flush(); err != nil {
