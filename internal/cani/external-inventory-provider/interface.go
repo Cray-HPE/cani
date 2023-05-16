@@ -5,7 +5,7 @@ type InventoryProvider interface {
 	// Validate the external services of the inventory provider are correct
 	ValidateExternal() error
 
-	// Validate the respresntation of the inventory data into the destination inventory system
+	// Validate the representation of the inventory data into the destination inventory system
 	// is consistent.
 	// TODO perhaps this should just happen during Reconcile
 	ValidateInternal() error

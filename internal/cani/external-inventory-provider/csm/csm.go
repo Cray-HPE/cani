@@ -1,4 +1,4 @@
-package external_inventory_provider
+package csm
 
 import (
 	"crypto/tls"
@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 )
 
-type NewCSMOpts struct {
+type NewOpts struct {
 	InsecureSkipVerify bool
 	APIGatewayToken    string
 
@@ -25,7 +25,7 @@ type CSM struct {
 	hsmClient *hsm_client.APIClient
 }
 
-func NewCSM(opts NewCSMOpts) (*CSM, error) {
+func New(opts NewOpts) (*CSM, error) {
 	csm := &CSM{}
 
 	//

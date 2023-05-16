@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	external_inventory_provider "github.com/Cray-HPE/cani/internal/cani/external-inventory-provider"
+	"github.com/Cray-HPE/cani/internal/cani/external-inventory-provider/csm"
 	"github.com/Cray-HPE/cani/internal/cani/inventory"
 	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
 )
@@ -16,7 +17,11 @@ type Domain struct {
 	externalInventoryProvider external_inventory_provider.InventoryProvider
 }
 
-func New() (*Domain, error) {
+type NewOpts struct {
+	EIPCSMOpts csm.NewOpts
+}
+
+func New(opts *NewOpts) (*Domain, error) {
 	var err error
 	domain := &Domain{}
 
@@ -51,7 +56,7 @@ func New() (*Domain, error) {
 	}
 	switch externalInventoryProviderName {
 	case inventory.ExternalInventoryProviderCSM:
-		domain.externalInventoryProvider, err = external_inventory_provider.NewCSM()
+		domain.externalInventoryProvider, err = csm.New(opts.EIPCSMOpts)
 		if err != nil {
 			return nil, errors.Join(
 				fmt.Errorf("failed to initialize CSM external inventory provider"),
