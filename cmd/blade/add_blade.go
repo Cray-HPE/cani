@@ -36,38 +36,58 @@ var AddBladeCmd = &cobra.Command{
 	Use:   "blade",
 	Short: "Add blades to the inventory.",
 	Long:  `Add blades to the inventory.`,
-	Args:  validHardware,
+	// Hardware can only be valid if defined in the hardware library
+	Args: validHardware,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Setup domain logic
-		d, err := domain.New()
+		err := addBlade(cmd, args)
 		if err != nil {
 			return err
 		}
-
-		if cmd.Flags().Changed("list-supported-types") {
-			d.ListSupportedTypes(hardware_type_library.HardwareTypeNodeBlade)
-			os.Exit(0)
-		}
-
-		// Gather user supplied input data
-		// TODO
-
-		return d.AddBlade("hpe-crayex-ex420-compute-blade", 1001, 7, 1)
+		return nil
 	},
 }
 
+var (
+	cabinet int
+	chassis int
+	slot    int
+)
+
 func init() {
 	AddBladeCmd.Flags().BoolP("list-supported-types", "L", false, "List supported hardware types.")
-	AddBladeCmd.Flags().String("chassis", "", "Parent chassis")
+
+	AddBladeCmd.Flags().IntVar(&cabinet, "cabinet", 0, "Parent cabinet")
+	// cobra.MarkFlagRequired(AddBladeCmd.Flags(), "cabinet")
+
+	AddBladeCmd.Flags().IntVar(&chassis, "chassis", 0, "Parent chassis")
 	// cobra.MarkFlagRequired(AddBladeCmd.Flags(), "chassis")
+
+	AddBladeCmd.Flags().IntVar(&slot, "slot", 0, "Parent slot")
+	// cobra.MarkFlagRequired(AddBladeCmd.Flags(), "slot")
 }
 
 // addBlade adds a blade to the inventory
-// func addBlade(cmd *cobra.Command, args []string) error {
-// 	_, err := inventory.Add(cmd, args)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
+func addBlade(cmd *cobra.Command, args []string) error {
+	// _, err := inventory.Add(cmd, args)
+	// if err != nil {
+	// 	return err
+	// }
+	// return nil
 
-// }
+	// Setup domain logic
+	d, err := domain.New()
+	if err != nil {
+		return err
+	}
+
+	if cmd.Flags().Changed("list-supported-types") {
+		d.ListSupportedTypes(hardware_type_library.HardwareTypeNodeBlade)
+		os.Exit(0)
+	}
+
+	// Gather user supplied input data
+	for _, arg := range args {
+		return d.AddBlade(arg, cabinet, chassis, slot)
+	}
+	return nil
+}

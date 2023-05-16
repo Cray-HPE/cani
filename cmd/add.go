@@ -34,7 +34,6 @@ import (
 	"github.com/Cray-HPE/cani/cmd/cabinet"
 	"github.com/Cray-HPE/cani/cmd/chassis"
 	"github.com/Cray-HPE/cani/cmd/hsn"
-	"github.com/Cray-HPE/cani/cmd/inventory"
 	"github.com/Cray-HPE/cani/cmd/node"
 	"github.com/Cray-HPE/cani/cmd/pdu"
 	sw "github.com/Cray-HPE/cani/cmd/switch"
@@ -67,11 +66,6 @@ var addCmd = &cobra.Command{
 }
 
 func init() {
-	supportedHw := inventory.SupportedHardware()
-	for _, hw := range supportedHw {
-		models = append(models, hw.Model)
-	}
-
 	addCmd.AddCommand(blade.AddBladeCmd)
 	addCmd.AddCommand(cabinet.AddCabinetCmd)
 	addCmd.AddCommand(chassis.AddChassisCmd)
@@ -84,5 +78,4 @@ func init() {
 	addCmd.PersistentFlags().StringVarP(&staged, "staged", "s", "Staged", "Hardware can be [staged, provisioned, decomissioned]")
 	addCmd.PersistentFlags().StringVarP(&hwType, "type", "t", "", fmt.Sprintf("Hardware type.  Allowed values: [%+v]", strings.Join(models, "\", \"")))
 	addCmd.PersistentFlags().StringVarP(&u, "uuid", "u", "", "Specific UUID to use")
-	addCmd.PersistentFlags().BoolP("list-supported-types", "L", false, "List supported hardware types.")
 }
