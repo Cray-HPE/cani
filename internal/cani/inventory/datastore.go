@@ -12,6 +12,8 @@ var ErrHardwareUUIDConflict = errors.New("hardware uuid already exists")
 
 type Datastore interface {
 	GetSchemaVersion() (SchemaVersion, error)
+	SetExternalInventoryProvider(provider ExternalInventoryProvider) error
+	GetExternalInventoryProvider() (ExternalInventoryProvider, error)
 	Flush() error
 
 	// Crud operations

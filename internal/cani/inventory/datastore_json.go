@@ -74,10 +74,31 @@ func NewDatastoreJSON(dataFilePath string) (*DatastoreJSON, error) {
 }
 
 func (dj *DatastoreJSON) GetSchemaVersion() (SchemaVersion, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
+
 	return dj.inventory.SchemaVersion, nil
 }
 
+func (dj *DatastoreJSON) SetExternalInventoryProvider(provider ExternalInventoryProvider) error {
+	dj.inventoryLock.Lock()
+	defer dj.inventoryLock.Unlock()
+
+	dj.inventory.ExternalInventoryProvider = provider
+
+	return nil
+}
+
+func (dj *DatastoreJSON) GetExternalInventoryProvider() (ExternalInventoryProvider, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
+
+	return dj.inventory.ExternalInventoryProvider, nil
+}
+
 func (dj *DatastoreJSON) Flush() error {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
 	// convert the cfg struct to a JSON-formatted byte slice.
 
 	data, err := json.Marshal(dj.inventory)
@@ -175,7 +196,7 @@ func (dj *DatastoreJSON) Remove(id uuid.UUID) error {
 		for _, child := range children {
 			childrenIDs = append(childrenIDs, child.ID.String())
 		}
-		return fmt.Errorf("unable to remove (%s) as it is the parent of [%s]", strings.Join(childrenIDs, ","))
+		return fmt.Errorf("unable to remove (%s) as it is the parent of [%s]", id.String(), strings.Join(childrenIDs, ","))
 	}
 
 	// Remove the hardware!

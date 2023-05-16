@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	external_inventory_provider "github.com/Cray-HPE/cani/internal/cani/external-inventory-provider"
 	"github.com/Cray-HPE/cani/internal/cani/inventory"
 	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
 )
@@ -11,6 +12,8 @@ import (
 type Domain struct {
 	hardwareTypeLibrary *hardware_type_library.Library
 	datastore           inventory.Datastore
+
+	externalInventoryProvider external_inventory_provider.InventoryProvider
 }
 
 func New() (*Domain, error) {
@@ -34,6 +37,29 @@ func New() (*Domain, error) {
 			fmt.Errorf("failed to load inventory datastore from file"),
 			err,
 		)
+	}
+
+	// Setup External inventory provider
+	// TODO how does the initial inventory data for a session get created, if it uses domain logic
+	// as it will fail when we get to this point.
+	externalInventoryProviderName, err := domain.datastore.GetExternalInventoryProvider()
+	if err != nil {
+		return nil, errors.Join(
+			fmt.Errorf("failed to retrieve external inventory provider type"),
+			err,
+		)
+	}
+	switch externalInventoryProviderName {
+	case inventory.ExternalInventoryProviderCSM:
+		domain.externalInventoryProvider, err = external_inventory_provider.NewCSM()
+		if err != nil {
+			return nil, errors.Join(
+				fmt.Errorf("failed to initialize CSM external inventory provider"),
+				err,
+			)
+		}
+	default:
+		return nil, fmt.Errorf("unknown external inventory provider provided (%s)", externalInventoryProviderName)
 	}
 
 	return domain, nil
