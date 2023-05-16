@@ -27,6 +27,7 @@ import (
 	"errors"
 	"fmt"
 
+	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
@@ -37,14 +38,14 @@ type Inventory map[uuid.UUID]Hardware
 // Hardware is the smallest unit of inventory
 // It has all the potential fields that hardware can have
 type Hardware struct {
-	Name          string      `json:"Name,omitempty" yaml:"Name,omitempty" default:"" usage:"Friendly name"`
-	Type          string      `json:"Type,omitempty" yaml:"Type,omitempty" default:"" usage:"Type"`
-	Vendor        string      `json:"Vendor,omitempty" yaml:"Vendor,omitempty" default:"" usage:"Vendor"`
-	Architechture string      `json:"Architechture,omitempty" yaml:"Architechture,omitempty" default:"" usage:"Architechture"`
-	Model         string      `json:"Model,omitempty" yaml:"Model,omitempty" default:"" usage:"Model"`
-	Status        string      `json:"Status,omitempty" yaml:"Status,omitempty" default:"Staged" usage:"Hardware can be [staged, provisioned, decomissioned]"`
-	Properties    interface{} `json:"Properties,omitempty" yaml:"Properties,omitempty" default:"" usage:"Properties"`
-	Parent        uuid.UUID   `json:"Parent,omitempty" yaml:"Parent,omitempty" default:"00000000-0000-0000-0000-000000000000" usage:"Parent hardware"`
+	Name          string                             `json:"Name,omitempty" yaml:"Name,omitempty" default:"" usage:"Friendly name"`
+	Type          hardware_type_library.HardwareType `json:"Type,omitempty" yaml:"Type,omitempty" default:"" usage:"Type"`
+	Vendor        string                             `json:"Vendor,omitempty" yaml:"Vendor,omitempty" default:"" usage:"Vendor"`
+	Architechture string                             `json:"Architechture,omitempty" yaml:"Architechture,omitempty" default:"" usage:"Architechture"`
+	Model         string                             `json:"Model,omitempty" yaml:"Model,omitempty" default:"" usage:"Model"`
+	Status        string                             `json:"Status,omitempty" yaml:"Status,omitempty" default:"Staged" usage:"Hardware can be [staged, provisioned, decomissioned]"`
+	Properties    interface{}                        `json:"Properties,omitempty" yaml:"Properties,omitempty" default:"" usage:"Properties"`
+	Parent        uuid.UUID                          `json:"Parent,omitempty" yaml:"Parent,omitempty" default:"00000000-0000-0000-0000-000000000000" usage:"Parent hardware"`
 	// Children      []uuid.UUID `json:"Children,omitempty" yaml:"Children,omitempty" default:"" usage:"Child hardware"`
 }
 
@@ -90,27 +91,49 @@ func NewChassis(cmd *cobra.Command, args []string) Hardware {
 }
 
 // NewBlade creates a new Blade instance
-func NewBlade(cmd *cobra.Command, args []string) Hardware {
+func NewBlade(cmd *cobra.Command, args []string) (Hardware, error) {
 	var hw Hardware
-	var u uuid.UUID
+	var chassis string
+	var parent uuid.UUID
 	var err error
-	uu := cmd.Flags().Lookup("chassis").Value.String()
-	if uu != "" {
-		u, err = uuid.Parse(uu)
-		if err != nil {
-			return Hardware{}
-		}
-		hw = Hardware{
-			Type:   "Blade",
-			Parent: u,
-		}
-	} else {
-		hw = Hardware{
-			Type: "Blade",
-		}
-		return hw
+
+	// Create the library
+	library, err := hardware_type_library.NewEmbeddedLibrary()
+	if err != nil {
+		panic(err)
 	}
-	return hw
+
+	// Get the list of supported blades
+	blades := library.GetDeviceTypesByHardwareType(hardware_type_library.HardwareTypeNodeBlade)
+	// For each arg, check if it matches a blade
+	for _, arg := range args {
+		for _, blade := range blades {
+			// if the slug matches the arg, then we have a match and a blade to add
+			if blade.Slug == arg {
+				// Set all the hardware properties the inventory expects
+				hw.Vendor = blade.Manufacturer
+				hw.Model = blade.Model
+				hw.Type = blade.HardwareType
+				hw.Name = blade.Slug
+			}
+		}
+	}
+
+	// Check the chassis flag to see if we need to set the parent
+	// TODO: Make this required
+	chassis = cmd.Flags().Lookup("chassis").Value.String()
+	if chassis != "" {
+		// Check that it is a valid UUID
+		parent, err = uuid.Parse(chassis)
+		if err != nil {
+			return Hardware{}, errors.New(fmt.Sprintf("Error parsing UUID: %v", err))
+		}
+		// Set that as the parent
+		hw.Parent = parent
+	}
+
+	// return the constructed hardware
+	return hw, nil
 }
 
 // NewPdu creates a new Pdu instance
@@ -153,13 +176,14 @@ func Add(cmd *cobra.Command, args []string) (*Inventory, error) {
 	db := GetInstance(dbpath)
 
 	var hw Hardware
+	var err error
 	switch cmd.Name() {
 	case "cabinet":
 		hw = NewCabinet(args) // Create a new cabinet
 	case "chassis":
 		hw = NewChassis(cmd, args) // Create a new chassis
 	case "blade":
-		hw = NewBlade(cmd, args) // Create a new blade
+		hw, err = NewBlade(cmd, args) // Create a new blade
 	case "pdu":
 		hw = NewPdu(args) // Create a new pdu
 	case "switch":
@@ -173,7 +197,6 @@ func Add(cmd *cobra.Command, args []string) (*Inventory, error) {
 	}
 
 	var u uuid.UUID
-	var err error
 	uu := cmd.Flags().Lookup("uuid").Value.String()
 	if uu != "" {
 		u, err = uuid.Parse(uu)

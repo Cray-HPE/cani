@@ -26,16 +26,23 @@ package inventory
 import (
 	"fmt"
 	"sort"
+
+	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
 )
 
 // ListSupportedTypes prints a list of supported hardware models
-func ListSupportedTypes() {
-	supported := SupportedHardware()
+func ListSupportedTypes(hwtype hardware_type_library.HardwareType) {
+	// Create the library
+	library, err := hardware_type_library.NewEmbeddedLibrary()
+	if err != nil {
+		panic(err)
+	}
 
 	// Extract the model names into a slice of strings
-	models := make([]string, len(supported))
-	for i, hw := range supported {
-		models[i] = hw.Model
+	models := []string{}
+
+	for _, k := range library.GetDeviceTypesByHardwareType(hwtype) {
+		models = append(models, k.Slug)
 	}
 
 	// Sort the models slice alphabetically

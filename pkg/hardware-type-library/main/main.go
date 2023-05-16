@@ -29,6 +29,7 @@ import (
 
 	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
 	"github.com/Cray-HPE/hms-xname/xnames"
+	"github.com/google/uuid"
 )
 
 func joinInts(ints []int, sep string) string {
@@ -274,7 +275,7 @@ func commonLogic(library *hardware_type_library.Library, deviceTypeSlug string, 
 	}
 
 	// Build out the hardware for a hardware type
-	allChildHardware, err := library.GetDefaultHardwareBuildOut(deviceTypeSlug, deviceOrdinal)
+	allChildHardware, err := library.GetDefaultHardwareBuildOut(deviceTypeSlug, deviceOrdinal, uuid.New())
 	if err != nil {
 		panic(err)
 	}

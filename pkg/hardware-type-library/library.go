@@ -32,6 +32,9 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/google/uuid"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v3"
 )
 
@@ -45,6 +48,10 @@ var ErrDeviceTypeAlreadyExists = fmt.Errorf("device type already exists")
 
 type Library struct {
 	DeviceTypes map[string]DeviceType // TODO make private?
+}
+
+func init() {
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 }
 
 func unmarshalMultiple(in []byte, out *[]DeviceType) error {
@@ -85,7 +92,7 @@ func NewEmbeddedLibrary() (*Library, error) {
 	// Parse hardware type files
 	for _, file := range files {
 		filePath := path.Join(basePath, file.Name())
-		fmt.Println("Parsing file:", filePath)
+		log.Debug().Msgf("Parsing file:", filePath)
 
 		fileRaw, err := defaultHardwareTypesFS.ReadFile(filePath)
 		if err != nil {
@@ -98,7 +105,7 @@ func NewEmbeddedLibrary() (*Library, error) {
 		}
 
 		for _, deviceType := range fileDeviceTypes {
-			fmt.Println("  Registering device type:", deviceType.Slug)
+			log.Debug().Msgf("Registering device type:", deviceType.Slug)
 			if err := library.RegisterDeviceType(deviceType); err != nil {
 				return nil, errors.Join(
 					fmt.Errorf("failed to register device type '%s'", deviceType.Slug),
@@ -151,6 +158,8 @@ func (l *Library) GetDeviceType(slug string) (DeviceType, error) {
 
 // TODO needs a different name
 type HardwareBuildOut struct {
+	ID               uuid.UUID
+	ParentID         uuid.UUID
 	DeviceTypeString string
 	DeviceType       DeviceType
 	Path             []string // TODO remove
@@ -162,9 +171,11 @@ type HardwareBuildOut struct {
 }
 
 // TODO make this should work the inventory data structure
-func (l *Library) GetDefaultHardwareBuildOut(deviceTypeString string, deviceOrdinal int) (results []HardwareBuildOut, err error) {
+func (l *Library) GetDefaultHardwareBuildOut(deviceTypeString string, deviceOrdinal int, parentID uuid.UUID) (results []HardwareBuildOut, err error) {
 	queue := []HardwareBuildOut{
 		{
+			ID:               uuid.New(),
+			ParentID:         parentID,
 			DeviceTypeString: deviceTypeString,
 			Path:             []string{}, // This is the root of the path
 			Ordinal:          deviceOrdinal,
@@ -213,6 +224,8 @@ func (l *Library) GetDefaultHardwareBuildOut(deviceTypeString string, deviceOrdi
 
 				queue = append(queue, HardwareBuildOut{
 					// Hardware type is deferred until when it is processed
+					ID:               uuid.New(),
+					ParentID:         current.ID,
 					DeviceTypeString: deviceBay.Default.Slug,
 					Path:             append(current.Path, deviceBay.Name),
 					Ordinal:          ordinal,

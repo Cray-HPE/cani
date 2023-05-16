@@ -31,3 +31,4 @@ coverage/
 .cani/
 cani.yml
 cani.yaml
+cani_db.json
