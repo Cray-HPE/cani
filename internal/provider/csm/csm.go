@@ -1,4 +1,4 @@
-package external_inventory_provider
+package csm
 
 import (
 	"crypto/tls"
@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 )
 
-type NewCSMOpts struct {
+type NewOpts struct {
 	InsecureSkipVerify bool
 	APIGatewayToken    string
 
@@ -25,7 +25,7 @@ type CSM struct {
 	hsmClient *hsm_client.APIClient
 }
 
-func NewCSM(opts NewCSMOpts) (*CSM, error) {
+func New(opts NewOpts) (*CSM, error) {
 	csm := &CSM{}
 
 	//
@@ -84,9 +84,4 @@ func (csm *CSM) ValidateInternal() error {
 func (csm *CSM) Import() error {
 	return fmt.Errorf("todo")
 
-}
-
-// Reconcile CANI's inventory state with the external inventory state and apply required changes
-func (csm *CSM) Reconcile() error {
-	return fmt.Errorf("todo")
 }

@@ -1,4 +1,4 @@
-package external_inventory_provider
+package provider
 
 // TODO Need to think about how internal data structures should be supplied to the Inventory Provider
 type InventoryProvider interface {

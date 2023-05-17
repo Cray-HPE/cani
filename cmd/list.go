@@ -35,8 +35,9 @@ import (
 	"github.com/Cray-HPE/cani/cmd/node"
 	"github.com/Cray-HPE/cani/cmd/pdu"
 	sw "github.com/Cray-HPE/cani/cmd/switch"
-	"github.com/Cray-HPE/cani/internal/cani/domain"
-	"github.com/Cray-HPE/cani/internal/cani/inventory"
+	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/Cray-HPE/cani/internal/inventory"
+
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )

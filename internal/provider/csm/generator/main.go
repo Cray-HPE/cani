@@ -32,7 +32,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/Cray-HPE/cani/internal/cani/external-inventory-provider/csm"
+	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/Cray-HPE/hms-xname/xnametypes"
 )
 

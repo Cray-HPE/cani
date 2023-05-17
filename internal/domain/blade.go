@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Cray-HPE/cani/internal/cani/inventory"
+	"github.com/Cray-HPE/cani/internal/inventory"
 	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
 	"github.com/google/uuid"
 )

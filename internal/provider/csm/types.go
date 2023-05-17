@@ -25,7 +25,7 @@
 package csm
 
 import (
-	"github.com/Cray-HPE/cani/internal/cani/inventory"
+	"github.com/Cray-HPE/cani/internal/inventory"
 	htl "github.com/Cray-HPE/cani/pkg/hardware-type-library"
 	"github.com/Cray-HPE/hms-xname/xnametypes"
 )

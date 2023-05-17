@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	external_inventory_provider "github.com/Cray-HPE/cani/internal/cani/external-inventory-provider"
-	"github.com/Cray-HPE/cani/internal/cani/external-inventory-provider/csm"
-	"github.com/Cray-HPE/cani/internal/cani/inventory"
+	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/Cray-HPE/cani/internal/provider/csm"
 	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
 )
 
@@ -19,7 +19,7 @@ type Domain struct {
 	hardwareTypeLibrary *hardware_type_library.Library
 	datastore           inventory.Datastore
 
-	externalInventoryProvider external_inventory_provider.InventoryProvider
+	externalInventoryProvider provider.InventoryProvider
 }
 
 type NewOpts struct {

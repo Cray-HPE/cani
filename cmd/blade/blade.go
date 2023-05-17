@@ -29,9 +29,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/Cray-HPE/cani/internal/cani/domain"
-	"github.com/Cray-HPE/cani/internal/hsm"
-	"github.com/Cray-HPE/cani/internal/sls"
+	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/Cray-HPE/cani/internal/provider/csm/hsm"
+	"github.com/Cray-HPE/cani/internal/provider/csm/sls"
 	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
 	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
