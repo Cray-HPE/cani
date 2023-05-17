@@ -41,7 +41,14 @@ const (
 	SchemaVersionV1Alpha1 = SchemaVersion("v1alpha1")
 )
 
+type ExternalInventoryProvider string
+
+const (
+	ExternalInventoryProviderCSM = ExternalInventoryProvider("csm")
+)
+
 type Inventory struct {
-	SchemaVersion SchemaVersion
-	Hardware      map[uuid.UUID]Hardware
+	SchemaVersion             SchemaVersion
+	ExternalInventoryProvider ExternalInventoryProvider
+	Hardware                  map[uuid.UUID]Hardware
 }

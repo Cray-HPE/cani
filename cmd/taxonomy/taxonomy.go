@@ -6,12 +6,12 @@ import (
 
 const (
 	App     = "cani"
-	DbFile  = App + "db.json"
+	DsFile  = App + "db.json"
 	CfgFile = App + ".yml"
 	CfgDir  = "." + App
 )
 
 var (
-	DbPath  = filepath.Join(CfgDir, DbFile)
+	DsPath  = filepath.Join(CfgDir, DsFile)
 	CfgPath = filepath.Join(CfgDir, CfgFile)
 )

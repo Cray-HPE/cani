@@ -10,9 +10,6 @@ import (
 )
 
 func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal, slotOrdinal int) error {
-	// Validate provide device type is valid
-	// TODO
-
 	// Validate provided cabinet exists
 	// TODO
 
@@ -74,7 +71,6 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 		// Things like role/subrole/nid/alias could be injected at a later time.
 		// Not sure how hard it would be to specify at this point in time.
 		// This command creates the physical information for a node, have another command for the logical part of the data
-
 		if err := d.datastore.Add(&hardware); err != nil {
 			return errors.Join(
 				fmt.Errorf("unable to add hardware to inventory datastore"),

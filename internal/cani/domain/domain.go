@@ -4,16 +4,31 @@ import (
 	"errors"
 	"fmt"
 
+	external_inventory_provider "github.com/Cray-HPE/cani/internal/cani/external-inventory-provider"
+	"github.com/Cray-HPE/cani/internal/cani/external-inventory-provider/csm"
 	"github.com/Cray-HPE/cani/internal/cani/inventory"
 	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
 )
 
+var (
+	Data *Domain
+)
+
 type Domain struct {
+	SessionActive       bool
 	hardwareTypeLibrary *hardware_type_library.Library
 	datastore           inventory.Datastore
+
+	externalInventoryProvider external_inventory_provider.InventoryProvider
 }
 
-func New() (*Domain, error) {
+type NewOpts struct {
+	DatastorePath string
+	Provider      string
+	EIPCSMOpts    csm.NewOpts
+}
+
+func New(opts *NewOpts) (*Domain, error) {
 	var err error
 	domain := &Domain{}
 
@@ -28,7 +43,7 @@ func New() (*Domain, error) {
 	}
 
 	// Load the datastore
-	domain.datastore, err = inventory.NewDatastoreJSON("cani_db.json")
+	domain.datastore, err = inventory.NewDatastoreJSON(opts.DatastorePath)
 	if err != nil {
 		return nil, errors.Join(
 			fmt.Errorf("failed to load inventory datastore from file"),
@@ -36,5 +51,27 @@ func New() (*Domain, error) {
 		)
 	}
 
+	// Setup External inventory provider
+	// TODO how does the initial inventory data for a session get created, if it uses domain logic
+	// as it will fail when we get to this point.
+	externalInventoryProviderName, err := domain.datastore.GetExternalInventoryProvider()
+	if err != nil {
+		return nil, errors.Join(
+			fmt.Errorf("failed to retrieve external inventory provider type"),
+			err,
+		)
+	}
+	switch externalInventoryProviderName {
+	case inventory.ExternalInventoryProviderCSM:
+		domain.externalInventoryProvider, err = csm.New(opts.EIPCSMOpts)
+		if err != nil {
+			return nil, errors.Join(
+				fmt.Errorf("failed to initialize CSM external inventory provider"),
+				err,
+			)
+		}
+	default:
+		return nil, fmt.Errorf("unknown external inventory provider provided (%s)", externalInventoryProviderName)
+	}
 	return domain, nil
 }

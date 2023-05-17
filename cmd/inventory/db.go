@@ -22,7 +22,7 @@ type Database struct {
 }
 
 var (
-	DbPath   = taxonomy.DbFile
+	DbPath   = taxonomy.DsFile
 	instance *Database
 	once     sync.Once
 )

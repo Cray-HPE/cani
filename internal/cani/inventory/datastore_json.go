@@ -27,21 +27,22 @@ func NewDatastoreJSON(dataFilePath string) (*DatastoreJSON, error) {
 
 	if _, err := os.Stat(dataFilePath); os.IsNotExist(err) {
 		// Write a default config file if it doesn't exist
-		log.Info().Msgf("%s does not exist, creating default database", dataFilePath)
+		log.Info().Msgf("%s does not exist, creating default datastore", dataFilePath)
 
 		// Create the directory if it doesn't exist
 		dbDir := filepath.Dir(dataFilePath)
 		if _, err := os.Stat(dbDir); os.IsNotExist(err) {
 			err = os.Mkdir(dbDir, 0755)
 			if err != nil {
-				return nil, errors.New(fmt.Sprintf("Error creating database directory: %s", err))
+				return nil, errors.New(fmt.Sprintf("Error creating datastore directory: %s", err))
 			}
 		}
 
 		// Create a config with default values since one does not exist
 		datastore.inventory = &Inventory{
-			SchemaVersion: SchemaVersionV1Alpha1,
-			Hardware:      map[uuid.UUID]Hardware{},
+			SchemaVersion:             SchemaVersionV1Alpha1,
+			ExternalInventoryProvider: ExternalInventoryProviderCSM, // TODO THIS IS A BIG HACK TO GET THINGS GOING, THIS SHOULD BE PROVIDED VIA "cani session start csm"
+			Hardware:                  map[uuid.UUID]Hardware{},
 		}
 
 		if err := datastore.Flush(); err != nil {
@@ -74,10 +75,31 @@ func NewDatastoreJSON(dataFilePath string) (*DatastoreJSON, error) {
 }
 
 func (dj *DatastoreJSON) GetSchemaVersion() (SchemaVersion, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
+
 	return dj.inventory.SchemaVersion, nil
 }
 
+func (dj *DatastoreJSON) SetExternalInventoryProvider(provider ExternalInventoryProvider) error {
+	dj.inventoryLock.Lock()
+	defer dj.inventoryLock.Unlock()
+
+	dj.inventory.ExternalInventoryProvider = provider
+
+	return nil
+}
+
+func (dj *DatastoreJSON) GetExternalInventoryProvider() (ExternalInventoryProvider, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
+	return ExternalInventoryProvider("csm"), nil // FIXME hardcode
+	// return dj.inventory.ExternalInventoryProvider, nil
+}
+
 func (dj *DatastoreJSON) Flush() error {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
 	// convert the cfg struct to a JSON-formatted byte slice.
 
 	data, err := json.Marshal(dj.inventory)
@@ -175,13 +197,20 @@ func (dj *DatastoreJSON) Remove(id uuid.UUID) error {
 		for _, child := range children {
 			childrenIDs = append(childrenIDs, child.ID.String())
 		}
-		return fmt.Errorf("unable to remove (%s) as it is the parent of [%s]", strings.Join(childrenIDs, ","))
+		return fmt.Errorf("unable to remove (%s) as it is the parent of [%s]", id.String(), strings.Join(childrenIDs, ","))
 	}
 
 	// Remove the hardware!
 	delete(dj.inventory.Hardware, id)
 
 	return nil
+}
+
+func (dj *DatastoreJSON) List() (Inventory, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
+
+	return *dj.inventory, nil
 }
 
 // Graph functions
