@@ -37,7 +37,6 @@ var AddBladeCmd = &cobra.Command{
 	// Hardware can only be valid if defined in the hardware library
 	Args: validHardware,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		log.Info().Any("args", args).Msg("In RunE")
 		err := addBlade(cmd, args)
 		if err != nil {
 			return err
@@ -68,17 +67,13 @@ func init() {
 // addBlade adds a blade to the inventory
 func addBlade(cmd *cobra.Command, args []string) error {
 	// Add each blade using domain logic
-	log.Info().Any("args", args).Msg("In addBlade")
 
 	for _, arg := range args {
-		log.Info().Any("arg", arg).Msg("In For Loop")
-
 		err := domain.Data.AddBlade(arg, cabinet, chassis, slot)
 		if err != nil {
 			return err
 		}
 		log.Debug().Msgf("Added blade %s", arg)
-		log.Info().Any("arg", arg).Msg("End for Loop")
 
 	}
 	return nil
