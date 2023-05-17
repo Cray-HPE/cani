@@ -35,8 +35,6 @@ import (
 	"github.com/Cray-HPE/cani/cmd/blade"
 	"github.com/Cray-HPE/cani/cmd/config"
 	"github.com/Cray-HPE/cani/cmd/taxonomy"
-	"github.com/Cray-HPE/cani/internal/cani/domain"
-	"github.com/Cray-HPE/cani/internal/cani/external-inventory-provider/csm"
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -64,7 +62,6 @@ var (
 	cfgFile    string
 	conf       *config.Config
 	spec       bool
-	dbFile     string
 	// the database is exported so it can be used in the subcommands
 )
 
@@ -79,7 +76,7 @@ func Execute() {
 
 func init() {
 	// Create or load a yaml config and the database
-	cobra.OnInitialize(initConfig, initDomain)
+	cobra.OnInitialize(initConfig)
 
 	RootCmd.AddCommand(addCmd)
 	RootCmd.AddCommand(listCmd)
@@ -91,7 +88,6 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", cfgFile, "Path to the configuration file")
 	RootCmd.PersistentFlags().BoolVarP(&debug, "debug", "D", false, "additional debug output")
 	RootCmd.PersistentFlags().BoolVarP(&simulation, "simulation", "S", false, "Use simulation mode for hsm-simulation-environment")
-	RootCmd.PersistentFlags().StringVar(&dbFile, "database", dbFile, "JSON database file")
 
 }
 
@@ -138,30 +134,4 @@ func initConfig() {
 		os.Exit(1)
 	}
 	// Set up other global flags or settings based on the loaded configuration
-}
-
-func initDomain() {
-	homeDir, err := os.UserHomeDir()
-	cobra.CheckErr(err)
-	if dbFile != "" {
-		// global debug cannot be run during init() so check for debug flag here
-		if debug {
-			log.Debug().Msg(fmt.Sprintf("Using user-defined datastore: %s", dbFile))
-		}
-	} else {
-		// Set a default database file
-		dbFile = filepath.Join(homeDir, taxonomy.DsPath)
-		if debug {
-			log.Debug().Msg(fmt.Sprintf("Using default datastore: %s", dbFile))
-		}
-	}
-	// Initialize the domain options
-	dopts := &domain.NewOpts{
-		DatastorePath: dbFile,
-		Provider:      "csm",
-		EIPCSMOpts:    csm.NewOpts{},
-	}
-	// Set the Global domain Data
-	domain.Data, err = domain.New(dopts)
-	cobra.CheckErr(err)
 }

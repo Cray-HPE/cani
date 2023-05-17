@@ -5,10 +5,11 @@ import (
 )
 
 const (
-	App     = "cani"
-	DsFile  = App + "db.json"
-	CfgFile = App + ".yml"
-	CfgDir  = "." + App
+	App        = "cani"
+	DsFile     = App + "db.json"
+	CfgFile    = App + ".yml"
+	CfgDir     = "." + App
+	SessionExt = ".session"
 )
 
 var (
