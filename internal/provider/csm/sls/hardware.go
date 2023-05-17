@@ -25,8 +25,7 @@ package sls
 import (
 	"fmt"
 
-	"github.com/Cray-HPE/hardware-topology-assistant/pkg/configs"
-	sls_common "github.com/Cray-HPE/hms-sls/pkg/sls-common"
+	sls_common "github.com/Cray-HPE/hms-sls/v2/pkg/sls-common"
 	"github.com/Cray-HPE/hms-xname/xnametypes"
 	"github.com/mitchellh/mapstructure"
 )
@@ -178,36 +177,37 @@ func FilterOutManagementNCNs(allHardware map[string]sls_common.GenericHardware) 
 	})
 }
 
-func BuildApplicationNodeMetadata(allHardware map[string]sls_common.GenericHardware) (configs.ApplicationNodeMetadataMap, error) {
-	metadata := configs.ApplicationNodeMetadataMap{}
-
-	// Find all application nodes
-	for _, hardware := range allHardware {
-
-		var nodeEP sls_common.ComptypeNode
-		if ep, ok := hardware.ExtraPropertiesRaw.(sls_common.ComptypeNode); ok {
-			// If we are there, then the extra properties where created at runtime
-			nodeEP = ep
-		} else {
-			// If we are there, then the extra properties came from JSON
-			if err := mapstructure.Decode(hardware.ExtraPropertiesRaw, &nodeEP); err != nil {
-				return nil, err
-			}
-		}
-
-		if nodeEP.Role != "Application" {
-			continue
-		}
-
-		// Found an application node!
-		metadata[hardware.Xname] = configs.ApplicationNodeMetadata{
-			SubRole: nodeEP.SubRole,
-			Aliases: nodeEP.Aliases,
-		}
-	}
-
-	return metadata, nil
-}
+// TODO Needs to be redone for this tool if deemed appropriate.
+// func BuildApplicationNodeMetadata(allHardware map[string]sls_common.GenericHardware) (configs.ApplicationNodeMetadataMap, error) {
+// 	metadata := configs.ApplicationNodeMetadataMap{}
+//
+// 	// Find all application nodes
+// 	for _, hardware := range allHardware {
+//
+// 		var nodeEP sls_common.ComptypeNode
+// 		if ep, ok := hardware.ExtraPropertiesRaw.(sls_common.ComptypeNode); ok {
+// 			// If we are there, then the extra properties where created at runtime
+// 			nodeEP = ep
+// 		} else {
+// 			// If we are there, then the extra properties came from JSON
+// 			if err := mapstructure.Decode(hardware.ExtraPropertiesRaw, &nodeEP); err != nil {
+// 				return nil, err
+// 			}
+// 		}
+//
+// 		if nodeEP.Role != "Application" {
+// 			continue
+// 		}
+//
+// 		// Found an application node!
+// 		metadata[hardware.Xname] = configs.ApplicationNodeMetadata{
+// 			SubRole: nodeEP.SubRole,
+// 			Aliases: nodeEP.Aliases,
+// 		}
+// 	}
+//
+// 	return metadata, nil
+// }
 
 func SwitchAliases(allHardware map[string]sls_common.GenericHardware) (map[string][]string, error) {
 	result := map[string][]string{}

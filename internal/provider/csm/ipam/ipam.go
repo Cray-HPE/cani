@@ -27,7 +27,7 @@ import (
 	"fmt"
 	"math"
 
-	sls_common "github.com/Cray-HPE/hms-sls/pkg/sls-common"
+	sls_common "github.com/Cray-HPE/hms-sls/v2/pkg/sls-common"
 	"github.com/Cray-HPE/hms-xname/xnames"
 	"inet.af/netaddr"
 )

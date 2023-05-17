@@ -27,7 +27,7 @@ import (
 	"reflect"
 	"sort"
 
-	sls_common "github.com/Cray-HPE/hms-sls/pkg/sls-common"
+	sls_common "github.com/Cray-HPE/hms-sls/v2/pkg/sls-common"
 )
 
 // Hardware present in A that is missing from B
