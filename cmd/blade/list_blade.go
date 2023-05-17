@@ -30,7 +30,7 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/inventory"
-	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
@@ -58,7 +58,7 @@ func listBlade(cmd *cobra.Command, args []string) error {
 	}
 	filtered := make(map[uuid.UUID]inventory.Hardware, 0)
 	for key, hw := range inv.Hardware {
-		if hw.Type == hardware_type_library.HardwareTypeNodeBlade {
+		if hw.Type == hardwaretypes.HardwareTypeNodeBlade {
 			filtered[key] = hw
 		}
 	}

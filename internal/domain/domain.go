@@ -7,7 +7,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/provider/csm"
-	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 )
 
 var (
@@ -16,7 +16,7 @@ var (
 
 type Domain struct {
 	SessionActive       bool
-	hardwareTypeLibrary *hardware_type_library.Library
+	hardwareTypeLibrary *hardwaretypes.Library
 	datastore           inventory.Datastore
 
 	externalInventoryProvider provider.InventoryProvider
@@ -34,7 +34,7 @@ func New(opts *NewOpts) (*Domain, error) {
 
 	// Load the hardware type library
 	// TODO make this be able to be loaded from a directory
-	domain.hardwareTypeLibrary, err = hardware_type_library.NewEmbeddedLibrary()
+	domain.hardwareTypeLibrary, err = hardwaretypes.NewEmbeddedLibrary()
 	if err != nil {
 		return nil, errors.Join(
 			fmt.Errorf("failed to load embedded hardware type library"),

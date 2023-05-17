@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
-	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
 )
 
@@ -17,7 +17,7 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 	// TODO this is just a stand in, just for testing
 	chassis := inventory.Hardware{
 		ID:              uuid.New(),
-		Type:            hardware_type_library.HardwareTypeChassis,
+		Type:            hardwaretypes.HardwareTypeChassis,
 		Status:          inventory.HardwareStatusProvisioned,
 		LocationOrdinal: &slotOrdinal,
 	}
@@ -30,8 +30,8 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 	}
 
 	// chassisLocationPath := []inventory.LocationToken{
-	// 	{HardwareType: hardware_type_library.HardwareTypeCabinet, Ordinal: cabinetOrdinal},
-	// 	{HardwareType: hardware_type_library.HardwareTypeChassis, Ordinal: chassisOrdinal},
+	// 	{HardwareType: hardwaretypes.HardwareTypeCabinet, Ordinal: cabinetOrdinal},
+	// 	{HardwareType: hardwaretypes.HardwareTypeChassis, Ordinal: chassisOrdinal},
 	// }
 
 	// Verify the provided device type slug is a node blade
@@ -39,7 +39,7 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 	if err != nil {
 		return err
 	}
-	if deviceType.HardwareType != hardware_type_library.HardwareTypeNodeBlade {
+	if deviceType.HardwareType != hardwaretypes.HardwareTypeNodeBlade {
 		return fmt.Errorf("provided device hardware type (%s) is not a node blade", deviceTypeSlug) // TODO better error message
 	}
 

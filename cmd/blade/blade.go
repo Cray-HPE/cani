@@ -32,7 +32,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/provider/csm/hsm"
 	"github.com/Cray-HPE/cani/internal/provider/csm/sls"
-	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	"github.com/spf13/cobra"
@@ -68,7 +68,7 @@ func EnableDebug() {
 // validHardware checks that the hardware type is valid by comparing it against the list of hardware types
 func validHardware(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("list-supported-types") {
-		domain.Data.ListSupportedTypes(hardware_type_library.HardwareTypeNodeBlade)
+		domain.Data.ListSupportedTypes(hardwaretypes.HardwareTypeNodeBlade)
 		os.Exit(0)
 	}
 
@@ -76,13 +76,13 @@ func validHardware(cmd *cobra.Command, args []string) error {
 		return errors.New("No hardware type provided")
 	}
 
-	library, err := hardware_type_library.NewEmbeddedLibrary()
+	library, err := hardwaretypes.NewEmbeddedLibrary()
 	if err != nil {
 		return err
 	}
 
 	// Get the list of hardware types that are blades
-	deviceTypes := library.GetDeviceTypesByHardwareType(hardware_type_library.HardwareTypeNodeBlade)
+	deviceTypes := library.GetDeviceTypesByHardwareType(hardwaretypes.HardwareTypeNodeBlade)
 
 	// Check that each arg is a valid blade xname
 	for _, arg := range args {

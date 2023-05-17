@@ -26,104 +26,104 @@ package csm
 
 import (
 	"github.com/Cray-HPE/cani/internal/inventory"
-	htl "github.com/Cray-HPE/cani/pkg/hardware-type-library"
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/Cray-HPE/hms-xname/xnametypes"
 )
 
-var typeMapping = map[xnametypes.HMSType]htl.HardwareTypePath{
+var typeMapping = map[xnametypes.HMSType]hardwaretypes.HardwareTypePath{
 	xnametypes.Cabinet: {
-		htl.HardwareTypeCabinet,
+		hardwaretypes.HardwareTypeCabinet,
 	},
 	xnametypes.CEC: {
-		htl.HardwareTypeCabinet,
-		htl.HardwareTypeCabinetEnvironmentalController,
+		hardwaretypes.HardwareTypeCabinet,
+		hardwaretypes.HardwareTypeCabinetEnvironmentalController,
 	},
 	xnametypes.CabinetPDUController: {
-		htl.HardwareTypeCabinet,
-		htl.HardwareTypeCabinetPDUController,
+		hardwaretypes.HardwareTypeCabinet,
+		hardwaretypes.HardwareTypeCabinetPDUController,
 	},
 	xnametypes.CabinetPDU: {
-		htl.HardwareTypeCabinet,
-		htl.HardwareTypeCabinetPDUController,
-		htl.HardwareTypePDU,
+		hardwaretypes.HardwareTypeCabinet,
+		hardwaretypes.HardwareTypeCabinetPDUController,
+		hardwaretypes.HardwareTypePDU,
 	},
 	xnametypes.Chassis: {
-		htl.HardwareTypeCabinet,
-		htl.HardwareTypeChassis,
+		hardwaretypes.HardwareTypeCabinet,
+		hardwaretypes.HardwareTypeChassis,
 	},
 	xnametypes.ChassisBMC: {
-		htl.HardwareTypeCabinet,
-		htl.HardwareTypeChassis,
-		htl.HardwareTypeChassisManagementModule,
+		hardwaretypes.HardwareTypeCabinet,
+		hardwaretypes.HardwareTypeChassis,
+		hardwaretypes.HardwareTypeChassisManagementModule,
 	},
 	xnametypes.ComputeModule: {
-		htl.HardwareTypeCabinet,
-		htl.HardwareTypeChassis,
-		htl.HardwareTypeNodeBlade,
+		hardwaretypes.HardwareTypeCabinet,
+		hardwaretypes.HardwareTypeChassis,
+		hardwaretypes.HardwareTypeNodeBlade,
 	},
 	xnametypes.NodeBMC: {
-		htl.HardwareTypeCabinet,
-		htl.HardwareTypeChassis,
-		htl.HardwareTypeNodeBlade,
-		htl.HardwareTypeNodeCard,
+		hardwaretypes.HardwareTypeCabinet,
+		hardwaretypes.HardwareTypeChassis,
+		hardwaretypes.HardwareTypeNodeBlade,
+		hardwaretypes.HardwareTypeNodeCard,
 	},
 	xnametypes.Node: {
-		htl.HardwareTypeCabinet,
-		htl.HardwareTypeChassis,
-		htl.HardwareTypeNodeBlade,
-		htl.HardwareTypeNodeCard,
-		htl.HardwareTypeNode,
+		hardwaretypes.HardwareTypeCabinet,
+		hardwaretypes.HardwareTypeChassis,
+		hardwaretypes.HardwareTypeNodeBlade,
+		hardwaretypes.HardwareTypeNodeCard,
+		hardwaretypes.HardwareTypeNode,
 	},
 
 	xnametypes.RouterModule: {
-		htl.HardwareTypeCabinet,
-		htl.HardwareTypeChassis,
-		htl.HardwareTypeHighSpeedSwitch,
+		hardwaretypes.HardwareTypeCabinet,
+		hardwaretypes.HardwareTypeChassis,
+		hardwaretypes.HardwareTypeHighSpeedSwitch,
 	},
 	xnametypes.RouterBMC: {
-		htl.HardwareTypeCabinet,
-		htl.HardwareTypeChassis,
-		htl.HardwareTypeHighSpeedSwitch,
-		htl.HardwareTypeHighSpeedSwitchBMC,
+		hardwaretypes.HardwareTypeCabinet,
+		hardwaretypes.HardwareTypeChassis,
+		hardwaretypes.HardwareTypeHighSpeedSwitch,
+		hardwaretypes.HardwareTypeHighSpeedSwitchBMC,
 	},
 
 	// TODO additional context is required to determine between these two types
 	// xnametypes.MgmtSwitch: {
-	// 	htl.HardwareTypeCabinet,
-	// 	htl.HardwareTypeChassis,
-	// 	htl.HardwareTypeManagementSwitch,
+	// 	hardwaretypes.HardwareTypeCabinet,
+	// 	hardwaretypes.HardwareTypeChassis,
+	// 	hardwaretypes.HardwareTypeManagementSwitch,
 	// },
 	// xnametypes.MgmtHLSwitch: {
-	// 	htl.HardwareTypeCabinet,
-	// 	htl.HardwareTypeChassis,
-	// 	htl.HardwareTypeManagementSwitch,
+	// 	hardwaretypes.HardwareTypeCabinet,
+	// 	hardwaretypes.HardwareTypeChassis,
+	// 	hardwaretypes.HardwareTypeManagementSwitch,
 	// },
 
 	xnametypes.CDU: {
-		htl.HardwareTypeCoolingDistributionUnit,
+		hardwaretypes.HardwareTypeCoolingDistributionUnit,
 	},
 	xnametypes.CDUMgmtSwitch: {
-		htl.HardwareTypeCoolingDistributionUnit,
-		htl.HardwareTypeManagementSwitch,
+		hardwaretypes.HardwareTypeCoolingDistributionUnit,
+		hardwaretypes.HardwareTypeManagementSwitch,
 	},
 }
 
-func buildHTLtoHMSTypeMap() map[string]xnametypes.HMSType {
+func buildhardwaretypestoHMSTypeMap() map[string]xnametypes.HMSType {
 	// Build lookup date from Hardware type path to hms-xname type
 	// TODO add a check to make sure that there is no overlapping data
 	// But need to take in account that MgmtSwitch and MgmtHLSwitch have the same
 	// hardware path, but the differance is in the switches roll.
 	result := map[string]xnametypes.HMSType{}
-	for hmsType, htlTypePath := range typeMapping {
-		result[htlTypePath.Key()] = hmsType
+	for hmsType, hardwaretypesTypePath := range typeMapping {
+		result[hardwaretypesTypePath.Key()] = hmsType
 	}
 	return result
 }
 
-var htlToHMSType = buildHTLtoHMSTypeMap()
+var hardwaretypesToHMSType = buildhardwaretypestoHMSTypeMap()
 
 func GetHMSType(locationPath inventory.LocationPath) xnametypes.HMSType {
-	hmsType, exists := htlToHMSType[locationPath.GetHardwareTypePath().Key()]
+	hmsType, exists := hardwaretypesToHMSType[locationPath.GetHardwareTypePath().Key()]
 	if !exists {
 		return xnametypes.HMSTypeInvalid
 	}
@@ -131,7 +131,7 @@ func GetHMSType(locationPath inventory.LocationPath) xnametypes.HMSType {
 	return hmsType
 }
 
-func GetHardwareTypePath(hmsType xnametypes.HMSType) (htl.HardwareTypePath, bool) {
+func GetHardwareTypePath(hmsType xnametypes.HMSType) (hardwaretypes.HardwareTypePath, bool) {
 	locationPath, exists := typeMapping[hmsType]
 	return locationPath, exists
 }

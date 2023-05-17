@@ -27,7 +27,7 @@ import (
 	"reflect"
 	"strings"
 
-	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/Cray-HPE/hms-xname/xnames"
 	"github.com/google/uuid"
 )
@@ -41,7 +41,7 @@ func joinInts(ints []int, sep string) string {
 	return strings.Join(intsStr, sep)
 }
 
-func joinHardwareTypes(in []hardware_type_library.HardwareType, sep string) string {
+func joinHardwareTypes(in []hardwaretypes.HardwareType, sep string) string {
 	out := []string{}
 	for _, value := range in {
 		out = append(out, string(value))
@@ -51,11 +51,11 @@ func joinHardwareTypes(in []hardware_type_library.HardwareType, sep string) stri
 }
 
 // TODO this is something that should exist in the CSM provider
-func buildXname(hardwareTypePath []hardware_type_library.HardwareType, locationPath []int) xnames.Xname {
+func buildXname(hardwareTypePath []hardwaretypes.HardwareType, locationPath []int) xnames.Xname {
 	// TODO check that the length of hardware typePath and location path are the same
 	fmt.Println(hardwareTypePath, locationPath)
 	type typeConverter struct {
-		hardwareTypePath []hardware_type_library.HardwareType
+		hardwareTypePath []hardwaretypes.HardwareType
 		convert          func() xnames.Xname
 	}
 
@@ -63,8 +63,8 @@ func buildXname(hardwareTypePath []hardware_type_library.HardwareType, locationP
 	typeConverters := []typeConverter{
 		{
 			// Cabinet
-			hardwareTypePath: []hardware_type_library.HardwareType{
-				hardware_type_library.HardwareTypeCabinet,
+			hardwareTypePath: []hardwaretypes.HardwareType{
+				hardwaretypes.HardwareTypeCabinet,
 			},
 
 			convert: func() xnames.Xname {
@@ -75,9 +75,9 @@ func buildXname(hardwareTypePath []hardware_type_library.HardwareType, locationP
 		},
 		{
 			// CEC
-			hardwareTypePath: []hardware_type_library.HardwareType{
-				hardware_type_library.HardwareTypeCabinet,
-				hardware_type_library.HardwareTypeCabinetEnvironmentalController,
+			hardwareTypePath: []hardwaretypes.HardwareType{
+				hardwaretypes.HardwareTypeCabinet,
+				hardwaretypes.HardwareTypeCabinetEnvironmentalController,
 			},
 
 			convert: func() xnames.Xname {
@@ -90,9 +90,9 @@ func buildXname(hardwareTypePath []hardware_type_library.HardwareType, locationP
 
 		{
 			// Chassis
-			hardwareTypePath: []hardware_type_library.HardwareType{
-				hardware_type_library.HardwareTypeCabinet,
-				hardware_type_library.HardwareTypeChassis,
+			hardwareTypePath: []hardwaretypes.HardwareType{
+				hardwaretypes.HardwareTypeCabinet,
+				hardwaretypes.HardwareTypeChassis,
 			},
 
 			convert: func() xnames.Xname {
@@ -104,10 +104,10 @@ func buildXname(hardwareTypePath []hardware_type_library.HardwareType, locationP
 		},
 		{
 			// Chassis BMC
-			hardwareTypePath: []hardware_type_library.HardwareType{
-				hardware_type_library.HardwareTypeCabinet,
-				hardware_type_library.HardwareTypeChassis,
-				hardware_type_library.HardwareTypeChassisManagementModule,
+			hardwareTypePath: []hardwaretypes.HardwareType{
+				hardwaretypes.HardwareTypeCabinet,
+				hardwaretypes.HardwareTypeChassis,
+				hardwaretypes.HardwareTypeChassisManagementModule,
 			},
 
 			convert: func() xnames.Xname {
@@ -121,10 +121,10 @@ func buildXname(hardwareTypePath []hardware_type_library.HardwareType, locationP
 
 		{
 			// Slot/Node Blade
-			hardwareTypePath: []hardware_type_library.HardwareType{
-				hardware_type_library.HardwareTypeCabinet,
-				hardware_type_library.HardwareTypeChassis,
-				hardware_type_library.HardwareTypeNodeBlade,
+			hardwareTypePath: []hardwaretypes.HardwareType{
+				hardwaretypes.HardwareTypeCabinet,
+				hardwaretypes.HardwareTypeChassis,
+				hardwaretypes.HardwareTypeNodeBlade,
 			},
 
 			convert: func() xnames.Xname {
@@ -138,11 +138,11 @@ func buildXname(hardwareTypePath []hardware_type_library.HardwareType, locationP
 
 		{
 			// NodeBMC
-			hardwareTypePath: []hardware_type_library.HardwareType{
-				hardware_type_library.HardwareTypeCabinet,
-				hardware_type_library.HardwareTypeChassis,
-				hardware_type_library.HardwareTypeNodeBlade,
-				hardware_type_library.HardwareTypeNodeCard,
+			hardwareTypePath: []hardwaretypes.HardwareType{
+				hardwaretypes.HardwareTypeCabinet,
+				hardwaretypes.HardwareTypeChassis,
+				hardwaretypes.HardwareTypeNodeBlade,
+				hardwaretypes.HardwareTypeNodeCard,
 			},
 
 			convert: func() xnames.Xname {
@@ -156,12 +156,12 @@ func buildXname(hardwareTypePath []hardware_type_library.HardwareType, locationP
 		},
 		{
 			// Node
-			hardwareTypePath: []hardware_type_library.HardwareType{
-				hardware_type_library.HardwareTypeCabinet,
-				hardware_type_library.HardwareTypeChassis,
-				hardware_type_library.HardwareTypeNodeBlade,
-				hardware_type_library.HardwareTypeNodeCard,
-				hardware_type_library.HardwareTypeNode,
+			hardwareTypePath: []hardwaretypes.HardwareType{
+				hardwaretypes.HardwareTypeCabinet,
+				hardwaretypes.HardwareTypeChassis,
+				hardwaretypes.HardwareTypeNodeBlade,
+				hardwaretypes.HardwareTypeNodeCard,
+				hardwaretypes.HardwareTypeNode,
 			},
 
 			convert: func() xnames.Xname {
@@ -193,7 +193,7 @@ func buildXname(hardwareTypePath []hardware_type_library.HardwareType, locationP
 
 func main() {
 	// Create the library
-	library, err := hardware_type_library.NewEmbeddedLibrary()
+	library, err := hardwaretypes.NewEmbeddedLibrary()
 	if err != nil {
 		panic(err)
 	}
@@ -201,14 +201,14 @@ func main() {
 	// List cabinets
 	fmt.Println()
 	fmt.Println("Cabinets")
-	cabinetDeviceTypes := library.GetDeviceTypesByHardwareType(hardware_type_library.HardwareTypeCabinet)
+	cabinetDeviceTypes := library.GetDeviceTypesByHardwareType(hardwaretypes.HardwareTypeCabinet)
 	for _, cabinetDeviceType := range cabinetDeviceTypes {
 		fmt.Println(cabinetDeviceType.Slug)
 	}
 
 	fmt.Println()
 	fmt.Println("Node Blade")
-	nodeBladeDeviceTypes := library.GetDeviceTypesByHardwareType(hardware_type_library.HardwareTypeNodeBlade)
+	nodeBladeDeviceTypes := library.GetDeviceTypesByHardwareType(hardwaretypes.HardwareTypeNodeBlade)
 	for _, nodeBladeDeviceType := range nodeBladeDeviceTypes {
 		fmt.Println(nodeBladeDeviceType.Slug)
 	}
@@ -217,7 +217,7 @@ func main() {
 	nodeBladeExample(library)
 }
 
-func cabinetExample(library *hardware_type_library.Library) {
+func cabinetExample(library *hardwaretypes.Library) {
 	// Lets now say we know the cabinet that these devices are going into
 	// cabinet := 1001
 
@@ -232,12 +232,12 @@ func cabinetExample(library *hardware_type_library.Library) {
 	// TODO Ask the inventory for the paths to the system in the tree
 	// TODO right now the system part of the path is not being considered
 	locationPath := []int{}
-	deviceTypePath := []hardware_type_library.HardwareType{}
+	deviceTypePath := []hardwaretypes.HardwareType{}
 
 	commonLogic(library, deviceTypeSlug, cabinet, deviceTypePath, locationPath)
 }
 
-func nodeBladeExample(library *hardware_type_library.Library) {
+func nodeBladeExample(library *hardwaretypes.Library) {
 	// Lets now say we know the cabinet, chassis, and slot that these devices are going into
 	// cabinet := 1001
 	// chassis := 1
@@ -260,15 +260,15 @@ func nodeBladeExample(library *hardware_type_library.Library) {
 	// TODO Ask the inventory for the paths to the chassis in the tree
 	// TODO right now the system part of the path is not being considered
 	locationPath := []int{cabinet, chassis}
-	deviceTypePath := []hardware_type_library.HardwareType{
-		hardware_type_library.HardwareTypeCabinet,
-		hardware_type_library.HardwareTypeChassis,
+	deviceTypePath := []hardwaretypes.HardwareType{
+		hardwaretypes.HardwareTypeCabinet,
+		hardwaretypes.HardwareTypeChassis,
 	}
 
 	commonLogic(library, deviceTypeSlug, slot, deviceTypePath, locationPath)
 }
 
-func commonLogic(library *hardware_type_library.Library, deviceTypeSlug string, deviceOrdinal int, deviceTypePath []hardware_type_library.HardwareType, locationPath []int) {
+func commonLogic(library *hardwaretypes.Library, deviceTypeSlug string, deviceOrdinal int, deviceTypePath []hardwaretypes.HardwareType, locationPath []int) {
 	// Check to see if the device type exists
 	if _, err := library.GetDeviceType(deviceTypeSlug); err != nil {
 		panic(err)
