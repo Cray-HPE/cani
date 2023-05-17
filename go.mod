@@ -2,26 +2,6 @@ module github.com/Cray-HPE/cani
 
 go 1.20
 
-replace github.com/Cray-HPE/cani/pkg/sls-client => ./pkg/sls-client
-
-replace github.com/Cray-HPE/cani/pkg/hsm-client => ./pkg/hsm-client
-
-replace github.com/Cray-HPE/cani/pkg/sls-plugin => ./pkg/sls-plugin
-
-replace internal/shell => ./internal/shell
-
-require internal/hsm v1.0.0
-
-replace internal/hsm => ./internal/hsm
-
-require internal/sls v1.0.0
-
-replace internal/sls => ./internal/sls
-
-require internal/shellspec v1.0.0
-
-replace internal/shellspec => ./internal/shellspec
-
 require (
 	github.com/Cray-HPE/hms-xname v1.1.0
 	github.com/antihax/optional v1.0.0
@@ -30,6 +10,7 @@ require (
 	github.com/rs/zerolog v1.29.1
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.0
 	github.com/spf13/cobra v1.7.0
+	github.com/spf13/pflag v1.0.5
 	golang.org/x/oauth2 v0.7.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -43,7 +24,6 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.18 // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
-	github.com/spf13/pflag v1.0.5 // indirect
 	golang.org/x/net v0.9.0 // indirect
 	golang.org/x/sys v0.7.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
