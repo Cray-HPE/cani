@@ -90,7 +90,8 @@ endif
 	doc \
 	version \
 	spec \
-	validate-hardware-type-schemas
+	validate-hardware-type-schemas \
+	generate
 
 all: bin
 
@@ -156,7 +157,10 @@ env:
 tidy:
 	go mod tidy
 
-bin:
+generate:
+	go generate ./...
+
+bin: generate
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o bin/${NAME} -ldflags "\
 	-X github.com/Cray-HPE/${NAME}/cmd.version=${.GIT_VERSION} \
 	-X github.com/Cray-HPE/${NAME}/cmd.buildDate=${.BUILDTIME} \

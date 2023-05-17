@@ -27,13 +27,13 @@ import (
 	"fmt"
 	"sort"
 
-	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 )
 
 // ListSupportedTypes prints a list of supported hardware models
-func ListSupportedTypes(hwtype hardware_type_library.HardwareType) {
+func ListSupportedTypes(hwtype hardwaretypes.HardwareType) {
 	// Create the library
-	library, err := hardware_type_library.NewEmbeddedLibrary()
+	library, err := hardwaretypes.NewEmbeddedLibrary()
 	if err != nil {
 		panic(err)
 	}

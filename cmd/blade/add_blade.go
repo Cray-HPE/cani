@@ -24,7 +24,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 package blade
 
 import (
-	"github.com/Cray-HPE/cani/internal/cani/domain"
+	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -67,12 +67,14 @@ func init() {
 // addBlade adds a blade to the inventory
 func addBlade(cmd *cobra.Command, args []string) error {
 	// Add each blade using domain logic
+
 	for _, arg := range args {
 		err := domain.Data.AddBlade(arg, cabinet, chassis, slot)
 		if err != nil {
 			return err
 		}
 		log.Debug().Msgf("Added blade %s", arg)
+
 	}
 	return nil
 }

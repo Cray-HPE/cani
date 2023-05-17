@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/Cray-HPE/cani/internal/cani/inventory"
-	hardware_type_library "github.com/Cray-HPE/cani/pkg/hardware-type-library"
+	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 )
 
 // ListSupportedTypes prints a list of supported hardware models
-func (d *Domain) ListSupportedTypes(hwtype hardware_type_library.HardwareType) {
+func (d *Domain) ListSupportedTypes(hwtype hardwaretypes.HardwareType) {
 	// Extract the model names into a slice of strings
 	models := []string{}
 

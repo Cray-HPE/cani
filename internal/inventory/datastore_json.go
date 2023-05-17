@@ -25,6 +25,8 @@ func NewDatastoreJSON(dataFilePath string) (*DatastoreJSON, error) {
 		dataFilePath: dataFilePath,
 	}
 
+	log.Info().Msgf("Loading datastore from file: %s", dataFilePath)
+
 	if _, err := os.Stat(dataFilePath); os.IsNotExist(err) {
 		// Write a default config file if it doesn't exist
 		log.Info().Msgf("%s does not exist, creating default datastore", dataFilePath)
@@ -138,6 +140,10 @@ func (dj *DatastoreJSON) Add(hardware *Hardware) error {
 	}
 
 	// Add it to the inventory map
+	if dj.inventory.Hardware == nil {
+		log.Warn().Msg("Initializing inventory map")
+		dj.inventory.Hardware = map[uuid.UUID]Hardware{}
+	}
 	dj.inventory.Hardware[hardware.ID] = *hardware
 
 	return nil

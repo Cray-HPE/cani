@@ -20,7 +20,9 @@
 // ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 // OTHER DEALINGS IN THE SOFTWARE.
 
-package hardware_type_library
+package hardwaretypes
+
+import "strings"
 
 type HardwareType string
 
@@ -30,14 +32,26 @@ const (
 	HardwareTypeChassisManagementModule        HardwareType = "ChassisManagementModule"
 	HardwareTypeCabinetEnvironmentalController HardwareType = "CabinetEnvironmentalController"
 	HardwareTypeNodeBlade                      HardwareType = "NodeBlade"
-	HardwareTypeNodeBMC                        HardwareType = "NodeBMC" // TODO figure out the difference between a node card and BMC
-	HardwareTypeNodeCard                       HardwareType = "NodeCard"
-	HardwareTypeNode                           HardwareType = "Node"
-	HardwareTypeManagementSwitch               HardwareType = "ManagementSwitch"
-	HardwareTypeHighSpeedSwitchBlade           HardwareType = "HardwareTypeHighSpeedSwitch"
-	HardwareTypeCabinetPDUController           HardwareType = "CabinetPDUController"
-	HardwareTypePDU                            HardwareType = "PDU"
+	// HardwareTypeNodeBMC                        HardwareType = "NodeBMC" // TODO figure out the difference between a node card and BMC
+	HardwareTypeNodeCard                HardwareType = "NodeCard"
+	HardwareTypeNode                    HardwareType = "Node"
+	HardwareTypeManagementSwitch        HardwareType = "ManagementSwitch"
+	HardwareTypeHighSpeedSwitch         HardwareType = "HardwareTypeHighSpeedSwitch"
+	HardwareTypeHighSpeedSwitchBMC      HardwareType = "HardwareTypeHighSpeedSwitchBMC"
+	HardwareTypeCabinetPDUController    HardwareType = "CabinetPDUController"
+	HardwareTypePDU                     HardwareType = "PDU"
+	HardwareTypeCoolingDistributionUnit HardwareType = "CoolingDistributionUnit"
 )
+
+type HardwareTypePath []HardwareType
+
+func (htp HardwareTypePath) Key() string {
+	elements := []string{}
+	for _, element := range htp {
+		elements = append(elements, string(element))
+	}
+	return strings.Join(elements, ".")
+}
 
 type Airflow string
 

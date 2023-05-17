@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/Cray-HPE/cani/cmd/taxonomy"
-	"github.com/Cray-HPE/cani/internal/cani/domain"
-	"github.com/Cray-HPE/cani/internal/cani/external-inventory-provider/csm"
+	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
