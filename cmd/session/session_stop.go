@@ -1,7 +1,10 @@
 package session
 
 import (
-	"github.com/Cray-HPE/cani/internal/cani/domain"
+	"fmt"
+	"os"
+
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -11,13 +14,33 @@ var SessionStopCmd = &cobra.Command{
 	Short: "Stop a session.",
 	Long:  `Stop a session.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		postRun(cmd, args)
+		stopSession(cmd, args)
 		return nil
 	},
 }
 
-func postRun(cmd *cobra.Command, args []string) error {
-	// Save the crafted session data to the datastore
-	domain.Data.SessionActive = false
+func stopSession(cmd *cobra.Command, args []string) error {
+	ds, sesh, err := getDatastoreAndSession(cmd, args)
+	if err != nil {
+		return err
+	}
+
+	// Check if the session file exists
+	if _, err := os.Stat(sesh); os.IsNotExist(err) {
+		// If the session file does not exist, there is no active session
+		log.Info().Msg(fmt.Sprintf("%s is already INACTIVE", sesh))
+		os.Exit(1)
+	}
+
+	// Delete the session file
+	err = os.Remove(sesh)
+	if err != nil {
+		return err
+	}
+
+	// commit to the database
+	log.Info().Msgf("%s stopped.", sesh)
+	log.Info().Msgf("Push/commit %s to the datastore", ds)
+
 	return nil
 }
