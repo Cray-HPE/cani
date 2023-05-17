@@ -35,6 +35,26 @@ type LocationToken struct {
 	Ordinal      int
 }
 
+type LocationPath []LocationToken
+
+func (lp LocationPath) GetHardwareTypePath() hardware_type_library.HardwareTypePath {
+	result := hardware_type_library.HardwareTypePath{}
+	for _, token := range lp {
+		result = append(result, token.HardwareType)
+	}
+
+	return result
+}
+
+func (lp LocationPath) GetOrdinalPath() []int {
+	result := []int{}
+	for _, token := range lp {
+		result = append(result, token.Ordinal)
+	}
+
+	return result
+}
+
 type SchemaVersion string
 
 const (
