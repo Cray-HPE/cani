@@ -53,16 +53,12 @@ var RootCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		// Pass the loaded config to the session package
+		// Pass the loaded config to the sub command packages
 		session.Conf = conf
-		return nil
-	},
-	PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
-		// Write the configuration back to the file
-		err := config.WriteConfig(cfgFile, session.Conf)
-		if err != nil {
-			return err
-		}
+		blade.Conf = conf
+		fmt.Println("root pre run")
+		fmt.Printf("conf %+v\n", conf.Session)
+		fmt.Printf("bladeconf %+v\n", blade.Conf.Session)
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {

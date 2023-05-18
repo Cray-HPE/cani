@@ -24,9 +24,16 @@ OTHER DEALINGS IN THE SOFTWARE.
 package blade
 
 import (
+	"fmt"
+
+	"github.com/Cray-HPE/cani/cmd/config"
 	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+)
+
+var (
+	Conf *config.Config
 )
 
 // AddBladeCmd represents the blade add command
@@ -36,11 +43,16 @@ var AddBladeCmd = &cobra.Command{
 	Long:  `Add blades to the inventory.`,
 	// Hardware can only be valid if defined in the hardware library
 	Args: validHardware,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		fmt.Printf("%+v", Conf)
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := addBlade(cmd, args)
-		if err != nil {
-			return err
-		}
+		// err := addBlade(cmd, args)
+		// if err != nil {
+		// 	return err
+		// }
+		fmt.Printf("$#%+v\n", Conf)
 		return nil
 	},
 }

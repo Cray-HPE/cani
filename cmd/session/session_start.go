@@ -42,6 +42,15 @@ var SessionStartCmd = &cobra.Command{
 		log.Info().Msgf("Session is now ACTIVE with provider %s and datastore %s", Conf.Session.DomainOptions.Provider, Conf.Session.DomainOptions.DatastorePath)
 		return nil
 	},
+	PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
+		// Write the configuration back to the file
+		cfgFile := cmd.Root().PersistentFlags().Lookup("config").Value.String()
+		err := config.WriteConfig(cfgFile, Conf)
+		if err != nil {
+			return err
+		}
+		return nil
+	},
 }
 
 func init() {
