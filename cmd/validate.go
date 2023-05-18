@@ -25,6 +25,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/Cray-HPE/cani/cmd/validate"
@@ -42,7 +43,7 @@ var validateCmd = &cobra.Command{
 	Short: "Validate assets in the inventory.",
 	Long:  `Validate assets in the inventory.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		err := validateInventory(args)
+		err := validateInventory(args, simulation)
 		if err != nil {
 			log.Error().Err(err).Msg(err.Error())
 			os.Exit(1)
@@ -69,11 +70,18 @@ func DisableSimulation() {
 	SLS = sls.DisableSimulation()
 }
 
-func validateInventory(args []string) error {
+func validateInventory(args []string, useSimulator bool) error {
 	// fmt.Println("validate called")
+
+	if useSimulator {
+		EnableSimulation()
+	} else {
+		DisableSimulation()
+	}
 
 	slsState, response, err := SLS.DumpstateApi.DumpstateGet(context.Background())
 	if err != nil {
+		fmt.Printf("SLS dumpstate failed. %v\n", err)
 		return nil
 	}
 
