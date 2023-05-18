@@ -21,40 +21,57 @@ OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
-package cabinet
+package cdu
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
+
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/cmd/session"
 	"github.com/Cray-HPE/cani/internal/domain"
-	"github.com/rs/zerolog/log"
+	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
-// AddCabinetCmd represents the cabinet add command
-var AddCabinetCmd = &cobra.Command{
-	Use:               "cabinet",
-	Short:             "Add cabinets to the inventory.",
-	Long:              `Add cabinets to the inventory.`,
-	PersistentPreRunE: session.DatastoreExists, // A session must be active to write to a datastore
-	Args:              validHardware,           // Hardware can only be valid if defined in the hardware library
-	RunE:              addCabinet,              // Add a cabinet when this sub-command is called
+// ListCduCmd represents the cdu list command
+var ListCduCmd = &cobra.Command{
+	Use:   "cdu",
+	Short: "List cdus in the inventory.",
+	Long:  `List cdus in the inventory.`,
+	Args:  cobra.ArbitraryArgs,
+	RunE:  listCdu,
 }
 
-// addCabinet adds a cabinet to the inventory
-func addCabinet(cmd *cobra.Command, args []string) error {
+// listCdu lists cdus in the inventory
+func listCdu(cmd *cobra.Command, args []string) error {
 	// Create a domain object to interact with the datastore
-	_, err := domain.New(root.Conf.Session.DomainOptions)
+	d, err := domain.New(root.Conf.Session.DomainOptions)
 	if err != nil {
 		return err
 	}
-	log.Info().Msgf("Not yet implemented")
-	// Remove the cabinet from the inventory using domain methods
-	// TODO:
-	// err = d.AddCabinet()
-	// if err != nil {
-	// 	return err
-	// }
-	// log.Info().Msgf("Added cabinet %s", args[0])
+
+	// Get the entire inventory
+	inv, err := d.List()
+	if err != nil {
+		return err
+	}
+	// Filter the inventory to only cdus
+	filtered := make(map[uuid.UUID]inventory.Hardware, 0)
+	for key, hw := range inv.Hardware {
+		if hw.Type == hardwaretypes.HardwareTypeCoolingDistributionUnit {
+			filtered[key] = hw
+		}
+	}
+	// Convert the filtered inventory into a formatted JSON string
+	inventoryJSON, err := json.MarshalIndent(filtered, "", "  ")
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error marshaling inventory to JSON: %v", err))
+	}
+
+	// Print the inventory
+	fmt.Println(string(inventoryJSON))
 	return nil
 }

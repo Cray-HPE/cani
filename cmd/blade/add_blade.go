@@ -24,6 +24,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 package blade
 
 import (
+	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/Cray-HPE/cani/cmd/session"
 	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -31,50 +33,26 @@ import (
 
 // AddBladeCmd represents the blade add command
 var AddBladeCmd = &cobra.Command{
-	Use:   "blade",
-	Short: "Add blades to the inventory.",
-	Long:  `Add blades to the inventory.`,
-	// Hardware can only be valid if defined in the hardware library
-	Args: validHardware,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		err := addBlade(cmd, args)
-		if err != nil {
-			return err
-		}
-		return nil
-	},
-}
-
-var (
-	cabinet int
-	chassis int
-	slot    int
-)
-
-func init() {
-	AddBladeCmd.Flags().BoolP("list-supported-types", "L", false, "List supported hardware types.")
-
-	AddBladeCmd.Flags().IntVar(&cabinet, "cabinet", 1001, "Parent cabinet")
-	// cobra.MarkFlagRequired(AddBladeCmd.Flags(), "cabinet")
-
-	AddBladeCmd.Flags().IntVar(&chassis, "chassis", 7, "Parent chassis")
-	// cobra.MarkFlagRequired(AddBladeCmd.Flags(), "chassis")
-
-	AddBladeCmd.Flags().IntVar(&slot, "slot", 1, "Parent slot")
-	// cobra.MarkFlagRequired(AddBladeCmd.Flags(), "slot")
+	Use:               "blade",
+	Short:             "Add blades to the inventory.",
+	Long:              `Add blades to the inventory.`,
+	PersistentPreRunE: session.DatastoreExists, // A session must be active to write to a datastore
+	Args:              validHardware,           // Hardware can only be valid if defined in the hardware library
+	RunE:              addBlade,                // Add a blade when this sub-command is called
 }
 
 // addBlade adds a blade to the inventory
 func addBlade(cmd *cobra.Command, args []string) error {
-	// Add each blade using domain logic
-
-	for _, arg := range args {
-		err := domain.Data.AddBlade(arg, cabinet, chassis, slot)
-		if err != nil {
-			return err
-		}
-		log.Debug().Msgf("Added blade %s", arg)
-
+	// Create a domain object to interact with the datastore
+	d, err := domain.New(root.Conf.Session.DomainOptions)
+	if err != nil {
+		return err
 	}
+	// Remove the blade from the inventory using domain methods
+	err = d.AddBlade(args[0], cabinet, chassis, slot)
+	if err != nil {
+		return err
+	}
+	log.Info().Msgf("Added blade %s", args[0])
 	return nil
 }

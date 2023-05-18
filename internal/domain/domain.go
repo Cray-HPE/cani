@@ -10,12 +10,7 @@ import (
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 )
 
-var (
-	Data *Domain
-)
-
 type Domain struct {
-	SessionActive       bool
 	hardwareTypeLibrary *hardwaretypes.Library
 	datastore           inventory.Datastore
 

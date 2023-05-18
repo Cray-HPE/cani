@@ -24,9 +24,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 package chassis
 
 import (
-	"os"
-
-	"github.com/Cray-HPE/cani/cmd/inventory"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -37,19 +34,23 @@ var RemoveChassisCmd = &cobra.Command{
 	Short: "Remove chassiss from the inventory.",
 	Long:  `Remove chassiss from the inventory.`,
 	Args:  cobra.ArbitraryArgs,
-	Run: func(cmd *cobra.Command, args []string) {
-		err := removeChassis(cmd, args)
-		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
-			os.Exit(1)
-		}
-	},
+	RunE:  removeChassis,
 }
 
+// removeChassis removes a chassis from the inventory.
 func removeChassis(cmd *cobra.Command, args []string) error {
-	_, err := inventory.Remove(cmd, args)
-	if err != nil {
-		return err
-	}
+	log.Info().Msgf("Not yet implemented")
+	// for _, arg := range args {
+	// 	// Convert the argument to a UUID
+	// 	u, err := uuid.Parse(arg)
+	// 	if err != nil {
+	// 		return fmt.Errorf("Need a UUID to remove: %s", err.Error())
+	// 	}
+	// 	// Remove item from the inventory
+	// 	err = root.Domain.RemoveChassis(u)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
 	return nil
 }

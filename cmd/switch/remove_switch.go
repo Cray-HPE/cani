@@ -24,9 +24,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 package sw
 
 import (
-	"os"
-
-	"github.com/Cray-HPE/cani/cmd/inventory"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -34,23 +31,26 @@ import (
 // RemoveSwitchCmd represents the switch remove command
 var RemoveSwitchCmd = &cobra.Command{
 	Use:   "switch",
-	Short: "Remove switches from the inventory.",
-	Long:  `Remove switches from the inventory.`,
+	Short: "Remove switchs from the inventory.",
+	Long:  `Remove switchs from the inventory.`,
 	Args:  cobra.ArbitraryArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		err := removeSwitch(cmd, args)
-		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
-			os.Exit(1)
-		}
-		return err
-	},
+	RunE:  removeSwitch,
 }
 
+// removeSwitch removes a switch from the inventory.
 func removeSwitch(cmd *cobra.Command, args []string) error {
-	_, err := inventory.Remove(cmd, args)
-	if err != nil {
-		return err
-	}
+	log.Info().Msgf("Not yet implemented")
+	// for _, arg := range args {
+	// 	// Convert the argument to a UUID
+	// 	u, err := uuid.Parse(arg)
+	// 	if err != nil {
+	// 		return fmt.Errorf("Need a UUID to remove: %s", err.Error())
+	// 	}
+	// 	// Remove item from the inventory
+	// 	err = root.Domain.RemoveSwitch(u)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
 	return nil
 }

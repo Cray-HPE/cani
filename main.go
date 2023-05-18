@@ -23,7 +23,19 @@ OTHER DEALINGS IN THE SOFTWARE.
 */
 package main
 
-import "github.com/Cray-HPE/cani/cmd"
+import (
+	"github.com/Cray-HPE/cani/cmd"
+	_ "github.com/Cray-HPE/cani/cmd/blade"
+
+	_ "github.com/Cray-HPE/cani/cmd/cabinet"
+	_ "github.com/Cray-HPE/cani/cmd/chassis"
+	_ "github.com/Cray-HPE/cani/cmd/config"
+	_ "github.com/Cray-HPE/cani/cmd/node"
+	_ "github.com/Cray-HPE/cani/cmd/pdu"
+	_ "github.com/Cray-HPE/cani/cmd/session"
+	_ "github.com/Cray-HPE/cani/cmd/switch"
+	_ "github.com/Cray-HPE/cani/cmd/taxonomy"
+)
 
 func main() {
 	cmd.Execute()

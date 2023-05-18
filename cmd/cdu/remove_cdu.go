@@ -21,4 +21,36 @@ OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
-package inventory
+package cdu
+
+import (
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
+)
+
+// RemoveCduCmd represents the cdu remove command
+var RemoveCduCmd = &cobra.Command{
+	Use:   "cdu",
+	Short: "Remove cdus from the inventory.",
+	Long:  `Remove cdus from the inventory.`,
+	Args:  cobra.ArbitraryArgs,
+	RunE:  removeCdu,
+}
+
+// removeCdu removes a cdu from the inventory.
+func removeCdu(cmd *cobra.Command, args []string) error {
+	log.Info().Msgf("Not yet implemented")
+	// for _, arg := range args {
+	// 	// Convert the argument to a UUID
+	// 	u, err := uuid.Parse(arg)
+	// 	if err != nil {
+	// 		return fmt.Errorf("Need a UUID to remove: %s", err.Error())
+	// 	}
+	// 	// Remove item from the inventory
+	// 	err = root.Domain.RemoveCdu(u)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
+	return nil
+}

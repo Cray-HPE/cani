@@ -28,33 +28,40 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Cray-HPE/cani/cmd/inventory"
+	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
 // ListSwitchCmd represents the switch list command
 var ListSwitchCmd = &cobra.Command{
 	Use:   "switch",
-	Short: "List switches in the inventory.",
-	Long:  `List switches in the inventory.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		err := listSwitch(cmd, args)
-		if err != nil {
-			return err
-		}
-		return nil
-	},
+	Short: "List switchs in the inventory.",
+	Long:  `List switchs in the inventory.`,
+	Args:  cobra.ArbitraryArgs,
+	RunE:  listSwitch,
 }
 
+// listSwitch lists switchs in the inventory
 func listSwitch(cmd *cobra.Command, args []string) error {
-	inv, err := inventory.List(cmd, args)
+	// Create a domain object to interact with the datastore
+	d, err := domain.New(root.Conf.Session.DomainOptions)
 	if err != nil {
 		return err
 	}
 
-	filtered := inventory.Inventory{}
-	for key, hw := range inv {
-		if hw.Type == "Switch" {
+	// Get the entire inventory
+	inv, err := d.List()
+	if err != nil {
+		return err
+	}
+	// Filter the inventory to only switchs
+	filtered := make(map[uuid.UUID]inventory.Hardware, 0)
+	for key, hw := range inv.Hardware {
+		if hw.Type == hardwaretypes.HardwareTypeHighSpeedSwitch || hw.Type == hardwaretypes.HardwareTypeManagementSwitch {
 			filtered[key] = hw
 		}
 	}
@@ -64,6 +71,7 @@ func listSwitch(cmd *cobra.Command, args []string) error {
 		return errors.New(fmt.Sprintf("Error marshaling inventory to JSON: %v", err))
 	}
 
+	// Print the inventory
 	fmt.Println(string(inventoryJSON))
 	return nil
 }

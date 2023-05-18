@@ -22,9 +22,3 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
 package cabinet
-
-import "github.com/Cray-HPE/cani/cmd/inventory"
-
-var (
-	db *inventory.Database
-)

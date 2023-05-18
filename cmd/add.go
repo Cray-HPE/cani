@@ -24,58 +24,24 @@ OTHER DEALINGS IN THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-	"os"
-	"strings"
-
 	"github.com/spf13/cobra"
-
-	"github.com/Cray-HPE/cani/cmd/blade"
-	"github.com/Cray-HPE/cani/cmd/cabinet"
-	"github.com/Cray-HPE/cani/cmd/chassis"
-	"github.com/Cray-HPE/cani/cmd/hsn"
-	"github.com/Cray-HPE/cani/cmd/node"
-	"github.com/Cray-HPE/cani/cmd/pdu"
-	sw "github.com/Cray-HPE/cani/cmd/switch"
 )
 
 var (
 	vendor string
 	name   string
-	staged string
-	models []string
-	hwType string
 	u      string
 )
 
-// addCmd represents the switch add command
-var addCmd = &cobra.Command{
+// AddCmd represents the switch add command
+var AddCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Add assets to the inventory.",
 	Long:  `Add assets to the inventory.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		if simulation {
-			blade.AddBladeCmd.SetArgs([]string{"-S"})
-		}
-		if len(args) == 0 {
-			fmt.Println("Error: No asset type specified.")
-			cmd.Help()
-			os.Exit(1)
-		}
-	},
+	RunE:  add,
 }
 
-func init() {
-	addCmd.AddCommand(blade.AddBladeCmd)
-	addCmd.AddCommand(cabinet.AddCabinetCmd)
-	addCmd.AddCommand(chassis.AddChassisCmd)
-	addCmd.AddCommand(hsn.AddHsnCmd)
-	addCmd.AddCommand(node.AddNodeCmd)
-	addCmd.AddCommand(pdu.AddPduCmd)
-	addCmd.AddCommand(sw.AddSwitchCmd)
-	addCmd.PersistentFlags().StringVarP(&vendor, "vendor", "m", "HPE", "Vendor")
-	addCmd.PersistentFlags().StringVarP(&name, "name", "n", "", "Name")
-	addCmd.PersistentFlags().StringVarP(&staged, "staged", "s", "Staged", "Hardware can be [staged, provisioned, decomissioned]")
-	addCmd.PersistentFlags().StringVarP(&hwType, "type", "t", "", fmt.Sprintf("Hardware type.  Allowed values: [%+v]", strings.Join(models, "\", \"")))
-	addCmd.PersistentFlags().StringVarP(&u, "uuid", "u", "", "Specific UUID to use")
+// add is the main entry point for the add command.
+func add(cmd *cobra.Command, args []string) error {
+	return nil
 }

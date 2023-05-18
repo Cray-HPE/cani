@@ -25,8 +25,6 @@ func NewDatastoreJSON(dataFilePath string) (*DatastoreJSON, error) {
 		dataFilePath: dataFilePath,
 	}
 
-	log.Info().Msgf("Loading datastore from file: %s", dataFilePath)
-
 	if _, err := os.Stat(dataFilePath); os.IsNotExist(err) {
 		// Write a default config file if it doesn't exist
 		log.Info().Msgf("%s does not exist, creating default datastore", dataFilePath)

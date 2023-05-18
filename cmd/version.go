@@ -37,8 +37,8 @@ var (
 	sha1ver   string
 )
 
-// versionCmd represents the version command
-var versionCmd = &cobra.Command{
+// VersionCmd represents the version command
+var VersionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Show the version of this utility.",
 	Long:  `Show the version of this utility.`,

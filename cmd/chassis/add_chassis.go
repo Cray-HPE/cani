@@ -24,35 +24,37 @@ OTHER DEALINGS IN THE SOFTWARE.
 package chassis
 
 import (
-	"github.com/Cray-HPE/cani/cmd/inventory"
+	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/Cray-HPE/cani/cmd/session"
+	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
 // AddChassisCmd represents the chassis add command
 var AddChassisCmd = &cobra.Command{
-	Use:   "chassis",
-	Short: "Add chassis to the inventory.",
-	Long:  `Add chassis to the inventory.`,
-	Args:  cobra.ArbitraryArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		err := addChassis(cmd, args)
-		if err != nil {
-			return err
-		}
-		return nil
-	},
+	Use:               "chassis",
+	Short:             "Add chassiss to the inventory.",
+	Long:              `Add chassiss to the inventory.`,
+	PersistentPreRunE: session.DatastoreExists, // A session must be active to write to a datastore
+	Args:              validHardware,           // Hardware can only be valid if defined in the hardware library
+	RunE:              addChassis,              // Add a chassis when this sub-command is called
 }
 
-func init() {
-	AddChassisCmd.Flags().String("cabinet", "", "Parent cabinet")
-	// cobra.MarkFlagRequired(AddChassisCmd.Flags(), "cabinet")
-}
-
-// addchassis adds chassiss to the inventory
+// addChassis adds a chassis to the inventory
 func addChassis(cmd *cobra.Command, args []string) error {
-	_, err := inventory.Add(cmd, args)
+	// Create a domain object to interact with the datastore
+	_, err := domain.New(root.Conf.Session.DomainOptions)
 	if err != nil {
 		return err
 	}
+	log.Info().Msgf("Not yet implemented")
+	// Remove the chassis from the inventory using domain methods
+	// TODO:
+	// err = d.AddChassis()
+	// if err != nil {
+	// 	return err
+	// }
+	// log.Info().Msgf("Added chassis %s", args[0])
 	return nil
 }
