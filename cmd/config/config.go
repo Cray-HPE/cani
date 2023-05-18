@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/Cray-HPE/cani/cmd/taxonomy"
 	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v3"
@@ -34,7 +35,10 @@ func InitConfig(cfg string) (err error) {
 		// Create a config with default values since one does not exist
 		conf := &Config{
 			Session: &Session{
-				DomainOptions: &domain.NewOpts{},
+				DomainOptions: &domain.NewOpts{
+					Provider:      "csm",
+					DatastorePath: filepath.Join(configDir, taxonomy.DsFile),
+				},
 			},
 		}
 

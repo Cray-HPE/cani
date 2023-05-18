@@ -6,6 +6,7 @@ import (
 
 	"github.com/Cray-HPE/cani/cmd/config"
 	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -27,19 +28,24 @@ var SessionStartCmd = &cobra.Command{
 	Args:      validProvider,
 	ValidArgs: []string{"csm"},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Set the provider and datastore path
-		Conf.Session.DomainOptions.DatastorePath = ds
-		Conf.Session.DomainOptions.Provider = args[0]
+		if Conf.Session.Active {
+			log.Info().Msgf("Session is already ACTIVE with provider %s and datastore %s", Conf.Session.DomainOptions.Provider, Conf.Session.DomainOptions.DatastorePath)
+			return nil
+		}
+		_, err := inventory.NewDatastoreJSON(Conf.Session.DomainOptions.DatastorePath)
+		if err != nil {
+			return err
+		}
+
 		// "Activate" the session
 		Conf.Session.Active = true
-		log.Info().Msgf("Session is now ACTIVE with provider %s and datastore %s", provider, ds)
+		log.Info().Msgf("Session is now ACTIVE with provider %s and datastore %s", Conf.Session.DomainOptions.Provider, Conf.Session.DomainOptions.DatastorePath)
 		return nil
 	},
 }
 
 func init() {
 	SessionStartCmd.Flags().StringVarP(&ds, "datastore", "d", ds, "Path to datastore")
-	cobra.MarkFlagRequired(SessionStartCmd.Flags(), "datastore")
 }
 
 // validProvider checks that the provider is valid and that at least one argument is provided

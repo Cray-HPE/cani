@@ -94,7 +94,7 @@ func Execute() {
 
 func init() {
 	// Create or load a yaml config and the database
-	cobra.OnInitialize(initConfig) // Moved to session
+	cobra.OnInitialize(initConfig)
 
 	RootCmd.AddCommand(addCmd)
 	RootCmd.AddCommand(listCmd)
@@ -132,7 +132,7 @@ func initConfig() {
 		}
 	} else {
 		// Set a default configuration file
-		cfgFile = filepath.Join(homeDir, taxonomy.CfgDir, taxonomy.CfgFile)
+		cfgFile = filepath.Join(homeDir, taxonomy.CfgPath)
 		if debug {
 			log.Debug().Msg(fmt.Sprintf("Using default config file %s", cfgFile))
 		}
