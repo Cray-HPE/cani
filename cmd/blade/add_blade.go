@@ -45,6 +45,9 @@ var AddBladeCmd = &cobra.Command{
 	Args: validHardware,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Printf("%+v", Conf)
+
+		fmt.Println(cmd.Parent().Parent().Context())
+
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {

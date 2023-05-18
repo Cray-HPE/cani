@@ -23,7 +23,10 @@ OTHER DEALINGS IN THE SOFTWARE.
 */
 package main
 
-import "github.com/Cray-HPE/cani/cmd"
+import (
+	"github.com/Cray-HPE/cani/cmd"
+	_ "github.com/Cray-HPE/cani/cmd/blade"
+)
 
 func main() {
 	cmd.Execute()

@@ -24,6 +24,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -32,9 +33,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
-	"github.com/Cray-HPE/cani/cmd/blade"
 	"github.com/Cray-HPE/cani/cmd/config"
-	"github.com/Cray-HPE/cani/cmd/session"
 	"github.com/Cray-HPE/cani/cmd/taxonomy"
 )
 
@@ -44,21 +43,26 @@ var RootCmd = &cobra.Command{
 	Short: "From subfloor to top-of-rack, manage your HPC cluster's inventory!",
 	Long:  `From subfloor to top-of-rack, manage your HPC cluster's inventory!`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		if debug {
-			blade.EnableDebug()
-		}
+		// if debug {
+		// 	blade.EnableDebug()
+		// }
 		// Assume loadConfig() returns *config.Config and error
 		var err error
 		conf, err = config.LoadConfig(cfgFile, conf)
 		if err != nil {
 			return err
 		}
+
+		ctx := context.WithValue(cmd.Context(), "config", conf)
+		ctx = context.WithValue(ctx, "foo", "bar")
+		cmd.SetContext(ctx)
+
 		// Pass the loaded config to the sub command packages
-		session.Conf = conf
-		blade.Conf = conf
+		// session.Conf = conf
+		// blade.Conf = conf
 		fmt.Println("root pre run")
 		fmt.Printf("conf %+v\n", conf.Session)
-		fmt.Printf("bladeconf %+v\n", blade.Conf.Session)
+		// fmt.Printf("bladeconf %+v\n", blade.Conf.Session)
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -92,9 +96,9 @@ func init() {
 	// Create or load a yaml config and the database
 	cobra.OnInitialize(initConfig)
 
-	RootCmd.AddCommand(addCmd)
-	RootCmd.AddCommand(listCmd)
-	RootCmd.AddCommand(removeCmd)
+	RootCmd.AddCommand(AddCmd)
+	RootCmd.AddCommand(ListCmd)
+	RootCmd.AddCommand(RemoveCmd)
 	RootCmd.AddCommand(sessionCmd)
 	RootCmd.AddCommand(versionCmd)
 

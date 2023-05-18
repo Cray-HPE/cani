@@ -30,7 +30,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/Cray-HPE/cani/cmd/blade"
 	"github.com/Cray-HPE/cani/cmd/cabinet"
 	"github.com/Cray-HPE/cani/cmd/chassis"
 	"github.com/Cray-HPE/cani/cmd/hsn"
@@ -48,15 +47,15 @@ var (
 	u      string
 )
 
-// addCmd represents the switch add command
-var addCmd = &cobra.Command{
+// AddCmd represents the switch add command
+var AddCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Add assets to the inventory.",
 	Long:  `Add assets to the inventory.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if simulation {
-			blade.AddBladeCmd.SetArgs([]string{"-S"})
-		}
+		// if simulation {
+		// 	blade.AddBladeCmd.SetArgs([]string{"-S"})
+		// }
 		if len(args) == 0 {
 			fmt.Println("Error: No asset type specified.")
 			cmd.Help()
@@ -66,16 +65,16 @@ var addCmd = &cobra.Command{
 }
 
 func init() {
-	addCmd.AddCommand(blade.AddBladeCmd)
-	addCmd.AddCommand(cabinet.AddCabinetCmd)
-	addCmd.AddCommand(chassis.AddChassisCmd)
-	addCmd.AddCommand(hsn.AddHsnCmd)
-	addCmd.AddCommand(node.AddNodeCmd)
-	addCmd.AddCommand(pdu.AddPduCmd)
-	addCmd.AddCommand(sw.AddSwitchCmd)
-	addCmd.PersistentFlags().StringVarP(&vendor, "vendor", "m", "HPE", "Vendor")
-	addCmd.PersistentFlags().StringVarP(&name, "name", "n", "", "Name")
-	addCmd.PersistentFlags().StringVarP(&staged, "staged", "s", "Staged", "Hardware can be [staged, provisioned, decomissioned]")
-	addCmd.PersistentFlags().StringVarP(&hwType, "type", "t", "", fmt.Sprintf("Hardware type.  Allowed values: [%+v]", strings.Join(models, "\", \"")))
-	addCmd.PersistentFlags().StringVarP(&u, "uuid", "u", "", "Specific UUID to use")
+	// AddCmd.AddCommand(blade.AddBladeCmd)
+	AddCmd.AddCommand(cabinet.AddCabinetCmd)
+	AddCmd.AddCommand(chassis.AddChassisCmd)
+	AddCmd.AddCommand(hsn.AddHsnCmd)
+	AddCmd.AddCommand(node.AddNodeCmd)
+	AddCmd.AddCommand(pdu.AddPduCmd)
+	AddCmd.AddCommand(sw.AddSwitchCmd)
+	AddCmd.PersistentFlags().StringVarP(&vendor, "vendor", "m", "HPE", "Vendor")
+	AddCmd.PersistentFlags().StringVarP(&name, "name", "n", "", "Name")
+	AddCmd.PersistentFlags().StringVarP(&staged, "staged", "s", "Staged", "Hardware can be [staged, provisioned, decomissioned]")
+	AddCmd.PersistentFlags().StringVarP(&hwType, "type", "t", "", fmt.Sprintf("Hardware type.  Allowed values: [%+v]", strings.Join(models, "\", \"")))
+	AddCmd.PersistentFlags().StringVarP(&u, "uuid", "u", "", "Specific UUID to use")
 }

@@ -26,7 +26,6 @@ package cmd
 import (
 	"os"
 
-	"github.com/Cray-HPE/cani/cmd/blade"
 	"github.com/Cray-HPE/cani/cmd/cabinet"
 	"github.com/Cray-HPE/cani/cmd/chassis"
 	"github.com/Cray-HPE/cani/cmd/hsn"
@@ -38,7 +37,7 @@ import (
 )
 
 // removeCmd represents the switch remove command
-var removeCmd = &cobra.Command{
+var RemoveCmd = &cobra.Command{
 	Use:   "remove",
 	Short: "Remove assets from the inventory.",
 	Long:  `Remove assets from the inventory.`,
@@ -53,12 +52,11 @@ var removeCmd = &cobra.Command{
 }
 
 func init() {
-	removeCmd.AddCommand(blade.RemoveBladeCmd)
-	removeCmd.AddCommand(cabinet.RemoveCabinetCmd)
-	removeCmd.AddCommand(chassis.RemoveChassisCmd)
-	removeCmd.AddCommand(hsn.RemoveHsnCmd)
-	removeCmd.AddCommand(pdu.RemovePduCmd)
-	removeCmd.AddCommand(sw.RemoveSwitchCmd)
+	RemoveCmd.AddCommand(cabinet.RemoveCabinetCmd)
+	RemoveCmd.AddCommand(chassis.RemoveChassisCmd)
+	RemoveCmd.AddCommand(hsn.RemoveHsnCmd)
+	RemoveCmd.AddCommand(pdu.RemovePduCmd)
+	RemoveCmd.AddCommand(sw.RemoveSwitchCmd)
 }
 
 func remove(cmd *cobra.Command, args []string) error {

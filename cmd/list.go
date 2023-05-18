@@ -28,7 +28,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Cray-HPE/cani/cmd/blade"
 	"github.com/Cray-HPE/cani/cmd/cabinet"
 	"github.com/Cray-HPE/cani/cmd/chassis"
 	"github.com/Cray-HPE/cani/cmd/hsn"
@@ -43,7 +42,7 @@ import (
 )
 
 // listCmd represents the switch list command
-var listCmd = &cobra.Command{
+var ListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List assets in the inventory.",
 	Long:  `List assets in the inventory.`,
@@ -57,13 +56,12 @@ var listCmd = &cobra.Command{
 }
 
 func init() {
-	listCmd.AddCommand(blade.ListBladeCmd)
-	listCmd.AddCommand(cabinet.ListCabinetCmd)
-	listCmd.AddCommand(chassis.ListChassisCmd)
-	listCmd.AddCommand(hsn.ListHsnCmd)
-	listCmd.AddCommand(node.ListNodeCmd)
-	listCmd.AddCommand(pdu.ListPduCmd)
-	listCmd.AddCommand(sw.ListSwitchCmd)
+	ListCmd.AddCommand(cabinet.ListCabinetCmd)
+	ListCmd.AddCommand(chassis.ListChassisCmd)
+	ListCmd.AddCommand(hsn.ListHsnCmd)
+	ListCmd.AddCommand(node.ListNodeCmd)
+	ListCmd.AddCommand(pdu.ListPduCmd)
+	ListCmd.AddCommand(sw.ListSwitchCmd)
 }
 
 // listInventory lists all assets in the inventory
