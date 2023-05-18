@@ -28,8 +28,8 @@ import (
 	"embed"
 	"fmt"
 	"net"
+	"net/http"
 
-	"github.com/Cray-HPE/cani/cmd/inventory"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 )
 
@@ -60,7 +60,8 @@ const (
 	Pass    Result = "pass"
 )
 
-func Validate(system *inventory.Hardware) {
+// func (a *DumpstateApiService) DumpstateGet(ctx context.Context) (SlsState, *http.Response, error) {
+func Validate(slsState *sls_client.SlsState, response *http.Response) {
 	results := make([]ValidationResult, 0)
 
 	id := NewID("Network", "CAN")
@@ -73,14 +74,14 @@ func Validate(system *inventory.Hardware) {
 	fmt.Printf("ID2 str pair: %s\n", id2.strPair())
 	fmt.Printf("ID2 str pair: %s\n", id2.strYaml())
 
-	r := validateAgainstSchemas(system)
+	r := validateAgainstSchemas(response)
 	results = append(results, r...)
 
 	passFailResults := make(map[string]bool)
 	ipRangeMap := make(map[string]*sls_client.Network)
 	ipRanges := make([]string, 0)
 	// for name, network := range system.Extract.SlsConfig.Networks {
-	for _, network := range system.Extract.SlsConfig.Networks {
+	for _, network := range slsState.Networks {
 		n := network
 		for _, r := range network.IPRanges {
 			// fmt.Printf("%s, %s\n", name, r)

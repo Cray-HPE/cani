@@ -24,10 +24,14 @@ OTHER DEALINGS IN THE SOFTWARE.
 package cmd
 
 import (
+	"context"
 	"os"
 
-	"github.com/Cray-HPE/cani/cmd/inventory"
 	"github.com/Cray-HPE/cani/cmd/validate"
+	"github.com/Cray-HPE/cani/internal/provider/csm/hsm"
+	"github.com/Cray-HPE/cani/internal/provider/csm/sls"
+	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
+	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -50,14 +54,29 @@ var validateCmd = &cobra.Command{
 func init() {
 }
 
+var (
+	HSM *hsm_client.APIClient
+	SLS *sls_client.APIClient
+)
+
+func EnableSimulation() {
+	HSM = hsm.EnableSimulation()
+	SLS = sls.EnableSimulation()
+}
+
+func DisableSimulation() {
+	HSM = hsm.DisableSimulation()
+	SLS = sls.DisableSimulation()
+}
+
 func validateInventory(args []string) error {
 	// fmt.Println("validate called")
 
-	hardware, err := inventory.Get()
+	slsState, response, err := SLS.DumpstateApi.DumpstateGet(context.Background())
 	if err != nil {
 		return nil
 	}
 
-	validate.Validate(hardware)
+	validate.Validate(&slsState, response)
 	return nil
 }

@@ -29,8 +29,8 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net/http"
 
-	"github.com/Cray-HPE/cani/cmd/inventory"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 )
 
@@ -178,11 +178,11 @@ func validateSubnetsSchema(schema *jsonschema.Schema, subnet map[string]interfac
 	return results
 }
 
-func validateAgainstSchemas(system *inventory.Hardware) []ValidationResult {
+func validateAgainstSchemas(response *http.Response) []ValidationResult {
 	results := make([]ValidationResult, 0)
 
-	responseBytes, err := io.ReadAll(system.Extract.SlsConfig.Response.Body)
-	defer system.Extract.SlsConfig.Response.Body.Close()
+	responseBytes, err := io.ReadAll(response.Body)
+	defer response.Body.Close()
 	if err != nil {
 		results = append(results,
 			ValidationResult{
