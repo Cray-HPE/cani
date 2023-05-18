@@ -7,14 +7,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Cray-HPE/cani/cmd/inventory"
+	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	AvailableHardware []inventory.Hardware `yaml:"available_hardware"`
-	Inventory         []inventory.Hardware `yaml:"inventory"`
+	Session *Session `yaml:"session"`
 }
 
 // InitConfig creates a default config file if one does not exist
@@ -33,7 +32,11 @@ func InitConfig(cfg string) (err error) {
 		}
 
 		// Create a config with default values since one does not exist
-		conf := &Config{}
+		conf := &Config{
+			Session: &Session{
+				DomainOptions: &domain.NewOpts{},
+			},
+		}
 
 		// Create the config file
 		WriteConfig(cfg, conf)

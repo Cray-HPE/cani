@@ -5,11 +5,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	ds       string
-	provider string
-)
-
 // sessionCmd represents the session command
 var sessionCmd = &cobra.Command{
 	Use:   "session",
@@ -24,6 +19,4 @@ func init() {
 	sessionCmd.AddCommand(session.SessionStartCmd)
 	sessionCmd.AddCommand(session.SessionStatusCmd)
 	sessionCmd.AddCommand(session.SessionStopCmd)
-
-	sessionCmd.PersistentFlags().StringVarP(&ds, "datastore", "d", ds, "Path to datastore")
 }

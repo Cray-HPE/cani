@@ -20,27 +20,24 @@ var SessionStopCmd = &cobra.Command{
 }
 
 func stopSession(cmd *cobra.Command, args []string) error {
-	ds, sesh, err := getDatastoreAndSession(cmd, args)
-	if err != nil {
-		return err
-	}
+	// Sanity check that the datastore exists
+	ds := Conf.Session.DomainOptions.DatastorePath
+	provider := Conf.Session.DomainOptions.Provider
 
-	// Check if the session file exists
-	if _, err := os.Stat(sesh); os.IsNotExist(err) {
-		// If the session file does not exist, there is no active session
-		log.Info().Msg(fmt.Sprintf("%s is already INACTIVE", sesh))
-		os.Exit(1)
-	}
+	if Conf.Session.Active {
+		// "Deactivate" the session
+		Conf.Session.Active = false
 
-	// Delete the session file
-	err = os.Remove(sesh)
-	if err != nil {
-		return err
-	}
+		_, err := os.Stat(ds)
+		if err != nil {
+			return fmt.Errorf("Session is STOPPED with provider '%s' but datastore '%s' does not exist", provider, ds)
+		}
 
-	// commit to the database
-	log.Info().Msgf("%s stopped.", sesh)
-	log.Info().Msgf("Push/commit %s to the datastore", ds)
+		log.Info().Msgf("Session is STOPPED")
+		log.Info().Msgf("Next step: commit changes from '%s'", ds)
+	} else {
+		log.Info().Msgf("Session with provider '%s' and datastore '%s' is already STOPPED", provider, ds)
+	}
 
 	return nil
 }

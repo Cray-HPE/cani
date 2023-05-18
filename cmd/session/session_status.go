@@ -3,9 +3,7 @@ package session
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
-	"github.com/Cray-HPE/cani/cmd/taxonomy"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -25,31 +23,18 @@ var SessionStatusCmd = &cobra.Command{
 }
 
 func sessionShow(cmd *cobra.Command, args []string) error {
-	_, sesh, err := getDatastoreAndSession(cmd, args)
-	if err != nil {
-		return err
+	if Conf.Session.Active {
+		ds := Conf.Session.DomainOptions.DatastorePath
+		provider := Conf.Session.DomainOptions.Provider
+		_, err := os.Stat(ds)
+		if err != nil {
+			return fmt.Errorf("Session is ACTIVE with provider '%s' but datastore '%s' does not exist", provider, ds)
+		}
+
+		log.Info().Msgf("Session with provider '%s' and datastore '%s' is ACTIVE", provider, ds)
+	} else {
+		log.Info().Msgf("Session with provider '%s' and datastore '%s' is INACTIVE", provider, ds)
 	}
 
-	if _, err := os.Stat(sesh); err == nil {
-		log.Info().Msg(fmt.Sprintf("%s is ACTIVE", sesh))
-	} else {
-		log.Info().Msg(fmt.Sprintf("%s is INACTIVE", sesh))
-	}
 	return nil
-}
-
-func getDatastoreAndSession(cmd *cobra.Command, args []string) (ds string, sesh string, err error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", "", err
-	}
-	if cmd.Parent().Flag("datastore").Changed {
-		ds = cmd.Parent().Flag("datastore").Value.String()
-		sesh = getSessionFilename(ds)
-	} else {
-		// Set a default database file if the user did not specify one
-		ds = filepath.Join(homeDir, taxonomy.DsPath)
-		sesh = getSessionFilename(ds)
-	}
-	return ds, sesh, nil
 }

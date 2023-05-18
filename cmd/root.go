@@ -34,6 +34,7 @@ import (
 
 	"github.com/Cray-HPE/cani/cmd/blade"
 	"github.com/Cray-HPE/cani/cmd/config"
+	"github.com/Cray-HPE/cani/cmd/session"
 	"github.com/Cray-HPE/cani/cmd/taxonomy"
 )
 
@@ -42,10 +43,27 @@ var RootCmd = &cobra.Command{
 	Use:   "cani",
 	Short: "From subfloor to top-of-rack, manage your HPC cluster's inventory!",
 	Long:  `From subfloor to top-of-rack, manage your HPC cluster's inventory!`,
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		if debug {
 			blade.EnableDebug()
 		}
+		// Assume loadConfig() returns *config.Config and error
+		var err error
+		conf, err = config.LoadConfig(cfgFile, conf)
+		if err != nil {
+			return err
+		}
+		// Pass the loaded config to the session package
+		session.Conf = conf
+		return nil
+	},
+	PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
+		// Write the configuration back to the file
+		err := config.WriteConfig(cfgFile, session.Conf)
+		if err != nil {
+			return err
+		}
+		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
@@ -76,7 +94,7 @@ func Execute() {
 
 func init() {
 	// Create or load a yaml config and the database
-	cobra.OnInitialize(initConfig)
+	cobra.OnInitialize(initConfig) // Moved to session
 
 	RootCmd.AddCommand(addCmd)
 	RootCmd.AddCommand(listCmd)
@@ -104,7 +122,6 @@ func setupLogging() {
 	}
 }
 
-// initConfig reads in config file and ENV variables if set
 func initConfig() {
 	homeDir, err := os.UserHomeDir()
 	cobra.CheckErr(err)
@@ -133,5 +150,4 @@ func initConfig() {
 		log.Error().Msg(fmt.Sprintf("Error loading config file: %s", err))
 		os.Exit(1)
 	}
-	// Set up other global flags or settings based on the loaded configuration
 }
