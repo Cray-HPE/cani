@@ -5,11 +5,13 @@ import (
 )
 
 const (
-	App        = "cani"
-	DsFile     = App + "db.json"
-	CfgFile    = App + ".yml"
-	CfgDir     = "." + App
-	SessionExt = ".session"
+	App              = "cani"
+	DsFile           = App + "db.json"
+	CfgFile          = App + ".yml"
+	CfgDir           = "." + App
+	SessionExt       = ".session"
+	ShortDescription = "From subfloor to top-of-rack, manage your HPC cluster's inventory!"
+	LongDescription  = `From subfloor to top-of-rack, manage your HPC cluster's inventory!`
 )
 
 var (

@@ -28,6 +28,7 @@ import (
 	"errors"
 	"fmt"
 
+	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
@@ -41,21 +42,24 @@ var ListBladeCmd = &cobra.Command{
 	Short: "List blades in the inventory.",
 	Long:  `List blades in the inventory.`,
 	Args:  cobra.ArbitraryArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		err := listBlade(cmd, args)
-		if err != nil {
-			return err
-		}
-		return nil
-	},
+	RunE:  listBlade,
 }
 
-// listBlade lists all assets in the inventory
+// listBlade lists blades in the inventory
 func listBlade(cmd *cobra.Command, args []string) error {
-	inv, err := domain.Data.List()
+	// Create a domain object to interact with the datastore
+	d, err := domain.New(root.Conf.Session.DomainOptions)
 	if err != nil {
 		return err
 	}
+
+	// Get the entire inventory
+	inv, err := d.List()
+	if err != nil {
+		return err
+	}
+
+	// Filter the inventory to only blades
 	filtered := make(map[uuid.UUID]inventory.Hardware, 0)
 	for key, hw := range inv.Hardware {
 		if hw.Type == hardwaretypes.HardwareTypeNodeBlade {
@@ -68,6 +72,7 @@ func listBlade(cmd *cobra.Command, args []string) error {
 		return errors.New(fmt.Sprintf("Error marshaling inventory to JSON: %v", err))
 	}
 
+	// Print the inventory
 	fmt.Println(string(inventoryJSON))
 	return nil
 }

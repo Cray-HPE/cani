@@ -24,30 +24,37 @@ OTHER DEALINGS IN THE SOFTWARE.
 package pdu
 
 import (
-	"github.com/Cray-HPE/cani/cmd/inventory"
+	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/Cray-HPE/cani/cmd/session"
+	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
-// AddPduCmd represents the PDU add command
+// AddPduCmd represents the pdu add command
 var AddPduCmd = &cobra.Command{
-	Use:   "pdu",
-	Short: "Add PDUs to the inventory.",
-	Long:  `Add PDUs to the inventory.`,
-	Args:  cobra.ArbitraryArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		err := addPdu(cmd, args)
-		if err != nil {
-			return err
-		}
-		return nil
-	},
+	Use:               "pdu",
+	Short:             "Add pdus to the inventory.",
+	Long:              `Add pdus to the inventory.`,
+	PersistentPreRunE: session.DatastoreExists, // A session must be active to write to a datastore
+	Args:              validHardware,           // Hardware can only be valid if defined in the hardware library
+	RunE:              addPdu,                  // Add a pdu when this sub-command is called
 }
 
-// addPdu adds PDUs to the inventory
+// addPdu adds a pdu to the inventory
 func addPdu(cmd *cobra.Command, args []string) error {
-	_, err := inventory.Add(cmd, args)
+	// Create a domain object to interact with the datastore
+	_, err := domain.New(root.Conf.Session.DomainOptions)
 	if err != nil {
 		return err
 	}
+	log.Info().Msgf("Not yet implemented")
+	// Remove the pdu from the inventory using domain methods
+	// TODO:
+	// err = d.AddPdu()
+	// if err != nil {
+	// 	return err
+	// }
+	// log.Info().Msgf("Added pdu %s", args[0])
 	return nil
 }

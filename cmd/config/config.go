@@ -7,14 +7,15 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Cray-HPE/cani/cmd/inventory"
+	"github.com/Cray-HPE/cani/cmd/taxonomy"
+	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v3"
 )
 
+// Config is the top-level config struct that is written/read to/from a file
 type Config struct {
-	AvailableHardware []inventory.Hardware `yaml:"available_hardware"`
-	Inventory         []inventory.Hardware `yaml:"inventory"`
+	Session *Session `yaml:"session"`
 }
 
 // InitConfig creates a default config file if one does not exist
@@ -33,7 +34,14 @@ func InitConfig(cfg string) (err error) {
 		}
 
 		// Create a config with default values since one does not exist
-		conf := &Config{}
+		conf := &Config{
+			Session: &Session{
+				DomainOptions: &domain.NewOpts{
+					Provider:      "csm",
+					DatastorePath: filepath.Join(configDir, taxonomy.DsFile),
+				},
+			},
+		}
 
 		// Create the config file
 		WriteConfig(cfg, conf)
@@ -42,7 +50,7 @@ func InitConfig(cfg string) (err error) {
 }
 
 // LoadConfig loads the configuration from a file
-func LoadConfig(path string, cfg *Config) (*Config, error) {
+func LoadConfig(path string, cfg *Config) (c *Config, err error) {
 	// Create the directory if it doesn't exist
 	cfgDir := filepath.Dir(path)
 	os.MkdirAll(cfgDir, os.ModePerm)
@@ -61,12 +69,12 @@ func LoadConfig(path string, cfg *Config) (*Config, error) {
 	}
 
 	// unmarshal the byte slice into a struct
-	err = yaml.Unmarshal(data, &cfg)
+	err = yaml.Unmarshal(data, &c)
 	if err != nil {
 		return nil, err
 	}
 
-	return cfg, nil
+	return c, nil
 }
 
 // WriteConfig saves the configuration to a file

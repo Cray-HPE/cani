@@ -24,47 +24,18 @@ OTHER DEALINGS IN THE SOFTWARE.
 package cmd
 
 import (
-	"os"
-
-	"github.com/Cray-HPE/cani/cmd/blade"
-	"github.com/Cray-HPE/cani/cmd/cabinet"
-	"github.com/Cray-HPE/cani/cmd/chassis"
-	"github.com/Cray-HPE/cani/cmd/hsn"
-	"github.com/Cray-HPE/cani/cmd/inventory"
-	"github.com/Cray-HPE/cani/cmd/pdu"
-	sw "github.com/Cray-HPE/cani/cmd/switch"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
-// removeCmd represents the switch remove command
-var removeCmd = &cobra.Command{
+// removeCmd represents the remove command
+var RemoveCmd = &cobra.Command{
 	Use:   "remove",
 	Short: "Remove assets from the inventory.",
 	Long:  `Remove assets from the inventory.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		err := remove(cmd, args)
-		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
-			os.Exit(1)
-		}
-		return err
-	},
+	RunE:  remove,
 }
 
-func init() {
-	removeCmd.AddCommand(blade.RemoveBladeCmd)
-	removeCmd.AddCommand(cabinet.RemoveCabinetCmd)
-	removeCmd.AddCommand(chassis.RemoveChassisCmd)
-	removeCmd.AddCommand(hsn.RemoveHsnCmd)
-	removeCmd.AddCommand(pdu.RemovePduCmd)
-	removeCmd.AddCommand(sw.RemoveSwitchCmd)
-}
-
+// remove is the main entry point for the switch command.
 func remove(cmd *cobra.Command, args []string) error {
-	_, err := inventory.Remove(cmd, args)
-	if err != nil {
-		return err
-	}
 	return nil
 }

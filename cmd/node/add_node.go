@@ -24,26 +24,37 @@ OTHER DEALINGS IN THE SOFTWARE.
 package node
 
 import (
+	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/Cray-HPE/cani/cmd/session"
+	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
-// AddNodeCmd represents the HSN add command
+// AddNodeCmd represents the node add command
 var AddNodeCmd = &cobra.Command{
-	Use:   "node",
-	Short: "Add nodes to the inventory.",
-	Long:  `Add nodes to the inventory.`,
-	Args:  cobra.ArbitraryArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-
-		return nil
-	},
+	Use:               "node",
+	Short:             "Add nodes to the inventory.",
+	Long:              `Add nodes to the inventory.`,
+	PersistentPreRunE: session.DatastoreExists, // A session must be active to write to a datastore
+	Args:              validHardware,           // Hardware can only be valid if defined in the hardware library
+	RunE:              addNode,                 // Add a node when this sub-command is called
 }
 
-// // addNode adds a node to the inventory
-// func addNode(cmd *cobra.Command, args []string) error {
-// 	_, err := inventory.Add(cmd, args)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
+// addNode adds a node to the inventory
+func addNode(cmd *cobra.Command, args []string) error {
+	// Create a domain object to interact with the datastore
+	_, err := domain.New(root.Conf.Session.DomainOptions)
+	if err != nil {
+		return err
+	}
+	log.Info().Msgf("Not yet implemented")
+	// Remove the node from the inventory using domain methods
+	// TODO:
+	// err = d.AddNode()
+	// if err != nil {
+	// 	return err
+	// }
+	// log.Info().Msgf("Added node %s", args[0])
+	return nil
+}

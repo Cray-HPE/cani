@@ -25,17 +25,13 @@ package blade
 
 import (
 	"crypto/tls"
-	"errors"
 	"net/http"
 	"os"
 
-	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/provider/csm/hsm"
 	"github.com/Cray-HPE/cani/internal/provider/csm/sls"
-	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -63,40 +59,4 @@ func DisableSimulation() {
 
 func EnableDebug() {
 	debug = true
-}
-
-// validHardware checks that the hardware type is valid by comparing it against the list of hardware types
-func validHardware(cmd *cobra.Command, args []string) error {
-	if cmd.Flags().Changed("list-supported-types") {
-		domain.Data.ListSupportedTypes(hardwaretypes.HardwareTypeNodeBlade)
-		os.Exit(0)
-	}
-
-	if len(args) == 0 {
-		return errors.New("No hardware type provided")
-	}
-
-	library, err := hardwaretypes.NewEmbeddedLibrary()
-	if err != nil {
-		return err
-	}
-
-	// Get the list of hardware types that are blades
-	deviceTypes := library.GetDeviceTypesByHardwareType(hardwaretypes.HardwareTypeNodeBlade)
-
-	// Check that each arg is a valid blade xname
-	for _, arg := range args {
-		matchFound := false
-		for _, device := range deviceTypes {
-			if arg == device.Slug {
-				matchFound = true
-				break
-			}
-		}
-		if !matchFound {
-			return errors.New("Invalid hardware type: " + arg)
-		}
-	}
-
-	return nil
 }

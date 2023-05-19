@@ -28,33 +28,40 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Cray-HPE/cani/cmd/inventory"
+	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
-// ListNodeCmd represents the chassis add command
+// ListNodeCmd represents the node list command
 var ListNodeCmd = &cobra.Command{
 	Use:   "node",
 	Short: "List nodes in the inventory.",
 	Long:  `List nodes in the inventory.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		err := listNodes(cmd, args)
-		if err != nil {
-			return err
-		}
-		return nil
-	},
+	Args:  cobra.ArbitraryArgs,
+	RunE:  listNode,
 }
 
-func listNodes(cmd *cobra.Command, args []string) error {
-	inv, err := inventory.List(cmd, args)
+// listNode lists nodes in the inventory
+func listNode(cmd *cobra.Command, args []string) error {
+	// Create a domain object to interact with the datastore
+	d, err := domain.New(root.Conf.Session.DomainOptions)
 	if err != nil {
 		return err
 	}
 
-	filtered := inventory.Inventory{}
-	for key, hw := range inv {
-		if hw.Type == "Node" {
+	// Get the entire inventory
+	inv, err := d.List()
+	if err != nil {
+		return err
+	}
+	// Filter the inventory to only nodes
+	filtered := make(map[uuid.UUID]inventory.Hardware, 0)
+	for key, hw := range inv.Hardware {
+		if hw.Type == hardwaretypes.HardwareTypeNode {
 			filtered[key] = hw
 		}
 	}
@@ -64,6 +71,7 @@ func listNodes(cmd *cobra.Command, args []string) error {
 		return errors.New(fmt.Sprintf("Error marshaling inventory to JSON: %v", err))
 	}
 
+	// Print the inventory
 	fmt.Println(string(inventoryJSON))
 	return nil
 }

@@ -28,60 +28,39 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Cray-HPE/cani/cmd/blade"
-	"github.com/Cray-HPE/cani/cmd/cabinet"
-	"github.com/Cray-HPE/cani/cmd/chassis"
-	"github.com/Cray-HPE/cani/cmd/hsn"
-	"github.com/Cray-HPE/cani/cmd/node"
-	"github.com/Cray-HPE/cani/cmd/pdu"
-	sw "github.com/Cray-HPE/cani/cmd/switch"
 	"github.com/Cray-HPE/cani/internal/domain"
-	"github.com/Cray-HPE/cani/internal/inventory"
-
-	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
 // listCmd represents the switch list command
-var listCmd = &cobra.Command{
+var ListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List assets in the inventory.",
 	Long:  `List assets in the inventory.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		err := listInventory(cmd, args)
-		if err != nil {
-			return err
-		}
-		return nil
-	},
-}
-
-func init() {
-	listCmd.AddCommand(blade.ListBladeCmd)
-	listCmd.AddCommand(cabinet.ListCabinetCmd)
-	listCmd.AddCommand(chassis.ListChassisCmd)
-	listCmd.AddCommand(hsn.ListHsnCmd)
-	listCmd.AddCommand(node.ListNodeCmd)
-	listCmd.AddCommand(pdu.ListPduCmd)
-	listCmd.AddCommand(sw.ListSwitchCmd)
+	RunE:  listInventory,
 }
 
 // listInventory lists all assets in the inventory
 func listInventory(cmd *cobra.Command, args []string) error {
-	inv, err := domain.Data.List()
+	// Create a domain object to interact with the datastore
+	d, err := domain.New(Conf.Session.DomainOptions)
 	if err != nil {
 		return err
 	}
-	filtered := make(map[uuid.UUID]inventory.Hardware, 0)
-	for key, hw := range inv.Hardware {
-		filtered[key] = hw
+
+	// Get the entire inventory
+	inv, err := d.List()
+	if err != nil {
+		return err
 	}
-	// Convert the filtered inventory into a formatted JSON string
-	inventoryJSON, err := json.MarshalIndent(filtered, "", "  ")
+
+	// Convert the inventory into a formatted JSON string
+	inventoryJSON, err := json.MarshalIndent(inv.Hardware, "", "  ")
 	if err != nil {
 		return errors.New(fmt.Sprintf("Error marshaling inventory to JSON: %v", err))
 	}
 
+	// Print the inventory
 	fmt.Println(string(inventoryJSON))
 	return nil
 }

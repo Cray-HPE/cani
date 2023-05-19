@@ -24,7 +24,10 @@ OTHER DEALINGS IN THE SOFTWARE.
 package blade
 
 import (
-	"github.com/Cray-HPE/cani/cmd/inventory"
+	"fmt"
+
+	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
@@ -34,19 +37,22 @@ var RemoveBladeCmd = &cobra.Command{
 	Short: "Remove blades from the inventory.",
 	Long:  `Remove blades from the inventory.`,
 	Args:  cobra.ArbitraryArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		err := removeBlade(cmd, args)
+	RunE:  removeBlade,
+}
+
+// removeBlade removes a blade from the inventory.
+func removeBlade(cmd *cobra.Command, args []string) error {
+	for _, arg := range args {
+		// Convert the argument to a UUID
+		u, err := uuid.Parse(arg)
+		if err != nil {
+			return fmt.Errorf("Need a UUID to remove: %s", err.Error())
+		}
+		// Remove the blade from the inventory
+		err = root.Domain.RemoveBlade(u)
 		if err != nil {
 			return err
 		}
-		return nil
-	},
-}
-
-func removeBlade(cmd *cobra.Command, args []string) error {
-	_, err := inventory.Remove(cmd, args)
-	if err != nil {
-		return err
 	}
 	return nil
 }
