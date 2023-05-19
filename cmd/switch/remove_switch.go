@@ -31,8 +31,8 @@ import (
 // RemoveSwitchCmd represents the switch remove command
 var RemoveSwitchCmd = &cobra.Command{
 	Use:   "switch",
-	Short: "Remove switchs from the inventory.",
-	Long:  `Remove switchs from the inventory.`,
+	Short: "Remove switches from the inventory.",
+	Long:  `Remove switches from the inventory.`,
 	Args:  cobra.ArbitraryArgs,
 	RunE:  removeSwitch,
 }

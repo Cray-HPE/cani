@@ -1,19 +1,15 @@
-Add PDUs to the inventory.
+Add pdus to the inventory.
 
 Usage:
   cani add pdu [flags]
 
 Flags:
-  -h, --help   help for pdu
+  -L, --list-supported-types   List supported hardware types.
 
 Global Flags:
-      --config string          Path to the configuration file
-      --database string        JSON database file
-  -D, --debug                  additional debug output
-  -L, --list-supported-types   List supported hardware types.
-  -n, --name string            Name
-  -S, --simulation             Use simulation mode for hsm-simulation-environment
-  -s, --staged string          Hardware can be [staged, provisioned, decomissioned] (default "Staged")
-  -t, --type string            Hardware type.  Allowed values: [Windom", "Windom", "Grizzly Peak 40 GB", "Grizzly Peak 80 GB with Nvidia A100", "Bard Peak with AMD MI200 and SS11", "Castle", "DL325", "DL325", "DL-325 Gen10+", "DL-325 Gen10+", "DL-385 v1", "DL-385 v1 with Nvidia A100", "DL-385 v1 with Nvidia V100", "DL-385 v1 with Nvidia 6000", "DL-385 v1 with Nvidia MI100", "DL-385 v2 with Nvidia A100", "DL-385 v2 with Nvidia A100", "DL-385 v2 with AMD MI100", "DL-385 v2 with Nvidia A40", "DL-385 Gen10+ with AMD MI100", "Apollo 2000", "Apollo 6500 XL675d with Nvidia A40", "Apollo 6500 XL675d with Nvidia A40", "Apollo 6500 XL675d with Nvidia A100", "Apollo 6500 XL645d w/Nvidia A100", "Apollo 6500 XL645d with AMD MI100", "Apollo 6500 Gen10+ with AMD MI200", "DL-360 Gen11+", "DL-360 Gen11+", "DL-380 Gen11+", "R272-Z30-00", "R272-Z30-00", "R272-Z30-YF", "R272-Z30-YF", "R272-Z30-YF", " H262-Z61-00", " H262-Z61-00", "H262-Z63-YF", "", "CIS P9S23A]
-  -u, --uuid string            Specific UUID to use
-  -m, --vendor string          Vendor (default "HPE")
+      --config string   Path to the configuration file
+  -D, --debug           additional debug output
+  -n, --name string     Name
+  -S, --simulation      Use simulation mode for hsm-simulation-environment
+  -u, --uuid string     Specific UUID to use
+  -m, --vendor string   Vendor (default "HPE")

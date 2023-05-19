@@ -17,7 +17,7 @@ func validHardware(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Get the list of hardware types that are switchs
+	// Get the list of hardware types that are switches
 	mgmtSwitchTypes := library.GetDeviceTypesByHardwareType(hardwaretypes.HardwareTypeManagementSwitch)
 	hsnSwitchTypes := library.GetDeviceTypesByHardwareType(hardwaretypes.HardwareTypeHighSpeedSwitch)
 

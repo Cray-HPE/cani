@@ -25,9 +25,12 @@ OTHER DEALINGS IN THE SOFTWARE.
 package shellspec
 
 import (
+	"bytes"
 	"fmt"
 	_ "image/png"
 	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"text/template"
 
@@ -46,8 +49,9 @@ type FlagInfo struct {
 }
 
 type CommandInfo struct {
-	Command string              `json:"Command"`
-	Flags   map[string]FlagInfo `json:"Flags"`
+	CobraCmd *cobra.Command      `json:"-"`
+	Command  string              `json:"Command"`
+	Flags    map[string]FlagInfo `json:"Flags"`
 }
 
 // A struct to hold key-value pairs for the template
@@ -72,8 +76,9 @@ func GetCommandInfo(cmd *cobra.Command) map[string]CommandInfo {
 	commandMap := make(map[string]CommandInfo)
 
 	cmdInfo := CommandInfo{
-		Command: cmd.CommandPath(),
-		Flags:   make(map[string]FlagInfo),
+		CobraCmd: cmd,
+		Command:  cmd.CommandPath(),
+		Flags:    make(map[string]FlagInfo),
 	}
 
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
@@ -105,7 +110,6 @@ func replaceString(input, old, new string) string {
 }
 
 func (c CommandInfo) GenerateSpecfile() error {
-
 	// make a new template with some name
 	tmpl := template.New("spec.sh.j2")
 
@@ -117,9 +121,17 @@ func (c CommandInfo) GenerateSpecfile() error {
 	// parse the template file
 	tmpl.ParseFiles("testdata/templates/spec.sh.j2")
 
-	// Create a filename that matches the command path
+	// Craft a filename that matches the command path
 	fname := strings.ReplaceAll(c.Command, " ", "_")
 	fileName := fmt.Sprintf("spec/%s_spec.sh", fname)
+
+	// make the directory if it does not exist
+	err := os.MkdirAll(filepath.Dir(fileName), 0755)
+	if err != nil {
+		panic(err)
+	}
+
+	// Create the file
 	file, err := os.Create(fileName)
 	if err != nil {
 		panic(err)
@@ -138,6 +150,74 @@ func (c CommandInfo) GenerateSpecfile() error {
 		panic(err)
 	}
 
-	log.Info().Msgf("Rendered %s", fileName)
+	log.Info().Msgf("Rendered spec file for '%s' to %s", c.Command, fileName)
 	return nil
+}
+
+func (c CommandInfo) GenerateHelpFixtures() error {
+	// capture the --help flag for each cobra subcommand into a bytes.Buffer
+	buf := new(bytes.Buffer)
+	// Set the output to the buffer
+	c.CobraCmd.SetOut(buf)
+
+	// Run the help command, capturing its output in buf
+	err := c.CobraCmd.Usage()
+	if err != nil {
+		panic(err)
+	}
+	output := buf.String()
+
+	// Craft a 'help' filename at a path that matches the command name
+	fname := strings.ReplaceAll(c.Command, " ", "/")
+	fileName := fmt.Sprintf("testdata/fixtures/%s/help", fname)
+
+	// make the directory if it does not exist
+	err = os.MkdirAll(filepath.Dir(fileName), 0755)
+	if err != nil {
+		panic(err)
+	}
+
+	// Create the file
+	file, err := os.Create(fileName)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	// Write the string to the file
+	_, err = file.WriteString(output)
+	if err != nil {
+		panic(err)
+	}
+
+	// Ensure all the data is written to disk
+	err = file.Sync()
+	if err != nil {
+		panic(err)
+	}
+
+	log.Info().Msgf("Saved --help output for '%s' to %s", c.Command, fileName)
+	return nil
+}
+
+// insertHelpAlphabetically inserts the help message into the help output
+// By default, the Cobra library doesn't include the help command (--help) in the output of the Help() function.
+// This is because the Help() function is intended to display the help message, so it's understood that --help has been triggered.
+// The fixtures need the --help flag to match the output of the command, so we need to insert it into the help output.
+func insertHelpAlphabetically(helpOutput string, helpMessage string) string {
+	lines := strings.Split(helpOutput, "\n")
+
+	var flagLines []string
+	for _, line := range lines {
+		if strings.HasPrefix(line, "  -") || strings.HasPrefix(line, "      --") {
+			flagLines = append(flagLines, line)
+		}
+	}
+
+	flagLines = append(flagLines, helpMessage)
+
+	sort.Strings(flagLines)
+
+	newHelpOutput := strings.Join(lines[:len(lines)-len(flagLines)], "\n") + "\n" + strings.Join(flagLines, "\n")
+	return newHelpOutput
 }

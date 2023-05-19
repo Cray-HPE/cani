@@ -39,13 +39,13 @@ import (
 // ListSwitchCmd represents the switch list command
 var ListSwitchCmd = &cobra.Command{
 	Use:   "switch",
-	Short: "List switchs in the inventory.",
-	Long:  `List switchs in the inventory.`,
+	Short: "List switches in the inventory.",
+	Long:  `List switches in the inventory.`,
 	Args:  cobra.ArbitraryArgs,
 	RunE:  listSwitch,
 }
 
-// listSwitch lists switchs in the inventory
+// listSwitch lists switches in the inventory
 func listSwitch(cmd *cobra.Command, args []string) error {
 	// Create a domain object to interact with the datastore
 	d, err := domain.New(root.Conf.Session.DomainOptions)
@@ -58,7 +58,7 @@ func listSwitch(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	// Filter the inventory to only switchs
+	// Filter the inventory to only switches
 	filtered := make(map[uuid.UUID]inventory.Hardware, 0)
 	for key, hw := range inv.Hardware {
 		if hw.Type == hardwaretypes.HardwareTypeHighSpeedSwitch || hw.Type == hardwaretypes.HardwareTypeManagementSwitch {

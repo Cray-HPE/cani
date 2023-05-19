@@ -34,8 +34,8 @@ import (
 // AddSwitchCmd represents the switch add command
 var AddSwitchCmd = &cobra.Command{
 	Use:               "switch",
-	Short:             "Add switchs to the inventory.",
-	Long:              `Add switchs to the inventory.`,
+	Short:             "Add switches to the inventory.",
+	Long:              `Add switches to the inventory.`,
 	PersistentPreRunE: session.DatastoreExists, // A session must be active to write to a datastore
 	Args:              validHardware,           // Hardware can only be valid if defined in the hardware library
 	RunE:              addSwitch,               // Add a switch when this sub-command is called
