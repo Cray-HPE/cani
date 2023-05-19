@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/spf13/cobra"
@@ -31,7 +30,7 @@ func validHardware(cmd *cobra.Command, args []string) error {
 		for _, hw := range deviceTypes {
 			bladeTypes = append(bladeTypes, hw.Slug)
 		}
-		return fmt.Errorf("No hardware type provided: Choose from: %s", strings.Join(bladeTypes, "\", \""))
+		return fmt.Errorf("No hardware type provided: Choose from: %s", bladeTypes)
 	}
 
 	// Check that each arg is a valid blade type

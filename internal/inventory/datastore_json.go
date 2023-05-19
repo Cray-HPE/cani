@@ -9,8 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -18,11 +20,13 @@ type DatastoreJSON struct {
 	inventoryLock sync.RWMutex
 	inventory     *Inventory
 	dataFilePath  string
+	logFilePath   string
 }
 
-func NewDatastoreJSON(dataFilePath string) (*DatastoreJSON, error) {
+func NewDatastoreJSON(dataFilePath string, logfilepath string) (*DatastoreJSON, error) {
 	datastore := &DatastoreJSON{
 		dataFilePath: dataFilePath,
+		logFilePath:  logfilepath,
 	}
 
 	if _, err := os.Stat(dataFilePath); os.IsNotExist(err) {
@@ -144,6 +148,8 @@ func (dj *DatastoreJSON) Add(hardware *Hardware) error {
 	}
 	dj.inventory.Hardware[hardware.ID] = *hardware
 
+	dj.logTransaction("ADD", hardware.ID.String(), nil, nil)
+
 	return nil
 }
 
@@ -154,6 +160,8 @@ func (dj *DatastoreJSON) Get(id uuid.UUID) (Hardware, error) {
 	if hardware, exists := dj.inventory.Hardware[id]; exists {
 		return hardware, nil
 	}
+
+	dj.logTransaction("GET", id.String(), nil, nil)
 
 	return Hardware{}, ErrHardwareNotFound
 }
@@ -179,6 +187,7 @@ func (dj *DatastoreJSON) Update(hardware *Hardware) error {
 	// Add it to the inventory map
 	dj.inventory.Hardware[hardware.ID] = *hardware
 
+	dj.logTransaction("UPDATE", hardware.ID.String(), nil, nil)
 	return nil
 }
 
@@ -215,6 +224,7 @@ func (dj *DatastoreJSON) Remove(id uuid.UUID, recursion bool) error {
 	// Remove the hardware!
 	delete(dj.inventory.Hardware, id)
 
+	dj.logTransaction("REMOVE", id.String(), nil, nil)
 	return nil
 }
 
@@ -259,4 +269,45 @@ func (dj *DatastoreJSON) getChildren(id uuid.UUID) ([]Hardware, error) {
 	}
 
 	return results, nil
+}
+
+// logTransaction logs a transaction to logger
+func (dj *DatastoreJSON) logTransaction(operation string, key string, value interface{}, err error) {
+	tl, err = os.OpenFile(
+		dj.logFilePath,
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY,
+		0664,
+	)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to open transaction log file")
+		return
+	}
+	logger = zerolog.New(tl).With().Timestamp().Logger()
+	defer tl.Close()
+
+	// Get the current timestamp
+	timestamp := time.Now()
+
+	// Determine the operation status
+	status := "SUCCESS"
+	if err != nil {
+		status = "FAILED"
+	}
+
+	// Log the transaction
+	logEvent := logger.With().
+		Timestamp().
+		Str("timestamp", timestamp.Format(time.RFC3339)).
+		Str("operation", operation).
+		Str("key", key).
+		Interface("value", value).
+		Str("status", status).
+		Logger()
+
+	if err != nil {
+		logEvent.Err(err).Msg("Transaction")
+	} else {
+		logEvent.Info().Msg("Transaction")
+	}
+
 }

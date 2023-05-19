@@ -32,6 +32,9 @@ func init() {
 	AddBladeCmd.Flags().IntVar(&slot, "slot", 1, "Parent slot")
 	// cobra.MarkFlagRequired(AddBladeCmd.Flags(), "slot")
 
+	AddBladeCmd.MarkFlagsRequiredTogether("list-supported-types")
+	AddBladeCmd.MarkFlagsRequiredTogether("cabinet", "chassis", "slot")
+
 	RemoveBladeCmd.Flags().BoolVarP(&recursion, "recursive", "R", false, "Recursively delete child hardware")
 
 }

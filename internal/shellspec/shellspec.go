@@ -160,13 +160,15 @@ func (c CommandInfo) GenerateHelpFixtures() error {
 	// Set the output to the buffer
 	c.CobraCmd.SetOut(buf)
 
+	c.CobraCmd.SetArgs([]string{"--help"})
 	// Run the help command, capturing its output in buf
-	err := c.CobraCmd.Usage()
+	err := c.CobraCmd.Help()
 	if err != nil {
 		panic(err)
 	}
 	output := buf.String()
-
+	// helpMessage := fmt.Sprintf("  -h, --help                   help for %s", c.Command)
+	// munged := insertHelpAlphabetically(output, helpMessage)
 	// Craft a 'help' filename at a path that matches the command name
 	fname := strings.ReplaceAll(c.Command, " ", "/")
 	fileName := fmt.Sprintf("testdata/fixtures/%s/help", fname)
@@ -201,6 +203,7 @@ func (c CommandInfo) GenerateHelpFixtures() error {
 }
 
 // insertHelpAlphabetically inserts the help message into the help output
+// TODO: Make this work properly
 // By default, the Cobra library doesn't include the help command (--help) in the output of the Help() function.
 // This is because the Help() function is intended to display the help message, so it's understood that --help has been triggered.
 // The fixtures need the --help flag to match the output of the command, so we need to insert it into the help output.

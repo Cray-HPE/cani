@@ -19,6 +19,7 @@ type Domain struct {
 
 type NewOpts struct {
 	DatastorePath string
+	LogFilePath   string
 	Provider      string
 	EIPCSMOpts    csm.NewOpts
 }
@@ -38,7 +39,7 @@ func New(opts *NewOpts) (*Domain, error) {
 	}
 
 	// Load the datastore
-	domain.datastore, err = inventory.NewDatastoreJSON(opts.DatastorePath)
+	domain.datastore, err = inventory.NewDatastoreJSON(opts.DatastorePath, opts.LogFilePath)
 	if err != nil {
 		return nil, errors.Join(
 			fmt.Errorf("failed to load inventory datastore from file"),
