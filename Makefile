@@ -130,7 +130,7 @@ spec:
 	go run cmd/shellspec/main.go
 
 validate-hardware-type-schemas:
-	go run ./pkg/hardware-type-library/validate pkg/hardware-type-library/hardware-types/schema  pkg/hardware-type-library/hardware-types/
+	go run ./pkg/hardwaretypes/validate pkg/hardwaretypes/hardware-types/schema  pkg/hardwaretypes/hardware-types/
 
 test: bin validate-hardware-type-schemas
 	shellspec --format tap --no-warning-as-failure

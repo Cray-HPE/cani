@@ -20,7 +20,7 @@ type Datastore interface {
 	Add(hardware *Hardware) error
 	Get(uuid.UUID) (Hardware, error)
 	Update(hardware *Hardware) error
-	Remove(uuid uuid.UUID) error
+	Remove(uuid uuid.UUID, recursion bool) error
 	List() (Inventory, error)
 
 	// Graph functions

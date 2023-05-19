@@ -82,8 +82,8 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 	return d.datastore.Flush()
 }
 
-func (d *Domain) RemoveBlade(u uuid.UUID) error {
-	err := d.datastore.Remove(u)
+func (d *Domain) RemoveBlade(u uuid.UUID, recursion bool) error {
+	err := d.datastore.Remove(u, recursion)
 	if err != nil {
 		return errors.Join(
 			fmt.Errorf("unable to remove hardware from inventory datastore"),

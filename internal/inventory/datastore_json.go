@@ -182,7 +182,7 @@ func (dj *DatastoreJSON) Update(hardware *Hardware) error {
 	return nil
 }
 
-func (dj *DatastoreJSON) Remove(id uuid.UUID) error {
+func (dj *DatastoreJSON) Remove(id uuid.UUID, recursion bool) error {
 	dj.inventoryLock.Lock()
 	defer dj.inventoryLock.Unlock()
 
@@ -194,6 +194,7 @@ func (dj *DatastoreJSON) Remove(id uuid.UUID) error {
 	// Check to see if any piece of hardware has this device as a parent
 	// as you should not be able to remove a piece of hardware without either
 	// delinking it or removing its children
+	// FIXME: https://github.com/Cray-HPE/cani/pull/28#discussion_r1199347499
 	if children, err := dj.getChildren(id); err != nil {
 		return err
 	} else if len(children) != 0 {
@@ -201,7 +202,14 @@ func (dj *DatastoreJSON) Remove(id uuid.UUID) error {
 		for _, child := range children {
 			childrenIDs = append(childrenIDs, child.ID.String())
 		}
-		return fmt.Errorf("unable to remove (%s) as it is the parent of [%s]", id.String(), strings.Join(childrenIDs, ","))
+		// If recursion is true, remove the children as well
+		if recursion {
+			for _, child := range children {
+				delete(dj.inventory.Hardware, child.ID)
+			}
+		} else {
+			return fmt.Errorf("unable to remove (%s) as it is the parent of [%s]", id.String(), strings.Join(childrenIDs, ","))
+		}
 	}
 
 	// Remove the hardware!
