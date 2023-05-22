@@ -16,5 +16,5 @@ type InventoryProvider interface {
 	Import() error
 
 	// Reconcile CANI's inventory state with the external inventory state and apply required changes
-	Reconcile(data inventory.Inventory) error
+	Reconcile(datastore inventory.Datastore) error
 }

@@ -37,7 +37,10 @@ func BuildXname(cHardware inventory.Hardware, locationPath inventory.LocationPat
 	if err != nil {
 		return nil, err
 	}
+
 	switch hsmType {
+	case xnametypes.HMSTypeInvalid:
+		return nil, nil
 	case xnametypes.CDU:
 		return xnames.CDU{
 			CDU: locationPath[0].Ordinal,

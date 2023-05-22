@@ -14,7 +14,7 @@ import (
 )
 
 // Reconcile CANI's inventory state with the external inventory state and apply required changes
-func (csm *CSM) Reconcile(data inventory.Inventory) (err error) {
+func (csm *CSM) Reconcile(datastore inventory.Datastore) (err error) {
 
 	log.Info().Msg("Starting CSM reconcile process")
 
@@ -26,7 +26,7 @@ func (csm *CSM) Reconcile(data inventory.Inventory) (err error) {
 	currentSLSState := sls_common.SLSState{}
 
 	// Build up the expected SLS state
-	expectedSLSState, err := BuildExpectedHardwareState(data)
+	expectedSLSState, err := BuildExpectedHardwareState(datastore)
 	if err != nil {
 		return errors.Join(
 			fmt.Errorf("failed to build expected SLS state"),

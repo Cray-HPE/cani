@@ -37,7 +37,10 @@ func BuildXname(cHardware inventory.Hardware, locationPath inventory.LocationPat
 	if err != nil {
 		return nil, err
 	}
+
 	switch hsmType {
+	case xnametypes.HMSTypeInvalid:
+		return nil, nil 
 {{- range $xnameType := . }}
 	case xnametypes.{{$xnameType.Entry.Type}}:
 		return xnames.{{$xnameType.Entry.Type}}{

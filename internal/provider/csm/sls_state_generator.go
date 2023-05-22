@@ -1,6 +1,7 @@
 package csm
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
@@ -9,7 +10,16 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func BuildExpectedHardwareState(data inventory.Inventory) (sls_common.SLSState, error) {
+func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_common.SLSState, error) {
+	// Retrieve the CANI inventory data
+	data, err := datastore.List()
+	if err != nil {
+		return sls_common.SLSState{}, errors.Join(
+			fmt.Errorf("failed to list hardware from the datastore"),
+			err,
+		)
+	}
+
 	// Iterate over the CANI inventory data to build SLS data
 	allHardware := map[string]sls_common.GenericHardware{}
 	for _, cHardware := range data.Hardware {
@@ -17,13 +27,23 @@ func BuildExpectedHardwareState(data inventory.Inventory) (sls_common.SLSState, 
 		// Build the SLS hardware representation
 		//
 		log.Debug().Any("cHardware", cHardware).Msg("Processing")
-		hardware, err := BuildSLSHardware(cHardware)
+		locationPath, err := datastore.GetLocation(cHardware)
+		if err != nil {
+			return sls_common.SLSState{}, errors.Join(
+				fmt.Errorf("failed to get location of hardware (%s) from the datastore", cHardware.ID),
+				err,
+			)
+		}
+
+		hardware, err := BuildSLSHardware(cHardware, locationPath)
 		// if err != nil && ignoreUnknownCANUHardwareArchitectures && strings.Contains(err.Error(), "unknown architecture type") {
 		// 	log.Printf("WARNING %s", err.Error())
 		// } else if err != nil {
 		if err != nil {
 			return sls_common.SLSState{}, err
 		}
+
+		log.Debug().Any("hardware", hardware).Msg("Generated SLS hardware")
 
 		// Ignore empty hardware
 		if hardware.Xname == "" {
@@ -117,57 +137,46 @@ func BuildExpectedHardwareState(data inventory.Inventory) (sls_common.SLSState, 
 	}, nil
 }
 
-func BuildSLSHardware(cHardware inventory.Hardware) (sls_common.GenericHardware, error) {
-	// TODO use CANU files for lookup
-	// ALso look at using type
+func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.LocationPath) (sls_common.GenericHardware, error) {
+	log.Debug().Any("locationPath", locationPath).Msg("Location path")
 
-	// switch topologyNode.Architecture {
-	// case "kvm":
-	// 	// TODO SLS does not know anything about KVM, because HMS software doesn't support them.
-	// 	fallthrough
-	// case "cec":
-	// 	// TODO SLS does not know anything about CEC, because HMS software doesn't support them.
-	// 	return sls_common.GenericHardware{}, nil
-	// case "cmm":
-	// 	return buildSLSChassisBMC(topologyNode.Location, cabinetLookup)
-	// case "subrack":
-	// 	return buildSLSCMC(topologyNode.Location)
-	// case "pdu":
-	// 	return buildSLSPDUController(topologyNode.Location)
-	// case "slingshot_hsn_switch":
-	// 	return buildSLSSlingshotHSNSwitch(topologyNode.Location)
-	// case "mountain_compute_leaf": // CDUMgmtSwitch
-	// 	if strings.HasPrefix(topologyNode.Location.Rack, "x") {
-	// 		// This CDU MgmtSwitch is present in a river cabinet.
-	// 		// This is normally seen on newer TDS/Hill cabinet systems
-	// 		return buildSLSMgmtHLSwitch(topologyNode, switchAliasesOverrides)
-	// 	} else {
-	// 		// Otherwise the switch is in a CDU cabinet
-	// 		return buildSLSCDUMgmtSwitch(topologyNode, switchAliasesOverrides)
-	// 	}
-	// case "customer_edge_router":
-	// 	fallthrough
-	// case "spine":
-	// 	fallthrough
-	// case "river_ncn_leaf":
-	// 	return buildSLSMgmtHLSwitch(topologyNode, switchAliasesOverrides)
-	// case "river_bmc_leaf":
-	// 	return buildSLSMgmtSwitch(topologyNode, switchAliasesOverrides)
-	// default:
-	// 	// There are a lot of architecture types that can be a node, but for SLS we just need to know that it is a server
-	// 	// of some sort.
-	// 	if topologyNode.Type == "node" || topologyNode.Type == "server" {
-	// 		// All node architecture needs to go through this function
-	// 		return buildSLSNode(topologyNode, paddle, applicationNodeMetadata)
-	// 	}
-	// }
-	//
-	// return sls_common.GenericHardware{}, fmt.Errorf("unknown architecture type %s for CANU common name %s", topologyNode.Architecture, topologyNode.CommonName)
+	// Get the physical location for the hardware
+	xname, err := BuildXname(cHardware, locationPath)
+	log.Debug().Any("xname", xname).Err(err).Msg("Build xname")
+	if err != nil {
+		return sls_common.GenericHardware{}, err
+	} else if xname == nil {
+		// This means that this piece of the hardware inventory can't be represented in SLS, so just skip it
+		return sls_common.GenericHardware{}, nil
+	}
+
+	// Get the class of the piece of hardware
+	// Generally this will match the class of the containing cabinet, the exception is river hardware within a EX2500 cabinet.
+	// TODO
+	class := sls_common.ClassMountain
 
 	switch cHardware.Type {
+	case hardwaretypes.HardwareTypeCabinet:
+		return sls_common.GenericHardware{}, nil
+	case hardwaretypes.HardwareTypeChassis:
+		return sls_common.GenericHardware{}, nil
 	case hardwaretypes.HardwareTypeNodeBlade:
+		return sls_common.GenericHardware{}, nil
 	case hardwaretypes.HardwareTypeNodeCard:
+		return sls_common.GenericHardware{}, nil
+	case hardwaretypes.HardwareTypeNodeController:
+		return sls_common.GenericHardware{}, nil
 	case hardwaretypes.HardwareTypeNode:
+		ep := sls_common.NetworkExtraProperties{}
+
+		// In order to properly populate SLS several bits of information are required.
+		// This information should have been collected when hardware was added to the inventory
+		// - NID
+		// - Alias/Common Name
+		// - Role
+		// - SubRole
+
+		return sls_common.NewGenericHardware(xname.String(), class, ep), nil
 	}
 
 	return sls_common.GenericHardware{}, fmt.Errorf("unknown hardware type '%s'", cHardware.Type)
@@ -193,7 +202,7 @@ func BuildSLSHardware(cHardware inventory.Hardware) (sls_common.GenericHardware,
 // func BuildNodeExtraProperties(topologyNode TopologyNode) (extraProperties sls_common.ComptypeNode, err error) {
 // }
 
-// func buildSLSNode(topologyNode TopologyNode, paddle Paddle, applicationNodeMetadata configs.ApplicationNodeMetadataMap) (sls_common.GenericHardware, error) {
+// func buildSLSNode(xname) (sls_common.GenericHardware, error) {
 // }
 
 // func buildSLSMgmtSwitch(topologyNode TopologyNode, switchAliasesOverrides map[string][]string) (sls_common.GenericHardware, error) {

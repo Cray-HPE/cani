@@ -14,8 +14,25 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 	// TODO
 
 	// Validate provided chassis exists
+
+	// TODO this is just a stand in, just for testing
+	cabinet := inventory.Hardware{
+		ID:              uuid.New(),
+		Type:            hardwaretypes.HardwareTypeCabinet,
+		Status:          inventory.HardwareStatusProvisioned,
+		LocationOrdinal: &cabinetOrdinal,
+	}
+	if err := d.datastore.Add(&cabinet); err != nil {
+		return errors.Join(
+			fmt.Errorf("unable to add cabinet hardware"),
+			err,
+		)
+
+	}
+
 	// TODO this is just a stand in, just for testing
 	chassis := inventory.Hardware{
+		Parent:          cabinet.ID,
 		ID:              uuid.New(),
 		Type:            hardwaretypes.HardwareTypeChassis,
 		Status:          inventory.HardwareStatusProvisioned,
