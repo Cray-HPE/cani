@@ -18,10 +18,10 @@ type Domain struct {
 }
 
 type NewOpts struct {
-	DatastorePath string
-	LogFilePath   string
-	Provider      string
-	EIPCSMOpts    csm.NewOpts
+	DatastorePath string      `yaml:"datastore_path"`
+	LogFilePath   string      `yaml:"log_file_path"`
+	Provider      string      `yaml:"provider"`
+	CsmOptions    csm.NewOpts `yaml:"csm_options"`
 }
 
 func New(opts *NewOpts) (*Domain, error) {
@@ -59,7 +59,7 @@ func New(opts *NewOpts) (*Domain, error) {
 	}
 	switch externalInventoryProviderName {
 	case inventory.ExternalInventoryProviderCSM:
-		domain.externalInventoryProvider, err = csm.New(opts.EIPCSMOpts)
+		domain.externalInventoryProvider, err = csm.New(opts.CsmOptions)
 		if err != nil {
 			return nil, errors.Join(
 				fmt.Errorf("failed to initialize CSM external inventory provider"),

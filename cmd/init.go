@@ -69,7 +69,7 @@ func initConfig() {
 	}
 
 	// Load the configuration file
-	Conf, err = config.LoadConfig(cfgFile, Conf)
+	Conf, err = config.LoadConfig(cfgFile)
 	if err != nil {
 		log.Error().Msg(fmt.Sprintf("Error loading config file: %s", err))
 		os.Exit(1)
@@ -78,7 +78,7 @@ func initConfig() {
 
 func loadConfigAndDomainOpts(cmd *cobra.Command, args []string) error {
 	var err error
-	Conf, err = config.LoadConfig(cfgFile, Conf)
+	Conf, err = config.LoadConfig(cfgFile)
 	if err != nil {
 		return err
 	}
@@ -86,6 +86,7 @@ func loadConfigAndDomainOpts(cmd *cobra.Command, args []string) error {
 		log.Info().Msgf("Loaded config file %s", cfgFile)
 		log.Info().Msgf("DomainOptions: %+v", Conf.Session.DomainOptions)
 		log.Info().Msgf("Session: %+v", Conf.Session.Active)
+		log.Info().Msgf("Session: %+v", Conf.Session.Domain)
 	}
 
 	return nil

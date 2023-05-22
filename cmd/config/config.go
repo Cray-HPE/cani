@@ -52,7 +52,7 @@ func InitConfig(cfg string) (err error) {
 }
 
 // LoadConfig loads the configuration from a file
-func LoadConfig(path string, cfg *Config) (c *Config, err error) {
+func LoadConfig(path string) (c *Config, err error) {
 	// Create the directory if it doesn't exist
 	cfgDir := filepath.Dir(path)
 	os.MkdirAll(cfgDir, os.ModePerm)
