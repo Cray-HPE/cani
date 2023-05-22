@@ -114,7 +114,7 @@ var enhancedTypeConverters = map[xnametypes.HMSType]XnameConverter{
 		XnameOrdinalMapping: []XnameOrdinal{
 			{hardwaretypes.HardwareTypeCabinet, 0},
 			{hardwaretypes.HardwareTypeChassis, 1},
-			{hardwaretypes.HardwareTypeChassis, 2},
+			{hardwaretypes.HardwareTypeChassisManagementModule, 2},
 		},
 	},
 	xnametypes.ComputeModule: {

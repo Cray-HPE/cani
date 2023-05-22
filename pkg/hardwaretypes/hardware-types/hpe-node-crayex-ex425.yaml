@@ -38,7 +38,7 @@ device-bays:
 ---
 manufacturer: HPE
 model: EX425 AMD EPYC compute Blade, Windom Node BMC
-hardware-type: NodeBMC
+hardware-type: NodeController
 slug: hpe-crayex-ex425-compute-blade-windom-node-bmc
 interfaces:
   - name: BMC

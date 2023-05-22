@@ -24,11 +24,11 @@ package main
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 
+	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
-	"github.com/Cray-HPE/hms-xname/xnames"
 	"github.com/google/uuid"
 )
 
@@ -48,147 +48,6 @@ func joinHardwareTypes(in []hardwaretypes.HardwareType, sep string) string {
 	}
 
 	return strings.Join(out, sep)
-}
-
-// TODO this is something that should exist in the CSM provider
-func buildXname(hardwareTypePath []hardwaretypes.HardwareType, locationPath []int) xnames.Xname {
-	// TODO check that the length of hardware typePath and location path are the same
-	fmt.Println(hardwareTypePath, locationPath)
-	type typeConverter struct {
-		hardwareTypePath []hardwaretypes.HardwareType
-		convert          func() xnames.Xname
-	}
-
-	// TODO this could probably be auto generated, assuming a type mapping table exists
-	typeConverters := []typeConverter{
-		{
-			// Cabinet
-			hardwareTypePath: []hardwaretypes.HardwareType{
-				hardwaretypes.HardwareTypeCabinet,
-			},
-
-			convert: func() xnames.Xname {
-				return xnames.Cabinet{
-					Cabinet: locationPath[0],
-				}
-			},
-		},
-		{
-			// CEC
-			hardwareTypePath: []hardwaretypes.HardwareType{
-				hardwaretypes.HardwareTypeCabinet,
-				hardwaretypes.HardwareTypeCabinetEnvironmentalController,
-			},
-
-			convert: func() xnames.Xname {
-				return xnames.CEC{
-					Cabinet: locationPath[0],
-					CEC:     locationPath[1],
-				}
-			},
-		},
-
-		{
-			// Chassis
-			hardwareTypePath: []hardwaretypes.HardwareType{
-				hardwaretypes.HardwareTypeCabinet,
-				hardwaretypes.HardwareTypeChassis,
-			},
-
-			convert: func() xnames.Xname {
-				return xnames.ComputeModule{
-					Cabinet: locationPath[0],
-					Chassis: locationPath[1],
-				}
-			},
-		},
-		{
-			// Chassis BMC
-			hardwareTypePath: []hardwaretypes.HardwareType{
-				hardwaretypes.HardwareTypeCabinet,
-				hardwaretypes.HardwareTypeChassis,
-				hardwaretypes.HardwareTypeChassisManagementModule,
-			},
-
-			convert: func() xnames.Xname {
-				return xnames.ChassisBMC{
-					Cabinet:    locationPath[0],
-					Chassis:    locationPath[1],
-					ChassisBMC: locationPath[2],
-				}
-			},
-		},
-
-		{
-			// Slot/Node Blade
-			hardwareTypePath: []hardwaretypes.HardwareType{
-				hardwaretypes.HardwareTypeCabinet,
-				hardwaretypes.HardwareTypeChassis,
-				hardwaretypes.HardwareTypeNodeBlade,
-			},
-
-			convert: func() xnames.Xname {
-				return xnames.ComputeModule{
-					Cabinet:       locationPath[0],
-					Chassis:       locationPath[1],
-					ComputeModule: locationPath[2],
-				}
-			},
-		},
-
-		{
-			// NodeBMC
-			hardwareTypePath: []hardwaretypes.HardwareType{
-				hardwaretypes.HardwareTypeCabinet,
-				hardwaretypes.HardwareTypeChassis,
-				hardwaretypes.HardwareTypeNodeBlade,
-				hardwaretypes.HardwareTypeNodeCard,
-			},
-
-			convert: func() xnames.Xname {
-				return xnames.NodeBMC{
-					Cabinet:       locationPath[0],
-					Chassis:       locationPath[1],
-					ComputeModule: locationPath[2],
-					NodeBMC:       locationPath[3],
-				}
-			},
-		},
-		{
-			// Node
-			hardwareTypePath: []hardwaretypes.HardwareType{
-				hardwaretypes.HardwareTypeCabinet,
-				hardwaretypes.HardwareTypeChassis,
-				hardwaretypes.HardwareTypeNodeBlade,
-				hardwaretypes.HardwareTypeNodeCard,
-				hardwaretypes.HardwareTypeNode,
-			},
-
-			convert: func() xnames.Xname {
-				return xnames.Node{
-					Cabinet:       locationPath[0],
-					Chassis:       locationPath[1],
-					ComputeModule: locationPath[2],
-					NodeBMC:       locationPath[3],
-					Node:          locationPath[4],
-				}
-			},
-		},
-	}
-
-	for _, typeConverter := range typeConverters {
-		// fmt.Println("Want: ", typeConverter.hardwareTypePath)
-		// fmt.Println("Have: ", hardwareTypePath)
-		// fmt.Println("Equal:", reflect.DeepEqual(typeConverter.hardwareTypePath, hardwareTypePath))
-		if !reflect.DeepEqual(typeConverter.hardwareTypePath, hardwareTypePath) {
-			continue
-		}
-
-		return typeConverter.convert()
-	}
-
-	return nil
-
 }
 
 func main() {
@@ -286,9 +145,21 @@ func commonLogic(library *hardwaretypes.Library, deviceTypeSlug string, deviceOr
 		childHardwareTypePath := append(deviceTypePath, childHardware.HardwareTypePath...)
 
 		// Get full location/ordinal path
-		childLocationPath := append(locationPath, childHardware.OrdinalPath...)
+		childLocationOrdinalPath := append(locationPath, childHardware.OrdinalPath...)
 
-		xname := buildXname(childHardwareTypePath, childLocationPath)
+		childHardwareLocation := inventory.LocationPath{}
+		for i := range childHardwareTypePath {
+			childHardwareLocation = append(childHardwareLocation, inventory.LocationToken{
+				HardwareType: childHardwareTypePath[i],
+				Ordinal:      childLocationOrdinalPath[i],
+			})
+		}
+
+		xname, _ := csm.BuildXname(inventory.Hardware{}, childHardwareLocation)
+		// if err != nil {
+		// 	panic(err)
+		// }
+
 		if xname != nil {
 			hardwareXnames = append(hardwareXnames, xname.String())
 		} else {

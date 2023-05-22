@@ -38,7 +38,7 @@ device-bays:
 ---
 manufacturer: HPE
 model: EX420 Intel Xeon compute blade, Castle Node BMC
-hardware-type: NodeBMC
+hardware-type: NodeController
 slug: hpe-crayex-ex420-compute-blade-castle-node-bmc
 interfaces:
   - name: BMC
