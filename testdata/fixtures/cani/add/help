@@ -14,6 +14,7 @@ Available Commands:
   switch      Add switches to the inventory.
 
 Flags:
+  -h, --help            help for add
   -n, --name string     Name
   -u, --uuid string     Specific UUID to use
   -m, --vendor string   Vendor (default "HPE")

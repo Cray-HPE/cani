@@ -31,9 +31,16 @@ fixture(){
   test "${fixture:?}" == "$( cat "$FIXTURES/$1" )"
 }
 
-# Removes the db to start fresh 
-# Not called for all tests, but when no duplicate uuids are expected this is called
-cleanup(){ rm -rf testdb.json; }
+# functions to deploy various fixtures with different scenarios
+cleanup(){ rm -f canitest.*; }
+canitest_valid_active(){ cp "$FIXTURES"/cani/configs/canitest_valid_active.yml .; }
+canitest_valid_inactive(){ cp "$FIXTURES"/cani/configs/canitest_valid_inactive.yml  .; }
+canitest_invalid_datastore_path(){ cp "$FIXTURES"/cani/configs/canitest_invalid_datastore_path.yml .; }
+canitest_invalid_log_file_path(){ cp "$FIXTURES"/cani/configs/canitest_invalid_log_file_path.yml .; }
+canitest_invalid_provider(){ cp "$FIXTURES"/cani/configs/canitest_invalid_provider.yml .; }
+canitest_valid_empty_db(){ cp -f "$FIXTURES"/cani/configs/canitest_valid_empty_db.json .; }
+canitest_invalid_empty_db(){ cp -f "$FIXTURES"/cani/configs/canitest_invalid_empty_db.json .; }
+rm_canitest_valid_empty_db(){ rm -f canitest_valid_empty_db.json; }
 
 It '--help'
   When call bin/cani add blade --help
@@ -41,39 +48,68 @@ It '--help'
   The stdout should satisfy fixture 'cani/add/blade/help'
 End
 
-It '--database testdb.json'
-  BeforeCall 'cleanup' # Remove the db to start fresh
-  When call bin/cani add blade --database testdb.json
-  The status should equal 0
-  The stderr should include '"value":{"Type":"Blade","Parent":"00000000-0000-0000-0000-000000000000"},"status":"SUCCESS"'
-End
-
-It '--database testdb.json --uuid abcdef12-3456-abcd-1234-abcdef123456'
-  BeforeCall 'cleanup' # Remove the db to start fresh
-  When call bin/cani add blade --database testdb.json --uuid abcdef12-3456-abcd-1234-abcdef123456
-  The status should equal 0
-  The stderr should include '"operation":"ADD","key":"abcdef12-3456-abcd-1234-abcdef123456","value":{"Type":"Blade","Parent":"00000000-0000-0000-0000-000000000000"},"status":"SUCCESS"'
-End
-
-It '--database testdb.json --uuid abcdef12-3456-abcd-123'
-  When call bin/cani add blade --database testdb.json --uuid abcdef12-3456-abcd-1234
+# Should create the config file if one does not exist
+# No hardware type passed should show list of available hardware types
+It '--config canitest.yml'
+  BeforeCall 'cleanup'
+  When call bin/cani add blade --config canitest.yml
   The status should equal 1
-  The line 1 of stderr should equal 'Error: Error parsing UUID: invalid UUID length: 23'
+  The line 1 of stderr should include '"message":"canitest.yml does not exist, creating default config file"}'
+  The line 2 of stderr should include 'Error: No hardware type provided: Choose from: [hpe-crayex-ex235a-compute-blade hpe-crayex-ex235n-compute-blade hpe-crayex-ex420-compute-blade hpe-crayex-ex425-compute-blade]'
 End
 
-It '--database testdb.json --uuid abcdef12-3456-abcd-1234-abcdef123456'
-  BeforeCall 'cleanup' # Remove the db to start fresh
-  When call bin/cani add blade --database testdb.json --uuid abcdef12-3456-abcd-1234-abcdef123456
-  The status should equal 0
-  The line 1 of stderr should include '"message":"testdb.json does not exist, creating default database"}'
-  The line 2 of stderr should include '"operation":"ADD","key":"abcdef12-3456-abcd-1234-abcdef123456","value":{"Type":"Blade","Parent":"00000000-0000-0000-0000-000000000000"},"status":"SUCCESS"'
-End
-
-It '--database testdb.json --uuid abcdef12-3456-abcd-1234-abcdef123456'
-# The db and the asset exist now, so it should fail
-  When call bin/cani add blade --database testdb.json --uuid abcdef12-3456-abcd-1234-abcdef123456
+# Config file exists now
+# Passing invalid hardware type should fail
+It '--config canitest.yml fake-hardware-type'
+  When call bin/cani add blade --config canitest.yml fake-hardware-type
   The status should equal 1
-  The line 1 of stderr should equal 'Error: abcdef12-3456-abcd-1234-abcdef123456 already exists.'
+  The line 1 of stderr should equal 'Error: Invalid hardware type: fake-hardware-type'
+End
+
+# Listing hardware types should show available hardware types
+It '--config canitest.yml -L'
+  When call bin/cani add blade --config canitest.yml add blade -L
+  The status should equal 0
+  The line 1 of stderr should equal "- hpe-crayex-ex235a-compute-blade"
+  The line 2 of stderr should equal "- hpe-crayex-ex235n-compute-blade"
+  The line 3 of stderr should equal "- hpe-crayex-ex420-compute-blade"
+  The line 4 of stderr should equal "- hpe-crayex-ex425-compute-blade"
+End
+
+# Adding a valid hardware type should fail if no session is active
+It '--config canitest.yml hpe-crayex-ex235a-compute-blade'
+  When call bin/cani add blade --config canitest.yml hpe-crayex-ex235a-compute-blade
+  The status should equal 1
+  The line 1 of stderr should equal "Error: No active session.  Run 'session start' to begin"
+End
+
+# Adding a valid hardware type should succeed if a session is active
+# Use a fixture instead of the one generated automatically by the test
+It '--config canitest_valid_inactive.yml hpe-crayex-ex235n-compute-blade'
+  BeforeCall 'canitest_valid_inactive'
+  When call bin/cani add blade --config canitest_valid_inactive.yml hpe-crayex-ex235n-compute-blade
+  The status should equal 1
+  The line 1 of stderr should equal "Error: No active session.  Run 'session start' to begin"
+End
+
+# If a valid hardware type is passed and a session is active, it should succeed
+# The JSON file should be updated with the new hardware type
+It '--config canitest_valid_active.yml hpe-crayex-ex235n-compute-blade'
+  BeforeCall 'canitest_valid_active'
+  BeforeCall 'canitest_valid_empty_db'
+  When call bin/cani add blade --config canitest_valid_active.yml hpe-crayex-ex235n-compute-blade
+  The status should equal 0
+  The line 1 of stderr should include '"message":"Added blade hpe-crayex-ex235n-compute-blade"}'
+  The contents of file "canitest_valid_empty_db.json" should include "EX235N AMD NVIDIA accelerator blade (Grizzly Peak)"
+End
+
+# If a session is valid, but the datastore path is invalid, it should fail
+It '--config canitest_invalid_provider.yml hpe-crayex-ex235n-compute-blade'
+  BeforeCall 'canitest_valid_active'
+  BeforeCall 'rm_canitest_valid_empty_db'
+  When call bin/cani add blade --config canitest_valid_active.yml hpe-crayex-ex235n-compute-blade
+  The status should equal 1
+  The line 1 of stderr should equal "Error: Datastore './canitest_valid_empty_db.json' does not exist.  Run 'session start' to begin"
 End
 
 End

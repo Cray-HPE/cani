@@ -31,22 +31,21 @@ fixture(){
   test "${fixture:?}" == "$( cat "$FIXTURES/$1" )"
 }
 
-# Removes the db to start fresh 
-# Not called for all tests, but when no duplicate uuids are expected this is called
-cleanup(){ rm -rf testdb.json; }
+# functions to deploy various fixtures with different scenarios
+cleanup(){ rm -f canitest.*; }
+canitest_valid_active(){ cp "$FIXTURES"/cani/configs/canitest_valid_active.yml .; }
+canitest_valid_inactive(){ cp "$FIXTURES"/cani/configs/canitest_valid_inactive.yml  .; }
+canitest_invalid_datastore_path(){ cp "$FIXTURES"/cani/configs/canitest_invalid_datastore_path.yml .; }
+canitest_invalid_log_file_path(){ cp "$FIXTURES"/cani/configs/canitest_invalid_log_file_path.yml .; }
+canitest_invalid_provider(){ cp "$FIXTURES"/cani/configs/canitest_invalid_provider.yml .; }
+canitest_valid_empty_db(){ cp -f "$FIXTURES"/cani/configs/canitest_valid_empty_db.json .; }
+canitest_invalid_empty_db(){ cp -f "$FIXTURES"/cani/configs/canitest_invalid_empty_db.json .; }
+rm_canitest_valid_empty_db(){ rm -f canitest_valid_empty_db.json; }
 
 It '--help'
   When call bin/cani add --help
   The status should equal 0
   The stdout should satisfy fixture 'cani/add/help'
-End
-
-It '--database testdb.json'
-  BeforeCall 'cleanup' # Remove the db to start fresh
-  When call bin/cani add --database testdb.json --uuid abcdef12-3456-abcd-1234-abcdef123456
-  The status should equal 1
-  The line 1 of stdout should equal 'Error: No asset type specified.'
-  The line 1 of stderr should include '"message":"testdb.json does not exist, creating default database"'
 End
 
 End

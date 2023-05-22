@@ -14,7 +14,7 @@ import (
 
 func init() {
 	// Create or load a yaml config and the database
-	cobra.OnInitialize(initConfig)
+	cobra.OnInitialize(initConfig, setupLogging)
 
 	RootCmd.AddCommand(AddCmd)
 	RootCmd.AddCommand(ListCmd)
@@ -83,10 +83,8 @@ func loadConfigAndDomainOpts(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if Debug {
-		log.Info().Msgf("Loaded config file %s", cfgFile)
-		log.Info().Msgf("DomainOptions: %+v", Conf.Session.DomainOptions)
-		log.Info().Msgf("Session: %+v", Conf.Session.Active)
-		log.Info().Msgf("Session: %+v", Conf.Session.Domain)
+		log.Debug().Msgf("Loaded config file %s", cfgFile)
+		log.Debug().Msgf("Session: %+v", Conf.Session.Active)
 	}
 
 	return nil

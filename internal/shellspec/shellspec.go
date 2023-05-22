@@ -160,7 +160,6 @@ func (c CommandInfo) GenerateHelpFixtures() error {
 	// Set the output to the buffer
 	c.CobraCmd.SetOut(buf)
 
-	c.CobraCmd.SetArgs([]string{"--help"})
 	// Run the help command, capturing its output in buf
 	err := c.CobraCmd.Help()
 	if err != nil {

@@ -4,6 +4,7 @@ Usage:
   cani add pdu [flags]
 
 Flags:
+  -h, --help                   help for pdu
   -L, --list-supported-types   List supported hardware types.
 
 Global Flags:
