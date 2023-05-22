@@ -42,7 +42,7 @@ func BuildXname(cHardware inventory.Hardware, locationPath inventory.LocationPat
 	case xnametypes.{{$xnameType.Entry.Type}}:
 		return xnames.{{$xnameType.Entry.Type}}{
 			{{- range $i, $field := $xnameType.Fields }}
-			{{ $field }}: locationPath[{{$i}}].Ordinal,
+			{{ $field.Name }}: locationPath[{{$field.LocationIndex}}].Ordinal,
 			{{- end }}
 		}, nil
 {{- end }}

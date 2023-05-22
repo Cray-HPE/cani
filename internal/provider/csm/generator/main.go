@@ -29,44 +29,32 @@ import (
 	"os"
 	"os/exec"
 	"sort"
-	"strings"
 	"text/template"
 
 	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/Cray-HPE/hms-xname/xnametypes"
 )
 
+type XnameField struct {
+	Name          string
+	LocationIndex int
+}
+
 type XnameTypeNode struct {
 	Parent   *XnameTypeNode
 	Children []*XnameTypeNode
 
-	Entry                xnametypes.HMSCompRecognitionEntry
-	Fields               []string
-	FieldPlaceHolders    []string
-	FieldLocationIndexes []int
-
-	FunctionParameter string
+	Entry  xnametypes.HMSCompRecognitionEntry
+	Fields []XnameField
 }
 
 func main() {
-
-	// These are special or wildcards HMSTypes that should not be generated.
-	typesToIgnore := map[xnametypes.HMSType]bool{}
-	typesToIgnore[xnametypes.SMSBox] = true
-	typesToIgnore[xnametypes.Partition] = true
-	typesToIgnore[xnametypes.HMSTypeAll] = true
-	typesToIgnore[xnametypes.HMSTypeAllComp] = true
-	typesToIgnore[xnametypes.HMSTypeAllSvc] = true
 
 	//
 	// Build up XnameTypeNode
 	//
 	nodes := map[xnametypes.HMSType]*XnameTypeNode{}
 	for _, entry := range xnametypes.GetHMSCompRecognitionTable() {
-		if typesToIgnore[entry.Type] {
-			continue
-		}
-
 		if _, exists := nodes[entry.Type]; exists {
 			panic(fmt.Errorf("Error: entry type already exists: %v", entry))
 		}
@@ -108,12 +96,42 @@ func main() {
 	//
 	// Determine field names
 	//
-	for _, node := range nodes {
-		node.Fields = getFields(node)
-		node.FieldPlaceHolders = getFieldPlaceHolders(node)
+	for hmsType, node := range nodes {
+		if typeConverter, exists := csm.GetXnameTypeConverters()[hmsType]; exists {
+			// Only build the field data if we have a converter for it.
 
-		typeName := string(node.Entry.Type)
-		node.FunctionParameter = strings.ToLower(string(typeName[0])) + typeName[1:]
+			// Get the field names
+			fieldNames := getFields(node)
+
+			// Get the hardware path location ordinal to xname ordinal mapping
+			ordinalIndexMapping := typeConverter.GetOrdinalIndexMapping()
+
+			// Get the number of expected ordinals in the xname
+			_, expectedCount, err := xnametypes.GetHMSTypeFormatString(hmsType)
+			if err != nil {
+				panic(err)
+			}
+
+			// The number of field names needs to match the number of mappings
+			if expectedCount != len(fieldNames) {
+				fmt.Printf("Unexpected number of field names %d expected %d for %s\n", len(fieldNames), expectedCount, hmsType)
+				os.Exit(1)
+			}
+
+			// The number of field names needs to match the number of mappings
+			if expectedCount != len(ordinalIndexMapping) {
+				fmt.Printf("Unexpected number of ordinal mappings %d expected %d for %s\n", len(ordinalIndexMapping), expectedCount, hmsType)
+				os.Exit(1)
+			}
+
+			// Create the field list
+			for i := 0; i < expectedCount; i++ {
+				node.Fields = append(node.Fields, XnameField{
+					Name:          fieldNames[i],
+					LocationIndex: ordinalIndexMapping[i],
+				})
+			}
+		}
 	}
 
 	//
@@ -121,35 +139,23 @@ func main() {
 	// IE the System HMSType is generated first.
 	//
 	root := nodes[xnametypes.System]
-	typeNames := getTypeNames(root)
+	xnameTypes := getTypeNames(root)
 
-	xnameTypes := []*XnameTypeNode{}
-	for _, typeName := range typeNames {
-		// Lets filter out any types that haven't been added to the HMS Type to HTL Type table
-		if isHMSTypeConvertible(typeName) {
+	xnameTypeNodes := []*XnameTypeNode{}
+	for _, xnameType := range xnameTypes {
+		// Lets filter out any types that haven't an existing type converter
+		if _, exists := csm.GetXnameTypeConverters()[xnameType]; !exists {
 			continue
 		}
 
-		xnameTypes = append(xnameTypes, nodes[typeName])
+		xnameTypeNodes = append(xnameTypeNodes, nodes[xnameType])
 	}
 
 	//
 	// Template
 	//
-	templateFile("./generator/types_generated.go.tpl", "./types_generated.go", xnameTypes)
+	templateFile("./generator/types_generated.go.tpl", "./types_generated.go", xnameTypeNodes)
 
-}
-
-// IsHMSTypeConvertible returns true if the CSM Inventory provider is able to create a xname
-// from a CANI Inventory data. Currently not all xname types have a type converter implemented.
-func isHMSTypeConvertible(hmsType xnametypes.HMSType) bool {
-	for _, enhancedTypeConverters := range csm.GetXnameTypeConverters() {
-		if enhancedTypeConverters.HMSType == hmsType {
-			return true
-		}
-	}
-
-	return false
 }
 
 func getTypeNames(node *XnameTypeNode) []xnametypes.HMSType {
@@ -172,23 +178,6 @@ func getFields(node *XnameTypeNode) []string {
 	}
 
 	return append(getFields(node.Parent), string(node.Entry.Type))
-}
-
-func getFieldPlaceHolders(node *XnameTypeNode) []string {
-	if node == nil {
-		return nil
-	}
-
-	if node.Entry.Type == xnametypes.System {
-		return nil
-	}
-
-	// Get the last character of the example string.
-	// For example a CDUMgmtSwitch has dDwW, so the placeholder for the slot of a
-	// CDUMgmtSwitch would be wW
-	placeholder := node.Entry.ExampleString[len(node.Entry.ExampleString)-2:]
-
-	return append(getFieldPlaceHolders(node.Parent), placeholder)
 }
 
 func templateFile(sourceFilePath, destFilePath string, xnameTypes []*XnameTypeNode) {

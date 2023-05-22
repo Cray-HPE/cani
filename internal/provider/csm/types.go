@@ -36,26 +36,37 @@ import (
 
 // XnameOrdinal is the mapping between the ordinal withing an xname to a hardware type in a location path
 type XnameOrdinal struct {
-	HardwareType hardwaretypes.HardwareType
-	Index        int
+	HardwareType              hardwaretypes.HardwareType
+	HardwarePathLocationIndex int
 }
 type XnameConverter struct {
-	HMSType          xnametypes.HMSType
-	HardwareTypePath []XnameOrdinal
-	PropertyMatcher  func(cHardware inventory.Hardware) (bool, error) // IF nil, match all
+	XnameOrdinalMapping []XnameOrdinal
+	PropertyMatcher     func(cHardware inventory.Hardware) (bool, error) // IF nil, match all
 }
 
 func (xc *XnameConverter) GetHardwareTypePath() hardwaretypes.HardwareTypePath {
 	result := hardwaretypes.HardwareTypePath{}
-	for _, e := range xc.HardwareTypePath {
+	for _, e := range xc.XnameOrdinalMapping {
 		result = append(result, e.HardwareType)
 	}
 	return result
 }
 
+func (xc *XnameConverter) GetOrdinalIndexMapping() (result []int) {
+	for _, xnameOrdinal := range xc.XnameOrdinalMapping {
+		if xnameOrdinal.HardwarePathLocationIndex < 0 {
+			continue
+		}
+
+		result = append(result, xnameOrdinal.HardwarePathLocationIndex)
+	}
+
+	return result
+}
+
 func (xc *XnameConverter) Match(cHardware inventory.Hardware, locationPath inventory.LocationPath) (bool, error) {
 	// First check to see if this has a matching hardware type path
-	if xc.getHardwareTypePath().Key() != locationPath.GetHardwareTypePath().Key() {
+	if xc.GetHardwareTypePath().Key() != locationPath.GetHardwareTypePath().Key() {
 		return false, nil
 	}
 
@@ -68,70 +79,61 @@ func (xc *XnameConverter) Match(cHardware inventory.Hardware, locationPath inven
 	return true, nil
 }
 
-var enhancedTypeConverters = []xnameConverter{
-	{
-		HMSType: xnametypes.Cabinet,
-		HardwareTypePath: []XnameOrdinal{
+var enhancedTypeConverters = map[xnametypes.HMSType]XnameConverter{
+	xnametypes.Cabinet: {
+		XnameOrdinalMapping: []XnameOrdinal{
 			{hardwaretypes.HardwareTypeCabinet, 0},
 		},
 	},
-	{
-		HMSType: xnametypes.CEC,
-		HardwareTypePath: []XnameOrdinal{
+	xnametypes.CEC: {
+		XnameOrdinalMapping: []XnameOrdinal{
 			{hardwaretypes.HardwareTypeCabinet, 0},
 			{hardwaretypes.HardwareTypeCabinetEnvironmentalController, 1},
 		},
 	},
-	{
-		HMSType: xnametypes.CabinetPDUController,
-		HardwareTypePath: []XnameOrdinal{
+	xnametypes.CabinetPDUController: {
+		XnameOrdinalMapping: []XnameOrdinal{
 			{hardwaretypes.HardwareTypeCabinet, 0},
 			{hardwaretypes.HardwareTypeCabinetPDUController, 1},
 		},
 	},
-	{
-		HMSType: xnametypes.CabinetPDU,
-		HardwareTypePath: []XnameOrdinal{
+	xnametypes.CabinetPDU: {
+		XnameOrdinalMapping: []XnameOrdinal{
 			{hardwaretypes.HardwareTypeCabinet, 0},
 			{hardwaretypes.HardwareTypeCabinetPDUController, 1},
 			{hardwaretypes.HardwareTypeCabinetPDU, 2},
 		},
 	},
-	{
-		HMSType: xnametypes.Chassis,
-		HardwareTypePath: []XnameOrdinal{
+	xnametypes.Chassis: {
+		XnameOrdinalMapping: []XnameOrdinal{
 			{hardwaretypes.HardwareTypeCabinet, 0},
 			{hardwaretypes.HardwareTypeChassis, 1},
 		},
 	},
-	{
-		HMSType: xnametypes.ChassisBMC,
-		HardwareTypePath: []XnameOrdinal{
+	xnametypes.ChassisBMC: {
+		XnameOrdinalMapping: []XnameOrdinal{
 			{hardwaretypes.HardwareTypeCabinet, 0},
 			{hardwaretypes.HardwareTypeChassis, 1},
 			{hardwaretypes.HardwareTypeChassis, 2},
 		},
 	},
-	{
-		HMSType: xnametypes.ComputeModule,
-		HardwareTypePath: []XnameOrdinal{
+	xnametypes.ComputeModule: {
+		XnameOrdinalMapping: []XnameOrdinal{
 			{hardwaretypes.HardwareTypeCabinet, 0},
 			{hardwaretypes.HardwareTypeChassis, 1},
 			{hardwaretypes.HardwareTypeNodeBlade, 2},
 		},
 	},
-	{
-		HMSType: xnametypes.NodeEnclosure,
-		HardwareTypePath: []XnameOrdinal{
+	xnametypes.NodeEnclosure: {
+		XnameOrdinalMapping: []XnameOrdinal{
 			{hardwaretypes.HardwareTypeCabinet, 0},
 			{hardwaretypes.HardwareTypeChassis, 1},
 			{hardwaretypes.HardwareTypeNodeBlade, 2},
 			{hardwaretypes.HardwareTypeNodeCard, 3},
 		},
 	},
-	{
-		HMSType: xnametypes.NodeBMC,
-		HardwareTypePath: []XnameOrdinal{
+	xnametypes.NodeBMC: {
+		XnameOrdinalMapping: []XnameOrdinal{
 			{hardwaretypes.HardwareTypeCabinet, 0},
 			{hardwaretypes.HardwareTypeChassis, 1},
 			{hardwaretypes.HardwareTypeNodeBlade, 2},
@@ -139,9 +141,8 @@ var enhancedTypeConverters = []xnameConverter{
 			{hardwaretypes.HardwareTypeNodeController, -1},
 		},
 	},
-	{
-		HMSType: xnametypes.Node,
-		HardwareTypePath: []XnameOrdinal{
+	xnametypes.Node: {
+		XnameOrdinalMapping: []XnameOrdinal{
 			{hardwaretypes.HardwareTypeCabinet, 0},
 			{hardwaretypes.HardwareTypeChassis, 1},
 			{hardwaretypes.HardwareTypeNodeBlade, 2},
@@ -149,17 +150,15 @@ var enhancedTypeConverters = []xnameConverter{
 			{hardwaretypes.HardwareTypeNode, 4},
 		},
 	},
-	{
-		HMSType: xnametypes.RouterModule,
-		HardwareTypePath: []XnameOrdinal{
+	xnametypes.RouterModule: {
+		XnameOrdinalMapping: []XnameOrdinal{
 			{hardwaretypes.HardwareTypeCabinet, 0},
 			{hardwaretypes.HardwareTypeChassis, 1},
 			{hardwaretypes.HardwareTypeHighSpeedSwitchEnclosure, 2},
 		},
 	},
-	{
-		HMSType: xnametypes.RouterBMC,
-		HardwareTypePath: []XnameOrdinal{
+	xnametypes.RouterBMC: {
+		XnameOrdinalMapping: []XnameOrdinal{
 			{hardwaretypes.HardwareTypeCabinet, 0},
 			{hardwaretypes.HardwareTypeChassis, 1},
 			{hardwaretypes.HardwareTypeHighSpeedSwitchEnclosure, 2},
@@ -168,9 +167,8 @@ var enhancedTypeConverters = []xnameConverter{
 		},
 	},
 
-	{
-		HMSType: xnametypes.MgmtSwitch,
-		HardwareTypePath: []XnameOrdinal{
+	xnametypes.MgmtSwitch: {
+		XnameOrdinalMapping: []XnameOrdinal{
 			{hardwaretypes.HardwareTypeCabinet, 0},
 			{hardwaretypes.HardwareTypeChassis, 1},
 			{hardwaretypes.HardwareTypeManagementSwitchEnclosure, 2},
@@ -188,9 +186,8 @@ var enhancedTypeConverters = []xnameConverter{
 		},
 	},
 
-	{
-		HMSType: xnametypes.MgmtHLSwitchEnclosure,
-		HardwareTypePath: []XnameOrdinal{
+	xnametypes.MgmtHLSwitchEnclosure: {
+		XnameOrdinalMapping: []XnameOrdinal{
 			{hardwaretypes.HardwareTypeCabinet, 0},
 			{hardwaretypes.HardwareTypeChassis, 1},
 			{hardwaretypes.HardwareTypeManagementSwitchEnclosure, 2},
@@ -206,9 +203,8 @@ var enhancedTypeConverters = []xnameConverter{
 			return false, nil
 		},
 	},
-	{
-		HMSType: xnametypes.MgmtHLSwitch,
-		HardwareTypePath: []XnameOrdinal{
+	xnametypes.MgmtHLSwitch: {
+		XnameOrdinalMapping: []XnameOrdinal{
 			{hardwaretypes.HardwareTypeCabinet, 0},
 			{hardwaretypes.HardwareTypeChassis, 1},
 			{hardwaretypes.HardwareTypeManagementSwitchEnclosure, 2},
@@ -226,15 +222,13 @@ var enhancedTypeConverters = []xnameConverter{
 		},
 	},
 
-	{
-		HMSType: xnametypes.CDU,
-		HardwareTypePath: []XnameOrdinal{
+	xnametypes.CDU: {
+		XnameOrdinalMapping: []XnameOrdinal{
 			{hardwaretypes.HardwareTypeCoolingDistributionUnit, 0},
 		},
 	},
-	{
-		HMSType: xnametypes.CDUMgmtSwitch,
-		HardwareTypePath: []XnameOrdinal{
+	xnametypes.CDUMgmtSwitch: {
+		XnameOrdinalMapping: []XnameOrdinal{
 			{hardwaretypes.HardwareTypeCoolingDistributionUnit, 0},
 			{hardwaretypes.HardwareTypeManagementSwitchEnclosure, 1},
 			{hardwaretypes.HardwareTypeManagementSwitch, -1},
@@ -242,19 +236,19 @@ var enhancedTypeConverters = []xnameConverter{
 	},
 }
 
-func GetXnameTypeConverters() []XnameConverter {
+func GetXnameTypeConverters() map[xnametypes.HMSType]XnameConverter {
 	return enhancedTypeConverters
 }
 
 func GetHMSType(cHardware inventory.Hardware, locationPath inventory.LocationPath) (xnametypes.HMSType, error) {
-	for _, enhancedTypeConverter := range enhancedTypeConverters {
+	for hmsType, enhancedTypeConverter := range enhancedTypeConverters {
 		match, err := enhancedTypeConverter.Match(cHardware, locationPath)
 		if err != nil {
 			return xnametypes.HMSTypeInvalid, err
 		}
 
 		if match {
-			return enhancedTypeConverter.HMSType, nil
+			return hmsType, nil
 		}
 	}
 
