@@ -31,8 +31,8 @@ import (
 // RemoveChassisCmd represents the chassis remove command
 var RemoveChassisCmd = &cobra.Command{
 	Use:   "chassis",
-	Short: "Remove chassiss from the inventory.",
-	Long:  `Remove chassiss from the inventory.`,
+	Short: "Remove chassis from the inventory.",
+	Long:  `Remove chassis from the inventory.`,
 	Args:  cobra.ArbitraryArgs,
 	RunE:  removeChassis,
 }

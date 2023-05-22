@@ -34,8 +34,8 @@ import (
 // AddChassisCmd represents the chassis add command
 var AddChassisCmd = &cobra.Command{
 	Use:               "chassis",
-	Short:             "Add chassiss to the inventory.",
-	Long:              `Add chassiss to the inventory.`,
+	Short:             "Add chassis to the inventory.",
+	Long:              `Add chassis to the inventory.`,
 	PersistentPreRunE: session.DatastoreExists, // A session must be active to write to a datastore
 	Args:              validHardware,           // Hardware can only be valid if defined in the hardware library
 	RunE:              addChassis,              // Add a chassis when this sub-command is called

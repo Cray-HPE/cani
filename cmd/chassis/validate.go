@@ -17,7 +17,7 @@ func validHardware(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Get the list of hardware types that are chassiss
+	// Get the list of hardware types that are chassis
 	deviceTypes := library.GetDeviceTypesByHardwareType(hardwaretypes.HardwareTypeChassis)
 	if cmd.Flags().Changed("list-supported-types") {
 		for _, hw := range deviceTypes {

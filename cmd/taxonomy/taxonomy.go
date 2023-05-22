@@ -7,6 +7,7 @@ import (
 const (
 	App              = "cani"
 	DsFile           = App + "db.json"
+	LogFile          = App + "db.log"
 	CfgFile          = App + ".yml"
 	CfgDir           = "." + App
 	SessionExt       = ".session"

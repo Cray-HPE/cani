@@ -26,8 +26,8 @@ package main
 import (
 	"github.com/Cray-HPE/cani/cmd"
 	_ "github.com/Cray-HPE/cani/cmd/blade"
-
 	_ "github.com/Cray-HPE/cani/cmd/cabinet"
+	_ "github.com/Cray-HPE/cani/cmd/cdu"
 	_ "github.com/Cray-HPE/cani/cmd/chassis"
 	_ "github.com/Cray-HPE/cani/cmd/config"
 	_ "github.com/Cray-HPE/cani/cmd/node"

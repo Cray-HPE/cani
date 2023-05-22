@@ -21,6 +21,7 @@ var SessionStatusCmd = &cobra.Command{
 func showSession(cmd *cobra.Command, args []string) error {
 	ds := root.Conf.Session.DomainOptions.DatastorePath
 	provider := root.Conf.Session.DomainOptions.Provider
+	conf := root.RootCmd.Flag("config").Value.String()
 
 	// If the session is active, check that the datastore exists
 	if root.Conf.Session.Active {
@@ -28,6 +29,7 @@ func showSession(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("Session is ACTIVE with provider '%s' but datastore '%s' does not exist", provider, ds)
 		}
+		log.Info().Msgf("See %s for session details", conf)
 		log.Info().Msgf("Session is ACTIVE")
 	} else {
 		log.Info().Msgf("Session is INACTIVE")

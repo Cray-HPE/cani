@@ -39,13 +39,13 @@ import (
 // ListChassisCmd represents the chassis list command
 var ListChassisCmd = &cobra.Command{
 	Use:   "chassis",
-	Short: "List chassiss in the inventory.",
-	Long:  `List chassiss in the inventory.`,
+	Short: "List chassis in the inventory.",
+	Long:  `List chassis in the inventory.`,
 	Args:  cobra.ArbitraryArgs,
 	RunE:  listChassis,
 }
 
-// listChassis lists chassiss in the inventory
+// listChassis lists chassis in the inventory
 func listChassis(cmd *cobra.Command, args []string) error {
 	// Create a domain object to interact with the datastore
 	d, err := domain.New(root.Conf.Session.DomainOptions)
@@ -58,7 +58,7 @@ func listChassis(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	// Filter the inventory to only chassiss
+	// Filter the inventory to only chassis
 	filtered := make(map[uuid.UUID]inventory.Hardware, 0)
 	for key, hw := range inv.Hardware {
 		if hw.Type == hardwaretypes.HardwareTypeChassis {

@@ -20,18 +20,19 @@ type Config struct {
 
 // InitConfig creates a default config file if one does not exist
 func InitConfig(cfg string) (err error) {
+	// Create the directory if it doesn't exist
+	configDir := filepath.Dir(cfg)
+	if _, err := os.Stat(configDir); os.IsNotExist(err) {
+		err = os.Mkdir(configDir, 0755)
+		if err != nil {
+			return errors.New(fmt.Sprintf("Error creating config directory: %s", err))
+		}
+	}
+	tl := filepath.Join(configDir, taxonomy.LogFile)
+
 	// Write a default config file if it doesn't exist
 	if _, err := os.Stat(cfg); os.IsNotExist(err) {
 		log.Info().Msg(fmt.Sprintf("%s does not exist, creating default config file", cfg))
-
-		// Create the directory if it doesn't exist
-		configDir := filepath.Dir(cfg)
-		if _, err := os.Stat(configDir); os.IsNotExist(err) {
-			err = os.Mkdir(configDir, 0755)
-			if err != nil {
-				return errors.New(fmt.Sprintf("Error creating config directory: %s", err))
-			}
-		}
 
 		// Create a config with default values since one does not exist
 		conf := &Config{
@@ -39,6 +40,7 @@ func InitConfig(cfg string) (err error) {
 				DomainOptions: &domain.NewOpts{
 					Provider:      "csm",
 					DatastorePath: filepath.Join(configDir, taxonomy.DsFile),
+					LogFilePath:   tl,
 				},
 			},
 		}

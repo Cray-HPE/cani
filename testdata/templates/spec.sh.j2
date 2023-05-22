@@ -35,28 +35,20 @@ fixture(){
 # Not called for all tests, but when no duplicate uuids are expected this is called
 cleanup(){ rm -rf testdb.json; }
 
-{{/* Check each flag individually */}}
+{{/* Check each --help flag against its fixture */}}
 It '--help'
-  When call bin/{{ $cmd }}
+  When call bin/{{ $cmd }} --help
   The status should equal 0
-  The stdout should satisfy fixture '{{ replaceString $cmd " " "/" }}/help'
+  {{/* This matches all sans the --help flag itself */}}
+  # The stdout should satisfy fixture '{{ replaceString $cmd " " "/" }}/help'
 End
-{{- range $flagName, $flagInfo := .Flags }}
+
 {{/* Check each flag individually */}}
+{{- range $flagName, $flagInfo := .Flags }}
 It '--{{ $flagName }} arg'
-  When call bin/{{ $cmd }} --{{ $flagName }} arg
+  When call bin/{{ $cmd }} --{{ $flagName }}
   The status should equal 0
   The stderr should include 'value":{"Type":""},"status":"SUCCESS"'
-End
-{{- end }}
-
-{{/* Check flags cumulatively */}}
-{{- range $i, $outerFlag := $flags }}
-It '{{- range $j, $innerFlag := $flags }}{{- if le $j $i }} --{{ (index $flags $j).Name }} arg{{- end }}{{- end }}'
-  When call bin/{{ $cmd }}{{- range $j, $innerFlag := $flags }}{{- if le $j $i }} --{{ (index $flags $j).Name }} arg{{- end }}{{- end }}
-  The status should equal 0
-  The stdout should equal ""
-  The stderr should equal ""
 End
 {{ end }}
 

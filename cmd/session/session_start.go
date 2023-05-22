@@ -31,6 +31,7 @@ var (
 // startSession starts a session if one does not exist
 func startSession(cmd *cobra.Command, args []string) error {
 	ds := root.Conf.Session.DomainOptions.DatastorePath
+	logfile := root.Conf.Session.DomainOptions.LogFilePath
 	provider := root.Conf.Session.DomainOptions.Provider
 
 	// If a session is already active, there is nothing to do
@@ -39,7 +40,7 @@ func startSession(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 	// If a session is not active, create one
-	_, err := inventory.NewDatastoreJSON(ds)
+	_, err := inventory.NewDatastoreJSON(ds, logfile)
 	if err != nil {
 		return err
 	}
