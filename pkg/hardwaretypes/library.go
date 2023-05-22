@@ -92,7 +92,7 @@ func NewEmbeddedLibrary() (*Library, error) {
 	// Parse hardware type files
 	for _, file := range files {
 		filePath := path.Join(basePath, file.Name())
-		log.Debug().Msgf("Parsing file:", filePath)
+		log.Debug().Msgf("Parsing file: %s", filePath)
 
 		fileRaw, err := defaultHardwareTypesFS.ReadFile(filePath)
 		if err != nil {
@@ -105,7 +105,7 @@ func NewEmbeddedLibrary() (*Library, error) {
 		}
 
 		for _, deviceType := range fileDeviceTypes {
-			log.Debug().Msgf("Registering device type:", deviceType.Slug)
+			log.Debug().Msgf("Registering device type: %s", deviceType.Slug)
 			if err := library.RegisterDeviceType(deviceType); err != nil {
 				return nil, errors.Join(
 					fmt.Errorf("failed to register device type '%s'", deviceType.Slug),

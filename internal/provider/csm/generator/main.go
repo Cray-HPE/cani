@@ -40,9 +40,10 @@ type XnameTypeNode struct {
 	Parent   *XnameTypeNode
 	Children []*XnameTypeNode
 
-	Entry             xnametypes.HMSCompRecognitionEntry
-	Fields            []string
-	FieldPlaceHolders []string
+	Entry                xnametypes.HMSCompRecognitionEntry
+	Fields               []string
+	FieldPlaceHolders    []string
+	FieldLocationIndexes []int
 
 	FunctionParameter string
 }
@@ -125,7 +126,7 @@ func main() {
 	xnameTypes := []*XnameTypeNode{}
 	for _, typeName := range typeNames {
 		// Lets filter out any types that haven't been added to the HMS Type to HTL Type table
-		if _, exists := csm.GetHardwareTypePath(typeName); !exists {
+		if isHMSTypeConvertible(typeName) {
 			continue
 		}
 
@@ -137,6 +138,18 @@ func main() {
 	//
 	templateFile("./generator/types_generated.go.tpl", "./types_generated.go", xnameTypes)
 
+}
+
+// IsHMSTypeConvertible returns true if the CSM Inventory provider is able to create a xname
+// from a CANI Inventory data. Currently not all xname types have a type converter implemented.
+func isHMSTypeConvertible(hmsType xnametypes.HMSType) bool {
+	for _, enhancedTypeConverters := range csm.GetXnameTypeConverters() {
+		if enhancedTypeConverters.HMSType == hmsType {
+			return true
+		}
+	}
+
+	return false
 }
 
 func getTypeNames(node *XnameTypeNode) []xnametypes.HMSType {

@@ -26,21 +26,27 @@ import "strings"
 
 type HardwareType string
 
+// TODO should give a description of each of these
 const (
 	HardwareTypeCabinet                        HardwareType = "Cabinet"
 	HardwareTypeChassis                        HardwareType = "Chassis"
 	HardwareTypeChassisManagementModule        HardwareType = "ChassisManagementModule"
 	HardwareTypeCabinetEnvironmentalController HardwareType = "CabinetEnvironmentalController"
 	HardwareTypeNodeBlade                      HardwareType = "NodeBlade"
-	// HardwareTypeNodeBMC                        HardwareType = "NodeBMC" // TODO figure out the difference between a node card and BMC
-	HardwareTypeNodeCard                HardwareType = "NodeCard"
-	HardwareTypeNode                    HardwareType = "Node"
-	HardwareTypeManagementSwitch        HardwareType = "ManagementSwitch"
-	HardwareTypeHighSpeedSwitch         HardwareType = "HardwareTypeHighSpeedSwitch"
-	HardwareTypeHighSpeedSwitchBMC      HardwareType = "HardwareTypeHighSpeedSwitchBMC"
-	HardwareTypeCabinetPDUController    HardwareType = "CabinetPDUController"
-	HardwareTypePDU                     HardwareType = "PDU"
-	HardwareTypeCoolingDistributionUnit HardwareType = "CoolingDistributionUnit"
+	HardwareTypeNodeCard                       HardwareType = "NodeCard"       // TODO Change to enclosure?
+	HardwareTypeNodeController                 HardwareType = "NodeController" // A Node BMC is a child of a node card
+	HardwareTypeNode                           HardwareType = "Node"
+	HardwareTypeManagementSwitchEnclosure      HardwareType = "ManagementSwitchEnclosure"
+	HardwareTypeManagementSwitch               HardwareType = "ManagementSwitch"
+	HardwareTypeManagementSwitchController     HardwareType = "ManagementSwitchController"
+	HardwareTypeHighSpeedSwitchEnclosure       HardwareType = "HighSpeedSwitchEnclosure"
+	HardwareTypeHighSpeedSwitch                HardwareType = "HighSpeedSwitch"
+	HardwareTypeHighSpeedSwitchController      HardwareType = "HighSpeedSwitchController"
+	HardwareTypeCabinetPDUController           HardwareType = "CabinetPDUController"
+	HardwareTypeCabinetPDU                     HardwareType = "CabinetPDU"
+	HardwareTypeCoolingDistributionUnit        HardwareType = "CoolingDistributionUnit"
+
+	// TODO NEED TO COMEBACK ON IF SWITCHES NEED TO BE SEPARATE FOR HSN AND MANAGEMENT
 )
 
 type HardwareTypePath []HardwareType

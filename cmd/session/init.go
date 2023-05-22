@@ -9,6 +9,7 @@ func init() {
 	root.SessionCmd.AddCommand(SessionStartCmd)
 	root.SessionCmd.AddCommand(SessionStopCmd)
 	root.SessionCmd.AddCommand(SessionStatusCmd)
+	root.SessionCmd.AddCommand(SessionReconcileCmd)
 
 	// Session start flags
 }

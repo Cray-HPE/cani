@@ -248,7 +248,7 @@ func nodeBladeExample(library *hardwaretypes.Library) {
 	chassis := 1
 	slot := 7
 
-	deviceTypeSlug := "hpe-crayex-ex420-compute-blade"
+	deviceTypeSlug := "hpe-crayex-ex235a-compute-blade"
 
 	// TODO Interact with the inventory
 	// - Check to see if the cabinet exists
@@ -289,7 +289,11 @@ func commonLogic(library *hardwaretypes.Library, deviceTypeSlug string, deviceOr
 		childLocationPath := append(locationPath, childHardware.OrdinalPath...)
 
 		xname := buildXname(childHardwareTypePath, childLocationPath)
-		hardwareXnames = append(hardwareXnames, xname.String())
+		if xname != nil {
+			hardwareXnames = append(hardwareXnames, xname.String())
+		} else {
+			hardwareXnames = append(hardwareXnames, "n/a")
+		}
 	}
 
 	seperator := fmt.Sprintf("|%s|%s|%s|%s|%s|%s|%s|%s|", strings.Repeat("-", 40+1), strings.Repeat("-", 20+1), strings.Repeat("-", 60+1), strings.Repeat("-", 10+1), strings.Repeat("-", 40+1), strings.Repeat("-", 40+1), strings.Repeat("-", 45+1), strings.Repeat("-", 15+1))

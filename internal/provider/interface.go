@@ -1,5 +1,7 @@
 package provider
 
+import "github.com/Cray-HPE/cani/internal/inventory"
+
 // TODO Need to think about how internal data structures should be supplied to the Inventory Provider
 type InventoryProvider interface {
 	// Validate the external services of the inventory provider are correct
@@ -14,5 +16,5 @@ type InventoryProvider interface {
 	Import() error
 
 	// Reconcile CANI's inventory state with the external inventory state and apply required changes
-	Reconcile() error
+	Reconcile(data inventory.Inventory) error
 }

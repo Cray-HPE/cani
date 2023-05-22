@@ -42,7 +42,7 @@ func setupLogging() {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 		log.Debug().Msg("Debug logging enabled")
 		// include file and line number in debug output
-		log.Logger = log.With().Caller().Logger()
+		//log.Logger = log.With().Caller().Logger()
 	}
 }
 
@@ -78,6 +78,9 @@ func initConfig() {
 
 func loadConfigAndDomainOpts(cmd *cobra.Command, args []string) error {
 	var err error
+
+	setupLogging()
+
 	Conf, err = config.LoadConfig(cfgFile, Conf)
 	if err != nil {
 		return err

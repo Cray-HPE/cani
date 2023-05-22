@@ -1,5 +1,6 @@
 package domain
 
 func (d *Domain) Commit() error {
-	return d.externalInventoryProvider.Reconcile()
+	return nil
+	// return d.externalInventoryProvider.Reconcile()
 }
