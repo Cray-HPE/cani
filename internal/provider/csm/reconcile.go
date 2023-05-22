@@ -81,7 +81,7 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 			return err
 		}
 
-		log.Printf("  %-16s - %s\n", hardware.Xname, hardwareRaw)
+		log.Info().Msgf("  %-16s - %s\n", hardware.Xname, hardwareRaw)
 	}
 
 	log.Info().Msg("")
@@ -90,7 +90,7 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 		log.Info().Msg("  None")
 	}
 	for _, pair := range hardwareWithDifferingValues {
-		log.Printf("  %s\n", pair.Xname)
+		log.Info().Msgf("  %s\n", pair.Xname)
 
 		// Expected Hardware json
 		pair.HardwareA.LastUpdated = 0
@@ -99,7 +99,7 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 		if err != nil {
 			return err
 		}
-		log.Printf("  - Expected: %-16s\n", hardwareRaw)
+		log.Info().Msgf("  - Expected: %-16s\n", hardwareRaw)
 
 		// Actual Hardware json
 		pair.HardwareB.LastUpdated = 0
@@ -108,7 +108,7 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 		if err != nil {
 			return err
 		}
-		log.Printf("  - Actual:   %-16s\n", hardwareRaw)
+		log.Info().Msgf("  - Actual:   %-16s\n", hardwareRaw)
 	}
 
 	log.Info().Msg("")
@@ -122,7 +122,7 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 			return err
 		}
 
-		log.Printf("  %-16s - %s\n", hardware.Xname, hardwareRaw)
+		log.Info().Msgf("  %-16s - %s\n", hardware.Xname, hardwareRaw)
 	}
 
 	log.Info().Msg("")
@@ -136,7 +136,7 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 			return err
 		}
 
-		log.Printf("  %-16s - %s\n", hardware.Xname, hardwareRaw)
+		log.Info().Msgf("  %-16s - %s\n", hardware.Xname, hardwareRaw)
 	}
 
 	log.Info().Msg("")

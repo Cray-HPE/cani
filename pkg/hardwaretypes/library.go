@@ -31,6 +31,7 @@ import (
 	"path"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -162,12 +163,24 @@ type HardwareBuildOut struct {
 	ParentID         uuid.UUID
 	DeviceTypeString string
 	DeviceType       DeviceType
-	Path             []string // TODO remove
-	Ordinal          int      // TODO remove This can be grabbed by getting the last elemetry of the list
 	OrdinalPath      []int
-	HardwareTypePath []HardwareType
+	HardwareTypePath HardwareTypePath
 
 	// TODO perhaps the OrdinalPath and HardwareTypePath should maybe become there down struct and be paired together.
+}
+
+func (hbo *HardwareBuildOut) GetOrdinal() int {
+	return hbo.OrdinalPath[len(hbo.OrdinalPath)-1]
+}
+
+func (hbo *HardwareBuildOut) LocationPathString() string {
+	tokens := []string{}
+
+	for i, token := range hbo.HardwareTypePath {
+		tokens = append(tokens, fmt.Sprintf("%s:%d", token, hbo.OrdinalPath[i]))
+	}
+
+	return strings.Join(tokens, "->")
 }
 
 // TODO make this should work the inventory data structure
@@ -177,8 +190,6 @@ func (l *Library) GetDefaultHardwareBuildOut(deviceTypeString string, deviceOrdi
 			ID:               uuid.New(),
 			ParentID:         parentID,
 			DeviceTypeString: deviceTypeString,
-			Path:             []string{}, // This is the root of the path
-			Ordinal:          deviceOrdinal,
 			OrdinalPath:      []int{deviceOrdinal},
 		},
 	}
@@ -227,8 +238,6 @@ func (l *Library) GetDefaultHardwareBuildOut(deviceTypeString string, deviceOrdi
 					ID:               uuid.New(),
 					ParentID:         current.ID,
 					DeviceTypeString: deviceBay.Default.Slug,
-					Path:             append(current.Path, deviceBay.Name),
-					Ordinal:          ordinal,
 					OrdinalPath:      append(current.OrdinalPath, ordinal),
 					HardwareTypePath: current.HardwareTypePath,
 				})

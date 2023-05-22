@@ -56,7 +56,7 @@ func (htp HardwareTypePath) Key() string {
 	for _, element := range htp {
 		elements = append(elements, string(element))
 	}
-	return strings.Join(elements, ".")
+	return strings.Join(elements, "->")
 }
 
 type Airflow string

@@ -138,7 +138,7 @@ func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_common.SLSSt
 }
 
 func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.LocationPath) (sls_common.GenericHardware, error) {
-	log.Debug().Any("locationPath", locationPath).Msg("Location path")
+	log.Debug().Stringer("locationPath", locationPath).Msg("LocationPath")
 
 	// Get the physical location for the hardware
 	xname, err := BuildXname(cHardware, locationPath)
