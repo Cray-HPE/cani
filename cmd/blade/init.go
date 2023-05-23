@@ -8,6 +8,10 @@ var (
 	cabinet     int
 	chassis     int
 	slot        int
+	role        string
+	subrole     string
+	nid         string
+	alias       string
 	hwType      string
 	supportedHw []string
 	recursion   bool
@@ -31,6 +35,11 @@ func init() {
 
 	AddBladeCmd.Flags().IntVar(&slot, "slot", 1, "Parent slot")
 	// cobra.MarkFlagRequired(AddBladeCmd.Flags(), "slot")
+
+	AddBladeCmd.Flags().StringVar(&role, "role", "", "Role of the blade")
+	AddBladeCmd.Flags().StringVar(&subrole, "subrole", "", "Subrole of the blade")
+	AddBladeCmd.Flags().StringVar(&nid, "nid", "", "NID of the blade")
+	AddBladeCmd.Flags().StringVar(&alias, "alias", "", "Alias of the blade")
 
 	AddBladeCmd.MarkFlagsRequiredTogether("list-supported-types")
 	AddBladeCmd.MarkFlagsRequiredTogether("cabinet", "chassis", "slot")

@@ -27,6 +27,7 @@ import (
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/cmd/session"
 	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -49,8 +50,16 @@ func addBlade(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
+	// Create blade meteadata
+	blademeta := csm.BladeMeta{
+		Role:    role,
+		SubRole: subrole,
+		Alias:   alias,
+	}
+
 	// Remove the blade from the inventory using domain methods
-	err = d.AddBlade(args[0], cabinet, chassis, slot)
+	err = d.AddBlade(args[0], cabinet, chassis, slot, blademeta)
 	if err != nil {
 		return err
 	}

@@ -5,12 +5,14 @@ import (
 	"fmt"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 )
 
-func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal, slotOrdinal int) error {
+// FIXME: csm.BladeMeta should be a generic interface
+func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal, slotOrdinal int, bladeMeta csm.BladeMeta) error {
 	// Validate provided cabinet exists
 	// TODO
 
@@ -90,6 +92,12 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 
 		log.Info().Any("id", hardware.ID).Msg("Hardware")
 		log.Info().Str("path", hardwareBuildOut.LocationPathString()).Msg("Hardware Build out")
+
+		// FIXME: check if csm is the provider.  switch statement for other providers
+		hardware.Role = bladeMeta.Role
+		hardware.SubRole = bladeMeta.SubRole
+		hardware.Alias = bladeMeta.Alias
+		hardware.ProviderProperties = bladeMeta.AdditionalProperties
 
 		// TODO need a check to see if all the needed information exists,
 		// Things like role/subrole/nid/alias could be injected at a later time.

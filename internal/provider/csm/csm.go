@@ -24,6 +24,15 @@ type CSM struct {
 	// Clients
 	slsClient *sls_client.APIClient
 	hsmClient *hsm_client.APIClient
+	BladeMeta *BladeMeta
+}
+
+type BladeMeta struct {
+	Role                 string
+	SubRole              string
+	Nid                  string
+	Alias                string
+	AdditionalProperties map[string]interface{}
 }
 
 func New(opts NewOpts) (*CSM, error) {
