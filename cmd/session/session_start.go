@@ -26,9 +26,9 @@ var SessionStartCmd = &cobra.Command{
 }
 
 var (
-	cfgFile   string
-	ds        string
-	dopts     *domain.NewOpts
+	cfgFile string
+	ds      string
+	// dopts     *domain.NewOpts
 	provider  string
 	validArgs = []string{"csm"}
 )
@@ -60,6 +60,18 @@ func startSession(cmd *cobra.Command, args []string) error {
 	_, err := inventory.NewDatastoreJSON(ds, logfile)
 	if err != nil {
 		return err
+	}
+
+	// TODO This is probably not the right way todo this, but hopefully this will be easy way...
+	// Sorry Jacob
+	if useSimURLs, _ := cmd.Flags().GetBool("csm-sim-urls"); useSimURLs {
+		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlSLS = "https://localhost:8443/apis/sls/v1"
+		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlHSM = "https://localhost:8443/apis/smd/hsm/v2"
+		root.Conf.Session.DomainOptions.CsmOptions.InsecureSkipVerify = true
+	} else {
+		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlSLS, _ = cmd.Flags().GetString("csm-url-sls")
+		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlHSM, _ = cmd.Flags().GetString("csm-url-hsm")
+		root.Conf.Session.DomainOptions.CsmOptions.InsecureSkipVerify, _ = cmd.Flags().GetBool("csm-insecure-https")
 	}
 
 	root.Conf.Session.Domain, err = domain.New(root.Conf.Session.DomainOptions)
