@@ -64,12 +64,6 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 	}
 
 	//
-	// Presentation callback
-	//
-
-	// TODO
-
-	//
 	// Modify SLS
 	//
 
@@ -110,7 +104,7 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 				err,
 			)
 		}
-		log.Info().Int("status", r.StatusCode).Msg("Deleted hardware from SLS")
+		log.Info().Int("status", r.StatusCode).Msg("Added hardware from SLS")
 	}
 
 	// Update existing hardware
