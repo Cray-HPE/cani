@@ -1,6 +1,7 @@
 package csm
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,13 +9,15 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider/csm/sls"
+	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	sls_common "github.com/Cray-HPE/hms-sls/v2/pkg/sls-common"
 	"github.com/Cray-HPE/hms-xname/xnametypes"
+	"github.com/antihax/optional"
 	"github.com/rs/zerolog/log"
 )
 
 // Reconcile CANI's inventory state with the external inventory state and apply required changes
-func (csm *CSM) Reconcile(datastore inventory.Datastore) (err error) {
+func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (err error) {
 	// TODO should we have a presentation callback to confirm the removal of hardware?
 
 	log.Info().Msg("Starting CSM reconcile process")
@@ -77,7 +80,14 @@ func (csm *CSM) Reconcile(datastore inventory.Datastore) (err error) {
 		// TODO
 
 		// Perform a DELETE against SLS
-		// TODO
+		r, err := csm.slsClient.HardwareApi.HardwareXnameDelete(ctx, hardware.Xname)
+		if err != nil {
+			return errors.Join(
+				fmt.Errorf("failed to delete hardware (%s) from SLS", hardware.Xname),
+				err,
+			)
+		}
+		log.Info().Int("status", r.StatusCode).Msg("Deleted hardware from SLS")
 	}
 
 	// Add hardware new hardware
@@ -86,8 +96,21 @@ func (csm *CSM) Reconcile(datastore inventory.Datastore) (err error) {
 		// Put into transaction log with old and new value
 		// TODO
 
-		// Perform a DELETE against SLS
-		// TODO
+		// Perform a POST against SLS
+		_, r, err := csm.slsClient.HardwareApi.HardwarePost(ctx, &sls_client.HardwareApiHardwarePostOpts{
+			Body: optional.NewInterface(sls_client.HardwarePost{
+				Xname:           hardware.Xname,
+				Class:           (*sls_client.Hwclass)(&hardware.Class),
+				ExtraProperties: &sls_client.HardwareExtraProperties{},
+			}),
+		})
+		if err != nil {
+			return errors.Join(
+				fmt.Errorf("failed to delete hardware (%s) from SLS", hardware.Xname),
+				err,
+			)
+		}
+		log.Info().Int("status", r.StatusCode).Msg("Deleted hardware from SLS")
 	}
 
 	// Update existing hardware
