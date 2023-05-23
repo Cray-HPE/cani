@@ -21,9 +21,31 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-It 'list (with no args)'
-  When call bin/cani list
+
+Describe 'cani add cdu'
+# Fixtures location ./spec/fixtures
+FIXTURES="$SHELLSPEC_HELPERDIR/testdata/fixtures"
+
+# compare value to file content
+fixture(){
+  test "${fixture:?}" == "$( cat "$FIXTURES/$1" )"
+}
+
+# functions to deploy various fixtures with different scenarios
+cleanup(){ rm -f canitest.*; }
+canitest_valid_active(){ cp "$FIXTURES"/cani/configs/canitest_valid_active.yml .; }
+canitest_valid_inactive(){ cp "$FIXTURES"/cani/configs/canitest_valid_inactive.yml  .; }
+canitest_invalid_datastore_path(){ cp "$FIXTURES"/cani/configs/canitest_invalid_datastore_path.yml .; }
+canitest_invalid_log_file_path(){ cp "$FIXTURES"/cani/configs/canitest_invalid_log_file_path.yml .; }
+canitest_invalid_provider(){ cp "$FIXTURES"/cani/configs/canitest_invalid_provider.yml .; }
+canitest_valid_empty_db(){ cp -f "$FIXTURES"/cani/configs/canitest_valid_empty_db.json .; }
+canitest_invalid_empty_db(){ cp -f "$FIXTURES"/cani/configs/canitest_invalid_empty_db.json .; }
+rm_canitest_valid_empty_db(){ rm -f canitest_valid_empty_db.json; }
+
+It '--help'
+  When call bin/cani add cdu --help
   The status should equal 0
-  The stderr should include '"operation":"GET","key":"","value":"","status":"SUCCESS"'
-  The stdout should include '"Parent": "00000000-0000-0000-0000-000000000000"'
+  The stdout should satisfy fixture 'cani/add/cdu/help'
+End
+
 End

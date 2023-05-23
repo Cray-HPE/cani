@@ -4,6 +4,10 @@ import (
 	root "github.com/Cray-HPE/cani/cmd"
 )
 
+var (
+	commit bool
+)
+
 func init() {
 	// Add session commands to root commands
 	root.SessionCmd.AddCommand(SessionStartCmd)
@@ -11,5 +15,7 @@ func init() {
 	root.SessionCmd.AddCommand(SessionStatusCmd)
 	root.SessionCmd.AddCommand(SessionReconcileCmd)
 
-	// Session start flags
+	// Session stop flags
+	SessionStopCmd.Flags().BoolVarP(&commit, "commit", "c", false, "Commit changes to session")
+
 }

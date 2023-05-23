@@ -6,6 +6,7 @@ Usage:
 Flags:
       --cabinet int            Parent cabinet (default 1001)
       --chassis int            Parent chassis (default 7)
+  -h, --help                   help for blade
   -L, --list-supported-types   List supported hardware types.
       --slot int               Parent slot (default 1)
 

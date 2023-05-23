@@ -30,6 +30,7 @@ import (
 	"io"
 	"path"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -140,6 +141,10 @@ func (l *Library) GetDeviceTypesByHardwareType(hardwareType HardwareType) []Devi
 			result = append(result, deviceType)
 		}
 	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return strings.ToLower(result[i].Slug) < strings.ToLower(result[j].Slug)
+	})
 
 	return result
 }
