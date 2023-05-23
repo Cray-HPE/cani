@@ -120,6 +120,21 @@ func (dj *DatastoreJSON) Flush() error {
 	return nil
 }
 
+func (dj *DatastoreJSON) Validate() error {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
+
+	log.Warn().Msg("DatastoreJSON's Validate was called. This is not currently implemented")
+
+	// Verify all parent IDs are valid
+	// TOOD
+
+	// TODO think of other checks
+
+	// TODO for right now say everything is ok
+	return nil
+}
+
 func (dj *DatastoreJSON) Add(hardware *Hardware) error {
 	dj.inventoryLock.Lock()
 	defer dj.inventoryLock.Unlock()

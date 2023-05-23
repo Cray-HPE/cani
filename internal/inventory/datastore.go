@@ -16,6 +16,7 @@ type Datastore interface {
 	SetExternalInventoryProvider(provider ExternalInventoryProvider) error
 	GetExternalInventoryProvider() (ExternalInventoryProvider, error)
 	Flush() error
+	Validate() error
 
 	// Crud operations
 	Add(hardware *Hardware) error

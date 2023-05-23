@@ -50,13 +50,9 @@ func stopSession(cmd *cobra.Command, args []string) error {
 	}
 	if commit {
 		log.Info().Msgf("Committing changes to session")
-		inv, err := d.List()
-		if err != nil {
-			return err
-		}
 
 		// Commit the external inventory
-		err = d.Commit(inv)
+		err = d.Commit()
 		if err != nil {
 			return err
 		}
