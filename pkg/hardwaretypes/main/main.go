@@ -172,7 +172,7 @@ func commonLogic(library *hardwaretypes.Library, deviceTypeSlug string, deviceOr
 	fmt.Printf("| %-40s| %-20s| %-60s| %-10s| %-40s| %-40s| %-45s| %-15s|\n", "Hardware Type", "Manufacturer", "Model", "Ordinal", "Path", "Ordinal Path", "Hardware Type Path", "Xname")
 	fmt.Println(seperator)
 	for i, result := range allChildHardware {
-		fmt.Printf("| %-40s| %-20s| %-60s| %-10d| %-40s| %-40s| %-45s| %-15s|\n", result.DeviceType.HardwareType, result.DeviceType.Manufacturer, result.DeviceType.Model, result.Ordinal, strings.Join(result.Path, "->"), joinInts(result.OrdinalPath, "->"), joinHardwareTypes(result.HardwareTypePath, "->"), hardwareXnames[i])
+		fmt.Printf("| %-40s| %-20s| %-60s| %-10d| %-40s| %-40s| %-45s| %-15s|\n", result.DeviceType.HardwareType, result.DeviceType.Manufacturer, result.DeviceType.Model, 123, "n/a", joinInts(result.OrdinalPath, "->"), joinHardwareTypes(result.HardwareTypePath, "->"), hardwareXnames[i])
 	}
 	fmt.Println(seperator)
 
