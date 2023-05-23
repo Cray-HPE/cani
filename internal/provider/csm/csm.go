@@ -107,6 +107,9 @@ func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperti
 		if _, exists := cHardware.ProviderProperties["csm"]; exists {
 			// If one exists set it.
 			// TODO Depending on how the data is stored/unmarshalled this might be a map[string]interface{}, so using the mapstructure library might be required to get it into the struct form
+			// https://github.com/Cray-HPE/cani/blob/develop/internal/provider/csm/sls/hardware.go
+			// https://github.com/mitchellh/mapstructure
+
 			properties = cHardware.ProviderProperties["csm"].(NodeMetadata)
 		}
 
@@ -114,8 +117,10 @@ func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperti
 			properties.Role = role.(string)
 		}
 
-		return properties, nil
+		cHardware.ProviderProperties["csm"] = properties
+
+		return nil
 	}
 
-	return nil, fmt.Errorf("todo")
+	return fmt.Errorf("todo")
 }
