@@ -15,6 +15,7 @@ import (
 
 // Reconcile CANI's inventory state with the external inventory state and apply required changes
 func (csm *CSM) Reconcile(datastore inventory.Datastore) (err error) {
+	// TODO should we have a presentation callback to confirm the removal of hardware?
 
 	log.Info().Msg("Starting CSM reconcile process")
 
@@ -59,8 +60,45 @@ func (csm *CSM) Reconcile(datastore inventory.Datastore) (err error) {
 		return err
 	}
 
-	// Modify SLS
+	//
+	// Presentation callback
+	//
+
 	// TODO
+
+	//
+	// Modify SLS
+	//
+
+	// Remove hardware that no longer exists
+	for _, hardware := range hardwareRemoved {
+		log.Info().Str("xname", hardware.Xname).Msg("Removing")
+		// Put into transaction log with old and new value
+		// TODO
+
+		// Perform a DELETE against SLS
+		// TODO
+	}
+
+	// Add hardware new hardware
+	for _, hardware := range hardwareAdded {
+		log.Info().Str("xname", hardware.Xname).Msg("Adding")
+		// Put into transaction log with old and new value
+		// TODO
+
+		// Perform a DELETE against SLS
+		// TODO
+	}
+
+	// Update existing hardware
+	for _, hardware := range hardwareWithDifferingValues {
+		log.Info().Str("xname", hardware.Xname).Msg("Updating")
+		// Put into transaction log with old and new value
+		// TODO
+
+		// Perform a PUT against SLS
+		// TODO
+	}
 
 	return nil
 }
