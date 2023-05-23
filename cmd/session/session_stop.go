@@ -61,6 +61,11 @@ func stopSession(cmd *cobra.Command, args []string) error {
 	// "Deactivate" the session if the function has made it this far
 	root.Conf.Session.Active = false
 
+	err = SessionSummaryCmd.Execute()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

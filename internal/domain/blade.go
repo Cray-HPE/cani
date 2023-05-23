@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal, slotOrdinal int) error {
+func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal, slotOrdinal int) ([]hardwaretypes.HardwareBuildOut, error) {
 	// Validate provided cabinet exists
 	// TODO
 
@@ -24,7 +24,7 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 		LocationOrdinal: &cabinetOrdinal,
 	}
 	if err := d.datastore.Add(&cabinet); err != nil {
-		return errors.Join(
+		return nil, errors.Join(
 			fmt.Errorf("unable to add cabinet hardware"),
 			err,
 		)
@@ -40,7 +40,7 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 		LocationOrdinal: &slotOrdinal,
 	}
 	if err := d.datastore.Add(&chassis); err != nil {
-		return errors.Join(
+		return nil, errors.Join(
 			fmt.Errorf("unable to add chassis hardware"),
 			err,
 		)
@@ -55,16 +55,16 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 	// Verify the provided device type slug is a node blade
 	deviceType, err := d.hardwareTypeLibrary.GetDeviceType(deviceTypeSlug)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if deviceType.HardwareType != hardwaretypes.HardwareTypeNodeBlade {
-		return fmt.Errorf("provided device hardware type (%s) is not a node blade", deviceTypeSlug) // TODO better error message
+		return nil, fmt.Errorf("provided device hardware type (%s) is not a node blade", deviceTypeSlug) // TODO better error message
 	}
 
 	// Generate a hardware build out
 	hardwareBuildOutItems, err := d.hardwareTypeLibrary.GetDefaultHardwareBuildOut(deviceTypeSlug, slotOrdinal, chassis.ID)
 	if err != nil {
-		return errors.Join(
+		return nil, errors.Join(
 			fmt.Errorf("unable to build default hardware build out for %s", deviceTypeSlug),
 			err,
 		)
@@ -88,15 +88,15 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 			Status: inventory.HardwareStatusStaged,
 		}
 
-		log.Info().Any("id", hardware.ID).Msg("Hardware")
-		log.Info().Str("path", hardwareBuildOut.LocationPathString()).Msg("Hardware Build out")
+		log.Debug().Any("id", hardware.ID).Msg("Hardware")
+		log.Debug().Str("path", hardwareBuildOut.LocationPathString()).Msg("Hardware Build out")
 
 		// TODO need a check to see if all the needed information exists,
 		// Things like role/subrole/nid/alias could be injected at a later time.
 		// Not sure how hard it would be to specify at this point in time.
 		// This command creates the physical information for a node, have another command for the logical part of the data
 		if err := d.datastore.Add(&hardware); err != nil {
-			return errors.Join(
+			return hardwareBuildOutItems, errors.Join(
 				fmt.Errorf("unable to add hardware to inventory datastore"),
 				err,
 			)
@@ -106,11 +106,11 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 		if err != nil {
 			panic(err)
 		}
-		log.Info().Str("path", l.String()).Msg("Datastore")
+		log.Debug().Str("path", l.String()).Msg("Datastore")
 
 	}
 
-	return d.datastore.Flush()
+	return hardwareBuildOutItems, d.datastore.Flush()
 }
 
 func (d *Domain) RemoveBlade(u uuid.UUID, recursion bool) error {
