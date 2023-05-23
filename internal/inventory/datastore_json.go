@@ -120,6 +120,21 @@ func (dj *DatastoreJSON) Flush() error {
 	return nil
 }
 
+func (dj *DatastoreJSON) Validate() error {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
+
+	log.Warn().Msg("DatastoreJSON's Validate was called. This is not currently implemented")
+
+	// Verify all parent IDs are valid
+	// TOOD
+
+	// TODO think of other checks
+
+	// TODO for right now say everything is ok
+	return nil
+}
+
 func (dj *DatastoreJSON) Add(hardware *Hardware) error {
 	dj.inventoryLock.Lock()
 	defer dj.inventoryLock.Unlock()
@@ -235,15 +250,49 @@ func (dj *DatastoreJSON) List() (Inventory, error) {
 	return *dj.inventory, nil
 }
 
-// Graph functions
-func (dj *DatastoreJSON) GetLocation(hardware Hardware) ([]LocationToken, error) {
+// GetLocation will follow the parent links up to the root node, which is signaled when a NIL parent UUID is found
+// This will either return a partial location path, or a full path up to a cabinet or CDU
+func (dj *DatastoreJSON) GetLocation(hardware Hardware) (LocationPath, error) {
 	dj.inventoryLock.RLock()
 	defer dj.inventoryLock.RUnlock()
 
-	return nil, fmt.Errorf("todo")
+	locationPath := LocationPath{}
+
+	// Follow the parent links up to the root node
+	currentHardwareID := hardware.ID
+	for currentHardwareID != uuid.Nil {
+		currentHardware, exists := dj.inventory.Hardware[currentHardwareID]
+		if !exists {
+			return nil, errors.Join(
+				fmt.Errorf("unable to find ancestor (%s) of (%s)", currentHardwareID, hardware.ID),
+				ErrHardwareNotFound,
+			)
+		}
+
+		// The inventory structure allows for hardware to have no location, and this is a valid state.
+		// Such as information has been obtained from a node, but it is missing geolocation
+		if currentHardware.LocationOrdinal == nil {
+			return nil, errors.Join(
+				fmt.Errorf("missing location ordinal in ancestor (%s) of (%s)", currentHardwareID, hardware.ID),
+				ErrHardwareMissingLocationOrdinal,
+			)
+		}
+
+		// Build up an element in the location path.
+		// Since the tree is being traversed bottom up, need to add each location token to the front of the slice
+		locationPath = append([]LocationToken{{
+			HardwareType: currentHardware.Type,
+			Ordinal:      *currentHardware.LocationOrdinal,
+		}}, locationPath...)
+
+		// Go the parent node next
+		currentHardwareID = currentHardware.Parent
+	}
+
+	return locationPath, nil
 
 }
-func (dj *DatastoreJSON) GetAtLocation(path []LocationToken) (Hardware, error) {
+func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 	dj.inventoryLock.RLock()
 	defer dj.inventoryLock.RUnlock()
 

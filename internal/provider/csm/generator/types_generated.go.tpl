@@ -25,21 +25,30 @@
 package csm
 
 import (
+	"fmt"
+
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/hms-xname/xnames"
 	"github.com/Cray-HPE/hms-xname/xnametypes"
 )
 
-func BuildXname(locationPath inventory.LocationPath) xnames.Xname {
-	switch GetHMSType(locationPath) {
+func BuildXname(cHardware inventory.Hardware, locationPath inventory.LocationPath) (xnames.Xname, error) {
+	hsmType, err :=  GetHMSType(cHardware, locationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	switch hsmType {
+	case xnametypes.HMSTypeInvalid:
+		return nil, nil 
 {{- range $xnameType := . }}
 	case xnametypes.{{$xnameType.Entry.Type}}:
 		return xnames.{{$xnameType.Entry.Type}}{
 			{{- range $i, $field := $xnameType.Fields }}
-			{{ $field }}: locationPath[{{$i}}].Ordinal,
+			{{ $field.Name }}: locationPath[{{$field.LocationIndex}}].Ordinal,
 			{{- end }}
-		}
+		}, nil
 {{- end }}
 	}
-	return nil
+	return nil, fmt.Errorf("unknown xnametype '%s'", hsmType.String())
 }

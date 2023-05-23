@@ -61,7 +61,7 @@ func listPdu(cmd *cobra.Command, args []string) error {
 	// Filter the inventory to only pdus
 	filtered := make(map[uuid.UUID]inventory.Hardware, 0)
 	for key, hw := range inv.Hardware {
-		if hw.Type == hardwaretypes.HardwareTypePDU {
+		if hw.Type == hardwaretypes.HardwareTypeCabinetPDU {
 			filtered[key] = hw
 		}
 	}

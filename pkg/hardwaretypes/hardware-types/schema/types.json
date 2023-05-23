@@ -12,13 +12,17 @@
                 "CabinetEnvironmentalController",
                 "NodeBlade",
                 "NodeCard",
-                "NodeBMC",
+                "NodeController",
                 "Node",
+                "ManagementSwitchEnclosure",
                 "ManagementSwitch",
-                "HighSpeedSwitchBlade",
+                "ManagementSwitchController",
+                "HighSpeedSwitchEnclosure",
                 "HighSpeedSwitch",
+                "HighSpeedSwitchController",
                 "CabinetPDUController",
-                "PDU"
+                "CabinetPDU",
+                "CoolingDistributionUnit"
             ] 
         }
     }

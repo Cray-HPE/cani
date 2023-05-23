@@ -94,7 +94,7 @@ func NewEmbeddedLibrary() (*Library, error) {
 	// Parse hardware type files
 	for _, file := range files {
 		filePath := path.Join(basePath, file.Name())
-		log.Debug().Msgf("Parsing file:", filePath)
+		log.Debug().Msgf("Parsing file: %s", filePath)
 
 		fileRaw, err := defaultHardwareTypesFS.ReadFile(filePath)
 		if err != nil {
@@ -107,7 +107,7 @@ func NewEmbeddedLibrary() (*Library, error) {
 		}
 
 		for _, deviceType := range fileDeviceTypes {
-			log.Debug().Msgf("Registering device type:", deviceType.Slug)
+			log.Debug().Msgf("Registering device type: %s", deviceType.Slug)
 			if err := library.RegisterDeviceType(deviceType); err != nil {
 				return nil, errors.Join(
 					fmt.Errorf("failed to register device type '%s'", deviceType.Slug),
@@ -168,12 +168,24 @@ type HardwareBuildOut struct {
 	ParentID         uuid.UUID
 	DeviceTypeString string
 	DeviceType       DeviceType
-	Path             []string // TODO remove
-	Ordinal          int      // TODO remove This can be grabbed by getting the last elemetry of the list
 	OrdinalPath      []int
-	HardwareTypePath []HardwareType
+	HardwareTypePath HardwareTypePath
 
 	// TODO perhaps the OrdinalPath and HardwareTypePath should maybe become there down struct and be paired together.
+}
+
+func (hbo *HardwareBuildOut) GetOrdinal() int {
+	return hbo.OrdinalPath[len(hbo.OrdinalPath)-1]
+}
+
+func (hbo *HardwareBuildOut) LocationPathString() string {
+	tokens := []string{}
+
+	for i, token := range hbo.HardwareTypePath {
+		tokens = append(tokens, fmt.Sprintf("%s:%d", token, hbo.OrdinalPath[i]))
+	}
+
+	return strings.Join(tokens, "->")
 }
 
 // TODO make this should work the inventory data structure
@@ -183,8 +195,6 @@ func (l *Library) GetDefaultHardwareBuildOut(deviceTypeString string, deviceOrdi
 			ID:               uuid.New(),
 			ParentID:         parentID,
 			DeviceTypeString: deviceTypeString,
-			Path:             []string{}, // This is the root of the path
-			Ordinal:          deviceOrdinal,
 			OrdinalPath:      []int{deviceOrdinal},
 		},
 	}
@@ -233,8 +243,6 @@ func (l *Library) GetDefaultHardwareBuildOut(deviceTypeString string, deviceOrdi
 					ID:               uuid.New(),
 					ParentID:         current.ID,
 					DeviceTypeString: deviceBay.Default.Slug,
-					Path:             append(current.Path, deviceBay.Name),
-					Ordinal:          ordinal,
 					OrdinalPath:      append(current.OrdinalPath, ordinal),
 					HardwareTypePath: current.HardwareTypePath,
 				})

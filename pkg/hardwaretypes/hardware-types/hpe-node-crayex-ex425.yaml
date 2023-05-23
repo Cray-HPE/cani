@@ -19,11 +19,12 @@ manufacturer: HPE
 model: EX425 AMD EPYC compute Blade, Windom Node Card (WNC)
 hardware-type: NodeCard
 slug: hpe-crayex-ex425-compute-blade-windom-node-card
-interfaces:
-  - name: BMC
-    type: 1000base-t
-    mgmt_only: true
 device-bays:
+  - name: BMC
+    allowed:
+      slug: [hpe-crayex-ex425-compute-blade-windom-node-bmc]
+    default:
+      slug: hpe-crayex-ex425-compute-blade-windom-node-bmc
   - name: Node 0
     allowed:
       slug: [hpe-crayex-ex425-compute-node]
@@ -34,6 +35,15 @@ device-bays:
       slug: [hpe-crayex-ex425-compute-node]
     default:
       slug: hpe-crayex-ex425-compute-node
+---
+manufacturer: HPE
+model: EX425 AMD EPYC compute Blade, Windom Node BMC
+hardware-type: NodeController
+slug: hpe-crayex-ex425-compute-blade-windom-node-bmc
+interfaces:
+  - name: BMC
+    type: 1000base-t
+    mgmt_only: true
 ---
 manufacturer: HPE
 model: EX425 AMD EPYC compute node

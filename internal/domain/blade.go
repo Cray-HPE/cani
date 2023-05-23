@@ -7,6 +7,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 )
 
 func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal, slotOrdinal int) error {
@@ -14,8 +15,25 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 	// TODO
 
 	// Validate provided chassis exists
+
+	// TODO this is just a stand in, just for testing
+	cabinet := inventory.Hardware{
+		ID:              uuid.New(),
+		Type:            hardwaretypes.HardwareTypeCabinet,
+		Status:          inventory.HardwareStatusProvisioned,
+		LocationOrdinal: &cabinetOrdinal,
+	}
+	if err := d.datastore.Add(&cabinet); err != nil {
+		return errors.Join(
+			fmt.Errorf("unable to add cabinet hardware"),
+			err,
+		)
+
+	}
+
 	// TODO this is just a stand in, just for testing
 	chassis := inventory.Hardware{
+		Parent:          cabinet.ID,
 		ID:              uuid.New(),
 		Type:            hardwaretypes.HardwareTypeChassis,
 		Status:          inventory.HardwareStatusProvisioned,
@@ -55,6 +73,9 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 	for _, hardwareBuildOut := range hardwareBuildOutItems {
 		// Generate the CANI hardware inventory version of the hardware build out data
 		// TODO
+
+		locationOrdinal := hardwareBuildOut.OrdinalPath[len(hardwareBuildOut.OrdinalPath)-1]
+
 		hardware := inventory.Hardware{
 			ID:     hardwareBuildOut.ID,
 			Parent: hardwareBuildOut.ParentID,
@@ -62,10 +83,13 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 			Vendor: hardwareBuildOut.DeviceType.Manufacturer,
 			Model:  hardwareBuildOut.DeviceType.Model,
 
-			LocationOrdinal: &hardwareBuildOut.Ordinal,
+			LocationOrdinal: &locationOrdinal,
 
 			Status: inventory.HardwareStatusStaged,
 		}
+
+		log.Info().Any("id", hardware.ID).Msg("Hardware")
+		log.Info().Str("path", hardwareBuildOut.LocationPathString()).Msg("Hardware Build out")
 
 		// TODO need a check to see if all the needed information exists,
 		// Things like role/subrole/nid/alias could be injected at a later time.
@@ -77,6 +101,13 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 				err,
 			)
 		}
+
+		l, err := d.datastore.GetLocation(hardware)
+		if err != nil {
+			panic(err)
+		}
+		log.Info().Str("path", l.String()).Msg("Datastore")
+
 	}
 
 	return d.datastore.Flush()

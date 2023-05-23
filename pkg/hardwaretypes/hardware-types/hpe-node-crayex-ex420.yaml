@@ -19,11 +19,12 @@ manufacturer: HPE
 model: EX420 Intel Xeon compute blade, Castle Node Card (CNC)
 hardware-type: NodeCard
 slug: hpe-crayex-ex420-compute-blade-castle-node-card
-interfaces:
-  - name: BMC
-    type: 1000base-t
-    mgmt_only: true
 device-bays:
+  - name: BMC
+    allowed:
+      slug: [hpe-crayex-ex420-compute-blade-castle-node-bmc]
+    default:
+      slug: hpe-crayex-ex420-compute-blade-castle-node-bmc
   - name: Node 0
     allowed:
       slug: [hpe-crayex-ex420-compute-node]
@@ -34,6 +35,15 @@ device-bays:
       slug: [hpe-crayex-ex420-compute-node]
     default:
       slug: hpe-crayex-ex420-compute-node
+---
+manufacturer: HPE
+model: EX420 Intel Xeon compute blade, Castle Node BMC
+hardware-type: NodeController
+slug: hpe-crayex-ex420-compute-blade-castle-node-bmc
+interfaces:
+  - name: BMC
+    type: 1000base-t
+    mgmt_only: true
 ---
 manufacturer: HPE
 model: EX420 Intel Xeon compute node

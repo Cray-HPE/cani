@@ -1,6 +1,9 @@
 package inventory
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
 )
@@ -35,7 +38,21 @@ type LocationToken struct {
 	Ordinal      int
 }
 
+func (lt *LocationToken) String() string {
+	return fmt.Sprintf("%s:%d", lt.HardwareType, lt.Ordinal)
+}
+
 type LocationPath []LocationToken
+
+func (lp LocationPath) String() string {
+	tokens := []string{}
+
+	for _, token := range lp {
+		tokens = append(tokens, token.String())
+	}
+
+	return strings.Join(tokens, "->")
+}
 
 func (lp LocationPath) GetHardwareTypePath() hardwaretypes.HardwareTypePath {
 	result := hardwaretypes.HardwareTypePath{}

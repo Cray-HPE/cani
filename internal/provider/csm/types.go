@@ -30,108 +30,228 @@ import (
 	"github.com/Cray-HPE/hms-xname/xnametypes"
 )
 
-var typeMapping = map[xnametypes.HMSType]hardwaretypes.HardwareTypePath{
-	xnametypes.Cabinet: {
-		hardwaretypes.HardwareTypeCabinet,
-	},
-	xnametypes.CEC: {
-		hardwaretypes.HardwareTypeCabinet,
-		hardwaretypes.HardwareTypeCabinetEnvironmentalController,
-	},
-	xnametypes.CabinetPDUController: {
-		hardwaretypes.HardwareTypeCabinet,
-		hardwaretypes.HardwareTypeCabinetPDUController,
-	},
-	xnametypes.CabinetPDU: {
-		hardwaretypes.HardwareTypeCabinet,
-		hardwaretypes.HardwareTypeCabinetPDUController,
-		hardwaretypes.HardwareTypePDU,
-	},
-	xnametypes.Chassis: {
-		hardwaretypes.HardwareTypeCabinet,
-		hardwaretypes.HardwareTypeChassis,
-	},
-	xnametypes.ChassisBMC: {
-		hardwaretypes.HardwareTypeCabinet,
-		hardwaretypes.HardwareTypeChassis,
-		hardwaretypes.HardwareTypeChassisManagementModule,
-	},
-	xnametypes.ComputeModule: {
-		hardwaretypes.HardwareTypeCabinet,
-		hardwaretypes.HardwareTypeChassis,
-		hardwaretypes.HardwareTypeNodeBlade,
-	},
-	xnametypes.NodeBMC: {
-		hardwaretypes.HardwareTypeCabinet,
-		hardwaretypes.HardwareTypeChassis,
-		hardwaretypes.HardwareTypeNodeBlade,
-		hardwaretypes.HardwareTypeNodeCard,
-	},
-	xnametypes.Node: {
-		hardwaretypes.HardwareTypeCabinet,
-		hardwaretypes.HardwareTypeChassis,
-		hardwaretypes.HardwareTypeNodeBlade,
-		hardwaretypes.HardwareTypeNodeCard,
-		hardwaretypes.HardwareTypeNode,
-	},
+//
+// Mapping between CANI Inventory Hardware types to CSM Xnames
+//
 
-	xnametypes.RouterModule: {
-		hardwaretypes.HardwareTypeCabinet,
-		hardwaretypes.HardwareTypeChassis,
-		hardwaretypes.HardwareTypeHighSpeedSwitch,
-	},
-	xnametypes.RouterBMC: {
-		hardwaretypes.HardwareTypeCabinet,
-		hardwaretypes.HardwareTypeChassis,
-		hardwaretypes.HardwareTypeHighSpeedSwitch,
-		hardwaretypes.HardwareTypeHighSpeedSwitchBMC,
-	},
-
-	// TODO additional context is required to determine between these two types
-	// xnametypes.MgmtSwitch: {
-	// 	hardwaretypes.HardwareTypeCabinet,
-	// 	hardwaretypes.HardwareTypeChassis,
-	// 	hardwaretypes.HardwareTypeManagementSwitch,
-	// },
-	// xnametypes.MgmtHLSwitch: {
-	// 	hardwaretypes.HardwareTypeCabinet,
-	// 	hardwaretypes.HardwareTypeChassis,
-	// 	hardwaretypes.HardwareTypeManagementSwitch,
-	// },
-
-	xnametypes.CDU: {
-		hardwaretypes.HardwareTypeCoolingDistributionUnit,
-	},
-	xnametypes.CDUMgmtSwitch: {
-		hardwaretypes.HardwareTypeCoolingDistributionUnit,
-		hardwaretypes.HardwareTypeManagementSwitch,
-	},
+// XnameOrdinal is the mapping between the ordinal withing an xname to a hardware type in a location path
+type XnameOrdinal struct {
+	HardwareType              hardwaretypes.HardwareType
+	HardwarePathLocationIndex int
+}
+type XnameConverter struct {
+	XnameOrdinalMapping []XnameOrdinal
+	PropertyMatcher     func(cHardware inventory.Hardware) (bool, error) // IF nil, match all
 }
 
-func buildhardwaretypestoHMSTypeMap() map[string]xnametypes.HMSType {
-	// Build lookup date from Hardware type path to hms-xname type
-	// TODO add a check to make sure that there is no overlapping data
-	// But need to take in account that MgmtSwitch and MgmtHLSwitch have the same
-	// hardware path, but the differance is in the switches roll.
-	result := map[string]xnametypes.HMSType{}
-	for hmsType, hardwaretypesTypePath := range typeMapping {
-		result[hardwaretypesTypePath.Key()] = hmsType
+func (xc *XnameConverter) GetHardwareTypePath() hardwaretypes.HardwareTypePath {
+	result := hardwaretypes.HardwareTypePath{}
+	for _, e := range xc.XnameOrdinalMapping {
+		result = append(result, e.HardwareType)
 	}
 	return result
 }
 
-var hardwaretypesToHMSType = buildhardwaretypestoHMSTypeMap()
+func (xc *XnameConverter) GetOrdinalIndexMapping() (result []int) {
+	for _, xnameOrdinal := range xc.XnameOrdinalMapping {
+		if xnameOrdinal.HardwarePathLocationIndex < 0 {
+			continue
+		}
 
-func GetHMSType(locationPath inventory.LocationPath) xnametypes.HMSType {
-	hmsType, exists := hardwaretypesToHMSType[locationPath.GetHardwareTypePath().Key()]
-	if !exists {
-		return xnametypes.HMSTypeInvalid
+		result = append(result, xnameOrdinal.HardwarePathLocationIndex)
 	}
 
-	return hmsType
+	return result
 }
 
-func GetHardwareTypePath(hmsType xnametypes.HMSType) (hardwaretypes.HardwareTypePath, bool) {
-	locationPath, exists := typeMapping[hmsType]
-	return locationPath, exists
+func (xc *XnameConverter) Match(cHardware inventory.Hardware, locationPath inventory.LocationPath) (bool, error) {
+	// First check to see if this has a matching hardware type path
+	if xc.GetHardwareTypePath().Key() != locationPath.GetHardwareTypePath().Key() {
+		return false, nil
+	}
+
+	// Next check to see extra properties match
+	if xc.PropertyMatcher != nil {
+		return xc.PropertyMatcher(cHardware)
+	}
+
+	// If we get to this point this is a match!
+	return true, nil
+}
+
+var enhancedTypeConverters = map[xnametypes.HMSType]XnameConverter{
+	xnametypes.Cabinet: {
+		XnameOrdinalMapping: []XnameOrdinal{
+			{hardwaretypes.HardwareTypeCabinet, 0},
+		},
+	},
+	xnametypes.CEC: {
+		XnameOrdinalMapping: []XnameOrdinal{
+			{hardwaretypes.HardwareTypeCabinet, 0},
+			{hardwaretypes.HardwareTypeCabinetEnvironmentalController, 1},
+		},
+	},
+	xnametypes.CabinetPDUController: {
+		XnameOrdinalMapping: []XnameOrdinal{
+			{hardwaretypes.HardwareTypeCabinet, 0},
+			{hardwaretypes.HardwareTypeCabinetPDUController, 1},
+		},
+	},
+	xnametypes.CabinetPDU: {
+		XnameOrdinalMapping: []XnameOrdinal{
+			{hardwaretypes.HardwareTypeCabinet, 0},
+			{hardwaretypes.HardwareTypeCabinetPDUController, 1},
+			{hardwaretypes.HardwareTypeCabinetPDU, 2},
+		},
+	},
+	xnametypes.Chassis: {
+		XnameOrdinalMapping: []XnameOrdinal{
+			{hardwaretypes.HardwareTypeCabinet, 0},
+			{hardwaretypes.HardwareTypeChassis, 1},
+		},
+	},
+	xnametypes.ChassisBMC: {
+		XnameOrdinalMapping: []XnameOrdinal{
+			{hardwaretypes.HardwareTypeCabinet, 0},
+			{hardwaretypes.HardwareTypeChassis, 1},
+			{hardwaretypes.HardwareTypeChassisManagementModule, 2},
+		},
+	},
+	xnametypes.ComputeModule: {
+		XnameOrdinalMapping: []XnameOrdinal{
+			{hardwaretypes.HardwareTypeCabinet, 0},
+			{hardwaretypes.HardwareTypeChassis, 1},
+			{hardwaretypes.HardwareTypeNodeBlade, 2},
+		},
+	},
+	xnametypes.NodeEnclosure: {
+		XnameOrdinalMapping: []XnameOrdinal{
+			{hardwaretypes.HardwareTypeCabinet, 0},
+			{hardwaretypes.HardwareTypeChassis, 1},
+			{hardwaretypes.HardwareTypeNodeBlade, 2},
+			{hardwaretypes.HardwareTypeNodeCard, 3},
+		},
+	},
+	xnametypes.NodeBMC: {
+		XnameOrdinalMapping: []XnameOrdinal{
+			{hardwaretypes.HardwareTypeCabinet, 0},
+			{hardwaretypes.HardwareTypeChassis, 1},
+			{hardwaretypes.HardwareTypeNodeBlade, 2},
+			{hardwaretypes.HardwareTypeNodeCard, 3},
+			{hardwaretypes.HardwareTypeNodeController, -1},
+		},
+	},
+	xnametypes.Node: {
+		XnameOrdinalMapping: []XnameOrdinal{
+			{hardwaretypes.HardwareTypeCabinet, 0},
+			{hardwaretypes.HardwareTypeChassis, 1},
+			{hardwaretypes.HardwareTypeNodeBlade, 2},
+			{hardwaretypes.HardwareTypeNodeCard, 3},
+			{hardwaretypes.HardwareTypeNode, 4},
+		},
+	},
+	xnametypes.RouterModule: {
+		XnameOrdinalMapping: []XnameOrdinal{
+			{hardwaretypes.HardwareTypeCabinet, 0},
+			{hardwaretypes.HardwareTypeChassis, 1},
+			{hardwaretypes.HardwareTypeHighSpeedSwitchEnclosure, 2},
+		},
+	},
+	xnametypes.RouterBMC: {
+		XnameOrdinalMapping: []XnameOrdinal{
+			{hardwaretypes.HardwareTypeCabinet, 0},
+			{hardwaretypes.HardwareTypeChassis, 1},
+			{hardwaretypes.HardwareTypeHighSpeedSwitchEnclosure, 2},
+			{hardwaretypes.HardwareTypeHighSpeedSwitch, -1},
+			{hardwaretypes.HardwareTypeHighSpeedSwitchController, 3},
+		},
+	},
+
+	xnametypes.MgmtSwitch: {
+		XnameOrdinalMapping: []XnameOrdinal{
+			{hardwaretypes.HardwareTypeCabinet, 0},
+			{hardwaretypes.HardwareTypeChassis, 1},
+			{hardwaretypes.HardwareTypeManagementSwitchEnclosure, 2},
+			{hardwaretypes.HardwareTypeManagementSwitch, -1},
+		},
+		PropertyMatcher: func(cHardware inventory.Hardware) (bool, error) {
+			// Decode the properties into a struct
+			// TODO
+
+			// Check for assigned switch role
+			// TODO if LeafBMC switch return true
+
+			// TODO For right now just do not match
+			return false, nil
+		},
+	},
+
+	xnametypes.MgmtHLSwitchEnclosure: {
+		XnameOrdinalMapping: []XnameOrdinal{
+			{hardwaretypes.HardwareTypeCabinet, 0},
+			{hardwaretypes.HardwareTypeChassis, 1},
+			{hardwaretypes.HardwareTypeManagementSwitchEnclosure, 2},
+		},
+		PropertyMatcher: func(cHardware inventory.Hardware) (bool, error) {
+			// Decode the properties into a struct
+			// TODO
+
+			// Check for assigned switch role
+			// TODO if not LeafBMC switch return true
+
+			// TODO For right now just do not match
+			return false, nil
+		},
+	},
+	xnametypes.MgmtHLSwitch: {
+		XnameOrdinalMapping: []XnameOrdinal{
+			{hardwaretypes.HardwareTypeCabinet, 0},
+			{hardwaretypes.HardwareTypeChassis, 1},
+			{hardwaretypes.HardwareTypeManagementSwitchEnclosure, 2},
+			{hardwaretypes.HardwareTypeManagementSwitch, 3},
+		},
+		PropertyMatcher: func(cHardware inventory.Hardware) (bool, error) {
+			// Decode the properties into a struct
+			// TODO
+
+			// Check for assigned switch role
+			// TODO if not LeafBMC switch return true
+
+			// TODO For right now just do not match
+			return false, nil
+		},
+	},
+
+	xnametypes.CDU: {
+		XnameOrdinalMapping: []XnameOrdinal{
+			{hardwaretypes.HardwareTypeCoolingDistributionUnit, 0},
+		},
+	},
+	xnametypes.CDUMgmtSwitch: {
+		XnameOrdinalMapping: []XnameOrdinal{
+			{hardwaretypes.HardwareTypeCoolingDistributionUnit, 0},
+			{hardwaretypes.HardwareTypeManagementSwitchEnclosure, 1},
+			{hardwaretypes.HardwareTypeManagementSwitch, -1},
+		},
+	},
+}
+
+func GetXnameTypeConverters() map[xnametypes.HMSType]XnameConverter {
+	return enhancedTypeConverters
+}
+
+func GetHMSType(cHardware inventory.Hardware, locationPath inventory.LocationPath) (xnametypes.HMSType, error) {
+	for hmsType, enhancedTypeConverter := range enhancedTypeConverters {
+		match, err := enhancedTypeConverter.Match(cHardware, locationPath)
+		if err != nil {
+			return xnametypes.HMSTypeInvalid, err
+		}
+
+		if match {
+			return hmsType, nil
+		}
+	}
+
+	// This piece of hardware does not have a corresponding xname
+	return xnametypes.HMSTypeInvalid, nil
 }

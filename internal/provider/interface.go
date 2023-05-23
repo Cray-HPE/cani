@@ -1,9 +1,6 @@
 package provider
 
-import (
-	"github.com/Cray-HPE/cani/internal/inventory"
-	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
-)
+import "github.com/Cray-HPE/cani/internal/inventory"
 
 // TODO Need to think about how internal data structures should be supplied to the Inventory Provider
 type InventoryProvider interface {
@@ -19,5 +16,5 @@ type InventoryProvider interface {
 	Import() error
 
 	// Reconcile CANI's inventory state with the external inventory state and apply required changes
-	Reconcile(inventory.Inventory, []sls_client.Hardware) ([]sls_client.Hardware, error)
+	Reconcile(datastore inventory.Datastore) error
 }

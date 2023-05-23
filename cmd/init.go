@@ -42,7 +42,7 @@ func setupLogging() {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 		log.Debug().Msg("Debug logging enabled")
 		// include file and line number in debug output
-		log.Logger = log.With().Caller().Logger()
+		//log.Logger = log.With().Caller().Logger()
 	}
 }
 
