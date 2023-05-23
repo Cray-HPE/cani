@@ -91,7 +91,9 @@ endif
 	version \
 	spec \
 	validate-hardware-type-schemas \
-	generate
+	generate \
+	generate-go \
+	generate-swagger
 
 all: bin
 
@@ -139,6 +141,11 @@ tools:
 	go install golang.org/x/lint/golint@latest
 	go install github.com/t-yuki/gocover-cobertura@latest
 	go install github.com/jstemmer/go-junit-report@latest
+	go install golang.org/x/tools/cmd/goimports@latest
+
+bin/swagger-codegen-cli.jar:
+	mkdir -p ./bin
+	wget https://repo1.maven.org/maven2/io/swagger/codegen/v3/swagger-codegen-cli/3.0.43/swagger-codegen-cli-3.0.43.jar -O bin/swagger-codegen-cli.jar
 
 vet: version
 	go vet -v ./...
@@ -157,8 +164,17 @@ env:
 tidy:
 	go mod tidy
 
-generate:
+generate-go:
 	go generate ./...
+
+# Generate clients from the following swagger files:
+# System Layout Service: ./pkg/sls-client/openapi.yaml
+generate-swagger: bin/swagger-codegen-cli.jar
+	java -jar bin/swagger-codegen-cli.jar generate -i ./pkg/sls-client/openapi.yaml -l go -o ./pkg/sls-client/ -DpackageName=sls_client
+	go fmt ./pkg/sls-client/...
+	goimports -w ./pkg/sls-client
+
+generate: generate-go generate-swagger
 
 bin: generate
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o bin/${NAME} -ldflags "\
