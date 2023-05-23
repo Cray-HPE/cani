@@ -17,4 +17,8 @@ type InventoryProvider interface {
 
 	// Reconcile CANI's inventory state with the external inventory state and apply required changes
 	Reconcile(datastore inventory.Datastore) error
+
+	// Build metadata, and add ito the hardware object
+	// This function could return the data to put into object
+	BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperties map[string]interface{}) error
 }

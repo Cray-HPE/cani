@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	"github.com/hashicorp/go-retryablehttp"
@@ -24,10 +26,9 @@ type CSM struct {
 	// Clients
 	slsClient *sls_client.APIClient
 	hsmClient *hsm_client.APIClient
-	BladeMeta *BladeMeta
 }
 
-type BladeMeta struct {
+type NodeMetadata struct {
 	Role                 string
 	SubRole              string
 	Nid                  string
@@ -96,4 +97,25 @@ func (csm *CSM) ValidateInternal() error {
 func (csm *CSM) Import() error {
 	return fmt.Errorf("todo")
 
+}
+
+func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperties map[string]interface{}) error {
+	switch cHardware.Type {
+	case hardwaretypes.HardwareTypeNode:
+		// TODO do something interesting with the raw data, and convert it/validate it
+		properties := NodeMetadata{} // Create an empty one
+		if _, exists := cHardware.ProviderProperties["csm"]; exists {
+			// If one exists set it.
+			// TODO Depending on how the data is stored/unmarshalled this might be a map[string]interface{}, so using the mapstructure library might be required to get it into the struct form
+			properties = cHardware.ProviderProperties["csm"].(NodeMetadata)
+		}
+
+		if role, exists := rawProperties["role"]; exists {
+			properties.Role = role.(string)
+		}
+
+		return properties, nil
+	}
+
+	return nil, fmt.Errorf("todo")
 }
