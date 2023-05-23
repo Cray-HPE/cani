@@ -4,6 +4,7 @@ Usage:
   cani add switch [flags]
 
 Flags:
+  -h, --help                   help for switch
   -L, --list-supported-types   List supported hardware types.
 
 Global Flags:

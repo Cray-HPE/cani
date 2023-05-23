@@ -1,10 +1,14 @@
 package session
 
 import (
+	"fmt"
+	"os"
+
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/cmd/config"
 	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/manifoldco/promptui"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -16,6 +20,7 @@ var SessionStartCmd = &cobra.Command{
 	Long:               `Start a session.`,
 	Args:               validProvider,
 	ValidArgs:          validArgs,
+	SilenceUsage:       true, // Errors are more important than the usage
 	RunE:               startSession,
 	PersistentPostRunE: writeSession,
 }
@@ -34,10 +39,22 @@ func startSession(cmd *cobra.Command, args []string) error {
 	logfile := root.Conf.Session.DomainOptions.LogFilePath
 	provider := root.Conf.Session.DomainOptions.Provider
 
-	// If a session is already active, there is nothing to do
+	// If a session is already active, there is nothing to do but the user may want to overwrite the existing session
 	if root.Conf.Session.Active {
-		log.Info().Msgf("Session is already ACTIVE.  Nothing to do.")
-		return nil
+		log.Info().Msgf("Session is already ACTIVE.")
+		ds := root.Conf.Session.DomainOptions.DatastorePath
+		// Check if the json file exists
+		if _, err := os.Stat(ds); err == nil {
+			// If the json file exists, prompt user for overwrite
+			overwrite, err := promptForOverwrite(ds)
+			if err != nil {
+				return err
+			}
+			if !overwrite {
+				// User chose not to overwrite the file
+				os.Exit(0)
+			}
+		}
 	}
 	// If a session is not active, create one
 	_, err := inventory.NewDatastoreJSON(ds, logfile)
@@ -45,10 +62,11 @@ func startSession(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	root.Domain, err = domain.New(root.Conf.Session.DomainOptions)
+	root.Conf.Session.Domain, err = domain.New(root.Conf.Session.DomainOptions)
 	if err != nil {
 		return err
 	}
+
 	// "Activate" the session
 	root.Conf.Session.Active = true
 
@@ -65,4 +83,25 @@ func writeSession(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	return nil
+}
+
+func promptForOverwrite(path string) (bool, error) {
+	prompt := promptui.Prompt{
+		Label:     fmt.Sprintf("File %s already exists. Keep session active but overwrite the datastore", path),
+		IsConfirm: true,
+	}
+
+	_, err := prompt.Run()
+
+	if err != nil {
+		if err == promptui.ErrAbort {
+			// User chose not to overwrite the file
+			return false, nil
+		}
+		// An error occurred
+		return false, err
+	}
+
+	// User chose to overwrite the file
+	return true, nil
 }

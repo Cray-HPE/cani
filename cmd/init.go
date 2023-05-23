@@ -14,7 +14,7 @@ import (
 
 func init() {
 	// Create or load a yaml config and the database
-	cobra.OnInitialize(initConfig)
+	cobra.OnInitialize(initConfig, setupLogging)
 
 	RootCmd.AddCommand(AddCmd)
 	RootCmd.AddCommand(ListCmd)
@@ -69,7 +69,7 @@ func initConfig() {
 	}
 
 	// Load the configuration file
-	Conf, err = config.LoadConfig(cfgFile, Conf)
+	Conf, err = config.LoadConfig(cfgFile)
 	if err != nil {
 		log.Error().Msg(fmt.Sprintf("Error loading config file: %s", err))
 		os.Exit(1)
@@ -78,14 +78,13 @@ func initConfig() {
 
 func loadConfigAndDomainOpts(cmd *cobra.Command, args []string) error {
 	var err error
-	Conf, err = config.LoadConfig(cfgFile, Conf)
+	Conf, err = config.LoadConfig(cfgFile)
 	if err != nil {
 		return err
 	}
 	if Debug {
-		log.Info().Msgf("Loaded config file %s", cfgFile)
-		log.Info().Msgf("DomainOptions: %+v", Conf.Session.DomainOptions)
-		log.Info().Msgf("Session: %+v", Conf.Session.Active)
+		log.Debug().Msgf("Loaded config file %s", cfgFile)
+		log.Debug().Msgf("Session: %+v", Conf.Session.Active)
 	}
 
 	return nil

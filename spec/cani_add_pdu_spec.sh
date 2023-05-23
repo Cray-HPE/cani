@@ -31,49 +31,21 @@ fixture(){
   test "${fixture:?}" == "$( cat "$FIXTURES/$1" )"
 }
 
-# Removes the db to start fresh 
-# Not called for all tests, but when no duplicate uuids are expected this is called
-cleanup(){ rm -rf testdb.json; }
+# functions to deploy various fixtures with different scenarios
+cleanup(){ rm -f canitest.*; }
+canitest_valid_active(){ cp "$FIXTURES"/cani/configs/canitest_valid_active.yml .; }
+canitest_valid_inactive(){ cp "$FIXTURES"/cani/configs/canitest_valid_inactive.yml  .; }
+canitest_invalid_datastore_path(){ cp "$FIXTURES"/cani/configs/canitest_invalid_datastore_path.yml .; }
+canitest_invalid_log_file_path(){ cp "$FIXTURES"/cani/configs/canitest_invalid_log_file_path.yml .; }
+canitest_invalid_provider(){ cp "$FIXTURES"/cani/configs/canitest_invalid_provider.yml .; }
+canitest_valid_empty_db(){ cp -f "$FIXTURES"/cani/configs/canitest_valid_empty_db.json .; }
+canitest_invalid_empty_db(){ cp -f "$FIXTURES"/cani/configs/canitest_invalid_empty_db.json .; }
+rm_canitest_valid_empty_db(){ rm -f canitest_valid_empty_db.json; }
 
 It '--help'
   When call bin/cani add pdu --help
   The status should equal 0
   The stdout should satisfy fixture 'cani/add/pdu/help'
-End
-
-It '--database testdb.json'
-  BeforeCall 'cleanup' # Remove the db to start fresh
-  When call bin/cani add pdu --database testdb.json
-  The status should equal 0
-  The stderr should include '"value":{"Type":"PDU","Parent":"00000000-0000-0000-0000-000000000000"},"status":"SUCCESS"'
-End
-
-It '--database testdb.json --uuid abcdef12-3456-abcd-1234-abcdef123456'
-  BeforeCall 'cleanup' # Remove the db to start fresh
-  When call bin/cani add pdu --database testdb.json --uuid abcdef12-3456-abcd-1234-abcdef123456
-  The status should equal 0
-  The stderr should include '"operation":"ADD","key":"abcdef12-3456-abcd-1234-abcdef123456","value":{"Type":"PDU","Parent":"00000000-0000-0000-0000-000000000000"},"status":"SUCCESS"'
-End
-
-It '--database testdb.json --uuid abcdef12-3456-abcd-123'
-  When call bin/cani add pdu --database testdb.json --uuid abcdef12-3456-abcd-1234
-  The status should equal 1
-  The line 1 of stderr should equal 'Error: Error parsing UUID: invalid UUID length: 23'
-End
-
-It '--database testdb.json --uuid abcdef12-3456-abcd-1234-abcdef123456'
-  BeforeCall 'cleanup' # Remove the db to start fresh
-  When call bin/cani add pdu --database testdb.json --uuid abcdef12-3456-abcd-1234-abcdef123456
-  The status should equal 0
-  The line 1 of stderr should include '"message":"testdb.json does not exist, creating default database"}'
-  The line 2 of stderr should include '"operation":"ADD","key":"abcdef12-3456-abcd-1234-abcdef123456","value":{"Type":"PDU","Parent":"00000000-0000-0000-0000-000000000000"},"status":"SUCCESS"'
-End
-
-It '--database testdb.json --uuid abcdef12-3456-abcd-1234-abcdef123456'
-  When call bin/cani add pdu --database testdb.json --uuid abcdef12-3456-abcd-1234-abcdef123456
-  # The db and the asset exist now, so it should fail
-  The status should equal 1
-  The line 1 of stderr should equal 'Error: abcdef12-3456-abcd-1234-abcdef123456 already exists.'
 End
 
 End

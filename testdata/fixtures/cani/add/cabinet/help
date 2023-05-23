@@ -4,6 +4,7 @@ Usage:
   cani add cabinet [flags]
 
 Flags:
+  -h, --help                   help for cabinet
   -L, --list-supported-types   List supported hardware types.
 
 Global Flags:

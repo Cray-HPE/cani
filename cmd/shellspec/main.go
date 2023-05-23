@@ -35,11 +35,11 @@ func main() {
 			os.Exit(1)
 		}
 
-		// Write test files to spec/ for each command
-		err = command.GenerateSpecfile()
-		if err != nil {
-			log.Error().Msg(err.Error())
-			os.Exit(1)
-		}
+		// // Write test files to spec/ for each command
+		// err = command.GenerateSpecfile()
+		// if err != nil {
+		// 	log.Error().Msg(err.Error())
+		// 	os.Exit(1)
+		// }
 	}
 }

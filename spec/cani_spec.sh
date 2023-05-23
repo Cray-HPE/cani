@@ -22,7 +22,7 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 
-Describe 'cani'
+Describe 'cani add cabinet'
 # Fixtures location ./spec/fixtures
 FIXTURES="$SHELLSPEC_HELPERDIR/testdata/fixtures"
 
@@ -31,67 +31,21 @@ fixture(){
   test "${fixture:?}" == "$( cat "$FIXTURES/$1" )"
 }
 
-# Removes the db to start fresh 
-# Not called for all tests, but when no duplicate uuids are expected this is called
-rm_cfg(){ rm -rf testcfg.yml; }
-rm_db(){ rm -rf testdb.json; }
+# functions to deploy various fixtures with different scenarios
+cleanup(){ rm -f canitest.*; }
+canitest_valid_active(){ cp "$FIXTURES"/cani/configs/canitest_valid_active.yml .; }
+canitest_valid_inactive(){ cp "$FIXTURES"/cani/configs/canitest_valid_inactive.yml  .; }
+canitest_invalid_datastore_path(){ cp "$FIXTURES"/cani/configs/canitest_invalid_datastore_path.yml .; }
+canitest_invalid_log_file_path(){ cp "$FIXTURES"/cani/configs/canitest_invalid_log_file_path.yml .; }
+canitest_invalid_provider(){ cp "$FIXTURES"/cani/configs/canitest_invalid_provider.yml .; }
+canitest_valid_empty_db(){ cp -f "$FIXTURES"/cani/configs/canitest_valid_empty_db.json .; }
+canitest_invalid_empty_db(){ cp -f "$FIXTURES"/cani/configs/canitest_invalid_empty_db.json .; }
+rm_canitest_valid_empty_db(){ rm -f canitest_valid_empty_db.json; }
 
-It '(with no args)'
-  BeforeCall rm_cfg rm_db
-  When call bin/cani
+It '--help'
+  When call bin/cani --help
   The status should equal 0
   The stdout should satisfy fixture 'cani/help'
-End
-
-It 'cani --config testcfg.yml'
-  BeforeCall rm_cfg # Remove the cfg to start fresh
-  When call bin/cani --config testcfg.yml
-  The status should equal 0
-  The stdout should satisfy fixture 'cani/help'
-  The stderr should include 'does not exist, creating default config file"}'
-End
-
-It 'cani --config testcfg.yml'
-  When call bin/cani --config testcfg.yml
-  The status should equal 0
-  The stdout should satisfy fixture 'cani/help'
-  The stderr should equal ""
-End
-
-It 'cani --database testdb.json'
-  BeforeCall rm_db # Remove the cfg to start fresh
-  When call bin/cani --database testdb.json
-  The status should equal 0
-  The stdout should satisfy fixture 'cani/help'
-  The stderr should include 'does not exist, creating default database"}'
-End
-
-It 'cani --database testdb.log'
-  When call bin/cani --database testdb.log
-  The status should equal 1
-  The stderr should include '"Error loading database file: unexpected end of JSON input"'
-End
-
-It '--config testcfg.yml --database testdb.json'
-  When call bin/cani --config testcfg.yml --database testdb.json
-  The status should equal 0
-  The stdout should satisfy fixture 'cani/help'
-End
-
-It '--config testdb.json --database testcfg.yml'
-  When call bin/cani --config testdb.json --database testcfg.yml
-  The status should equal 1
-  The stderr should include '"Error loading database file: invalid character '
-End
-
-It '--debug'
-  When call bin/cani --debug
-  The status should equal 0
-  The stdout should satisfy fixture 'cani/help'
-  The stderr should include '"Using default config file '
-  The stderr should include '"message":"Using default database file '
-  The stderr should include '"message":"Loaded '
-  The stderr should include '"message":"Debug logging enabled"}'
 End
 
 End

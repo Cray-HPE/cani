@@ -4,6 +4,7 @@ Usage:
   cani add chassis [flags]
 
 Flags:
+  -h, --help                   help for chassis
   -L, --list-supported-types   List supported hardware types.
 
 Global Flags:

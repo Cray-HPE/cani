@@ -4,6 +4,7 @@ Usage:
   cani add node [flags]
 
 Flags:
+  -h, --help                   help for node
   -L, --list-supported-types   List supported hardware types.
 
 Global Flags:

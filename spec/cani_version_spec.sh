@@ -21,8 +21,24 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-It 'remove (with no args)'
-  When call bin/cani remove
+
+Describe 'cani version'
+# Fixtures location ./spec/fixtures
+FIXTURES="$SHELLSPEC_HELPERDIR/testdata/fixtures"
+
+# compare value to file content
+fixture(){
+  test "${fixture:?}" == "$( cat "$FIXTURES/$1" )"
+}
+
+# Removes the db to start fresh 
+# Not called for all tests, but when no duplicate uuids are expected this is called
+cleanup(){ rm -rf testdb.json; }
+
+It '--help'
+  When call bin/cani version --help
   The status should equal 0
-  The lines of stdout should equal 0
+  The stdout should satisfy fixture 'cani/version/help'
+End
+
 End
