@@ -1,4 +1,4 @@
-# HardwareComptypeRtmod
+# HardwareExtraPropertiesRtrBmcNic
 
 ## Properties
 Name | Type | Description | Notes

@@ -1,4 +1,4 @@
-# HardwareMgmtSwitchConnector
+# HardwareExtraPropertiesMgmtSwitchConnector
 
 ## Properties
 Name | Type | Description | Notes

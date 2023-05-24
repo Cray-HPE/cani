@@ -8,5 +8,5 @@
  */
 package sls_client
 
-type HardwareComptypeMgmtSwitch struct {
+type HardwareExtraPropertiesNcard struct {
 }

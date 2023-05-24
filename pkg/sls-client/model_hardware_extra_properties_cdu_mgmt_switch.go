@@ -8,5 +8,8 @@
  */
 package sls_client
 
-type HardwareComptypeBmcNic struct {
+type HardwareExtraPropertiesCduMgmtSwitch struct {
+	Brand   string   `json:"Brand,omitempty"`
+	Model   string   `json:"Model,omitempty"`
+	Aliases []string `json:"Aliases,omitempty"`
 }

@@ -1,4 +1,4 @@
-# HardwareComptypeCabPdu
+# HardwareExtraPropertiesBmcNic
 
 ## Properties
 Name | Type | Description | Notes

@@ -8,5 +8,5 @@
  */
 package sls_client
 
-type HardwareComptypeCompmod struct {
+type HardwareExtraPropertiesCabPduNic struct {
 }

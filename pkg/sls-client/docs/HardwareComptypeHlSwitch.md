@@ -1,4 +1,4 @@
-# HardwareComptypeMgmtSwitch
+# HardwareComptypeHlSwitch
 
 ## Properties
 Name | Type | Description | Notes

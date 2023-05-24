@@ -8,5 +8,5 @@
  */
 package sls_client
 
-type HardwareComptypeRtrBmc struct {
+type HardwareExtraPropertiesNodeHsnNic struct {
 }

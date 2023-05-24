@@ -8,9 +8,9 @@
  */
 package sls_client
 
-type HardwareMgmtSwitchConnector struct {
-	// An array of xnames that the hardware_mgmt_switch_connector is connected to.  Excludes the parent.
-	NodeNics []string `json:"NodeNics"`
-	// The vendor-assigned name for this port, as it appears in the switch management software.  Typically this is something like \"GigabitEthernet 1/31\" (Berkeley-style names), but may be any string.
-	VendorName string `json:"VendorName,omitempty"`
+type HardwareExtraPropertiesNode struct {
+	NID     int32    `json:"NID,omitempty"`
+	Role    string   `json:"Role"`
+	SubRole string   `json:"SubRole,omitempty"`
+	Aliases []string `json:"Aliases"`
 }
