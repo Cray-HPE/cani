@@ -16,6 +16,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// DatastoreJSON is a datastore backed by a JSON file
 type DatastoreJSON struct {
 	inventoryLock sync.RWMutex
 	inventory     *Inventory
@@ -92,8 +93,8 @@ func (dj *DatastoreJSON) GetSchemaVersion() (SchemaVersion, error) {
 	return dj.inventory.SchemaVersion, nil
 }
 
-// SetExternalInventoryProvider sets the external inventory provider
-func (dj *DatastoreJSON) SetExternalInventoryProvider(provider Provider) error {
+// SetProvider sets the external inventory provider
+func (dj *DatastoreJSON) SetProvider(provider Provider) error {
 	dj.inventoryLock.Lock()
 	defer dj.inventoryLock.Unlock()
 
@@ -102,11 +103,12 @@ func (dj *DatastoreJSON) SetExternalInventoryProvider(provider Provider) error {
 	return nil
 }
 
-func (dj *DatastoreJSON) GetExternalInventoryProvider() (Provider, error) {
+// GetProvider returns the external inventory provider
+func (dj *DatastoreJSON) GetProvider() (Provider, error) {
 	dj.inventoryLock.RLock()
 	defer dj.inventoryLock.RUnlock()
-	return ProviderCSM, nil // FIXME hardcode
-	// return dj.inventory.ExternalInventoryProvider, nil
+
+	return dj.inventory.Provider, nil
 }
 
 // Flush writes the datastore to disk

@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// AddBlade adds a blade to the inventory using the
 func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal, slotOrdinal int) ([]hardwaretypes.HardwareBuildOut, error) {
 	// Validate provided cabinet exists
 	// TODO
@@ -113,6 +114,7 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 	return hardwareBuildOutItems, d.datastore.Flush()
 }
 
+// RemoveBlade removes a blade from the inventory with the option to remove its descendants
 func (d *Domain) RemoveBlade(u uuid.UUID, recursion bool) error {
 	err := d.datastore.Remove(u, recursion)
 	if err != nil {

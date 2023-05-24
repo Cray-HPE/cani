@@ -5,8 +5,9 @@ import (
 	"fmt"
 )
 
+// Commit reconciles and validates the current state of the inventory to the external inventory system
 func (d *Domain) Commit() error {
-	inventoryProvider := d.externalInventoryProvider
+	inventoryProvider := d.provider
 
 	// Perform validation of CANI's inventory data
 	if err := d.datastore.Validate(); err != nil {

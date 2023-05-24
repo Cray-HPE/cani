@@ -13,8 +13,8 @@ var ErrHardwareMissingLocationOrdinal = errors.New("hardware missing location or
 
 type Datastore interface {
 	GetSchemaVersion() (SchemaVersion, error)
-	SetExternalInventoryProvider(provider Provider) error
-	GetExternalInventoryProvider() (Provider, error)
+	SetProvider(provider Provider) error
+	GetProvider() (Provider, error)
 	Flush() error
 	Validate() error
 

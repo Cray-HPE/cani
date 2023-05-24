@@ -65,10 +65,8 @@ func (csm *CSM) Reconcile(datastore inventory.Datastore) (err error) {
 	return nil
 }
 
-//
-// The following is taken from: https://github.com/Cray-HPE/hardware-topology-assistant/blob/main/internal/engine/engine.go
-//
-
+// displayHardwareComparisonReport displays a report of the hardware comparison
+// taken from: https://github.com/Cray-HPE/hardware-topology-assistant/blob/main/internal/engine/engine.go
 func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHardware []sls_common.GenericHardware, hardwareWithDifferingValues []sls.GenericHardwarePair) error {
 	log.Info().Msg("")
 	log.Info().Msg("Identical hardware between current and expected states")
@@ -143,6 +141,7 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 	return nil
 }
 
+// buildHardwareString builds a string representation of the hardware
 func buildHardwareString(hardware sls_common.GenericHardware) (string, error) {
 	extraPropertiesRaw, err := sls.DecodeHardwareExtraProperties(hardware)
 	if err != nil {

@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// BuildExpectedHardwareState will build up the expected SLS state from the CANI inventory
 func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_common.SLSState, error) {
 	// Retrieve the CANI inventory data
 	data, err := datastore.List()
