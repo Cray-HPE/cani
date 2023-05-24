@@ -39,7 +39,7 @@ func New(opts *NewOpts) (*Domain, error) {
 	}
 
 	// Load the datastore
-	domain.datastore, err = inventory.NewDatastoreJSON(opts.DatastorePath, opts.LogFilePath)
+	domain.datastore, err = inventory.NewDatastoreJSON(opts.DatastorePath, opts.LogFilePath, inventory.ProviderCSM)
 	if err != nil {
 		return nil, errors.Join(
 			fmt.Errorf("failed to load inventory datastore from file"),
@@ -58,7 +58,7 @@ func New(opts *NewOpts) (*Domain, error) {
 		)
 	}
 	switch externalInventoryProviderName {
-	case inventory.ExternalInventoryProviderCSM:
+	case inventory.ProviderCSM:
 		domain.externalInventoryProvider, err = csm.New(opts.CsmOptions)
 		if err != nil {
 			return nil, errors.Join(

@@ -21,12 +21,15 @@ type DatastoreJSON struct {
 	inventory     *Inventory
 	dataFilePath  string
 	logFilePath   string
+	provider      Provider
 }
 
-func NewDatastoreJSON(dataFilePath string, logfilepath string) (*DatastoreJSON, error) {
+// NewDatastoreJSON creates a new datastore backed by a JSON file
+func NewDatastoreJSON(dataFilePath string, logfilepath string, provider Provider) (*DatastoreJSON, error) {
 	datastore := &DatastoreJSON{
 		dataFilePath: dataFilePath,
 		logFilePath:  logfilepath,
+		provider:     provider,
 	}
 
 	if _, err := os.Stat(dataFilePath); os.IsNotExist(err) {
@@ -44,9 +47,9 @@ func NewDatastoreJSON(dataFilePath string, logfilepath string) (*DatastoreJSON, 
 
 		// Create a config with default values since one does not exist
 		datastore.inventory = &Inventory{
-			SchemaVersion:             SchemaVersionV1Alpha1,
-			ExternalInventoryProvider: ExternalInventoryProviderCSM, // TODO THIS IS A BIG HACK TO GET THINGS GOING, THIS SHOULD BE PROVIDED VIA "cani session start csm"
-			Hardware:                  map[uuid.UUID]Hardware{},
+			SchemaVersion: SchemaVersionV1Alpha1,
+			Provider:      provider,
+			Hardware:      map[uuid.UUID]Hardware{},
 		}
 
 		if err := datastore.Flush(); err != nil {
@@ -59,17 +62,20 @@ func NewDatastoreJSON(dataFilePath string, logfilepath string) (*DatastoreJSON, 
 		cfgDir := filepath.Dir(dataFilePath)
 		os.MkdirAll(cfgDir, os.ModePerm)
 
+		// Open the file
 		file, err := os.Open(dataFilePath)
 		if err != nil {
 			return nil, err
 		}
 		defer file.Close()
 
+		// Read the file
 		inventoryRaw, err := ioutil.ReadAll(file)
 		if err != nil {
 			return nil, err
 		}
 
+		// Unmarshal the inventory data to the struct
 		if err = json.Unmarshal(inventoryRaw, &datastore.inventory); err != nil {
 			return nil, err
 		}
@@ -78,6 +84,7 @@ func NewDatastoreJSON(dataFilePath string, logfilepath string) (*DatastoreJSON, 
 	return datastore, nil
 }
 
+// GetSchemaVersion returns the schema version of the datastore
 func (dj *DatastoreJSON) GetSchemaVersion() (SchemaVersion, error) {
 	dj.inventoryLock.RLock()
 	defer dj.inventoryLock.RUnlock()
@@ -85,33 +92,35 @@ func (dj *DatastoreJSON) GetSchemaVersion() (SchemaVersion, error) {
 	return dj.inventory.SchemaVersion, nil
 }
 
-func (dj *DatastoreJSON) SetExternalInventoryProvider(provider ExternalInventoryProvider) error {
+// SetExternalInventoryProvider sets the external inventory provider
+func (dj *DatastoreJSON) SetExternalInventoryProvider(provider Provider) error {
 	dj.inventoryLock.Lock()
 	defer dj.inventoryLock.Unlock()
 
-	dj.inventory.ExternalInventoryProvider = provider
+	dj.inventory.Provider = provider
 
 	return nil
 }
 
-func (dj *DatastoreJSON) GetExternalInventoryProvider() (ExternalInventoryProvider, error) {
+func (dj *DatastoreJSON) GetExternalInventoryProvider() (Provider, error) {
 	dj.inventoryLock.RLock()
 	defer dj.inventoryLock.RUnlock()
-	return ExternalInventoryProvider("csm"), nil // FIXME hardcode
+	return ProviderCSM, nil // FIXME hardcode
 	// return dj.inventory.ExternalInventoryProvider, nil
 }
 
+// Flush writes the datastore to disk
 func (dj *DatastoreJSON) Flush() error {
 	dj.inventoryLock.RLock()
 	defer dj.inventoryLock.RUnlock()
-	// convert the cfg struct to a JSON-formatted byte slice.
 
+	// Marshal the inventory data to a byte slice
 	data, err := json.MarshalIndent(dj.inventory, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	// write the byte slice to a file
+	// write the byte slice to the datastore file
 	err = ioutil.WriteFile(dj.dataFilePath, data, 0644)
 	if err != nil {
 		return err
@@ -120,6 +129,7 @@ func (dj *DatastoreJSON) Flush() error {
 	return nil
 }
 
+// Validate validates the datastore
 func (dj *DatastoreJSON) Validate() error {
 	dj.inventoryLock.RLock()
 	defer dj.inventoryLock.RUnlock()
@@ -135,6 +145,7 @@ func (dj *DatastoreJSON) Validate() error {
 	return nil
 }
 
+// Add adds a piece of hardware to the inventory
 func (dj *DatastoreJSON) Add(hardware *Hardware) error {
 	dj.inventoryLock.Lock()
 	defer dj.inventoryLock.Unlock()
@@ -168,6 +179,7 @@ func (dj *DatastoreJSON) Add(hardware *Hardware) error {
 	return nil
 }
 
+// Get retrieves a piece of hardware from the inventory
 func (dj *DatastoreJSON) Get(id uuid.UUID) (Hardware, error) {
 	dj.inventoryLock.RLock()
 	defer dj.inventoryLock.RUnlock()
@@ -181,6 +193,7 @@ func (dj *DatastoreJSON) Get(id uuid.UUID) (Hardware, error) {
 	return Hardware{}, ErrHardwareNotFound
 }
 
+// Update updates a piece of hardware in the inventory
 func (dj *DatastoreJSON) Update(hardware *Hardware) error {
 	dj.inventoryLock.Lock()
 	defer dj.inventoryLock.Unlock()
@@ -206,6 +219,7 @@ func (dj *DatastoreJSON) Update(hardware *Hardware) error {
 	return nil
 }
 
+// Remove removes a piece of hardware from the inventory
 func (dj *DatastoreJSON) Remove(id uuid.UUID, recursion bool) error {
 	dj.inventoryLock.Lock()
 	defer dj.inventoryLock.Unlock()
@@ -243,6 +257,7 @@ func (dj *DatastoreJSON) Remove(id uuid.UUID, recursion bool) error {
 	return nil
 }
 
+// List lists all the hardware in the inventory
 func (dj *DatastoreJSON) List() (Inventory, error) {
 	dj.inventoryLock.RLock()
 	defer dj.inventoryLock.RUnlock()
@@ -292,6 +307,8 @@ func (dj *DatastoreJSON) GetLocation(hardware Hardware) (LocationPath, error) {
 	return locationPath, nil
 
 }
+
+// GetAtLocation returns the hardware at the specified location
 func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 	dj.inventoryLock.RLock()
 	defer dj.inventoryLock.RUnlock()
@@ -303,6 +320,7 @@ func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 	return Hardware{}, fmt.Errorf("todo")
 }
 
+// GetChildren returns the children of the specified hardware
 func (dj *DatastoreJSON) GetChildren(id uuid.UUID) ([]Hardware, error) {
 	dj.inventoryLock.RLock()
 	defer dj.inventoryLock.RUnlock()
@@ -310,6 +328,7 @@ func (dj *DatastoreJSON) GetChildren(id uuid.UUID) ([]Hardware, error) {
 	return dj.getChildren(id)
 }
 
+// getChildren returns the children of the specified hardware
 func (dj *DatastoreJSON) getChildren(id uuid.UUID) ([]Hardware, error) {
 	var results []Hardware
 
@@ -324,7 +343,7 @@ func (dj *DatastoreJSON) getChildren(id uuid.UUID) ([]Hardware, error) {
 	return results, nil
 }
 
-// logTransaction logs a transaction to logger
+// logTransaction logs a datastore transaction to logger
 func (dj *DatastoreJSON) logTransaction(operation string, key string, value interface{}, err error) {
 	tl, err = os.OpenFile(
 		dj.logFilePath,

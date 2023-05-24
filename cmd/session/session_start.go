@@ -57,7 +57,7 @@ func startSession(cmd *cobra.Command, args []string) error {
 		}
 	}
 	// If a session is not active, create one
-	_, err := inventory.NewDatastoreJSON(ds, logfile)
+	_, err := inventory.NewDatastoreJSON(ds, logfile, inventory.ProviderCSM)
 	if err != nil {
 		return err
 	}
