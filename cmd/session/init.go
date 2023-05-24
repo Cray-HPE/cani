@@ -13,6 +13,7 @@ func init() {
 	root.SessionCmd.AddCommand(SessionStartCmd)
 	root.SessionCmd.AddCommand(SessionStopCmd)
 	root.SessionCmd.AddCommand(SessionStatusCmd)
+	root.SessionCmd.AddCommand(SessionSummaryCmd)
 
 	// Session start flags
 	// TODO need a quick simulation environment flag

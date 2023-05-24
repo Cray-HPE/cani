@@ -20,6 +20,7 @@ func init() {
 	RootCmd.AddCommand(ListCmd)
 	RootCmd.AddCommand(RemoveCmd)
 	RootCmd.AddCommand(SessionCmd)
+	RootCmd.AddCommand(UpdateCmd)
 	RootCmd.AddCommand(VersionCmd)
 
 	// Global root command flags
