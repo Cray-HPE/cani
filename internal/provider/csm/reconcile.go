@@ -104,7 +104,7 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 				err,
 			)
 		}
-		log.Info().Int("status", r.StatusCode).Msg("Added hardware from SLS")
+		log.Info().Int("status", r.StatusCode).Msg("Added hardware to SLS")
 	}
 
 	// Update existing hardware
