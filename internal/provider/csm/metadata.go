@@ -6,6 +6,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/mitchellh/mapstructure"
+	"github.com/rs/zerolog/log"
 )
 
 type NodeMetadata struct {
@@ -20,10 +21,14 @@ type NodeMetadata struct {
 func StringPtr(s string) *string {
 	return &s
 }
+func IntPtr(i int) *int {
+	return &i
+}
 
 func GetProviderMetadata(cHardware inventory.Hardware) (result interface{}, err error) {
 	providerPropertiesRaw, ok := cHardware.ProviderProperties["csm"]
 	if !ok {
+		log.Debug().Any("id", cHardware.ID).Msgf("GetProviderMetadata: No CSM provider properties found")
 		return nil, nil // This should be ok, as its possible as not all hardware inventory items may have CSM specific data
 	}
 
@@ -55,6 +60,7 @@ func GetProviderMetadataT[T any](cHardware inventory.Hardware) (*T, error) {
 	}
 
 	if metadataRaw == nil {
+		log.Debug().Any("id", cHardware.ID).Msgf("GetProviderMetadataT: No metadata returned from GetProviderMetadata")
 		return nil, nil
 	}
 

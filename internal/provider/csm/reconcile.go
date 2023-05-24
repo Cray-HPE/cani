@@ -136,12 +136,10 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 //
 
 func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHardware []sls_client.Hardware, hardwareWithDifferingValues []sls.GenericHardwarePair) error {
-	logFunc := log.Info().Msgf
-
-	logFunc("")
-	logFunc("Identical hardware between current and expected states")
+	log.Info().Msgf("")
+	log.Info().Msgf("Identical hardware between current and expected states")
 	if len(identicalHardware) == 0 {
-		logFunc("  None")
+		log.Info().Msgf("  None")
 	}
 	for _, hardware := range identicalHardware {
 		hardwareRaw, err := buildHardwareString(hardware)
@@ -149,16 +147,16 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 			return err
 		}
 
-		logFunc("  %-16s - %s\n", hardware.Xname, hardwareRaw)
+		log.Info().Msgf("  %-16s - %s\n", hardware.Xname, hardwareRaw)
 	}
 
-	logFunc("")
-	logFunc("Common hardware between current and expected states with differing class or extra properties")
+	log.Info().Msgf("")
+	log.Info().Msgf("Common hardware between current and expected states with differing class or extra properties")
 	if len(hardwareWithDifferingValues) == 0 {
 		log.Info().Msg("  None")
 	}
 	for _, pair := range hardwareWithDifferingValues {
-		logFunc("  %s\n", pair.Xname)
+		log.Info().Msgf("  %s\n", pair.Xname)
 
 		// Expected Hardware json
 		pair.HardwareA.LastUpdated = 0
@@ -167,7 +165,7 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 		if err != nil {
 			return err
 		}
-		logFunc("  - Expected: %-16s\n", hardwareRaw)
+		log.Info().Msgf("  - Expected: %-16s\n", hardwareRaw)
 
 		// Actual Hardware json
 		pair.HardwareB.LastUpdated = 0
@@ -176,13 +174,13 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 		if err != nil {
 			return err
 		}
-		logFunc("  - Actual:   %-16s\n", hardwareRaw)
+		log.Info().Msgf("  - Actual:   %-16s\n", hardwareRaw)
 	}
 
-	logFunc("")
-	logFunc("Hardware added to the system")
+	log.Info().Msgf("")
+	log.Info().Msgf("Hardware added to the system")
 	if len(hardwareAdded) == 0 {
-		logFunc("  None")
+		log.Info().Msgf("  None")
 	}
 	for _, hardware := range hardwareAdded {
 		hardwareRaw, err := buildHardwareString(hardware)
@@ -190,13 +188,13 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 			return err
 		}
 
-		logFunc("  %-16s - %s\n", hardware.Xname, hardwareRaw)
+		log.Info().Msgf("  %-16s - %s\n", hardware.Xname, hardwareRaw)
 	}
 
-	logFunc("")
-	logFunc("Hardware removed from system")
+	log.Info().Msgf("")
+	log.Info().Msgf("Hardware removed from system")
 	if len(hardwareRemoved) == 0 {
-		logFunc("  None")
+		log.Info().Msgf("  None")
 	}
 	for _, hardware := range hardwareRemoved {
 		hardwareRaw, err := buildHardwareString(hardware)
@@ -204,10 +202,10 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 			return err
 		}
 
-		logFunc("  %-16s - %s\n", hardware.Xname, hardwareRaw)
+		log.Info().Msgf("  %-16s - %s\n", hardware.Xname, hardwareRaw)
 	}
 
-	logFunc("")
+	log.Info().Msgf("")
 	return nil
 }
 

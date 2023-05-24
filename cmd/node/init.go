@@ -14,7 +14,7 @@ var (
 	node        int
 	role        string
 	subrole     string
-	nid         string
+	nid         int
 	alias       string
 )
 
@@ -30,7 +30,7 @@ func init() {
 
 	AddNodeCmd.Flags().StringVar(&role, "role", "", "Role of the node")
 	AddNodeCmd.Flags().StringVar(&subrole, "subrole", "", "Subrole of the node")
-	AddNodeCmd.Flags().StringVar(&nid, "nid", "", "NID of the node")
+	AddNodeCmd.Flags().IntVar(&nid, "nid", 0, "NID of the node")
 	AddNodeCmd.Flags().StringVar(&alias, "alias", "", "Alias of the node")
 
 	// Blades have several parents, so we need to add flags for each
@@ -44,7 +44,7 @@ func init() {
 	// TODO a thought, it might be neat if the options that CANI shows changes based on the active provider
 	UpdateNodeCmd.Flags().StringVar(&role, "role", "", "Role of the node")
 	UpdateNodeCmd.Flags().StringVar(&subrole, "subrole", "", "Subrole of the node")
-	UpdateNodeCmd.Flags().StringVar(&nid, "nid", "", "NID of the node")
+	UpdateNodeCmd.Flags().IntVar(&nid, "nid", 0, "NID of the node")
 	UpdateNodeCmd.Flags().StringVar(&alias, "alias", "", "Alias of the node")
 
 	UpdateNodeCmd.MarkFlagsRequiredTogether("cabinet", "chassis", "slot")

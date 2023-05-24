@@ -3,10 +3,10 @@ package node
 import (
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
 	"github.com/Cray-HPE/cani/cmd/session"
-	"github.com/rs/zerolog/log"
 )
 
 // UpdateNodeCmd represents the node update command
@@ -42,6 +42,8 @@ func updateNode(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	log.Info().Msgf("Updated node %s", args[0])
+	// TODO need a better identify, perhaps its UUID, or its location path?
+	// log.Info().Msgf("Updated node %s", args[0])
+	log.Info().Msgf("Updated node")
 	return nil
 }

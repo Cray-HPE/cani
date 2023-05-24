@@ -168,6 +168,7 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 	// Get the class of the piece of hardware
 	// Generally this will match the class of the containing cabinet, the exception is river hardware within a EX2500 cabinet.
 	// TODO
+	var extraProperties interface{}
 	class := sls_client.HardwareClassMountain
 
 	switch cHardware.Type {
@@ -182,7 +183,6 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 	case hardwaretypes.HardwareTypeNodeController:
 		return sls_client.Hardware{}, nil
 	case hardwaretypes.HardwareTypeNode:
-		var ep *sls_client.HardwareExtraPropertiesNode
 		metadata, err := GetProviderMetadataT[NodeMetadata](cHardware)
 		if err != nil {
 			return sls_client.Hardware{}, errors.Join(
@@ -191,29 +191,35 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 			)
 		}
 
-		// In order to properly populate SLS several bits of information are required.
-		// This information should have been collected when hardware was added to the inventory
-		// - Role
-		// - SubRole
-		// - NID
-		// - Alias/Common Name
-		if metadata.Role != nil {
-			ep.Role = *metadata.Role
-		}
-		if metadata.SubRole != nil {
-			ep.Role = *metadata.SubRole
-		}
-		if metadata.Nid != nil {
-			ep.NID = int32(*metadata.Nid)
-		}
-		if metadata.Alias != nil {
-			ep.Aliases = []string{*metadata.Alias} // TODO NEED TO HANDLE hardware types with multiple ALIASES
+		if metadata != nil {
+			var nodeExtraProperties sls_client.HardwareExtraPropertiesNode
+
+			// In order to properly populate SLS several bits of information are required.
+			// This information should have been collected when hardware was added to the inventory
+			// - Role
+			// - SubRole
+			// - NID
+			// - Alias/Common Name
+			if metadata.Role != nil {
+				nodeExtraProperties.Role = *metadata.Role
+			}
+			if metadata.SubRole != nil {
+				nodeExtraProperties.Role = *metadata.SubRole
+			}
+			if metadata.Nid != nil {
+				nodeExtraProperties.NID = int32(*metadata.Nid)
+			}
+			if metadata.Alias != nil {
+				nodeExtraProperties.Aliases = []string{*metadata.Alias} // TODO NEED TO HANDLE hardware types with multiple ALIASES
+			}
+
+			extraProperties = nodeExtraProperties
+			log.Info().Any("nodeEp", nodeExtraProperties).Msgf("Generated Extra Properties for %s", xname.String())
 		}
 
-		return sls.NewHardware(xname, class, ep), nil
 	}
 
-	return sls_client.Hardware{}, fmt.Errorf("unknown hardware type '%s'", cHardware.Type)
+	return sls.NewHardware(xname, class, extraProperties), nil
 }
 
 // func buildSLSPDUController(location Location) (sls_client.GenericHardware, error) {

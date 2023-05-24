@@ -11,6 +11,7 @@ import (
 	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog/log"
 )
 
@@ -93,6 +94,10 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 }
 
 func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperties map[string]interface{}) error {
+	if cHardware.ProviderProperties == nil {
+		cHardware.ProviderProperties = map[string]interface{}{}
+	}
+
 	switch cHardware.Type {
 	case hardwaretypes.HardwareTypeNode:
 		// TODO do something interesting with the raw data, and convert it/validate it
@@ -103,17 +108,31 @@ func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperti
 			// https://github.com/Cray-HPE/cani/blob/develop/internal/provider/csm/sls/hardware.go
 			// https://github.com/mitchellh/mapstructure
 
-			properties = cHardware.ProviderProperties["csm"].(NodeMetadata)
+			if err := mapstructure.Decode(cHardware.ProviderProperties["csm"], &properties); err != nil {
+				return err
+			}
 		}
-
-		if role, exists := rawProperties["role"]; exists {
-			properties.Role = StringPtr(role.(string))
+		// Make changes to the node metadata
+		// The keys of rawProperties need to match what is defined in ./cmd/node/update_node.go
+		if roleRaw, exists := rawProperties["role"]; exists {
+			properties.Role = StringPtr(roleRaw.(string))
+		}
+		if subroleRaw, exists := rawProperties["subrole"]; exists {
+			properties.SubRole = StringPtr(subroleRaw.(string))
+		}
+		if nidRaw, exists := rawProperties["nid"]; exists {
+			properties.Nid = IntPtr(nidRaw.(int))
+		}
+		if aliasRaw, exists := rawProperties["alias"]; exists {
+			properties.Alias = StringPtr(aliasRaw.(string))
 		}
 
 		cHardware.ProviderProperties["csm"] = properties
 
 		return nil
+	default:
+		// This hardware type doesn't have metadata for it right now
+		return nil
 	}
 
-	return fmt.Errorf("todo")
 }

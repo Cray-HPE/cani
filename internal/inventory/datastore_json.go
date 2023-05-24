@@ -195,9 +195,9 @@ func (dj *DatastoreJSON) Update(hardware *Hardware) error {
 
 	// TODO this is verify similar to add, except for the set UUID at the start
 
-	// Check to see if this UUID is unique
-	if _, exists := dj.inventory.Hardware[hardware.ID]; exists {
-		return ErrHardwareUUIDConflict
+	// Check to see if this UUID exists
+	if _, exists := dj.inventory.Hardware[hardware.ID]; !exists {
+		return ErrHardwareNotFound
 	}
 
 	// Check to see if parent UUID exists
@@ -262,6 +262,7 @@ func (dj *DatastoreJSON) List() (Inventory, error) {
 
 // GetLocation will follow the parent links up to the root node, which is signaled when a NIL parent UUID is found
 // This will either return a partial location path, or a full path up to a cabinet or CDU
+// TODO THIS NEEDS UNIT TESTS
 func (dj *DatastoreJSON) GetLocation(hardware Hardware) (LocationPath, error) {
 	dj.inventoryLock.RLock()
 	defer dj.inventoryLock.RUnlock()
@@ -304,6 +305,7 @@ func (dj *DatastoreJSON) GetLocation(hardware Hardware) (LocationPath, error) {
 }
 
 // GetAtLocation returns the hardware at the given location
+// TODO THIS NEEDS UNIT TESTS
 func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 	dj.inventoryLock.RLock()
 	defer dj.inventoryLock.RUnlock()
@@ -349,7 +351,8 @@ func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 
 	var currentHardware Hardware
 	for i, locationToken := range path {
-		log.Debug().Msgf("GetAtLocation: Processing token %d of %d: '%s'", i, len(path), locationToken.String())
+		log.Debug().Msgf("GetAtLocation: Processing token %d of %d: '%s'", i+1, len(path), locationToken.String())
+		log.Debug().Msgf("GetAtLocation: Current ID %s", currentHardware.ID)
 
 		var children []uuid.UUID
 		if i == 0 {
@@ -361,9 +364,11 @@ func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 		}
 
 		// For each child of the current hardware object check to see if it
+		foundMatch := false
 		for _, childID := range children {
+			log.Debug().Msgf("GetAtLocation: Visiting Child (%s)", childID)
 			// Get the hardware
-			hardware, ok := dj.inventory.Hardware[childID]
+			childHardware, ok := dj.inventory.Hardware[childID]
 			if !ok {
 				// This should not happen
 				return Hardware{}, errors.Join(
@@ -372,16 +377,26 @@ func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 				)
 			}
 
-			// Check to see if the location ordinal matches
-			if hardware.LocationOrdinal != nil && *hardware.LocationOrdinal == locationToken.Ordinal {
-				// Found a match!
-				currentHardware = hardware
+			if childHardware.LocationOrdinal == nil {
+				log.Debug().Msgf("GetAtLocation: Child has no location ordinal set, skipping")
 				continue
+			}
+			log.Debug().Msgf("GetAtLocation: Child location token: %s:%d", childHardware.Type, *childHardware.LocationOrdinal)
+
+			// Check to see if the location token matches
+			if childHardware.Type == locationToken.HardwareType && *childHardware.LocationOrdinal == locationToken.Ordinal {
+				// Found a match!
+				log.Debug().Msgf("GetAtLocation: Child has matching location token")
+				currentHardware = childHardware
+				foundMatch = true
+				break
 			}
 		}
 
-		// None of the children match
-		return Hardware{}, ErrHardwareNotFound
+		if !foundMatch {
+			// None of the children match
+			return Hardware{}, ErrHardwareNotFound
+		}
 
 	}
 
