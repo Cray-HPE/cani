@@ -29,7 +29,6 @@ import (
 	"os"
 
 	"github.com/Cray-HPE/cani/internal/provider/csm/hsm"
-	"github.com/Cray-HPE/cani/internal/provider/csm/sls"
 	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 )
@@ -49,12 +48,12 @@ var (
 
 func EnableSimulation() {
 	HSM = hsm.EnableSimulation()
-	SLS = sls.EnableSimulation()
+	// SLS = sls.EnableSimulation()
 }
 
 func DisableSimulation() {
 	HSM = hsm.DisableSimulation()
-	SLS = sls.DisableSimulation()
+	// SLS = sls.DisableSimulation()
 }
 
 func EnableDebug() {

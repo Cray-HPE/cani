@@ -5,23 +5,24 @@ import (
 	"fmt"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider/csm/sls"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
-	sls_common "github.com/Cray-HPE/hms-sls/v2/pkg/sls-common"
+	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	"github.com/rs/zerolog/log"
 )
 
-func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_common.SLSState, error) {
+func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_client.SlsState, error) {
 	// Retrieve the CANI inventory data
 	data, err := datastore.List()
 	if err != nil {
-		return sls_common.SLSState{}, errors.Join(
+		return sls_client.SlsState{}, errors.Join(
 			fmt.Errorf("failed to list hardware from the datastore"),
 			err,
 		)
 	}
 
 	// Iterate over the CANI inventory data to build SLS data
-	allHardware := map[string]sls_common.GenericHardware{}
+	allHardware := map[string]sls_client.Hardware{}
 	for _, cHardware := range data.Hardware {
 		//
 		// Build the SLS hardware representation
@@ -29,7 +30,7 @@ func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_common.SLSSt
 		log.Debug().Any("cHardware", cHardware).Msg("Processing")
 		locationPath, err := datastore.GetLocation(cHardware)
 		if err != nil {
-			return sls_common.SLSState{}, errors.Join(
+			return sls_client.SlsState{}, errors.Join(
 				fmt.Errorf("failed to get location of hardware (%s) from the datastore", cHardware.ID),
 				err,
 			)
@@ -40,7 +41,7 @@ func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_common.SLSSt
 		// 	log.Printf("WARNING %s", err.Error())
 		// } else if err != nil {
 		if err != nil {
-			return sls_common.SLSState{}, err
+			return sls_client.SlsState{}, err
 		}
 
 		log.Debug().Any("hardware", hardware).Msg("Generated SLS hardware")
@@ -77,7 +78,7 @@ func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_common.SLSSt
 		//
 		// TODO This is probably not needed as the CANI Inventory will have all that we need
 		// if hardware.TypeString == xnametypes.ChassisBMC {
-		// 	allHardware[hardware.Xname] = sls_common.NewGenericHardware(hardware.Parent, hardware.Class, nil)
+		// 	allHardware[hardware.Xname] = sls_client.NewGenericHardware(hardware.Parent, hardware.Class, nil)
 		// }
 
 		//
@@ -111,15 +112,15 @@ func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_common.SLSSt
 	// 			panic(err)
 	// 		}
 
-	// 		extraProperties := sls_common.ComptypeCabinet{
-	// 			Networks: map[string]map[string]sls_common.CabinetNetworks{}, // TODO this should be outright removed. MEDS and KEA no longer look here for network info, but MEDS still needs this key to exist.
+	// 		extraProperties := sls_client.ComptypeCabinet{
+	// 			Networks: map[string]map[string]sls_client.CabinetNetworks{}, // TODO this should be outright removed. MEDS and KEA no longer look here for network info, but MEDS still needs this key to exist.
 	// 		}
 
 	// 		if cabinetKind.IsModel() {
 	// 			extraProperties.Model = string(cabinetKind)
 	// 		}
 
-	// 		hardware := sls_common.NewGenericHardware(cabinet, class, extraProperties)
+	// 		hardware := sls_client.NewGenericHardware(cabinet, class, extraProperties)
 
 	// 		// Verify new hardware
 	// 		if _, present := allHardware[hardware.Xname]; present {
@@ -132,42 +133,42 @@ func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_common.SLSSt
 	// }
 
 	// Build up and the SLS state
-	return sls_common.SLSState{
+	return sls_client.SlsState{
 		Hardware: allHardware,
 	}, nil
 }
 
-func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.LocationPath) (sls_common.GenericHardware, error) {
+func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.LocationPath) (sls_client.Hardware, error) {
 	log.Debug().Stringer("locationPath", locationPath).Msg("LocationPath")
 
 	// Get the physical location for the hardware
 	xname, err := BuildXname(cHardware, locationPath)
 	log.Debug().Any("xname", xname).Err(err).Msg("Build xname")
 	if err != nil {
-		return sls_common.GenericHardware{}, err
+		return sls_client.Hardware{}, err
 	} else if xname == nil {
 		// This means that this piece of the hardware inventory can't be represented in SLS, so just skip it
-		return sls_common.GenericHardware{}, nil
+		return sls_client.Hardware{}, nil
 	}
 
 	// Get the class of the piece of hardware
 	// Generally this will match the class of the containing cabinet, the exception is river hardware within a EX2500 cabinet.
 	// TODO
-	class := sls_common.ClassMountain
+	class := sls_client.HardwareClassMountain
 
 	switch cHardware.Type {
 	case hardwaretypes.HardwareTypeCabinet:
-		return sls_common.GenericHardware{}, nil
+		return sls_client.Hardware{}, nil
 	case hardwaretypes.HardwareTypeChassis:
-		return sls_common.GenericHardware{}, nil
+		return sls_client.Hardware{}, nil
 	case hardwaretypes.HardwareTypeNodeBlade:
-		return sls_common.GenericHardware{}, nil
+		return sls_client.Hardware{}, nil
 	case hardwaretypes.HardwareTypeNodeCard:
-		return sls_common.GenericHardware{}, nil
+		return sls_client.Hardware{}, nil
 	case hardwaretypes.HardwareTypeNodeController:
-		return sls_common.GenericHardware{}, nil
+		return sls_client.Hardware{}, nil
 	case hardwaretypes.HardwareTypeNode:
-		ep := sls_common.NetworkExtraProperties{}
+		ep := sls_client.NetworkExtraProperties{}
 
 		// In order to properly populate SLS several bits of information are required.
 		// This information should have been collected when hardware was added to the inventory
@@ -176,19 +177,19 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 		// - Role
 		// - SubRole
 
-		return sls_common.NewGenericHardware(xname.String(), class, ep), nil
+		return sls.NewHardware(xname, class, ep), nil
 	}
 
-	return sls_common.GenericHardware{}, fmt.Errorf("unknown hardware type '%s'", cHardware.Type)
+	return sls_client.Hardware{}, fmt.Errorf("unknown hardware type '%s'", cHardware.Type)
 }
 
-// func buildSLSPDUController(location Location) (sls_common.GenericHardware, error) {
+// func buildSLSPDUController(location Location) (sls_client.GenericHardware, error) {
 // }
 
-// func buildSLSSlingshotHSNSwitch(location Location) (sls_common.GenericHardware, error) {
+// func buildSLSSlingshotHSNSwitch(location Location) (sls_client.GenericHardware, error) {
 // }
 
-// func buildSLSCMC(location Location) (sls_common.GenericHardware, error) {
+// func buildSLSCMC(location Location) (sls_client.GenericHardware, error) {
 // 	// TODO what should be done if if the CMC does not have a bmc connection? Ie the Intel CMC that doesn't really exist
 // 	// Right now we are emulating the current behavior of CSI, where the fake CMC exists in SLS and no MgmtSwitchConnector exists.
 
@@ -199,24 +200,24 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 // // - Management NCN NID
 // // - Application Node Subrole and Alias
 
-// func BuildNodeExtraProperties(topologyNode TopologyNode) (extraProperties sls_common.ComptypeNode, err error) {
+// func BuildNodeExtraProperties(topologyNode TopologyNode) (extraProperties sls_client.ComptypeNode, err error) {
 // }
 
-// func buildSLSNode(xname) (sls_common.GenericHardware, error) {
+// func buildSLSNode(xname) (sls_client.GenericHardware, error) {
 // }
 
-// func buildSLSMgmtSwitch(topologyNode TopologyNode, switchAliasesOverrides map[string][]string) (sls_common.GenericHardware, error) {
+// func buildSLSMgmtSwitch(topologyNode TopologyNode, switchAliasesOverrides map[string][]string) (sls_client.GenericHardware, error) {
 // }
 
-// func buildSLSMgmtHLSwitch(topologyNode TopologyNode, switchAliasesOverrides map[string][]string) (sls_common.GenericHardware, error) {
+// func buildSLSMgmtHLSwitch(topologyNode TopologyNode, switchAliasesOverrides map[string][]string) (sls_client.GenericHardware, error) {
 // }
 
-// func buildSLSCDUMgmtSwitch(topologyNode TopologyNode, switchAliasesOverrides map[string][]string) (sls_common.GenericHardware, error) {
+// func buildSLSCDUMgmtSwitch(topologyNode TopologyNode, switchAliasesOverrides map[string][]string) (sls_client.GenericHardware, error) {
 // }
 
-func BuildSLSMgmtSwitchConnector(hardware sls_common.GenericHardware, cHardware inventory.Hardware) (sls_common.GenericHardware, error) {
-	return sls_common.GenericHardware{}, nil
+func BuildSLSMgmtSwitchConnector(hardware sls_client.Hardware, cHardware inventory.Hardware) (sls_client.Hardware, error) {
+	return sls_client.Hardware{}, nil
 }
 
-// func buildSLSChassisBMC(location Location, cl configs.CabinetLookup) (sls_common.GenericHardware, error) {
+// func buildSLSChassisBMC(location Location, cl configs.CabinetLookup) (sls_client.GenericHardware, error) {
 // }

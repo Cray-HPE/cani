@@ -12,11 +12,19 @@ import (
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	sls_common "github.com/Cray-HPE/hms-sls/v2/pkg/sls-common"
 	"github.com/Cray-HPE/hms-xname/xnametypes"
-	"github.com/antihax/optional"
 	"github.com/rs/zerolog/log"
 )
 
 // Reconcile CANI's inventory state with the external inventory state and apply required changes
+// TODO perhaps Reconcole should return a ReconcileResult struct, that can contain what the provider wants to do
+// This would enable these two things
+//   - Provide a way to pass downwards the result, and allow for a custom string/Presentation function to
+//     format the results in a human readable way
+//   - Allow for a process like the following:
+//     1. Figure out what has changed
+//     2. Validate the changes
+//     3. Display what changed
+//     4. Make changes
 func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (err error) {
 	// TODO should we have a presentation callback to confirm the removal of hardware?
 
@@ -27,8 +35,13 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 
 	// Retrieve the current SLS state
 	// TODO
-	currentSLSState := sls_common.SLSState{}
-
+	currentSLSState, _, err := csm.slsClient.DumpstateApi.DumpstateGet(ctx)
+	if err != nil {
+		return errors.Join(
+			fmt.Errorf("failed to perform SLS dumpstate"),
+			err,
+		)
+	}
 	// Build up the expected SLS state
 	expectedSLSState, err := BuildExpectedHardwareState(datastore)
 	if err != nil {
@@ -67,6 +80,10 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 	// Modify SLS
 	//
 
+	// TODO simulate changes to the SLS state and validate them, and then make the changes
+
+	// Sort hardware so children are deleted before their parents
+	sls.SortHardware(hardwareRemoved)
 	// Remove hardware that no longer exists
 	for _, hardware := range hardwareRemoved {
 		log.Info().Str("xname", hardware.Xname).Msg("Removing")
@@ -91,13 +108,7 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 		// TODO
 
 		// Perform a POST against SLS
-		_, r, err := csm.slsClient.HardwareApi.HardwarePost(ctx, &sls_client.HardwareApiHardwarePostOpts{
-			Body: optional.NewInterface(sls_client.HardwarePost{
-				Xname:           hardware.Xname,
-				Class:           (*sls_client.Hwclass)(&hardware.Class),
-				ExtraProperties: &sls_client.HardwareExtraProperties{},
-			}),
-		})
+		_, r, err := csm.slsClient.HardwareApi.HardwarePost(ctx, sls.NewHardwarePostOpts(hardware))
 		if err != nil {
 			return errors.Join(
 				fmt.Errorf("failed to delete hardware (%s) from SLS", hardware.Xname),
@@ -124,11 +135,13 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 // The following is taken from: https://github.com/Cray-HPE/hardware-topology-assistant/blob/main/internal/engine/engine.go
 //
 
-func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHardware []sls_common.GenericHardware, hardwareWithDifferingValues []sls.GenericHardwarePair) error {
-	log.Info().Msg("")
-	log.Info().Msg("Identical hardware between current and expected states")
+func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHardware []sls_client.Hardware, hardwareWithDifferingValues []sls.GenericHardwarePair) error {
+	logFunc := log.Info().Msgf
+
+	logFunc("")
+	logFunc("Identical hardware between current and expected states")
 	if len(identicalHardware) == 0 {
-		log.Info().Msg("  None")
+		logFunc("  None")
 	}
 	for _, hardware := range identicalHardware {
 		hardwareRaw, err := buildHardwareString(hardware)
@@ -136,16 +149,16 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 			return err
 		}
 
-		log.Info().Msgf("  %-16s - %s\n", hardware.Xname, hardwareRaw)
+		logFunc("  %-16s - %s\n", hardware.Xname, hardwareRaw)
 	}
 
-	log.Info().Msg("")
-	log.Info().Msg("Common hardware between current and expected states with differing class or extra properties")
+	logFunc("")
+	logFunc("Common hardware between current and expected states with differing class or extra properties")
 	if len(hardwareWithDifferingValues) == 0 {
 		log.Info().Msg("  None")
 	}
 	for _, pair := range hardwareWithDifferingValues {
-		log.Info().Msgf("  %s\n", pair.Xname)
+		logFunc("  %s\n", pair.Xname)
 
 		// Expected Hardware json
 		pair.HardwareA.LastUpdated = 0
@@ -154,7 +167,7 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 		if err != nil {
 			return err
 		}
-		log.Info().Msgf("  - Expected: %-16s\n", hardwareRaw)
+		logFunc("  - Expected: %-16s\n", hardwareRaw)
 
 		// Actual Hardware json
 		pair.HardwareB.LastUpdated = 0
@@ -163,13 +176,13 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 		if err != nil {
 			return err
 		}
-		log.Info().Msgf("  - Actual:   %-16s\n", hardwareRaw)
+		logFunc("  - Actual:   %-16s\n", hardwareRaw)
 	}
 
-	log.Info().Msg("")
-	log.Info().Msg("Hardware added to the system")
+	logFunc("")
+	logFunc("Hardware added to the system")
 	if len(hardwareAdded) == 0 {
-		log.Info().Msg("  None")
+		logFunc("  None")
 	}
 	for _, hardware := range hardwareAdded {
 		hardwareRaw, err := buildHardwareString(hardware)
@@ -177,13 +190,13 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 			return err
 		}
 
-		log.Info().Msgf("  %-16s - %s\n", hardware.Xname, hardwareRaw)
+		logFunc("  %-16s - %s\n", hardware.Xname, hardwareRaw)
 	}
 
-	log.Info().Msg("")
-	log.Info().Msg("Hardware removed from system")
+	logFunc("")
+	logFunc("Hardware removed from system")
 	if len(hardwareRemoved) == 0 {
-		log.Info().Msg("  None")
+		logFunc("  None")
 	}
 	for _, hardware := range hardwareRemoved {
 		hardwareRaw, err := buildHardwareString(hardware)
@@ -191,15 +204,15 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 			return err
 		}
 
-		log.Info().Msgf("  %-16s - %s\n", hardware.Xname, hardwareRaw)
+		logFunc("  %-16s - %s\n", hardware.Xname, hardwareRaw)
 	}
 
-	log.Info().Msg("")
+	logFunc("")
 	return nil
 }
 
-func buildHardwareString(hardware sls_common.GenericHardware) (string, error) {
-	extraPropertiesRaw, err := sls.DecodeHardwareExtraProperties(hardware)
+func buildHardwareString(hardware sls_client.Hardware) (string, error) {
+	extraPropertiesRaw, err := hardware.DecodeExtraProperties()
 	if err != nil {
 		return "", err
 	}

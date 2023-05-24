@@ -32,8 +32,8 @@ Search for nodes matching a set of criteria. Any of the properties of any entry 
  * @param optional nil or *SearchApiSearchHardwareGetOpts - Optional Parameters:
      * @param "Xname" (optional.Interface of string) -  Matches the specified xname
      * @param "Parent" (optional.Interface of string) -  Matches all objects that are direct children of the given xname
-     * @param "Class" (optional.Interface of Hwclass) -  Matches all objects of the given class
-     * @param "Type_" (optional.Interface of string) -  Matches all objects of the given type
+     * @param "Class" (optional.Interface of HardwareClass) -  Matches all objects of the given class
+     * @param "Type_" (optional.Interface of HardwareType) -  Matches all objects of the given type
      * @param "PowerConnector" (optional.Interface of string) -  Matches all objects with the given xname in their power_connector property
      * @param "Object" (optional.Interface of string) -  Matches all objects with the given xname in their object property.
      * @param "NodeNics" (optional.Interface of string) -  Matches all objects with the given xname in their node_nics property
