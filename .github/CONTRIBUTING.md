@@ -1,3 +1,11 @@
+# Conventions
+
+When writing code, follow these convetions/variable names:
+
+- `hw`: when working with cani's Hardware type
+- `p`: when working with cani's Provider type
+- `inv`: when working with cani's Inventory type
+
 # Tests
 
 Install [shellspec](https://shellspec.info) and run `make test`.
