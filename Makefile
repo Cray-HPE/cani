@@ -176,7 +176,8 @@ generate-swagger: bin/swagger-codegen-cli.jar
 
 generate: generate-swagger generate-go 
 
-bin: generate
+# Jenkins doesn't have java installed, so the generate target fails to run
+bin:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o bin/${NAME} -ldflags "\
 	-X github.com/Cray-HPE/${NAME}/cmd.version=${.GIT_VERSION} \
 	-X github.com/Cray-HPE/${NAME}/cmd.buildDate=${.BUILDTIME} \
