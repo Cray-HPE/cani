@@ -6,11 +6,11 @@ import (
 )
 
 // Commit reconciles and validates the current state of the inventory to the external inventory system
-func (d *Domain) Commit() error {
-	inventoryProvider := d.provider
+func (p *Plugin) Commit() error {
+	inventoryProvider := p.provider
 
 	// Perform validation of CANI's inventory data
-	if err := d.datastore.Validate(); err != nil {
+	if err := p.datastore.Validate(); err != nil {
 		return errors.Join(
 			fmt.Errorf("failed to validate inventory"),
 			err,
@@ -26,6 +26,6 @@ func (d *Domain) Commit() error {
 	}
 
 	// Reconcile our inventory with the external inventory system
-	return inventoryProvider.Reconcile(d.datastore)
+	return inventoryProvider.Reconcile(p.datastore)
 
 }

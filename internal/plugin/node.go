@@ -6,9 +6,9 @@ import (
 )
 
 // UpdateNode updates the metadata for a node
-func (d *Domain) UpdateNode(cabinet, chassis, slot, bmc, node int, metadata map[string]interface{}) error {
+func (p *Plugin) UpdateNode(cabinet, chassis, slot, bmc, node int, metadata map[string]interface{}) error {
 	// Get the node object from the datastore
-	hw, err := d.datastore.GetAtLocation(inventory.LocationPath{
+	hw, err := p.datastore.GetAtLocation(inventory.LocationPath{
 		{hardwaretypes.HardwareTypeCabinet, cabinet},
 		{hardwaretypes.HardwareTypeChassis, chassis},
 		{hardwaretypes.HardwareTypeNodeBlade, slot},
@@ -20,12 +20,12 @@ func (d *Domain) UpdateNode(cabinet, chassis, slot, bmc, node int, metadata map[
 	}
 
 	// Ask the inventory provider to craft a metadata object for this information
-	if err := d.provider.BuildHardwareMetadata(&hw, metadata); err != nil {
+	if err := p.provider.BuildHardwareMetadata(&hw, metadata); err != nil {
 		return err
 	}
 
 	// Push it back into the data store
-	if err := d.datastore.Update(&hw); err != nil {
+	if err := p.datastore.Update(&hw); err != nil {
 		return err
 	}
 

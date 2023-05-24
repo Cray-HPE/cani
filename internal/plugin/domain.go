@@ -10,11 +10,14 @@ import (
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 )
 
-// Domain defines domain logic that plugs into cani
-type Domain struct {
-	hardwareTypeLibrary *hardwaretypes.Library
-	datastore           inventory.Datastore
-	provider            provider.InventoryProvider
+// Plugin defines domain logic that plugs into cani
+type Plugin struct {
+	// library has all of the types of hardware this plugin is compatible with
+	library *hardwaretypes.Library
+	// datastore is the inventory datastore
+	datastore inventory.Datastore
+	// provider is the external inventory provider
+	provider provider.InventoryProvider
 }
 
 // NewOpts defines the options for creating a new domain
@@ -26,13 +29,13 @@ type NewOpts struct {
 }
 
 // New returns a new domain using the provided options
-func New(opts *NewOpts) (*Domain, error) {
+func New(opts *NewOpts) (*Plugin, error) {
 	var err error
-	plugin := &Domain{}
+	plugin := &Plugin{}
 
 	// Load the hardware type library
 	// TODO make this be able to be loaded from a directory
-	plugin.hardwareTypeLibrary, err = hardwaretypes.NewEmbeddedLibrary()
+	plugin.library, err = hardwaretypes.NewEmbeddedLibrary()
 	if err != nil {
 		return nil, errors.Join(
 			fmt.Errorf("failed to load embedded hardware type library"),

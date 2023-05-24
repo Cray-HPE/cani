@@ -52,7 +52,7 @@ var (
 	// Conf is the global configuration read from cani.yml (or from --config)
 	Conf *config.Config
 	// Plugin is the translation layer between cani and the external inventory provider
-	Plugin *plugin.Domain
+	Plugin *plugin.Plugin
 )
 
 // Execute adds all child commands to the root command and sets flags appropriately.

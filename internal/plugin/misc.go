@@ -5,8 +5,8 @@ import (
 )
 
 // List returns the inventory
-func (d *Domain) List() (inventory.Inventory, error) {
-	inv, err := d.datastore.List()
+func (p *Plugin) List() (inventory.Inventory, error) {
+	inv, err := p.datastore.List()
 	if err != nil {
 		return inventory.Inventory{}, err
 	}

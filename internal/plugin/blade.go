@@ -11,7 +11,7 @@ import (
 )
 
 // AddBlade adds a blade to the inventory using the
-func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal, slotOrdinal int) ([]hardwaretypes.HardwareBuildOut, error) {
+func (p *Plugin) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal, slotOrdinal int) ([]hardwaretypes.HardwareBuildOut, error) {
 	// Validate provided cabinet exists
 	// TODO
 
@@ -24,7 +24,7 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 		Status:          inventory.HardwareStatusProvisioned,
 		LocationOrdinal: &cabinetOrdinal,
 	}
-	if err := d.datastore.Add(&cabinet); err != nil {
+	if err := p.datastore.Add(&cabinet); err != nil {
 		return nil, errors.Join(
 			fmt.Errorf("unable to add cabinet hardware"),
 			err,
@@ -40,7 +40,7 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 		Status:          inventory.HardwareStatusProvisioned,
 		LocationOrdinal: &slotOrdinal,
 	}
-	if err := d.datastore.Add(&chassis); err != nil {
+	if err := p.datastore.Add(&chassis); err != nil {
 		return nil, errors.Join(
 			fmt.Errorf("unable to add chassis hardware"),
 			err,
@@ -54,7 +54,7 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 	// }
 
 	// Verify the provided device type slug is a node blade
-	deviceType, err := d.hardwareTypeLibrary.GetDeviceType(deviceTypeSlug)
+	deviceType, err := p.library.GetDeviceType(deviceTypeSlug)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 	}
 
 	// Generate a hardware build out
-	hardwareBuildOutItems, err := d.hardwareTypeLibrary.GetDefaultHardwareBuildOut(deviceTypeSlug, slotOrdinal, chassis.ID)
+	hardwareBuildOutItems, err := p.library.GetDefaultHardwareBuildOut(deviceTypeSlug, slotOrdinal, chassis.ID)
 	if err != nil {
 		return nil, errors.Join(
 			fmt.Errorf("unable to build default hardware build out for %s", deviceTypeSlug),
@@ -96,14 +96,14 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 		// Things like role/subrole/nid/alias could be injected at a later time.
 		// Not sure how hard it would be to specify at this point in time.
 		// This command creates the physical information for a node, have another command for the logical part of the data
-		if err := d.datastore.Add(&hardware); err != nil {
+		if err := p.datastore.Add(&hardware); err != nil {
 			return hardwareBuildOutItems, errors.Join(
 				fmt.Errorf("unable to add hardware to inventory datastore"),
 				err,
 			)
 		}
 
-		l, err := d.datastore.GetLocation(hardware)
+		l, err := p.datastore.GetLocation(hardware)
 		if err != nil {
 			panic(err)
 		}
@@ -111,12 +111,12 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 
 	}
 
-	return hardwareBuildOutItems, d.datastore.Flush()
+	return hardwareBuildOutItems, p.datastore.Flush()
 }
 
 // RemoveBlade removes a blade from the inventory with the option to remove its descendants
-func (d *Domain) RemoveBlade(u uuid.UUID, recursion bool) error {
-	err := d.datastore.Remove(u, recursion)
+func (p *Plugin) RemoveBlade(u uuid.UUID, recursion bool) error {
+	err := p.datastore.Remove(u, recursion)
 	if err != nil {
 		return errors.Join(
 			fmt.Errorf("unable to remove hardware from inventory datastore"),
@@ -124,5 +124,5 @@ func (d *Domain) RemoveBlade(u uuid.UUID, recursion bool) error {
 		)
 	}
 
-	return d.datastore.Flush()
+	return p.datastore.Flush()
 }
