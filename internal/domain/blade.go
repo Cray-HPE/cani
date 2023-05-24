@@ -10,7 +10,12 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal, slotOrdinal int) ([]hardwaretypes.HardwareBuildOut, error) {
+type AddHardwareResult struct {
+	Hardware inventory.Hardware
+	Location inventory.LocationPath
+}
+
+func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal, slotOrdinal int) ([]AddHardwareResult, error) {
 	// Validate provided cabinet exists
 	// TODO
 
@@ -70,6 +75,8 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 		)
 	}
 
+	var results []AddHardwareResult
+
 	for _, hardwareBuildOut := range hardwareBuildOutItems {
 		// Generate the CANI hardware inventory version of the hardware build out data
 		// TODO
@@ -96,21 +103,26 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 		// Not sure how hard it would be to specify at this point in time.
 		// This command creates the physical information for a node, have another command for the logical part of the data
 		if err := d.datastore.Add(&hardware); err != nil {
-			return hardwareBuildOutItems, errors.Join(
+			return nil, errors.Join(
 				fmt.Errorf("unable to add hardware to inventory datastore"),
 				err,
 			)
 		}
 
-		l, err := d.datastore.GetLocation(hardware)
+		hardwareLocation, err := d.datastore.GetLocation(hardware)
 		if err != nil {
 			panic(err)
 		}
-		log.Debug().Str("path", l.String()).Msg("Datastore")
+
+		results = append(results, AddHardwareResult{
+			Hardware: hardware,
+			Location: hardwareLocation,
+		})
+		log.Debug().Str("path", hardwareLocation.String()).Msg("Datastore")
 
 	}
 
-	return hardwareBuildOutItems, d.datastore.Flush()
+	return results, d.datastore.Flush()
 }
 
 func (d *Domain) RemoveBlade(u uuid.UUID, recursion bool) error {

@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -307,11 +308,88 @@ func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 	dj.inventoryLock.RLock()
 	defer dj.inventoryLock.RUnlock()
 
-	loc := path.GetOrdinalPath()
-	for i, j := range loc {
-		fmt.Println(i, j)
+	if len(path) == 0 {
+		return Hardware{}, ErrEmptyLocationPath
 	}
-	return Hardware{}, fmt.Errorf("todo")
+
+	// Build up a few indexes to easily traverse the tree, so we don't have to iterate over the data several times
+	// This is kind of computationally expensive, but since the JSON structure only stores parents its needs to be build up
+	// For right now I think doing this every time we need a location is fine, but there is a good chance in the future that
+	// we will need to cache this result somewhere, and keep it update to date.
+	// locationIndex := map[hardwaretypes.HardwareType]map[int]
+
+	// Calculate children index, since we only store the parent IDs
+	// TODO Currently do not have a system type in our inventory, which cabinets/CDUs would be the child of, so for now keep track of them
+	topLevelHardware := map[hardwaretypes.HardwareType][]uuid.UUID{
+		hardwaretypes.HardwareTypeCabinet:                 []uuid.UUID{},
+		hardwaretypes.HardwareTypeCoolingDistributionUnit: []uuid.UUID{},
+	}
+	childrenIndex := map[uuid.UUID][]uuid.UUID{}
+	for id, hardware := range dj.inventory.Hardware {
+		children, err := dj.getChildren(id)
+		if err != nil {
+			return Hardware{}, errors.Join(
+				fmt.Errorf("unable to get children for (%s)", id),
+				err,
+			)
+		}
+
+		for _, childHardware := range children {
+			childrenIndex[id] = append(childrenIndex[id], childHardware.ID)
+		}
+
+		if hardware.Type == hardwaretypes.HardwareTypeCabinet || hardware.Type == hardwaretypes.HardwareTypeCoolingDistributionUnit {
+			topLevelHardware[hardware.Type] = append(topLevelHardware[hardware.Type], hardware.ID)
+		}
+	}
+
+	//
+	// Traverse the tree to see if the hardware exists at the given location
+	//
+
+	var currentHardware Hardware
+	for i, locationToken := range path {
+		log.Debug().Msgf("GetAtLocation: Processing token %d of %d: '%s'", i, len(path), locationToken.String())
+
+		var children []uuid.UUID
+		if i == 0 {
+			// First find the children of "root"/top level object, but we currently lack that so use the topLevelHardware lookup
+			children = topLevelHardware[path[0].HardwareType]
+		} else {
+			// Otherwise get the children like normal
+			children = childrenIndex[currentHardware.ID]
+		}
+
+		// For each child of the current hardware object check to see if it
+		for _, childID := range children {
+			// Get the hardware
+			hardware, ok := dj.inventory.Hardware[childID]
+			if !ok {
+				// This should not happen
+				return Hardware{}, errors.Join(
+					fmt.Errorf("unable to find hardware object with ID (%s)", childID),
+					ErrHardwareNotFound,
+				)
+			}
+
+			// Check to see if the location ordinal matches
+			if hardware.LocationOrdinal != nil && *hardware.LocationOrdinal == locationToken.Ordinal {
+				// Found a match!
+				currentHardware = hardware
+				continue
+			}
+		}
+
+		// None of the children match
+		return Hardware{}, ErrHardwareNotFound
+
+	}
+
+	if currentHardware.ID == uuid.Nil {
+		return Hardware{}, ErrHardwareNotFound
+	}
+
+	return currentHardware, nil
 }
 
 // GetChildren returns the children of a given hardware object

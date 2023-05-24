@@ -16,8 +16,8 @@ var UpdateNodeCmd = &cobra.Command{
 	Long:              `Update nodes in the inventory.`,
 	PersistentPreRunE: session.DatastoreExists, // A session must be active to write to a datastore
 	SilenceUsage:      true,                    // Errors are more important than the usage
-	Args:              validHardware,           // Hardware can only be valid if defined in the hardware library
-	RunE:              updateNode,              // Update a node when this sub-command is called
+	// Args:              validHardware,           // Hardware can only be valid if defined in the hardware library
+	RunE: updateNode, // Update a node when this sub-command is called
 }
 
 // updateNode updates a node to the inventory

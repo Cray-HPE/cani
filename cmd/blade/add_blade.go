@@ -30,7 +30,6 @@ import (
 	"github.com/Cray-HPE/cani/cmd/session"
 	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
-	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -54,8 +53,8 @@ func addBlade(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Remove the blade from the inventory using domain methods
-	family, err := d.AddBlade(args[0], cabinet, chassis, slot)
+	// Add the blade from the inventory using domain methods
+	results, err := d.AddBlade(args[0], cabinet, chassis, slot)
 	if err != nil {
 		return err
 	}
@@ -79,19 +78,19 @@ func addBlade(cmd *cobra.Command, args []string) error {
 	// with the node(s) that may need additional metadata added
 
 	// Use a map to track already added nodes.
-	newNodes := make(map[uuid.UUID]hardwaretypes.HardwareBuildOut, 0)
+	newNodes := []domain.AddHardwareResult{}
 
-	for _, member := range family {
+	for _, result := range results {
 		// If the type is a Node
-		if member.DeviceType.HardwareType == hardwaretypes.HardwareTypeNode {
-			log.Debug().Msg(member.LocationPathString())
+		if result.Hardware.Type == hardwaretypes.HardwareTypeNode {
+			log.Debug().Msg(result.Location.String())
 			log.Info().Msgf("Found a %s (%s) in this %s (%s)",
 				hardwaretypes.HardwareTypeNode,
-				member.ID.String(),
+				result.Hardware.ID.String(),
 				hardwaretypes.HardwareTypeNodeBlade,
-				member.DeviceTypeString)
+				args[0])
 			// Add the node to the map
-			newNodes[member.ID] = member
+			newNodes = append(newNodes, result)
 
 			// check if the uuid is in the inventory
 			// if hw, found := inv.Hardware[member.ID]; !found {
@@ -105,13 +104,12 @@ func addBlade(cmd *cobra.Command, args []string) error {
 		root.Conf.Session.DomainOptions.Provider,
 		hardwaretypes.HardwareTypeNode,
 		hardwaretypes.HardwareTypeNodeBlade)
-	for u, bo := range newNodes {
-		log.Debug().Msgf("%s %+v", u.String(), bo.ID)
-		cabinet := 1234 // bo.Cabinet()
-		chassis := 1234 // bo.Chassis()
-		slot := 1234    // bo.Slot()
-		bmc := 1234     // bo.BMC() // aka NodeCard
-		node := 1234    // bo.Node()
+	for _, newNode := range newNodes {
+		cabinet := newNode.Location[0].Ordinal // bo.Cabinet()
+		chassis := newNode.Location[1].Ordinal // bo.Chassis()
+		slot := newNode.Location[2].Ordinal    // bo.Slot()
+		bmc := newNode.Location[3].Ordinal     // bo.BMC() // aka NodeCard
+		node := newNode.Location[4].Ordinal    // bo.Node()
 		fmt.Printf("cani update node --cabinet \"%d\" --chassis \"%d\" --slot \"%d\" --bmc \"%d\" --node \"%d\" --role \"FIXME\" --subrole \"FIXME\" --alias \"FIXME\" --nid \"FIXME\"\n",
 			cabinet,
 			chassis,

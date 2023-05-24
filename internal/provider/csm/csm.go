@@ -29,14 +29,6 @@ type CSM struct {
 	hsmClient *hsm_client.APIClient
 }
 
-type NodeMetadata struct {
-	Role                 string
-	SubRole              string
-	Nid                  string
-	Alias                string
-	AdditionalProperties map[string]interface{}
-}
-
 func New(opts NewOpts) (*CSM, error) {
 	csm := &CSM{}
 
@@ -115,7 +107,7 @@ func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperti
 		}
 
 		if role, exists := rawProperties["role"]; exists {
-			properties.Role = role.(string)
+			properties.Role = StringPtr(role.(string))
 		}
 
 		cHardware.ProviderProperties["csm"] = properties

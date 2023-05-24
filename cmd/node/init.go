@@ -28,10 +28,10 @@ func init() {
 	// Add a flag to show supported types
 	AddNodeCmd.Flags().BoolP("list-supported-types", "L", false, "List supported hardware types.")
 
-	AddNodeCmd.Flags().StringVar(&role, "role", "", "Role of the blade")
-	AddNodeCmd.Flags().StringVar(&subrole, "subrole", "", "Subrole of the blade")
-	AddNodeCmd.Flags().StringVar(&nid, "nid", "", "NID of the blade")
-	AddNodeCmd.Flags().StringVar(&alias, "alias", "", "Alias of the blade")
+	AddNodeCmd.Flags().StringVar(&role, "role", "", "Role of the node")
+	AddNodeCmd.Flags().StringVar(&subrole, "subrole", "", "Subrole of the node")
+	AddNodeCmd.Flags().StringVar(&nid, "nid", "", "NID of the node")
+	AddNodeCmd.Flags().StringVar(&alias, "alias", "", "Alias of the node")
 
 	// Blades have several parents, so we need to add flags for each
 	UpdateNodeCmd.Flags().IntVar(&cabinet, "cabinet", 1001, "Parent cabinet")
@@ -39,6 +39,13 @@ func init() {
 	UpdateNodeCmd.Flags().IntVar(&slot, "slot", 1, "Parent slot")
 	UpdateNodeCmd.Flags().IntVar(&bmc, "bmc", 1, "Parent BMC")
 	UpdateNodeCmd.Flags().IntVar(&node, "node", 1, "Node to update")
+
+	// CSM specific options
+	// TODO a thought, it might be neat if the options that CANI shows changes based on the active provider
+	UpdateNodeCmd.Flags().StringVar(&role, "role", "", "Role of the node")
+	UpdateNodeCmd.Flags().StringVar(&subrole, "subrole", "", "Subrole of the node")
+	UpdateNodeCmd.Flags().StringVar(&nid, "nid", "", "NID of the node")
+	UpdateNodeCmd.Flags().StringVar(&alias, "alias", "", "Alias of the node")
 
 	UpdateNodeCmd.MarkFlagsRequiredTogether("cabinet", "chassis", "slot")
 

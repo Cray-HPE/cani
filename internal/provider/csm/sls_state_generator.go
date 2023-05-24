@@ -11,6 +11,20 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// func GetProviderProperties[T any](hardware inventory.Hardware) (*T, error) {
+// 	providerPropertiesRaw, ok := hardware.ProviderProperties["csm"]
+// 	if !ok {
+// 		return nil, nil // This should be ok, as its possible as not all hardware inventory items may have CSM specific data
+// 	}
+
+// 	var result T
+// 	if err := mapstructure.Decode(providerPropertiesRaw, &result); err != nil {
+// 		return nil, err
+// 	}
+
+// 	return &providerProperties, nil
+// }
+
 func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_client.SlsState, error) {
 	// Retrieve the CANI inventory data
 	data, err := datastore.List()
@@ -168,14 +182,33 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 	case hardwaretypes.HardwareTypeNodeController:
 		return sls_client.Hardware{}, nil
 	case hardwaretypes.HardwareTypeNode:
-		ep := sls_client.NetworkExtraProperties{}
+		var ep *sls_client.HardwareExtraPropertiesNode
+		metadata, err := GetProviderMetadataT[NodeMetadata](cHardware)
+		if err != nil {
+			return sls_client.Hardware{}, errors.Join(
+				fmt.Errorf("failed to get provider metadata from hardware (%s)", cHardware.ID),
+				err,
+			)
+		}
 
 		// In order to properly populate SLS several bits of information are required.
 		// This information should have been collected when hardware was added to the inventory
-		// - NID
-		// - Alias/Common Name
 		// - Role
 		// - SubRole
+		// - NID
+		// - Alias/Common Name
+		if metadata.Role != nil {
+			ep.Role = *metadata.Role
+		}
+		if metadata.SubRole != nil {
+			ep.Role = *metadata.SubRole
+		}
+		if metadata.Nid != nil {
+			ep.NID = int32(*metadata.Nid)
+		}
+		if metadata.Alias != nil {
+			ep.Aliases = []string{*metadata.Alias} // TODO NEED TO HANDLE hardware types with multiple ALIASES
+		}
 
 		return sls.NewHardware(xname, class, ep), nil
 	}
