@@ -1,4 +1,4 @@
-package domain
+package plugin
 
 import (
 	"errors"
@@ -28,11 +28,11 @@ type NewOpts struct {
 // New returns a new domain using the provided options
 func New(opts *NewOpts) (*Domain, error) {
 	var err error
-	domain := &Domain{}
+	plugin := &Domain{}
 
 	// Load the hardware type library
 	// TODO make this be able to be loaded from a directory
-	domain.hardwareTypeLibrary, err = hardwaretypes.NewEmbeddedLibrary()
+	plugin.hardwareTypeLibrary, err = hardwaretypes.NewEmbeddedLibrary()
 	if err != nil {
 		return nil, errors.Join(
 			fmt.Errorf("failed to load embedded hardware type library"),
@@ -41,7 +41,7 @@ func New(opts *NewOpts) (*Domain, error) {
 	}
 
 	// Load the datastore
-	domain.datastore, err = inventory.NewDatastoreJSON(opts.DatastorePath, opts.LogFilePath, inventory.ProviderCSM)
+	plugin.datastore, err = inventory.NewDatastoreJSON(opts.DatastorePath, opts.LogFilePath, inventory.ProviderCSM)
 	if err != nil {
 		return nil, errors.Join(
 			fmt.Errorf("failed to load inventory datastore from file"),
@@ -52,7 +52,7 @@ func New(opts *NewOpts) (*Domain, error) {
 	// Setup External inventory provider
 	// TODO how does the initial inventory data for a session get created, if it uses domain logic
 	// as it will fail when we get to this point.
-	providerName, err := domain.datastore.GetProvider()
+	providerName, err := plugin.datastore.GetProvider()
 	if err != nil {
 		return nil, errors.Join(
 			fmt.Errorf("failed to retrieve external inventory provider type"),
@@ -61,7 +61,7 @@ func New(opts *NewOpts) (*Domain, error) {
 	}
 	switch providerName {
 	case inventory.ProviderCSM:
-		domain.provider, err = csm.New(opts.CsmOptions)
+		plugin.provider, err = csm.New(opts.CsmOptions)
 		if err != nil {
 			return nil, errors.Join(
 				fmt.Errorf("failed to initialize CSM external inventory provider"),
@@ -71,5 +71,5 @@ func New(opts *NewOpts) (*Domain, error) {
 	default:
 		return nil, fmt.Errorf("unknown external inventory provider provided (%s)", providerName)
 	}
-	return domain, nil
+	return plugin, nil
 }

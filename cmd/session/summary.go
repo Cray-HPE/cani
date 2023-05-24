@@ -6,8 +6,8 @@ import (
 	"text/tabwriter"
 
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/plugin"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/fatih/color"
 	"github.com/google/uuid"
@@ -25,7 +25,7 @@ var SessionSummaryCmd = &cobra.Command{
 
 func showSummary(cmd *cobra.Command, args []string) error {
 	// Instanstiate the domain
-	d, err := domain.New(root.Conf.Session.DomainOptions)
+	d, err := plugin.New(root.Conf.Session.DomainOptions)
 	if err != nil {
 		return err
 	}

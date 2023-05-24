@@ -30,7 +30,7 @@ import (
 
 	"github.com/Cray-HPE/cani/cmd/config"
 	"github.com/Cray-HPE/cani/cmd/taxonomy"
-	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/Cray-HPE/cani/internal/plugin"
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -51,8 +51,8 @@ var (
 	Simulation bool
 	// Conf is the global configuration read from cani.yml (or from --config)
 	Conf *config.Config
-	// Domain is the global domain object, which is used to interact with the datastore
-	Domain *domain.Domain
+	// Plugin is the translation layer between cani and the external inventory provider
+	Plugin *plugin.Domain
 )
 
 // Execute adds all child commands to the root command and sets flags appropriately.

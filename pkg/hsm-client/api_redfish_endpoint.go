@@ -888,7 +888,7 @@ func (a *RedfishEndpointApiService) DoRedfishEndpointsGet(ctx context.Context, l
 
 /*
 RedfishEndpointApiService Create RedfishEndpoint(s)
-Create a new RedfishEndpoint whose ID field is a valid xname. ID can be given explicitly, or if the Hostname or hostname portion of the FQDN is given, and is a valid xname, this will be used for the ID instead.  The Hostname/Domain can be given as separate fields and will be used to create a FQDN if one is not given. The reverse is also true.  If FQDN is an IP address it will be treated as a hostname with a blank domain.  The domain field is used currently to assign the domain for discovered nodes automatically.  If ID is given and is a valid XName, the hostname/domain/FQDN does not need to have an XName as the hostname portion. It can be any address. The ID and FQDN must be unique across all entries.
+Create a new RedfishEndpoint whose ID field is a valid xname. ID can be given explicitly, or if the Hostname or hostname portion of the FQDN is given, and is a valid xname, this will be used for the ID instead.  The Hostname/Domain can be given as separate fields and will be used to create a FQDN if one is not given. The reverse is also true.  If FQDN is an IP address it will be treated as a hostname with a blank plugin.  The domain field is used currently to assign the domain for discovered nodes automatically.  If ID is given and is a valid XName, the hostname/domain/FQDN does not need to have an XName as the hostname portion. It can be any address. The ID and FQDN must be unique across all entries.
   - @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
   - @param body
 

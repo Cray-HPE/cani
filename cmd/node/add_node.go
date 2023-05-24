@@ -26,7 +26,7 @@ package node
 import (
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/cmd/session"
-	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/Cray-HPE/cani/internal/plugin"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -44,7 +44,7 @@ var AddNodeCmd = &cobra.Command{
 // addNode adds a node to the inventory
 func addNode(cmd *cobra.Command, args []string) error {
 	// Create a domain object to interact with the datastore
-	_, err := domain.New(root.Conf.Session.DomainOptions)
+	_, err := plugin.New(root.Conf.Session.DomainOptions)
 	if err != nil {
 		return err
 	}

@@ -1,4 +1,4 @@
-package domain
+package plugin
 
 import (
 	"github.com/Cray-HPE/cani/internal/inventory"

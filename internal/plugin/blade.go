@@ -1,4 +1,4 @@
-package domain
+package plugin
 
 import (
 	"errors"

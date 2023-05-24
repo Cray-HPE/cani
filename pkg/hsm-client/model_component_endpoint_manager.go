@@ -27,7 +27,7 @@ type ComponentEndpointManager struct {
 	UUID              string `json:"UUID,omitempty"`
 	OdataID           string `json:"OdataID,omitempty"`
 	RedfishEndpointID string `json:"RedfishEndpointID,omitempty"`
-	// This is a back-reference to the fully-qualified domain name of the parent Redfish endpoint that was used to discover the component.  It is the RedfishEndpointID field i.e. the hostname/xname plus its current domain.
+	// This is a back-reference to the fully-qualified domain name of the parent Redfish endpoint that was used to discover the component.  It is the RedfishEndpointID field i.e. the hostname/xname plus its current plugin.
 	RedfishEndpointFQDN string `json:"RedfishEndpointFQDN,omitempty"`
 	// Complete URL to the corresponding Redfish object, combining the RedfishEndpoint's FQDN and the OdataID.
 	RedfishURL         string                                  `json:"RedfishURL,omitempty"`

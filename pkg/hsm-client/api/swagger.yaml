@@ -4723,7 +4723,7 @@ paths:
       - RedfishEndpoint
       summary: Create RedfishEndpoint(s)
       description: |-
-        Create a new RedfishEndpoint whose ID field is a valid xname. ID can be given explicitly, or if the Hostname or hostname portion of the FQDN is given, and is a valid xname, this will be used for the ID instead.  The Hostname/Domain can be given as separate fields and will be used to create a FQDN if one is not given. The reverse is also true.  If FQDN is an IP address it will be treated as a hostname with a blank domain.  The domain field is used currently to assign the domain for discovered nodes automatically.
+        Create a new RedfishEndpoint whose ID field is a valid xname. ID can be given explicitly, or if the Hostname or hostname portion of the FQDN is given, and is a valid xname, this will be used for the ID instead.  The Hostname/Domain can be given as separate fields and will be used to create a FQDN if one is not given. The reverse is also true.  If FQDN is an IP address it will be treated as a hostname with a blank plugin.  The domain field is used currently to assign the domain for discovered nodes automatically.
 
         If ID is given and is a valid XName, the hostname/domain/FQDN does not need to have an XName as the hostname portion. It can be any address.
         The ID and FQDN must be unique across all entries.
@@ -5196,8 +5196,8 @@ paths:
                 ComponentEndpoints:
                 - ID: x0c0s0b0n0
                   Type: Node
-                  Domain: mgmt.example.domain.com
-                  FQDN: x0c0s0b0n0.mgmt.example.domain.com
+                  Domain: mgmt.example.plugin.com
+                  FQDN: x0c0s0b0n0.mgmt.example.plugin.com
                   RedfishType: ComputerSystem
                   RedfishSubtype: Physical
                   ComponentEndpointType: ComponentEndpointComputerSystem
@@ -5205,8 +5205,8 @@ paths:
                   UUID: bf9362ad-b29c-40ed-9881-18a5dba3a26b
                   OdataID: /redfish/v1/Systems/System.Embedded.1
                   RedfishEndpointID: x0c0s0b0
-                  RedfishEndpointFQDN: x0c0s0b0.mgmt.example.domain.com
-                  RedfishURL: x0c0s0b0.mgmt.example.domain.com/redfish/v1/Systems/System.Embedded.1
+                  RedfishEndpointFQDN: x0c0s0b0.mgmt.example.plugin.com
+                  RedfishURL: x0c0s0b0.mgmt.example.plugin.com/redfish/v1/Systems/System.Embedded.1
                   RedfishSystemInfo:
                     Name: System Embedded 1
                     Actions:
@@ -5320,8 +5320,8 @@ paths:
               example:
                 ID: x0c0s0b0n0
                 Type: Node
-                Domain: mgmt.example.domain.com
-                FQDN: x0c0s0b0n0.mgmt.example.domain.com
+                Domain: mgmt.example.plugin.com
+                FQDN: x0c0s0b0n0.mgmt.example.plugin.com
                 RedfishType: ComputerSystem
                 RedfishSubtype: Physical
                 ComponentEndpointType: ComponentEndpointComputerSystem
@@ -5329,8 +5329,8 @@ paths:
                 UUID: bf9362ad-b29c-40ed-9881-18a5dba3a26b
                 OdataID: /redfish/v1/Systems/System.Embedded.1
                 RedfishEndpointID: x0c0s0b0
-                RedfishEndpointFQDN: x0c0s0b0.mgmt.example.domain.com
-                RedfishURL: x0c0s0b0.mgmt.example.domain.com/redfish/v1/Systems/System.Embedded.1
+                RedfishEndpointFQDN: x0c0s0b0.mgmt.example.plugin.com
+                RedfishURL: x0c0s0b0.mgmt.example.plugin.com/redfish/v1/Systems/System.Embedded.1
                 RedfishSystemInfo:
                   Name: System Embedded 1
                   Actions:
@@ -5478,8 +5478,8 @@ paths:
                   RedfishSubtype: Other
                   UUID: bf9362ad-b29c-40ed-9881-18a5dba3a26b
                   OdataID: /redfish/v1/UpdateService
-                  RedfishEndpointFQDN: x0c0s0b0.mgmt.example.domain.com
-                  RedfishURL: x0c0s0b0.mgmt.example.domain.com/redfish/v1/UpdateService
+                  RedfishEndpointFQDN: x0c0s0b0.mgmt.example.plugin.com
+                  RedfishURL: x0c0s0b0.mgmt.example.plugin.com/redfish/v1/UpdateService
                   ServiceInfo:
                     '@odata.context': /redfish/v1/$metadata#UpdateService.UpdateService
                     '@odata.id': /redfish/v1/UpdateService
@@ -5601,8 +5601,8 @@ paths:
                   RedfishSubtype: Other
                   UUID: bf9362ad-b29c-40ed-9881-18a5dba3a26b
                   OdataID: /redfish/v1/UpdateService
-                  RedfishEndpointFQDN: x0c0s0b0.mgmt.example.domain.com
-                  RedfishURL: x0c0s0b0.mgmt.example.domain.com/redfish/v1/UpdateService
+                  RedfishEndpointFQDN: x0c0s0b0.mgmt.example.plugin.com
+                  RedfishURL: x0c0s0b0.mgmt.example.plugin.com/redfish/v1/UpdateService
                   ServiceInfo:
                     '@odata.context': /redfish/v1/$metadata#UpdateService.UpdateService
                     '@odata.id': /redfish/v1/UpdateService
@@ -5687,8 +5687,8 @@ paths:
                 RedfishSubtype: Other
                 UUID: bf9362ad-b29c-40ed-9881-18a5dba3a26b
                 OdataID: /redfish/v1/UpdateService
-                RedfishEndpointFQDN: x0c0s0b0.mgmt.example.domain.com
-                RedfishURL: x0c0s0b0.mgmt.example.domain.com/redfish/v1/UpdateService
+                RedfishEndpointFQDN: x0c0s0b0.mgmt.example.plugin.com
+                RedfishURL: x0c0s0b0.mgmt.example.plugin.com/redfish/v1/UpdateService
                 ServiceInfo:
                   '@odata.context': /redfish/v1/$metadata#UpdateService.UpdateService
                   '@odata.id': /redfish/v1/UpdateService
@@ -9236,12 +9236,12 @@ components:
         Domain:
           type: string
           description: Domain of component FQDN.  Hostname is always ID/xname
-          example: mgmt.example.domain.com
+          example: mgmt.example.plugin.com
         FQDN:
           type: string
           description: Fully-qualified domain name of component on management network
             if for example the component is a node.
-          example: x0c0s0b0n0.mgmt.example.domain.com
+          example: x0c0s0b0n0.mgmt.example.plugin.com
         RedfishType:
           $ref: '#/components/schemas/RedfishType.1.0.0'
         RedfishSubtype:
@@ -9281,15 +9281,15 @@ components:
           description: This is a back-reference to the fully-qualified domain name
             of the parent Redfish endpoint that was used to discover the component.  It
             is the RedfishEndpointID field i.e. the hostname/xname plus its current
-            domain.
+            plugin.
           readOnly: true
-          example: x0c0s0b0.mgmt.example.domain.com
+          example: x0c0s0b0.mgmt.example.plugin.com
         RedfishURL:
           type: string
           description: "Complete URL to the corresponding Redfish object, combining\
             \ the RedfishEndpoint's FQDN and the OdataID."
           readOnly: true
-          example: x0c0s0b0.mgmt.example.domain.com/redfish/v1/Systems/System.Embedded.1
+          example: x0c0s0b0.mgmt.example.plugin.com/redfish/v1/Systems/System.Embedded.1
       description: |-
         This describes a child component of a Redfish endpoint and is populated when Redfish endpoint discovery occurs.  It is used by services that need to interact directly with the component via Redfish. It represents a physical component of something and has a corresponding representation as an HMS Component, hence the name. There are also ServiceEndpoints which represent Redfish services that are discovered when the RedfishEndpoint is discovered.
         NOTE: These records are discovered, not created, and therefore are not writable (since any changes would be overwritten by a subsequent discovery).
@@ -9298,15 +9298,15 @@ components:
         Enabled: true
         OdataID: /redfish/v1/Systems/System.Embedded.1
         RedfishSubtype: Physical
-        RedfishURL: x0c0s0b0.mgmt.example.domain.com/redfish/v1/Systems/System.Embedded.1
+        RedfishURL: x0c0s0b0.mgmt.example.plugin.com/redfish/v1/Systems/System.Embedded.1
         Type: Node
-        FQDN: x0c0s0b0n0.mgmt.example.domain.com
-        RedfishEndpointFQDN: x0c0s0b0.mgmt.example.domain.com
+        FQDN: x0c0s0b0n0.mgmt.example.plugin.com
+        RedfishEndpointFQDN: x0c0s0b0.mgmt.example.plugin.com
         ComponentEndpointType: ComponentEndpointComputerSystem
         RedfishType: ComputerSystem
         MACAddr: ae:12:ce:7a:aa:99
         ID: x0c0s0b0n0
-        Domain: mgmt.example.domain.com
+        Domain: mgmt.example.plugin.com
         UUID: bf9362ad-b29c-40ed-9881-18a5dba3a26b
         RedfishEndpointID: x0c0s0b0
       discriminator:
@@ -9482,29 +9482,29 @@ components:
         - Enabled: true
           OdataID: /redfish/v1/Systems/System.Embedded.1
           RedfishSubtype: Physical
-          RedfishURL: x0c0s0b0.mgmt.example.domain.com/redfish/v1/Systems/System.Embedded.1
+          RedfishURL: x0c0s0b0.mgmt.example.plugin.com/redfish/v1/Systems/System.Embedded.1
           Type: Node
-          FQDN: x0c0s0b0n0.mgmt.example.domain.com
-          RedfishEndpointFQDN: x0c0s0b0.mgmt.example.domain.com
+          FQDN: x0c0s0b0n0.mgmt.example.plugin.com
+          RedfishEndpointFQDN: x0c0s0b0.mgmt.example.plugin.com
           ComponentEndpointType: ComponentEndpointComputerSystem
           RedfishType: ComputerSystem
           MACAddr: ae:12:ce:7a:aa:99
           ID: x0c0s0b0n0
-          Domain: mgmt.example.domain.com
+          Domain: mgmt.example.plugin.com
           UUID: bf9362ad-b29c-40ed-9881-18a5dba3a26b
           RedfishEndpointID: x0c0s0b0
         - Enabled: true
           OdataID: /redfish/v1/Systems/System.Embedded.1
           RedfishSubtype: Physical
-          RedfishURL: x0c0s0b0.mgmt.example.domain.com/redfish/v1/Systems/System.Embedded.1
+          RedfishURL: x0c0s0b0.mgmt.example.plugin.com/redfish/v1/Systems/System.Embedded.1
           Type: Node
-          FQDN: x0c0s0b0n0.mgmt.example.domain.com
-          RedfishEndpointFQDN: x0c0s0b0.mgmt.example.domain.com
+          FQDN: x0c0s0b0n0.mgmt.example.plugin.com
+          RedfishEndpointFQDN: x0c0s0b0.mgmt.example.plugin.com
           ComponentEndpointType: ComponentEndpointComputerSystem
           RedfishType: ComputerSystem
           MACAddr: ae:12:ce:7a:aa:99
           ID: x0c0s0b0n0
-          Domain: mgmt.example.domain.com
+          Domain: mgmt.example.plugin.com
           UUID: bf9362ad-b29c-40ed-9881-18a5dba3a26b
           RedfishEndpointID: x0c0s0b0
     ComponentEndpointArray_PostQuery:
@@ -11700,7 +11700,7 @@ components:
           description: This is a back-reference to the fully-qualified domain name
             of the parent Redfish endpoint that was used to discover the component.  It
             is the RedfishEndpointID field i.e. the hostname/xname plus its current
-            domain.
+            plugin.
           readOnly: true
         RedfishURL:
           type: string

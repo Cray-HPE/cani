@@ -6,8 +6,8 @@ import (
 
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/cmd/config"
-	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/plugin"
 	"github.com/manifoldco/promptui"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -28,7 +28,7 @@ var SessionStartCmd = &cobra.Command{
 var (
 	cfgFile   string
 	ds        string
-	dopts     *domain.NewOpts
+	dopts     *plugin.NewOpts
 	provider  string
 	validArgs = []string{"csm"}
 )
@@ -62,7 +62,7 @@ func startSession(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	root.Conf.Session.Domain, err = domain.New(root.Conf.Session.DomainOptions)
+	root.Conf.Session.Domain, err = plugin.New(root.Conf.Session.DomainOptions)
 	if err != nil {
 		return err
 	}

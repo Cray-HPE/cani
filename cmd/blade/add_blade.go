@@ -28,7 +28,7 @@ import (
 
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/cmd/session"
-	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/Cray-HPE/cani/internal/plugin"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
@@ -49,7 +49,7 @@ var AddBladeCmd = &cobra.Command{
 // addBlade adds a blade to the inventory
 func addBlade(cmd *cobra.Command, args []string) error {
 	// Create a domain object to interact with the datastore
-	d, err := domain.New(root.Conf.Session.DomainOptions)
+	d, err := plugin.New(root.Conf.Session.DomainOptions)
 	if err != nil {
 		return err
 	}

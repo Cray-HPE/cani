@@ -5,7 +5,7 @@ import (
 	"os"
 
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/Cray-HPE/cani/internal/plugin"
 	"github.com/manifoldco/promptui"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -25,7 +25,7 @@ var SessionStopCmd = &cobra.Command{
 func stopSession(cmd *cobra.Command, args []string) error {
 	ds := root.Conf.Session.DomainOptions.DatastorePath
 	provider := root.Conf.Session.DomainOptions.Provider
-	d, err := domain.New(root.Conf.Session.DomainOptions)
+	d, err := plugin.New(root.Conf.Session.DomainOptions)
 	if err != nil {
 		return err
 	}

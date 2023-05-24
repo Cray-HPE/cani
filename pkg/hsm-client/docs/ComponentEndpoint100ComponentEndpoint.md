@@ -15,7 +15,7 @@ Name | Type | Description | Notes
 **UUID** | **string** |  | [optional] [default to null]
 **OdataID** | **string** |  | [optional] [default to null]
 **RedfishEndpointID** | **string** |  | [optional] [default to null]
-**RedfishEndpointFQDN** | **string** | This is a back-reference to the fully-qualified domain name of the parent Redfish endpoint that was used to discover the component.  It is the RedfishEndpointID field i.e. the hostname/xname plus its current domain. | [optional] [default to null]
+**RedfishEndpointFQDN** | **string** | This is a back-reference to the fully-qualified domain name of the parent Redfish endpoint that was used to discover the component.  It is the RedfishEndpointID field i.e. the hostname/xname plus its current plugin. | [optional] [default to null]
 **RedfishURL** | **string** | Complete URL to the corresponding Redfish object, combining the RedfishEndpoint&#x27;s FQDN and the OdataID. | [optional] [default to null]
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)

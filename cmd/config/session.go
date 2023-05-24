@@ -1,10 +1,10 @@
 package config
 
-import "github.com/Cray-HPE/cani/internal/domain"
+import "github.com/Cray-HPE/cani/internal/plugin"
 
 // Session defines the session configuration and domain options
 type Session struct {
-	DomainOptions *domain.NewOpts `yaml:"domain_options"`
-	Domain        *domain.Domain  `yaml:"domain"`
+	DomainOptions *plugin.NewOpts `yaml:"domain_options"`
+	Domain        *plugin.Domain  `yaml:"domain"`
 	Active        bool            `yaml:"active"`
 }
