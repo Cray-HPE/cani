@@ -8,13 +8,13 @@ import (
 	"github.com/google/uuid"
 )
 
-type HardwareStatus string
-
-const (
-	HardwareStatusStaged        HardwareStatus = HardwareStatus("staged")
-	HardwareStatusProvisioned   HardwareStatus = HardwareStatus("provisioned")
-	HardwareStatusDecomissioned HardwareStatus = HardwareStatus("decomissioned")
-)
+// Inventory is the top level object that represents the entire inventory
+// This is what cani uses to represent the inventory
+type Inventory struct {
+	SchemaVersion SchemaVersion
+	Provider      Provider
+	Hardware      map[uuid.UUID]Hardware
+}
 
 // Hardware is the smallest unit of inventory
 // It has all the potential fields that hardware can have
@@ -36,6 +36,27 @@ type Hardware struct {
 	LocationOrdinal *int
 }
 
+// HardwareStatus is the current state of the hardware
+// Using a status allows for the hardware to be tracked through its lifecycle
+// and allows for historical tracking of the hardware even if it is replaced or removed
+type HardwareStatus string
+
+// SchemaVersion is the version of the inventory schema
+type SchemaVersion string
+
+// Provider is the name of the external inventory provider
+type Provider string
+
+const (
+	// Define constants for lifecyle states
+	HardwareStatusStaged        = HardwareStatus("staged")
+	HardwareStatusProvisioned   = HardwareStatus("provisioned")
+	HardwareStatusDecomissioned = HardwareStatus("decomissioned")
+	// Schema and proivider names are constant
+	SchemaVersionV1Alpha1 = SchemaVersion("v1alpha1")
+	CSMProvider           = Provider("csm")
+)
+
 type LocationToken struct {
 	HardwareType hardwaretypes.HardwareType
 	Ordinal      int
@@ -47,6 +68,7 @@ func (lt *LocationToken) String() string {
 
 type LocationPath []LocationToken
 
+// String returns a string representation of the location path
 func (lp LocationPath) String() string {
 	tokens := []string{}
 
@@ -57,6 +79,7 @@ func (lp LocationPath) String() string {
 	return strings.Join(tokens, "->")
 }
 
+// GetHardwareTypePath returns the hardware type path of the location path
 func (lp LocationPath) GetHardwareTypePath() hardwaretypes.HardwareTypePath {
 	result := hardwaretypes.HardwareTypePath{}
 	for _, token := range lp {
@@ -66,6 +89,7 @@ func (lp LocationPath) GetHardwareTypePath() hardwaretypes.HardwareTypePath {
 	return result
 }
 
+// GetOrdinalPath returns the ordinal of the location path
 func (lp LocationPath) GetOrdinalPath() []int {
 	result := []int{}
 	for _, token := range lp {
@@ -73,22 +97,4 @@ func (lp LocationPath) GetOrdinalPath() []int {
 	}
 
 	return result
-}
-
-type SchemaVersion string
-
-const (
-	SchemaVersionV1Alpha1 = SchemaVersion("v1alpha1")
-)
-
-type ExternalInventoryProvider string
-
-const (
-	ExternalInventoryProviderCSM = ExternalInventoryProvider("csm")
-)
-
-type Inventory struct {
-	SchemaVersion             SchemaVersion
-	ExternalInventoryProvider ExternalInventoryProvider
-	Hardware                  map[uuid.UUID]Hardware
 }

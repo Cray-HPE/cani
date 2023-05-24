@@ -33,6 +33,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -47,7 +48,7 @@ var ListBladeCmd = &cobra.Command{
 
 // listBlade lists blades in the inventory
 func listBlade(cmd *cobra.Command, args []string) error {
-	// Create a domain object to interact with the datastore
+	// Instantiate a new logic object to interact with the datastore
 	d, err := domain.New(root.Conf.Session.DomainOptions)
 	if err != nil {
 		return err
@@ -61,11 +62,36 @@ func listBlade(cmd *cobra.Command, args []string) error {
 
 	// Filter the inventory to only blades
 	filtered := make(map[uuid.UUID]inventory.Hardware, 0)
-	for key, hw := range inv.Hardware {
-		if hw.Type == hardwaretypes.HardwareTypeNodeBlade {
-			filtered[key] = hw
+
+	// If no args are provided, list all blades
+	if len(args) == 0 {
+		for key, hw := range inv.Hardware {
+			if hw.Type == hardwaretypes.HardwareTypeNodeBlade {
+				filtered[key] = hw
+			}
+		}
+	} else {
+		// List each blade specified in the args
+		for _, arg := range args {
+			// Convert the argument to a UUID
+			u, err := uuid.Parse(arg)
+			if err != nil {
+				return fmt.Errorf("Need a UUID: %s", err.Error())
+			}
+			// if blade does not exist, error
+			if _, exists := inv.Hardware[u]; !exists {
+				return fmt.Errorf("%s %s not found in inventory.", hardwaretypes.HardwareTypeNodeBlade, u)
+			}
+			// If the hardware is a blade
+			if inv.Hardware[u].Type == hardwaretypes.HardwareTypeNodeBlade {
+				// add it to the filtered inventory
+				filtered[u] = inv.Hardware[u]
+			} else {
+				log.Debug().Msgf("%s is not a %s.  It is a %s", u, hardwaretypes.HardwareTypeNodeBlade, inv.Hardware[u].Type)
+			}
 		}
 	}
+
 	// Convert the filtered inventory into a formatted JSON string
 	inventoryJSON, err := json.MarshalIndent(filtered, "", "  ")
 	if err != nil {

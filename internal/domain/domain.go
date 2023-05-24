@@ -10,13 +10,15 @@ import (
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 )
 
+// Domain is the logic that drives the application
+// It contains the hardware types, the datastore, and the inventory provider
 type Domain struct {
-	hardwareTypeLibrary *hardwaretypes.Library
-	datastore           inventory.Datastore
-
+	hardwareTypeLibrary       *hardwaretypes.Library
+	datastore                 inventory.Datastore
 	externalInventoryProvider provider.InventoryProvider
 }
 
+// NewOpts are the options for creating a new Domain
 type NewOpts struct {
 	DatastorePath string      `yaml:"datastore_path"`
 	LogFilePath   string      `yaml:"log_file_path"`
@@ -24,6 +26,7 @@ type NewOpts struct {
 	CsmOptions    csm.NewOpts `yaml:"csm_options"`
 }
 
+// New returns a new Domain using the provided options
 func New(opts *NewOpts) (*Domain, error) {
 	var err error
 	domain := &Domain{}
@@ -39,7 +42,7 @@ func New(opts *NewOpts) (*Domain, error) {
 	}
 
 	// Load the datastore
-	domain.datastore, err = inventory.NewDatastoreJSON(opts.DatastorePath, opts.LogFilePath)
+	domain.datastore, err = inventory.NewDatastoreJSON(opts.DatastorePath, opts.LogFilePath, inventory.Provider(opts.Provider))
 	if err != nil {
 		return nil, errors.Join(
 			fmt.Errorf("failed to load inventory datastore from file"),
@@ -48,17 +51,17 @@ func New(opts *NewOpts) (*Domain, error) {
 	}
 
 	// Setup External inventory provider
-	// TODO how does the initial inventory data for a session get created, if it uses domain logic
-	// as it will fail when we get to this point.
-	externalInventoryProviderName, err := domain.datastore.GetExternalInventoryProvider()
+	inventoryProvider, err := domain.datastore.InventoryProvider()
 	if err != nil {
 		return nil, errors.Join(
 			fmt.Errorf("failed to retrieve external inventory provider type"),
 			err,
 		)
 	}
-	switch externalInventoryProviderName {
-	case inventory.ExternalInventoryProviderCSM:
+
+	// Determine which external inventory provider to use
+	switch inventoryProvider {
+	case inventory.CSMProvider:
 		domain.externalInventoryProvider, err = csm.New(opts.CsmOptions)
 		if err != nil {
 			return nil, errors.Join(
@@ -67,7 +70,7 @@ func New(opts *NewOpts) (*Domain, error) {
 			)
 		}
 	default:
-		return nil, fmt.Errorf("unknown external inventory provider provided (%s)", externalInventoryProviderName)
+		return nil, fmt.Errorf("unknown external inventory provider provided (%s)", inventoryProvider)
 	}
 	return domain, nil
 }
