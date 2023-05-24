@@ -9,7 +9,7 @@
 package sls_client
 
 type HardwareExtraPropertiesCabinet struct {
-	Model             string                                  `json:"Model,omitempty"`
-	Networks          *HardwareExtraPropertiesCabinetNetworks `json:"Networks,omitempty"`
-	DHCPRelaySwitches []string                                `json:"DHCPRelaySwitches,omitempty"`
+	Model             string                                            `json:"Model,omitempty"`
+	Networks          map[string]HardwareExtraPropertiesCabinetNetworks `json:"Networks,omitempty"`
+	DHCPRelaySwitches []string                                          `json:"DHCPRelaySwitches,omitempty"`
 }

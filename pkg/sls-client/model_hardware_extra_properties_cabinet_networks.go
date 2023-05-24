@@ -9,6 +9,9 @@
 package sls_client
 
 type HardwareExtraPropertiesCabinetNetworks struct {
-	Ncn *HardwareExtraPropertiesCabinetNetworks `json:"ncn,omitempty"`
-	Cn  *HardwareExtraPropertiesCabinetNetworks `json:"cn,omitempty"`
+	CIDR       string `json:"CIDR,omitempty"`
+	Gateway    string `json:"Gateway,omitempty"`
+	VLan       int32  `json:"VLan,omitempty"`
+	IPv6Prefix string `json:"IPv6Prefix,omitempty"`
+	MACPrefix  string `json:"MACPrefix,omitempty"`
 }

@@ -174,7 +174,7 @@ generate-swagger: bin/swagger-codegen-cli.jar
 	go fmt ./pkg/sls-client/...
 	goimports -w ./pkg/sls-client
 
-generate: generate-go generate-swagger
+generate: generate-swagger generate-go 
 
 bin: generate
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o bin/${NAME} -ldflags "\

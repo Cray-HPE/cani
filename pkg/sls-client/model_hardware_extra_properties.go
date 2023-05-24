@@ -27,36 +27,36 @@ func (hardware *Hardware) DecodeExtraProperties() (result interface{}, err error
 	case xnametypes.Cabinet:
 		result = HardwareExtraPropertiesCabinet{}
 	case xnametypes.ChassisBMC:
-		result = sls_common.ComptypeChassisBmc{}
+		result = HardwareExtraPropertiesChassisBmc{}
 	case xnametypes.ComputeModule:
-		result = sls_common.ComptypeCompmod{}
+		result = HardwareExtraPropertiesCompmod{}
 	case xnametypes.NodePowerConnector:
-		result = sls_common.ComptypeCompmodPowerConnector{}
+		result = HardwareExtraPropertiesCompmodPowerConnector{}
 	case xnametypes.NodeHsnNic:
-		result = sls_common.ComptypeNodeHsnNic{}
-	case xnametypes.HSNConnectorPort:
-		result = sls_common.ComptypeHSNConnector{}
+		result = HardwareExtraPropertiesNodeHsnNic{}
+	case xnametypes.HSNConnector:
+		result = HardwareExtraPropertiesHsnConnector{}
 	case xnametypes.MgmtHLSwitch:
-		result = sls_common.ComptypeMgmtHLSwitch{}
+		result = HardwareExtraPropertiesMgmtHlSwitch{}
 	case xnametypes.MgmtSwitch:
-		result = sls_common.ComptypeMgmtSwitch{}
+		result = HardwareExtraPropertiesMgmtSwitch{}
 	case xnametypes.MgmtSwitchConnector:
-		result = sls_common.ComptypeMgmtSwitchConnector{}
+		result = HardwareExtraPropertiesMgmtSwitchConnector{}
 	case xnametypes.Node:
-		result = sls_common.ComptypeNode{}
+		result = HardwareExtraPropertiesNode{}
 	case xnametypes.NodeBMC:
-		result = sls_common.ComptypeNodeBmc{}
+		result = HardwareExtraPropertiesNcard{}
 	case xnametypes.NodeNic:
-		result = sls_common.ComptypeNodeNic{}
+		result = HardwareExtraPropertiesNodeNic{}
 	case xnametypes.RouterBMC:
-		result = sls_common.ComptypeRtrBmc{}
+		result = HardwareExtraPropertiesRtrBmc{}
 	case xnametypes.RouterBMCNic:
-		result = sls_common.ComptypeRtrBmcNic{}
+		result = HardwareExtraPropertiesRtrBmcNic{}
 	case xnametypes.RouterModule:
-		result = sls_common.ComptypeRtrBmcNic{}
+		result = HardwareExtraPropertiesRtrmod{}
 	default:
 		// Not all SLS types have an associated struct. If EP is nil, then its not a problem.
-		if hardware.ExtraPropertiesRaw == nil {
+		if hardware.ExtraProperties == nil {
 			return nil, nil
 		}
 
@@ -71,7 +71,7 @@ func (hardware *Hardware) DecodeExtraProperties() (result interface{}, err error
 	if err != nil {
 		return nil, err
 	}
-	err = decoder.Decode(hardware.ExtraPropertiesRaw)
+	err = decoder.Decode(hardware.ExtraProperties)
 
 	return result, err
 }

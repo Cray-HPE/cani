@@ -9,4 +9,5 @@
 package sls_client
 
 type HardwareExtraPropertiesCompmodPowerConnector struct {
+	PoweredBy string `json:"PoweredBy"`
 }

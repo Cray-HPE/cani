@@ -9,4 +9,8 @@
 package sls_client
 
 type HardwareExtraPropertiesNodeHsnNic struct {
+	// An array of network names that this NIC is connected to
+	Networks []string `json:"Networks"`
+	// An array of xnames this NIC is connected directly to.  These ideally connector xnames, not switches
+	Peers []string `json:"Peers"`
 }

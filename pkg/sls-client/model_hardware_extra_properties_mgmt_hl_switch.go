@@ -8,7 +8,15 @@
  */
 package sls_client
 
-type HardwareExtraPropertiesCompmod struct {
-	// An array of xnames, where each xname has type==*_pwr_connector.  Empty for Mountain switch cards
-	PowerConnector []string `json:"PowerConnector"`
+type HardwareExtraPropertiesMgmtHlSwitch struct {
+	IP6addr          string   `json:"IP6addr,omitempty"`
+	IP4addr          string   `json:"IP4addr,omitempty"`
+	Brand            string   `json:"Brand,omitempty"`
+	Model            string   `json:"Model,omitempty"`
+	SNMPAuthPassword string   `json:"SNMPAuthPassword,omitempty"`
+	SNMPAuthProtocol string   `json:"SNMPAuthProtocol,omitempty"`
+	SNMPPrivPassword string   `json:"SNMPPrivPassword,omitempty"`
+	SNMPPrivProtocol string   `json:"SNMPPrivProtocol,omitempty"`
+	SNMPUsername     string   `json:"SNMPUsername,omitempty"`
+	Aliases          []string `json:"Aliases,omitempty"`
 }

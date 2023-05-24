@@ -866,8 +866,19 @@ components:
     # hardware_extra_properties_cab_pdu: {}
     # hardware_extra_properties_cab_pdu_controller: {}
     hardware_extra_properties_cab_pdu_nic:
-      $ref: '#/components/schemas/hardware_nic'
-    # hardware_extra_properties_cab_pdu_outlet:
+      type: object
+      required: ["Networks", "Peers"]
+      properties:
+        Networks:
+          type: array
+          items:
+            $ref: '#/components/schemas/xname'
+          description: "An array of network names that this NIC is connected to"
+        Peers:
+          type: array
+          items:
+            $ref: '#/components/schemas/xname'
+          description: 'An array of xnames this NIC is connected directly to.  These ideally connector xnames, not switches'    # hardware_extra_properties_cab_pdu_outlet:
     hardware_extra_properties_cab_pdu_pwr_connector:
       type: object
       required: ["PoweredBy"]
@@ -882,11 +893,14 @@ components:
           type: string
         Networks:
           type: object
-          properties:
-            ncn:
-              $ref: '#/components/schemas/hardware_extra_properties_cabinet_networks'
-            cn:
-              $ref: '#/components/schemas/hardware_extra_properties_cabinet_networks'
+          # properties:
+          #   ncn:
+          #     $ref: '#/components/schemas/hardware_extra_properties_cabinet_networks'
+          #   cn:
+          #     $ref: '#/components/schemas/hardware_extra_properties_cabinet_networks'
+          additionalProperties:
+            $ref: '#/components/schemas/hardware_extra_properties_cabinet_networks'
+
 
         DHCPRelaySwitches:
           type: array
@@ -931,11 +945,23 @@ components:
     # hardware_extra_properties_cmm_fpga: {}
     # hardware_extra_properties_cmm_rectifier: {}
     hardware_extra_properties_compmod: # Compute Blade
-      $ref: '#/components/schemas/hardware_powered_device'
+      type: object
+      required: ["PowerConnector"]
+      properties:
+        PowerConnector:
+          type: array
+          items:
+            $ref: '#/components/schemas/xname'
+          description: "An array of xnames, where each xname has type==*_pwr_connector.  Empty for Mountain switch cards"
     hardware_extra_properties_compmod_power_connector:
-      $ref: '#/components/schemas/hardware_pwr_connector'
+      type: object
+      required: ["PoweredBy"]
+      properties:
+        PoweredBy:
+          $ref: '#/components/schemas/xname'
+          description: "The hardware this cable is connected to.  May be any type of object.  Parent is excluded"
     # hardware_extra_properties_dimm: {}
-    hardware_extra_properties_hl_switch:
+    hardware_extra_properties_mgmt_hl_switch:
       type: object
       properties:
         IP6addr:
@@ -1013,7 +1039,24 @@ components:
           description: "The vendor-assigned name for this port, as it appears in the switch management software.  Typically this is something like \"GigabitEthernet 1/31\" (Berkeley-style names), but may be any string."
    
     hardware_extra_properties_ncard: # NODEBMC
-      $ref: '#/components/schemas/hardware_ip_and_creds_optional'
+      type: object
+      properties:
+        IP6addr:
+          type: string
+          description: "The ipv6 address that should be assigned to this BMC, or \"DHCPv6\".  If omitted, \"DHCPv6\" is assumed."
+          example: "DHCPv6"
+        IP4addr:
+          type: string
+          description: "The ipv4 address that should be assigned to this BMC, or \"DHCPv4\".  If omitted, \"DHCPv4\" is assumed."
+          example: "10.1.1.1"
+        Username:
+          type: string
+          description: "The username that should be used to access the device (or be assigned to the device)"
+          example: "user_name"
+        Password:
+          type: string
+          description: "The password that should be used to access the device (or be assigned to the device)"
+          example: "vault://tok"
     hardware_extra_properties_node:
       type: object
       required: ["Role", "Aliases"]
@@ -1036,23 +1079,35 @@ components:
     # hardware_extra_properties_node_enclosure: {}
     # hardware_extra_properties_node_fpga: {}
     hardware_extra_properties_node_hsn_nic:
-      $ref: '#/components/schemas/hardware_nic'
+      type: object
+      required: ["Networks", "Peers"]
+      properties:
+        Networks:
+          type: array
+          items:
+            $ref: '#/components/schemas/xname'
+          description: "An array of network names that this NIC is connected to"
+        Peers:
+          type: array
+          items:
+            $ref: '#/components/schemas/xname'
+          description: 'An array of xnames this NIC is connected directly to.  These ideally connector xnames, not switches'    # hardware_extra_properties_cab_pdu_outlet:
     hardware_extra_properties_node_nic:
-      $ref: '#/components/schemas/hardware_nic'
+      type: object
+      required: ["Networks", "Peers"]
+      properties:
+        Networks:
+          type: array
+          items:
+            $ref: '#/components/schemas/xname'
+          description: "An array of network names that this NIC is connected to"
+        Peers:
+          type: array
+          items:
+            $ref: '#/components/schemas/xname'
+          description: 'An array of xnames this NIC is connected directly to.  These ideally connector xnames, not switches'    # hardware_extra_properties_cab_pdu_outlet:
     # hardware_extra_properties_node_processor:
     hardware_extra_properties_rtr_bmc:
-      $ref: '#/components/schemas/hardware_bmc'
-    hardware_extra_properties_rtr_bmc_nic:
-      $ref: '#/components/schemas/hardware_nic'
-    # hardware_extra_properties_rtr_fpga: {}
-    # hardware_extra_properties_rtr_tor_fpga: {}
-    hardware_extra_properties_rtrmod:
-      $ref: '#/components/schemas/hardware_powered_device'
-
-    #
-    # Common hardware types
-    #    
-    hardware_bmc:
       type: object
       required: ["IP6addr", "IP4addr"]
       properties:
@@ -1072,42 +1127,7 @@ components:
           type: string
           description: "The password that should be used to access the device (or be assigned to the device)"
           example: "vault://tok"
-    hardware_ip_and_creds_optional:
-      type: object
-      properties:
-        IP6addr:
-          type: string
-          description: "The ipv6 address that should be assigned to this BMC, or \"DHCPv6\".  If omitted, \"DHCPv6\" is assumed."
-          example: "DHCPv6"
-        IP4addr:
-          type: string
-          description: "The ipv4 address that should be assigned to this BMC, or \"DHCPv4\".  If omitted, \"DHCPv4\" is assumed."
-          example: "10.1.1.1"
-        Username:
-          type: string
-          description: "The username that should be used to access the device (or be assigned to the device)"
-          example: "user_name"
-        Password:
-          type: string
-          description: "The password that should be used to access the device (or be assigned to the device)"
-          example: "vault://tok"
-    hardware_powered_device:
-      type: object
-      required: ["PowerConnector"]
-      properties:
-        PowerConnector:
-          type: array
-          items:
-            $ref: '#/components/schemas/xname'
-          description: "An array of xnames, where each xname has type==*_pwr_connector.  Empty for Mountain switch cards"
-    hardware_pwr_connector:
-      type: object
-      required: ["PoweredBy"]
-      properties:
-        PoweredBy:
-          $ref: '#/components/schemas/xname'
-          description: "The hardware this cable is connected to.  May be any type of object.  Parent is excluded"
-    hardware_nic:
+    hardware_extra_properties_rtr_bmc_nic:
       type: object
       required: ["Networks", "Peers"]
       properties:
@@ -1120,7 +1140,91 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/xname'
-          description: 'An array of xnames this NIC is connected directly to.  These ideally connector xnames, not switches'
+          description: 'An array of xnames this NIC is connected directly to.  These ideally connector xnames, not switches'    # hardware_extra_properties_cab_pdu_outlet:
+    # hardware_extra_properties_rtr_fpga: {}
+    # hardware_extra_properties_rtr_tor_fpga: {}
+    hardware_extra_properties_rtrmod:
+      type: object
+      required: ["PowerConnector"]
+      properties:
+        PowerConnector:
+          type: array
+          items:
+            $ref: '#/components/schemas/xname'
+          description: "An array of xnames, where each xname has type==*_pwr_connector.  Empty for Mountain switch cards"
+
+    #
+    # Common hardware types
+    #    
+    # hardware_bmc:
+    #   type: object
+    #   required: ["IP6addr", "IP4addr"]
+    #   properties:
+    #     IP6addr:
+    #       type: string
+    #       description: "The ipv6 address that should be assigned to this BMC, or \"DHCPv6\".  If omitted, \"DHCPv6\" is assumed."
+    #       example: "DHCPv6"
+    #     IP4addr:
+    #       type: string
+    #       description: "The ipv4 address that should be assigned to this BMC, or \"DHCPv4\".  If omitted, \"DHCPv4\" is assumed."
+    #       example: "10.1.1.1"
+    #     Username:
+    #       type: string
+    #       description: "The username that should be used to access the device (or be assigned to the device)"
+    #       example: "user_name"
+    #     Password:
+    #       type: string
+    #       description: "The password that should be used to access the device (or be assigned to the device)"
+    #       example: "vault://tok"
+    # hardware_ip_and_creds_optional:
+    #   type: object
+    #   properties:
+    #     IP6addr:
+    #       type: string
+    #       description: "The ipv6 address that should be assigned to this BMC, or \"DHCPv6\".  If omitted, \"DHCPv6\" is assumed."
+    #       example: "DHCPv6"
+    #     IP4addr:
+    #       type: string
+    #       description: "The ipv4 address that should be assigned to this BMC, or \"DHCPv4\".  If omitted, \"DHCPv4\" is assumed."
+    #       example: "10.1.1.1"
+    #     Username:
+    #       type: string
+    #       description: "The username that should be used to access the device (or be assigned to the device)"
+    #       example: "user_name"
+    #     Password:
+    #       type: string
+    #       description: "The password that should be used to access the device (or be assigned to the device)"
+    #       example: "vault://tok"
+    # hardware_powered_device:
+    #   type: object
+    #   required: ["PowerConnector"]
+    #   properties:
+    #     PowerConnector:
+    #       type: array
+    #       items:
+    #         $ref: '#/components/schemas/xname'
+    #       description: "An array of xnames, where each xname has type==*_pwr_connector.  Empty for Mountain switch cards"
+    # hardware_pwr_connector:
+    #   type: object
+    #   required: ["PoweredBy"]
+    #   properties:
+    #     PoweredBy:
+    #       $ref: '#/components/schemas/xname'
+    #       description: "The hardware this cable is connected to.  May be any type of object.  Parent is excluded"
+    # hardware_nic:
+    #   type: object
+    #   required: ["Networks", "Peers"]
+    #   properties:
+    #     Networks:
+    #       type: array
+    #       items:
+    #         $ref: '#/components/schemas/xname'
+    #       description: "An array of network names that this NIC is connected to"
+    #     Peers:
+    #       type: array
+    #       items:
+    #         $ref: '#/components/schemas/xname'
+    #       description: 'An array of xnames this NIC is connected directly to.  These ideally connector xnames, not switches'
     hardware_extra_properties:
       oneOf:
         - $ref: '#/components/schemas/hardware_extra_properties_bmc_nic'
@@ -1131,7 +1235,7 @@ components:
         - $ref: '#/components/schemas/hardware_extra_properties_chassis_bmc'
         - $ref: '#/components/schemas/hardware_extra_properties_compmod'
         - $ref: '#/components/schemas/hardware_extra_properties_compmod_power_connector'
-        - $ref: '#/components/schemas/hardware_extra_properties_hl_switch'
+        - $ref: '#/components/schemas/hardware_extra_properties_mgmt_hl_switch'
         - $ref: '#/components/schemas/hardware_extra_properties_hsn_connector'
         - $ref: '#/components/schemas/hardware_extra_properties_mgmt_switch'
         - $ref: '#/components/schemas/hardware_extra_properties_mgmt_switch_connector'

@@ -3,8 +3,11 @@
 ## Properties
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**Ncn** | [***HardwareExtraPropertiesCabinetNetworks**](hardware_extra_properties_cabinet_networks.md) |  | [optional] [default to null]
-**Cn** | [***HardwareExtraPropertiesCabinetNetworks**](hardware_extra_properties_cabinet_networks.md) |  | [optional] [default to null]
+**CIDR** | **string** |  | [optional] [default to null]
+**Gateway** | **string** |  | [optional] [default to null]
+**VLan** | **int32** |  | [optional] [default to null]
+**IPv6Prefix** | **string** |  | [optional] [default to null]
+**MACPrefix** | **string** |  | [optional] [default to null]
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

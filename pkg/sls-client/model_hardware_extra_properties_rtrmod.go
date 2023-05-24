@@ -9,4 +9,6 @@
 package sls_client
 
 type HardwareExtraPropertiesRtrmod struct {
+	// An array of xnames, where each xname has type==*_pwr_connector.  Empty for Mountain switch cards
+	PowerConnector []string `json:"PowerConnector"`
 }
