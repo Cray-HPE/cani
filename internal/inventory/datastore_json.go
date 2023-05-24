@@ -106,7 +106,7 @@ func (dj *DatastoreJSON) Flush() error {
 	defer dj.inventoryLock.RUnlock()
 	// convert the cfg struct to a JSON-formatted byte slice.
 
-	data, err := json.Marshal(dj.inventory)
+	data, err := json.MarshalIndent(dj.inventory, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -296,6 +296,10 @@ func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 	dj.inventoryLock.RLock()
 	defer dj.inventoryLock.RUnlock()
 
+	loc := path.GetOrdinalPath()
+	for i, j := range loc {
+		fmt.Println(i, j)
+	}
 	return Hardware{}, fmt.Errorf("todo")
 }
 
