@@ -1,4 +1,4 @@
-# HardwareComptypeNode
+# HardwareExtraPropertiesNode
 
 ## Properties
 Name | Type | Description | Notes

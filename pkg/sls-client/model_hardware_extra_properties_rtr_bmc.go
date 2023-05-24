@@ -8,9 +8,13 @@
  */
 package sls_client
 
-type HardwareMgmtSwitchConnector struct {
-	// An array of xnames that the hardware_mgmt_switch_connector is connected to.  Excludes the parent.
-	NodeNics []string `json:"NodeNics"`
-	// The vendor-assigned name for this port, as it appears in the switch management software.  Typically this is something like \"GigabitEthernet 1/31\" (Berkeley-style names), but may be any string.
-	VendorName string `json:"VendorName,omitempty"`
+type HardwareExtraPropertiesRtrBmc struct {
+	// The ipv6 address that should be assigned to this BMC, or \"DHCPv6\".  If omitted, \"DHCPv6\" is assumed.
+	IP6addr string `json:"IP6addr"`
+	// The ipv4 address that should be assigned to this BMC, or \"DHCPv4\".  If omitted, \"DHCPv4\" is assumed.
+	IP4addr string `json:"IP4addr"`
+	// The username that should be used to access the device (or be assigned to the device)
+	Username string `json:"Username,omitempty"`
+	// The password that should be used to access the device (or be assigned to the device)
+	Password string `json:"Password,omitempty"`
 }

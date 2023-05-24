@@ -1,11 +1,12 @@
 package domain
 
 import (
+	"context"
 	"errors"
 	"fmt"
 )
 
-func (d *Domain) Commit() error {
+func (d *Domain) Commit(ctx context.Context) error {
 	inventoryProvider := d.externalInventoryProvider
 
 	// Perform validation of CANI's inventory data
@@ -17,7 +18,7 @@ func (d *Domain) Commit() error {
 	}
 
 	// Validate the current state of the external inventory
-	if err := inventoryProvider.ValidateExternal(); err != nil {
+	if err := inventoryProvider.ValidateExternal(ctx); err != nil {
 		return errors.Join(
 			fmt.Errorf("failed to validate external inventory provider"),
 			err,
@@ -25,6 +26,6 @@ func (d *Domain) Commit() error {
 	}
 
 	// Reconcile our inventory with the external inventory system
-	return inventoryProvider.Reconcile(d.datastore)
+	return inventoryProvider.Reconcile(ctx, d.datastore)
 
 }

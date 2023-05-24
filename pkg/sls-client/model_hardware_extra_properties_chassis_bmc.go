@@ -8,5 +8,6 @@
  */
 package sls_client
 
-type HardwareComptypeBmcNic struct {
+type HardwareExtraPropertiesChassisBmc struct {
+	Aliases []string `json:"Aliases,omitempty"`
 }

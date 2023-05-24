@@ -8,8 +8,15 @@
  */
 package sls_client
 
-type HardwareComptypeNode struct {
-	// The role type assigned to this node.
-	NodeType string `json:"NodeType"`
-	Nid      int32  `json:"nid,omitempty"`
+type HardwareExtraPropertiesMgmtSwitch struct {
+	IP6addr          string   `json:"IP6addr,omitempty"`
+	IP4addr          string   `json:"IP4addr,omitempty"`
+	Brand            string   `json:"Brand,omitempty"`
+	Model            string   `json:"Model,omitempty"`
+	SNMPAuthPassword string   `json:"SNMPAuthPassword,omitempty"`
+	SNMPAuthProtocol string   `json:"SNMPAuthProtocol,omitempty"`
+	SNMPPrivPassword string   `json:"SNMPPrivPassword,omitempty"`
+	SNMPPrivProtocol string   `json:"SNMPPrivProtocol,omitempty"`
+	SNMPUsername     string   `json:"SNMPUsername,omitempty"`
+	Aliases          []string `json:"Aliases,omitempty"`
 }

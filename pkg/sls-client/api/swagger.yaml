@@ -961,128 +961,7 @@ components:
         - x0c0s0b0n0
         LastUpdated: 0
         TypeString: TypeString
-    hardware_bmc:
-      required:
-      - IP4addr
-      - IP6addr
-      type: object
-      properties:
-        IP6addr:
-          type: string
-          description: "The ipv6 address that should be assigned to this BMC, or \"\
-            DHCPv6\".  If omitted, \"DHCPv6\" is assumed."
-          example: DHCPv6
-        IP4addr:
-          type: string
-          description: "The ipv4 address that should be assigned to this BMC, or \"\
-            DHCPv4\".  If omitted, \"DHCPv4\" is assumed."
-          example: 10.1.1.1
-        Username:
-          type: string
-          description: The username that should be used to access the device (or be
-            assigned to the device)
-          example: user_name
-        Password:
-          type: string
-          description: The password that should be used to access the device (or be
-            assigned to the device)
-          example: vault://tok
-    hardware_ip_and_creds_optional:
-      type: object
-      properties:
-        IP6addr:
-          type: string
-          description: "The ipv6 address that should be assigned to this BMC, or \"\
-            DHCPv6\".  If omitted, \"DHCPv6\" is assumed."
-          example: DHCPv6
-        IP4addr:
-          type: string
-          description: "The ipv4 address that should be assigned to this BMC, or \"\
-            DHCPv4\".  If omitted, \"DHCPv4\" is assumed."
-          example: 10.1.1.1
-        Username:
-          type: string
-          description: The username that should be used to access the device (or be
-            assigned to the device)
-          example: user_name
-        Password:
-          type: string
-          description: The password that should be used to access the device (or be
-            assigned to the device)
-          example: vault://tok
-    hardware_powered_device:
-      required:
-      - PowerConnector
-      type: object
-      properties:
-        PowerConnector:
-          type: array
-          description: "An array of xnames, where each xname has type==*_pwr_connector.\
-            \  Empty for Mountain switch cards"
-          items:
-            $ref: '#/components/schemas/xname'
-    hardware_comptype_hsn_connector:
-      required:
-      - Object
-      type: object
-      properties:
-        Object:
-          type: array
-          description: An array of xnames that this connector is connected to.  All
-            xnames should have type==comptype_hsn_connector_port
-          items:
-            $ref: '#/components/schemas/xname'
-    hardware_pwr_connector:
-      required:
-      - PoweredBy
-      type: object
-      properties:
-        PoweredBy:
-          $ref: '#/components/schemas/xname'
-    hardware_mgmt_switch_connector:
-      required:
-      - NodeNics
-      type: object
-      properties:
-        NodeNics:
-          type: array
-          description: An array of xnames that the hardware_mgmt_switch_connector
-            is connected to.  Excludes the parent.
-          items:
-            $ref: '#/components/schemas/xname'
-        VendorName:
-          type: string
-          description: "The vendor-assigned name for this port, as it appears in the\
-            \ switch management software.  Typically this is something like \"GigabitEthernet\
-            \ 1/31\" (Berkeley-style names), but may be any string."
-    hardware_comptype_rtr_bmc:
-      $ref: '#/components/schemas/hardware_bmc'
-    hardware_comptype_bmc_nic:
-      $ref: '#/components/schemas/hardware_nic'
-    hardware_nic:
-      required:
-      - Networks
-      - Peers
-      type: object
-      properties:
-        Networks:
-          type: array
-          description: An array of network names that this NIC is connected to
-          items:
-            $ref: '#/components/schemas/xname'
-        Peers:
-          type: array
-          description: "An array of xnames this NIC is connected directly to.  These\
-            \ ideally connector xnames, not switches"
-          items:
-            $ref: '#/components/schemas/xname'
-    hardware_comptype_rtmod:
-      $ref: '#/components/schemas/hardware_powered_device'
-    hardware_comptype_mgmt_switch:
-      $ref: '#/components/schemas/hardware_powered_device'
-    hardware_comptype_compmod:
-      $ref: '#/components/schemas/hardware_powered_device'
-    hardware_comptype_cab_pdu:
+    hardware_extra_properties_bmc_nic:
       required:
       - IP4addr
       - IP6addr
@@ -1110,41 +989,321 @@ components:
           description: The password that should be used to access the device
           format: password
           example: vault://tok
-    hardware_comptype_node:
+    hardware_extra_properties_cab_pdu_nic:
       required:
-      - NodeType
+      - Networks
+      - Peers
       type: object
       properties:
-        NodeType:
+        Networks:
+          type: array
+          description: An array of network names that this NIC is connected to
+          items:
+            $ref: '#/components/schemas/xname'
+        Peers:
+          type: array
+          description: "An array of xnames this NIC is connected directly to.  These\
+            \ ideally connector xnames, not switches"
+          items:
+            $ref: '#/components/schemas/xname'
+    hardware_extra_properties_cab_pdu_pwr_connector:
+      required:
+      - PoweredBy
+      type: object
+      properties:
+        PoweredBy:
+          $ref: '#/components/schemas/xname'
+    hardware_extra_properties_cabinet:
+      type: object
+      properties:
+        Model:
           type: string
-          description: The role type assigned to this node.
-          example: Compute
-          enum:
-          - Compute
-          - System
-          - Application
-          - Storage
-          - Management
-        nid:
+        Networks:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/hardware_extra_properties_cabinet_networks'
+        DHCPRelaySwitches:
+          type: array
+          items:
+            type: string
+    hardware_extra_properties_cabinet_networks:
+      type: object
+      properties:
+        CIDR:
+          type: string
+        Gateway:
+          type: string
+        VLan:
+          type: integer
+        IPv6Prefix:
+          type: string
+        MACPrefix:
+          type: string
+    hardware_extra_properties_cdu_mgmt_switch:
+      type: object
+      properties:
+        Brand:
+          type: string
+        Model:
+          type: string
+        Aliases:
+          type: array
+          items:
+            type: string
+    hardware_extra_properties_chassis_bmc:
+      type: object
+      properties:
+        Aliases:
+          type: array
+          items:
+            type: string
+    hardware_extra_properties_compmod:
+      required:
+      - PowerConnector
+      type: object
+      properties:
+        PowerConnector:
+          type: array
+          description: "An array of xnames, where each xname has type==*_pwr_connector.\
+            \  Empty for Mountain switch cards"
+          items:
+            $ref: '#/components/schemas/xname'
+    hardware_extra_properties_compmod_power_connector:
+      required:
+      - PoweredBy
+      type: object
+      properties:
+        PoweredBy:
+          $ref: '#/components/schemas/xname'
+    hardware_extra_properties_mgmt_hl_switch:
+      type: object
+      properties:
+        IP6addr:
+          type: string
+        IP4addr:
+          type: string
+        Brand:
+          type: string
+        Model:
+          type: string
+        SNMPAuthPassword:
+          type: string
+        SNMPAuthProtocol:
+          type: string
+        SNMPPrivPassword:
+          type: string
+        SNMPPrivProtocol:
+          type: string
+        SNMPUsername:
+          type: string
+        Aliases:
+          type: array
+          items:
+            type: string
+    hardware_extra_properties_hsn_connector:
+      required:
+      - NodeNics
+      type: object
+      properties:
+        NodeNics:
+          type: array
+          description: An array of xnames that this connector is connected to.  All
+            xnames should have type==comptype_hsn_connector_port
+          items:
+            $ref: '#/components/schemas/xname'
+    hardware_extra_properties_mgmt_switch:
+      type: object
+      properties:
+        IP6addr:
+          type: string
+        IP4addr:
+          type: string
+        Brand:
+          type: string
+        Model:
+          type: string
+        SNMPAuthPassword:
+          type: string
+        SNMPAuthProtocol:
+          type: string
+        SNMPPrivPassword:
+          type: string
+        SNMPPrivProtocol:
+          type: string
+        SNMPUsername:
+          type: string
+        Aliases:
+          type: array
+          items:
+            type: string
+    hardware_extra_properties_mgmt_switch_connector:
+      required:
+      - NodeNics
+      type: object
+      properties:
+        NodeNics:
+          type: array
+          description: An array of xnames that the hardware_mgmt_switch_connector
+            is connected to.  Excludes the parent.
+          items:
+            $ref: '#/components/schemas/xname'
+        VendorName:
+          type: string
+          description: "The vendor-assigned name for this port, as it appears in the\
+            \ switch management software.  Typically this is something like \"GigabitEthernet\
+            \ 1/31\" (Berkeley-style names), but may be any string."
+    hardware_extra_properties_ncard:
+      type: object
+      properties:
+        IP6addr:
+          type: string
+          description: "The ipv6 address that should be assigned to this BMC, or \"\
+            DHCPv6\".  If omitted, \"DHCPv6\" is assumed."
+          example: DHCPv6
+        IP4addr:
+          type: string
+          description: "The ipv4 address that should be assigned to this BMC, or \"\
+            DHCPv4\".  If omitted, \"DHCPv4\" is assumed."
+          example: 10.1.1.1
+        Username:
+          type: string
+          description: The username that should be used to access the device (or be
+            assigned to the device)
+          example: user_name
+        Password:
+          type: string
+          description: The password that should be used to access the device (or be
+            assigned to the device)
+          example: vault://tok
+    hardware_extra_properties_node:
+      required:
+      - Aliases
+      - Role
+      type: object
+      properties:
+        NID:
           minimum: 0
           type: integer
           example: 2
-    hardware_comptype_nodecard:
-      $ref: '#/components/schemas/hardware_ip_and_creds_optional'
+        Role:
+          type: string
+          example: Application
+        SubRole:
+          type: string
+          example: Application
+        Aliases:
+          type: array
+          items:
+            type: string
+    hardware_extra_properties_node_hsn_nic:
+      required:
+      - Networks
+      - Peers
+      type: object
+      properties:
+        Networks:
+          type: array
+          description: An array of network names that this NIC is connected to
+          items:
+            $ref: '#/components/schemas/xname'
+        Peers:
+          type: array
+          description: "An array of xnames this NIC is connected directly to.  These\
+            \ ideally connector xnames, not switches"
+          items:
+            $ref: '#/components/schemas/xname'
+    hardware_extra_properties_node_nic:
+      required:
+      - Networks
+      - Peers
+      type: object
+      properties:
+        Networks:
+          type: array
+          description: An array of network names that this NIC is connected to
+          items:
+            $ref: '#/components/schemas/xname'
+        Peers:
+          type: array
+          description: "An array of xnames this NIC is connected directly to.  These\
+            \ ideally connector xnames, not switches"
+          items:
+            $ref: '#/components/schemas/xname'
+    hardware_extra_properties_rtr_bmc:
+      required:
+      - IP4addr
+      - IP6addr
+      type: object
+      properties:
+        IP6addr:
+          type: string
+          description: "The ipv6 address that should be assigned to this BMC, or \"\
+            DHCPv6\".  If omitted, \"DHCPv6\" is assumed."
+          example: DHCPv6
+        IP4addr:
+          type: string
+          description: "The ipv4 address that should be assigned to this BMC, or \"\
+            DHCPv4\".  If omitted, \"DHCPv4\" is assumed."
+          example: 10.1.1.1
+        Username:
+          type: string
+          description: The username that should be used to access the device (or be
+            assigned to the device)
+          example: user_name
+        Password:
+          type: string
+          description: The password that should be used to access the device (or be
+            assigned to the device)
+          example: vault://tok
+    hardware_extra_properties_rtr_bmc_nic:
+      required:
+      - Networks
+      - Peers
+      type: object
+      properties:
+        Networks:
+          type: array
+          description: An array of network names that this NIC is connected to
+          items:
+            $ref: '#/components/schemas/xname'
+        Peers:
+          type: array
+          description: "An array of xnames this NIC is connected directly to.  These\
+            \ ideally connector xnames, not switches"
+          items:
+            $ref: '#/components/schemas/xname'
+    hardware_extra_properties_rtrmod:
+      required:
+      - PowerConnector
+      type: object
+      properties:
+        PowerConnector:
+          type: array
+          description: "An array of xnames, where each xname has type==*_pwr_connector.\
+            \  Empty for Mountain switch cards"
+          items:
+            $ref: '#/components/schemas/xname'
     hardware_extra_properties:
       oneOf:
-      - $ref: '#/components/schemas/hardware_comptype_hsn_connector'
-      - $ref: '#/components/schemas/hardware_pwr_connector'
-      - $ref: '#/components/schemas/hardware_mgmt_switch_connector'
-      - $ref: '#/components/schemas/hardware_comptype_rtr_bmc'
-      - $ref: '#/components/schemas/hardware_comptype_bmc_nic'
-      - $ref: '#/components/schemas/hardware_nic'
-      - $ref: '#/components/schemas/hardware_comptype_rtmod'
-      - $ref: '#/components/schemas/hardware_comptype_mgmt_switch'
-      - $ref: '#/components/schemas/hardware_comptype_compmod'
-      - $ref: '#/components/schemas/hardware_comptype_cab_pdu'
-      - $ref: '#/components/schemas/hardware_comptype_node'
-      - $ref: '#/components/schemas/hardware_comptype_nodecard'
+      - $ref: '#/components/schemas/hardware_extra_properties_bmc_nic'
+      - $ref: '#/components/schemas/hardware_extra_properties_cab_pdu_nic'
+      - $ref: '#/components/schemas/hardware_extra_properties_cab_pdu_pwr_connector'
+      - $ref: '#/components/schemas/hardware_extra_properties_cabinet_networks'
+      - $ref: '#/components/schemas/hardware_extra_properties_cdu_mgmt_switch'
+      - $ref: '#/components/schemas/hardware_extra_properties_chassis_bmc'
+      - $ref: '#/components/schemas/hardware_extra_properties_compmod'
+      - $ref: '#/components/schemas/hardware_extra_properties_compmod_power_connector'
+      - $ref: '#/components/schemas/hardware_extra_properties_mgmt_hl_switch'
+      - $ref: '#/components/schemas/hardware_extra_properties_hsn_connector'
+      - $ref: '#/components/schemas/hardware_extra_properties_mgmt_switch'
+      - $ref: '#/components/schemas/hardware_extra_properties_mgmt_switch_connector'
+      - $ref: '#/components/schemas/hardware_extra_properties_ncard'
+      - $ref: '#/components/schemas/hardware_extra_properties_node'
+      - $ref: '#/components/schemas/hardware_extra_properties_node_hsn_nic'
+      - $ref: '#/components/schemas/hardware_extra_properties_node_nic'
+      - $ref: '#/components/schemas/hardware_extra_properties_rtr_bmc'
+      - $ref: '#/components/schemas/hardware_extra_properties_rtr_bmc_nic'
+      - $ref: '#/components/schemas/hardware_extra_properties_rtrmod'
     slsState:
       type: object
       properties:

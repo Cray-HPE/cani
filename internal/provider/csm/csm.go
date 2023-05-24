@@ -1,6 +1,7 @@
 package csm
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net/http"
@@ -79,7 +80,7 @@ func New(opts NewOpts) (*CSM, error) {
 }
 
 // Validate the external services of the inventory provider are correct
-func (csm *CSM) ValidateExternal() error {
+func (csm *CSM) ValidateExternal(ctx context.Context) error {
 	log.Warn().Msg("CSM Provider's ValidateExternal was called. This is not currently implemented")
 	return nil
 }
@@ -87,14 +88,14 @@ func (csm *CSM) ValidateExternal() error {
 // Validate the representation of the inventory data into the destination inventory system
 // is consistent.
 // TODO perhaps this should just happen during Reconcile
-func (csm *CSM) ValidateInternal() error {
+func (csm *CSM) ValidateInternal(ctx context.Context) error {
 	log.Warn().Msg("CSM Provider's ValidateInternal was called. This is not currently implemented")
 
 	return nil
 }
 
 // Import external inventory data into CANI's inventory format
-func (csm *CSM) Import() error {
+func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error {
 	return fmt.Errorf("todo")
 
 }

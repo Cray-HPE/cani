@@ -8,7 +8,6 @@
  */
 package sls_client
 
-type HardwareComptypeHsnConnector struct {
-	// An array of xnames that this connector is connected to.  All xnames should have type==comptype_hsn_connector_port
-	Object []string `json:"Object"`
+type HardwareExtraPropertiesCompmodPowerConnector struct {
+	PoweredBy string `json:"PoweredBy"`
 }
