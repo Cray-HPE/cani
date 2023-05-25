@@ -24,67 +24,31 @@ OTHER DEALINGS IN THE SOFTWARE.
 package cmd
 
 import (
-	"context"
-	"fmt"
-	"os"
-
-	"github.com/Cray-HPE/cani/cmd/validate"
-	"github.com/Cray-HPE/cani/internal/provider/csm/hsm"
-	"github.com/Cray-HPE/cani/internal/provider/csm/sls"
-	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
-	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
+	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
-// validateCmd represents the switch validate command
-var validateCmd = &cobra.Command{
-	Use:   "validate",
-	Short: "Validate assets in the inventory.",
-	Long:  `Validate assets in the inventory.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		err := validateInventory(args, simulation)
-		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
-			os.Exit(1)
-		}
-
-	},
+// ValidateCmd represents the validate command
+var ValidateCmd = &cobra.Command{
+	Use:          "validate",
+	Short:        "Validate assets in the inventory.",
+	Long:         `Validate assets in the inventory.`,
+	SilenceUsage: true, // Errors are more important than the usage
+	RunE:         validateInventory,
 }
 
-func init() {
-}
-
-var (
-	HSM *hsm_client.APIClient
-	SLS *sls_client.APIClient
-)
-
-func EnableSimulation() {
-	HSM = hsm.EnableSimulation()
-	SLS = sls.EnableSimulation()
-}
-
-func DisableSimulation() {
-	HSM = hsm.DisableSimulation()
-	SLS = sls.DisableSimulation()
-}
-
-func validateInventory(args []string, useSimulator bool) error {
-	// fmt.Println("validate called")
-
-	if useSimulator {
-		EnableSimulation()
-	} else {
-		DisableSimulation()
-	}
-
-	slsState, response, err := SLS.DumpstateApi.DumpstateGet(context.Background())
+func validateInventory(cmd *cobra.Command, args []string) error {
+	log.Warn().Msg("This may fail in the HMS Simulator without Network information.")
+	// Create a domain object to interact with the datastore
+	d, err := domain.New(Conf.Session.DomainOptions)
 	if err != nil {
-		fmt.Printf("SLS dumpstate failed. %v\n", err)
-		return nil
+		return err
 	}
-
-	validate.Validate(&slsState, response)
+	// Validate the external inventory
+	err = d.Validate()
+	if err != nil {
+		return err
+	}
 	return nil
 }

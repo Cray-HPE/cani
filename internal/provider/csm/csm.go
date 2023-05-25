@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider/csm/validate"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
@@ -74,7 +75,17 @@ func New(opts NewOpts) (*CSM, error) {
 
 // Validate the external services of the inventory provider are correct
 func (csm *CSM) ValidateExternal(ctx context.Context) error {
-	log.Warn().Msg("CSM Provider's ValidateExternal was called. This is not currently implemented")
+	// Get the dumpate from SLS
+	slsState, reps, err := csm.slsClient.DumpstateApi.DumpstateGet(context.Background())
+	if err != nil {
+		return fmt.Errorf("SLS dumpstate failed. %v\n", err)
+	}
+
+	// Validate the dumpstate returned from SLS
+	err = validate.Validate(&slsState, reps)
+	if err != nil {
+		return fmt.Errorf("Validation failed. %v\n", err)
+	}
 	return nil
 }
 

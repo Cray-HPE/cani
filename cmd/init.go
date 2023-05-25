@@ -22,6 +22,7 @@ func init() {
 	AlphaCmd.AddCommand(RemoveCmd)
 	AlphaCmd.AddCommand(SessionCmd)
 	AlphaCmd.AddCommand(UpdateCmd)
+	AlphaCmd.AddCommand(ValidateCmd)
 	AlphaCmd.AddCommand(VersionCmd)
 
 	// Global root command flags

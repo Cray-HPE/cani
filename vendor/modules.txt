@@ -8,8 +8,12 @@ github.com/Cray-HPE/hms-xname/xnametypes
 # github.com/antihax/optional v1.0.0
 ## explicit; go 1.13
 github.com/antihax/optional
+# github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
+## explicit
+github.com/chzyer/readline
 # github.com/fatih/color v1.13.0
 ## explicit; go 1.13
+github.com/fatih/color
 # github.com/golang/protobuf v1.5.3
 ## explicit; go 1.9
 github.com/golang/protobuf/proto
@@ -31,6 +35,11 @@ github.com/hashicorp/go-retryablehttp
 github.com/inconshreveable/mousetrap
 # github.com/kr/pretty v0.3.0
 ## explicit; go 1.12
+# github.com/manifoldco/promptui v0.9.0
+## explicit; go 1.12
+github.com/manifoldco/promptui
+github.com/manifoldco/promptui/list
+github.com/manifoldco/promptui/screenbuf
 # github.com/mattn/go-colorable v0.1.13
 ## explicit; go 1.15
 github.com/mattn/go-colorable

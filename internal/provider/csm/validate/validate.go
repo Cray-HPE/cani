@@ -26,6 +26,7 @@ package validate
 
 import (
 	"embed"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -60,19 +61,19 @@ const (
 	Pass    Result = "pass"
 )
 
-// func (a *DumpstateApiService) DumpstateGet(ctx context.Context) (SlsState, *http.Response, error) {
-func Validate(slsState *sls_client.SlsState, response *http.Response) {
+// Validate validates the data in the response against the SLS schema.
+func Validate(slsState *sls_client.SlsState, response *http.Response) error {
 	results := make([]ValidationResult, 0)
 
-	id := NewID("Network", "CAN")
-	id2 := id.append(Pair{"fish", "bones"})
-	fmt.Printf("ID: %v\n", id)
-	fmt.Printf("ID2: %v\n", id2)
-	fmt.Printf("ID str: %s\n", id.str())
-	fmt.Printf("ID str pair: %s\n", id.strPair())
-	fmt.Printf("ID2 str: %s\n", id2.str())
-	fmt.Printf("ID2 str pair: %s\n", id2.strPair())
-	fmt.Printf("ID2 str pair: %s\n", id2.strYaml())
+	// id := NewID("Network", "CAN")
+	// id2 := id.append(Pair{"fish", "bones"})
+	// fmt.Printf("ID: %v\n", id)
+	// fmt.Printf("ID2: %v\n", id2)
+	// fmt.Printf("ID str: %s\n", id.str())
+	// fmt.Printf("ID str pair: %s\n", id.strPair())
+	// fmt.Printf("ID2 str: %s\n", id2.str())
+	// fmt.Printf("ID2 str pair: %s\n", id2.strPair())
+	// fmt.Printf("ID2 str pair: %s\n", id2.strYaml())
 
 	r := validateAgainstSchemas(response)
 	results = append(results, r...)
@@ -99,7 +100,10 @@ func Validate(slsState *sls_client.SlsState, response *http.Response) {
 			for j := i + 1; j < len(ipRanges); j++ {
 				ipRange2 := ipRanges[j]
 				// todo check for error
-				_, net2, _ := net.ParseCIDR(ipRange2)
+				_, net2, err := net.ParseCIDR(ipRange2)
+				if err != nil {
+					return err
+				}
 				// fmt.Printf("    %d, %s\n", j, ipRange2)
 
 				// fmt.Printf("%s, %t\n", ipRange2, net2.IP.IsUnspecified())
@@ -139,7 +143,16 @@ func Validate(slsState *sls_client.SlsState, response *http.Response) {
 		}
 	}
 
+	var allError error
 	for _, result := range results {
-		fmt.Printf("%v\n", result)
+		if result.Result == Fail {
+			e := fmt.Errorf("%s: %s", result.ComponentID, result.Description)
+			allError = errors.Join(allError, e)
+		}
 	}
+
+	if allError != nil {
+		return allError
+	}
+	return nil
 }

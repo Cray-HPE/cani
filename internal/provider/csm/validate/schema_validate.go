@@ -178,6 +178,7 @@ func validateSubnetsSchema(schema *jsonschema.Schema, subnet map[string]interfac
 	return results
 }
 
+// validateAgainstSchemas validates the SLS response against the schemas
 func validateAgainstSchemas(response *http.Response) []ValidationResult {
 	results := make([]ValidationResult, 0)
 
