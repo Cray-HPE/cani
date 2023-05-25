@@ -34,6 +34,9 @@ func init() {
 
 	AddBladeCmd.MarkFlagsRequiredTogether("list-supported-types")
 	AddBladeCmd.MarkFlagsRequiredTogether("cabinet", "chassis", "slot")
+	AddBladeCmd.MarkFlagRequired("cabinet")
+	AddBladeCmd.MarkFlagRequired("chassis")
+	AddBladeCmd.MarkFlagRequired("slot")
 
 	RemoveBladeCmd.Flags().BoolVarP(&recursion, "recursive", "R", false, "Recursively delete child hardware")
 
