@@ -501,20 +501,24 @@ func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 }
 
 // GetChildren returns the children of a given hardware object
-func (dj *DatastoreJSON) GetChildren(hardware Hardware) ([]Hardware, error) {
+func (dj *DatastoreJSON) GetChildren(id uuid.UUID) ([]Hardware, error) {
 	dj.inventoryLock.RLock()
 	defer dj.inventoryLock.RUnlock()
 
-	return dj.getChildren(hardware)
+	return dj.getChildren(id)
 }
 
 // getChildren returns the children of a given hardware object
 // This function depends on the cached/derived children data
-func (dj *DatastoreJSON) getChildren(hardware Hardware) ([]Hardware, error) {
-	var results []Hardware
+func (dj *DatastoreJSON) getChildren(id uuid.UUID) ([]Hardware, error) {
+	hardware, exists := dj.inventory.Hardware[id]
+	if !exists {
+		return nil, ErrHardwareNotFound
+	}
 
 	// For right we need to iterate over the map, as we don't have any
 	// book keeping to keep track of child hardware
+	var results []Hardware
 	for _, childID := range hardware.Children {
 		childHardware, exists := dj.inventory.Hardware[childID]
 		if !exists {
