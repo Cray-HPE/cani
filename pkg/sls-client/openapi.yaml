@@ -412,13 +412,13 @@ paths:
           name: class
           required: false
           schema:
-            $ref: '#/components/schemas/hwclass'
+            $ref: '#/components/schemas/hardware_class'
           description: "Matches all objects of the given class"
         - in: query
           name: type
           required: false
           schema:
-            $ref: '#/components/schemas/hwtype'
+            $ref: '#/components/schemas/hardware_type'
           description: "Matches all objects of the given type"
         - in: query
           name: power_connector
@@ -764,17 +764,110 @@ components:
       pattern: &xname_pattern "^s0$|^d([0-9]+)$|^x([0-9]{1,4})d([0-1])$|^x([0-9]{1,4})m([0-3])$|^x([0-9]{1,4})m([0-3])p([0-7])$|^x([0-9]{1,4})m([0-3])i([0-3])$|^x([0-9]{1,4})m([0-3])p([0-7])j([1-9][0-9]*)$|^x([0-9]{1,4})e([0-1])$|^x([0-9]{1,4})$|^x([0-9]{1,4})b([0])$|^x([0-9]{1,4})c([0-7])$|^x([0-9]{1,4})c([0-7])b([0])$|^x([0-9]{1,4})c([0-7])f([0])$|^x([0-9]{1,4})c([0-7])t([0-2])$|^x([0-9]{1,4})c([0-7])s([0-9]+)$|^x([0-9]{1,4})c([0-7])s([0-9]+)b([0-9]+)f([0])$|^x([0-9]{1,4})c([0-7])s([0-9]+)b([0-9]+)$|^x([0-9]{1,4})c([0-7])s([0-9]+)b([0-9]+)i([0-3])$|^x([0-9]{1,4})c([0-7])s([0-9]+)e([0-9]+)$|^x([0-9]{1,4})c([0-7])s([0-9]+)j([1-2])$|^x([0-9]{1,4})c([0-7])r([0-9]+)e([0-9]+)$|^x([0-9]{1,4})c([0-7])s([0-9]+)b([0-9]+)n([0-9]+)$|^x([0-9]{1,4})c([0-7])s([0-9]+)b([0-9]+)n([0-9]+)i([0-3])$|^x([0-9]{1,4})c([0-7])s([0-9]+)b([0-9]+)n([0-9]+)h([0-3])$|^x([0-9]{1,4})c([0-7])s([0-9]+)b([0-9]+)n([0-9]+)a([0-7])$|^x([0-9]{1,4})c([0-7])s([0-9]+)b([0-9]+)n([0-9]+)d([0-9]+)$|^x([0-9]{1,4})c([0-7])s([0-9]+)b([0-9]+)n([0-9]+)p([0-3])$|^x([0-9]{1,4})c([0-7])r([0-9]+)$|^x([0-9]{1,4})c([0-7])r([0-9]+)f([01])$|^x([0-9]{1,4})c([0-7])r([0-9]+)t([0-9]+)f([0-1])$|^x([0-9]{1,4})c([0-7])r([0-9]+)b([0-9]+)$|^x([0-9]{1,4})c([0-7])r([0-9]+)b([0-9]+)i([0-3])$|^x([0-9]{1,4})c([0-7])r([0-9]+)a([0-3])$|^x([0-9]{1,4})c([0-7])r([0-9]+)j([1-9][0-9]*)$|^x([0-9]{1,4})c([0-7])r([0-9]+)j([1-9][0-9]*)p([012])$|^x([0-9]{1,4})c([0-7])r([0-9]+)a([0-3])l([0-9]+)$|^x([0-9]{1,4})c([0-7])w([1-9][0-9]*)$|^x([0-9]{1,4})c([0-7])w([0-9]+)j([1-9][0-9]*)$"
       description: "The xname of this piece of hardware"
       example: "x0c0s0b0"
-    hwtype:
+    hardware_type:
       type: string
       # Regenerate this pattern by running "grep "HMSType = " pkg/base/hmstypes.go | awk '{print "^" $4 "$"}' | tr -d '"' | grep -v -e INVALID -e 'All*' -e Partition | tr '\n' '|'"
       pattern: &hwtype_pattern "^CDU$|^CabinetCDU$|^Cabinet$|^CabinetBMC$|^CabinetPDUController$|^CabinetPDU$|^CabinetPDUNic$|^CabinetPDUOutlet$|^Chassis$|^ChassisBMC$|^CMMRectifier$|^CMMFpga$|^CEC$|^ComputeModule$|^RouterModule$|^NodeBMC$|^NodeBMCNic$|^NodeEnclosure$|^NodePowerConnector$|^Node$|^Processor$|^NodeNIC$|^NodeHsnNIC$|^Memory$|^NodeAccel$|^NodeFpga$|^HSNAsic$|^RouterFpga$|^RouterTORFpga$|^RouterBMC$|^RouterBMCNic$|^HSNBoard$|^HSNLink$|^HSNConnector$|^HSNConnectorPort$|^MgmtSwitch$|^MgmtSwitchConnector$|^SMSBox$|^System$"
       description: &hwtype_description "The type of this piece of hardware.  This is an optional hint during upload; it will be ignored if it does not match the xname"
       example: &hwtype_example "comptype_ncard"
-    hwclass:
+      enum:
+      - comptype_cdu
+      - comptype_cdu_mgmt_switch
+      - comptype_cab_cdu
+      - comptype_cabinet
+      - comptype_cab_pdu_controller
+      - comptype_cab_pdu
+      - comptype_cab_pdu_nic
+      - comptype_cab_pdu_outlet
+      - comptype_cab_pdu_pwr_connector
+      - comptype_chassis
+      - comptype_chassis_bmc
+      - comptype_cmm_rectifier
+      - comptype_cmm_fpga
+      - comptype_cec
+      - comptype_compmod
+      - comptype_rtrmod
+      - comptype_ncard
+      - comptype_bmc_nic
+      - comptype_node_enclosure
+      - comptype_compmod_power_connector
+      - comptype_node
+      - comptype_node_processor
+      - comptype_node_nic
+      - comptype_node_hsn_nic
+      - comptype_dimm
+      - comptype_node_accel
+      - comptype_node_fpga
+      - comptype_hsn_asic
+      - comptype_rtr_fpga
+      - comptype_rtr_tor_fpga
+      - comptype_rtr_bmc
+      - comptype_rtr_bmc_nic
+      - comptype_hsn_board
+      - comptype_hsn_link
+      - comptype_hsn_connector
+      - comptype_hsn_connector_port
+      - comptype_mgmt_switch
+      - comptype_mgmt_switch_connector
+      - comptype_hl_switch
+    hardware_type_string:
+      type: string
+      enum:
+      - CDU
+      - CDUMgmtSwitch
+      - CabinetCDU
+      - Cabinet
+      - CabinetBMC
+      - CabinetPDUController
+      - CabinetPDU
+      - CabinetPDUNic
+      - CabinetPDUOutlet
+      - CabinetPDUPowerConnector
+      - Chassis
+      - ChassisBMC
+      - ChassisBMCNic
+      - CMMRectifier
+      - CMMFpga
+      - CEC
+      - ComputeModule
+      - RouterModule
+      - NodeBMC
+      - NodeBMCNic
+      - NodeEnclosure
+      - NodeEnclosurePowerSupply
+      - NodePowerConnector
+      - Node
+      - Processor
+      - StorageGroup
+      - Drive
+      - NodeNic
+      - NodeHsnNic
+      - Memory
+      - NodeAccel
+      - NodeAccelRiser
+      - NodeFpga
+      - HSNAsic
+      - RouterFpga
+      - RouterTOR
+      - RouterTORFpga
+      - RouterBMC
+      - RouterBMCNic
+      - RouterPowerConnector
+      - HSNBoard
+      - HSNLink
+      - HSNConnector
+      - HSNConnectorPort
+      - MgmtSwitch
+      - MgmtHLSwitchEnclosure
+      - MgmtHLSwitch
+      - MgmtSwitchConnector
+      - System
+    hardware_class:
       type: string
       enum: ["River", "Mountain", "Hill"]
       description: "The hardware class."
       example: "Mountain"
+
     last_updated:
       type: integer
       readOnly: true
@@ -789,7 +882,7 @@ components:
       required: ["Class"]
       properties:
         Class:
-          $ref: '#/components/schemas/hwclass'
+          $ref: '#/components/schemas/hardware_class'
         ExtraProperties:
           $ref: '#/components/schemas/hardware_extra_properties'
     hardware_post:
@@ -799,7 +892,7 @@ components:
         Xname:
           $ref: '#/components/schemas/xname'
         Class:
-          $ref: '#/components/schemas/hwclass'
+          $ref: '#/components/schemas/hardware_class'
         ExtraProperties:
           $ref: '#/components/schemas/hardware_extra_properties'
     hardware:
@@ -823,16 +916,13 @@ components:
             description: "The xname of a child of this piece of hardware"
             example: "x0c0s0b0n0"
         Type:
-          type: string
+          $ref: hardware_type
           readOnly: true
-          pattern: *hwtype_pattern
-          description: *hwtype_description
-          example: *hwtype_example
         TypeString:
-          type: string
+          $ref: '#/components/schemas/hardware_type_string'
           readOnly: true
         Class:
-          $ref: '#/components/schemas/hwclass'
+          $ref: '#/components/schemas/hardware_class'
         LastUpdated:
           $ref: '#/components/schemas/last_updated'
         LastUpdatedTime:

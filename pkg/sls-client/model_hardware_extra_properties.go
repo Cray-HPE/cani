@@ -12,7 +12,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-type HardwareExtraProperties map[string]interface{}
+type HardwareExtraProperties interface{}
 
 func (hardware *Hardware) DecodeExtraProperties() (result interface{}, err error) {
 	// This can be filled out with types with some help of the following. Doesn't fully work, but gets you close

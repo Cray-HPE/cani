@@ -330,7 +330,7 @@ paths:
         style: form
         explode: true
         schema:
-          $ref: '#/components/schemas/hwclass'
+          $ref: '#/components/schemas/hardware_class'
       - name: type
         in: query
         description: Matches all objects of the given type
@@ -338,7 +338,7 @@ paths:
         style: form
         explode: true
         schema:
-          $ref: '#/components/schemas/hwtype'
+          $ref: '#/components/schemas/hardware_type'
       - name: power_connector
         in: query
         description: Matches all objects with the given xname in their power_connector
@@ -866,13 +866,105 @@ components:
       type: string
       description: The xname of this piece of hardware
       example: x0c0s0b0
-    hwtype:
+    hardware_type:
       pattern: ^CDU$|^CabinetCDU$|^Cabinet$|^CabinetBMC$|^CabinetPDUController$|^CabinetPDU$|^CabinetPDUNic$|^CabinetPDUOutlet$|^Chassis$|^ChassisBMC$|^CMMRectifier$|^CMMFpga$|^CEC$|^ComputeModule$|^RouterModule$|^NodeBMC$|^NodeBMCNic$|^NodeEnclosure$|^NodePowerConnector$|^Node$|^Processor$|^NodeNIC$|^NodeHsnNIC$|^Memory$|^NodeAccel$|^NodeFpga$|^HSNAsic$|^RouterFpga$|^RouterTORFpga$|^RouterBMC$|^RouterBMCNic$|^HSNBoard$|^HSNLink$|^HSNConnector$|^HSNConnectorPort$|^MgmtSwitch$|^MgmtSwitchConnector$|^SMSBox$|^System$
       type: string
       description: The type of this piece of hardware.  This is an optional hint during
         upload; it will be ignored if it does not match the xname
       example: comptype_ncard
-    hwclass:
+      enum:
+      - comptype_cdu
+      - comptype_cdu_mgmt_switch
+      - comptype_cab_cdu
+      - comptype_cabinet
+      - comptype_cab_pdu_controller
+      - comptype_cab_pdu
+      - comptype_cab_pdu_nic
+      - comptype_cab_pdu_outlet
+      - comptype_cab_pdu_pwr_connector
+      - comptype_chassis
+      - comptype_chassis_bmc
+      - comptype_cmm_rectifier
+      - comptype_cmm_fpga
+      - comptype_cec
+      - comptype_compmod
+      - comptype_rtrmod
+      - comptype_ncard
+      - comptype_bmc_nic
+      - comptype_node_enclosure
+      - comptype_compmod_power_connector
+      - comptype_node
+      - comptype_node_processor
+      - comptype_node_nic
+      - comptype_node_hsn_nic
+      - comptype_dimm
+      - comptype_node_accel
+      - comptype_node_fpga
+      - comptype_hsn_asic
+      - comptype_rtr_fpga
+      - comptype_rtr_tor_fpga
+      - comptype_rtr_bmc
+      - comptype_rtr_bmc_nic
+      - comptype_hsn_board
+      - comptype_hsn_link
+      - comptype_hsn_connector
+      - comptype_hsn_connector_port
+      - comptype_mgmt_switch
+      - comptype_mgmt_switch_connector
+      - comptype_hl_switch
+    hardware_type_string:
+      type: string
+      enum:
+      - CDU
+      - CDUMgmtSwitch
+      - CabinetCDU
+      - Cabinet
+      - CabinetBMC
+      - CabinetPDUController
+      - CabinetPDU
+      - CabinetPDUNic
+      - CabinetPDUOutlet
+      - CabinetPDUPowerConnector
+      - Chassis
+      - ChassisBMC
+      - ChassisBMCNic
+      - CMMRectifier
+      - CMMFpga
+      - CEC
+      - ComputeModule
+      - RouterModule
+      - NodeBMC
+      - NodeBMCNic
+      - NodeEnclosure
+      - NodeEnclosurePowerSupply
+      - NodePowerConnector
+      - Node
+      - Processor
+      - StorageGroup
+      - Drive
+      - NodeNic
+      - NodeHsnNic
+      - Memory
+      - NodeAccel
+      - NodeAccelRiser
+      - NodeFpga
+      - HSNAsic
+      - RouterFpga
+      - RouterTOR
+      - RouterTORFpga
+      - RouterBMC
+      - RouterBMCNic
+      - RouterPowerConnector
+      - HSNBoard
+      - HSNLink
+      - HSNConnector
+      - HSNConnectorPort
+      - MgmtSwitch
+      - MgmtHLSwitchEnclosure
+      - MgmtHLSwitch
+      - MgmtSwitchConnector
+      - System
+    hardware_class:
       type: string
       description: The hardware class.
       example: Mountain
@@ -894,7 +986,7 @@ components:
       type: object
       properties:
         Class:
-          $ref: '#/components/schemas/hwclass'
+          $ref: '#/components/schemas/hardware_class'
         ExtraProperties:
           $ref: '#/components/schemas/hardware_extra_properties'
     hardware_post:
@@ -906,7 +998,7 @@ components:
         Xname:
           $ref: '#/components/schemas/xname'
         Class:
-          $ref: '#/components/schemas/hwclass'
+          $ref: '#/components/schemas/hardware_class'
         ExtraProperties:
           $ref: '#/components/schemas/hardware_extra_properties'
     hardware:
@@ -932,17 +1024,11 @@ components:
             description: The xname of a child of this piece of hardware
             example: x0c0s0b0n0
         Type:
-          pattern: ^CDU$|^CabinetCDU$|^Cabinet$|^CabinetBMC$|^CabinetPDUController$|^CabinetPDU$|^CabinetPDUNic$|^CabinetPDUOutlet$|^Chassis$|^ChassisBMC$|^CMMRectifier$|^CMMFpga$|^CEC$|^ComputeModule$|^RouterModule$|^NodeBMC$|^NodeBMCNic$|^NodeEnclosure$|^NodePowerConnector$|^Node$|^Processor$|^NodeNIC$|^NodeHsnNIC$|^Memory$|^NodeAccel$|^NodeFpga$|^HSNAsic$|^RouterFpga$|^RouterTORFpga$|^RouterBMC$|^RouterBMCNic$|^HSNBoard$|^HSNLink$|^HSNConnector$|^HSNConnectorPort$|^MgmtSwitch$|^MgmtSwitchConnector$|^SMSBox$|^System$
-          type: string
-          description: The type of this piece of hardware.  This is an optional hint
-            during upload; it will be ignored if it does not match the xname
-          readOnly: true
-          example: comptype_ncard
+          $ref: '#/components/schemas/hardware_type'
         TypeString:
-          type: string
-          readOnly: true
+          $ref: '#/components/schemas/hardware_type_string'
         Class:
-          $ref: '#/components/schemas/hwclass'
+          $ref: '#/components/schemas/hardware_class'
         LastUpdated:
           $ref: '#/components/schemas/last_updated'
         LastUpdatedTime:
@@ -960,7 +1046,7 @@ components:
         - x0c0s0b0n0
         - x0c0s0b0n0
         LastUpdated: 0
-        TypeString: TypeString
+        TypeString: CDU
     hardware_extra_properties_bmc_nic:
       required:
       - IP4addr
@@ -1388,7 +1474,7 @@ components:
             - x0c0s0b0n0
             - x0c0s0b0n0
             LastUpdated: 0
-            TypeString: TypeString
+            TypeString: CDU
     Problem7807:
       required:
       - type

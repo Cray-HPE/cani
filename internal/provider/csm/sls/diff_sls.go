@@ -27,16 +27,16 @@ import (
 	"reflect"
 	"sort"
 
-	sls_common "github.com/Cray-HPE/hms-sls/v2/pkg/sls-common"
+	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 )
 
 // Hardware present in A that is missing from B
 // Set subtract operation
-func HardwareSubtract(a, b sls_common.SLSState) ([]sls_common.GenericHardware, error) {
-	var missingHardware []sls_common.GenericHardware
+func HardwareSubtract(a, b sls_client.SlsState) ([]sls_client.Hardware, error) {
+	var missingHardware []sls_client.Hardware
 
 	// Build up a lookup map for the hardware in set B
-	bHardwareMap := map[string]sls_common.GenericHardware{}
+	bHardwareMap := map[string]sls_client.Hardware{}
 	for _, hardware := range b.Hardware {
 		// Verify new hardware
 		if _, present := bHardwareMap[hardware.Xname]; present {
@@ -65,16 +65,16 @@ func HardwareSubtract(a, b sls_common.SLSState) ([]sls_common.GenericHardware, e
 
 type GenericHardwarePair struct {
 	Xname     string
-	HardwareA sls_common.GenericHardware
-	HardwareB sls_common.GenericHardware
+	HardwareA sls_client.Hardware
+	HardwareB sls_client.Hardware
 }
 
 // Identify hardware
 // Note when comparing hardware network information like IP address and subnets are not considered.
 // TODO make striping of networking information toggable
-func HardwareUnion(a, b sls_common.SLSState) (identicalHardware []sls_common.GenericHardware, differingContents []GenericHardwarePair, err error) {
+func HardwareUnion(a, b sls_client.SlsState) (identicalHardware []sls_client.Hardware, differingContents []GenericHardwarePair, err error) {
 	// Build up a lookup map for the hardware in set B
-	bHardwareMap := map[string]sls_common.GenericHardware{}
+	bHardwareMap := map[string]sls_client.Hardware{}
 	for _, hardware := range b.Hardware {
 		// Verify new hardware
 		if _, present := bHardwareMap[hardware.Xname]; present {
@@ -109,13 +109,13 @@ func HardwareUnion(a, b sls_common.SLSState) (identicalHardware []sls_common.Gen
 		// We are ignoring fields like IPv4 fields and Model during the comparison
 		// as that is something that we don't know when generating from the CCJ or CSI
 
-		extraPropertiesA, err := DecodeHardwareExtraProperties(hardwareA)
+		extraPropertiesA, err := hardwareA.DecodeExtraProperties()
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to decode extra properties on (%s): %w", hardwareA.Xname, err)
 		}
 		extraPropertiesA = stripIpInformationFromHardware(extraPropertiesA)
 
-		extraPropertiesB, err := DecodeHardwareExtraProperties(hardwareB)
+		extraPropertiesB, err := hardwareB.DecodeExtraProperties()
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to decode extra properties on (%s): %w", hardwareB.Xname, err)
 		}
@@ -143,21 +143,21 @@ func HardwareUnion(a, b sls_common.SLSState) (identicalHardware []sls_common.Gen
 
 func stripIpInformationFromHardware(extraPropertiesRaw interface{}) interface{} {
 	switch ep := extraPropertiesRaw.(type) {
-	case sls_common.ComptypeCabinet:
+	case sls_client.HardwareExtraPropertiesCabinet:
 		ep.Networks = nil
 		// TODO deal with this at somepoint
 		// if cabinetKind := csi.CabinetKind(ep.Model); cabinetKind.IsModel() {
 		// 	ep.Model = ""
 		// }
 		return ep
-	case sls_common.ComptypeMgmtHLSwitch:
-		ep.IP4Addr = ""
-		ep.IP6Addr = ""
+	case sls_client.HardwareExtraPropertiesMgmtHlSwitch:
+		ep.IP4addr = ""
+		ep.IP6addr = ""
 		ep.Model = "" // Not guaranteed that the system was installed with information about the switch model.
 		return ep
-	case sls_common.ComptypeMgmtSwitch:
-		ep.IP4Addr = ""
-		ep.IP6Addr = ""
+	case sls_client.HardwareExtraPropertiesMgmtSwitch:
+		ep.IP4addr = ""
+		ep.IP6addr = ""
 		ep.Model = "" // Not guaranteed that the system was installed with information about the switch model.
 		return ep
 	}

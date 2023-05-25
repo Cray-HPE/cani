@@ -10,6 +10,7 @@ var ErrHardwareNotFound = errors.New("hardware not found")
 var ErrHardwareParentNotFound = errors.New("hardware parent not found")
 var ErrHardwareUUIDConflict = errors.New("hardware uuid already exists")
 var ErrHardwareMissingLocationOrdinal = errors.New("hardware missing location ordinal")
+var ErrEmptyLocationPath = errors.New("empty location path provided")
 
 type Datastore interface {
 	GetSchemaVersion() (SchemaVersion, error)

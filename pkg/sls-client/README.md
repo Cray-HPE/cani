@@ -48,6 +48,7 @@ Class | Method | HTTP request | Description
 ## Documentation For Models
 
  - [Hardware](docs/Hardware.md)
+ - [HardwareClass](docs/HardwareClass.md)
  - [HardwareExtraProperties](docs/HardwareExtraProperties.md)
  - [HardwareExtraPropertiesBmcNic](docs/HardwareExtraPropertiesBmcNic.md)
  - [HardwareExtraPropertiesCabPduNic](docs/HardwareExtraPropertiesCabPduNic.md)
@@ -71,7 +72,8 @@ Class | Method | HTTP request | Description
  - [HardwareExtraPropertiesRtrmod](docs/HardwareExtraPropertiesRtrmod.md)
  - [HardwarePost](docs/HardwarePost.md)
  - [HardwarePut](docs/HardwarePut.md)
- - [Hwclass](docs/Hwclass.md)
+ - [HardwareType](docs/HardwareType.md)
+ - [HardwareTypeString](docs/HardwareTypeString.md)
  - [InlineResponse200](docs/InlineResponse200.md)
  - [LoadstateBody](docs/LoadstateBody.md)
  - [Network](docs/Network.md)

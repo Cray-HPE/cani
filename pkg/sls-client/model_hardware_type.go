@@ -8,12 +8,48 @@
  */
 package sls_client
 
-// Hwclass : The hardware class.
-type Hwclass string
+// HardwareType : The type of this piece of hardware.  This is an optional hint during upload; it will be ignored if it does not match the xname
+type HardwareType string
 
-// List of hwclass
+// List of hardware_type
 const (
-	RIVER_Hwclass    Hwclass = "River"
-	MOUNTAIN_Hwclass Hwclass = "Mountain"
-	HILL_Hwclass     Hwclass = "Hill"
+	CDU_HardwareType                     HardwareType = "comptype_cdu"
+	CDU_MGMT_SWITCH_HardwareType         HardwareType = "comptype_cdu_mgmt_switch"
+	CAB_CDU_HardwareType                 HardwareType = "comptype_cab_cdu"
+	CABINET_HardwareType                 HardwareType = "comptype_cabinet"
+	CAB_PDU_CONTROLLER_HardwareType      HardwareType = "comptype_cab_pdu_controller"
+	CAB_PDU_HardwareType                 HardwareType = "comptype_cab_pdu"
+	CAB_PDU_NIC_HardwareType             HardwareType = "comptype_cab_pdu_nic"
+	CAB_PDU_OUTLET_HardwareType          HardwareType = "comptype_cab_pdu_outlet"
+	CAB_PDU_PWR_CONNECTOR_HardwareType   HardwareType = "comptype_cab_pdu_pwr_connector"
+	CHASSIS_HardwareType                 HardwareType = "comptype_chassis"
+	CHASSIS_BMC_HardwareType             HardwareType = "comptype_chassis_bmc"
+	CMM_RECTIFIER_HardwareType           HardwareType = "comptype_cmm_rectifier"
+	CMM_FPGA_HardwareType                HardwareType = "comptype_cmm_fpga"
+	CEC_HardwareType                     HardwareType = "comptype_cec"
+	COMPMOD_HardwareType                 HardwareType = "comptype_compmod"
+	RTRMOD_HardwareType                  HardwareType = "comptype_rtrmod"
+	NCARD_HardwareType                   HardwareType = "comptype_ncard"
+	BMC_NIC_HardwareType                 HardwareType = "comptype_bmc_nic"
+	NODE_ENCLOSURE_HardwareType          HardwareType = "comptype_node_enclosure"
+	COMPMOD_POWER_CONNECTOR_HardwareType HardwareType = "comptype_compmod_power_connector"
+	NODE_HardwareType                    HardwareType = "comptype_node"
+	NODE_PROCESSOR_HardwareType          HardwareType = "comptype_node_processor"
+	NODE_NIC_HardwareType                HardwareType = "comptype_node_nic"
+	NODE_HSN_NIC_HardwareType            HardwareType = "comptype_node_hsn_nic"
+	DIMM_HardwareType                    HardwareType = "comptype_dimm"
+	NODE_ACCEL_HardwareType              HardwareType = "comptype_node_accel"
+	NODE_FPGA_HardwareType               HardwareType = "comptype_node_fpga"
+	HSN_ASIC_HardwareType                HardwareType = "comptype_hsn_asic"
+	RTR_FPGA_HardwareType                HardwareType = "comptype_rtr_fpga"
+	RTR_TOR_FPGA_HardwareType            HardwareType = "comptype_rtr_tor_fpga"
+	RTR_BMC_HardwareType                 HardwareType = "comptype_rtr_bmc"
+	RTR_BMC_NIC_HardwareType             HardwareType = "comptype_rtr_bmc_nic"
+	HSN_BOARD_HardwareType               HardwareType = "comptype_hsn_board"
+	HSN_LINK_HardwareType                HardwareType = "comptype_hsn_link"
+	HSN_CONNECTOR_HardwareType           HardwareType = "comptype_hsn_connector"
+	HSN_CONNECTOR_PORT_HardwareType      HardwareType = "comptype_hsn_connector_port"
+	MGMT_SWITCH_HardwareType             HardwareType = "comptype_mgmt_switch"
+	MGMT_SWITCH_CONNECTOR_HardwareType   HardwareType = "comptype_mgmt_switch_connector"
+	HL_SWITCH_HardwareType               HardwareType = "comptype_hl_switch"
 )

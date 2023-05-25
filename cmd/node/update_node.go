@@ -3,10 +3,10 @@ package node
 import (
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
 	"github.com/Cray-HPE/cani/cmd/session"
-	"github.com/rs/zerolog/log"
 )
 
 // UpdateNodeCmd represents the node update command
@@ -16,8 +16,8 @@ var UpdateNodeCmd = &cobra.Command{
 	Long:              `Update nodes in the inventory.`,
 	PersistentPreRunE: session.DatastoreExists, // A session must be active to write to a datastore
 	SilenceUsage:      true,                    // Errors are more important than the usage
-	Args:              validHardware,           // Hardware can only be valid if defined in the hardware library
-	RunE:              updateNode,              // Update a node when this sub-command is called
+	// Args:              validHardware,           // Hardware can only be valid if defined in the hardware library
+	RunE: updateNode, // Update a node when this sub-command is called
 }
 
 // updateNode updates a node to the inventory
@@ -42,6 +42,8 @@ func updateNode(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	log.Info().Msgf("Updated node %s", args[0])
+	// TODO need a better identify, perhaps its UUID, or its location path?
+	// log.Info().Msgf("Updated node %s", args[0])
+	log.Info().Msgf("Updated node")
 	return nil
 }

@@ -22,4 +22,7 @@
 # Then explicitly reverse the ignore rule for a single file:
 #!docs/README.md
 
+model_hardware.go
+model_hardware_class.go
 model_hardware_extra_properties.go
+model_hardware_type_string.go

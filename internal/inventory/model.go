@@ -27,11 +27,14 @@ type Hardware struct {
 	Model              string                     `json:"Model,omitempty" yaml:"Model,omitempty" default:"" usage:"Model"`
 	Status             HardwareStatus             `json:"Status,omitempty" yaml:"Status,omitempty" default:"Staged" usage:"Hardware can be [staged, provisioned, decomissioned]"`
 	Properties         interface{}                `json:"Properties,omitempty" yaml:"Properties,omitempty" default:"" usage:"Properties"`
-	Parent             uuid.UUID                  `json:"Parent,omitempty" yaml:"Parent,omitempty" default:"00000000-0000-0000-0000-000000000000" usage:"Parent hardware"`
 	Role               string                     `json:"Role,omitempty" yaml:"Role,omitempty" default:"" usage:"Role"`
 	SubRole            string                     `json:"SubRole,omitempty" yaml:"SubRole,omitempty" default:"" usage:"SubRole"`
 	Alias              string                     `json:"Alias,omitempty" yaml:"Alias,omitempty" default:"" usage:"Alias"`
 	ProviderProperties map[string]interface{}     `json:"ProviderProperties,omitempty" yaml:"ProviderProperties,omitempty" default:"" usage:"ProviderProperties"`
+
+	Parent       uuid.UUID `json:"Parent,omitempty" yaml:"Parent,omitempty" default:"00000000-0000-0000-0000-000000000000" usage:"Parent hardware"`
+	Children     []uuid.UUID
+	LocationPath LocationPath
 
 	LocationOrdinal *int
 }

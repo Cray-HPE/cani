@@ -10,6 +10,6 @@ package sls_client
 
 type HardwarePost struct {
 	Xname           string                   `json:"Xname"`
-	Class           *Hwclass                 `json:"Class"`
+	Class           *HardwareClass           `json:"Class"`
 	ExtraProperties *HardwareExtraProperties `json:"ExtraProperties,omitempty"`
 }
