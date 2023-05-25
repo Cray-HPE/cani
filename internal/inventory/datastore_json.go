@@ -315,9 +315,9 @@ func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 	}
 
 	// Build up a few indexes to easily traverse the tree, so we don't have to iterate over the data several times
-	// This is kind of computationally expensive, but since the JSON structure only stores parents its needs to be build up
+	// This is kind of computationally expensive, but since the JSON structure only stores parents its needs to be built up
 	// For right now I think doing this every time we need a location is fine, but there is a good chance in the future that
-	// we will need to cache this result somewhere, and keep it update to date.
+	// we will need to cache this result somewhere, and keep it up to date.
 	// locationIndex := map[hardwaretypes.HardwareType]map[int]
 
 	// Calculate children index, since we only store the parent IDs
