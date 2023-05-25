@@ -32,9 +32,10 @@ type Hardware struct {
 	Alias              string                     `json:"Alias,omitempty" yaml:"Alias,omitempty" default:"" usage:"Alias"`
 	ProviderProperties map[string]interface{}     `json:"ProviderProperties,omitempty" yaml:"ProviderProperties,omitempty" default:"" usage:"ProviderProperties"`
 
-	Parent       uuid.UUID `json:"Parent,omitempty" yaml:"Parent,omitempty" default:"00000000-0000-0000-0000-000000000000" usage:"Parent hardware"`
-	Children     []uuid.UUID
-	LocationPath LocationPath
+	Parent uuid.UUID `json:"Parent,omitempty" yaml:"Parent,omitempty" default:"00000000-0000-0000-0000-000000000000" usage:"Parent hardware"`
+	// The following are derived from Parent
+	Children     []uuid.UUID  `json:"Children,omitempty" yaml:"Children,omitempty"`
+	LocationPath LocationPath `json:"LocationPath,omitempty" yaml:"LocationPath,omitempty"`
 
 	LocationOrdinal *int
 }

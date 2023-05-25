@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -39,7 +40,7 @@ func NewDatastoreJSON(dataFilePath string, logfilepath string, provider Provider
 		if _, err := os.Stat(dbDir); os.IsNotExist(err) {
 			err = os.Mkdir(dbDir, 0755)
 			if err != nil {
-				return nil, errors.New(fmt.Sprintf("Error creating datastore directory: %s", err))
+				return nil, errors.Join(fmt.Errorf("error creating datastore directory"), err)
 			}
 		}
 
@@ -50,9 +51,6 @@ func NewDatastoreJSON(dataFilePath string, logfilepath string, provider Provider
 			Hardware:      map[uuid.UUID]Hardware{},
 		}
 
-		if err := datastore.Flush(); err != nil {
-			return nil, err
-		}
 	} else {
 		// Load from datastore
 
@@ -74,6 +72,22 @@ func NewDatastoreJSON(dataFilePath string, logfilepath string, provider Provider
 		if err = json.Unmarshal(inventoryRaw, &datastore.inventory); err != nil {
 			return nil, err
 		}
+	}
+
+	// When loading the JSON inventory ideally we should recompute the derived fields, as
+	// we don't know the if the inventory structure was left in an inconsistent state, and might
+	// cause issues when operating with inconsistent cached data.
+	// 1. An external actor could have manually modified the inventory structure
+	// 2. CANI could have crashed or left the datastore in an inconsistent state.
+	if err := datastore.calculateDerivedFields(); err != nil {
+		return nil, errors.Join(
+			fmt.Errorf("failed to calculate inventory derived fields"),
+			err,
+		)
+	}
+
+	if err := datastore.Flush(); err != nil {
+		return nil, err
 	}
 
 	return datastore, nil
@@ -124,12 +138,75 @@ func (dj *DatastoreJSON) Flush() error {
 	return nil
 }
 
+func (dj *DatastoreJSON) calculateDerivedFields() (err error) {
+	//
+	// Update location path
+	//
+	for _, hardware := range dj.inventory.Hardware {
+
+		// GetLocation relies on the Parent UUID field, so it should be safe to compute based off it
+		hardware.LocationPath, err = dj.getLocation(hardware)
+		if err != nil {
+			return fmt.Errorf("failed to calculate location path of (%s)", hardware.ID)
+		}
+
+		// Push the updated hardware object back into the map
+		dj.inventory.Hardware[hardware.ID] = hardware
+	}
+
+	//
+	// Update children book keeping
+	//
+
+	// Clear out old children data
+	for _, hardware := range dj.inventory.Hardware {
+		hardware.Children = nil
+
+		// Push the updated hardware object back into the map
+		dj.inventory.Hardware[hardware.ID] = hardware
+	}
+
+	// Build up the children data
+	for _, hardware := range dj.inventory.Hardware {
+
+		if hardware.Parent != uuid.Nil {
+			parent, ok := dj.inventory.Hardware[hardware.Parent]
+			if !ok {
+				// This should not happen
+				return fmt.Errorf("unable to find parent hardware object with ID (%s) of (%s)", hardware.Parent, hardware.ID)
+			}
+
+			// Add this hardware object as a child of the parent
+			parent.Children = append(parent.Children, hardware.ID)
+
+			// Push the updated parent back into the map
+			dj.inventory.Hardware[parent.ID] = parent
+
+		}
+	}
+
+	// Sort the children data so we have deterministic results
+	for _, hardware := range dj.inventory.Hardware {
+		sort.Slice(hardware.Children, func(i, j int) bool {
+			return hardware.Children[i].ID() < hardware.Children[j].ID()
+		})
+
+		// Push the updated hardware back into the map
+		dj.inventory.Hardware[hardware.ID] = hardware
+	}
+
+	return nil
+}
+
 // Validate validates the current inventory
 func (dj *DatastoreJSON) Validate() error {
 	dj.inventoryLock.RLock()
 	defer dj.inventoryLock.RUnlock()
 
 	log.Warn().Msg("DatastoreJSON's Validate was called. This is not currently implemented")
+
+	// Verify inventory map key matches hardware UUID
+	// TODO
 
 	// Verify all parent IDs are valid
 	// TOOD
@@ -171,6 +248,14 @@ func (dj *DatastoreJSON) Add(hardware *Hardware) error {
 
 	dj.logTransaction("ADD", hardware.ID.String(), nil, nil)
 
+	// Update derived fields
+	if err := dj.calculateDerivedFields(); err != nil {
+		return errors.Join(
+			fmt.Errorf("failed to calculate inventory derived fields"),
+			err,
+		)
+	}
+
 	return nil
 }
 
@@ -193,10 +278,9 @@ func (dj *DatastoreJSON) Update(hardware *Hardware) error {
 	dj.inventoryLock.Lock()
 	defer dj.inventoryLock.Unlock()
 
-	// TODO this is verify similar to add, except for the set UUID at the start
-
 	// Check to see if this UUID exists
-	if _, exists := dj.inventory.Hardware[hardware.ID]; !exists {
+	oldHardware, exists := dj.inventory.Hardware[hardware.ID]
+	if !exists {
 		return ErrHardwareNotFound
 	}
 
@@ -211,6 +295,18 @@ func (dj *DatastoreJSON) Update(hardware *Hardware) error {
 	dj.inventory.Hardware[hardware.ID] = *hardware
 
 	dj.logTransaction("UPDATE", hardware.ID.String(), nil, nil)
+
+	// Update derived fields if the parent ID is different than the old value
+	if oldHardware.Parent != hardware.ID {
+		log.Debug().Msgf("Detected parent ID change for (%s) from (%s) to (%s)", hardware.ID, oldHardware.Parent, hardware.ID)
+		if err := dj.calculateDerivedFields(); err != nil {
+			return errors.Join(
+				fmt.Errorf("failed to calculate inventory derived fields"),
+				err,
+			)
+		}
+	}
+
 	return nil
 }
 
@@ -249,6 +345,16 @@ func (dj *DatastoreJSON) Remove(id uuid.UUID, recursion bool) error {
 	delete(dj.inventory.Hardware, id)
 
 	dj.logTransaction("REMOVE", id.String(), nil, nil)
+
+	// Update all derived fields, as we allow for recursive removal and trying to keep this logic simple for now
+	// If this is too much of a performance penalty we can make this more smart
+	if err := dj.calculateDerivedFields(); err != nil {
+		return errors.Join(
+			fmt.Errorf("failed to calculate inventory derived fields"),
+			err,
+		)
+	}
+
 	return nil
 }
 
@@ -266,6 +372,13 @@ func (dj *DatastoreJSON) List() (Inventory, error) {
 func (dj *DatastoreJSON) GetLocation(hardware Hardware) (LocationPath, error) {
 	dj.inventoryLock.RLock()
 	defer dj.inventoryLock.RUnlock()
+
+	return dj.getLocation(hardware)
+}
+
+// getLocation is just like GetLocation except it doesn't attempt to acquire the inventory RWMutex, so it can be
+// composed into other DatastoreJSON functions that make changes to the inventory structure.
+func (dj *DatastoreJSON) getLocation(hardware Hardware) (LocationPath, error) {
 
 	locationPath := LocationPath{}
 
@@ -314,32 +427,12 @@ func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 		return Hardware{}, ErrEmptyLocationPath
 	}
 
-	// Build up a few indexes to easily traverse the tree, so we don't have to iterate over the data several times
-	// This is kind of computationally expensive, but since the JSON structure only stores parents its needs to be built up
-	// For right now I think doing this every time we need a location is fine, but there is a good chance in the future that
-	// we will need to cache this result somewhere, and keep it up to date.
-	// locationIndex := map[hardwaretypes.HardwareType]map[int]
-
-	// Calculate children index, since we only store the parent IDs
 	// TODO Currently do not have a system type in our inventory, which cabinets/CDUs would be the child of, so for now keep track of them
 	topLevelHardware := map[hardwaretypes.HardwareType][]uuid.UUID{
 		hardwaretypes.HardwareTypeCabinet:                 []uuid.UUID{},
 		hardwaretypes.HardwareTypeCoolingDistributionUnit: []uuid.UUID{},
 	}
-	childrenIndex := map[uuid.UUID][]uuid.UUID{}
-	for id, hardware := range dj.inventory.Hardware {
-		children, err := dj.getChildren(id)
-		if err != nil {
-			return Hardware{}, errors.Join(
-				fmt.Errorf("unable to get children for (%s)", id),
-				err,
-			)
-		}
-
-		for _, childHardware := range children {
-			childrenIndex[id] = append(childrenIndex[id], childHardware.ID)
-		}
-
+	for _, hardware := range dj.inventory.Hardware {
 		if hardware.Type == hardwaretypes.HardwareTypeCabinet || hardware.Type == hardwaretypes.HardwareTypeCoolingDistributionUnit {
 			topLevelHardware[hardware.Type] = append(topLevelHardware[hardware.Type], hardware.ID)
 		}
@@ -360,7 +453,7 @@ func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 			children = topLevelHardware[path[0].HardwareType]
 		} else {
 			// Otherwise get the children like normal
-			children = childrenIndex[currentHardware.ID]
+			children = currentHardware.Children
 		}
 
 		// For each child of the current hardware object check to see if it
@@ -408,23 +501,28 @@ func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 }
 
 // GetChildren returns the children of a given hardware object
-func (dj *DatastoreJSON) GetChildren(id uuid.UUID) ([]Hardware, error) {
+func (dj *DatastoreJSON) GetChildren(hardware Hardware) ([]Hardware, error) {
 	dj.inventoryLock.RLock()
 	defer dj.inventoryLock.RUnlock()
 
-	return dj.getChildren(id)
+	return dj.getChildren(hardware)
 }
 
 // getChildren returns the children of a given hardware object
-func (dj *DatastoreJSON) getChildren(id uuid.UUID) ([]Hardware, error) {
+// This function depends on the cached/derived children data
+func (dj *DatastoreJSON) getChildren(hardware Hardware) ([]Hardware, error) {
 	var results []Hardware
 
 	// For right we need to iterate over the map, as we don't have any
 	// book keeping to keep track of child hardware
-	for _, hardware := range dj.inventory.Hardware {
-		if hardware.Parent == id {
-			results = append(results, hardware)
+	for _, childID := range hardware.Children {
+		childHardware, exists := dj.inventory.Hardware[childID]
+		if !exists {
+			// This should not happen
+			return nil, fmt.Errorf("unable to find child hardware object with ID (%s) of (%s)", childHardware.ID, hardware.ID)
 		}
+
+		results = append(results, childHardware)
 	}
 
 	return results, nil
