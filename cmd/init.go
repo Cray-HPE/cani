@@ -16,12 +16,13 @@ func init() {
 	// Create or load a yaml config and the database
 	cobra.OnInitialize(initConfig, setupLogging)
 
-	RootCmd.AddCommand(AddCmd)
-	RootCmd.AddCommand(ListCmd)
-	RootCmd.AddCommand(RemoveCmd)
-	RootCmd.AddCommand(SessionCmd)
-	RootCmd.AddCommand(UpdateCmd)
-	RootCmd.AddCommand(VersionCmd)
+	RootCmd.AddCommand(AlphaCmd)
+	AlphaCmd.AddCommand(AddCmd)
+	AlphaCmd.AddCommand(ListCmd)
+	AlphaCmd.AddCommand(RemoveCmd)
+	AlphaCmd.AddCommand(SessionCmd)
+	AlphaCmd.AddCommand(UpdateCmd)
+	AlphaCmd.AddCommand(VersionCmd)
 
 	// Global root command flags
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", cfgFile, "Path to the configuration file")
