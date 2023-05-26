@@ -27,6 +27,7 @@ import (
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/cmd/session"
 	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -44,17 +45,34 @@ var AddCabinetCmd = &cobra.Command{
 // addCabinet adds a cabinet to the inventory
 func addCabinet(cmd *cobra.Command, args []string) error {
 	// Create a domain object to interact with the datastore
-	_, err := domain.New(root.Conf.Session.DomainOptions)
+	d, err := domain.New(root.Conf.Session.DomainOptions)
 	if err != nil {
 		return err
 	}
-	log.Info().Msgf("Not yet implemented")
-	// Remove the cabinet from the inventory using domain methods
-	// TODO:
-	// err = d.AddCabinet()
-	// if err != nil {
-	// 	return err
-	// }
-	// log.Info().Msgf("Added cabinet %s", args[0])
+
+	// Add the blade from the inventory using domain methods
+	results, err := d.AddCabinet(args[0], cabinet)
+	if err != nil {
+		return err
+	}
+	log.Info().Msgf("Added cabinet %s", args[0])
+
+	// Use a map to track already added nodes.
+	newNodes := []domain.AddHardwareResult{}
+
+	for _, result := range results {
+		// If the type is a Node
+		if result.Hardware.Type == hardwaretypes.HardwareTypeCabinet {
+			log.Debug().Msg(result.Location.String())
+			log.Debug().Msgf("This %s also contains a %s (%s) added at %s",
+				hardwaretypes.HardwareTypeNodeBlade,
+				hardwaretypes.HardwareTypeNode,
+				result.Hardware.ID.String(),
+				result.Location)
+			// Add the node to the map
+			newNodes = append(newNodes, result)
+		}
+	}
+
 	return nil
 }
