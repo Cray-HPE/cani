@@ -38,6 +38,8 @@ func init() {
 func setupLogging() {
 	// Default level for this example is info, unless debug flag is present
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	// Fancy, human-friendly console logger (but slower)
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	if Debug {
 		// enable debug output globally
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
