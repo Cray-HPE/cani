@@ -1,6 +1,7 @@
 package session
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -32,6 +33,19 @@ var (
 
 // startSession starts a session if one does not exist
 func startSession(cmd *cobra.Command, args []string) error {
+	// Create a domain object to interact with the datastore
+	d, err := domain.New(root.Conf.Session.DomainOptions)
+	if err != nil {
+		return err
+	}
+
+	// Validate the external inventory
+	err = d.Validate()
+	if err != nil {
+		return errors.Join(err,
+			errors.New("External inventory is unstable.  Fix, and check with 'cani validate' before continuing."))
+	}
+
 	ds := root.Conf.Session.DomainOptions.DatastorePath
 	logfile := root.Conf.Session.DomainOptions.LogFilePath
 	provider := root.Conf.Session.DomainOptions.Provider
@@ -54,7 +68,7 @@ func startSession(cmd *cobra.Command, args []string) error {
 		}
 	}
 	// If a session is not active, create one
-	_, err := inventory.NewDatastoreJSON(ds, logfile, inventory.Provider(args[0]))
+	_, err = inventory.NewDatastoreJSON(ds, logfile, inventory.Provider(args[0]))
 	if err != nil {
 		return err
 	}
