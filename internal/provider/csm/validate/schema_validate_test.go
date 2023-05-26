@@ -25,11 +25,10 @@ OTHER DEALINGS IN THE SOFTWARE.
 package validate
 
 import (
-	"fmt"
 	"testing"
 )
 
 func TestSubsetSchema(t *testing.T) {
-	fmt.Println("TestSubsetSchema")
+	// fmt.Println("TestSubsetSchema")
 	// t.Fatal("FAILED Subset Schema")
 }

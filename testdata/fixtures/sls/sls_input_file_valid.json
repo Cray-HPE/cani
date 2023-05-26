@@ -25,6 +25,39 @@
     }
   },
   "Networks": {
+    "NMN": {
+      "Name": "NMN",
+      "FullName": "Node Management Network",
+      "IPRanges": [
+        "127.126.0.0/31"
+      ],
+      "Type": "ethernet",
+      "LastUpdated": 1669049199,
+      "LastUpdatedTime": "2022-11-21 16:46:39.675539 +0000 +0000",
+      "ExtraProperties": {
+        "CIDR": "127.126.0.0/31",
+        "MTU": 9000,
+        "Subnets": [
+          {
+            "CIDR": "127.126.0.0/31",
+            "FullName": "NMN Management Network Infrastructure",
+            "Gateway": "127.126.0.1",
+            "IPReservations": [
+              {
+                "Comment": "x3000c0h12s1",
+                "IPAddress": "127.126.0.10",
+                "Name": "sw-spine-001"
+              }
+            ],
+            "Name": "network_hardware",
+            "VlanID": 2
+          }
+        ],
+        "VlanRange": [
+          2
+        ]
+      }
+    },
     "HMN": {
       "Name": "HMN",
       "FullName": "Hardware Management Network",

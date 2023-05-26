@@ -31,6 +31,7 @@ import (
 	"io/fs"
 	"net/http"
 
+	"github.com/rs/zerolog/log"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 )
 
@@ -98,12 +99,12 @@ func loadSchema(filename string) (schema *jsonschema.Schema, err error) {
 			filePath := fmt.Sprintf("schemas/%s", file.Name())
 			content, err := schemas.ReadFile(filePath)
 			if err != nil {
-				fmt.Printf("Error reading embeded schema file: %s. %s\n", filePath, err)
+				log.Error().Msgf("Error reading embeded schema file: %s. %s\n", filePath, err)
 				return nil, err
 			}
 			schema, err := jsonschema.CompileString(file.Name(), string(content))
 			if err != nil {
-				fmt.Printf("Error compiling embeded schema. file: %s. %s\n", filePath, err)
+				log.Error().Msgf("Error compiling embeded schema. file: %s. %s\n", filePath, err)
 				return nil, err
 			}
 			return schema, nil
@@ -218,19 +219,19 @@ func validateAgainstSchemas(response *http.Response) []ValidationResult {
 
 	networksSchema, err := loadSchema("sls_networks_schema.json")
 	if err != nil {
-		fmt.Println(err)
+		log.Error().Msg(err.Error())
 		return results
 	}
 
 	reservationsSchema, err := loadSchema("sls_reservations_schema.json")
 	if err != nil {
-		fmt.Println(err)
+		log.Error().Msg(err.Error())
 		return results
 	}
 
 	subnetsSchema, err := loadSchema("sls_subnets_schema.json")
 	if err != nil {
-		fmt.Println(err)
+		log.Error().Msg(err.Error())
 		return results
 	}
 
@@ -238,13 +239,13 @@ func validateAgainstSchemas(response *http.Response) []ValidationResult {
 	results = append(results, r...)
 	for name, networkRaw := range networks {
 		networkId := NewID("Network", name)
-		fmt.Println(networkId.strYaml())
+		log.Debug().Msg(networkId.strYaml())
 		subnets, found := toSliceOfMaps([]string{"ExtraProperties", "Subnets"}, networkRaw)
 		if found {
 			for _, subnet := range subnets {
 				cidr := subnet["CIDR"]
 				subnetId := networkId.append(Pair{"SubnetCIDR", cidr.(string)})
-				fmt.Println(subnetId.strYaml())
+				log.Debug().Msg(subnetId.strYaml())
 
 				// r := validateReservationsSchema(reservationsSchema, subnet)
 				r := validateSubnetsSchema(subnetsSchema, subnet)

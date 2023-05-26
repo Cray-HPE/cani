@@ -24,6 +24,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 package cmd
 
 import (
+	"errors"
+
 	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -40,15 +42,19 @@ var ValidateCmd = &cobra.Command{
 
 func validateInventory(cmd *cobra.Command, args []string) error {
 	log.Warn().Msg("This may fail in the HMS Simulator without Network information.")
-	// Create a domain object to interact with the datastore
-	d, err := domain.New(Conf.Session.DomainOptions)
-	if err != nil {
-		return err
-	}
-	// Validate the external inventory
-	err = d.Validate()
-	if err != nil {
-		return err
+	if Conf.Session.Active {
+		// Create a domain object to interact with the datastore
+		d, err := domain.New(Conf.Session.DomainOptions)
+		if err != nil {
+			return err
+		}
+		// Validate the external inventory
+		err = d.Validate()
+		if err != nil {
+			return err
+		}
+	} else {
+		return errors.New("No active session.  Domain options needed to validate inventory.")
 	}
 	return nil
 }
