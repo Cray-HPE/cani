@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/google/uuid"
 )
 
 // TODO Need to think about how internal data structures should be supplied to the Inventory Provider
@@ -14,7 +15,7 @@ type InventoryProvider interface {
 	// Validate the representation of the inventory data into the destination inventory system
 	// is consistent.
 	// TODO perhaps this should just happen during Reconcile
-	ValidateInternal(ctx context.Context) error
+	ValidateInternal(ctx context.Context, datastore inventory.Datastore) (map[uuid.UUID]HardwareValidationResult, error)
 
 	// Import external inventory data into CANI's inventory format
 	Import(ctx context.Context, datastore inventory.Datastore) error
@@ -25,4 +26,9 @@ type InventoryProvider interface {
 	// Build metadata, and add ito the hardware object
 	// This function could return the data to put into object
 	BuildHardwareMetadata(hw *inventory.Hardware, rawProperties map[string]interface{}) error
+}
+
+type HardwareValidationResult struct {
+	Hardware inventory.Hardware
+	Errors   []string
 }

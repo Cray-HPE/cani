@@ -1,7 +1,9 @@
 package csm
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
@@ -15,6 +17,41 @@ type NodeMetadata struct {
 	Nid                  *int
 	Alias                *string
 	AdditionalProperties map[string]interface{}
+}
+
+func (nm *NodeMetadata) Validate() error {
+	var validationErrs []error
+	// Role checks
+	if nm.Role == nil {
+		validationErrs = append(validationErrs, fmt.Errorf("no role set"))
+	}
+
+	// Check to see if the role matches what is allowed by HSM
+	// TODO
+
+	// Check to see if the sub-role matches what is allowed by HSM
+
+	// NID checks
+	if nm.Nid == nil {
+		validationErrs = append(validationErrs, fmt.Errorf("no nid set"))
+	}
+	if *nm.Nid < 0 {
+		validationErrs = append(validationErrs, fmt.Errorf("a non-positive NID is set: %d", *nm.Nid))
+	}
+
+	// Alias checks
+	if nm.Alias == nil {
+		validationErrs = append(validationErrs, fmt.Errorf("no alias set"))
+	}
+	if strings.Contains(*nm.Alias, " ") {
+		validationErrs = append(validationErrs, fmt.Errorf("alias contains spaces"))
+	}
+
+	if len(validationErrs) == 0 {
+		return nil
+	}
+
+	return errors.Join(validationErrs...)
 }
 
 // TODO this might need a better home

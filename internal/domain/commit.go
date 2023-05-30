@@ -9,10 +9,19 @@ import (
 func (d *Domain) Commit(ctx context.Context) error {
 	inventoryProvider := d.externalInventoryProvider
 
-	// Perform validation of CANI's inventory data
+	// Perform validation integrity of CANI's inventory data
 	if err := d.datastore.Validate(); err != nil {
 		return errors.Join(
-			fmt.Errorf("failed to validate inventory"),
+			fmt.Errorf("failed to validate inventory datastore"),
+			err,
+		)
+	}
+
+	// Validate the current state of CANI's inventory data against the provider plugin
+	// for provider specific data
+	if _, err := inventoryProvider.ValidateInternal(ctx, d.datastore); err != nil {
+		return errors.Join(
+			fmt.Errorf("failed to validate inventory against inventory provider plugin"),
 			err,
 		)
 	}
