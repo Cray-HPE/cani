@@ -2,10 +2,13 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/google/uuid"
 )
+
+var ErrDataValidationFailure = fmt.Errorf("data validation failure")
 
 // TODO Need to think about how internal data structures should be supplied to the Inventory Provider
 type InventoryProvider interface {

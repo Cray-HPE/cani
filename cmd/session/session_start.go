@@ -28,8 +28,8 @@ var SessionStartCmd = &cobra.Command{
 }
 
 var (
-	provider  string
-	validArgs = []string{"csm"}
+	providerName string
+	validArgs    = []string{"csm"}
 )
 
 // startSession starts a session if one does not exist
@@ -79,7 +79,7 @@ func startSession(cmd *cobra.Command, args []string) error {
 
 		// For now just use the defaults
 		root.Conf.Session.DomainOptions.CsmOptions.ValidRoles = csm.DefaultValidRoles
-		root.Conf.Session.DomainOptions.CsmOptions.ValidRoles = csm.DefaultValidSubRolesRoles
+		root.Conf.Session.DomainOptions.CsmOptions.ValidSubRoles = csm.DefaultValidSubRolesRoles
 	}
 
 	// Validate the external inventory

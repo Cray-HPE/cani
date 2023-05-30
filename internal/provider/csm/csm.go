@@ -101,6 +101,11 @@ func New(opts NewOpts) (*CSM, error) {
 
 	csm.slsClient = sls_client.NewAPIClient(slsClientConfiguration)
 	csm.hsmClient = hsm_client.NewAPIClient(hsmClientConfiguration)
+
+	// Load system specific config data
+	csm.ValidRoles = opts.ValidRoles
+	csm.ValidSubRoles = opts.ValidSubRoles
+
 	return csm, nil
 }
 
@@ -139,7 +144,7 @@ func joinUUIDs(ids []uuid.UUID, ignoreID uuid.UUID, sep string) string {
 // is consistent.
 // TODO perhaps this should just happen during Reconcile
 func (csm *CSM) ValidateInternal(ctx context.Context, datastore inventory.Datastore) (map[uuid.UUID]provider.HardwareValidationResult, error) {
-	log.Warn().Msg("CSM Provider's ValidateInternal was called. This is not currently implemented")
+	log.Debug().Msg("Validating datastore contents against the CSM Provider")
 
 	allHardware, err := datastore.List()
 	if err != nil {
@@ -181,6 +186,8 @@ func (csm *CSM) ValidateInternal(ctx context.Context, datastore inventory.Datast
 			continue
 		}
 
+		log.Debug().Msgf("Validating %s: %v", cHardware.ID, cHardware)
+
 		metadata, err := GetProviderMetadataT[NodeMetadata](cHardware)
 		if err != nil {
 			return nil, errors.Join(
@@ -189,13 +196,19 @@ func (csm *CSM) ValidateInternal(ctx context.Context, datastore inventory.Datast
 			)
 		}
 
+		// There is no metadata for this node
+		if metadata == nil {
+			log.Debug().Msgf("No metadata found for %s", cHardware.ID)
+			continue
+		}
+
 		validationResult := results[cHardware.ID]
 
 		// Verify all specified Roles are valid
 		if metadata.Role != nil {
 			if !validRoles[*metadata.Role] {
 				validationResult.Errors = append(validationResult.Errors,
-					fmt.Sprintf("Specified role (%s) is invalid, choose from: %s", *metadata.Role, strings.Join(csm.ValidRoles, " ,")),
+					fmt.Sprintf("Specified role (%s) is invalid, choose from: %s", *metadata.Role, strings.Join(csm.ValidRoles, ", ")),
 				)
 			}
 		}
@@ -204,7 +217,7 @@ func (csm *CSM) ValidateInternal(ctx context.Context, datastore inventory.Datast
 		if metadata.SubRole != nil {
 			if !validRoles[*metadata.SubRole] {
 				validationResult.Errors = append(validationResult.Errors,
-					fmt.Sprintf("Specified sub-role (%s) is invalid, choose from: %s", *metadata.SubRole, strings.Join(csm.ValidSubRoles, " ,")),
+					fmt.Sprintf("Specified sub-role (%s) is invalid, choose from: %s", *metadata.SubRole, strings.Join(csm.ValidSubRoles, ", ")),
 				)
 			}
 		}
@@ -270,7 +283,21 @@ func (csm *CSM) ValidateInternal(ctx context.Context, datastore inventory.Datast
 
 	// TODO
 
-	return results, nil
+	//
+	// Build results
+	//
+	resultsWithErrors := map[uuid.UUID]provider.HardwareValidationResult{}
+	for id, result := range results {
+		if len(result.Errors) > 0 {
+			resultsWithErrors[id] = result
+		}
+	}
+
+	if len(resultsWithErrors) > 0 {
+		return resultsWithErrors, provider.ErrDataValidationFailure
+	}
+
+	return nil, nil
 }
 
 // Import external inventory data into CANI's inventory format
