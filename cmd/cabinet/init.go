@@ -7,6 +7,7 @@ import (
 var (
 	hwType      string
 	supportedHw []string
+	cabinet     int
 )
 
 func init() {
@@ -17,5 +18,8 @@ func init() {
 
 	// Add a flag to show supported types
 	AddCabinetCmd.Flags().BoolP("list-supported-types", "L", false, "List supported hardware types.")
+
+	// Blades have several parents, so we need to add flags for each
+	AddCabinetCmd.Flags().IntVar(&cabinet, "cabinet", 1001, "Cabinet ordinal.")
 
 }

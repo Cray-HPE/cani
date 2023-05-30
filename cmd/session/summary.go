@@ -77,13 +77,7 @@ func showSummary(cmd *cobra.Command, args []string) error {
 
 	tw.Flush()
 
-	// print the next steps
-	fmt.Printf("\n%d hardware item(s) are staged:\n", len(staged))
-	fmt.Println("\nNext steps:")
-	fmt.Println("-----------")
-	fmt.Println("1. Power on the new nodes using your existing methods.")
-	fmt.Println("2. Check the status of the nodes using your existing methods.")
-	fmt.Println("3. Proceed with system configuration as needed.")
+	fmt.Printf("\n%d new hardware item(s) are in the inventory:\n", len(staged))
 
 	return nil
 }

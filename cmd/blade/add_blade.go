@@ -24,11 +24,10 @@ OTHER DEALINGS IN THE SOFTWARE.
 package blade
 
 import (
-	"fmt"
-
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/cmd/session"
 	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -60,23 +59,6 @@ func addBlade(cmd *cobra.Command, args []string) error {
 	}
 	log.Info().Msgf("Added blade %s", args[0])
 
-	// Gather info about the parent node
-	// inv, err := d.List()
-	// if err != nil {
-	// 	return err
-	// }
-
-	// A blade can have 1 or more nodes following this heirarchy:
-	//
-	// | hardwaretypes.HardwareTypeCabinet
-	// |-- hardwaretypes.HardwareTypeChassis
-	// |---- hardwaretypes.HardwareTypeNodeBlade
-	// |------ hardwaretypes.HardwareTypeNodeCard
-	// |-------- hardwaretypes.HardwareTypeNode
-	//
-	// After adding a blade, we need to find the node(s) that were added to present the user
-	// with the node(s) that may need additional metadata added
-
 	// Use a map to track already added nodes.
 	newNodes := []domain.AddHardwareResult{}
 
@@ -84,45 +66,35 @@ func addBlade(cmd *cobra.Command, args []string) error {
 		// If the type is a Node
 		if result.Hardware.Type == hardwaretypes.HardwareTypeNode {
 			log.Debug().Msg(result.Location.String())
-			log.Debug().Msgf("This %s also contains a %s (added %s)",
+			log.Debug().Msgf("This %s also contains a %s (%s) added at %s",
 				hardwaretypes.HardwareTypeNodeBlade,
 				hardwaretypes.HardwareTypeNode,
-				result.Hardware.ID.String())
+				result.Hardware.ID.String(),
+				result.Location)
 			// Add the node to the map
 			newNodes = append(newNodes, result)
-
-			// check if the uuid is in the inventory
-			// if hw, found := inv.Hardware[member.ID]; !found {
-			// 	newNodes[member.ID] = hw
-			// }
 		}
 	}
 
-	fmt.Printf("Next steps:\n\n")
-	fmt.Printf("For provider '%s', additional metadata is needed for each %s in the %s:\n\n",
-		root.Conf.Session.DomainOptions.Provider,
-		hardwaretypes.HardwareTypeNode,
-		hardwaretypes.HardwareTypeNodeBlade)
-	for _, newNode := range newNodes {
-		cabinet := newNode.Location[0].Ordinal // bo.Cabinet()
-		chassis := newNode.Location[1].Ordinal // bo.Chassis()
-		slot := newNode.Location[2].Ordinal    // bo.Slot()
-		bmc := newNode.Location[3].Ordinal     // bo.BMC() // aka NodeCard
-		node := newNode.Location[4].Ordinal    // bo.Node()
-		fmt.Printf("cani update node --cabinet \"%d\" --chassis \"%d\" --slot \"%d\" --bmc \"%d\" --node \"%d\" --role \"FIXME\" --subrole \"FIXME\" --alias \"FIXME\" --nid \"FIXME\"\n",
-			cabinet,
-			chassis,
-			slot,
-			bmc,
-			node)
-
-		// Update the node with metadata
-		// err = d.UpdateNode(&hw, hw.ProviderProperties)
-		// if err != nil {
-		// 	return err
-		// }
-
+	if root.Conf.Session.DomainOptions.Provider == string(inventory.CSMProvider) {
+		log.Info().Msgf("For provider '%s', additional metadata is needed for each %s in the %s:\n\n",
+			root.Conf.Session.DomainOptions.Provider,
+			hardwaretypes.HardwareTypeNode,
+			hardwaretypes.HardwareTypeNodeBlade)
 	}
+	// for _, newNode := range newNodes {
+	// 	cabinet := newNode.Location[0].Ordinal // bo.Cabinet()
+	// 	chassis := newNode.Location[1].Ordinal // bo.Chassis()
+	// 	slot := newNode.Location[2].Ordinal    // bo.Slot()
+	// 	bmc := newNode.Location[3].Ordinal     // bo.BMC() // aka NodeCard
+	// 	node := newNode.Location[4].Ordinal    // bo.Node()
+	// 	log.Info().Msgf("cani update node --cabinet \"%d\" --chassis \"%d\" --slot \"%d\" --bmc \"%d\" --node \"%d\" --role \"FIXME\" --subrole \"FIXME\" --alias \"FIXME\" --nid \"FIXME\"\n",
+	// 		cabinet,
+	// 		chassis,
+	// 		slot,
+	// 		bmc,
+	// 		node)
+	// }
 
 	return nil
 }
