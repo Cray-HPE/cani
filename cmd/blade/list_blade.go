@@ -66,7 +66,7 @@ func listBlade(cmd *cobra.Command, args []string) error {
 	// If no args are provided, list all blades
 	if len(args) == 0 {
 		for key, hw := range inv.Hardware {
-			if hw.Type == hardwaretypes.HardwareTypeNodeBlade {
+			if hw.Type == hardwaretypes.NodeBlade {
 				filtered[key] = hw
 			}
 		}
@@ -80,14 +80,14 @@ func listBlade(cmd *cobra.Command, args []string) error {
 			}
 			// if blade does not exist, error
 			if _, exists := inv.Hardware[u]; !exists {
-				return fmt.Errorf("%s %s not found in inventory.", hardwaretypes.HardwareTypeNodeBlade, u)
+				return fmt.Errorf("%s %s not found in inventory.", hardwaretypes.NodeBlade, u)
 			}
 			// If the hardware is a blade
-			if inv.Hardware[u].Type == hardwaretypes.HardwareTypeNodeBlade {
+			if inv.Hardware[u].Type == hardwaretypes.NodeBlade {
 				// add it to the filtered inventory
 				filtered[u] = inv.Hardware[u]
 			} else {
-				log.Debug().Msgf("%s is not a %s.  It is a %s", u, hardwaretypes.HardwareTypeNodeBlade, inv.Hardware[u].Type)
+				log.Debug().Msgf("%s is not a %s.  It is a %s", u, hardwaretypes.NodeBlade, inv.Hardware[u].Type)
 			}
 		}
 	}

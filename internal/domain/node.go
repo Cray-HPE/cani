@@ -9,11 +9,11 @@ import (
 func (d *Domain) UpdateNode(cabinet, chassis, slot, bmc, node int, metadata map[string]interface{}) error {
 	// Get the node object from the datastore
 	locationPath := inventory.LocationPath{
-		{HardwareType: hardwaretypes.HardwareTypeCabinet, Ordinal: cabinet},
-		{HardwareType: hardwaretypes.HardwareTypeChassis, Ordinal: chassis},
-		{HardwareType: hardwaretypes.HardwareTypeNodeBlade, Ordinal: slot},
-		{HardwareType: hardwaretypes.HardwareTypeNodeCard, Ordinal: bmc}, // Yes I mean put the BMC location for the node card location
-		{HardwareType: hardwaretypes.HardwareTypeNode, Ordinal: node},
+		{HardwareType: hardwaretypes.Cabinet, Ordinal: cabinet},
+		{HardwareType: hardwaretypes.Chassis, Ordinal: chassis},
+		{HardwareType: hardwaretypes.NodeBlade, Ordinal: slot},
+		{HardwareType: hardwaretypes.NodeCard, Ordinal: bmc}, // Yes I mean put the BMC location for the node card location
+		{HardwareType: hardwaretypes.Node, Ordinal: node},
 	}
 	hw, err := d.datastore.GetAtLocation(locationPath)
 	if err != nil {

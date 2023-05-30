@@ -18,7 +18,7 @@ func (d *Domain) AddCabinet(deviceTypeSlug string, cabinetOrdinal int) ([]AddHar
 	// TODO this is just a stand in, just for testing
 	cabinet := inventory.Hardware{
 		ID:              uuid.New(),
-		Type:            hardwaretypes.HardwareTypeCabinet,
+		Type:            hardwaretypes.Cabinet,
 		Status:          inventory.HardwareStatusProvisioned,
 		LocationOrdinal: &cabinetOrdinal,
 	}
@@ -35,8 +35,8 @@ func (d *Domain) AddCabinet(deviceTypeSlug string, cabinetOrdinal int) ([]AddHar
 	if err != nil {
 		return nil, err
 	}
-	if deviceType.HardwareType != hardwaretypes.HardwareTypeCabinet {
-		return nil, fmt.Errorf("provided device hardware type (%s) is not a %s", deviceTypeSlug, hardwaretypes.HardwareTypeCabinet) // TODO better error message
+	if deviceType.HardwareType != hardwaretypes.Cabinet {
+		return nil, fmt.Errorf("provided device hardware type (%s) is not a %s", deviceTypeSlug, hardwaretypes.Cabinet) // TODO better error message
 	}
 
 	// Generate a hardware build out

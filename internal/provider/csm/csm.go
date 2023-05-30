@@ -110,7 +110,7 @@ func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperti
 	}
 
 	switch cHardware.Type {
-	case hardwaretypes.HardwareTypeNode:
+	case hardwaretypes.Node:
 		// TODO do something interesting with the raw data, and convert it/validate it
 		properties := NodeMetadata{} // Create an empty one
 		if _, exists := cHardware.ProviderProperties["csm"]; exists {

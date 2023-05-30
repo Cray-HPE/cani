@@ -60,13 +60,13 @@ func showSummary(cmd *cobra.Command, args []string) error {
 		// TODO: Better logic as staged hardware could have been added in a different session
 		if hw.Status == inventory.HardwareStatusStaged {
 			switch hw.Type {
-			case hardwaretypes.HardwareTypeCabinet:
+			case hardwaretypes.Cabinet:
 				red(tw, format, i.String(), hw.Type, hw.Status)
-			case hardwaretypes.HardwareTypeChassis:
+			case hardwaretypes.Chassis:
 				yellow(tw, format, i.String(), hw.Type, hw.Status)
-			case hardwaretypes.HardwareTypeNodeBlade:
+			case hardwaretypes.NodeBlade:
 				green(tw, format, i.String(), hw.Type, hw.Status)
-			case hardwaretypes.HardwareTypeNode:
+			case hardwaretypes.Node:
 				blue(tw, format, i.String(), hw.Type, hw.Status)
 			default:
 				black(tw, format, i.String(), hw.Type, hw.Status)

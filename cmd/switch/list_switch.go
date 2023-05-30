@@ -61,7 +61,7 @@ func listSwitch(cmd *cobra.Command, args []string) error {
 	// Filter the inventory to only switches
 	filtered := make(map[uuid.UUID]inventory.Hardware, 0)
 	for key, hw := range inv.Hardware {
-		if hw.Type == hardwaretypes.HardwareTypeHighSpeedSwitch || hw.Type == hardwaretypes.HardwareTypeManagementSwitch {
+		if hw.Type == hardwaretypes.HighSpeedSwitch || hw.Type == hardwaretypes.ManagementSwitch {
 			filtered[key] = hw
 		}
 	}

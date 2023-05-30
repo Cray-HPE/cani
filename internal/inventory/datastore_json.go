@@ -429,11 +429,11 @@ func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 
 	// TODO Currently do not have a system type in our inventory, which cabinets/CDUs would be the child of, so for now keep track of them
 	topLevelHardware := map[hardwaretypes.HardwareType][]uuid.UUID{
-		hardwaretypes.HardwareTypeCabinet:                 []uuid.UUID{},
-		hardwaretypes.HardwareTypeCoolingDistributionUnit: []uuid.UUID{},
+		hardwaretypes.Cabinet:                 {},
+		hardwaretypes.CoolingDistributionUnit: {},
 	}
 	for _, hardware := range dj.inventory.Hardware {
-		if hardware.Type == hardwaretypes.HardwareTypeCabinet || hardware.Type == hardwaretypes.HardwareTypeCoolingDistributionUnit {
+		if hardware.Type == hardwaretypes.Cabinet || hardware.Type == hardwaretypes.CoolingDistributionUnit {
 			topLevelHardware[hardware.Type] = append(topLevelHardware[hardware.Type], hardware.ID)
 		}
 	}

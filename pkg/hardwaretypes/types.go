@@ -28,23 +28,23 @@ type HardwareType string
 
 // TODO should give a description of each of these
 const (
-	HardwareTypeCabinet                        HardwareType = "Cabinet"
-	HardwareTypeChassis                        HardwareType = "Chassis"
-	HardwareTypeChassisManagementModule        HardwareType = "ChassisManagementModule"
-	HardwareTypeCabinetEnvironmentalController HardwareType = "CabinetEnvironmentalController"
-	HardwareTypeNodeBlade                      HardwareType = "NodeBlade"
-	HardwareTypeNodeCard                       HardwareType = "NodeCard"       // TODO Change to enclosure?
-	HardwareTypeNodeController                 HardwareType = "NodeController" // A Node BMC is a child of a node card
-	HardwareTypeNode                           HardwareType = "Node"
-	HardwareTypeManagementSwitchEnclosure      HardwareType = "ManagementSwitchEnclosure"
-	HardwareTypeManagementSwitch               HardwareType = "ManagementSwitch"
-	HardwareTypeManagementSwitchController     HardwareType = "ManagementSwitchController"
-	HardwareTypeHighSpeedSwitchEnclosure       HardwareType = "HighSpeedSwitchEnclosure"
-	HardwareTypeHighSpeedSwitch                HardwareType = "HighSpeedSwitch"
-	HardwareTypeHighSpeedSwitchController      HardwareType = "HighSpeedSwitchController"
-	HardwareTypeCabinetPDUController           HardwareType = "CabinetPDUController"
-	HardwareTypeCabinetPDU                     HardwareType = "CabinetPDU"
-	HardwareTypeCoolingDistributionUnit        HardwareType = "CoolingDistributionUnit"
+	Cabinet                        HardwareType = "Cabinet"
+	Chassis                        HardwareType = "Chassis"
+	ChassisManagementModule        HardwareType = "ChassisManagementModule"
+	CabinetEnvironmentalController HardwareType = "CabinetEnvironmentalController"
+	NodeBlade                      HardwareType = "NodeBlade"
+	NodeCard                       HardwareType = "NodeCard"       // TODO Change to enclosure?
+	NodeController                 HardwareType = "NodeController" // A Node BMC is a child of a node card
+	Node                           HardwareType = "Node"
+	ManagementSwitchEnclosure      HardwareType = "ManagementSwitchEnclosure"
+	ManagementSwitch               HardwareType = "ManagementSwitch"
+	ManagementSwitchController     HardwareType = "ManagementSwitchController"
+	HighSpeedSwitchEnclosure       HardwareType = "HighSpeedSwitchEnclosure"
+	HighSpeedSwitch                HardwareType = "HighSpeedSwitch"
+	HighSpeedSwitchController      HardwareType = "HighSpeedSwitchController"
+	CabinetPDUController           HardwareType = "CabinetPDUController"
+	CabinetPDU                     HardwareType = "CabinetPDU"
+	CoolingDistributionUnit        HardwareType = "CoolingDistributionUnit"
 
 	// TODO NEED TO COMEBACK ON IF SWITCHES NEED TO BE SEPARATE FOR HSN AND MANAGEMENT
 )

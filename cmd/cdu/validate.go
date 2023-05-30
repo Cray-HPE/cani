@@ -18,7 +18,7 @@ func validHardware(cmd *cobra.Command, args []string) error {
 	}
 
 	// Get the list of hardware types that are cdus
-	deviceTypes := library.GetDeviceTypesByHardwareType(hardwaretypes.HardwareTypeCoolingDistributionUnit)
+	deviceTypes := library.GetDeviceTypesByHardwareType(hardwaretypes.CoolingDistributionUnit)
 	if cmd.Flags().Changed("list-supported-types") {
 		for _, hw := range deviceTypes {
 			cmd.Printf("- %s\n", hw.Slug)
