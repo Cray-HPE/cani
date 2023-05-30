@@ -16,9 +16,9 @@ type InventoryProvider interface {
 	ValidateExternal(ctx context.Context) error
 
 	// Validate the representation of the inventory data into the destination inventory system
-	// is consistent.
-	// TODO perhaps this should just happen during Reconcile
-	ValidateInternal(ctx context.Context, datastore inventory.Datastore) (map[uuid.UUID]HardwareValidationResult, error)
+	// is consistent. The default set of checks will verify all currently provided data is valid.
+	// If enableRequiredDataChecks is set to true, additional checks focusing on missing data will be ran.
+	ValidateInternal(ctx context.Context, datastore inventory.Datastore, enableRequiredDataChecks bool) (map[uuid.UUID]HardwareValidationResult, error)
 
 	// Import external inventory data into CANI's inventory format
 	Import(ctx context.Context, datastore inventory.Datastore) error

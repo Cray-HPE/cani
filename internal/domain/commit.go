@@ -26,7 +26,7 @@ func (d *Domain) Commit(ctx context.Context) (CommitPassback, error) {
 
 	// Validate the current state of CANI's inventory data against the provider plugin
 	// for provider specific data
-	if failedValidations, err := inventoryProvider.ValidateInternal(ctx, d.datastore); len(failedValidations) > 0 {
+	if failedValidations, err := inventoryProvider.ValidateInternal(ctx, d.datastore, true); len(failedValidations) > 0 {
 		return CommitPassback{
 			FailedValidations: failedValidations,
 		}, err

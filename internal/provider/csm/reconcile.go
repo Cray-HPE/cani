@@ -76,7 +76,8 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 	}
 
 	//
-	// Verify expected hardware actions are taking place
+	// Verify expected hardware actions are taking place.
+	// This can detect drift from when hardware was removed/added outside of CANI after the session was started
 	//
 	unexpectedHardwareRemoval := []sls_client.Hardware{}
 	for _, hardware := range hardwareRemoved {
