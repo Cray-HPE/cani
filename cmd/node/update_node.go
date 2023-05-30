@@ -30,6 +30,8 @@ func updateNode(cmd *cobra.Command, args []string) error {
 
 	// Push all the CLI flags that were provided into a generic map
 	// TODO Need to figure out how to specify to unset something
+	// Right now the build metadata function in the CSM provider will
+	// unset options if nil is passed in.
 	nodeMeta := map[string]interface{}{
 		"role":    role,
 		"subrole": subrole,

@@ -42,7 +42,7 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 		)
 	}
 	// Build up the expected SLS state
-	expectedSLSState, err := BuildExpectedHardwareState(datastore)
+	expectedSLSState, hardwareMapping, err := BuildExpectedHardwareState(datastore)
 	if err != nil {
 		return errors.Join(
 			fmt.Errorf("failed to build expected SLS state"),
@@ -76,10 +76,49 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 	}
 
 	//
-	// Modify SLS
+	// Verify expected hardware actions are taking place
 	//
+	unexpectedHardwareRemoval := []sls_client.Hardware{}
+	for _, hardware := range hardwareRemoved {
+		if hardwareMapping[hardware.Xname].Status != inventory.HardwareStatusDecomissioned {
+			// This piece of hardware wasn't flagged for removal from the system, but a
+			// the reconcile logic wants to remove it and this is bad
+			unexpectedHardwareRemoval = append(unexpectedHardwareRemoval, hardware)
+		}
 
+		// This piece of hardware is allowed to be removed from the system, as it has the right
+		// inventory status
+	}
+
+	unexpectedHardwareAdditions := []sls_client.Hardware{}
+	for _, hardware := range hardwareAdded {
+		if hardwareMapping[hardware.Xname].Status != inventory.HardwareStatusStaged {
+			// This piece of hardware wasn't flagged to be added to the system, but a
+			// the reconcile logic wants to remove it and this is bad
+			unexpectedHardwareAdditions = append(unexpectedHardwareAdditions, hardware)
+		}
+		// This piece of hardware is allowed to be added from the system, as it has the right
+		// inventory status
+	}
+
+	// TODO need a good way to signal in the inventory structure that we need to support
+	// update metadata for a piece of hardware, for now just not handle it
+	// for _, hardware := range hardwareWithDifferingValues {
+	// }
+
+	if len(unexpectedHardwareRemoval) != 0 || len(unexpectedHardwareAdditions) != 0 {
+		displayUnwantedChanges(unexpectedHardwareRemoval, unexpectedHardwareAdditions)
+		return fmt.Errorf("detected unexpected hardware changes between current and expected system states")
+	}
+
+	//
+	// Simulate and validate SLS actions
+	//
 	// TODO simulate changes to the SLS state and validate them, and then make the changes
+
+	//
+	// Modify the System's SLS instance
+	//
 
 	// Sort hardware so children are deleted before their parents
 	sls.SortHardwareReverse(hardwareRemoved)
@@ -216,6 +255,37 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 	return nil
 }
 
+func displayUnwantedChanges(unwantedHardwareRemoved, unwantedHardwareAdded []sls_client.Hardware) error {
+	if len(unwantedHardwareAdded) != 0 {
+		log.Info().Msgf("")
+		log.Info().Msgf("Unexpected Hardware detected added to the system")
+		for _, hardware := range unwantedHardwareAdded {
+			hardwareRaw, err := buildHardwareString(hardware)
+			if err != nil {
+				return err
+			}
+
+			log.Info().Msgf("  %-16s - %s", hardware.Xname, hardwareRaw)
+		}
+	}
+
+	if len(unwantedHardwareRemoved) != 0 {
+		log.Info().Msgf("")
+		log.Info().Msgf("Unexpected Hardware detected removed from the system")
+		for _, hardware := range unwantedHardwareRemoved {
+			hardwareRaw, err := buildHardwareString(hardware)
+			if err != nil {
+				return err
+			}
+
+			log.Info().Msgf("  %-16s - %s", hardware.Xname, hardwareRaw)
+		}
+	}
+
+	log.Info().Msgf("")
+	return nil
+}
+
 func buildHardwareString(hardware sls_client.Hardware) (string, error) {
 	extraPropertiesRaw, err := hardware.DecodeExtraProperties()
 	if err != nil {
@@ -227,6 +297,10 @@ func buildHardwareString(hardware sls_client.Hardware) (string, error) {
 
 	switch hardware.TypeString {
 	case xnametypes.Cabinet:
+		// Nothing to do
+	case xnametypes.Chassis:
+		// Nothing to do
+	case xnametypes.ChassisBMC:
 		// Nothing to do
 	case xnametypes.CabinetPDUController:
 		// Nothing to do

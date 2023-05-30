@@ -25,15 +25,19 @@ import (
 // 	return &providerProperties, nil
 // }
 
-func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_client.SlsState, error) {
+func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_client.SlsState, map[string]inventory.Hardware, error) {
 	// Retrieve the CANI inventory data
 	data, err := datastore.List()
 	if err != nil {
-		return sls_client.SlsState{}, errors.Join(
+		return sls_client.SlsState{}, nil, errors.Join(
 			fmt.Errorf("failed to list hardware from the datastore"),
 			err,
 		)
 	}
+
+	// This is a lookup map that keeps track of what CANI hardware object generated a
+	// piece of SLS hardware
+	hardwareMapping := map[string]inventory.Hardware{}
 
 	// Iterate over the CANI inventory data to build SLS data
 	allHardware := map[string]sls_client.Hardware{}
@@ -44,7 +48,7 @@ func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_client.SlsSt
 		log.Debug().Any("cHardware", cHardware).Msg("Processing")
 		locationPath, err := datastore.GetLocation(cHardware)
 		if err != nil {
-			return sls_client.SlsState{}, errors.Join(
+			return sls_client.SlsState{}, nil, errors.Join(
 				fmt.Errorf("failed to get location of hardware (%s) from the datastore", cHardware.ID),
 				err,
 			)
@@ -55,7 +59,7 @@ func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_client.SlsSt
 		// 	log.Printf("WARNING %s", err.Error())
 		// } else if err != nil {
 		if err != nil {
-			return sls_client.SlsState{}, err
+			return sls_client.SlsState{}, nil, err
 		}
 
 		log.Debug().Any("hardware", hardware).Msg("Generated SLS hardware")
@@ -64,6 +68,9 @@ func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_client.SlsSt
 		if hardware.Xname == "" {
 			continue
 		}
+
+		// Update CANI->SLS hardware mapping
+		hardwareMapping[hardware.Xname] = cHardware
 
 		// Verify cabinet exists (ignore CDUs)
 		// TODO
@@ -149,7 +156,7 @@ func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_client.SlsSt
 	// Build up and the SLS state
 	return sls_client.SlsState{
 		Hardware: allHardware,
-	}, nil
+	}, hardwareMapping, nil
 }
 
 func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.LocationPath) (sls_client.Hardware, error) {

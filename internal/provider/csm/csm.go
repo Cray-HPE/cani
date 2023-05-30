@@ -317,10 +317,6 @@ func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperti
 		properties := NodeMetadata{} // Create an empty one
 		if _, exists := cHardware.ProviderProperties["csm"]; exists {
 			// If one exists set it.
-			// TODO Depending on how the data is stored/unmarshalled this might be a map[string]interface{}, so using the mapstructure library might be required to get it into the struct form
-			// https://github.com/Cray-HPE/cani/blob/develop/internal/provider/csm/sls/hardware.go
-			// https://github.com/mitchellh/mapstructure
-
 			if err := mapstructure.Decode(cHardware.ProviderProperties["csm"], &properties); err != nil {
 				return err
 			}
@@ -328,16 +324,32 @@ func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperti
 		// Make changes to the node metadata
 		// The keys of rawProperties need to match what is defined in ./cmd/node/update_node.go
 		if roleRaw, exists := rawProperties["role"]; exists {
-			properties.Role = StringPtr(roleRaw.(string))
+			if roleRaw == nil {
+				properties.Role = nil
+			} else {
+				properties.Role = StringPtr(roleRaw.(string))
+			}
 		}
 		if subroleRaw, exists := rawProperties["subrole"]; exists {
-			properties.SubRole = StringPtr(subroleRaw.(string))
+			if subroleRaw == nil {
+				properties.SubRole = nil
+			} else {
+				properties.SubRole = StringPtr(subroleRaw.(string))
+			}
 		}
 		if nidRaw, exists := rawProperties["nid"]; exists {
-			properties.Nid = IntPtr(nidRaw.(int))
+			if nidRaw == nil {
+				properties.Nid = nil
+			} else {
+				properties.Nid = IntPtr(nidRaw.(int))
+			}
 		}
 		if aliasRaw, exists := rawProperties["alias"]; exists {
-			properties.Alias = StringPtr(aliasRaw.(string))
+			if aliasRaw == nil {
+				properties.Alias = nil
+			} else {
+				properties.Alias = StringPtr(aliasRaw.(string))
+			}
 		}
 
 		cHardware.ProviderProperties["csm"] = properties
