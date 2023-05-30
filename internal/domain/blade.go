@@ -121,7 +121,7 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 
 	// Validate the current state of CANI's inventory data against the provider plugin
 	// for provider specific data.
-	if failedValidations, err := d.externalInventoryProvider.ValidateInternal(ctx, d.datastore, true); len(failedValidations) > 0 {
+	if failedValidations, err := d.externalInventoryProvider.ValidateInternal(ctx, d.datastore, false); len(failedValidations) > 0 {
 		passback.ProviderValidationErrors = failedValidations
 		return passback, provider.ErrDataValidationFailure
 	} else if err != nil {

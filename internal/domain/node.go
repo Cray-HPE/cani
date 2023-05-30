@@ -42,7 +42,7 @@ func (d *Domain) UpdateNode(ctx context.Context, cabinet, chassis, slot, bmc, no
 	// Validate the current state of CANI's inventory data against the provider plugin
 	// for provider specific data.
 	var passback AddHardwarePassback
-	if failedValidations, err := d.externalInventoryProvider.ValidateInternal(ctx, d.datastore, true); len(failedValidations) > 0 {
+	if failedValidations, err := d.externalInventoryProvider.ValidateInternal(ctx, d.datastore, false); len(failedValidations) > 0 {
 		passback.ProviderValidationErrors = failedValidations
 		return passback, provider.ErrDataValidationFailure
 	} else if err != nil {

@@ -39,6 +39,8 @@ func (d *Domain) Validate(ctx context.Context) (ValidatePassback, error) {
 			err,
 		)
 	}
+	log.Info().Msg("Validated CANI inventory")
+
 	// Validate external inventory data
 	err := d.externalInventoryProvider.ValidateExternal(ctx)
 	if err != nil {

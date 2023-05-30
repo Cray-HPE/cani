@@ -120,7 +120,7 @@ func (csm *CSM) validateInternalNode(allHardware map[uuid.UUID]inventory.Hardwar
 		// There is no metadata for this node
 		if metadata == nil {
 			log.Debug().Msgf("No metadata found for %s", cHardware.ID)
-			continue
+			metadata = &NodeMetadata{}
 		}
 
 		//
