@@ -172,17 +172,17 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 	class := sls_client.HardwareClassMountain
 
 	switch cHardware.Type {
-	case hardwaretypes.HardwareTypeCabinet:
+	case hardwaretypes.Cabinet:
 		return sls_client.Hardware{}, nil
-	case hardwaretypes.HardwareTypeChassis:
+	case hardwaretypes.Chassis:
 		return sls_client.Hardware{}, nil
-	case hardwaretypes.HardwareTypeNodeBlade:
+	case hardwaretypes.NodeBlade:
 		return sls_client.Hardware{}, nil
-	case hardwaretypes.HardwareTypeNodeCard:
+	case hardwaretypes.NodeCard:
 		return sls_client.Hardware{}, nil
-	case hardwaretypes.HardwareTypeNodeController:
+	case hardwaretypes.NodeController:
 		return sls_client.Hardware{}, nil
-	case hardwaretypes.HardwareTypeNode:
+	case hardwaretypes.Node:
 		metadata, err := GetProviderMetadataT[NodeMetadata](cHardware)
 		if err != nil {
 			return sls_client.Hardware{}, errors.Join(

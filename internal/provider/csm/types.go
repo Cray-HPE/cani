@@ -82,97 +82,97 @@ func (xc *XnameConverter) Match(cHardware inventory.Hardware, locationPath inven
 var enhancedTypeConverters = map[xnametypes.HMSType]XnameConverter{
 	xnametypes.Cabinet: {
 		XnameOrdinalMapping: []XnameOrdinal{
-			{hardwaretypes.HardwareTypeCabinet, 0},
+			{hardwaretypes.Cabinet, 0},
 		},
 	},
 	xnametypes.CEC: {
 		XnameOrdinalMapping: []XnameOrdinal{
-			{hardwaretypes.HardwareTypeCabinet, 0},
-			{hardwaretypes.HardwareTypeCabinetEnvironmentalController, 1},
+			{hardwaretypes.Cabinet, 0},
+			{hardwaretypes.CabinetEnvironmentalController, 1},
 		},
 	},
 	xnametypes.CabinetPDUController: {
 		XnameOrdinalMapping: []XnameOrdinal{
-			{hardwaretypes.HardwareTypeCabinet, 0},
-			{hardwaretypes.HardwareTypeCabinetPDUController, 1},
+			{hardwaretypes.Cabinet, 0},
+			{hardwaretypes.CabinetPDUController, 1},
 		},
 	},
 	xnametypes.CabinetPDU: {
 		XnameOrdinalMapping: []XnameOrdinal{
-			{hardwaretypes.HardwareTypeCabinet, 0},
-			{hardwaretypes.HardwareTypeCabinetPDUController, 1},
-			{hardwaretypes.HardwareTypeCabinetPDU, 2},
+			{hardwaretypes.Cabinet, 0},
+			{hardwaretypes.CabinetPDUController, 1},
+			{hardwaretypes.CabinetPDU, 2},
 		},
 	},
 	xnametypes.Chassis: {
 		XnameOrdinalMapping: []XnameOrdinal{
-			{hardwaretypes.HardwareTypeCabinet, 0},
-			{hardwaretypes.HardwareTypeChassis, 1},
+			{hardwaretypes.Cabinet, 0},
+			{hardwaretypes.Chassis, 1},
 		},
 	},
 	xnametypes.ChassisBMC: {
 		XnameOrdinalMapping: []XnameOrdinal{
-			{hardwaretypes.HardwareTypeCabinet, 0},
-			{hardwaretypes.HardwareTypeChassis, 1},
-			{hardwaretypes.HardwareTypeChassisManagementModule, 2},
+			{hardwaretypes.Cabinet, 0},
+			{hardwaretypes.Chassis, 1},
+			{hardwaretypes.ChassisManagementModule, 2},
 		},
 	},
 	xnametypes.ComputeModule: {
 		XnameOrdinalMapping: []XnameOrdinal{
-			{hardwaretypes.HardwareTypeCabinet, 0},
-			{hardwaretypes.HardwareTypeChassis, 1},
-			{hardwaretypes.HardwareTypeNodeBlade, 2},
+			{hardwaretypes.Cabinet, 0},
+			{hardwaretypes.Chassis, 1},
+			{hardwaretypes.NodeBlade, 2},
 		},
 	},
 	xnametypes.NodeEnclosure: {
 		XnameOrdinalMapping: []XnameOrdinal{
-			{hardwaretypes.HardwareTypeCabinet, 0},
-			{hardwaretypes.HardwareTypeChassis, 1},
-			{hardwaretypes.HardwareTypeNodeBlade, 2},
-			{hardwaretypes.HardwareTypeNodeCard, 3},
+			{hardwaretypes.Cabinet, 0},
+			{hardwaretypes.Chassis, 1},
+			{hardwaretypes.NodeBlade, 2},
+			{hardwaretypes.NodeCard, 3},
 		},
 	},
 	xnametypes.NodeBMC: {
 		XnameOrdinalMapping: []XnameOrdinal{
-			{hardwaretypes.HardwareTypeCabinet, 0},
-			{hardwaretypes.HardwareTypeChassis, 1},
-			{hardwaretypes.HardwareTypeNodeBlade, 2},
-			{hardwaretypes.HardwareTypeNodeCard, 3},
-			{hardwaretypes.HardwareTypeNodeController, -1},
+			{hardwaretypes.Cabinet, 0},
+			{hardwaretypes.Chassis, 1},
+			{hardwaretypes.NodeBlade, 2},
+			{hardwaretypes.NodeCard, 3},
+			{hardwaretypes.NodeController, -1},
 		},
 	},
 	xnametypes.Node: {
 		XnameOrdinalMapping: []XnameOrdinal{
-			{hardwaretypes.HardwareTypeCabinet, 0},
-			{hardwaretypes.HardwareTypeChassis, 1},
-			{hardwaretypes.HardwareTypeNodeBlade, 2},
-			{hardwaretypes.HardwareTypeNodeCard, 3},
-			{hardwaretypes.HardwareTypeNode, 4},
+			{hardwaretypes.Cabinet, 0},
+			{hardwaretypes.Chassis, 1},
+			{hardwaretypes.NodeBlade, 2},
+			{hardwaretypes.NodeCard, 3},
+			{hardwaretypes.Node, 4},
 		},
 	},
 	xnametypes.RouterModule: {
 		XnameOrdinalMapping: []XnameOrdinal{
-			{hardwaretypes.HardwareTypeCabinet, 0},
-			{hardwaretypes.HardwareTypeChassis, 1},
-			{hardwaretypes.HardwareTypeHighSpeedSwitchEnclosure, 2},
+			{hardwaretypes.Cabinet, 0},
+			{hardwaretypes.Chassis, 1},
+			{hardwaretypes.HighSpeedSwitchEnclosure, 2},
 		},
 	},
 	xnametypes.RouterBMC: {
 		XnameOrdinalMapping: []XnameOrdinal{
-			{hardwaretypes.HardwareTypeCabinet, 0},
-			{hardwaretypes.HardwareTypeChassis, 1},
-			{hardwaretypes.HardwareTypeHighSpeedSwitchEnclosure, 2},
-			{hardwaretypes.HardwareTypeHighSpeedSwitch, -1},
-			{hardwaretypes.HardwareTypeHighSpeedSwitchController, 3},
+			{hardwaretypes.Cabinet, 0},
+			{hardwaretypes.Chassis, 1},
+			{hardwaretypes.HighSpeedSwitchEnclosure, 2},
+			{hardwaretypes.HighSpeedSwitch, -1},
+			{hardwaretypes.HighSpeedSwitchController, 3},
 		},
 	},
 
 	xnametypes.MgmtSwitch: {
 		XnameOrdinalMapping: []XnameOrdinal{
-			{hardwaretypes.HardwareTypeCabinet, 0},
-			{hardwaretypes.HardwareTypeChassis, 1},
-			{hardwaretypes.HardwareTypeManagementSwitchEnclosure, 2},
-			{hardwaretypes.HardwareTypeManagementSwitch, -1},
+			{hardwaretypes.Cabinet, 0},
+			{hardwaretypes.Chassis, 1},
+			{hardwaretypes.ManagementSwitchEnclosure, 2},
+			{hardwaretypes.ManagementSwitch, -1},
 		},
 		PropertyMatcher: func(cHardware inventory.Hardware) (bool, error) {
 			// Decode the properties into a struct
@@ -188,9 +188,9 @@ var enhancedTypeConverters = map[xnametypes.HMSType]XnameConverter{
 
 	xnametypes.MgmtHLSwitchEnclosure: {
 		XnameOrdinalMapping: []XnameOrdinal{
-			{hardwaretypes.HardwareTypeCabinet, 0},
-			{hardwaretypes.HardwareTypeChassis, 1},
-			{hardwaretypes.HardwareTypeManagementSwitchEnclosure, 2},
+			{hardwaretypes.Cabinet, 0},
+			{hardwaretypes.Chassis, 1},
+			{hardwaretypes.ManagementSwitchEnclosure, 2},
 		},
 		PropertyMatcher: func(cHardware inventory.Hardware) (bool, error) {
 			// Decode the properties into a struct
@@ -205,10 +205,10 @@ var enhancedTypeConverters = map[xnametypes.HMSType]XnameConverter{
 	},
 	xnametypes.MgmtHLSwitch: {
 		XnameOrdinalMapping: []XnameOrdinal{
-			{hardwaretypes.HardwareTypeCabinet, 0},
-			{hardwaretypes.HardwareTypeChassis, 1},
-			{hardwaretypes.HardwareTypeManagementSwitchEnclosure, 2},
-			{hardwaretypes.HardwareTypeManagementSwitch, 3},
+			{hardwaretypes.Cabinet, 0},
+			{hardwaretypes.Chassis, 1},
+			{hardwaretypes.ManagementSwitchEnclosure, 2},
+			{hardwaretypes.ManagementSwitch, 3},
 		},
 		PropertyMatcher: func(cHardware inventory.Hardware) (bool, error) {
 			// Decode the properties into a struct
@@ -224,14 +224,14 @@ var enhancedTypeConverters = map[xnametypes.HMSType]XnameConverter{
 
 	xnametypes.CDU: {
 		XnameOrdinalMapping: []XnameOrdinal{
-			{hardwaretypes.HardwareTypeCoolingDistributionUnit, 0},
+			{hardwaretypes.CoolingDistributionUnit, 0},
 		},
 	},
 	xnametypes.CDUMgmtSwitch: {
 		XnameOrdinalMapping: []XnameOrdinal{
-			{hardwaretypes.HardwareTypeCoolingDistributionUnit, 0},
-			{hardwaretypes.HardwareTypeManagementSwitchEnclosure, 1},
-			{hardwaretypes.HardwareTypeManagementSwitch, -1},
+			{hardwaretypes.CoolingDistributionUnit, 0},
+			{hardwaretypes.ManagementSwitchEnclosure, 1},
+			{hardwaretypes.ManagementSwitch, -1},
 		},
 	},
 }

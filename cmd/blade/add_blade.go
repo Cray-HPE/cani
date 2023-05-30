@@ -59,16 +59,37 @@ func addBlade(cmd *cobra.Command, args []string) error {
 	}
 	log.Info().Msgf("Added blade %s", args[0])
 
+	// Gather info about the parent node
+	// inv, err := d.List()
+	// if err != nil {
+	// 	return err
+	// }
+
+	// A blade can have 1 or more nodes following this heirarchy:
+	//
+	// | hardwaretypes.Cabinet
+	// |-- hardwaretypes.Chassis
+	// |---- hardwaretypes.NodeBlade
+	// |------ hardwaretypes.NodeCard
+	// |-------- hardwaretypes.Node
+	//
+	// After adding a blade, we need to find the node(s) that were added to present the user
+	// with the node(s) that may need additional metadata added
+
 	// Use a map to track already added nodes.
 	newNodes := []domain.AddHardwareResult{}
 
 	for _, result := range results {
 		// If the type is a Node
-		if result.Hardware.Type == hardwaretypes.HardwareTypeNode {
+		if result.Hardware.Type == hardwaretypes.Node {
 			log.Debug().Msg(result.Location.String())
+			log.Debug().Msgf("This %s also contains a %s (added %s)",
+				hardwaretypes.NodeBlade,
+				hardwaretypes.Node,
+				result.Hardware.ID.String())
 			log.Debug().Msgf("This %s also contains a %s (%s) added at %s",
-				hardwaretypes.HardwareTypeNodeBlade,
-				hardwaretypes.HardwareTypeNode,
+				hardwaretypes.NodeBlade,
+				hardwaretypes.Node,
 				result.Hardware.ID.String(),
 				result.Location)
 			// Add the node to the map
@@ -79,8 +100,8 @@ func addBlade(cmd *cobra.Command, args []string) error {
 	if root.Conf.Session.DomainOptions.Provider == string(inventory.CSMProvider) {
 		log.Info().Msgf("For provider '%s', additional metadata is needed for each %s in the %s:\n\n",
 			root.Conf.Session.DomainOptions.Provider,
-			hardwaretypes.HardwareTypeNode,
-			hardwaretypes.HardwareTypeNodeBlade)
+			hardwaretypes.Node,
+			hardwaretypes.NodeBlade)
 	}
 	// for _, newNode := range newNodes {
 	// 	cabinet := newNode.Location[0].Ordinal // bo.Cabinet()

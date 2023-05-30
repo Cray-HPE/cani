@@ -24,7 +24,7 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 	// TODO this is just a stand in, just for testing
 	cabinet := inventory.Hardware{
 		ID:              uuid.New(),
-		Type:            hardwaretypes.HardwareTypeCabinet,
+		Type:            hardwaretypes.Cabinet,
 		Status:          inventory.HardwareStatusProvisioned,
 		LocationOrdinal: &cabinetOrdinal,
 	}
@@ -40,7 +40,7 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 	chassis := inventory.Hardware{
 		Parent:          cabinet.ID,
 		ID:              uuid.New(),
-		Type:            hardwaretypes.HardwareTypeChassis,
+		Type:            hardwaretypes.Chassis,
 		Status:          inventory.HardwareStatusProvisioned,
 		LocationOrdinal: &slotOrdinal,
 	}
@@ -53,8 +53,8 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 	}
 
 	// chassisLocationPath := []inventory.LocationToken{
-	// 	{HardwareType: hardwaretypes.HardwareTypeCabinet, Ordinal: cabinetOrdinal},
-	// 	{HardwareType: hardwaretypes.HardwareTypeChassis, Ordinal: chassisOrdinal},
+	// 	{HardwareType: hardwaretypes.Cabinet, Ordinal: cabinetOrdinal},
+	// 	{HardwareType: hardwaretypes.Chassis, Ordinal: chassisOrdinal},
 	// }
 
 	// Verify the provided device type slug is a node blade
@@ -62,7 +62,7 @@ func (d *Domain) AddBlade(deviceTypeSlug string, cabinetOrdinal, chassisOrdinal,
 	if err != nil {
 		return nil, err
 	}
-	if deviceType.HardwareType != hardwaretypes.HardwareTypeNodeBlade {
+	if deviceType.HardwareType != hardwaretypes.NodeBlade {
 		return nil, fmt.Errorf("provided device hardware type (%s) is not a node blade", deviceTypeSlug) // TODO better error message
 	}
 

@@ -33,7 +33,7 @@ func GetProviderMetadata(cHardware inventory.Hardware) (result interface{}, err 
 	}
 
 	switch cHardware.Type {
-	case hardwaretypes.HardwareTypeNode:
+	case hardwaretypes.Node:
 		result = NodeMetadata{}
 	default:
 		// This may be caused if new metadata structs are added, but not to this switch case

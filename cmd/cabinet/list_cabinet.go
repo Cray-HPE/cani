@@ -61,7 +61,7 @@ func listCabinet(cmd *cobra.Command, args []string) error {
 	// Filter the inventory to only cabinets
 	filtered := make(map[uuid.UUID]inventory.Hardware, 0)
 	for key, hw := range inv.Hardware {
-		if hw.Type == hardwaretypes.HardwareTypeCabinet {
+		if hw.Type == hardwaretypes.Cabinet {
 			filtered[key] = hw
 		}
 	}

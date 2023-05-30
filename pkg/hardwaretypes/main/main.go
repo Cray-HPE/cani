@@ -60,14 +60,14 @@ func main() {
 	// List cabinets
 	fmt.Println()
 	fmt.Println("Cabinets")
-	cabinetDeviceTypes := library.GetDeviceTypesByHardwareType(hardwaretypes.HardwareTypeCabinet)
+	cabinetDeviceTypes := library.GetDeviceTypesByHardwareType(hardwaretypes.Cabinet)
 	for _, cabinetDeviceType := range cabinetDeviceTypes {
 		fmt.Println(cabinetDeviceType.Slug)
 	}
 
 	fmt.Println()
 	fmt.Println("Node Blade")
-	nodeBladeDeviceTypes := library.GetDeviceTypesByHardwareType(hardwaretypes.HardwareTypeNodeBlade)
+	nodeBladeDeviceTypes := library.GetDeviceTypesByHardwareType(hardwaretypes.NodeBlade)
 	for _, nodeBladeDeviceType := range nodeBladeDeviceTypes {
 		fmt.Println(nodeBladeDeviceType.Slug)
 	}
@@ -120,8 +120,8 @@ func nodeBladeExample(library *hardwaretypes.Library) {
 	// TODO right now the system part of the path is not being considered
 	locationPath := []int{cabinet, chassis}
 	deviceTypePath := []hardwaretypes.HardwareType{
-		hardwaretypes.HardwareTypeCabinet,
-		hardwaretypes.HardwareTypeChassis,
+		hardwaretypes.Cabinet,
+		hardwaretypes.Chassis,
 	}
 
 	commonLogic(library, deviceTypeSlug, slot, deviceTypePath, locationPath)

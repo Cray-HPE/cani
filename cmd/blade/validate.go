@@ -17,7 +17,7 @@ func validHardware(cmd *cobra.Command, args []string) error {
 	}
 
 	// Get the list of hardware types that are blades
-	deviceTypes := library.GetDeviceTypesByHardwareType(hardwaretypes.HardwareTypeNodeBlade)
+	deviceTypes := library.GetDeviceTypesByHardwareType(hardwaretypes.NodeBlade)
 	if cmd.Flags().Changed("list-supported-types") {
 		for _, hw := range deviceTypes {
 			cmd.Printf("- %s\n", hw.Slug)
