@@ -84,11 +84,10 @@ func addBlade(cmd *cobra.Command, args []string) error {
 		// If the type is a Node
 		if result.Hardware.Type == hardwaretypes.HardwareTypeNode {
 			log.Debug().Msg(result.Location.String())
-			log.Info().Msgf("Found a %s (%s) in this %s (%s)",
-				hardwaretypes.HardwareTypeNode,
-				result.Hardware.ID.String(),
+			log.Debug().Msgf("This %s also contains a %s (added %s)",
 				hardwaretypes.HardwareTypeNodeBlade,
-				args[0])
+				hardwaretypes.HardwareTypeNode,
+				result.Hardware.ID.String())
 			// Add the node to the map
 			newNodes = append(newNodes, result)
 

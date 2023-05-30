@@ -1,13 +1,13 @@
 package session
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/cmd/config"
 	"github.com/Cray-HPE/cani/internal/domain"
-	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/manifoldco/promptui"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -32,9 +32,17 @@ var (
 
 // startSession starts a session if one does not exist
 func startSession(cmd *cobra.Command, args []string) error {
-	ds := root.Conf.Session.DomainOptions.DatastorePath
-	logfile := root.Conf.Session.DomainOptions.LogFilePath
-	provider := root.Conf.Session.DomainOptions.Provider
+	// TODO This is probably not the right way todo this, but hopefully this will be easy way...
+	// Sorry Jacob
+	if useSimURLs, _ := cmd.Flags().GetBool("csm-sim-urls"); useSimURLs {
+		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlSLS = "https://localhost:8443/apis/sls/v1"
+		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlHSM = "https://localhost:8443/apis/smd/hsm/v2"
+		root.Conf.Session.DomainOptions.CsmOptions.InsecureSkipVerify = true
+	} else {
+		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlSLS, _ = cmd.Flags().GetString("csm-url-sls")
+		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlHSM, _ = cmd.Flags().GetString("csm-url-hsm")
+		root.Conf.Session.DomainOptions.CsmOptions.InsecureSkipVerify, _ = cmd.Flags().GetBool("csm-insecure-https")
+	}
 
 	// If a session is already active, there is nothing to do but the user may want to overwrite the existing session
 	if root.Conf.Session.Active {
@@ -53,32 +61,26 @@ func startSession(cmd *cobra.Command, args []string) error {
 			}
 		}
 	}
-	// If a session is not active, create one
-	_, err := inventory.NewDatastoreJSON(ds, logfile, inventory.Provider(args[0]))
-	if err != nil {
-		return err
-	}
 
-	// TODO This is probably not the right way todo this, but hopefully this will be easy way...
-	// Sorry Jacob
-	if useSimURLs, _ := cmd.Flags().GetBool("csm-sim-urls"); useSimURLs {
-		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlSLS = "https://localhost:8443/apis/sls/v1"
-		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlHSM = "https://localhost:8443/apis/smd/hsm/v2"
-		root.Conf.Session.DomainOptions.CsmOptions.InsecureSkipVerify = true
-	} else {
-		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlSLS, _ = cmd.Flags().GetString("csm-url-sls")
-		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlHSM, _ = cmd.Flags().GetString("csm-url-hsm")
-		root.Conf.Session.DomainOptions.CsmOptions.InsecureSkipVerify, _ = cmd.Flags().GetBool("csm-insecure-https")
-	}
-
+	// Create a domain object to interact with the datastore
+	var err error
 	root.Conf.Session.Domain, err = domain.New(root.Conf.Session.DomainOptions)
 	if err != nil {
 		return err
 	}
 
+	// Validate the external inventory
+	err = root.Conf.Session.Domain.Validate()
+	if err != nil {
+		return errors.Join(err,
+			errors.New("External inventory is unstable.  Fix, and check with 'cani validate' before continuing."))
+	}
+
 	// "Activate" the session
 	root.Conf.Session.Active = true
 
+	ds := root.Conf.Session.DomainOptions.DatastorePath
+	provider := root.Conf.Session.DomainOptions.Provider
 	log.Info().Msgf("Session is now ACTIVE with provider %s and datastore %s", provider, ds)
 	return nil
 }

@@ -6,6 +6,7 @@ require (
 	github.com/Cray-HPE/hms-sls/v2 v2.1.0
 	github.com/Cray-HPE/hms-xname v1.1.0
 	github.com/antihax/optional v1.0.0
+	github.com/fatih/color v1.13.0
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-retryablehttp v0.7.2
 	github.com/manifoldco/promptui v0.9.0
@@ -21,7 +22,6 @@ require (
 
 require (
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
-	github.com/fatih/color v1.13.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect

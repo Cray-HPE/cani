@@ -10,6 +10,10 @@ import (
 
 // validProvider checks that the provider is valid and that at least one argument is provided
 func validProvider(cmd *cobra.Command, args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("Need a provider.  Choose from: %+v", validArgs)
+	}
+
 	// This helper function checks if a provider is valid.
 	isValidProvider := func(provider string) bool {
 		for _, validArg := range cmd.ValidArgs {
