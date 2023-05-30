@@ -4,11 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sort"
 
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/cmd/config"
 	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/manifoldco/promptui"
 	"github.com/rs/zerolog/log"
@@ -83,8 +85,20 @@ func startSession(cmd *cobra.Command, args []string) error {
 	}
 
 	// Validate the external inventory
-	err = root.Conf.Session.Domain.Validate()
-	if err != nil {
+	passback, err := root.Conf.Session.Domain.Validate(cmd.Context())
+	if errors.Is(err, provider.ErrDataValidationFailure) {
+		// TODO the following should probably suggest commands to fix the issue?
+		log.Error().Msgf("Inventory data validation errors encountered")
+		for id, failedValidation := range passback.ProviderValidationErrors {
+			log.Error().Msgf("  %s: %s", id, failedValidation.Hardware.LocationPath.String())
+			sort.Strings(failedValidation.Errors)
+			for _, validationError := range failedValidation.Errors {
+				log.Error().Msgf("    - %s", validationError)
+			}
+		}
+
+		return err
+	} else if err != nil {
 		return errors.Join(err,
 			errors.New("External inventory is unstable.  Fix, and check with 'cani validate' before continuing."))
 	}

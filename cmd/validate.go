@@ -25,8 +25,10 @@ package cmd
 
 import (
 	"errors"
+	"sort"
 
 	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -49,8 +51,20 @@ func validateInventory(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		// Validate the external inventory
-		err = d.Validate()
-		if err != nil {
+		passback, err := d.Validate(cmd.Context())
+		if errors.Is(err, provider.ErrDataValidationFailure) {
+			// TODO the following should probably suggest commands to fix the issue?
+			log.Error().Msgf("Inventory data validation errors encountered")
+			for id, failedValidation := range passback.ProviderValidationErrors {
+				log.Error().Msgf("  %s: %s", id, failedValidation.Hardware.LocationPath.String())
+				sort.Strings(failedValidation.Errors)
+				for _, validationError := range failedValidation.Errors {
+					log.Error().Msgf("    - %s", validationError)
+				}
+			}
+
+			return err
+		} else if err != nil {
 			return err
 		}
 	} else {
