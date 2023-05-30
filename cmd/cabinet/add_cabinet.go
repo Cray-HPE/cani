@@ -24,9 +24,13 @@ OTHER DEALINGS IN THE SOFTWARE.
 package cabinet
 
 import (
+	"errors"
+	"sort"
+
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/cmd/session"
 	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -51,8 +55,18 @@ func addCabinet(cmd *cobra.Command, args []string) error {
 	}
 
 	// Add the blade from the inventory using domain methods
-	results, err := d.AddCabinet(args[0], cabinet)
-	if err != nil {
+	passback, err := d.AddCabinet(cmd.Context(), args[0], cabinet)
+	if errors.Is(err, provider.ErrDataValidationFailure) {
+		// TODO the following should probably suggest commands to fix the issue?
+		log.Info().Msgf("Inventory data validation errors encountered")
+		for id, failedValidation := range passback.ProviderValidationErrors {
+			log.Info().Msgf("  %s: %s", id, failedValidation.Hardware.LocationPath.String())
+			sort.Strings(failedValidation.Errors)
+			for _, validationError := range failedValidation.Errors {
+				log.Info().Msgf("    - %s", validationError)
+			}
+		}
+	} else if err != nil {
 		return err
 	}
 	log.Info().Msgf("Added cabinet %s", args[0])
@@ -60,7 +74,7 @@ func addCabinet(cmd *cobra.Command, args []string) error {
 	// Use a map to track already added nodes.
 	newNodes := []domain.HardwareLocationPair{}
 
-	for _, result := range results.AddedHardware {
+	for _, result := range passback.AddedHardware {
 		// If the type is a Node
 		if result.Hardware.Type == hardwaretypes.Cabinet {
 			log.Debug().Msg(result.Location.String())

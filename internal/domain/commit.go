@@ -10,7 +10,7 @@ import (
 )
 
 type CommitPassback struct {
-	FailedValidations map[uuid.UUID]provider.HardwareValidationResult
+	ProviderValidationErrors map[uuid.UUID]provider.HardwareValidationResult
 }
 
 func (d *Domain) Commit(ctx context.Context) (CommitPassback, error) {
@@ -28,7 +28,7 @@ func (d *Domain) Commit(ctx context.Context) (CommitPassback, error) {
 	// for provider specific data
 	if failedValidations, err := inventoryProvider.ValidateInternal(ctx, d.datastore, true); len(failedValidations) > 0 {
 		return CommitPassback{
-			FailedValidations: failedValidations,
+			ProviderValidationErrors: failedValidations,
 		}, err
 	} else if err != nil {
 		return CommitPassback{}, errors.Join(

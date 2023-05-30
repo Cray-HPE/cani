@@ -57,18 +57,16 @@ func stopSession(cmd *cobra.Command, args []string) error {
 		// Commit the external inventory
 		passback, err := d.Commit(cmd.Context())
 		if errors.Is(err, provider.ErrDataValidationFailure) {
-			// TODO the following should probablty suggest commands to fix the issue?
+			// TODO the following should probably suggest commands to fix the issue?
 			log.Info().Msgf("Inventory data validation errors encountered")
-			for id, failedValidation := range passback.FailedValidations {
+			for id, failedValidation := range passback.ProviderValidationErrors {
 				log.Info().Msgf("  %s: %s", id, failedValidation.Hardware.LocationPath.String())
 				sort.Strings(failedValidation.Errors)
 				for _, validationError := range failedValidation.Errors {
 					log.Info().Msgf("    - %s", validationError)
 				}
 			}
-
-		}
-		if err != nil {
+		} else if err != nil {
 			return err
 		}
 	}

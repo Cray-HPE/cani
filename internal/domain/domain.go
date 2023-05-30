@@ -76,12 +76,17 @@ func New(opts *NewOpts) (*Domain, error) {
 	return domain, nil
 }
 
+type HardwareLocationPair struct {
+	Hardware inventory.Hardware
+	Location inventory.LocationPath
+}
+
 type AddHardwarePassback struct {
 	AddedHardware            []HardwareLocationPair
 	ProviderValidationErrors map[uuid.UUID]provider.HardwareValidationResult
 }
 
-type HardwareLocationPair struct {
-	Hardware inventory.Hardware
-	Location inventory.LocationPath
+type UpdatedHardwarePassback struct {
+	// UpdatedHardware          []HardwareLocationPair
+	ProviderValidationErrors map[uuid.UUID]provider.HardwareValidationResult
 }

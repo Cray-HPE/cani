@@ -1,8 +1,12 @@
 package node
 
 import (
+	"errors"
+	"sort"
+
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
@@ -40,10 +44,21 @@ func updateNode(cmd *cobra.Command, args []string) error {
 	}
 
 	// Remove the node from the inventory using domain methods
-	err = d.UpdateNode(cabinet, chassis, slot, bmc, node, nodeMeta)
-	if err != nil {
+	passback, err := d.UpdateNode(cmd.Context(), cabinet, chassis, slot, bmc, node, nodeMeta)
+	if errors.Is(err, provider.ErrDataValidationFailure) {
+		// TODO the following should probably suggest commands to fix the issue?
+		log.Info().Msgf("Inventory data validation errors encountered")
+		for id, failedValidation := range passback.ProviderValidationErrors {
+			log.Info().Msgf("  %s: %s", id, failedValidation.Hardware.LocationPath.String())
+			sort.Strings(failedValidation.Errors)
+			for _, validationError := range failedValidation.Errors {
+				log.Info().Msgf("    - %s", validationError)
+			}
+		}
+	} else if err != nil {
 		return err
 	}
+
 	// TODO need a better identify, perhaps its UUID, or its location path?
 	// log.Info().Msgf("Updated node %s", args[0])
 	log.Info().Msgf("Updated node")

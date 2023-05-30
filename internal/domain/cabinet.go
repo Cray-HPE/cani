@@ -1,17 +1,19 @@
 package domain
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 )
 
 // AddCabinet adds a cabinet to the inventory
-func (d *Domain) AddCabinet(deviceTypeSlug string, cabinetOrdinal int) (AddHardwarePassback, error) {
+func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetOrdinal int) (AddHardwarePassback, error) {
 	// Validate provided cabinet exists
 	// TODO
 
@@ -94,6 +96,18 @@ func (d *Domain) AddCabinet(deviceTypeSlug string, cabinetOrdinal int) (AddHardw
 		})
 		log.Debug().Str("path", hardwareLocation.String()).Msg("Datastore")
 
+	}
+
+	// Validate the current state of CANI's inventory data against the provider plugin
+	// for provider specific data.
+	if failedValidations, err := d.externalInventoryProvider.ValidateInternal(ctx, d.datastore, true); len(failedValidations) > 0 {
+		passback.ProviderValidationErrors = failedValidations
+		return passback, provider.ErrDataValidationFailure
+	} else if err != nil {
+		return AddHardwarePassback{}, errors.Join(
+			fmt.Errorf("failed to validate inventory against inventory provider plugin"),
+			err,
+		)
 	}
 
 	return passback, d.datastore.Flush()
