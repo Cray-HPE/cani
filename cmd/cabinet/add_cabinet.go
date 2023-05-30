@@ -58,9 +58,9 @@ func addCabinet(cmd *cobra.Command, args []string) error {
 	log.Info().Msgf("Added cabinet %s", args[0])
 
 	// Use a map to track already added nodes.
-	newNodes := []domain.AddHardwareResult{}
+	newNodes := []domain.HardwareLocationPair{}
 
-	for _, result := range results {
+	for _, result := range results.AddedHardware {
 		// If the type is a Node
 		if result.Hardware.Type == hardwaretypes.Cabinet {
 			log.Debug().Msg(result.Location.String())

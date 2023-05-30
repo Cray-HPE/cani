@@ -11,7 +11,7 @@ import (
 )
 
 // AddCabinet adds a cabinet to the inventory
-func (d *Domain) AddCabinet(deviceTypeSlug string, cabinetOrdinal int) ([]AddHardwareResult, error) {
+func (d *Domain) AddCabinet(deviceTypeSlug string, cabinetOrdinal int) (AddHardwarePassback, error) {
 	// Validate provided cabinet exists
 	// TODO
 
@@ -23,7 +23,7 @@ func (d *Domain) AddCabinet(deviceTypeSlug string, cabinetOrdinal int) ([]AddHar
 		LocationOrdinal: &cabinetOrdinal,
 	}
 	if err := d.datastore.Add(&cabinet); err != nil {
-		return nil, errors.Join(
+		return AddHardwarePassback{}, errors.Join(
 			fmt.Errorf("unable to add cabinet hardware"),
 			err,
 		)
@@ -33,23 +33,23 @@ func (d *Domain) AddCabinet(deviceTypeSlug string, cabinetOrdinal int) ([]AddHar
 	// Verify the provided device type slug is a node blade
 	deviceType, err := d.hardwareTypeLibrary.GetDeviceType(deviceTypeSlug)
 	if err != nil {
-		return nil, err
+		return AddHardwarePassback{}, err
 	}
 	if deviceType.HardwareType != hardwaretypes.Cabinet {
-		return nil, fmt.Errorf("provided device hardware type (%s) is not a %s", deviceTypeSlug, hardwaretypes.Cabinet) // TODO better error message
+		return AddHardwarePassback{}, fmt.Errorf("provided device hardware type (%s) is not a %s", deviceTypeSlug, hardwaretypes.Cabinet) // TODO better error message
 	}
 
 	// Generate a hardware build out
 	// FIXME: no parent
 	hardwareBuildOutItems, err := d.hardwareTypeLibrary.GetDefaultHardwareBuildOut(deviceTypeSlug, 0, uuid.UUID{})
 	if err != nil {
-		return nil, errors.Join(
+		return AddHardwarePassback{}, errors.Join(
 			fmt.Errorf("unable to build default hardware build out for %s", deviceTypeSlug),
 			err,
 		)
 	}
 
-	var results []AddHardwareResult
+	var passback AddHardwarePassback
 
 	for _, hardwareBuildOut := range hardwareBuildOutItems {
 		// Generate the CANI hardware inventory version of the hardware build out data
@@ -77,7 +77,7 @@ func (d *Domain) AddCabinet(deviceTypeSlug string, cabinetOrdinal int) ([]AddHar
 		// Not sure how hard it would be to specify at this point in time.
 		// This command creates the physical information for a node, have another command for the logical part of the data
 		if err := d.datastore.Add(&hardware); err != nil {
-			return nil, errors.Join(
+			return AddHardwarePassback{}, errors.Join(
 				fmt.Errorf("unable to add hardware to inventory datastore"),
 				err,
 			)
@@ -88,7 +88,7 @@ func (d *Domain) AddCabinet(deviceTypeSlug string, cabinetOrdinal int) ([]AddHar
 			panic(err)
 		}
 
-		results = append(results, AddHardwareResult{
+		passback.AddedHardware = append(passback.AddedHardware, HardwareLocationPair{
 			Hardware: hardware,
 			Location: hardwareLocation,
 		})
@@ -96,7 +96,7 @@ func (d *Domain) AddCabinet(deviceTypeSlug string, cabinetOrdinal int) ([]AddHar
 
 	}
 
-	return results, d.datastore.Flush()
+	return passback, d.datastore.Flush()
 }
 
 func (d *Domain) RemoveCabinet(u uuid.UUID, recursion bool) error {

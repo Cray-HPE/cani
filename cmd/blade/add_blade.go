@@ -53,7 +53,7 @@ func addBlade(cmd *cobra.Command, args []string) error {
 	}
 
 	// Add the blade from the inventory using domain methods
-	results, err := d.AddBlade(args[0], cabinet, chassis, slot)
+	results, err := d.AddBlade(cmd.Context(), args[0], cabinet, chassis, slot)
 	if err != nil {
 		return err
 	}
@@ -77,9 +77,9 @@ func addBlade(cmd *cobra.Command, args []string) error {
 	// with the node(s) that may need additional metadata added
 
 	// Use a map to track already added nodes.
-	newNodes := []domain.AddHardwareResult{}
+	newNodes := []domain.HardwareLocationPair{}
 
-	for _, result := range results {
+	for _, result := range results.AddedHardware {
 		// If the type is a Node
 		if result.Hardware.Type == hardwaretypes.Node {
 			log.Debug().Msg(result.Location.String())

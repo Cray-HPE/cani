@@ -8,6 +8,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+	"github.com/google/uuid"
 )
 
 // Domain is the logic that drives the application
@@ -73,4 +74,14 @@ func New(opts *NewOpts) (*Domain, error) {
 		return nil, fmt.Errorf("unknown external inventory provider provided (%s)", inventoryProvider)
 	}
 	return domain, nil
+}
+
+type AddHardwarePassback struct {
+	AddedHardware            []HardwareLocationPair
+	ProviderValidationErrors map[uuid.UUID]provider.HardwareValidationResult
+}
+
+type HardwareLocationPair struct {
+	Hardware inventory.Hardware
+	Location inventory.LocationPath
 }
