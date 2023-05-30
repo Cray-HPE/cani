@@ -177,7 +177,7 @@ func (csm *CSM) ValidateInternal(ctx context.Context, datastore inventory.Datast
 	nodeNIDLookup := map[int][]uuid.UUID{}
 	nodeAliasLookup := map[string][]uuid.UUID{}
 	for _, cHardware := range allHardware.Hardware {
-		if cHardware.Type != hardwaretypes.HardwareTypeNode {
+		if cHardware.Type != hardwaretypes.Node {
 			continue
 		}
 
