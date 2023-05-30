@@ -36,25 +36,34 @@ func updateNode(cmd *cobra.Command, args []string) error {
 	// TODO Need to figure out how to specify to unset something
 	// Right now the build metadata function in the CSM provider will
 	// unset options if nil is passed in.
-	nodeMeta := map[string]interface{}{
-		"role":    role,
-		"subrole": subrole,
-		"alias":   alias,
-		"nid":     nid,
+	nodeMeta := map[string]interface{}{}
+	if role != "" {
+		nodeMeta["role"] = role
+	}
+	if subrole != "" {
+		nodeMeta["subrole"] = subrole
+	}
+	if alias != "" {
+		nodeMeta["alias"] = alias
+	}
+	if nid != 0 {
+		nodeMeta["nid"] = nid
 	}
 
 	// Remove the node from the inventory using domain methods
 	passback, err := d.UpdateNode(cmd.Context(), cabinet, chassis, slot, bmc, node, nodeMeta)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		// TODO the following should probably suggest commands to fix the issue?
-		log.Info().Msgf("Inventory data validation errors encountered")
+		log.Error().Msgf("Inventory data validation errors encountered")
 		for id, failedValidation := range passback.ProviderValidationErrors {
-			log.Info().Msgf("  %s: %s", id, failedValidation.Hardware.LocationPath.String())
+			log.Error().Msgf("  %s: %s", id, failedValidation.Hardware.LocationPath.String())
 			sort.Strings(failedValidation.Errors)
 			for _, validationError := range failedValidation.Errors {
-				log.Info().Msgf("    - %s", validationError)
+				log.Error().Msgf("    - %s", validationError)
 			}
 		}
+
+		return err
 	} else if err != nil {
 		return err
 	}

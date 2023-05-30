@@ -258,28 +258,28 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 
 func displayUnwantedChanges(unwantedHardwareRemoved, unwantedHardwareAdded []sls_client.Hardware) error {
 	if len(unwantedHardwareAdded) != 0 {
-		log.Info().Msgf("")
-		log.Info().Msgf("Unexpected Hardware detected added to the system")
+		log.Error().Msgf("")
+		log.Error().Msgf("Unexpected Hardware detected added to the system")
 		for _, hardware := range unwantedHardwareAdded {
 			hardwareRaw, err := buildHardwareString(hardware)
 			if err != nil {
 				return err
 			}
 
-			log.Info().Msgf("  %-16s - %s", hardware.Xname, hardwareRaw)
+			log.Error().Msgf("  %-16s - %s", hardware.Xname, hardwareRaw)
 		}
 	}
 
 	if len(unwantedHardwareRemoved) != 0 {
-		log.Info().Msgf("")
-		log.Info().Msgf("Unexpected Hardware detected removed from the system")
+		log.Error().Msgf("")
+		log.Error().Msgf("Unexpected Hardware detected removed from the system")
 		for _, hardware := range unwantedHardwareRemoved {
 			hardwareRaw, err := buildHardwareString(hardware)
 			if err != nil {
 				return err
 			}
 
-			log.Info().Msgf("  %-16s - %s", hardware.Xname, hardwareRaw)
+			log.Error().Msgf("  %-16s - %s", hardware.Xname, hardwareRaw)
 		}
 	}
 
