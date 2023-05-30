@@ -15,7 +15,7 @@ import (
 )
 
 // Reconcile CANI's inventory state with the external inventory state and apply required changes
-// TODO perhaps Reconcole should return a ReconcileResult struct, that can contain what the provider wants to do
+// TODO perhaps Reconcile should return a ReconcileResult struct, that can contain what the provider wants to do
 // This would enable these two things
 //   - Provide a way to pass downwards the result, and allow for a custom string/Presentation function to
 //     format the results in a human readable way
@@ -32,8 +32,9 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 	// TODO grab the allowed HSM Roles and SubRoles from HSM
 	// This is for data validation
 
+	//
 	// Retrieve the current SLS state
-	// TODO
+	//
 	currentSLSState, _, err := csm.slsClient.DumpstateApi.DumpstateGet(ctx)
 	if err != nil {
 		return errors.Join(
@@ -41,7 +42,10 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 			err,
 		)
 	}
+
+	//
 	// Build up the expected SLS state
+	//
 	expectedSLSState, hardwareMapping, err := BuildExpectedHardwareState(datastore)
 	if err != nil {
 		return errors.Join(
@@ -49,6 +53,14 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 			err,
 		)
 	}
+
+	// HACK Prune non-supported hardware from the current SLS state.
+	// For right only remove all objects from the current SLS state that the SLS generator
+	// has no idea about
+	currentSLSState.Hardware, _ = sls.FilterHardware(currentSLSState.Hardware, func(hardware sls_client.Hardware) (bool, error) {
+		_, exists := hardwareMapping[hardware.Xname]
+		return exists, nil
+	})
 
 	//
 	// Compare the current hardware state with the expected hardware state

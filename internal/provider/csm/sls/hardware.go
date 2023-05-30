@@ -74,3 +74,21 @@ func SortHardwareReverse(hardware []sls_client.Hardware) {
 		return hardware[i].Xname > hardware[j].Xname
 	})
 }
+
+// FilterHardware will apply the given filter to a map of generic hardware
+func FilterHardware(allHardware map[string]sls_client.Hardware, filter func(sls_client.Hardware) (bool, error)) (map[string]sls_client.Hardware, error) {
+	result := map[string]sls_client.Hardware{}
+
+	for xname, hardware := range allHardware {
+		ok, err := filter(hardware)
+		if err != nil {
+			return nil, err
+		}
+
+		if ok {
+			result[xname] = hardware
+		}
+	}
+
+	return result, nil
+}
