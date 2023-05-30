@@ -54,8 +54,23 @@ func NewHardwarePostOpts(hardware sls_client.Hardware) *sls_client.HardwareApiHa
 	}
 }
 
+func NewHardwareXnamePutOpts(hardware sls_client.Hardware) *sls_client.HardwareApiHardwareXnamePutOpts {
+	return &sls_client.HardwareApiHardwareXnamePutOpts{
+		Body: optional.NewInterface(sls_client.HardwarePut{
+			Class:           &hardware.Class,
+			ExtraProperties: &hardware.ExtraProperties,
+		}),
+	}
+}
+
 func SortHardware(hardware []sls_client.Hardware) {
 	sort.Slice(hardware, func(i, j int) bool {
 		return hardware[i].Xname < hardware[j].Xname
+	})
+}
+
+func SortHardwareReverse(hardware []sls_client.Hardware) {
+	sort.Slice(hardware, func(i, j int) bool {
+		return hardware[i].Xname > hardware[j].Xname
 	})
 }

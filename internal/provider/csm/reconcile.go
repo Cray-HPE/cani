@@ -10,7 +10,6 @@ import (
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider/csm/sls"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
-	sls_common "github.com/Cray-HPE/hms-sls/v2/pkg/sls-common"
 	"github.com/Cray-HPE/hms-xname/xnametypes"
 	"github.com/rs/zerolog/log"
 )
@@ -83,7 +82,7 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 	// TODO simulate changes to the SLS state and validate them, and then make the changes
 
 	// Sort hardware so children are deleted before their parents
-	sls.SortHardware(hardwareRemoved)
+	sls.SortHardwareReverse(hardwareRemoved)
 	// Remove hardware that no longer exists
 	for _, hardware := range hardwareRemoved {
 		log.Info().Str("xname", hardware.Xname).Msg("Removing")
@@ -111,7 +110,7 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 		_, r, err := csm.slsClient.HardwareApi.HardwarePost(ctx, sls.NewHardwarePostOpts(hardware))
 		if err != nil {
 			return errors.Join(
-				fmt.Errorf("failed to delete hardware (%s) from SLS", hardware.Xname),
+				fmt.Errorf("failed to add hardware (%s) to SLS", hardware.Xname),
 				err,
 			)
 		}
@@ -119,13 +118,21 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 	}
 
 	// Update existing hardware
-	for _, hardware := range hardwareWithDifferingValues {
-		log.Info().Str("xname", hardware.Xname).Msg("Updating")
+	for _, hardwarePair := range hardwareWithDifferingValues {
+		updatedHardware := hardwarePair.HardwareB
+		log.Info().Str("xname", updatedHardware.Xname).Msg("Updating")
 		// Put into transaction log with old and new value
 		// TODO
 
 		// Perform a PUT against SLS
-		// TODO
+		_, r, err := csm.slsClient.HardwareApi.HardwareXnamePut(ctx, updatedHardware.Xname, sls.NewHardwareXnamePutOpts(updatedHardware))
+		if err != nil {
+			return errors.Join(
+				fmt.Errorf("failed to update hardware (%s) from SLS", updatedHardware.Xname),
+				err,
+			)
+		}
+		log.Info().Int("status", r.StatusCode).Msg("Updated hardware to SLS")
 	}
 
 	return nil
@@ -147,7 +154,7 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 			return err
 		}
 
-		log.Info().Msgf("  %-16s - %s\n", hardware.Xname, hardwareRaw)
+		log.Info().Msgf("  %-16s - %s", hardware.Xname, hardwareRaw)
 	}
 
 	log.Info().Msgf("")
@@ -156,7 +163,7 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 		log.Info().Msg("  None")
 	}
 	for _, pair := range hardwareWithDifferingValues {
-		log.Info().Msgf("  %s\n", pair.Xname)
+		log.Info().Msgf("  %s", pair.Xname)
 
 		// Expected Hardware json
 		pair.HardwareA.LastUpdated = 0
@@ -165,7 +172,7 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 		if err != nil {
 			return err
 		}
-		log.Info().Msgf("  - Expected: %-16s\n", hardwareRaw)
+		log.Info().Msgf("  - Expected: %-16s", hardwareRaw)
 
 		// Actual Hardware json
 		pair.HardwareB.LastUpdated = 0
@@ -174,7 +181,7 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 		if err != nil {
 			return err
 		}
-		log.Info().Msgf("  - Actual:   %-16s\n", hardwareRaw)
+		log.Info().Msgf("  - Actual:   %-16s", hardwareRaw)
 	}
 
 	log.Info().Msgf("")
@@ -188,7 +195,7 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 			return err
 		}
 
-		log.Info().Msgf("  %-16s - %s\n", hardware.Xname, hardwareRaw)
+		log.Info().Msgf("  %-16s - %s", hardware.Xname, hardwareRaw)
 	}
 
 	log.Info().Msgf("")
@@ -202,7 +209,7 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 			return err
 		}
 
-		log.Info().Msgf("  %-16s - %s\n", hardware.Xname, hardwareRaw)
+		log.Info().Msgf("  %-16s - %s", hardware.Xname, hardwareRaw)
 	}
 
 	log.Info().Msgf("")
@@ -228,7 +235,7 @@ func buildHardwareString(hardware sls_client.Hardware) (string, error) {
 	case xnametypes.NodeBMC:
 		// Nothing to do
 	case xnametypes.Node:
-		if extraProperties, ok := extraPropertiesRaw.(sls_common.ComptypeNode); ok {
+		if extraProperties, ok := extraPropertiesRaw.(sls_client.HardwareExtraPropertiesNode); ok {
 			tokens = append(tokens, fmt.Sprintf("Aliases: [%s]", strings.Join(extraProperties.Aliases, ",")))
 			if extraProperties.Role != "" {
 				tokens = append(tokens, fmt.Sprintf("Role: %s", extraProperties.Role))
@@ -241,7 +248,7 @@ func buildHardwareString(hardware sls_client.Hardware) (string, error) {
 			}
 		}
 	case xnametypes.MgmtSwitch:
-		if extraProperties, ok := extraPropertiesRaw.(sls_common.ComptypeMgmtSwitch); ok {
+		if extraProperties, ok := extraPropertiesRaw.(sls_client.HardwareExtraPropertiesMgmtSwitch); ok {
 			tokens = append(tokens,
 				fmt.Sprintf("Aliases: [%s]", strings.Join(extraProperties.Aliases, ",")),
 				fmt.Sprintf("Brand: %s", extraProperties.Brand),
@@ -250,11 +257,11 @@ func buildHardwareString(hardware sls_client.Hardware) (string, error) {
 			if extraProperties.Model != "" {
 				tokens = append(tokens, fmt.Sprintf("Model: %s", extraProperties.Model))
 			}
-			if extraProperties.IP4Addr != "" {
-				tokens = append(tokens, fmt.Sprintf("IP4Addr: %s", extraProperties.IP4Addr))
+			if extraProperties.IP4addr != "" {
+				tokens = append(tokens, fmt.Sprintf("IP4addr: %s", extraProperties.IP4addr))
 			}
-			if extraProperties.IP6Addr != "" {
-				tokens = append(tokens, fmt.Sprintf("IP6Addr: %s", extraProperties.IP6Addr))
+			if extraProperties.IP6addr != "" {
+				tokens = append(tokens, fmt.Sprintf("IP6addr: %s", extraProperties.IP6addr))
 			}
 
 			tokens = append(tokens,
@@ -266,7 +273,7 @@ func buildHardwareString(hardware sls_client.Hardware) (string, error) {
 			)
 		}
 	case xnametypes.MgmtHLSwitch:
-		if extraProperties, ok := extraPropertiesRaw.(sls_common.ComptypeMgmtHLSwitch); ok {
+		if extraProperties, ok := extraPropertiesRaw.(sls_client.HardwareExtraPropertiesMgmtHlSwitch); ok {
 			tokens = append(tokens,
 				fmt.Sprintf("Aliases: [%s]", strings.Join(extraProperties.Aliases, ",")),
 				fmt.Sprintf("Brand: %s", extraProperties.Brand),
@@ -275,15 +282,15 @@ func buildHardwareString(hardware sls_client.Hardware) (string, error) {
 			if extraProperties.Model != "" {
 				tokens = append(tokens, fmt.Sprintf("Model: %s", extraProperties.Model))
 			}
-			if extraProperties.IP4Addr != "" {
-				tokens = append(tokens, fmt.Sprintf("IP4Addr: %s", extraProperties.IP4Addr))
+			if extraProperties.IP4addr != "" {
+				tokens = append(tokens, fmt.Sprintf("IP4addr: %s", extraProperties.IP4addr))
 			}
-			if extraProperties.IP6Addr != "" {
-				tokens = append(tokens, fmt.Sprintf("IP6Addr: %s", extraProperties.IP6Addr))
+			if extraProperties.IP6addr != "" {
+				tokens = append(tokens, fmt.Sprintf("IP6addr: %s", extraProperties.IP6addr))
 			}
 		}
 	case xnametypes.MgmtSwitchConnector:
-		if extraProperties, ok := extraPropertiesRaw.(sls_common.ComptypeMgmtSwitchConnector); ok {
+		if extraProperties, ok := extraPropertiesRaw.(sls_client.HardwareExtraPropertiesMgmtSwitchConnector); ok {
 			tokens = append(tokens,
 				fmt.Sprintf("VendorName: %s", extraProperties.VendorName),
 				fmt.Sprintf("NodeNics: [%s]", strings.Join(extraProperties.NodeNics, ",")),
