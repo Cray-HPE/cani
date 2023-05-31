@@ -37,25 +37,25 @@ func updateNode(cmd *cobra.Command, args []string) error {
 	// Right now the build metadata function in the CSM provider will
 	// unset options if nil is passed in.
 	nodeMeta := map[string]interface{}{}
-	if role != "" {
+	if cmd.Flags().Changed("role") {
 		nodeMeta["role"] = role
 	}
-	if subrole != "" {
+	if cmd.Flags().Changed("subrole") {
 		nodeMeta["subrole"] = subrole
 	}
-	if alias != "" {
+	if cmd.Flags().Changed("alias") {
 		nodeMeta["alias"] = alias
 	}
-	if nid != 0 {
+	if cmd.Flags().Changed("alias") {
 		nodeMeta["nid"] = nid
 	}
 
 	// Remove the node from the inventory using domain methods
-	passback, err := d.UpdateNode(cmd.Context(), cabinet, chassis, slot, bmc, node, nodeMeta)
+	result, err := d.UpdateNode(cmd.Context(), cabinet, chassis, slot, bmc, node, nodeMeta)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		// TODO the following should probably suggest commands to fix the issue?
 		log.Error().Msgf("Inventory data validation errors encountered")
-		for id, failedValidation := range passback.ProviderValidationErrors {
+		for id, failedValidation := range result.ProviderValidationErrors {
 			log.Error().Msgf("  %s: %s", id, failedValidation.Hardware.LocationPath.String())
 			sort.Strings(failedValidation.Errors)
 			for _, validationError := range failedValidation.Errors {

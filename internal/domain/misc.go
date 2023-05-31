@@ -21,20 +21,20 @@ func (d *Domain) List() (inventory.Inventory, error) {
 	return inv, nil
 }
 
-type ValidatePassback struct {
+type ValidateResult struct {
 	ProviderValidationErrors map[uuid.UUID]provider.HardwareValidationResult
 }
 
-func (d *Domain) Validate(ctx context.Context) (ValidatePassback, error) {
-	var passback ValidatePassback
+func (d *Domain) Validate(ctx context.Context) (ValidateResult, error) {
+	var result ValidateResult
 
 	// Validate the current state of CANI's inventory data against the provider plugin
 	// for provider specific data.
 	if failedValidations, err := d.externalInventoryProvider.ValidateInternal(ctx, d.datastore, true); len(failedValidations) > 0 {
-		passback.ProviderValidationErrors = failedValidations
-		return passback, provider.ErrDataValidationFailure
+		result.ProviderValidationErrors = failedValidations
+		return result, provider.ErrDataValidationFailure
 	} else if err != nil {
-		return ValidatePassback{}, errors.Join(
+		return ValidateResult{}, errors.Join(
 			fmt.Errorf("failed to validate inventory against inventory provider plugin"),
 			err,
 		)
@@ -44,9 +44,9 @@ func (d *Domain) Validate(ctx context.Context) (ValidatePassback, error) {
 	// Validate external inventory data
 	err := d.externalInventoryProvider.ValidateExternal(ctx)
 	if err != nil {
-		return ValidatePassback{}, err
+		return ValidateResult{}, err
 	}
 
 	log.Info().Msg("Validated external inventory provider")
-	return passback, nil
+	return result, nil
 }

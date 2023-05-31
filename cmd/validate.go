@@ -51,11 +51,11 @@ func validateInventory(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		// Validate the external inventory
-		passback, err := d.Validate(cmd.Context())
+		result, err := d.Validate(cmd.Context())
 		if errors.Is(err, provider.ErrDataValidationFailure) {
 			// TODO the following should probably suggest commands to fix the issue?
 			log.Error().Msgf("Inventory data validation errors encountered")
-			for id, failedValidation := range passback.ProviderValidationErrors {
+			for id, failedValidation := range result.ProviderValidationErrors {
 				log.Error().Msgf("  %s: %s", id, failedValidation.Hardware.LocationPath.String())
 				sort.Strings(failedValidation.Errors)
 				for _, validationError := range failedValidation.Errors {

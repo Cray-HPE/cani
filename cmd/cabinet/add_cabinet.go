@@ -55,11 +55,11 @@ func addCabinet(cmd *cobra.Command, args []string) error {
 	}
 
 	// Add the blade from the inventory using domain methods
-	passback, err := d.AddCabinet(cmd.Context(), args[0], cabinet)
+	result, err := d.AddCabinet(cmd.Context(), args[0], cabinet)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		// TODO the following should probably suggest commands to fix the issue?
 		log.Error().Msgf("Inventory data validation errors encountered")
-		for id, failedValidation := range passback.ProviderValidationErrors {
+		for id, failedValidation := range result.ProviderValidationErrors {
 			log.Error().Msgf("  %s: %s", id, failedValidation.Hardware.LocationPath.String())
 			sort.Strings(failedValidation.Errors)
 			for _, validationError := range failedValidation.Errors {
@@ -76,7 +76,7 @@ func addCabinet(cmd *cobra.Command, args []string) error {
 	// Use a map to track already added nodes.
 	newNodes := []domain.HardwareLocationPair{}
 
-	for _, result := range passback.AddedHardware {
+	for _, result := range result.AddedHardware {
 		// If the type is a Node
 		if result.Hardware.Type == hardwaretypes.Cabinet {
 			log.Debug().Msg(result.Location.String())

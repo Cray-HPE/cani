@@ -164,6 +164,10 @@ func (csm *CSM) validateInternalNode(allHardware map[uuid.UUID]inventory.Hardwar
 		if metadata.Alias != nil {
 			nodeAliasLookup[*metadata.Alias] = append(nodeAliasLookup[*metadata.Alias], cHardware.ID)
 
+			if metadata.Alias != nil && len(*metadata.Alias) == 0 {
+				validationResult.Errors = append(validationResult.Errors, "Specified Alias is empty")
+			}
+
 			// TODO a regex here might be better
 			if strings.Contains(*metadata.Alias, " ") {
 				validationResult.Errors = append(validationResult.Errors,

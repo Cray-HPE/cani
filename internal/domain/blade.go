@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrdinal, chassisOrdinal, slotOrdinal int) (AddHardwarePassback, error) {
+func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrdinal, chassisOrdinal, slotOrdinal int) (AddHardwareResult, error) {
 	// Validate provided cabinet exists
 	// TODO
 
@@ -26,7 +26,7 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 		LocationOrdinal: &cabinetOrdinal,
 	}
 	if err := d.datastore.Add(&cabinet); err != nil {
-		return AddHardwarePassback{}, errors.Join(
+		return AddHardwareResult{}, errors.Join(
 			fmt.Errorf("unable to add cabinet hardware"),
 			err,
 		)
@@ -42,7 +42,7 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 		LocationOrdinal: &slotOrdinal,
 	}
 	if err := d.datastore.Add(&chassis); err != nil {
-		return AddHardwarePassback{}, errors.Join(
+		return AddHardwareResult{}, errors.Join(
 			fmt.Errorf("unable to add chassis hardware"),
 			err,
 		)
@@ -57,22 +57,22 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 	// Verify the provided device type slug is a node blade
 	deviceType, err := d.hardwareTypeLibrary.GetDeviceType(deviceTypeSlug)
 	if err != nil {
-		return AddHardwarePassback{}, err
+		return AddHardwareResult{}, err
 	}
 	if deviceType.HardwareType != hardwaretypes.NodeBlade {
-		return AddHardwarePassback{}, fmt.Errorf("provided device hardware type (%s) is not a node blade", deviceTypeSlug) // TODO better error message
+		return AddHardwareResult{}, fmt.Errorf("provided device hardware type (%s) is not a node blade", deviceTypeSlug) // TODO better error message
 	}
 
 	// Generate a hardware build out
 	hardwareBuildOutItems, err := d.hardwareTypeLibrary.GetDefaultHardwareBuildOut(deviceTypeSlug, slotOrdinal, chassis.ID)
 	if err != nil {
-		return AddHardwarePassback{}, errors.Join(
+		return AddHardwareResult{}, errors.Join(
 			fmt.Errorf("unable to build default hardware build out for %s", deviceTypeSlug),
 			err,
 		)
 	}
 
-	var passback AddHardwarePassback
+	var result AddHardwareResult
 
 	for _, hardwareBuildOut := range hardwareBuildOutItems {
 		// Generate the CANI hardware inventory version of the hardware build out data
@@ -100,7 +100,7 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 		// Not sure how hard it would be to specify at this point in time.
 		// This command creates the physical information for a node, have another command for the logical part of the data
 		if err := d.datastore.Add(&hardware); err != nil {
-			return AddHardwarePassback{}, errors.Join(
+			return AddHardwareResult{}, errors.Join(
 				fmt.Errorf("unable to add hardware to inventory datastore"),
 				err,
 			)
@@ -111,7 +111,7 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 			panic(err)
 		}
 
-		passback.AddedHardware = append(passback.AddedHardware, HardwareLocationPair{
+		result.AddedHardware = append(result.AddedHardware, HardwareLocationPair{
 			Hardware: hardware,
 			Location: hardwareLocation,
 		})
@@ -122,16 +122,16 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 	// Validate the current state of CANI's inventory data against the provider plugin
 	// for provider specific data.
 	if failedValidations, err := d.externalInventoryProvider.ValidateInternal(ctx, d.datastore, false); len(failedValidations) > 0 {
-		passback.ProviderValidationErrors = failedValidations
-		return passback, provider.ErrDataValidationFailure
+		result.ProviderValidationErrors = failedValidations
+		return result, provider.ErrDataValidationFailure
 	} else if err != nil {
-		return AddHardwarePassback{}, errors.Join(
+		return AddHardwareResult{}, errors.Join(
 			fmt.Errorf("failed to validate inventory against inventory provider plugin"),
 			err,
 		)
 	}
 
-	return passback, d.datastore.Flush()
+	return result, d.datastore.Flush()
 }
 
 func (d *Domain) RemoveBlade(u uuid.UUID, recursion bool) error {

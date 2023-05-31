@@ -81,7 +81,7 @@ type HardwareLocationPair struct {
 	Location inventory.LocationPath
 }
 
-type AddHardwarePassback struct {
+type AddHardwareResult struct {
 	AddedHardware            []HardwareLocationPair
 	ProviderValidationErrors map[uuid.UUID]provider.HardwareValidationResult
 }

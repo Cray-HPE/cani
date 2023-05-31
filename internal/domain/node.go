@@ -11,7 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (d *Domain) UpdateNode(ctx context.Context, cabinet, chassis, slot, bmc, node int, metadata map[string]interface{}) (AddHardwarePassback, error) {
+func (d *Domain) UpdateNode(ctx context.Context, cabinet, chassis, slot, bmc, node int, metadata map[string]interface{}) (AddHardwareResult, error) {
 	// Get the node object from the datastore
 	locationPath := inventory.LocationPath{
 		{HardwareType: hardwaretypes.Cabinet, Ordinal: cabinet},
@@ -22,35 +22,35 @@ func (d *Domain) UpdateNode(ctx context.Context, cabinet, chassis, slot, bmc, no
 	}
 	hw, err := d.datastore.GetAtLocation(locationPath)
 	if err != nil {
-		return AddHardwarePassback{}, err
+		return AddHardwareResult{}, err
 	}
 
 	log.Debug().Msgf("Found node at: %s with ID (%s)", locationPath, hw.ID)
 
 	// Ask the inventory provider to craft a metadata object for this information
 	if err := d.externalInventoryProvider.BuildHardwareMetadata(&hw, metadata); err != nil {
-		return AddHardwarePassback{}, err
+		return AddHardwareResult{}, err
 	}
 
 	log.Debug().Any("metadata", hw.ProviderProperties).Msg("Provider Properties")
 
 	// Push it back into the data store
 	if err := d.datastore.Update(&hw); err != nil {
-		return AddHardwarePassback{}, err
+		return AddHardwareResult{}, err
 	}
 
 	// Validate the current state of CANI's inventory data against the provider plugin
 	// for provider specific data.
-	var passback AddHardwarePassback
+	var result AddHardwareResult
 	if failedValidations, err := d.externalInventoryProvider.ValidateInternal(ctx, d.datastore, false); len(failedValidations) > 0 {
-		passback.ProviderValidationErrors = failedValidations
-		return passback, provider.ErrDataValidationFailure
+		result.ProviderValidationErrors = failedValidations
+		return result, provider.ErrDataValidationFailure
 	} else if err != nil {
-		return AddHardwarePassback{}, errors.Join(
+		return AddHardwareResult{}, errors.Join(
 			fmt.Errorf("failed to validate inventory against inventory provider plugin"),
 			err,
 		)
 	}
 
-	return passback, d.datastore.Flush()
+	return result, d.datastore.Flush()
 }
