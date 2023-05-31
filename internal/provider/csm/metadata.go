@@ -17,6 +17,10 @@ type NodeMetadata struct {
 	AdditionalProperties map[string]interface{}
 }
 
+type CabinetMetadata struct {
+	HMNVlan *int
+}
+
 // TODO this might need a better home
 func StringPtr(s string) *string {
 	return &s

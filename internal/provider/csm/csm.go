@@ -7,13 +7,11 @@ import (
 	"net/http"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
-	"github.com/Cray-HPE/cani/internal/provider/csm/validate"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/mitchellh/mapstructure"
-	"github.com/rs/zerolog/log"
 )
 
 type NewOpts struct {
@@ -22,6 +20,28 @@ type NewOpts struct {
 
 	BaseUrlSLS string
 	BaseUrlHSM string
+
+	ValidRoles    []string
+	ValidSubRoles []string
+}
+
+var DefaultValidRoles = []string{
+	"Compute",
+	"Service",
+	"System",
+	"Application",
+	"Storage",
+	"Management",
+}
+var DefaultValidSubRolesRoles = []string{
+	"Worker",
+	"Master",
+	"Storage",
+	"UAN",
+	"Gateway",
+	"LNETRouter",
+	"Visualization",
+	"UserDefined",
 }
 
 type CSM struct {
@@ -29,6 +49,10 @@ type CSM struct {
 	// Clients
 	slsClient *sls_client.APIClient
 	hsmClient *hsm_client.APIClient
+
+	// System Configuration data
+	ValidRoles    []string
+	ValidSubRoles []string
 }
 
 func New(opts NewOpts) (*CSM, error) {
@@ -70,32 +94,12 @@ func New(opts NewOpts) (*CSM, error) {
 
 	csm.slsClient = sls_client.NewAPIClient(slsClientConfiguration)
 	csm.hsmClient = hsm_client.NewAPIClient(hsmClientConfiguration)
+
+	// Load system specific config data
+	csm.ValidRoles = opts.ValidRoles
+	csm.ValidSubRoles = opts.ValidSubRoles
+
 	return csm, nil
-}
-
-// Validate the external services of the inventory provider are correct
-func (csm *CSM) ValidateExternal(ctx context.Context) error {
-	// Get the dumpate from SLS
-	slsState, reps, err := csm.slsClient.DumpstateApi.DumpstateGet(context.Background())
-	if err != nil {
-		return fmt.Errorf("SLS dumpstate failed. %v\n", err)
-	}
-
-	// Validate the dumpstate returned from SLS
-	err = validate.Validate(&slsState, reps)
-	if err != nil {
-		return fmt.Errorf("Validation failed. %v\n", err)
-	}
-	return nil
-}
-
-// Validate the representation of the inventory data into the destination inventory system
-// is consistent.
-// TODO perhaps this should just happen during Reconcile
-func (csm *CSM) ValidateInternal(ctx context.Context) error {
-	log.Warn().Msg("CSM Provider's ValidateInternal was called. This is not currently implemented")
-
-	return nil
 }
 
 // Import external inventory data into CANI's inventory format
@@ -115,10 +119,6 @@ func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperti
 		properties := NodeMetadata{} // Create an empty one
 		if _, exists := cHardware.ProviderProperties["csm"]; exists {
 			// If one exists set it.
-			// TODO Depending on how the data is stored/unmarshalled this might be a map[string]interface{}, so using the mapstructure library might be required to get it into the struct form
-			// https://github.com/Cray-HPE/cani/blob/develop/internal/provider/csm/sls/hardware.go
-			// https://github.com/mitchellh/mapstructure
-
 			if err := mapstructure.Decode(cHardware.ProviderProperties["csm"], &properties); err != nil {
 				return err
 			}
@@ -126,16 +126,32 @@ func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperti
 		// Make changes to the node metadata
 		// The keys of rawProperties need to match what is defined in ./cmd/node/update_node.go
 		if roleRaw, exists := rawProperties["role"]; exists {
-			properties.Role = StringPtr(roleRaw.(string))
+			if roleRaw == nil {
+				properties.Role = nil
+			} else {
+				properties.Role = StringPtr(roleRaw.(string))
+			}
 		}
 		if subroleRaw, exists := rawProperties["subrole"]; exists {
-			properties.SubRole = StringPtr(subroleRaw.(string))
+			if subroleRaw == nil {
+				properties.SubRole = nil
+			} else {
+				properties.SubRole = StringPtr(subroleRaw.(string))
+			}
 		}
 		if nidRaw, exists := rawProperties["nid"]; exists {
-			properties.Nid = IntPtr(nidRaw.(int))
+			if nidRaw == nil {
+				properties.Nid = nil
+			} else {
+				properties.Nid = IntPtr(nidRaw.(int))
+			}
 		}
 		if aliasRaw, exists := rawProperties["alias"]; exists {
-			properties.Alias = StringPtr(aliasRaw.(string))
+			if aliasRaw == nil {
+				properties.Alias = nil
+			} else {
+				properties.Alias = StringPtr(aliasRaw.(string))
+			}
 		}
 
 		cHardware.ProviderProperties["csm"] = properties

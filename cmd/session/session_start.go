@@ -4,10 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sort"
 
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/cmd/config"
 	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/manifoldco/promptui"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -26,8 +30,8 @@ var SessionStartCmd = &cobra.Command{
 }
 
 var (
-	provider  string
-	validArgs = []string{"csm"}
+	providerName string
+	validArgs    = []string{"csm"}
 )
 
 // startSession starts a session if one does not exist
@@ -69,9 +73,32 @@ func startSession(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// Perform provider plugin specific logic at session start
+	switch root.Conf.Session.DomainOptions.Provider {
+	case string(inventory.CSMProvider):
+		// Need to get the systems Roles/SubRole data from the system
+		// TODO CASMINST-6417
+
+		// For now just use the defaults
+		root.Conf.Session.DomainOptions.CsmOptions.ValidRoles = csm.DefaultValidRoles
+		root.Conf.Session.DomainOptions.CsmOptions.ValidSubRoles = csm.DefaultValidSubRolesRoles
+	}
+
 	// Validate the external inventory
-	err = root.Conf.Session.Domain.Validate()
-	if err != nil {
+	result, err := root.Conf.Session.Domain.Validate(cmd.Context())
+	if errors.Is(err, provider.ErrDataValidationFailure) {
+		// TODO the following should probably suggest commands to fix the issue?
+		log.Error().Msgf("Inventory data validation errors encountered")
+		for id, failedValidation := range result.ProviderValidationErrors {
+			log.Error().Msgf("  %s: %s", id, failedValidation.Hardware.LocationPath.String())
+			sort.Strings(failedValidation.Errors)
+			for _, validationError := range failedValidation.Errors {
+				log.Error().Msgf("    - %s", validationError)
+			}
+		}
+
+		return err
+	} else if err != nil {
 		return errors.Join(err,
 			errors.New("External inventory is unstable.  Fix, and check with 'cani validate' before continuing."))
 	}

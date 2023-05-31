@@ -1,8 +1,12 @@
 package node
 
 import (
+	"errors"
+	"sort"
+
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
@@ -30,18 +34,40 @@ func updateNode(cmd *cobra.Command, args []string) error {
 
 	// Push all the CLI flags that were provided into a generic map
 	// TODO Need to figure out how to specify to unset something
-	nodeMeta := map[string]interface{}{
-		"role":    role,
-		"subrole": subrole,
-		"alias":   alias,
-		"nid":     nid,
+	// Right now the build metadata function in the CSM provider will
+	// unset options if nil is passed in.
+	nodeMeta := map[string]interface{}{}
+	if cmd.Flags().Changed("role") {
+		nodeMeta["role"] = role
+	}
+	if cmd.Flags().Changed("subrole") {
+		nodeMeta["subrole"] = subrole
+	}
+	if cmd.Flags().Changed("alias") {
+		nodeMeta["alias"] = alias
+	}
+	if cmd.Flags().Changed("alias") {
+		nodeMeta["nid"] = nid
 	}
 
 	// Remove the node from the inventory using domain methods
-	err = d.UpdateNode(cabinet, chassis, slot, bmc, node, nodeMeta)
-	if err != nil {
+	result, err := d.UpdateNode(cmd.Context(), cabinet, chassis, slot, bmc, node, nodeMeta)
+	if errors.Is(err, provider.ErrDataValidationFailure) {
+		// TODO the following should probably suggest commands to fix the issue?
+		log.Error().Msgf("Inventory data validation errors encountered")
+		for id, failedValidation := range result.ProviderValidationErrors {
+			log.Error().Msgf("  %s: %s", id, failedValidation.Hardware.LocationPath.String())
+			sort.Strings(failedValidation.Errors)
+			for _, validationError := range failedValidation.Errors {
+				log.Error().Msgf("    - %s", validationError)
+			}
+		}
+
+		return err
+	} else if err != nil {
 		return err
 	}
+
 	// TODO need a better identify, perhaps its UUID, or its location path?
 	// log.Info().Msgf("Updated node %s", args[0])
 	log.Info().Msgf("Updated node")

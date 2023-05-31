@@ -1,11 +1,14 @@
 package session
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"sort"
 
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/manifoldco/promptui"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -24,7 +27,7 @@ var SessionStopCmd = &cobra.Command{
 // stopSession stops a session if one exists
 func stopSession(cmd *cobra.Command, args []string) error {
 	ds := root.Conf.Session.DomainOptions.DatastorePath
-	provider := root.Conf.Session.DomainOptions.Provider
+	providerName := root.Conf.Session.DomainOptions.Provider
 	d, err := domain.New(root.Conf.Session.DomainOptions)
 	if err != nil {
 		return err
@@ -34,11 +37,11 @@ func stopSession(cmd *cobra.Command, args []string) error {
 		// Check that the datastore exists before proceeding since we cannot continue without it
 		_, err := os.Stat(ds)
 		if err != nil {
-			return fmt.Errorf("Session is STOPPED with provider '%s' but datastore '%s' does not exist", provider, ds)
+			return fmt.Errorf("Session is STOPPED with provider '%s' but datastore '%s' does not exist", providerName, ds)
 		}
 		log.Info().Msgf("Session is STOPPED")
 	} else {
-		log.Info().Msgf("Session with provider '%s' and datastore '%s' is already STOPPED", provider, ds)
+		log.Info().Msgf("Session with provider '%s' and datastore '%s' is already STOPPED", providerName, ds)
 	}
 
 	if !commit {
@@ -52,8 +55,20 @@ func stopSession(cmd *cobra.Command, args []string) error {
 		log.Info().Msgf("Committing changes to session")
 
 		// Commit the external inventory
-		err = d.Commit(cmd.Context())
-		if err != nil {
+		result, err := d.Commit(cmd.Context())
+		if errors.Is(err, provider.ErrDataValidationFailure) {
+			// TODO the following should probably suggest commands to fix the issue?
+			log.Error().Msgf("Inventory data validation errors encountered")
+			for id, failedValidation := range result.ProviderValidationErrors {
+				log.Error().Msgf("  %s: %s", id, failedValidation.Hardware.LocationPath.String())
+				sort.Strings(failedValidation.Errors)
+				for _, validationError := range failedValidation.Errors {
+					log.Error().Msgf("    - %s", validationError)
+				}
+			}
+
+			return err
+		} else if err != nil {
 			return err
 		}
 	}

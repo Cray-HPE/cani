@@ -24,10 +24,14 @@ OTHER DEALINGS IN THE SOFTWARE.
 package blade
 
 import (
+	"errors"
+	"sort"
+
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/cmd/session"
 	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -53,8 +57,20 @@ func addBlade(cmd *cobra.Command, args []string) error {
 	}
 
 	// Add the blade from the inventory using domain methods
-	results, err := d.AddBlade(args[0], cabinet, chassis, slot)
-	if err != nil {
+	passback, err := d.AddBlade(cmd.Context(), args[0], cabinet, chassis, slot)
+	if errors.Is(err, provider.ErrDataValidationFailure) {
+		// TODO the following should probably suggest commands to fix the issue?
+		log.Error().Msgf("Inventory data validation errors encountered")
+		for id, failedValidation := range passback.ProviderValidationErrors {
+			log.Error().Msgf("  %s: %s", id, failedValidation.Hardware.LocationPath.String())
+			sort.Strings(failedValidation.Errors)
+			for _, validationError := range failedValidation.Errors {
+				log.Error().Msgf("    - %s", validationError)
+			}
+		}
+
+		return err
+	} else if err != nil {
 		return err
 	}
 	log.Info().Msgf("Added blade %s", args[0])
@@ -77,9 +93,9 @@ func addBlade(cmd *cobra.Command, args []string) error {
 	// with the node(s) that may need additional metadata added
 
 	// Use a map to track already added nodes.
-	newNodes := []domain.AddHardwareResult{}
+	newNodes := []domain.HardwareLocationPair{}
 
-	for _, result := range results {
+	for _, result := range passback.AddedHardware {
 		// If the type is a Node
 		if result.Hardware.Type == hardwaretypes.Node {
 			log.Debug().Msg(result.Location.String())
