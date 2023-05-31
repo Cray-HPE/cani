@@ -86,7 +86,7 @@ type AddHardwareResult struct {
 	ProviderValidationErrors map[uuid.UUID]provider.HardwareValidationResult
 }
 
-type UpdatedHardwarePassback struct {
+type UpdatedHardwareResult struct {
 	// UpdatedHardware          []HardwareLocationPair
 	ProviderValidationErrors map[uuid.UUID]provider.HardwareValidationResult
 }
