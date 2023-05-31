@@ -43,7 +43,7 @@ func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetO
 
 	// Generate a hardware build out
 	// FIXME: no parent
-	hardwareBuildOutItems, err := d.hardwareTypeLibrary.GetDefaultHardwareBuildOut(deviceTypeSlug, 0, uuid.UUID{})
+	hardwareBuildOutItems, err := d.hardwareTypeLibrary.GetDefaultHardwareBuildOut(deviceTypeSlug, cabinetOrdinal, uuid.UUID{})
 	if err != nil {
 		return AddHardwareResult{}, errors.Join(
 			fmt.Errorf("unable to build default hardware build out for %s", deviceTypeSlug),
