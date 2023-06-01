@@ -39,7 +39,7 @@ func (csm *CSM) ValidateExternal(ctx context.Context) error {
 	}
 
 	// Validate the dumpstate returned from SLS
-	err = validate.Validate(&slsState, reps)
+	_, err = validate.ValidateHTTPResponse(&slsState, reps)
 	if err != nil {
 		return fmt.Errorf("Validation failed. %v\n", err)
 	}

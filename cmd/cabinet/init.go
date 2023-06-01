@@ -21,5 +21,6 @@ func init() {
 
 	// Blades have several parents, so we need to add flags for each
 	AddCabinetCmd.Flags().IntVar(&cabinet, "cabinet", 1001, "Cabinet ordinal.")
+	AddCabinetCmd.Flags().IntVar(&hmnVLAN, "hmn-vlan", -1, "Parent cabinet")
 
 }

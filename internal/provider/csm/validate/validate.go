@@ -26,8 +26,10 @@ package validate
 
 import (
 	"embed"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 
@@ -62,8 +64,37 @@ const (
 )
 
 // Validate validates the data in the response against the SLS schema.
-func Validate(slsState *sls_client.SlsState, response *http.Response) error {
+func ValidateHTTPResponse(slsState *sls_client.SlsState, response *http.Response) ([]ValidationResult, error) {
 	results := make([]ValidationResult, 0)
+
+	// Parse HTTP response body to get raw JSON payload
+	responseBytes, err := io.ReadAll(response.Body)
+	defer response.Body.Close()
+	if err != nil {
+		results = append(results,
+			ValidationResult{
+				CheckID:     SLSSchemaCheck,
+				Result:      Fail,
+				ComponentID: "SLS Networks",
+				Description: fmt.Sprintf("SLS failed to get raw json jumpstate. %s", err)})
+	}
+
+	return validate(slsState, responseBytes, results...)
+}
+
+func Validate(slsState *sls_client.SlsState) ([]ValidationResult, error) {
+	// If we don't get a raw SLS payload, such as validating an SLS state build inside this tool we need to create the JSON version of the paylpoad
+	rawSLSState, err := json.Marshal(*slsState)
+	if err != nil {
+		return nil, err
+	}
+
+	return validate(slsState, rawSLSState)
+}
+
+func validate(slsState *sls_client.SlsState, rawSLSState []byte, additionalResults ...ValidationResult) ([]ValidationResult, error) {
+	results := make([]ValidationResult, 0)
+	results = append(results, additionalResults...)
 
 	// id := NewID("Network", "CAN")
 	// id2 := id.append(Pair{"fish", "bones"})
@@ -75,7 +106,7 @@ func Validate(slsState *sls_client.SlsState, response *http.Response) error {
 	// fmt.Printf("ID2 str pair: %s\n", id2.strPair())
 	// fmt.Printf("ID2 str pair: %s\n", id2.strYaml())
 
-	r := validateAgainstSchemas(response)
+	r := validateAgainstSchemas(rawSLSState)
 	results = append(results, r...)
 
 	passFailResults := make(map[string]bool)
@@ -102,7 +133,7 @@ func Validate(slsState *sls_client.SlsState, response *http.Response) error {
 				// todo check for error
 				_, net2, err := net.ParseCIDR(ipRange2)
 				if err != nil {
-					return err
+					return results, err
 				}
 				// fmt.Printf("    %d, %s\n", j, ipRange2)
 
@@ -152,7 +183,7 @@ func Validate(slsState *sls_client.SlsState, response *http.Response) error {
 	}
 
 	if allError != nil {
-		return allError
+		return results, allError
 	}
-	return nil
+	return results, nil
 }

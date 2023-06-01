@@ -27,9 +27,7 @@ package validate
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/fs"
-	"net/http"
 
 	"github.com/rs/zerolog/log"
 	"github.com/santhosh-tekuri/jsonschema/v5"
@@ -180,23 +178,11 @@ func validateSubnetsSchema(schema *jsonschema.Schema, subnet map[string]interfac
 }
 
 // validateAgainstSchemas validates the SLS response against the schemas
-func validateAgainstSchemas(response *http.Response) []ValidationResult {
+func validateAgainstSchemas(rawSLSDumpstate []byte) []ValidationResult {
 	results := make([]ValidationResult, 0)
 
-	responseBytes, err := io.ReadAll(response.Body)
-	defer response.Body.Close()
-	if err != nil {
-		results = append(results,
-			ValidationResult{
-				CheckID:     SLSSchemaCheck,
-				Result:      Fail,
-				ComponentID: "SLS Networks",
-				Description: fmt.Sprintf("SLS failed to get raw json jumpstate. %s", err)})
-		return results
-	}
-
 	var slsDump interface{}
-	if err := json.Unmarshal(responseBytes, &slsDump); err != nil {
+	if err := json.Unmarshal(rawSLSDumpstate, &slsDump); err != nil {
 		results = append(results,
 			ValidationResult{
 				CheckID:     SLSSchemaCheck,
