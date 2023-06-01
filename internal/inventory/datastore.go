@@ -30,6 +30,8 @@ type Datastore interface {
 	GetLocation(hardware Hardware) (LocationPath, error)
 	GetAtLocation(path LocationPath) (Hardware, error)
 	GetChildren(id uuid.UUID) ([]Hardware, error)
+	GetSystemZero() (Hardware, error)              // TODO replace this when multiple systems are supported
+	GetSystem(hardware Hardware) (Hardware, error) // Not yet implemented until multiple systems are supported
 
 	// TODO for search properties
 }

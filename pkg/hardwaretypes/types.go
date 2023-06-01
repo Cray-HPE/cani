@@ -28,6 +28,7 @@ type HardwareType string
 
 // TODO should give a description of each of these
 const (
+	System                         HardwareType = "System" // Serves as a top-level object, not a child of anything, though there can be multiple systems in a domain that hardware can move between
 	Cabinet                        HardwareType = "Cabinet"
 	Chassis                        HardwareType = "Chassis"
 	ChassisManagementModule        HardwareType = "ChassisManagementModule"

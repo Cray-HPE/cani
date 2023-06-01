@@ -17,19 +17,12 @@ func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetO
 	// Validate provided cabinet exists
 	// TODO
 
-	// TODO this is just a stand in, just for testing
-	cabinet := inventory.Hardware{
-		ID:              uuid.New(),
-		Type:            hardwaretypes.Cabinet,
-		Status:          inventory.HardwareStatusProvisioned,
-		LocationOrdinal: &cabinetOrdinal,
-	}
-	if err := d.datastore.Add(&cabinet); err != nil {
+	system, err := d.datastore.GetSystemZero()
+	if err != nil {
 		return AddHardwareResult{}, errors.Join(
-			fmt.Errorf("unable to add cabinet hardware"),
+			fmt.Errorf("unable to get system zero"),
 			err,
 		)
-
 	}
 
 	// Verify the provided device type slug is a node blade
@@ -41,9 +34,8 @@ func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetO
 		return AddHardwareResult{}, fmt.Errorf("provided device hardware type (%s) is not a %s", deviceTypeSlug, hardwaretypes.Cabinet) // TODO better error message
 	}
 
-	// Generate a hardware build out
-	// FIXME: no parent
-	hardwareBuildOutItems, err := d.hardwareTypeLibrary.GetDefaultHardwareBuildOut(deviceTypeSlug, 0, uuid.UUID{})
+	// Generate a hardware build out using the system as a parent
+	hardwareBuildOutItems, err := d.hardwareTypeLibrary.GetDefaultHardwareBuildOut(deviceTypeSlug, 0, system.ID)
 	if err != nil {
 		return AddHardwareResult{}, errors.Join(
 			fmt.Errorf("unable to build default hardware build out for %s", deviceTypeSlug),
