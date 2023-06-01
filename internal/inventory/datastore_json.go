@@ -44,11 +44,23 @@ func NewDatastoreJSON(dataFilePath string, logfilepath string, provider Provider
 			}
 		}
 
+		// Generate a UUID for a new top-level "System" object
+		system := uuid.New()
+		// A system ordinal is required for the top-level system object and is arbitrarily set to 0
+		ordinal := 0
 		// Create a config with default values since one does not exist
 		datastore.inventory = &Inventory{
 			SchemaVersion: SchemaVersionV1Alpha1,
 			Provider:      provider,
-			Hardware:      map[uuid.UUID]Hardware{},
+			Hardware: map[uuid.UUID]Hardware{
+				// NOTE: At present, we only allow ONE system in the inventory, but leaving the door open for multiple systems
+				system: {
+					Type:            hardwaretypes.System, // The top-level object is a hardwaretypes.System
+					ID:              system,               // ID is the same as the key for the top-level system object to prevent a uuid.Nil
+					Parent:          uuid.Nil,             // Parent should be nil to prevent illegitimate children
+					LocationOrdinal: &ordinal,
+				},
+			},
 		}
 
 	} else {
@@ -571,4 +583,68 @@ func (dj *DatastoreJSON) logTransaction(operation string, key string, value inte
 		logEvent.Info().Msg("Transaction")
 	}
 
+}
+
+// GetSystem returns the system that the given hardware object is a part of
+func (dj *DatastoreJSON) GetSystem(hardware Hardware) (Hardware, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
+
+	return Hardware{}, errors.New("not yet implemented")
+	return dj.getSystem(hardware)
+}
+
+// getSystem will follow the parent links up to the root node and errors if not found
+// this is not in use until multiple systems are implemented
+func (dj *DatastoreJSON) getSystem(hardware Hardware) (Hardware, error) {
+	// Follow the parent links up to the root node
+	currentHardwareID := hardware.ID
+	for currentHardwareID != uuid.Nil {
+		currentHardware, exists := dj.inventory.Hardware[currentHardwareID]
+		if !exists {
+			return Hardware{}, errors.Join(
+				fmt.Errorf("unable to find ancestor (%s) of (%s)", currentHardwareID, hardware.ID),
+				ErrHardwareNotFound,
+			)
+		}
+
+		if currentHardware.Type == hardwaretypes.System {
+			// return the system
+			return currentHardware, nil
+		}
+		// Go the parent node next
+		currentHardwareID = currentHardware.Parent
+	}
+
+	return Hardware{}, ErrHardwareNotFound
+}
+
+// GetSystemZero assumes one system exists and returns it
+func (dj *DatastoreJSON) GetSystemZero() (Hardware, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
+
+	return dj.getSystemZero()
+}
+
+// getSystem finds the System type in the inventory and returns it
+// it does not currently detect multiple systems and may grab the wrong one if multiple exist
+func (dj *DatastoreJSON) getSystemZero() (Hardware, error) {
+	// Assume one system
+	for _, hw := range dj.inventory.Hardware {
+		system, exists := dj.inventory.Hardware[hw.ID]
+		if !exists {
+			return Hardware{}, errors.Join(
+				fmt.Errorf("unable to find %s (%s)", hardwaretypes.System, hw.ID),
+				ErrHardwareNotFound,
+			)
+		}
+
+		if system.Type == hardwaretypes.System {
+			// return the system
+			return system, nil
+		}
+	}
+
+	return Hardware{}, ErrHardwareNotFound
 }
