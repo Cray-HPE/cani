@@ -17,11 +17,13 @@ type Domain struct {
 	hardwareTypeLibrary       *hardwaretypes.Library
 	datastore                 inventory.Datastore
 	externalInventoryProvider provider.InventoryProvider
+	importPath                string
 }
 
 // NewOpts are the options for creating a new Domain
 type NewOpts struct {
 	DatastorePath string      `yaml:"datastore_path"`
+	ImportPath    string      `yaml:"import_path"` // ImportPath is the path to the directory or URL containing the inventory data to import
 	LogFilePath   string      `yaml:"log_file_path"`
 	Provider      string      `yaml:"provider"`
 	CsmOptions    csm.NewOpts `yaml:"csm_options"`
@@ -31,6 +33,8 @@ type NewOpts struct {
 func New(opts *NewOpts) (*Domain, error) {
 	var err error
 	domain := &Domain{}
+	// Set the import path
+	domain.importPath = opts.ImportPath
 
 	// Load the hardware type library
 	// TODO make this be able to be loaded from a directory
@@ -70,9 +74,11 @@ func New(opts *NewOpts) (*Domain, error) {
 				err,
 			)
 		}
+
 	default:
 		return nil, fmt.Errorf("unknown external inventory provider provided (%s)", inventoryProvider)
 	}
+
 	return domain, nil
 }
 

@@ -11,9 +11,10 @@ import (
 // Inventory is the top level object that represents the entire inventory
 // This is what cani uses to represent the inventory
 type Inventory struct {
-	SchemaVersion SchemaVersion
-	Provider      Provider
-	Hardware      map[uuid.UUID]Hardware
+	SchemaVersion SchemaVersion          `json:"SchemaVersion" yaml:"SchemaVersion"`
+	Provider      Provider               `json:"Provider" yaml:"Provider"`
+	Hardware      map[uuid.UUID]Hardware `json:"Hardware" yaml:"Hardware"`
+	Imported      interface{}            `json:"Imported" yaml:"Imported,omitempty" default:"" usage:"Imported"`
 }
 
 // Hardware is the smallest unit of inventory

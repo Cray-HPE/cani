@@ -48,6 +48,11 @@ func startSession(cmd *cobra.Command, args []string) error {
 		root.Conf.Session.DomainOptions.CsmOptions.InsecureSkipVerify, _ = cmd.Flags().GetBool("csm-insecure-https")
 	}
 
+	// If an import path is defined, set it in the config
+	if importPath != "" {
+		root.Conf.Session.DomainOptions.ImportPath = importPath
+	}
+
 	// If a session is already active, there is nothing to do but the user may want to overwrite the existing session
 	if root.Conf.Session.Active {
 		log.Info().Msgf("Session is already ACTIVE.")

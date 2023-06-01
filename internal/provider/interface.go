@@ -21,7 +21,7 @@ type InventoryProvider interface {
 	ValidateInternal(ctx context.Context, datastore inventory.Datastore, enableRequiredDataChecks bool) (map[uuid.UUID]HardwareValidationResult, error)
 
 	// Import external inventory data into CANI's inventory format
-	Import(ctx context.Context, datastore inventory.Datastore) error
+	Import(ctx context.Context, datastore inventory.Datastore, path string) error
 
 	// Reconcile CANI's inventory state with the external inventory state and apply required changes
 	Reconcile(ctx context.Context, datastore inventory.Datastore) error

@@ -217,6 +217,27 @@ func (dj *DatastoreJSON) Validate() error {
 	return nil
 }
 
+// Imports from the existing inventory provider
+func (dj *DatastoreJSON) Import(path string) error {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
+
+	imported, err := dj.importfromProvider(path)
+	if err != nil {
+		return err
+	}
+	// Set the imported inventory
+	dj.inventory.Imported = imported
+
+	return nil
+}
+
+func (dj *DatastoreJSON) importfromProvider(path string) ([]byte, error) {
+	// TODO
+	log.Debug().Msg("DatastoreJSON's importfromProvider was called. This is not currently implemented")
+	return nil, nil
+}
+
 // Add adds a new hardware object to the inventory
 func (dj *DatastoreJSON) Add(hardware *Hardware) error {
 	dj.inventoryLock.Lock()

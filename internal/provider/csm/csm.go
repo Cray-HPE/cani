@@ -3,18 +3,25 @@ package csm
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
+	"os"
 
+	"github.com/Cray-HPE/cani/cmd/taxonomy"
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider/csm/sls"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/mitchellh/mapstructure"
+	"github.com/rs/zerolog/log"
 )
 
 type NewOpts struct {
+	ImportPath         string
 	InsecureSkipVerify bool
 	APIGatewayToken    string
 
@@ -71,7 +78,7 @@ func New(opts NewOpts) (*CSM, error) {
 	slsClientConfiguration := &sls_client.Configuration{
 		BasePath:   opts.BaseUrlSLS,
 		HTTPClient: httpClient.StandardClient(),
-		UserAgent:  "cani",
+		UserAgent:  taxonomy.App,
 		DefaultHeader: map[string]string{
 			"Content-Type": "application/json",
 		},
@@ -80,7 +87,7 @@ func New(opts NewOpts) (*CSM, error) {
 	hsmClientConfiguration := &hsm_client.Configuration{
 		BasePath:   opts.BaseUrlHSM,
 		HTTPClient: httpClient.StandardClient(),
-		UserAgent:  "cani",
+		UserAgent:  taxonomy.App,
 		DefaultHeader: map[string]string{
 			"Content-Type": "application/json",
 		},
@@ -103,9 +110,56 @@ func New(opts NewOpts) (*CSM, error) {
 }
 
 // Import external inventory data into CANI's inventory format
-func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error {
-	return fmt.Errorf("todo")
+func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore, path string) error {
+	log.Debug().Msg("Importing inventory data")
+	_, err := csm.importFromPath(path)
+	if err != nil {
+		return fmt.Errorf("failed to import inventory data from %s: %v", path, err)
+	}
 
+	return nil
+}
+
+// importFromPath reads from a URL or a file
+func (csm *CSM) importFromPath(src string) ([]byte, error) {
+	// Parse the string as a URL
+	u, err := url.Parse(src)
+	if err != nil {
+		return []byte{}, fmt.Errorf("failed to parse source string: %v", err)
+	}
+
+	var dumpstate sls.Dumpstate
+	var dumpstateBytes []byte
+	// Check if it's a valid URL (has a scheme like http or https)
+	if u.Scheme == "http" || u.Scheme == "https" {
+		// Get the dumpate from SLS
+		imported, resp, err := csm.slsClient.DumpstateApi.DumpstateGet(context.Background())
+		if err != nil {
+			return []byte{}, fmt.Errorf("SLS dumpstate failed. %v\n", err)
+		}
+		if err != nil {
+			return []byte{}, fmt.Errorf("failed to get URL: %v", err)
+		}
+		defer resp.Body.Close()
+
+		dumpstate = sls.Dumpstate{
+			Hardware: imported.Hardware,
+			Networks: imported.Networks,
+		}
+
+		dumpstateBytes, err = json.Marshal(dumpstate)
+		if err != nil {
+			return []byte{}, fmt.Errorf("failed to marshal dumpstate: %v", err)
+		}
+	}
+
+	// It's not a URL, treat it as a file path
+	dumpstateBytes, err = os.ReadFile(src)
+	if err != nil {
+		return []byte{}, fmt.Errorf("failed to read file: %v", err)
+	}
+
+	return dumpstateBytes, nil
 }
 
 func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperties map[string]interface{}) error {

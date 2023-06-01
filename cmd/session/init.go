@@ -5,7 +5,8 @@ import (
 )
 
 var (
-	commit bool
+	commit     bool
+	importPath string
 )
 
 func init() {
@@ -22,6 +23,7 @@ func init() {
 	SessionStartCmd.Flags().String("csm-url-hsm", "https://api-gw-service-nmn.local/apis/smd/hsm/v2", "CSM Provider: Base URL for the Hardware State Manager (HSM)")
 	SessionStartCmd.Flags().Bool("csm-insecure-https", false, "CSM Provider: Allow insecure connections when using HTTPS to CSM services")
 	SessionStartCmd.Flags().Bool("csm-sim-urls", false, "CSM Provider: Use simulation environment URLs")
+	SessionStartCmd.Flags().StringVarP(&importPath, "import", "i", "", "Existing inventory import path (URL or local file path)")
 
 	// Session stop flags
 	SessionStopCmd.Flags().BoolVarP(&commit, "commit", "c", false, "Commit changes to session")
