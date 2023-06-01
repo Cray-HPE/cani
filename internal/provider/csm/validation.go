@@ -39,7 +39,7 @@ func (csm *CSM) ValidateExternal(ctx context.Context) error {
 	}
 
 	// Validate the dumpstate returned from SLS
-	err = validate.Validate(&slsState, reps)
+	_, err = validate.ValidateHTTPResponse(&slsState, reps)
 	if err != nil {
 		return fmt.Errorf("Validation failed. %v\n", err)
 	}
@@ -70,6 +70,9 @@ func (csm *CSM) ValidateInternal(ctx context.Context, datastore inventory.Datast
 
 	// Perform validations
 	if err := csm.validateInternalNode(allHardware.Hardware, enableRequiredDataChecks, results); err != nil {
+		return nil, err
+	}
+	if err := csm.validateInternalCabinet(allHardware.Hardware, enableRequiredDataChecks, results); err != nil {
 		return nil, err
 	}
 
@@ -202,6 +205,10 @@ func (csm *CSM) validateInternalNode(allHardware map[uuid.UUID]inventory.Hardwar
 		results[cHardware.ID] = validationResult
 	}
 
+	//
+	// Uniqueness checks
+	//
+
 	// Verify all specified NIDs are unique
 	for nid, matchingHardware := range nodeNIDLookup {
 		if len(matchingHardware) > 1 {
@@ -224,6 +231,94 @@ func (csm *CSM) validateInternalNode(allHardware map[uuid.UUID]inventory.Hardwar
 				validationResult := results[id]
 				validationResult.Errors = append(validationResult.Errors,
 					fmt.Sprintf("Specified alias (%s) is not unique, shared by: %s", alias, joinUUIDs(matchingHardware, id, ", ")),
+				)
+				results[id] = validationResult
+			}
+		}
+	}
+
+	return nil
+}
+
+func (csm *CSM) validateInternalCabinet(allHardware map[uuid.UUID]inventory.Hardware, enableRequiredDataChecks bool, results map[uuid.UUID]provider.HardwareValidationResult) error {
+	// Verify all specified Cabinet metadata is valid
+	cabinetVLANLookup := map[int][]uuid.UUID{}
+	for _, cHardware := range allHardware {
+		if cHardware.Type != hardwaretypes.Cabinet {
+			continue
+		}
+
+		log.Debug().Msgf("Validating %s: %v", cHardware.ID, cHardware)
+
+		metadata, err := GetProviderMetadataT[CabinetMetadata](cHardware)
+		if err != nil {
+			return errors.Join(
+				fmt.Errorf("failed to get provider metadata from hardware (%s)", cHardware.ID),
+				err,
+			)
+		}
+
+		// There is no metadata for this cabinet
+		if metadata == nil {
+			log.Debug().Msgf("No metadata found for %s", cHardware.ID)
+			metadata = &CabinetMetadata{}
+		}
+
+		validationResult := results[cHardware.ID]
+
+		if metadata.HMNVlan != nil {
+			// Verify the vlan is within the allowed range
+			if 0 <= *metadata.HMNVlan && *metadata.HMNVlan <= 4095 {
+				validationResult.Errors = append(validationResult.Errors,
+					fmt.Sprintf("Specified HMN Vlan (%d) is invalid, must be in range: 0-4095", *metadata.HMNVlan),
+				)
+			}
+
+			cabinetVLANLookup[*metadata.HMNVlan] = append(cabinetVLANLookup[*metadata.HMNVlan], cHardware.ID)
+		}
+
+		if enableRequiredDataChecks {
+			// Check for missing required data
+
+			// The HMN vlan is only required if we are populating a Cray EX managed cabinet, so lets check to see if a CEC is a child of the cabinet
+			// TODO what if the datastore has a get relative function?
+			cecManagedCabinet := false
+			for _, childID := range cHardware.Children {
+				childHardware, ok := allHardware[childID]
+				if !ok {
+					// This should not happen
+					return fmt.Errorf("unable to find hardware object with ID (%s)", childID)
+				}
+
+				if childHardware.Type == hardwaretypes.CabinetEnvironmentalController {
+					cecManagedCabinet = true
+					break
+				}
+
+			}
+
+			if cecManagedCabinet {
+				if metadata.HMNVlan == nil {
+					validationResult.Errors = append(validationResult.Errors, "Missing required information: HMN Vlan is not set")
+				}
+			}
+		}
+
+		results[cHardware.ID] = validationResult
+	}
+
+	//
+	// Uniqueness checks
+	//
+
+	// Verify all specified Cabinet VLANs are unique
+	for nid, matchingHardware := range cabinetVLANLookup {
+		if len(matchingHardware) > 1 {
+			// We found hardware with duplicate NIDs
+			for _, id := range matchingHardware {
+				validationResult := results[id]
+				validationResult.Errors = append(validationResult.Errors,
+					fmt.Sprintf("Specified HMN Vlan (%d) is not unique, shared by: %s", nid, joinUUIDs(matchingHardware, id, ", ")),
 				)
 				results[id] = validationResult
 			}

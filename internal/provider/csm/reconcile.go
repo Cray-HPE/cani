@@ -9,6 +9,7 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider/csm/sls"
+	"github.com/Cray-HPE/cani/internal/provider/csm/validate"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	"github.com/Cray-HPE/hms-xname/xnametypes"
 	"github.com/rs/zerolog/log"
@@ -127,7 +128,25 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 	//
 	// Simulate and validate SLS actions
 	//
-	// TODO simulate changes to the SLS state and validate them, and then make the changes
+	modifiedState, err := sls.CopyState(currentSLSState)
+	if err != nil {
+		return errors.Join(fmt.Errorf("unable to copy SLS state"), err)
+	}
+	for _, hardware := range hardwareRemoved {
+		delete(modifiedState.Hardware, hardware.Xname)
+	}
+	for _, hardware := range hardwareAdded {
+		modifiedState.Hardware[hardware.Xname] = hardware
+	}
+	for _, hardwarePair := range hardwareWithDifferingValues {
+		updatedHardware := hardwarePair.HardwareB
+		modifiedState.Hardware[updatedHardware.Xname] = updatedHardware
+	}
+
+	_, err = validate.Validate(&modifiedState)
+	if err != nil {
+		return fmt.Errorf("Validation failed. %v\n", err)
+	}
 
 	//
 	// Modify the System's SLS instance
