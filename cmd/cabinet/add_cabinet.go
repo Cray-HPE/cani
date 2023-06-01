@@ -79,12 +79,7 @@ func addCabinet(cmd *cobra.Command, args []string) error {
 	for _, result := range result.AddedHardware {
 		// If the type is a Node
 		if result.Hardware.Type == hardwaretypes.Cabinet {
-			log.Debug().Msg(result.Location.String())
-			log.Debug().Msgf("This %s also contains a %s (%s) added at %s",
-				hardwaretypes.NodeBlade,
-				hardwaretypes.Node,
-				result.Hardware.ID.String(),
-				result.Location)
+			log.Debug().Msgf("%s added at %s with parent %s (%s)", result.Hardware.Type, result.Location.String(), hardwaretypes.System, result.Hardware.Parent)
 			// Add the node to the map
 			newNodes = append(newNodes, result)
 		}

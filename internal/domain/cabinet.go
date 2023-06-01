@@ -17,19 +17,12 @@ func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetO
 	// Validate provided cabinet exists
 	// TODO
 
-	// TODO this is just a stand in, just for testing
-	cabinet := inventory.Hardware{
-		ID:              uuid.New(),
-		Type:            hardwaretypes.Cabinet,
-		Status:          inventory.HardwareStatusProvisioned,
-		LocationOrdinal: &cabinetOrdinal,
-	}
-	if err := d.datastore.Add(&cabinet); err != nil {
+	system, err := d.datastore.GetSystemZero()
+	if err != nil {
 		return AddHardwareResult{}, errors.Join(
-			fmt.Errorf("unable to add cabinet hardware"),
+			fmt.Errorf("unable to get system zero"),
 			err,
 		)
-
 	}
 
 	// Verify the provided device type slug is a node blade
@@ -41,9 +34,8 @@ func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetO
 		return AddHardwareResult{}, fmt.Errorf("provided device hardware type (%s) is not a %s", deviceTypeSlug, hardwaretypes.Cabinet) // TODO better error message
 	}
 
-	// Generate a hardware build out
-	// FIXME: no parent
-	hardwareBuildOutItems, err := d.hardwareTypeLibrary.GetDefaultHardwareBuildOut(deviceTypeSlug, cabinetOrdinal, uuid.UUID{})
+	// Generate a hardware build out using the system as a parent
+	hardwareBuildOutItems, err := d.hardwareTypeLibrary.GetDefaultHardwareBuildOut(deviceTypeSlug, cabinetOrdinal, system.ID)
 	if err != nil {
 		return AddHardwareResult{}, errors.Join(
 			fmt.Errorf("unable to build default hardware build out for %s", deviceTypeSlug),
@@ -51,7 +43,7 @@ func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetO
 		)
 	}
 
-	var passback AddHardwareResult
+	var result AddHardwareResult
 
 	for _, hardwareBuildOut := range hardwareBuildOutItems {
 		// Generate the CANI hardware inventory version of the hardware build out data
@@ -90,7 +82,7 @@ func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetO
 			panic(err)
 		}
 
-		passback.AddedHardware = append(passback.AddedHardware, HardwareLocationPair{
+		result.AddedHardware = append(result.AddedHardware, HardwareLocationPair{
 			Hardware: hardware,
 			Location: hardwareLocation,
 		})
@@ -101,8 +93,8 @@ func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetO
 	// Validate the current state of CANI's inventory data against the provider plugin
 	// for provider specific data.
 	if failedValidations, err := d.externalInventoryProvider.ValidateInternal(ctx, d.datastore, false); len(failedValidations) > 0 {
-		passback.ProviderValidationErrors = failedValidations
-		return passback, provider.ErrDataValidationFailure
+		result.ProviderValidationErrors = failedValidations
+		return result, provider.ErrDataValidationFailure
 	} else if err != nil {
 		return AddHardwareResult{}, errors.Join(
 			fmt.Errorf("failed to validate inventory against inventory provider plugin"),
@@ -110,7 +102,7 @@ func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetO
 		)
 	}
 
-	return passback, d.datastore.Flush()
+	return result, d.datastore.Flush()
 }
 
 func (d *Domain) RemoveCabinet(u uuid.UUID, recursion bool) error {
