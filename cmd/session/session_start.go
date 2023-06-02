@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/cmd/config"
@@ -47,6 +48,17 @@ func startSession(cmd *cobra.Command, args []string) error {
 		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlHSM, _ = cmd.Flags().GetString("csm-url-hsm")
 		root.Conf.Session.DomainOptions.CsmOptions.InsecureSkipVerify, _ = cmd.Flags().GetBool("csm-insecure-https")
 	}
+	if insecure {
+		root.Conf.Session.DomainOptions.CsmOptions.InsecureSkipVerify = true
+	}
+	root.Conf.Session.DomainOptions.CsmOptions.SecretName = secretName
+	root.Conf.Session.DomainOptions.CsmOptions.KubeConfig = kubeconfig
+	root.Conf.Session.DomainOptions.CsmOptions.CaCertPath = caCertPath
+	root.Conf.Session.DomainOptions.CsmOptions.ClientID = clientId
+	root.Conf.Session.DomainOptions.CsmOptions.ClientSecret = clientSecret
+	root.Conf.Session.DomainOptions.CsmOptions.TokenHost = strings.TrimRight(tokenUrl, "/") // Remove trailing slash if present
+	root.Conf.Session.DomainOptions.CsmOptions.TokenUsername = tokenUsername
+	root.Conf.Session.DomainOptions.CsmOptions.TokenPassword = tokenPassword
 
 	// If a session is already active, there is nothing to do but the user may want to overwrite the existing session
 	if root.Conf.Session.Active {

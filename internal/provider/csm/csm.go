@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Cray-HPE/cani/cmd/taxonomy"
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
@@ -17,12 +18,18 @@ import (
 type NewOpts struct {
 	InsecureSkipVerify bool
 	APIGatewayToken    string
-
-	BaseUrlSLS string
-	BaseUrlHSM string
-
-	ValidRoles    []string
-	ValidSubRoles []string
+	BaseUrlSLS         string
+	BaseUrlHSM         string
+	SecretName         string
+	KubeConfig         string
+	ClientID           string `json:"-" yaml:"-"` // omit credentials from cani.yml
+	ClientSecret       string `json:"-" yaml:"-"` // omit credentials from cani.yml
+	TokenHost          string
+	TokenUsername      string `json:"-" yaml:"-"` // omit credentials from cani.yml
+	TokenPassword      string `json:"-" yaml:"-"` // omit credentials from cani.yml
+	CaCertPath         string
+	ValidRoles         []string
+	ValidSubRoles      []string
 }
 
 var DefaultValidRoles = []string{
@@ -49,13 +56,12 @@ type CSM struct {
 	// Clients
 	slsClient *sls_client.APIClient
 	hsmClient *hsm_client.APIClient
-
 	// System Configuration data
 	ValidRoles    []string
 	ValidSubRoles []string
 }
 
-func New(opts NewOpts) (*CSM, error) {
+func New(opts *NewOpts) (*CSM, error) {
 	csm := &CSM{}
 
 	//
@@ -71,7 +77,7 @@ func New(opts NewOpts) (*CSM, error) {
 	slsClientConfiguration := &sls_client.Configuration{
 		BasePath:   opts.BaseUrlSLS,
 		HTTPClient: httpClient.StandardClient(),
-		UserAgent:  "cani",
+		UserAgent:  taxonomy.App,
 		DefaultHeader: map[string]string{
 			"Content-Type": "application/json",
 		},
@@ -80,11 +86,19 @@ func New(opts NewOpts) (*CSM, error) {
 	hsmClientConfiguration := &hsm_client.Configuration{
 		BasePath:   opts.BaseUrlHSM,
 		HTTPClient: httpClient.StandardClient(),
-		UserAgent:  "cani",
+		UserAgent:  taxonomy.App,
 		DefaultHeader: map[string]string{
 			"Content-Type": "application/json",
 		},
 	}
+
+	// Get the auth token from keycloak
+	token, err := opts.getAuthToken()
+	if err != nil {
+		return nil, err
+	}
+	// Set the token for use in the clients
+	opts.APIGatewayToken = token
 
 	// Add in the API token if provided
 	if opts.APIGatewayToken != "" {
@@ -92,6 +106,7 @@ func New(opts NewOpts) (*CSM, error) {
 		hsmClientConfiguration.DefaultHeader["Authorization"] = fmt.Sprintf("Bearer %s", opts.APIGatewayToken)
 	}
 
+	// Set the clients
 	csm.slsClient = sls_client.NewAPIClient(slsClientConfiguration)
 	csm.hsmClient = hsm_client.NewAPIClient(hsmClientConfiguration)
 
