@@ -12,17 +12,20 @@ import (
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/mitchellh/mapstructure"
+	_ "golang.org/x/oauth2"
+	"golang.org/x/oauth2/clientcredentials"
 )
 
 type NewOpts struct {
 	InsecureSkipVerify bool
 	APIGatewayToken    string
-
-	BaseUrlSLS string
-	BaseUrlHSM string
-
-	ValidRoles    []string
-	ValidSubRoles []string
+	BaseUrlSLS         string
+	BaseUrlHSM         string
+	ClientID           string
+	ClientSecret       string
+	TokenURL           string // e.g. "https://provider.com/oauth2/token"
+	ValidRoles         []string
+	ValidSubRoles      []string
 }
 
 var DefaultValidRoles = []string{

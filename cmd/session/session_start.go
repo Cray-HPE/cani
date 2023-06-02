@@ -42,6 +42,9 @@ func startSession(cmd *cobra.Command, args []string) error {
 		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlSLS = "https://localhost:8443/apis/sls/v1"
 		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlHSM = "https://localhost:8443/apis/smd/hsm/v2"
 		root.Conf.Session.DomainOptions.CsmOptions.InsecureSkipVerify = true
+		// root.Conf.Session.DomainOptions.CsmOptions.ClientID = "cani"
+		root.Conf.Session.DomainOptions.CsmOptions.ClientSecret = "" // kubectl get secrets admin-client-auth -o jsonpath='{.data.client-secret}' | base64
+		root.Conf.Session.DomainOptions.CsmOptions.TokenURL = "https://localhost:8443/apis/keycloak/realms/shasta/protocol/openid-connect/token'"
 	} else {
 		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlSLS, _ = cmd.Flags().GetString("csm-url-sls")
 		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlHSM, _ = cmd.Flags().GetString("csm-url-hsm")
