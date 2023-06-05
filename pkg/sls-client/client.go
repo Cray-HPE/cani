@@ -42,7 +42,6 @@ var (
 type APIClient struct {
 	cfg    *Configuration
 	common service // Reuse a single struct instead of allocating one for each service on the heap.
-
 	// API Services
 
 	CliFromFileApi *CliFromFileApiService
@@ -167,6 +166,8 @@ func (c *APIClient) callAPI(request *http.Request) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
+	// add context to the request for oauth2
+	req = req.WithContext(c.cfg.Ctx)
 	return c.cfg.HTTPClient.Do(req)
 }
 

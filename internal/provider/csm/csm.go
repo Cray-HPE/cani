@@ -49,7 +49,6 @@ var DefaultValidSubRolesRoles = []string{
 }
 
 type CSM struct {
-
 	// Clients
 	slsClient *sls_client.APIClient
 	hsmClient *hsm_client.APIClient
@@ -60,7 +59,6 @@ type CSM struct {
 
 func New(opts *NewOpts) (*CSM, error) {
 	csm := &CSM{}
-
 	// Setup HTTP client and context using csm options
 	httpClient, ctx, err := opts.newClient()
 	if err != nil {
@@ -85,28 +83,21 @@ func New(opts *NewOpts) (*CSM, error) {
 		},
 	}
 
-	// Get the auth token from keycloak
-	token, err := opts.getAuthToken(ctx, httpClient)
-	if err != nil {
-		return nil, err
-	}
-	// Set the token for use in the clients
-	opts.APIGatewayToken = token
-
-	// Add in the API token if provided
 	if opts.APIGatewayToken != "" {
+		// Set the token for use in the clients
 		slsClientConfiguration.DefaultHeader["Authorization"] = fmt.Sprintf("Bearer %s", opts.APIGatewayToken)
 		hsmClientConfiguration.DefaultHeader["Authorization"] = fmt.Sprintf("Bearer %s", opts.APIGatewayToken)
 	}
 
 	// Set the clients
+	slsClientConfiguration.Ctx = ctx
 	csm.slsClient = sls_client.NewAPIClient(slsClientConfiguration)
+	hsmClientConfiguration.Ctx = ctx
 	csm.hsmClient = hsm_client.NewAPIClient(hsmClientConfiguration)
 
 	// Load system specific config data
 	csm.ValidRoles = opts.ValidRoles
 	csm.ValidSubRoles = opts.ValidSubRoles
-
 	return csm, nil
 }
 

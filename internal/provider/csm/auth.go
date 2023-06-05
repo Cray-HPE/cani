@@ -9,11 +9,12 @@ import (
 	"net/http"
 
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
 )
 
 // newClient returns a new http client and context
-func (opts *NewOpts) newClient() (*retryablehttp.Client, context.Context, error) {
+func (opts *NewOpts) newClient() (httpClient *retryablehttp.Client, ctx context.Context, err error) {
 	// use the system certificates if possible
 	certPool, err := x509.SystemCertPool()
 	if err != nil {
@@ -48,59 +49,27 @@ func (opts *NewOpts) newClient() (*retryablehttp.Client, context.Context, error)
 	}
 
 	// Setup our HTTP transport and client
-	httpClient := retryablehttp.NewClient()
-	httpClient.HTTPClient.Transport = tr
-
-	// Set the context with the http client
-	ctx := context.Background()
-	ctx = context.WithValue(ctx, oauth2.HTTPClient, httpClient.StandardClient())
-
-	return httpClient, ctx, nil
-}
-
-// getAuthToken retrieves an auth token from the auth server using the provided credentials and certificate
-func (opts *NewOpts) getAuthToken(ctx context.Context, client *retryablehttp.Client) (string, error) {
-	// use the system certificates if possible
-	certPool, err := x509.SystemCertPool()
-	if err != nil {
-		return "", fmt.Errorf("failed to load system cert pool: %v", err)
-	}
-
-	// optionally, use a custom cert
-	if opts.CaCertPath != "" {
-		var cert []byte
-		if opts.CaCertPath != "" {
-			cert, err = ioutil.ReadFile(opts.CaCertPath)
-			if err != nil {
-				return "", err
-			}
-		}
-
-		// append custom cert to cert pool
-		if ok := certPool.AppendCertsFromPEM(cert); !ok {
-			return "", fmt.Errorf("failed to append certificate %v", err)
-		}
-	}
-
-	// use the certificates in the http client
-	tlsConfig := &tls.Config{
-		RootCAs:            certPool,
-		InsecureSkipVerify: opts.InsecureSkipVerify,
-	}
-
-	// use TLS config in transport
-	tr := &http.Transport{
-		TLSClientConfig: tlsConfig,
-	}
-
-	// Setup our HTTP transport and client
-	httpClient := retryablehttp.NewClient()
+	httpClient = retryablehttp.NewClient()
 	httpClient.HTTPClient.Transport = tr
 
 	// Set the context with the http client
 	ctx = context.Background()
 	ctx = context.WithValue(ctx, oauth2.HTTPClient, httpClient.StandardClient())
 
+	if opts.APIGatewayToken == "" {
+		// Get the auth token from keycloak
+		token, err := opts.getAuthToken(ctx)
+		if err != nil {
+			return nil, nil, err
+		}
+		opts.APIGatewayToken = token.AccessToken
+	}
+
+	return httpClient, ctx, nil
+}
+
+// getAuthToken retrieves an auth token from the auth server using the provided credentials and certificate
+func (opts *NewOpts) getAuthToken(ctx context.Context) (*oauth2.Token, error) {
 	// Setup the oauth2 config
 	conf := &oauth2.Config{
 		ClientID: "shasta",
@@ -113,8 +82,9 @@ func (opts *NewOpts) getAuthToken(ctx context.Context, client *retryablehttp.Cli
 	// Get the token
 	token, err := conf.PasswordCredentialsToken(ctx, opts.TokenUsername, string(opts.TokenPassword))
 	if err != nil {
-		return "", err
+		log.Error().Msgf("Failed to get token, %s, %s %s", opts.TokenHost, opts.TokenUsername, opts.TokenPassword)
+		return nil, err
 	}
 
-	return token.AccessToken, nil
+	return token, nil
 }

@@ -8,7 +8,11 @@
  */
 package sls_client
 
-import "github.com/hashicorp/go-retryablehttp"
+import (
+	"context"
+
+	"github.com/hashicorp/go-retryablehttp"
+)
 
 // contextKeys are used to identify the type of value in the context.
 // Since these are string, it is possible to get a short description of the
@@ -53,6 +57,7 @@ type Configuration struct {
 	DefaultHeader map[string]string `json:"defaultHeader,omitempty"`
 	UserAgent     string            `json:"userAgent,omitempty"`
 	HTTPClient    *retryablehttp.Client
+	Ctx           context.Context
 }
 
 func NewConfiguration() *Configuration {

@@ -83,6 +83,8 @@ func initConfig() {
 
 func loadConfigAndDomainOpts(cmd *cobra.Command, args []string) error {
 	var err error
+	// writeSession writes the session configuration back to the config file
+	cfgFile = cmd.Root().PersistentFlags().Lookup("config").Value.String()
 	Conf, err = config.LoadConfig(cfgFile)
 	if err != nil {
 		return err

@@ -35,7 +35,7 @@ import (
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:               "cani",
+	Use:               taxonomy.App,
 	Short:             taxonomy.ShortDescription,
 	Long:              taxonomy.LongDescription,
 	PersistentPreRunE: loadConfigAndDomainOpts, // Load the domain options and config file settings
@@ -70,5 +70,16 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		cmd.Help()
 	}
 
+	return nil
+}
+
+// writeSession writes the session configuration back to the config file
+func PreRead(cmd *cobra.Command, args []string) (err error) {
+	// Write the configuration back to the file
+	cfgFile := cmd.Root().PersistentFlags().Lookup("config").Value.String()
+	Conf, err = config.LoadConfig(cfgFile)
+	if err != nil {
+		return err
+	}
 	return nil
 }
