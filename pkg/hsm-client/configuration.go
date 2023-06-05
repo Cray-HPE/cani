@@ -8,9 +8,7 @@
  */
 package hsm_client
 
-import (
-	"net/http"
-)
+import "github.com/hashicorp/go-retryablehttp"
 
 // contextKeys are used to identify the type of value in the context.
 // Since these are string, it is possible to get a short description of the
@@ -54,7 +52,7 @@ type Configuration struct {
 	Scheme        string            `json:"scheme,omitempty"`
 	DefaultHeader map[string]string `json:"defaultHeader,omitempty"`
 	UserAgent     string            `json:"userAgent,omitempty"`
-	HTTPClient    *http.Client
+	HTTPClient    *retryablehttp.Client
 }
 
 func NewConfiguration() *Configuration {

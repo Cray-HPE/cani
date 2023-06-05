@@ -31,6 +31,7 @@ import (
 	"os"
 
 	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
+	"github.com/hashicorp/go-retryablehttp"
 )
 
 // EnableSimulation is an exported setter function to set the value of the internal variables used in an HSM simulation mode.
@@ -41,7 +42,8 @@ func EnableSimulation() *hsm_client.APIClient {
 			InsecureSkipVerify: true,
 		},
 	}
-	client := &http.Client{Transport: tr}
+	client := retryablehttp.NewClient()
+	client.HTTPClient.Transport = tr
 
 	// Create an HSM client
 	c := &hsm_client.Configuration{
@@ -64,7 +66,8 @@ func DisableSimulation() *hsm_client.APIClient {
 			InsecureSkipVerify: false,
 		},
 	}
-	client := &http.Client{Transport: tr}
+	client := retryablehttp.NewClient()
+	client.HTTPClient.Transport = tr
 
 	// Create an HSM client
 	c := &hsm_client.Configuration{

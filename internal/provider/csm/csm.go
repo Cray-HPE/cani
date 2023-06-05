@@ -2,16 +2,13 @@ package csm
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
-	"net/http"
 
 	"github.com/Cray-HPE/cani/cmd/taxonomy"
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -64,19 +61,15 @@ type CSM struct {
 func New(opts *NewOpts) (*CSM, error) {
 	csm := &CSM{}
 
-	//
-	// Create Clients
-	//
-
-	// Setup HTTP client
-	httpClient := retryablehttp.NewClient()
-	httpClient.HTTPClient.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.InsecureSkipVerify},
+	// Setup HTTP client and context using csm options
+	httpClient, ctx, err := opts.newClient()
+	if err != nil {
+		return nil, err
 	}
 
 	slsClientConfiguration := &sls_client.Configuration{
 		BasePath:   opts.BaseUrlSLS,
-		HTTPClient: httpClient.StandardClient(),
+		HTTPClient: httpClient,
 		UserAgent:  taxonomy.App,
 		DefaultHeader: map[string]string{
 			"Content-Type": "application/json",
@@ -85,7 +78,7 @@ func New(opts *NewOpts) (*CSM, error) {
 
 	hsmClientConfiguration := &hsm_client.Configuration{
 		BasePath:   opts.BaseUrlHSM,
-		HTTPClient: httpClient.StandardClient(),
+		HTTPClient: httpClient,
 		UserAgent:  taxonomy.App,
 		DefaultHeader: map[string]string{
 			"Content-Type": "application/json",
@@ -93,7 +86,7 @@ func New(opts *NewOpts) (*CSM, error) {
 	}
 
 	// Get the auth token from keycloak
-	token, err := opts.getAuthToken()
+	token, err := opts.getAuthToken(ctx, httpClient)
 	if err != nil {
 		return nil, err
 	}
