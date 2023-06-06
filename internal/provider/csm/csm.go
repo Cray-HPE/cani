@@ -67,7 +67,7 @@ func New(opts *NewOpts) (*CSM, error) {
 
 	slsClientConfiguration := &sls_client.Configuration{
 		BasePath:   opts.BaseUrlSLS,
-		HTTPClient: httpClient,
+		HTTPClient: httpClient.StandardClient(),
 		UserAgent:  taxonomy.App,
 		DefaultHeader: map[string]string{
 			"Content-Type": "application/json",
@@ -76,7 +76,7 @@ func New(opts *NewOpts) (*CSM, error) {
 
 	hsmClientConfiguration := &hsm_client.Configuration{
 		BasePath:   opts.BaseUrlHSM,
-		HTTPClient: httpClient,
+		HTTPClient: httpClient.StandardClient(),
 		UserAgent:  taxonomy.App,
 		DefaultHeader: map[string]string{
 			"Content-Type": "application/json",
