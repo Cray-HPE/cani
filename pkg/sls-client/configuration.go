@@ -9,7 +9,6 @@
 package sls_client
 
 import (
-	"context"
 	"net/http"
 )
 
@@ -56,7 +55,6 @@ type Configuration struct {
 	DefaultHeader map[string]string `json:"defaultHeader,omitempty"`
 	UserAgent     string            `json:"userAgent,omitempty"`
 	HTTPClient    *http.Client
-	Ctx           context.Context
 }
 
 func NewConfiguration() *Configuration {
