@@ -55,6 +55,7 @@ type Provider string
 
 const (
 	// Define constants for lifecyle states
+	HardwareStatusEmpty         = HardwareStatus("empty")
 	HardwareStatusStaged        = HardwareStatus("staged")
 	HardwareStatusProvisioned   = HardwareStatus("provisioned")
 	HardwareStatusDecomissioned = HardwareStatus("decomissioned")

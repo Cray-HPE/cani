@@ -158,13 +158,29 @@ func loadJSON(path string, dest interface{}) error {
 func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error {
 	var slsDumpstate sls_client.SlsState
 	var hsmStateComponents hsm_client.ComponentArrayComponentArray
+	var hsmHardwareInventory []hsm_client.HwInventory100HwInventoryByLocation
 
 	// Load in data from test data directories for right now
 	if err := loadJSON("./testdata/system/shandy/sls_dump.json", &slsDumpstate); err != nil {
-		return nil
+		return err
 	}
 	if err := loadJSON("./testdata/system/shandy/hsm_state_components.json", &hsmStateComponents); err != nil {
-		return nil
+		return err
+	}
+	if err := loadJSON("testdata/system/shandy/hsm_inventory_hardware.json", &hsmHardwareInventory); err != nil {
+		return err
+	}
+
+	//
+	// HSM lookup tables
+	//
+	hsmStateComponentsMap := map[string]hsm_client.Component100Component{}
+	for _, hsmComponent := range hsmStateComponents.Components {
+		hsmStateComponentsMap[hsmComponent.ID] = hsmComponent
+	}
+	hsmHardwareInventoryMap := map[string]hsm_client.HwInventory100HwInventoryByLocation{}
+	for _, hsmHardware := range hsmHardwareInventory {
+		hsmHardwareInventoryMap[hsmHardware.ID] = hsmHardware
 	}
 
 	tempDatastore, err := datastore.Clone()
@@ -219,7 +235,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 	log.Info().Msgf("System: %v", slsSystem)
 
 	//
-	// Import Cabinets
+	// Import Cabinets and Chassis
 	//
 	allCabinets, _ := sls.FilterHardwareByType(slsDumpstate.Hardware, xnametypes.Cabinet)
 	allChassis, _ := sls.FilterHardwareByType(slsDumpstate.Hardware, xnametypes.Chassis)
@@ -277,6 +293,11 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			return fmt.Errorf("failed to parse cabinet xname (%s)", slsCabinet.Xname)
 		}
 
+		// slsCabinetEP, err := sls.DecodeExtraProperties[sls_client.HardwareExtraPropertiesCabinet](slsCabinet)
+		// if err != nil {
+		// 	return fmt.Errorf("failed to decode SLS hardware extra properties (%s)", slsCabinet.Xname)
+		// }
+
 		locationPath, err := FromXname(cabinetXname)
 		if err != nil {
 			return errors.Join(fmt.Errorf("failed to build location path for xname (%v)", cabinetXname), err)
@@ -291,9 +312,9 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			log.Info().Msgf("Cabinet %s (%v) exists in datastore with ID (%s)", cabinetXname, locationPath, cCabinet.ID)
 
 			// TODO Build metadata from sls data
-		}
-		if errors.Is(err, inventory.ErrHardwareNotFound) {
+		} else if errors.Is(err, inventory.ErrHardwareNotFound) {
 			// Cabinet does not exist, which means it needs to be added
+			// TODO When reconstituting the CANI inventory (say it was lost), should we reuse existing IDs?
 			log.Info().Msgf("Cabinet %s does not exist in datastore at %s", cabinetXname, locationPath)
 
 			deviceTypeSlug := ""
@@ -359,7 +380,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 				cabinetMetadata.HMNVlan = IntPtr(vlan)
 			}
 
-			cCabinet, err := tempDatastore.GetAtLocation(locationPath)
+			cCabinet, err = tempDatastore.GetAtLocation(locationPath)
 			if err != nil {
 				return errors.Join(fmt.Errorf("failed to query datastore for %s", locationPath), err)
 			}
@@ -372,21 +393,81 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 				return fmt.Errorf("failed to update hardware (%s) in memory datastore", cCabinet.ID)
 			}
 
-			// TODO EXample for other hardware types
-			// slsCabinetEP, err := sls.DecodeExtraProperties[sls_client.HardwareExtraPropertiesCabinet](slsCabinet)
-			// if err != nil {
-			// 	return fmt.Errorf("failed to decode SLS hardware extra properties (%s)", slsCabinet.Xname)
-			// }
-
 		} else {
 			// Error occurred
 			return errors.Join(fmt.Errorf("failed to query datastore"), err)
 		}
 
-		//
-		// Stage 2: Verify SLS contains the required metadata, and update it as required
-		//
+		// if slsCabinetEP.CaniId != cCabinet.ID.String() {
+		// 	if len(slsCabinetEP.CaniId) != 0 {
+		// 		log.Warn().Msgf("Detected CANI hardware ID change from %s to %s for SLS Hardware %s", slsCabinetEP.CaniId, cCabinet.ID, slsCabinet.Xname)
+		// 	}
+		// 	slsCabinetEP.CaniId = cCabinet.ID.String()
+
+		// 	log.Info().Msgf("SLS extra properties changed for %s", slsCabinet.Xname)
+
+		// 	slsCabinet.ExtraProperties = slsCabinetEP
+		// 	slsHardwareToModify[slsCabinet.Xname] = slsCabinet
+		// }
+
 	}
+
+	//
+	// Import Nodes
+	//
+	allNodes, _ := sls.FilterHardwareByType(slsDumpstate.Hardware, xnametypes.Node)
+
+	// 1. Find all slots holding blades (either currently populated or could be populated) from SLS
+	slsNodeBlades := map[xnames.ComputeModule][]xnames.NodeBMC{}
+	for _, slsNode := range allNodes {
+		nodeXname := xnames.FromStringToStruct[xnames.Node](slsNode.Xname)
+		if nodeXname == nil {
+			return fmt.Errorf("failed to parse node xname (%s)", slsNode.Xname)
+		}
+
+		// Node -> NodeBMC (Node Card) -> ComputeModule (Node Blade)
+		nodeBMCXname := nodeXname.Parent()
+		nodeBladeXname := nodeBMCXname.Parent()
+
+		slsNodeBlades[nodeBladeXname] = append(slsNodeBlades[nodeBladeXname], nodeBMCXname)
+	}
+
+	// 2. Final all slots holding blades from HSM, and inventory data
+	for nodeBladeXname, nodeBMCs := range slsNodeBlades {
+		hsmComponent, exists := hsmStateComponentsMap[nodeBladeXname.String()]
+		if !exists {
+			log.Info().Msgf("%s exists in SLS, but not HSM", nodeBladeXname)
+			continue
+		}
+
+		log.Info().Msgf("%s exists in HSM with state %s", nodeBladeXname, *hsmComponent.State)
+		for _, nodeBMCXname := range nodeBMCs {
+			// For every BMC in HSM there is a NodeEnclosure. The NodeEnclosure ordinal matches
+			// the BMC ordinal
+			nodeEnclosureXname := nodeBladeXname.NodeEnclosure(nodeBMCXname.NodeBMC)
+
+			nodeEnclosure, exists := hsmHardwareInventoryMap[nodeEnclosureXname.String()]
+			if exists {
+				log.Warn().Msgf("Missing HSM hardware inventory for %s", nodeEnclosure)
+				continue // TODO what should happen here?
+			}
+
+			nodeEnclosure.PopulatedFRU
+		}
+	}
+
+	// // 2. Iterate through all node blades and try to identify the hardware
+	// for nodeBladeXname, nodeCards := range nodeBlades {
+	// 	log.Info().Msgf("%s: %v", nodeBladeXname.String(), nodeCards)
+	// }
+
+	//
+	// Import Router BMCs
+	//
+
+	//
+	// Handle phantom mountain/hill nodes
+	//
 
 	_ = slsHardwareToModify
 	_ = slsHardwareExists
@@ -406,6 +487,13 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 	}
 
 	ioutil.WriteFile("import_inventory.json", importInventoryRaw, 0600)
+
+	slsHardwareToModifyRaw, _ := json.MarshalIndent(slsHardwareToModify, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+
+	ioutil.WriteFile("slsHardwareToModifyRaw.json", slsHardwareToModifyRaw, 0600)
 
 	return nil
 }
@@ -587,4 +675,11 @@ func FromXname(xnameRaw xnames.Xname) (inventory.LocationPath, error) {
 	}
 
 	return nil, fmt.Errorf("unable to convert xname type (%s)", xnameRaw.Type())
+}
+
+type Importer struct {
+}
+
+func (im *Importer) handleCabinets() {
+
 }
