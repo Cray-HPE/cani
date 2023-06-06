@@ -12,47 +12,80 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrdinal, chassisOrdinal, slotOrdinal int) (AddHardwareResult, error) {
-	// Validate provided cabinet exists
-	// TODO
-
-	// Validate provided chassis exists
-
-	// TODO this is just a stand in, just for testing
-	cabinet := inventory.Hardware{
-		ID:              uuid.New(),
-		Type:            hardwaretypes.Cabinet,
-		Status:          inventory.HardwareStatusProvisioned,
-		LocationOrdinal: &cabinetOrdinal,
+// AddBlade adds a blade to the inventory by crafting location paths from the given ordinals and generating a hardware buildout
+func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrdinal, chassisOrdinal, bladeOrdinal int) (AddHardwareResult, error) {
+	// Check if the cabinet exists
+	cabinetPath := inventory.LocationPath{
+		{HardwareType: hardwaretypes.System, Ordinal: 0},
+		{HardwareType: hardwaretypes.Cabinet, Ordinal: cabinetOrdinal},
 	}
-	if err := d.datastore.Add(&cabinet); err != nil {
+	var exists bool
+	var err error
+	exists, err = cabinetPath.Exists(d.datastore)
+	if err != nil {
 		return AddHardwareResult{}, errors.Join(
-			fmt.Errorf("unable to add cabinet hardware"),
+			fmt.Errorf("unable to check if %s exists at %s", hardwaretypes.Cabinet, cabinetPath),
 			err,
 		)
-
 	}
 
-	// TODO this is just a stand in, just for testing
-	chassis := inventory.Hardware{
-		Parent:          cabinet.ID,
-		ID:              uuid.New(),
-		Type:            hardwaretypes.Chassis,
-		Status:          inventory.HardwareStatusProvisioned,
-		LocationOrdinal: &slotOrdinal,
-	}
-	if err := d.datastore.Add(&chassis); err != nil {
+	// error if the cabinet does not exit (cannot add a blade if no cabinet exists)
+	if !exists {
 		return AddHardwareResult{}, errors.Join(
-			fmt.Errorf("unable to add chassis hardware"),
+			fmt.Errorf("unable to find %s at %s", hardwaretypes.Cabinet, cabinetPath),
+			fmt.Errorf("try 'go run main.go alpha list cabinet'"),
+		)
+	}
+
+	// Check if the chassis exists
+	chassisPath := inventory.LocationPath{
+		{HardwareType: hardwaretypes.System, Ordinal: 0},
+		{HardwareType: hardwaretypes.Cabinet, Ordinal: cabinetOrdinal},
+		{HardwareType: hardwaretypes.Chassis, Ordinal: chassisOrdinal},
+	}
+
+	exists, err = chassisPath.Exists(d.datastore)
+	if err != nil {
+		return AddHardwareResult{}, errors.Join(
+			fmt.Errorf("unable to check if %s exists at %s", hardwaretypes.Chassis, chassisPath),
 			err,
 		)
-
 	}
 
-	// chassisLocationPath := []inventory.LocationToken{
-	// 	{HardwareType: hardwaretypes.Cabinet, Ordinal: cabinetOrdinal},
-	// 	{HardwareType: hardwaretypes.Chassis, Ordinal: chassisOrdinal},
-	// }
+	// error if no chassis exists (cannot add a blade if a chassis does not exist)
+	if !exists {
+		return AddHardwareResult{},
+			errors.Join(
+				fmt.Errorf("in order to add a %s, a %s is needed", hardwaretypes.NodeBlade, hardwaretypes.Chassis),
+				fmt.Errorf("unable to find %s at %s", hardwaretypes.Chassis, chassisPath),
+			)
+	}
+
+	// Check if the slot exists
+	bladePath := inventory.LocationPath{
+		{HardwareType: hardwaretypes.System, Ordinal: 0},
+		{HardwareType: hardwaretypes.Cabinet, Ordinal: cabinetOrdinal},
+		{HardwareType: hardwaretypes.Chassis, Ordinal: chassisOrdinal},
+		{HardwareType: hardwaretypes.NodeBlade, Ordinal: bladeOrdinal},
+	}
+
+	exists, err = bladePath.Exists(d.datastore)
+	if err != nil {
+		return AddHardwareResult{}, errors.Join(
+			fmt.Errorf("unable to check if %s exists at %s", hardwaretypes.NodeBlade, bladePath),
+			err,
+		)
+	}
+
+	// error if it exists because a blade cannot be added if one is already in place
+	if exists {
+		return AddHardwareResult{},
+			errors.Join(
+				fmt.Errorf("%s number %d is already in use", hardwaretypes.NodeBlade, bladeOrdinal),
+				fmt.Errorf("please re-run the command with an available %s number", hardwaretypes.NodeBlade),
+				fmt.Errorf("try 'cani alpha list blade'"),
+			)
+	}
 
 	// Verify the provided device type slug is a node blade
 	deviceType, err := d.hardwareTypeLibrary.GetDeviceType(deviceTypeSlug)
@@ -60,11 +93,17 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 		return AddHardwareResult{}, err
 	}
 	if deviceType.HardwareType != hardwaretypes.NodeBlade {
-		return AddHardwareResult{}, fmt.Errorf("provided device hardware type (%s) is not a node blade", deviceTypeSlug) // TODO better error message
+		return AddHardwareResult{}, fmt.Errorf("provided device hardware type (%s) is not a %s", deviceTypeSlug, hardwaretypes.NodeBlade)
+	}
+
+	// Get the chassis ID, since it is needed as an arg to the hardware buildout so the blade is added to the correct parent device
+	chassisID, err := chassisPath.GetUUID(d.datastore)
+	if err != nil {
+		return AddHardwareResult{}, err
 	}
 
 	// Generate a hardware build out
-	hardwareBuildOutItems, err := d.hardwareTypeLibrary.GetDefaultHardwareBuildOut(deviceTypeSlug, slotOrdinal, chassis.ID)
+	hardwareBuildOutItems, err := d.hardwareTypeLibrary.GetDefaultHardwareBuildOut(deviceTypeSlug, bladeOrdinal, chassisID)
 	if err != nil {
 		return AddHardwareResult{}, errors.Join(
 			fmt.Errorf("unable to build default hardware build out for %s", deviceTypeSlug),
@@ -111,6 +150,28 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 			panic(err)
 		}
 
+		exists, err = hardwareLocation.Exists(d.datastore)
+		if err != nil {
+			return AddHardwareResult{}, errors.Join(
+				fmt.Errorf("unable to check if %s exists at %s", hardwaretypes.Cabinet, cabinetPath),
+				err,
+			)
+		}
+
+		// parent hardware SHOULD exist (system, cabinet, chassis) and existence checks were already completed to get to this point
+		if hardware.Type == hardwaretypes.Cabinet || hardware.Type == hardwaretypes.Chassis || hardware.Type == hardwaretypes.NodeBlade {
+			// safe to continue since it is should already exist
+			continue
+		} else {
+			// any other hardware types would be children of a blade, so they should NOT exist yet
+			if exists {
+				return AddHardwareResult{}, errors.Join(
+					fmt.Errorf("%s already exists at %s", hardware.Type, hardwareLocation),
+				)
+			}
+		}
+
+		// return the added hardware if it makes it this far
 		result.AddedHardware = append(result.AddedHardware, HardwareLocationPair{
 			Hardware: hardware,
 			Location: hardwareLocation,
@@ -138,7 +199,7 @@ func (d *Domain) RemoveBlade(u uuid.UUID, recursion bool) error {
 	err := d.datastore.Remove(u, recursion)
 	if err != nil {
 		return errors.Join(
-			fmt.Errorf("unable to remove hardware from inventory datastore"),
+			fmt.Errorf("unable to remove %s from inventory datastore", hardwaretypes.NodeBlade),
 			err,
 		)
 	}

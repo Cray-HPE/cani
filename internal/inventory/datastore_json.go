@@ -438,7 +438,7 @@ func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 	if len(path) == 0 {
 		return Hardware{}, ErrEmptyLocationPath
 	}
-	log.Debug().Msgf("GetAtLocation: Location Path: %s", path.String())
+	// log.Debug().Msgf("Getting %s", path.String())
 
 	//
 	// Traverse the tree to see if the hardware exists at the given location
@@ -459,13 +459,12 @@ func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 
 	// Vist rest of the path
 	for i, locationToken := range path[1:] {
-		log.Debug().Msgf("GetAtLocation: Processing token %d of %d: '%s'", i+1, len(path), locationToken.String())
-		log.Debug().Msgf("GetAtLocation: Current ID %s", currentHardware.ID)
-
+		// log.Debug().Msgf("GetAtLocation: Processing token %d of %d: '%s'", i+1, len(path), locationToken.String())
+		// log.Debug().Msgf("GetAtLocation: Current ID %s", currentHardware.ID)
 		// For each child of the current hardware object check to see if it
 		foundMatch := false
 		for _, childID := range currentHardware.Children {
-			log.Debug().Msgf("GetAtLocation: Visiting Child (%s)", childID)
+			// log.Debug().Msgf("GetAtLocation: Visiting Child (%s)", childID)
 			// Get the hardware
 			childHardware, ok := dj.inventory.Hardware[childID]
 			if !ok {
@@ -477,26 +476,34 @@ func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 			}
 
 			if childHardware.LocationOrdinal == nil {
-				log.Debug().Msgf("GetAtLocation: Child has no location ordinal set, skipping")
+				// log.Debug().Msgf("GetAtLocation: Child has no location ordinal set, skipping")
 				continue
 			}
-			log.Debug().Msgf("GetAtLocation: Child location token: %s:%d", childHardware.Type, *childHardware.LocationOrdinal)
+			// log.Debug().Msgf("GetAtLocation: Child location token: %s:%d", childHardware.Type, *childHardware.LocationOrdinal)
 
 			// Check to see if the location token matches
 			if childHardware.Type == locationToken.HardwareType && *childHardware.LocationOrdinal == locationToken.Ordinal {
 				// Found a match!
-				log.Debug().Msgf("GetAtLocation: Child has matching location token")
+				// log.Debug().Msgf("GetAtLocation: Child has matching location token")
 				currentHardware = childHardware
 				foundMatch = true
 				break
 			}
 		}
+		indent := strings.Repeat(" | ", i)
 
-		if !foundMatch {
-			// None of the children match
-			return Hardware{}, ErrHardwareNotFound
+		if i == len(path)-2 { // Subtract 2 instead of 1 because we started from the second element of the slice (path[1:])
+			// This is the last iteration of the loop
+			if !foundMatch {
+				log.Debug().Bool("exists", false).Msgf("%s --%s (%d)", indent, locationToken.HardwareType, locationToken.Ordinal)
+			} else {
+				log.Debug().Bool("exists", true).Str("uuid", currentHardware.ID.String()).Msgf("%s --%s (%d)", indent, locationToken.HardwareType, locationToken.Ordinal)
+			}
 		}
 
+		if !foundMatch {
+			return Hardware{}, ErrHardwareNotFound
+		}
 	}
 
 	if currentHardware.ID == uuid.Nil {

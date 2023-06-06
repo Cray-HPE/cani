@@ -28,6 +28,7 @@ func init() {
 	// Global root command flags
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", cfgFile, "Path to the configuration file")
 	RootCmd.PersistentFlags().BoolVarP(&Debug, "debug", "D", false, "additional debug output")
+	RootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "additional verbose output")
 
 	// Global add flags
 	AddCmd.PersistentFlags().StringVarP(&vendor, "vendor", "m", "HPE", "Vendor")
@@ -46,7 +47,9 @@ func setupLogging() {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 		log.Debug().Msg("Debug logging enabled")
 		// include file and line number in debug output
-		//log.Logger = log.With().Caller().Logger()
+		if Verbose {
+			log.Logger = log.With().Caller().Logger()
+		}
 	}
 }
 
