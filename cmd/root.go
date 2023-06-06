@@ -72,14 +72,3 @@ func runRoot(cmd *cobra.Command, args []string) error {
 
 	return nil
 }
-
-// writeSession writes the session configuration back to the config file
-func PreRead(cmd *cobra.Command, args []string) (err error) {
-	// Write the configuration back to the file
-	cfgFile := cmd.Root().PersistentFlags().Lookup("config").Value.String()
-	Conf, err = config.LoadConfig(cfgFile)
-	if err != nil {
-		return err
-	}
-	return nil
-}
