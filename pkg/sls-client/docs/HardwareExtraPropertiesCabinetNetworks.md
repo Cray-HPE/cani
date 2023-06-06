@@ -3,6 +3,7 @@
 ## Properties
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
+**CaniId** | **string** |  | [optional] [default to null]
 **CIDR** | **string** |  | [optional] [default to null]
 **Gateway** | **string** |  | [optional] [default to null]
 **VLan** | **int32** |  | [optional] [default to null]

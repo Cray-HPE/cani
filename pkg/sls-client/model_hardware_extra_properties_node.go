@@ -9,6 +9,7 @@
 package sls_client
 
 type HardwareExtraPropertiesNode struct {
+	CaniId  string   `json:"@cani.id,omitempty"`
 	NID     int32    `json:"NID,omitempty"`
 	Role    string   `json:"Role"`
 	SubRole string   `json:"SubRole,omitempty"`

@@ -39,6 +39,8 @@ func GetProviderMetadata(cHardware inventory.Hardware) (result interface{}, err 
 	switch cHardware.Type {
 	case hardwaretypes.Node:
 		result = NodeMetadata{}
+	case hardwaretypes.Cabinet:
+		result = CabinetMetadata{}
 	default:
 		// This may be caused if new metadata structs are added, but not to this switch case
 		return nil, fmt.Errorf("hardware object (%s) has unexpected provider metadata", cHardware.ID)
@@ -74,4 +76,60 @@ func GetProviderMetadataT[T any](cHardware inventory.Hardware) (*T, error) {
 		return nil, fmt.Errorf("unexpected provider metadata type (%T) expected (%T)", metadataRaw, expectedType)
 	}
 	return &metadata, nil
+}
+
+func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperties map[string]interface{}) error {
+	if cHardware.ProviderProperties == nil {
+		cHardware.ProviderProperties = map[string]interface{}{}
+	}
+
+	switch cHardware.Type {
+	case hardwaretypes.Node:
+		// TODO do something interesting with the raw data, and convert it/validate it
+		properties := NodeMetadata{} // Create an empty one
+		if _, exists := cHardware.ProviderProperties["csm"]; exists {
+			// If one exists set it.
+			if err := mapstructure.Decode(cHardware.ProviderProperties["csm"], &properties); err != nil {
+				return err
+			}
+		}
+		// Make changes to the node metadata
+		// The keys of rawProperties need to match what is defined in ./cmd/node/update_node.go
+		if roleRaw, exists := rawProperties["role"]; exists {
+			if roleRaw == nil {
+				properties.Role = nil
+			} else {
+				properties.Role = StringPtr(roleRaw.(string))
+			}
+		}
+		if subroleRaw, exists := rawProperties["subrole"]; exists {
+			if subroleRaw == nil {
+				properties.SubRole = nil
+			} else {
+				properties.SubRole = StringPtr(subroleRaw.(string))
+			}
+		}
+		if nidRaw, exists := rawProperties["nid"]; exists {
+			if nidRaw == nil {
+				properties.Nid = nil
+			} else {
+				properties.Nid = IntPtr(nidRaw.(int))
+			}
+		}
+		if aliasRaw, exists := rawProperties["alias"]; exists {
+			if aliasRaw == nil {
+				properties.Alias = nil
+			} else {
+				properties.Alias = StringPtr(aliasRaw.(string))
+			}
+		}
+
+		cHardware.ProviderProperties["csm"] = properties
+
+		return nil
+	default:
+		// This hardware type doesn't have metadata for it right now
+		return nil
+	}
+
 }

@@ -63,7 +63,7 @@ func New(opts *NewOpts) (*Domain, error) {
 	// Determine which external inventory provider to use
 	switch inventoryProvider {
 	case inventory.CSMProvider:
-		domain.externalInventoryProvider, err = csm.New(opts.CsmOptions)
+		domain.externalInventoryProvider, err = csm.New(opts.CsmOptions, domain.hardwareTypeLibrary)
 		if err != nil {
 			return nil, errors.Join(
 				fmt.Errorf("failed to initialize CSM external inventory provider"),

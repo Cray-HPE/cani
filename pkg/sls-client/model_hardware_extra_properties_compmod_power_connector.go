@@ -9,5 +9,6 @@
 package sls_client
 
 type HardwareExtraPropertiesCompmodPowerConnector struct {
+	CaniId    string `json:"@cani.id,omitempty"`
 	PoweredBy string `json:"PoweredBy"`
 }

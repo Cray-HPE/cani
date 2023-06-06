@@ -9,6 +9,7 @@
 package sls_client
 
 type HardwareExtraPropertiesCabinet struct {
+	CaniId            string                                            `json:"@cani.id,omitempty"`
 	Model             string                                            `json:"Model,omitempty"`
 	Networks          map[string]HardwareExtraPropertiesCabinetNetworks `json:"Networks,omitempty"`
 	DHCPRelaySwitches []string                                          `json:"DHCPRelaySwitches,omitempty"`

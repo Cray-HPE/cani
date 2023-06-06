@@ -1,6 +1,7 @@
 package inventory
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -22,6 +23,7 @@ type Hardware struct {
 	ID                 uuid.UUID
 	Name               string                     `json:"Name,omitempty" yaml:"Name,omitempty" default:"" usage:"Friendly name"`
 	Type               hardwaretypes.HardwareType `json:"Type,omitempty" yaml:"Type,omitempty" default:"" usage:"Type"`
+	DeviceTypeSlug     string                     `json:"DeviceTypeSlug,omitempty" yaml:"DeviceTypeSlug,omitempty" default:"" usage:"Hardware Type Library Device slug"`
 	Vendor             string                     `json:"Vendor,omitempty" yaml:"Vendor,omitempty" default:"" usage:"Vendor"`
 	Architecture       string                     `json:"Architecture,omitempty" yaml:"Architecture,omitempty" default:"" usage:"Architecture"`
 	Model              string                     `json:"Model,omitempty" yaml:"Model,omitempty" default:"" usage:"Model"`
@@ -101,4 +103,18 @@ func (lp LocationPath) GetOrdinalPath() []int {
 	}
 
 	return result
+}
+
+func (lp LocationPath) Exists(ds Datastore) (bool, error) {
+	_, err := ds.GetAtLocation(lp)
+	if err == nil {
+		// Hardware found
+		return true, nil
+	} else if errors.Is(err, ErrHardwareNotFound) {
+		// Hardware not found
+		return false, nil
+	} else {
+		// Oops something happened
+		return false, err
+	}
 }

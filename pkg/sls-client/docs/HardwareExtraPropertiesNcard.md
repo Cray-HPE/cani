@@ -3,6 +3,7 @@
 ## Properties
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
+**CaniId** | **string** |  | [optional] [default to null]
 **IP6addr** | **string** | The ipv6 address that should be assigned to this BMC, or \&quot;DHCPv6\&quot;.  If omitted, \&quot;DHCPv6\&quot; is assumed. | [optional] [default to null]
 **IP4addr** | **string** | The ipv4 address that should be assigned to this BMC, or \&quot;DHCPv4\&quot;.  If omitted, \&quot;DHCPv4\&quot; is assumed. | [optional] [default to null]
 **Username** | **string** | The username that should be used to access the device (or be assigned to the device) | [optional] [default to null]

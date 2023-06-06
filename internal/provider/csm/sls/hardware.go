@@ -23,11 +23,13 @@
 package sls
 
 import (
+	"fmt"
 	"sort"
 
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	sls_common "github.com/Cray-HPE/hms-sls/v2/pkg/sls-common"
 	"github.com/Cray-HPE/hms-xname/xnames"
+	"github.com/Cray-HPE/hms-xname/xnametypes"
 	"github.com/antihax/optional"
 )
 
@@ -38,7 +40,7 @@ func NewHardware(xname xnames.Xname, class sls_client.HardwareClass, extraProper
 		ExtraProperties: extraProperties,
 
 		// Calculate derived fields
-		Parent:     xname.ParentInterface().String(),
+		Parent:     xnametypes.GetHMSCompParent(xname.String()),
 		TypeString: xname.Type(),
 		Type:       sls_client.HardwareType(sls_common.HMSTypeToHMSStringType(xname.Type())), // The main lookup table is in the SLS package, TODO should maybe move that into this package
 	}
@@ -91,4 +93,33 @@ func FilterHardware(allHardware map[string]sls_client.Hardware, filter func(sls_
 	}
 
 	return result, nil
+}
+
+func FilterHardwareByType(allHardware map[string]sls_client.Hardware, types ...xnametypes.HMSType) (map[string]sls_client.Hardware, error) {
+	return FilterHardware(allHardware, func(hardware sls_client.Hardware) (bool, error) {
+		for _, hmsType := range types {
+			if hardware.TypeString == hmsType {
+				return true, nil
+			}
+		}
+		return false, nil
+	})
+}
+
+func DecodeExtraProperties[T any](hardware sls_client.Hardware) (*T, error) {
+	epRaw, err := hardware.DecodeExtraProperties()
+	if err != nil {
+		return nil, err
+	}
+
+	if epRaw == nil {
+		return nil, nil
+	}
+
+	ep, ok := epRaw.(T)
+	if !ok {
+		var expectedType T
+		return nil, fmt.Errorf("unexpected provider metadata type (%T) expected (%T)", epRaw, expectedType)
+	}
+	return &ep, nil
 }

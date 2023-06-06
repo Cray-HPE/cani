@@ -70,6 +70,7 @@ Class | Method | HTTP request | Description
  - [HardwareExtraPropertiesRtrBmc](docs/HardwareExtraPropertiesRtrBmc.md)
  - [HardwareExtraPropertiesRtrBmcNic](docs/HardwareExtraPropertiesRtrBmcNic.md)
  - [HardwareExtraPropertiesRtrmod](docs/HardwareExtraPropertiesRtrmod.md)
+ - [HardwareExtraPropertiesSystem](docs/HardwareExtraPropertiesSystem.md)
  - [HardwarePost](docs/HardwarePost.md)
  - [HardwarePut](docs/HardwarePut.md)
  - [HardwareType](docs/HardwareType.md)

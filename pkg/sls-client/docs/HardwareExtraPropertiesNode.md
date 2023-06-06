@@ -3,6 +3,7 @@
 ## Properties
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
+**CaniId** | **string** |  | [optional] [default to null]
 **NID** | **int32** |  | [optional] [default to null]
 **Role** | **string** |  | [default to null]
 **SubRole** | **string** |  | [optional] [default to null]

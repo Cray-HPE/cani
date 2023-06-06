@@ -9,9 +9,7 @@
 package sls_client
 
 import (
-	"bytes"
 	"context"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -82,10 +80,6 @@ func (a *DumpstateApiService) DumpstateGet(ctx context.Context) (SlsState, *http
 	if err != nil {
 		return localVarReturnValue, localVarHttpResponse, err
 	}
-	// This code was manually added
-	// start
-	localVarHttpResponse.Body = io.NopCloser(bytes.NewReader(localVarBody))
-	// end
 
 	if localVarHttpResponse.StatusCode < 300 {
 		// If we succeed, return the data, otherwise pass on to decode error.

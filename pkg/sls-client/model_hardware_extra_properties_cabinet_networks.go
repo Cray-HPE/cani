@@ -9,6 +9,7 @@
 package sls_client
 
 type HardwareExtraPropertiesCabinetNetworks struct {
+	CaniId     string `json:"@cani.id,omitempty"`
 	CIDR       string `json:"CIDR,omitempty"`
 	Gateway    string `json:"Gateway,omitempty"`
 	VLan       int32  `json:"VLan,omitempty"`

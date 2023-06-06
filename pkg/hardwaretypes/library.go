@@ -206,7 +206,7 @@ func (l *Library) GetDefaultHardwareBuildOut(deviceTypeString string, deviceOrdi
 		log.Debug().Msgf("Visiting: %s", current.DeviceTypeString)
 		currentDeviceType, ok := l.DeviceTypes[current.DeviceTypeString]
 		if !ok {
-			panic(fmt.Sprint("Device type does not exist", current.DeviceType))
+			return nil, fmt.Errorf("device type (%v) does not exist", current.DeviceType)
 		}
 
 		// Retrieve the hardware type at this point in time, so we only lookup in the map once
@@ -214,9 +214,9 @@ func (l *Library) GetDefaultHardwareBuildOut(deviceTypeString string, deviceOrdi
 		current.HardwareTypePath = append(current.HardwareTypePath, current.DeviceType.HardwareType)
 
 		for _, deviceBay := range currentDeviceType.DeviceBays {
-			log.Debug().Msgf("Device bay: %s", deviceBay.Name)
+			log.Debug().Msgf("  Device bay: %s", deviceBay.Name)
 			if deviceBay.Default != nil {
-				log.Debug().Msgf("Default: %s", deviceBay.Default.Slug)
+				log.Debug().Msgf("    Default: %s", deviceBay.Default.Slug)
 
 				// Extract the ordinal
 				// This is one way of going about, but it assumes that each name has a number
@@ -225,7 +225,6 @@ func (l *Library) GetDefaultHardwareBuildOut(deviceTypeString string, deviceOrdi
 				// - Get all of the device base with that type, and then sort them lexicographically. This is how HSM does it, but assumes the names can be sorted in a predictable order
 				r := regexp.MustCompile(`\d+`)
 				match := r.FindString(deviceBay.Name)
-				log.Debug().Msgf("%s|%s\n", deviceBay.Name, match)
 
 				var ordinal int
 				if match != "" {

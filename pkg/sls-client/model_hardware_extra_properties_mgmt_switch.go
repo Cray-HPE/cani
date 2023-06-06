@@ -9,6 +9,7 @@
 package sls_client
 
 type HardwareExtraPropertiesMgmtSwitch struct {
+	CaniId           string   `json:"@cani.id,omitempty"`
 	IP6addr          string   `json:"IP6addr,omitempty"`
 	IP4addr          string   `json:"IP4addr,omitempty"`
 	Brand            string   `json:"Brand,omitempty"`

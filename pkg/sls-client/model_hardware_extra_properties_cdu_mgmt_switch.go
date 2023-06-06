@@ -9,6 +9,7 @@
 package sls_client
 
 type HardwareExtraPropertiesCduMgmtSwitch struct {
+	CaniId  string   `json:"@cani.id,omitempty"`
 	Brand   string   `json:"Brand,omitempty"`
 	Model   string   `json:"Model,omitempty"`
 	Aliases []string `json:"Aliases,omitempty"`
