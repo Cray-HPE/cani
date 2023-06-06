@@ -41,6 +41,8 @@ var (
 	schemas embed.FS
 )
 
+type RawJson interface{}
+
 type ValidationResult struct {
 	CheckID     ValidationCheck
 	Result      Result
@@ -63,6 +65,58 @@ const (
 	Pass    Result = "pass"
 )
 
+func unmarshalToInterface(bytes []byte) (RawJson, ValidationResult, error) {
+	var parsedJson RawJson
+	if err := json.Unmarshal(bytes, &parsedJson); err != nil {
+		result :=
+			ValidationResult{
+				CheckID:     SLSSchemaCheck,
+				Result:      Fail,
+				ComponentID: "SLS State",
+				Description: fmt.Sprintf("SLS error unmarshaling json. %s", err)}
+		return parsedJson, result, err
+	}
+	result :=
+		ValidationResult{
+			CheckID:     SLSSchemaCheck,
+			Result:      Pass,
+			ComponentID: "SLS State",
+			Description: "SLS State is valid json."}
+	return parsedJson, result, nil
+}
+
+func unmarshalToSlsState(bytes []byte) (*sls_client.SlsState, ValidationResult, error) {
+	var slsState sls_client.SlsState
+	if err := json.Unmarshal(bytes, &slsState); err != nil {
+		result :=
+			ValidationResult{
+				CheckID:     SLSSchemaCheck,
+				Result:      Fail,
+				ComponentID: "SLS State",
+				Description: fmt.Sprintf("SLS error unmarshaling json to struct. %s", err)}
+		return &slsState, result, err
+	}
+	result :=
+		ValidationResult{
+			CheckID:     SLSSchemaCheck,
+			Result:      Pass,
+			ComponentID: "SLS State",
+			Description: "SLS State is parseable struct."}
+
+	return &slsState, result, nil
+}
+
+func allError(results []ValidationResult) error {
+	var allError error
+	for _, result := range results {
+		if result.Result == Fail {
+			e := fmt.Errorf("%s: %s", result.ComponentID, result.Description)
+			allError = errors.Join(allError, e)
+		}
+	}
+	return allError
+}
+
 // Validate validates the data in the response against the SLS schema.
 func ValidateHTTPResponse(slsState *sls_client.SlsState, response *http.Response) ([]ValidationResult, error) {
 	results := make([]ValidationResult, 0)
@@ -82,6 +136,26 @@ func ValidateHTTPResponse(slsState *sls_client.SlsState, response *http.Response
 	return validate(slsState, responseBytes, results...)
 }
 
+func ValidateString(slsStateBytes []byte) ([]ValidationResult, error) {
+	results := make([]ValidationResult, 0)
+
+	RawJson, result, err := unmarshalToInterface(slsStateBytes)
+	results = append(results, result)
+	if err != nil {
+		return results, err
+	}
+
+	slsState, result, err := unmarshalToSlsState(slsStateBytes)
+	results = append(results, result)
+	if err != nil {
+		return results, err
+	}
+
+	r, err := validate(slsState, RawJson)
+	results = append(results, r...)
+	return results, err
+}
+
 func Validate(slsState *sls_client.SlsState) ([]ValidationResult, error) {
 	// If we don't get a raw SLS payload, such as validating an SLS state build inside this tool we need to create the JSON version of the paylpoad
 	rawSLSState, err := json.Marshal(*slsState)
@@ -89,10 +163,17 @@ func Validate(slsState *sls_client.SlsState) ([]ValidationResult, error) {
 		return nil, err
 	}
 
-	return validate(slsState, rawSLSState)
+	results := make([]ValidationResult, 0)
+	RawJson, result, err := unmarshalToInterface(rawSLSState)
+	results = append(results, result)
+	if err != nil {
+		return results, err
+	}
+
+	return validate(slsState, RawJson, results...)
 }
 
-func validate(slsState *sls_client.SlsState, rawSLSState []byte, additionalResults ...ValidationResult) ([]ValidationResult, error) {
+func validate(slsState *sls_client.SlsState, rawSLSState RawJson, additionalResults ...ValidationResult) ([]ValidationResult, error) {
 	results := make([]ValidationResult, 0)
 	results = append(results, additionalResults...)
 
@@ -174,16 +255,5 @@ func validate(slsState *sls_client.SlsState, rawSLSState []byte, additionalResul
 		}
 	}
 
-	var allError error
-	for _, result := range results {
-		if result.Result == Fail {
-			e := fmt.Errorf("%s: %s", result.ComponentID, result.Description)
-			allError = errors.Join(allError, e)
-		}
-	}
-
-	if allError != nil {
-		return results, allError
-	}
-	return results, nil
+	return results, allError(results)
 }

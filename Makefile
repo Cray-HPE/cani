@@ -134,8 +134,10 @@ spec:
 validate-hardware-type-schemas:
 	go run ./pkg/hardwaretypes/validate pkg/hardwaretypes/hardware-types/schema  pkg/hardwaretypes/hardware-types/
 
-test: bin validate-hardware-type-schemas
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go test -cover github.com/Cray-HPE/cani/cmd/validate
+unittest: bin
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go test -cover github.com/Cray-HPE/cani/internal/provider/csm/validate
+
+test: bin validate-hardware-type-schemas unittest
 	shellspec --format tap --no-warning-as-failure
 
 tools:
