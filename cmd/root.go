@@ -35,7 +35,7 @@ import (
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:               "cani",
+	Use:               taxonomy.App,
 	Short:             taxonomy.ShortDescription,
 	Long:              taxonomy.LongDescription,
 	PersistentPreRunE: loadConfigAndDomainOpts, // Load the domain options and config file settings

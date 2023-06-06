@@ -32,7 +32,7 @@ func InitConfig(cfg string) (err error) {
 
 	// Write a default config file if it doesn't exist
 	if _, err := os.Stat(cfg); os.IsNotExist(err) {
-		log.Info().Msg(fmt.Sprintf("%s does not exist, creating default config file", cfg))
+		log.Debug().Msg(fmt.Sprintf("%s does not exist, creating default config file", cfg))
 
 		// Create a config with default values since one does not exist
 		conf := &Config{
