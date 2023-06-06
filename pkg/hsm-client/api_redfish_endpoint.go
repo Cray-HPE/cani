@@ -743,18 +743,18 @@ Retrieve all Redfish endpoint entries as a named array, optionally filtering it.
      * @param "Uuid" (optional.String) -  Retrieve the RedfishEndpoint with the given UUID.
      * @param "Macaddr" (optional.String) -  Retrieve the RedfishEndpoint with the given MAC address.
      * @param "Ipaddress" (optional.String) -  Retrieve the RedfishEndpoint with the given IP address. A blank string will get Redfish endpoints without IP addresses.
-     * @param "Laststatus" (optional.String) -  Retrieve the RedfishEndpoints with the given discovery status. This can be negated (i.e. !DiscoverOK). Valid values are: EndpointInvalid, EPResponseFailedDecode, HTTPsGetFailed, NotYetQueried, VerificationFailed, ChildVerificationFailed, DiscoverOK
+     * @param "Lastdiscoverystatus" (optional.String) -  Retrieve the RedfishEndpoints with the given discovery status. This can be negated (i.e. !DiscoverOK). Valid values are: EndpointInvalid, EPResponseFailedDecode, HTTPsGetFailed, NotYetQueried, VerificationFailed, ChildVerificationFailed, DiscoverOK
 @return RedfishEndpointArrayRedfishEndpointArray
 */
 
 type RedfishEndpointApiDoRedfishEndpointsGetOpts struct {
-	Id         optional.String
-	Fqdn       optional.String
-	Type_      optional.String
-	Uuid       optional.String
-	Macaddr    optional.String
-	Ipaddress  optional.String
-	Laststatus optional.String
+	Id                  optional.String
+	Fqdn                optional.String
+	Type_               optional.String
+	Uuid                optional.String
+	Macaddr             optional.String
+	Ipaddress           optional.String
+	Lastdiscoverystatus optional.String
 }
 
 func (a *RedfishEndpointApiService) DoRedfishEndpointsGet(ctx context.Context, localVarOptionals *RedfishEndpointApiDoRedfishEndpointsGetOpts) (RedfishEndpointArrayRedfishEndpointArray, *http.Response, error) {
@@ -791,8 +791,8 @@ func (a *RedfishEndpointApiService) DoRedfishEndpointsGet(ctx context.Context, l
 	if localVarOptionals != nil && localVarOptionals.Ipaddress.IsSet() {
 		localVarQueryParams.Add("ipaddress", parameterToString(localVarOptionals.Ipaddress.Value(), ""))
 	}
-	if localVarOptionals != nil && localVarOptionals.Laststatus.IsSet() {
-		localVarQueryParams.Add("laststatus", parameterToString(localVarOptionals.Laststatus.Value(), ""))
+	if localVarOptionals != nil && localVarOptionals.Lastdiscoverystatus.IsSet() {
+		localVarQueryParams.Add("lastdiscoverystatus", parameterToString(localVarOptionals.Lastdiscoverystatus.Value(), ""))
 	}
 	// to determine the Content-Type header
 	localVarHttpContentTypes := []string{}

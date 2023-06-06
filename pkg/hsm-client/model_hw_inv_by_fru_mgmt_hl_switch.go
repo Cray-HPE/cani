@@ -8,16 +8,13 @@
  */
 package hsm_client
 
-import (
-	"time"
-)
-
-// Contains info about the discovery status of the given endpoint.
-type RedfishEndpoint100RedfishEndpointDiscoveryInfo struct {
-	// The time the last discovery attempt took place.
-	LastDiscoveryAttempt time.Time `json:"LastDiscoveryAttempt,omitempty"`
-	// Describes the outcome of the last discovery attempt.
-	LastDiscoveryStatus string `json:"LastDiscoveryStatus,omitempty"`
-	// Version of Redfish as reported by the RF service root.
-	RedfishVersion string `json:"RedfishVersion,omitempty"`
+// This is a subtype of HWInventoryByFRU for HMSType MgmtHLSwitch. It represents a high level management switch.  It is selected via the 'discriminator: HWInventoryByFRUType' of HWInventoryByFRU when HWInventoryByFRUType is 'HWInvByFRUMgmtHLSwitch'.
+type HwInvByFruMgmtHlSwitch struct {
+	FRUID string      `json:"FRUID,omitempty"`
+	Type_ *HmsType100 `json:"Type,omitempty"`
+	// TBD.
+	FRUSubtype string `json:"FRUSubtype,omitempty"`
+	// This is used as a discriminator to determine the additional HMS-type specific subtype that is returned.
+	HWInventoryByFRUType string                               `json:"HWInventoryByFRUType"`
+	MgmtHLSwitchFRUInfo  *HwInventory100RedfishChassisFruInfo `json:"MgmtHLSwitchFRUInfo,omitempty"`
 }

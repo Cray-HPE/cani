@@ -8,16 +8,16 @@
  */
 package hsm_client
 
-import (
-	"time"
-)
-
-// Contains info about the discovery status of the given endpoint.
-type RedfishEndpoint100RedfishEndpointDiscoveryInfo struct {
-	// The time the last discovery attempt took place.
-	LastDiscoveryAttempt time.Time `json:"LastDiscoveryAttempt,omitempty"`
-	// Describes the outcome of the last discovery attempt.
-	LastDiscoveryStatus string `json:"LastDiscoveryStatus,omitempty"`
-	// Version of Redfish as reported by the RF service root.
-	RedfishVersion string `json:"RedfishVersion,omitempty"`
+// This is a subtype of HWInventoryByLocation for HMSType MgmtSwitch. It represents a management switch.  It is selected via the 'discriminator: HWInventoryByLocationType' of HWInventoryByLocation when HWInventoryByLocationType is 'HWInvByLocMgmtSwitch'.
+type HwInvByLocMgmtSwitch struct {
+	ID    string      `json:"ID"`
+	Type_ *HmsType100 `json:"Type,omitempty"`
+	// This is the normalized (from zero) index of the component location (e.g. slot number) when there are more than one.  This should match the last number in the xname in most cases (e.g. Ordinal 0 for node x0c0s0b0n0).  Note that Redfish may use a different value or naming scheme, but this is passed through via the *LocationInfo for the type of component.
+	Ordinal int32 `json:"Ordinal,omitempty"`
+	// Populated or Empty - whether location is populated.
+	Status string `json:"Status,omitempty"`
+	// This is used as a discriminator to determine the additional HMS-type specific subtype that is returned.
+	HWInventoryByLocationType string                                    `json:"HWInventoryByLocationType"`
+	PopulatedFRU              *HwInventory100HwInventoryByFru           `json:"PopulatedFRU,omitempty"`
+	MgmtSwitchLocationInfo    *HwInventory100RedfishChassisLocationInfo `json:"MgmtSwitchLocationInfo,omitempty"`
 }
