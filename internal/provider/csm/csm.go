@@ -2,27 +2,31 @@ package csm
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
-	"net/http"
 
+	"github.com/Cray-HPE/cani/cmd/taxonomy"
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/mitchellh/mapstructure"
 )
 
 type NewOpts struct {
 	InsecureSkipVerify bool
 	APIGatewayToken    string
-
-	BaseUrlSLS string
-	BaseUrlHSM string
-
-	ValidRoles    []string
-	ValidSubRoles []string
+	BaseUrlSLS         string
+	BaseUrlHSM         string
+	SecretName         string
+	KubeConfig         string
+	ClientID           string `json:"-" yaml:"-"` // omit credentials from cani.yml
+	ClientSecret       string `json:"-" yaml:"-"` // omit credentials from cani.yml
+	TokenHost          string
+	TokenUsername      string `json:"-" yaml:"-"` // omit credentials from cani.yml
+	TokenPassword      string `json:"-" yaml:"-"` // omit credentials from cani.yml
+	CaCertPath         string
+	ValidRoles         []string
+	ValidSubRoles      []string
 }
 
 var DefaultValidRoles = []string{
@@ -45,33 +49,26 @@ var DefaultValidSubRolesRoles = []string{
 }
 
 type CSM struct {
-
 	// Clients
 	slsClient *sls_client.APIClient
 	hsmClient *hsm_client.APIClient
-
 	// System Configuration data
 	ValidRoles    []string
 	ValidSubRoles []string
 }
 
-func New(opts NewOpts) (*CSM, error) {
+func New(opts *NewOpts) (*CSM, error) {
 	csm := &CSM{}
-
-	//
-	// Create Clients
-	//
-
-	// Setup HTTP client
-	httpClient := retryablehttp.NewClient()
-	httpClient.HTTPClient.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.InsecureSkipVerify},
+	// Setup HTTP client and context using csm options
+	httpClient, _, err := opts.newClient()
+	if err != nil {
+		return nil, err
 	}
 
 	slsClientConfiguration := &sls_client.Configuration{
 		BasePath:   opts.BaseUrlSLS,
 		HTTPClient: httpClient.StandardClient(),
-		UserAgent:  "cani",
+		UserAgent:  taxonomy.App,
 		DefaultHeader: map[string]string{
 			"Content-Type": "application/json",
 		},
@@ -80,25 +77,25 @@ func New(opts NewOpts) (*CSM, error) {
 	hsmClientConfiguration := &hsm_client.Configuration{
 		BasePath:   opts.BaseUrlHSM,
 		HTTPClient: httpClient.StandardClient(),
-		UserAgent:  "cani",
+		UserAgent:  taxonomy.App,
 		DefaultHeader: map[string]string{
 			"Content-Type": "application/json",
 		},
 	}
 
-	// Add in the API token if provided
 	if opts.APIGatewayToken != "" {
+		// Set the token for use in the clients
 		slsClientConfiguration.DefaultHeader["Authorization"] = fmt.Sprintf("Bearer %s", opts.APIGatewayToken)
 		hsmClientConfiguration.DefaultHeader["Authorization"] = fmt.Sprintf("Bearer %s", opts.APIGatewayToken)
 	}
 
+	// Set the clients
 	csm.slsClient = sls_client.NewAPIClient(slsClientConfiguration)
 	csm.hsmClient = hsm_client.NewAPIClient(hsmClientConfiguration)
 
 	// Load system specific config data
 	csm.ValidRoles = opts.ValidRoles
 	csm.ValidSubRoles = opts.ValidSubRoles
-
 	return csm, nil
 }
 

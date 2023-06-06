@@ -41,7 +41,6 @@ var (
 type APIClient struct {
 	cfg    *Configuration
 	common service // Reuse a single struct instead of allocating one for each service on the heap.
-
 	// API Services
 
 	CliFromFileApi *CliFromFileApiService
