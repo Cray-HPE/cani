@@ -60,7 +60,7 @@ type CSM struct {
 func New(opts *NewOpts) (*CSM, error) {
 	csm := &CSM{}
 	// Setup HTTP client and context using csm options
-	httpClient, ctx, err := opts.newClient()
+	httpClient, _, err := opts.newClient()
 	if err != nil {
 		return nil, err
 	}
@@ -90,9 +90,7 @@ func New(opts *NewOpts) (*CSM, error) {
 	}
 
 	// Set the clients
-	slsClientConfiguration.Ctx = ctx
 	csm.slsClient = sls_client.NewAPIClient(slsClientConfiguration)
-	hsmClientConfiguration.Ctx = ctx
 	csm.hsmClient = hsm_client.NewAPIClient(hsmClientConfiguration)
 
 	// Load system specific config data
