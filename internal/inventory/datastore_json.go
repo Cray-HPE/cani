@@ -438,39 +438,33 @@ func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 	if len(path) == 0 {
 		return Hardware{}, ErrEmptyLocationPath
 	}
-
-	// TODO Currently do not have a system type in our inventory, which cabinets/CDUs would be the child of, so for now keep track of them
-	topLevelHardware := map[hardwaretypes.HardwareType][]uuid.UUID{
-		hardwaretypes.Cabinet:                 {},
-		hardwaretypes.CoolingDistributionUnit: {},
-	}
-	for _, hardware := range dj.inventory.Hardware {
-		if hardware.Type == hardwaretypes.Cabinet || hardware.Type == hardwaretypes.CoolingDistributionUnit {
-			topLevelHardware[hardware.Type] = append(topLevelHardware[hardware.Type], hardware.ID)
-		}
-	}
+	log.Debug().Msgf("GetAtLocation: Location Path: %s", path.String())
 
 	//
 	// Traverse the tree to see if the hardware exists at the given location
 	//
+	currentHardware, err := dj.getSystemZero()
+	if err != nil {
+		return Hardware{}, err
+	}
 
-	var currentHardware Hardware
-	for i, locationToken := range path {
+	// Base case - System 0
+	if len(path) == 1 {
+		if path[0].HardwareType == hardwaretypes.System && path[1].Ordinal == 0 {
+			return currentHardware, nil
+		} else {
+			return Hardware{}, ErrHardwareNotFound
+		}
+	}
+
+	// Vist rest of the path
+	for i, locationToken := range path[1:] {
 		log.Debug().Msgf("GetAtLocation: Processing token %d of %d: '%s'", i+1, len(path), locationToken.String())
 		log.Debug().Msgf("GetAtLocation: Current ID %s", currentHardware.ID)
 
-		var children []uuid.UUID
-		if i == 0 {
-			// First find the children of "root"/top level object, but we currently lack that so use the topLevelHardware lookup
-			children = topLevelHardware[path[0].HardwareType]
-		} else {
-			// Otherwise get the children like normal
-			children = currentHardware.Children
-		}
-
 		// For each child of the current hardware object check to see if it
 		foundMatch := false
-		for _, childID := range children {
+		for _, childID := range currentHardware.Children {
 			log.Debug().Msgf("GetAtLocation: Visiting Child (%s)", childID)
 			// Get the hardware
 			childHardware, ok := dj.inventory.Hardware[childID]
