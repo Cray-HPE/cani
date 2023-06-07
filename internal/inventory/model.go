@@ -1,11 +1,13 @@
 package inventory
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 )
 
 // Inventory is the top level object that represents the entire inventory
@@ -101,4 +103,21 @@ func (lp LocationPath) GetOrdinalPath() []int {
 	}
 
 	return result
+}
+
+// Exists returns true if the hardware exists in the datastore
+func (lp LocationPath) Exists(ds Datastore) (bool, error) {
+	log.Debug().Msgf("Checking if hardware exists at location %s", lp.String())
+	hw, err := ds.GetAtLocation(lp)
+	if err == nil {
+		log.Warn().Msgf("%s %s exists at location %s", hw.Type, hw.ID.String(), lp.String())
+		// Hardware found
+		return true, nil
+	} else if errors.Is(err, ErrHardwareNotFound) {
+		// Hardware not found
+		return false, nil
+	} else {
+		// Oops something happened
+		return false, err
+	}
 }

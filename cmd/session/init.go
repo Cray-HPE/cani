@@ -38,6 +38,7 @@ func init() {
 	SessionStartCmd.MarkFlagRequired("csm-keycloak-username")
 	SessionStartCmd.Flags().StringVar(&tokenPassword, "csm-keycloak-password", "", "(CSM Provider) Keycloak password")
 	SessionStartCmd.MarkFlagRequired("csm-keycloak-password")
+	SessionStartCmd.MarkFlagsRequiredTogether("csm-base-auth-url", "csm-keycloak-username", "csm-keycloak-password")
 	// TODO the API token, do we save ito the file?
 
 	// Less secure auth methods for CSM that follow existing patterns, but to discourage use, mark them hidden

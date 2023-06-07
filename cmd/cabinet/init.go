@@ -21,7 +21,9 @@ func init() {
 
 	// Cabinets
 	AddCabinetCmd.Flags().IntVar(&cabinetNumber, "cabinet", 1001, "Cabinet number.")
+	AddCabinetCmd.MarkFlagRequired("cabinet")
 	AddCabinetCmd.Flags().IntVar(&vlanId, "vlan-id", -1, "Vlan ID for the cabinet.")
+	AddCabinetCmd.MarkFlagRequired("vlan-id")
 	AddCabinetCmd.MarkFlagsRequiredTogether("cabinet", "vlan-id")
 	AddCabinetCmd.Flags().BoolVar(&auto, "auto", false, "Automatically recommend and assign required flags.")
 }
