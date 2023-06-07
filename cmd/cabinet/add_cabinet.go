@@ -25,6 +25,7 @@ package cabinet
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 
 	root "github.com/Cray-HPE/cani/cmd"
@@ -32,6 +33,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+	"github.com/manifoldco/promptui"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -43,6 +45,7 @@ var AddCabinetCmd = &cobra.Command{
 	Long:              `Add cabinets to the inventory.`,
 	PersistentPreRunE: session.DatastoreExists, // A session must be active to write to a datastore
 	Args:              validHardware,           // Hardware can only be valid if defined in the hardware library
+	SilenceUsage:      true,                    // Errors are more important than the usage
 	RunE:              addCabinet,              // Add a cabinet when this sub-command is called
 }
 
@@ -54,8 +57,29 @@ func addCabinet(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Add the blade from the inventory using domain methods
-	result, err := d.AddCabinet(cmd.Context(), args[0], cabinet)
+	if auto {
+		log.Info().Msgf("Automatically assigning cabinet number and VLAN ID")
+		// TODO: Need to auto-generate a VLAN ID and cabinet number from existing provider
+		log.Info().Msgf("Suggested VLAN ID: %d", vlanId)
+		log.Info().Msgf("Suggested cabinet number: %d", cabinetNumber)
+		// Prompt the user to confirm the suggestions
+		auto, err = promptToConfimSuggestions()
+		if err != nil {
+			return err
+		}
+
+		// If the user chose not to accept the suggestions, exit
+		if !auto {
+			log.Warn().Msgf("Aborted %s add", hardwaretypes.Cabinet)
+			fmt.Printf("\nAuto-generated values can be overridden by re-running the command with explicit values:\n")
+			fmt.Printf("\n\tcani alpha add cabinet %s --vlan %d --cabinet-number %d\n\n", args[0], vlanId, cabinetNumber)
+
+			return nil
+		}
+	}
+
+	// Add the cabinet to the inventory using domain methods
+	result, err := d.AddCabinet(cmd.Context(), args[0], cabinetNumber)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		// TODO the following should probably suggest commands to fix the issue?
 		log.Error().Msgf("Inventory data validation errors encountered")
@@ -71,7 +95,8 @@ func addCabinet(cmd *cobra.Command, args []string) error {
 	} else if err != nil {
 		return err
 	}
-	log.Info().Msgf("Added cabinet %s", args[0])
+
+	log.Info().Str("status", "SUCCESS").Msgf("%s %d was successfully staged to be added to the system", hardwaretypes.Cabinet, cabinetNumber)
 
 	// Use a map to track already added nodes.
 	newNodes := []domain.HardwareLocationPair{}
@@ -80,10 +105,34 @@ func addCabinet(cmd *cobra.Command, args []string) error {
 		// If the type is a Node
 		if result.Hardware.Type == hardwaretypes.Cabinet {
 			log.Debug().Msgf("%s added at %s with parent %s (%s)", result.Hardware.Type, result.Location.String(), hardwaretypes.System, result.Hardware.Parent)
+			log.Info().Msgf("UUID: %s", result.Hardware.ID)
+			log.Info().Msgf("Cabinet Number: %d", cabinetNumber)
+			log.Info().Msgf("VLAN ID: %d", vlanId)
 			// Add the node to the map
 			newNodes = append(newNodes, result)
 		}
 	}
 
 	return nil
+}
+
+func promptToConfimSuggestions() (bool, error) {
+	prompt := promptui.Prompt{
+		Label:     fmt.Sprintf("Would you like to accept the recommendations and add the %s", hardwaretypes.Cabinet),
+		IsConfirm: true,
+	}
+
+	_, err := prompt.Run()
+
+	if err != nil {
+		if err == promptui.ErrAbort {
+			// User chose not to accept the suggestions
+			return false, nil
+		}
+		// An error occurred
+		return false, err
+	}
+
+	// User chose to continue
+	return true, nil
 }
