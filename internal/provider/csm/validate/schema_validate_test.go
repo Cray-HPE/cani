@@ -30,6 +30,10 @@ import (
 	"github.com/santhosh-tekuri/jsonschema/v5"
 )
 
+const (
+	TestDataDir = "../../../../testdata/fixtures/sls"
+)
+
 func loadSchemaForTest(t *testing.T, schemafile string) (schema *jsonschema.Schema, err error) {
 	subnetsSchema, err := loadSchema(schemafile)
 	if err != nil {
@@ -78,7 +82,7 @@ func logResults(t *testing.T, results []ValidationResult) {
 
 func TestNetworks(t *testing.T) {
 	schemafile := "sls_networks_schema.json"
-	datafile := "sls_test_data/mug-dumpstate.json"
+	datafile := "mug-dumpstate.json"
 	networksSchema, rawJson := loadSchemaAndRawJson(t, schemafile, datafile)
 
 	networks, found := GetMap(rawJson, "Networks")
@@ -97,7 +101,7 @@ func TestNetworks(t *testing.T) {
 
 func TestNetworksInvalid(t *testing.T) {
 	schemafile := "sls_networks_schema.json"
-	datafile := "sls_test_data/dumpstate-invalid.json"
+	datafile := "dumpstate-invalid.json"
 	networksSchema, rawJson := loadSchemaAndRawJson(t, schemafile, datafile)
 
 	networks, found := GetMap(rawJson, "Networks")

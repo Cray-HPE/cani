@@ -30,7 +30,7 @@ import (
 )
 
 func loadTestData(t *testing.T, name string) []byte {
-	content, err := os.ReadFile(name)
+	content, err := os.ReadFile(TestDataDir + "/" + name)
 	if err != nil {
 		t.Fatalf("Failed to load file %s. error: %v", name, err)
 	}
@@ -38,7 +38,7 @@ func loadTestData(t *testing.T, name string) []byte {
 }
 
 func TestUnmarshalToString(t *testing.T) {
-	datafile := "sls_test_data/mug-dumpstate.json"
+	datafile := "mug-dumpstate.json"
 	content := loadTestData(t, datafile)
 
 	raw, result, err := unmarshalToInterface(content)
@@ -56,7 +56,7 @@ func TestUnmarshalToString(t *testing.T) {
 }
 
 func TestUnmarshalToSlsState(t *testing.T) {
-	datafile := "sls_test_data/mug-dumpstate.json"
+	datafile := "mug-dumpstate.json"
 	content := loadTestData(t, datafile)
 	slsState, result, err := unmarshalToSlsState(content)
 
