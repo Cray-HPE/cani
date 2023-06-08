@@ -20,6 +20,9 @@
 # Go workspace file
 go.work
 
+# vim files
+*.swp
+
 # shellspec
 .shellspec-local
 .shellspec-quick.log
@@ -31,4 +34,3 @@ coverage/
 .cani/
 cani.yml
 cani.yaml
-cani_db.json
