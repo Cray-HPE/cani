@@ -28,7 +28,6 @@ func init() {
 	// Global root command flags
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", cfgFile, "Path to the configuration file")
 	RootCmd.PersistentFlags().BoolVarP(&Debug, "debug", "D", false, "additional debug output")
-	RootCmd.PersistentFlags().BoolVarP(&Simulation, "simulation", "S", false, "Use simulation mode for hsm-simulation-environment")
 
 	// Global add flags
 	AddCmd.PersistentFlags().StringVarP(&vendor, "vendor", "m", "HPE", "Vendor")

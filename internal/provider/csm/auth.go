@@ -56,7 +56,8 @@ func (opts *NewOpts) newClient() (httpClient *retryablehttp.Client, ctx context.
 	ctx = context.Background()
 	ctx = context.WithValue(ctx, oauth2.HTTPClient, httpClient.StandardClient())
 
-	if opts.APIGatewayToken == "" {
+	if opts.APIGatewayToken == "" && !opts.UseSimulation {
+		log.Info().Msgf("No API Gateway token provided, getting one from provider %s", opts.BaseUrlSLS)
 		// Get the auth token from keycloak
 		token, err := opts.getAuthToken(ctx)
 		if err != nil {
@@ -82,7 +83,7 @@ func (opts *NewOpts) getAuthToken(ctx context.Context) (*oauth2.Token, error) {
 	// Get the token
 	token, err := conf.PasswordCredentialsToken(ctx, opts.TokenUsername, string(opts.TokenPassword))
 	if err != nil {
-		log.Error().Msgf("Failed to get token, %s, %s %s", opts.TokenHost, opts.TokenUsername, opts.TokenPassword)
+		log.Error().Msgf("Failed to get token.  Check if the token host is reachable and the credentials are correct. %s", err)
 		return nil, err
 	}
 
