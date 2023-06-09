@@ -27,6 +27,9 @@ package validate
 import (
 	"os"
 	"testing"
+
+	"github.com/Cray-HPE/cani/internal/provider/csm/validate/common"
+	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 )
 
 func loadTestData(t *testing.T, name string) []byte {
@@ -35,6 +38,34 @@ func loadTestData(t *testing.T, name string) []byte {
 		t.Fatalf("Failed to load file %s. error: %v", name, err)
 	}
 	return content
+}
+
+func loadTestObjects(t *testing.T, filename string) (slsState *sls_client.SlsState, rawSLSState RawJson) {
+	fileContent := loadTestData(t, filename)
+
+	raw, result, err := unmarshalToInterface(fileContent)
+	if err != nil {
+		t.Fatalf("Failed to unmarshal %s. error: %s", filename, err)
+	}
+
+	if result.Result != common.Pass {
+		t.Fatalf("Failed to unmarshal %s. result: %v, error: %s", filename, result, err)
+	}
+
+	if raw == nil {
+		t.Fatalf("Failed to unmarshal %s. the returned interface{} is nil", filename)
+	}
+
+	slsState, result, err = unmarshalToSlsState(fileContent)
+	if err != nil {
+		t.Fatalf("failed to unmarshal %s. error: %s", filename, err)
+	}
+
+	if result.Result != common.Pass {
+		t.Fatalf("Failed to unmarshal %s. result: %v, error: %s", filename, result, err)
+	}
+
+	return slsState, raw
 }
 
 func TestUnmarshalToString(t *testing.T) {
@@ -46,7 +77,7 @@ func TestUnmarshalToString(t *testing.T) {
 		t.Fatalf("Failed to unmarshal %s. error: %s", datafile, err)
 	}
 
-	if result.Result != Pass {
+	if result.Result != common.Pass {
 		t.Fatalf("Failed to unmarshal %s. result: %v, error: %s", datafile, result, err)
 	}
 
@@ -64,7 +95,7 @@ func TestUnmarshalToSlsState(t *testing.T) {
 		t.Fatalf("failed to unmarshal %s. error: %s", datafile, err)
 	}
 
-	if result.Result != Pass {
+	if result.Result != common.Pass {
 		t.Fatalf("Failed to unmarshal %s. result: %v, error: %s", datafile, result, err)
 	}
 
@@ -79,4 +110,16 @@ func TestUnmarshalToSlsState(t *testing.T) {
 	if len(slsState.Networks) == 0 {
 		t.Errorf("Failed to unmarshal %s. Found zero networks", datafile)
 	}
+}
+
+func TestValidate(t *testing.T) {
+	datafile := "mug-dumpstate.json"
+	slsState, rawSLSState := loadTestObjects(t, datafile)
+	results, err := validate(slsState, rawSLSState)
+	if err != nil {
+		// Ignore the error because validation failures are expected.
+		t.Logf("ERROR: \n%s", err)
+	}
+
+	logResults(t, results)
 }

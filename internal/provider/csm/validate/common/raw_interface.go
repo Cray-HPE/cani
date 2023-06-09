@@ -22,7 +22,12 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package validate
+package common
+
+import (
+	"fmt"
+	"strconv"
+)
 
 func pos(length int) int {
 	if length < 0 {
@@ -45,6 +50,16 @@ func GetSliceOfMaps(raw interface{}, id ...string) ([]map[string]interface{}, bo
 }
 
 func GetSlice(raw interface{}, id ...string) ([]interface{}, bool) {
+	if raw == nil {
+		return make([]interface{}, 0), false
+	}
+	if len(id) == 0 {
+		if slice, ok := raw.([]interface{}); ok {
+			return slice, true
+		} else {
+			return make([]interface{}, 0), false
+		}
+	}
 	idsUpToSlice := id[:pos(len(id)-1)]
 	objectMap, found := GetMap(raw, idsUpToSlice...)
 
@@ -59,6 +74,49 @@ func GetSlice(raw interface{}, id ...string) ([]interface{}, bool) {
 	return make([]interface{}, 0), false
 }
 
+func GetSliceOfStrings(raw interface{}, id ...string) ([]string, bool) {
+	list, found := GetSlice(raw, id...)
+	if !found {
+		return make([]string, 0), false
+	}
+	strs := make([]string, 0)
+	for _, val := range list {
+		strs = append(strs, fmt.Sprintf("%v", val))
+	}
+	return strs, true
+}
+
+func ToInt(raw interface{}) (int64, bool) {
+	if raw == nil {
+		return -1, false
+	}
+	str := fmt.Sprintf("%v", raw)
+	i, err := strconv.ParseInt(str, 10, 64)
+	if err != nil {
+		return -2, false
+	}
+	return i, true
+}
+
+func GetString(raw interface{}, ids ...string) (string, bool) {
+	if raw == nil || len(ids) == 0 {
+		return "", false
+	}
+
+	idsUpToString := ids[:pos(len(ids)-1)]
+	object, found := GetMap(raw, idsUpToString...)
+	if !found {
+		return "", false
+	}
+
+	key := ids[len(ids)-1]
+	val, ok := object[key]
+	if !ok {
+		return "", false
+	}
+	return fmt.Sprintf("%v", val), true
+}
+
 func GetMap(raw interface{}, ids ...string) (map[string]interface{}, bool) {
 	if len(ids) == 0 {
 		if m, ok := raw.(map[string]interface{}); ok {
@@ -71,10 +129,14 @@ func GetMap(raw interface{}, ids ...string) (map[string]interface{}, bool) {
 		if m, ok := object.(map[string]interface{}); ok {
 			if value, found := m[key]; found {
 				object = value
+				break
 			} else {
 				return make(map[string]interface{}), false
 			}
 		}
+	}
+	if object == nil {
+		return make(map[string]interface{}), false
 	}
 	return object.(map[string]interface{}), true
 }
