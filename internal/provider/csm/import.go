@@ -23,128 +23,19 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Import external inventory data into CANI's inventory format
-// func (csm *CSM) Import2(ctx context.Context, datastore inventory.Datastore) error {
-// 	// Get the system UUID
-// 	cSystem, err := datastore.GetSystemZero()
-// 	if err != nil {
-// 		return errors.Join(fmt.Errorf("failed to get system:0 ID"), err)
-// 	}
-
-// 	// Get hardware contents of SLS
-// 	slsDumpstate, _, err := csm.slsClient.DumpstateApi.DumpstateGet(ctx)
-// 	if err != nil {
-// 		return errors.Join(fmt.Errorf("failed to perform dumpstate from SLS"), err)
-// 	}
-
-// 	// Sort hardware by type
-// 	allCabinets, _ := sls.FilterHardwareByType(slsDumpstate.Hardware, xnametypes.Cabinet)
-// 	allChassis, _ := sls.FilterHardwareByType(slsDumpstate.Hardware, xnametypes.Chassis)
-// 	// chassisBMC, _ := sls.FilterHardwareByType(slsDumpstate.Hardware, xnametypes.ChassisBMC)
-// 	// routerBMCs, _ := sls.FilterHardwareByType(slsDumpstate.Hardware, xnametypes.RouterBMC)
-// 	// mgmtSwitches, _ := sls.FilterHardwareByType(slsDumpstate.Hardware, xnametypes.MgmtSwitch, xnametypes.MgmtHLSwitch, xnametypes.CDUMgmtSwitch)
-// 	// mgmtSwitchConnectors, _ := sls.FilterHardwareByType(slsDumpstate.Hardware, xnametypes.MgmtSwitchConnector)
-// 	// nodes, _ := sls.FilterHardwareByType(slsDumpstate.Hardware, xnametypes.Node)
-// 	// gigabyteCMCs := map[string]sls_client.Hardware{}
-
-// 	//
-// 	// Attempt to identify cabinets
-// 	//
-
-// 	for cabinet, chassisOrdinals := range cabinetChassisCounts {
-// 		sort.Ints(chassisOrdinals)
-// 		log.Debug().Msgf("%s: %v - %v", cabinet, len(chassisOrdinals), chassisOrdinals)
-// 	}
-
-// 	// Apply some heuristics to infer the type of cabinet this is
-// 	for _, cabinet := range allCabinets {
-// 		cabinetXname := xnames.FromStringToStruct[xnames.Cabinet](cabinet.Xname)
-// 		if cabinetXname == nil {
-// 			return fmt.Errorf("failed to parse cabinet xname (%s)", cabinet.Xname)
-// 		}
-
-// 		deviceTypeSlug := ""
-// 		switch cabinet.Class {
-// 		case sls_client.HardwareClassRiver:
-// 			deviceTypeSlug = "hpe-eia-cabinet"
-// 		case sls_client.HardwareClassHill:
-// 			if reflect.DeepEqual(cabinetChassisCounts[cabinet.Xname], []int{1, 3}) {
-// 				deviceTypeSlug = "hpe-ex2000"
-// 			} else if reflect.DeepEqual(cabinetChassisCounts[cabinet.Xname], []int{0}) {
-// 				deviceTypeSlug = "hpe-ex2500-1-liquid-cooled-chassis"
-// 			} else if reflect.DeepEqual(cabinetChassisCounts[cabinet.Xname], []int{0, 1}) {
-// 				deviceTypeSlug = "hpe-ex2500-2-liquid-cooled-chassis"
-// 			} else if reflect.DeepEqual(cabinetChassisCounts[cabinet.Xname], []int{0, 1, 2}) {
-// 				deviceTypeSlug = "hpe-ex2500-3-liquid-cooled-chassis"
-// 			}
-// 		case sls_client.HardwareClassMountain:
-// 			if reflect.DeepEqual(cabinetChassisCounts[cabinet.Xname], []int{0, 1, 2, 3, 4, 5, 6, 7}) {
-// 				deviceTypeSlug = "hpe-ex4000" // TODO This is ambiguous with the EX3000 cabinet, for right now assume
-// 			}
-// 		default:
-// 			return fmt.Errorf("cabinet (%s) has unknown class (%s)", cabinet.Xname, cabinet.Class)
-// 		}
-
-// 		if deviceTypeSlug == "" {
-// 			log.Warn().Msgf("Cabinet %s device type slug is unknown, ignoring", cabinet.Xname)
-// 			continue
-// 		} else {
-// 			log.Info().Msgf("Cabinet %s device type slug is %s", cabinet.Xname, deviceTypeSlug)
-// 		}
-
-// 		// Build up the expected hardware
-// 		// Generate a hardware build out using the system as a parent
-// 		hardwareBuildOutItems, err := csm.hardwareLibrary.GetDefaultHardwareBuildOut(deviceTypeSlug, cabinetXname.Cabinet, cSystem.ID)
-// 		if err != nil {
-// 			return errors.Join(
-// 				fmt.Errorf("unable to build default hardware build out for %s", deviceTypeSlug),
-// 				err,
-// 			)
-// 		}
-
-// 		for _, hardwareBuildOut := range hardwareBuildOutItems {
-// 			locationOrdinal := hardwareBuildOut.OrdinalPath[len(hardwareBuildOut.OrdinalPath)-1]
-
-// 			hardware := inventory.Hardware{
-// 				ID:             hardwareBuildOut.ID,
-// 				Parent:         hardwareBuildOut.ParentID,
-// 				Type:           hardwareBuildOut.DeviceType.HardwareType,
-// 				DeviceTypeSlug: hardwareBuildOut.DeviceType.Slug,
-// 				Vendor:         hardwareBuildOut.DeviceType.Manufacturer,
-// 				Model:          hardwareBuildOut.DeviceType.Model,
-
-// 				LocationOrdinal: &locationOrdinal,
-
-// 				Status: inventory.HardwareStatusProvisioned,
-// 			}
-
-// 			log.Info().Msgf("Hardware from cabinet %s: %v", cabinetXname.String(), hardware)
-// 		}
-
-// 	}
-
-// 	//
-// 	// Comparison
-// 	//
-
-// 	// Build up location paths, and determine if the hardware currently exists in the inventory
-
-// 	//
-// 	// Other thoughts
-// 	//
-
-// 	// 1. Create a top level system object in SLS, this will serve at the main place to store the CANI metadata
-// 	//		- Last time was imported by CANI
-// 	// 		- Version of CANI when the last import occured
-// 	//		- SLS CANI Schema Level
-// 	// 2. For missing hardware in SLS like Mountain Cabinet RouterBMCs, add them from HSM state
-// 	// 3. Each hardware object should have the UUID of the assoicated CANI Hardware UUID that it is assoicated to. Hopefullt this will be 1-to-1
-// 	// 4. If hardware is added to SLS without the special CANI metadata it can detected as being added outside the normal process
-// 	// 5. For hardware that doesn't exist in mountain cabinets (phantom nodes) either we mark thinks as absent as a CANI state (here is the logical data, but no physical data)
-// 	//		or out right remove them, but that will break existing procedures.
-
-// 	return nil
-// }
+//
+// Other thoughts
+//
+//
+// 1. Create a top level system object in SLS, this will serve at the main place to store the CANI metadata
+//		- Last time was imported by CANI
+// 		- Version of CANI when the last import occured
+//		- SLS CANI Schema Level
+// 2. For missing hardware in SLS like Mountain Cabinet RouterBMCs, add them from HSM state
+// 3. Each hardware object should have the UUID of the assoicated CANI Hardware UUID that it is assoicated to. Hopefullt this will be 1-to-1
+// 4. If hardware is added to SLS without the special CANI metadata it can detected as being added outside the normal process
+// 5. For hardware that doesn't exist in mountain cabinets (phantom nodes) either we mark thinks as absent as a CANI state (here is the logical data, but no physical data)
+//		or out right remove them, but that will break existing procedures.
 
 func loadJSON(path string, dest interface{}) error {
 	raw, err := ioutil.ReadFile(path)
@@ -282,11 +173,6 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			return fmt.Errorf("failed to parse cabinet xname (%s)", slsCabinet.Xname)
 		}
 
-		// slsCabinetEP, err := sls.DecodeExtraProperties[sls_client.HardwareExtraPropertiesCabinet](slsCabinet)
-		// if err != nil {
-		// 	return fmt.Errorf("failed to decode SLS hardware extra properties (%s)", slsCabinet.Xname)
-		// }
-
 		locationPath, err := FromXname(cabinetXname)
 		if err != nil {
 			return errors.Join(fmt.Errorf("failed to build location path for xname (%v)", cabinetXname), err)
@@ -374,18 +260,23 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			return errors.Join(fmt.Errorf("failed to query datastore"), err)
 		}
 
-		// TODO
-		// if slsCabinetEP.CaniId != cCabinet.ID.String() {
-		// 	if len(slsCabinetEP.CaniId) != 0 {
-		// 		log.Warn().Msgf("Detected CANI hardware ID change from %s to %s for SLS Hardware %s", slsCabinetEP.CaniId, cCabinet.ID, slsCabinet.Xname)
-		// 	}
-		// 	slsCabinetEP.CaniId = cCabinet.ID.String()
+		// Update SLS metadata
+		slsCabinetEP, err := sls.DecodeExtraProperties[sls_client.HardwareExtraPropertiesCabinet](slsCabinet)
+		if err != nil {
+			return fmt.Errorf("failed to decode SLS hardware extra properties (%s)", slsCabinet.Xname)
+		}
 
-		// 	log.Info().Msgf("SLS extra properties changed for %s", slsCabinet.Xname)
+		if slsCabinetEP.CaniId != cCabinet.ID.String() {
+			if len(slsCabinetEP.CaniId) != 0 {
+				log.Warn().Msgf("Detected CANI hardware ID change from %s to %s for SLS Hardware %s", slsCabinetEP.CaniId, cCabinet.ID, slsCabinet.Xname)
+			}
+			slsCabinetEP.CaniId = cCabinet.ID.String()
 
-		// 	slsCabinet.ExtraProperties = slsCabinetEP
-		// 	slsHardwareToModify[slsCabinet.Xname] = slsCabinet
-		// }
+			log.Info().Msgf("SLS extra properties changed for %s", slsCabinet.Xname)
+
+			slsCabinet.ExtraProperties = slsCabinetEP
+			slsHardwareToModify[slsCabinet.Xname] = slsCabinet
+		}
 
 	}
 
@@ -435,7 +326,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 		return slsNodeBladeXnames[i].String() < slsNodeBladeXnames[j].String()
 	})
 
-	// 2. Find all slots holding blades from HSM, and inventory data
+	// 2. Find all slots holding blades from HSM, and identify hardware
 	nodeBladeDeviceSlugs := map[xnames.ComputeModule]string{}
 	for _, nodeBladeXname := range slsNodeBladeXnames {
 		hsmComponent, exists := hsmStateComponentsMap[nodeBladeXname.String()]
@@ -538,7 +429,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 		}
 	}
 
-	// Update node metadata in CANI
+	// Update node metadata in CANI and SLS
 	for _, slsNode := range allNodes {
 		nodeXname := xnames.FromString(slsNode.Xname)
 		if nodeXname == nil {
@@ -551,7 +442,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 		}
 
 		//
-		// Build up node extra properties
+		// Build up node extra properties for CANI
 		//
 		slsNodeEP, err := sls.DecodeExtraProperties[sls_client.HardwareExtraPropertiesNode](slsNode)
 		if err != nil {
@@ -567,14 +458,22 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			nodeMetadata.Role = StringPtr(slsNodeEP.SubRole)
 		}
 
+		if slsNodeEP.NID != 0 {
+			nodeMetadata.Nid = IntPtr(int(slsNodeEP.NID))
+		}
+
 		if len(slsNodeEP.Aliases) != 0 {
 			// TODO need to handle multiple aliases
 			nodeMetadata.Alias = &slsNodeEP.Aliases[0]
 		}
 
 		cNode, err := tempDatastore.GetAtLocation(nodeLocationPath)
-		if err != nil {
+		if errors.Is(err, inventory.ErrHardwareNotFound) {
+			log.Warn().Msgf("TODO HANDLE Hardware does not exist: %s", nodeLocationPath)
+			continue
+		} else if err != nil {
 			return errors.Join(fmt.Errorf("failed to query datastore for %s", nodeLocationPath), err)
+
 		}
 
 		// Initialize the properties map if not done already
@@ -588,6 +487,19 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			return fmt.Errorf("failed to update hardware (%s) in memory datastore", cNode.ID)
 		}
 
+		//
+		// Update SLS Extra Properties
+		//
+		if slsNodeEP.CaniId != cNode.ID.String() {
+			if len(slsNodeEP.CaniId) != 0 {
+				log.Warn().Msgf("Detected CANI hardware ID change from %s to %s for SLS Hardware %s", slsNodeEP.CaniId, cNode.ID, slsNode.Xname)
+			}
+
+			// Update it if it has changed
+			slsNodeEP.CaniId = cNode.ID.String()
+			slsNode.ExtraProperties = slsNodeEP
+			slsHardwareToModify[slsNode.Xname] = slsNode
+		}
 	}
 
 	// // 2. Iterate through all node blades and try to identify the hardware
@@ -622,12 +534,22 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 
 	ioutil.WriteFile("import_inventory.json", importInventoryRaw, 0600)
 
-	slsHardwareToModifyRaw, _ := json.MarshalIndent(slsHardwareToModify, "", "  ")
+	type slsChangesStruct struct {
+		Add    map[string]sls_client.Hardware
+		Modify map[string]sls_client.Hardware
+	}
+
+	slsChanges := slsChangesStruct{
+		Add:    slsHardwareToAdd,
+		Modify: slsHardwareToModify,
+	}
+
+	slsChangesRaw, _ := json.MarshalIndent(slsChanges, "", "  ")
 	if err != nil {
 		panic(err)
 	}
 
-	ioutil.WriteFile("slsHardwareToModifyRaw.json", slsHardwareToModifyRaw, 0600)
+	ioutil.WriteFile("slsHardwareImportChanges.json", slsChangesRaw, 0600)
 
 	return nil
 }
