@@ -14,6 +14,12 @@ device-bays:
       slug: [hpe-crayex-ex425-compute-blade-windom-node-card]
     default:
       slug: hpe-crayex-ex425-compute-blade-windom-node-card
+identifications:
+  # In CSM we can learn the type of a node blade based off the contents of the NodeEnclosure
+  - manufacturer: HPE
+    model: WNC
+  - manufacturer: HPE
+    model: WindomNodeCard
 ---
 manufacturer: HPE
 model: EX425 AMD EPYC compute Blade, Windom Node Card (WNC)

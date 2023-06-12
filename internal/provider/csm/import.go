@@ -188,21 +188,10 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 		return errors.Join(fmt.Errorf("failed to clone datastore"), err)
 	}
 
-	//
-	// THIS IS TEMP stuff for local testing
-	//
-
-	// For right now dump the contents of the inventory struct to disk
-	importInventory, err := tempDatastore.List()
-	if err != nil {
-		panic(err)
-	}
-	importInventoryRaw, _ := json.MarshalIndent(importInventory, "", "  ")
-	if err != nil {
-		panic(err)
-	}
-
-	ioutil.WriteFile("import_inventory_clone.json", importInventoryRaw, 0600)
+	// Prune non-mountain hardware
+	slsDumpstate.Hardware, _ = sls.FilterHardware(slsDumpstate.Hardware, func(hardware sls_client.Hardware) (bool, error) {
+		return hardware.Class != sls_client.HardwareClassRiver, nil
+	})
 
 	// Get the system UUID
 	cSystem, err := tempDatastore.GetSystemZero()
@@ -361,19 +350,6 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 				}
 			}
 
-			// For right now dump the contents of the inventory struct to disk
-			importInventory, err = tempDatastore.List()
-			if err != nil {
-				panic(err)
-			}
-			importInventoryRaw, _ = json.MarshalIndent(importInventory, "", "  ")
-			if err != nil {
-				panic(err)
-			}
-
-			ioutil.WriteFile("import_inventory.json", importInventoryRaw, 0600)
-			// END
-
 			// Set cabinet metadata
 			cabinetMetadata := CabinetMetadata{}
 			if vlan, exists := cabinetHMNVlans[slsCabinet.Xname]; exists {
@@ -398,6 +374,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			return errors.Join(fmt.Errorf("failed to query datastore"), err)
 		}
 
+		// TODO
 		// if slsCabinetEP.CaniId != cCabinet.ID.String() {
 		// 	if len(slsCabinetEP.CaniId) != 0 {
 		// 		log.Warn().Msgf("Detected CANI hardware ID change from %s to %s for SLS Hardware %s", slsCabinetEP.CaniId, cCabinet.ID, slsCabinet.Xname)
@@ -459,15 +436,24 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 	})
 
 	// 2. Find all slots holding blades from HSM, and inventory data
+	nodeBladeDeviceSlugs := map[xnames.ComputeModule]string{}
 	for _, nodeBladeXname := range slsNodeBladeXnames {
 		hsmComponent, exists := hsmStateComponentsMap[nodeBladeXname.String()]
 		if !exists {
-			log.Info().Msgf("%s exists in SLS, but not HSM", nodeBladeXname)
+			log.Debug().Msgf("%s exists in SLS, but not HSM", nodeBladeXname)
+
 			continue
 		}
 
-		log.Info().Msgf("%s exists in HSM with state %s", nodeBladeXname, *hsmComponent.State)
+		if hsmComponent.State != nil {
+			log.Debug().Msgf("%s exists in HSM with state %s", nodeBladeXname, *hsmComponent.State)
+		}
 		for _, nodeBMCXname := range slsNodeBladesFound[nodeBladeXname] {
+			// Don't need to do this if we already identified the blade
+			if _, exists := nodeBladeDeviceSlugs[nodeBladeXname]; exists {
+				continue
+			}
+
 			// For every BMC in HSM there is a NodeEnclosure. The NodeEnclosure ordinal matches
 			// the BMC ordinal
 			nodeEnclosureXname := nodeBladeXname.NodeEnclosure(nodeBMCXname.NodeBMC)
@@ -489,15 +475,119 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			}
 			nodeEnclosureFru := nodeEnclosure.PopulatedFRU.HMSNodeEnclosureFRUInfo
 
-			log.Info().Msgf("%s has manufacturer %s and model %s", nodeEnclosureXname, nodeEnclosureFru.Manufacturer, nodeEnclosureFru.Model)
+			log.Debug().Msgf("%s has manufacturer %s and model %s", nodeEnclosureXname, nodeEnclosureFru.Manufacturer, nodeEnclosureFru.Model)
 
-			// TODO this needs to live in the hardware type library
-			// Instead of hard coded here
-			// deviceSlugMapping := map[string]string{
-			// 	"WNC": "hpe-crayex-ex420-compute-blade",
-			// 	"WindomNodeCard": "hpe-crayex-ex420-compute-blade"
-			// }
+			bladeDeviceSlug, err := csm.identifyDeviceSlug(nodeEnclosureFru.Manufacturer, nodeEnclosureFru.Model)
+			if err != nil {
+				log.Warn().Msgf("%s unable to determine blade device slug from Node Enclosure FRU data: %s", nodeEnclosureXname, err)
+				continue
+			}
+
+			nodeBladeDeviceSlugs[nodeBladeXname] = bladeDeviceSlug
+
+			log.Info().Msgf("%s has blade device slug: %s", nodeBladeXname, bladeDeviceSlug)
 		}
+
+	}
+
+	// 3.
+	for nodeBladeXname, deviceSlug := range nodeBladeDeviceSlugs {
+		// Check to see if the node blade exists
+
+		nodeBladeLocationPath, err := FromXname(nodeBladeXname)
+		if err != nil {
+			return errors.Join(fmt.Errorf("failed to build location path for xname (%v)", nodeBladeXname), err)
+		}
+		cNodeBlade, err := tempDatastore.GetAtLocation(nodeBladeLocationPath)
+		if err == nil {
+			// Blade currently exists
+			log.Info().Msgf("Node blade %s (%v) exists in datastore with ID (%s)", nodeBladeXname, nodeBladeLocationPath, cNodeBlade.ID)
+
+			// TODO Build metadata from sls data for merging
+
+		} else if errors.Is(err, inventory.ErrHardwareNotFound) {
+			// Node blade does not exist
+
+			// Determine the chassis ID
+			chassisLocationPath, err := FromXname(nodeBladeXname.Parent())
+			if err != nil {
+				return errors.Join(fmt.Errorf("failed to build location path for xname (%v)", nodeBladeXname), err)
+			}
+			cChassis, err := tempDatastore.GetAtLocation(chassisLocationPath)
+			if err != nil {
+				return errors.Join(fmt.Errorf("failed to get datastore ID for %v", chassisLocationPath), err)
+			}
+
+			// Now its time to build up what the hardware looks like
+			newHardware, err := csm.buildInventoryHardware(deviceSlug, nodeBladeXname.ComputeModule, cChassis.ID, inventory.HardwareStatusProvisioned)
+			if err != nil {
+				return errors.Join(fmt.Errorf("failed to build hardware for node blade (%s)", nodeBladeXname.String()), err)
+			}
+
+			// Push the new hardware into the datastore
+			for _, cHardware := range newHardware {
+				log.Info().Msgf("Hardware from node blade %s: %s", nodeBladeXname.String(), cHardware.ID)
+				if err := tempDatastore.Add(&cHardware); err != nil {
+					return fmt.Errorf("failed to add hardware (%s) to in memory datastore", cHardware.ID)
+				}
+			}
+
+		} else {
+			// Error occurred
+			return errors.Join(fmt.Errorf("failed to query datastore"), err)
+		}
+	}
+
+	// Update node metadata in CANI
+	for _, slsNode := range allNodes {
+		nodeXname := xnames.FromString(slsNode.Xname)
+		if nodeXname == nil {
+			return fmt.Errorf("failed to parse node xname (%s)", slsNode.Xname)
+		}
+
+		nodeLocationPath, err := FromXname(nodeXname)
+		if err != nil {
+			return errors.Join(fmt.Errorf("failed to build location path for xname (%v)", nodeXname), err)
+		}
+
+		//
+		// Build up node extra properties
+		//
+		slsNodeEP, err := sls.DecodeExtraProperties[sls_client.HardwareExtraPropertiesNode](slsNode)
+		if err != nil {
+			return errors.Join(fmt.Errorf("failed to decode hardware extra properties for (%s)", slsNode.Xname), err)
+		}
+
+		nodeMetadata := NodeMetadata{}
+		if slsNodeEP.Role != "" {
+			nodeMetadata.Role = StringPtr(slsNodeEP.Role)
+		}
+
+		if slsNodeEP.SubRole != "" {
+			nodeMetadata.Role = StringPtr(slsNodeEP.SubRole)
+		}
+
+		if len(slsNodeEP.Aliases) != 0 {
+			// TODO need to handle multiple aliases
+			nodeMetadata.Alias = &slsNodeEP.Aliases[0]
+		}
+
+		cNode, err := tempDatastore.GetAtLocation(nodeLocationPath)
+		if err != nil {
+			return errors.Join(fmt.Errorf("failed to query datastore for %s", nodeLocationPath), err)
+		}
+
+		// Initialize the properties map if not done already
+		if cNode.Properties == nil {
+			cNode.Properties = map[string]interface{}{}
+		}
+		cNode.Properties["csm"] = nodeMetadata
+
+		// Push updates into the datastore
+		if err := tempDatastore.Update(&cNode); err != nil {
+			return fmt.Errorf("failed to update hardware (%s) in memory datastore", cNode.ID)
+		}
+
 	}
 
 	// // 2. Iterate through all node blades and try to identify the hardware
@@ -521,11 +611,11 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 	//
 
 	// For right now dump the contents of the inventory struct to disk
-	importInventory, err = tempDatastore.List()
+	importInventory, err := tempDatastore.List()
 	if err != nil {
 		panic(err)
 	}
-	importInventoryRaw, _ = json.MarshalIndent(importInventory, "", "  ")
+	importInventoryRaw, _ := json.MarshalIndent(importInventory, "", "  ")
 	if err != nil {
 		panic(err)
 	}
@@ -719,6 +809,19 @@ func FromXname(xnameRaw xnames.Xname) (inventory.LocationPath, error) {
 	}
 
 	return nil, fmt.Errorf("unable to convert xname type (%s)", xnameRaw.Type())
+}
+
+func (csm *CSM) identifyDeviceSlug(manufacturer, model string) (string, error) {
+	for deviceSlug, deviceType := range csm.hardwareLibrary.DeviceTypes {
+		for _, identification := range deviceType.Identifications {
+			// log.Info().Msgf("Checking %v against [%s, %s]", identification, manufacturer, model)
+			if identification.Manufacturer == manufacturer && identification.Model == model {
+				return deviceSlug, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("unable to find corrensponding device slug for manufacturer (%s) and model (%s)", manufacturer, model)
 }
 
 type Importer struct {
