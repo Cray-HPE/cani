@@ -130,16 +130,27 @@ func ValidateHTTPResponse(slsState *sls_client.SlsState, response *http.Response
 				CheckID:     SLSSchemaCheck,
 				Result:      Fail,
 				ComponentID: "SLS Networks",
-				Description: fmt.Sprintf("SLS failed to get raw json jumpstate. %s", err)})
+				Description: fmt.Sprintf("SLS failed to get raw json dumpstate. %s", err)})
 	}
 
-	return validate(slsState, responseBytes, results...)
+	rawJson, result, err := unmarshalToInterface(responseBytes)
+	results = append(results, result)
+	if err != nil {
+		results = append(results,
+			ValidationResult{
+				CheckID:     SLSSchemaCheck,
+				Result:      Fail,
+				ComponentID: "SLS",
+				Description: fmt.Sprintf("SLS failed to parse dumpstate. %s", err)})
+	}
+
+	return validate(slsState, rawJson, results...)
 }
 
 func ValidateString(slsStateBytes []byte) ([]ValidationResult, error) {
 	results := make([]ValidationResult, 0)
 
-	RawJson, result, err := unmarshalToInterface(slsStateBytes)
+	rawJson, result, err := unmarshalToInterface(slsStateBytes)
 	results = append(results, result)
 	if err != nil {
 		return results, err
@@ -151,7 +162,7 @@ func ValidateString(slsStateBytes []byte) ([]ValidationResult, error) {
 		return results, err
 	}
 
-	r, err := validate(slsState, RawJson)
+	r, err := validate(slsState, rawJson)
 	results = append(results, r...)
 	return results, err
 }
@@ -164,13 +175,13 @@ func Validate(slsState *sls_client.SlsState) ([]ValidationResult, error) {
 	}
 
 	results := make([]ValidationResult, 0)
-	RawJson, result, err := unmarshalToInterface(rawSLSState)
+	rawJson, result, err := unmarshalToInterface(rawSLSState)
 	results = append(results, result)
 	if err != nil {
 		return results, err
 	}
 
-	return validate(slsState, RawJson, results...)
+	return validate(slsState, rawJson, results...)
 }
 
 func validate(slsState *sls_client.SlsState, rawSLSState RawJson, additionalResults ...ValidationResult) ([]ValidationResult, error) {
