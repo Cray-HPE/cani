@@ -25,66 +25,13 @@ OTHER DEALINGS IN THE SOFTWARE.
 package validate
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 
 	"github.com/rs/zerolog/log"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 )
-
-func pos(length int) int {
-	if length < 0 {
-		return 0
-	}
-	return length
-}
-
-func toSliceOfMaps(path []string, object interface{}) ([]map[string]interface{}, bool) {
-	slice, found := toSlice(path, object)
-	if found {
-		result := make([]map[string]interface{}, len(slice))
-		for i, s := range slice {
-			result[i], _ = toMap([]string{}, s)
-		}
-		return result, true
-	}
-	return make([]map[string]interface{}, 0), false
-}
-
-func toSlice(path []string, object interface{}) ([]interface{}, bool) {
-	mapPath := path[:pos(len(path)-1)]
-	objectMap, found := toMap(mapPath, object)
-
-	if found {
-		key := path[len(path)-1]
-		if value, found := objectMap[key]; found {
-			if slice, ok := value.([]interface{}); ok {
-				return slice, true
-			}
-		}
-	}
-	return make([]interface{}, 0), false
-}
-
-func toMap(path []string, object interface{}) (map[string]interface{}, bool) {
-	if len(path) == 0 {
-		if m, ok := object.(map[string]interface{}); ok {
-			return m, true
-		}
-	}
-
-	for _, key := range path {
-		if m, ok := object.(map[string]interface{}); ok {
-			if value, found := m[key]; found {
-				object = value
-			} else {
-				return make(map[string]interface{}), false
-			}
-		}
-	}
-	return object.(map[string]interface{}), true
-}
 
 func loadSchema(filename string) (schema *jsonschema.Schema, err error) {
 	files, err := fs.ReadDir(schemas, "schemas")
@@ -112,87 +59,78 @@ func loadSchema(filename string) (schema *jsonschema.Schema, err error) {
 	return nil, err
 }
 
-func validateNetworksSchema(schema *jsonschema.Schema, networks map[string]interface{}) []ValidationResult {
-	results := make([]ValidationResult, 0)
+func schemaValidationErrors(instancePrefix string, err *jsonschema.ValidationError) []ValidationResult {
+	r := make([]ValidationResult, 0)
+	if err.Message != "" {
+		r = append(r,
+			ValidationResult{
+				CheckID:     SLSSchemaCheck,
+				Result:      Fail,
+				ComponentID: instancePrefix + err.InstanceLocation,
+				Description: err.Message})
+	}
+	for _, c := range err.Causes {
+		rr := schemaValidationErrors(instancePrefix, c)
+		r = append(r, rr...)
+	}
+	return r
+}
 
-	if err := schema.Validate(networks); err != nil {
-		results = append(results,
+func toValidationErrors(instancePrefix string, err error) []ValidationResult {
+	var jsonerr *jsonschema.ValidationError
+	r := make([]ValidationResult, 0)
+	switch {
+	case errors.As(err, &jsonerr):
+		if len(jsonerr.Causes) == 0 {
+			// todo verify that the top level error is alwasy generic when there are causes
+			r = append(r,
+				ValidationResult{
+					CheckID:     SLSSchemaCheck,
+					Result:      Fail,
+					ComponentID: instancePrefix + jsonerr.InstanceLocation,
+					Description: jsonerr.Message})
+		}
+		for _, c := range jsonerr.Causes {
+			rr := schemaValidationErrors(instancePrefix, c)
+			r = append(r, rr...)
+		}
+	default:
+		r = append(r,
 			ValidationResult{
 				CheckID:     SLSSchemaCheck,
 				Result:      Fail,
 				ComponentID: "SLS Networks",
-				Description: fmt.Sprintf("SLS Networks error validating schema. %s", err)})
-		return results
+				Description: fmt.Sprintf("SLS Networks error validating schema. %#v", err)})
 	}
-	results = append(results,
-		ValidationResult{
-			CheckID:     SLSSchemaCheck,
-			Result:      Pass,
-			ComponentID: "SLS Networks",
-			Description: "SLS Networks valid json"})
 
-	return results
+	return r
 }
 
-// func validateReservationsSchema(schema *jsonschema.Schema, reservation map[string]interface{}) []ValidationResult {
-func validateReservationsSchema(schema *jsonschema.Schema, reservation []map[string]interface{}, id *ID) []ValidationResult {
+func validateSchema(schema *jsonschema.Schema, rawJson map[string]interface{}, id string, description string) []ValidationResult {
 	results := make([]ValidationResult, 0)
-	if err := schema.Validate(reservation); err != nil {
-		results = append(results,
-			ValidationResult{
-				CheckID: SLSSchemaCheck,
-				Result:  Fail,
-				// ComponentID: "SLS Networks",
-				ComponentID: "SLS Networks: " + id.str(),
-				Description: fmt.Sprintf("SLS Networks error validating schema. %s", err)})
-		return results
+
+	if err := schema.Validate(rawJson); err != nil {
+		r := toValidationErrors(id, err)
+		return append(results, r...)
 	}
-	results = append(results,
-		ValidationResult{
-			CheckID: SLSSchemaCheck,
-			Result:  Pass,
-			// ComponentID: "SLS Networks",
-			ComponentID: "SLS Networks: " + id.str(),
-			Description: "SLS Networks valid json"})
-	return results
+
+	r := ValidationResult{
+		CheckID:     SLSSchemaCheck,
+		Result:      Pass,
+		ComponentID: id,
+		Description: description}
+	return append(results, r)
 }
 
-func validateSubnetsSchema(schema *jsonschema.Schema, subnet map[string]interface{}) []ValidationResult {
-	results := make([]ValidationResult, 0)
-	if err := schema.Validate(subnet); err != nil {
-		results = append(results,
-			ValidationResult{
-				CheckID:     SLSSchemaCheck,
-				Result:      Fail,
-				ComponentID: "SLS Networks",
-				Description: fmt.Sprintf("SLS Networks error validating schema. %s", err)})
-		return results
-	}
-	results = append(results,
-		ValidationResult{
-			CheckID:     SLSSchemaCheck,
-			Result:      Pass,
-			ComponentID: "SLS Networks",
-			Description: "SLS Networks valid json"})
-	return results
+func validateSchemaNetworks(schema *jsonschema.Schema, networks map[string]interface{}) []ValidationResult {
+	return validateSchema(schema, networks, "Networks", "SLS Networks is valid json")
 }
 
 // validateAgainstSchemas validates the SLS response against the schemas
-func validateAgainstSchemas(rawSLSDumpstate []byte) []ValidationResult {
+func validateAgainstSchemas(slsDump RawJson) []ValidationResult {
 	results := make([]ValidationResult, 0)
 
-	var slsDump interface{}
-	if err := json.Unmarshal(rawSLSDumpstate, &slsDump); err != nil {
-		results = append(results,
-			ValidationResult{
-				CheckID:     SLSSchemaCheck,
-				Result:      Fail,
-				ComponentID: "SLS Networks",
-				Description: fmt.Sprintf("SLS Networks error unmarshaling json. %s", err)})
-		return results
-	}
-
-	networks, found := toMap([]string{"Networks"}, slsDump)
+	networks, found := GetMap(slsDump, "Networks")
 	if !found {
 		results = append(results,
 			ValidationResult{
@@ -209,46 +147,7 @@ func validateAgainstSchemas(rawSLSDumpstate []byte) []ValidationResult {
 		return results
 	}
 
-	reservationsSchema, err := loadSchema("sls_reservations_schema.json")
-	if err != nil {
-		log.Error().Msg(err.Error())
-		return results
-	}
-
-	subnetsSchema, err := loadSchema("sls_subnets_schema.json")
-	if err != nil {
-		log.Error().Msg(err.Error())
-		return results
-	}
-
-	r := validateNetworksSchema(networksSchema, networks)
+	r := validateSchemaNetworks(networksSchema, networks)
 	results = append(results, r...)
-	for name, networkRaw := range networks {
-		networkId := NewID("Network", name)
-		log.Debug().Msg(networkId.strYaml())
-		subnets, found := toSliceOfMaps([]string{"ExtraProperties", "Subnets"}, networkRaw)
-		if found {
-			for _, subnet := range subnets {
-				cidr := subnet["CIDR"]
-				subnetId := networkId.append(Pair{"SubnetCIDR", cidr.(string)})
-				log.Debug().Msg(subnetId.strYaml())
-
-				// r := validateReservationsSchema(reservationsSchema, subnet)
-				r := validateSubnetsSchema(subnetsSchema, subnet)
-				results = append(results, r...)
-				reservations, found := toSliceOfMaps([]string{"IPReservations"}, subnet)
-				if found {
-					r := validateReservationsSchema(reservationsSchema, reservations, subnetId)
-					results = append(results, r...)
-					// 	for _, reservation := range reservations {
-					// 		r := validateSubnetsSchema(subnetsSchema, reservation)
-					// 		results = append(results, r...)
-					// 	}
-				}
-			}
-
-		}
-	}
-
 	return results
 }

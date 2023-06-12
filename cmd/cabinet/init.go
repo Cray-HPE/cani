@@ -5,9 +5,9 @@ import (
 )
 
 var (
-	hwType      string
-	supportedHw []string
-	cabinet     int
+	cabinetNumber int
+	vlanId        int
+	auto          bool
 )
 
 func init() {
@@ -19,8 +19,11 @@ func init() {
 	// Add a flag to show supported types
 	AddCabinetCmd.Flags().BoolP("list-supported-types", "L", false, "List supported hardware types.")
 
-	// Blades have several parents, so we need to add flags for each
-	AddCabinetCmd.Flags().IntVar(&cabinet, "cabinet", 1001, "Cabinet ordinal.")
-	// AddCabinetCmd.Flags().IntVar(&hmnVlan, "hmn-vlan", -1, "Optional: HMN Vlan ")
-
+	// Cabinets
+	AddCabinetCmd.Flags().IntVar(&cabinetNumber, "cabinet", 1001, "Cabinet number.")
+	AddCabinetCmd.MarkFlagRequired("cabinet")
+	AddCabinetCmd.Flags().IntVar(&vlanId, "vlan-id", -1, "Vlan ID for the cabinet.")
+	AddCabinetCmd.MarkFlagRequired("vlan-id")
+	AddCabinetCmd.MarkFlagsRequiredTogether("cabinet", "vlan-id")
+	AddCabinetCmd.Flags().BoolVar(&auto, "auto", false, "Automatically recommend and assign required flags.")
 }

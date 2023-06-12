@@ -11,6 +11,7 @@ import (
 )
 
 type NewOpts struct {
+	UseSimulation      bool
 	InsecureSkipVerify bool
 	APIGatewayToken    string
 	BaseUrlSLS         string
@@ -66,6 +67,15 @@ func New(opts *NewOpts, hardwareLibrary *hardwaretypes.Library) (*CSM, error) {
 	httpClient, _, err := opts.newClient()
 	if err != nil {
 		return nil, err
+	}
+
+	if opts.UseSimulation {
+		if opts.BaseUrlSLS == "" {
+			opts.BaseUrlSLS = "https://localhost:8443/apis/sls/v1"
+		}
+		if opts.BaseUrlHSM == "" {
+			opts.BaseUrlHSM = "https://localhost:8443/apis/smd/hsm/v2"
+		}
 	}
 
 	slsClientConfiguration := &sls_client.Configuration{

@@ -15,7 +15,28 @@ import (
 // AddCabinet adds a cabinet to the inventory
 func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetOrdinal int) (AddHardwareResult, error) {
 	// Validate provided cabinet exists
-	// TODO
+	// Craft the path to the cabinet
+	cabinetLocationPath := inventory.LocationPath{
+		{HardwareType: hardwaretypes.System, Ordinal: 0},
+		{HardwareType: hardwaretypes.Cabinet, Ordinal: cabinetOrdinal},
+	}
+
+	// Check if the cabinet already exists
+	exists, err := cabinetLocationPath.Exists(d.datastore)
+	if err != nil {
+		return AddHardwareResult{}, errors.Join(
+			fmt.Errorf("unable to check if cabinet exists"),
+			err,
+		)
+	}
+	// Fail if the cabinet already exists and provide actionable error message
+	if exists {
+		return AddHardwareResult{},
+			errors.Join(
+				fmt.Errorf("%s number %d is already in use", hardwaretypes.Cabinet, cabinetOrdinal),
+				fmt.Errorf("please re-run the command with an available %s number", hardwaretypes.Cabinet),
+			)
+	}
 
 	system, err := d.datastore.GetSystemZero()
 	if err != nil {

@@ -39,10 +39,9 @@ var (
 func startSession(cmd *cobra.Command, args []string) error {
 	// TODO This is probably not the right way todo this, but hopefully this will be easy way...
 	// Sorry Jacob
-	if useSimURLs, _ := cmd.Flags().GetBool("csm-sim-urls"); useSimURLs {
-		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlSLS = "https://localhost:8443/apis/sls/v1"
-		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlHSM = "https://localhost:8443/apis/smd/hsm/v2"
-		root.Conf.Session.DomainOptions.CsmOptions.InsecureSkipVerify = true
+	if useSimulation {
+		log.Warn().Msg("Using simulation mode")
+		root.Conf.Session.DomainOptions.CsmOptions.UseSimulation = true
 	} else {
 		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlSLS, _ = cmd.Flags().GetString("csm-url-sls")
 		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlHSM, _ = cmd.Flags().GetString("csm-url-hsm")
