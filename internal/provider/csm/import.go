@@ -418,7 +418,9 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 	allNodes, _ := sls.FilterHardwareByType(slsDumpstate.Hardware, xnametypes.Node)
 
 	// 1. Find all slots holding blades (either currently populated or could be populated) from SLS
-	slsNodeBlades := map[xnames.ComputeModule][]xnames.NodeBMC{}
+	slsNodeBladeXnames := []xnames.ComputeModule{}
+	slsNodeBladesFound := map[xnames.ComputeModule][]xnames.NodeBMC{}
+	slsNodeBMCFound := map[xnames.NodeBMC]bool{}
 	for _, slsNode := range allNodes {
 		nodeXname := xnames.FromStringToStruct[xnames.Node](slsNode.Xname)
 		if nodeXname == nil {
@@ -429,11 +431,35 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 		nodeBMCXname := nodeXname.Parent()
 		nodeBladeXname := nodeBMCXname.Parent()
 
-		slsNodeBlades[nodeBladeXname] = append(slsNodeBlades[nodeBladeXname], nodeBMCXname)
+		if slsNodeBMCFound[nodeBMCXname] {
+			// We have already discovered this node BMC, and we don't need to add it again
+			continue
+		}
+
+		// Keep track that we have seem this BMC
+		slsNodeBMCFound[nodeBMCXname] = true
+
+		if _, exists := slsNodeBladesFound[nodeBladeXname]; !exists {
+			// This is the first time we have seem this blade, lets add it to our list of node blade xnames
+			slsNodeBladeXnames = append(slsNodeBladeXnames, nodeBladeXname)
+		}
+
+		// Keep track that we found this node BMC on this blade
+		slsNodeBladesFound[nodeBladeXname] = append(slsNodeBladesFound[nodeBladeXname], nodeBMCXname)
 	}
 
-	// 2. Final all slots holding blades from HSM, and inventory data
-	for nodeBladeXname, nodeBMCs := range slsNodeBlades {
+	// 1.1 Sort the found node blade xnames, so the output is nice to look at
+	for _, nodeBMCs := range slsNodeBladesFound {
+		sort.Slice(nodeBMCs, func(i, j int) bool {
+			return nodeBMCs[i].String() < nodeBMCs[j].String()
+		})
+	}
+	sort.Slice(slsNodeBladeXnames, func(i, j int) bool {
+		return slsNodeBladeXnames[i].String() < slsNodeBladeXnames[j].String()
+	})
+
+	// 2. Find all slots holding blades from HSM, and inventory data
+	for _, nodeBladeXname := range slsNodeBladeXnames {
 		hsmComponent, exists := hsmStateComponentsMap[nodeBladeXname.String()]
 		if !exists {
 			log.Info().Msgf("%s exists in SLS, but not HSM", nodeBladeXname)
@@ -441,18 +467,36 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 		}
 
 		log.Info().Msgf("%s exists in HSM with state %s", nodeBladeXname, *hsmComponent.State)
-		for _, nodeBMCXname := range nodeBMCs {
+		for _, nodeBMCXname := range slsNodeBladesFound[nodeBladeXname] {
 			// For every BMC in HSM there is a NodeEnclosure. The NodeEnclosure ordinal matches
 			// the BMC ordinal
 			nodeEnclosureXname := nodeBladeXname.NodeEnclosure(nodeBMCXname.NodeBMC)
 
 			nodeEnclosure, exists := hsmHardwareInventoryMap[nodeEnclosureXname.String()]
-			if exists {
-				log.Warn().Msgf("Missing HSM hardware inventory for %s", nodeEnclosure)
+			if !exists {
+				log.Warn().Msgf("%s is missing from HSM hardware inventory", nodeEnclosureXname)
 				continue // TODO what should happen here?
 			}
 
-			nodeEnclosure.PopulatedFRU
+			if nodeEnclosure.PopulatedFRU == nil {
+				log.Warn().Msgf("%s is missing PopulatedFRU data", nodeEnclosureXname)
+				continue // TODO what should happen here?
+			}
+
+			if nodeEnclosure.PopulatedFRU.HMSNodeEnclosureFRUInfo == nil {
+				log.Warn().Msgf("%s is missing PopulatedFRU node enclosure data", nodeEnclosureXname)
+				continue // TODO what should happen here?
+			}
+			nodeEnclosureFru := nodeEnclosure.PopulatedFRU.HMSNodeEnclosureFRUInfo
+
+			log.Info().Msgf("%s has manufacturer %s and model %s", nodeEnclosureXname, nodeEnclosureFru.Manufacturer, nodeEnclosureFru.Model)
+
+			// TODO this needs to live in the hardware type library
+			// Instead of hard coded here
+			// deviceSlugMapping := map[string]string{
+			// 	"WNC": "hpe-crayex-ex420-compute-blade",
+			// 	"WindomNodeCard": "hpe-crayex-ex420-compute-blade"
+			// }
 		}
 	}
 

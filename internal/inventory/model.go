@@ -55,10 +55,10 @@ type Provider string
 
 const (
 	// Define constants for lifecyle states
-	HardwareStatusEmpty         = HardwareStatus("empty")
-	HardwareStatusStaged        = HardwareStatus("staged")
-	HardwareStatusProvisioned   = HardwareStatus("provisioned")
-	HardwareStatusDecomissioned = HardwareStatus("decomissioned")
+	HardwareStatusEmpty          = HardwareStatus("empty")
+	HardwareStatusStaged         = HardwareStatus("staged")
+	HardwareStatusProvisioned    = HardwareStatus("provisioned")
+	HardwareStatusDecommissioned = HardwareStatus("decommissioned")
 	// Schema and proivider names are constant
 	SchemaVersionV1Alpha1 = SchemaVersion("v1alpha1")
 	CSMProvider           = Provider("csm")

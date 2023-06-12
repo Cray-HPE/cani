@@ -94,7 +94,7 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 	//
 	unexpectedHardwareRemoval := []sls_client.Hardware{}
 	for _, hardware := range hardwareRemoved {
-		if hardwareMapping[hardware.Xname].Status != inventory.HardwareStatusDecomissioned {
+		if hardwareMapping[hardware.Xname].Status != inventory.HardwareStatusDecommissioned {
 			// This piece of hardware wasn't flagged for removal from the system, but a
 			// the reconcile logic wants to remove it and this is bad
 			unexpectedHardwareRemoval = append(unexpectedHardwareRemoval, hardware)
