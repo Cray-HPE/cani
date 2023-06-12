@@ -477,8 +477,8 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 		}
 
 		// Initialize the properties map if not done already
-		if cNode.Properties == nil {
-			cNode.Properties = map[string]interface{}{}
+		if cNode.ProviderProperties == nil {
+			cNode.ProviderProperties = map[string]interface{}{}
 		}
 		cNode.ProviderProperties["csm"] = nodeMetadata
 
