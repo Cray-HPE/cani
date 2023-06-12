@@ -22,4 +22,4 @@
 # Then explicitly reverse the ignore rule for a single file:
 #!docs/README.md
 
-pkg/hsm-client/model_hw_inventory_1_0_0_hw_inventory_by_fru.go
+model_hw_inventory_1_0_0_hw_inventory_by_fru.go

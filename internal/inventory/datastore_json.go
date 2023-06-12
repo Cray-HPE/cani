@@ -207,8 +207,33 @@ func (dj *DatastoreJSON) Clone() (Datastore, error) {
 	return result, nil
 }
 
-func (dj *DatastoreJSON) Merge(Datastore) error {
-	return fmt.Errorf("todo")
+func (dj *DatastoreJSON) Merge(otherDJ Datastore) error {
+	dj.inventoryLock.Lock()
+	defer dj.inventoryLock.Unlock()
+
+	otherAllHardware, err := otherDJ.List()
+	if err != nil {
+		return errors.Join(fmt.Errorf("failed to retrieve inventory from other datastore"), err)
+	}
+
+	// Identify hardware to remove
+	hardwareToDelete := []uuid.UUID{}
+	for id := range dj.inventory.Hardware {
+		if _, exists := otherAllHardware.Hardware[id]; !exists {
+			hardwareToDelete = append(hardwareToDelete, id)
+		}
+	}
+	// Remove deleted hardware
+	for _, id := range hardwareToDelete {
+		delete(dj.inventory.Hardware, id)
+	}
+
+	// Update or add hardware
+	for id, otherHardware := range otherAllHardware.Hardware {
+		dj.inventory.Hardware[id] = otherHardware
+	}
+
+	return nil
 }
 
 func (dj *DatastoreJSON) calculateDerivedFields() (err error) {

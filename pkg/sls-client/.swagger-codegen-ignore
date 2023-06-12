@@ -25,4 +25,5 @@
 model_hardware.go
 model_hardware_class.go
 model_hardware_extra_properties.go
+model_hardware_extra_properties_cabinet.go
 model_hardware_type_string.go

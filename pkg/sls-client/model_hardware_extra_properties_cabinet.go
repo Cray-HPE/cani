@@ -9,8 +9,9 @@
 package sls_client
 
 type HardwareExtraPropertiesCabinet struct {
-	CaniId            string                                            `json:"@cani.id,omitempty"`
-	Model             string                                            `json:"Model,omitempty"`
-	Networks          map[string]HardwareExtraPropertiesCabinetNetworks `json:"Networks,omitempty"`
-	DHCPRelaySwitches []string                                          `json:"DHCPRelaySwitches,omitempty"`
+	CaniId string `json:"@cani.id,omitempty"`
+	Model  string `json:"Model,omitempty"`
+	// Networks has at the top the hardware type, then inside of that the network ID, then inside of that the object.
+	Networks          map[string]map[string]HardwareExtraPropertiesCabinetNetworks `json:"Networks,omitempty"`
+	DHCPRelaySwitches []string                                                     `json:"DHCPRelaySwitches,omitempty"`
 }

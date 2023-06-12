@@ -1017,8 +1017,6 @@ components:
     hardware_extra_properties_cabinet_networks:
       type: object
       properties:
-        "@cani.id":
-          type: string
         CIDR:
           type: string
         Gateway:

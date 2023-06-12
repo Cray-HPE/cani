@@ -417,7 +417,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 
 			// Push the new hardware into the datastore
 			for _, cHardware := range newHardware {
-				log.Info().Msgf("Hardware from node blade %s: %s", nodeBladeXname.String(), cHardware.ID)
+				log.Debug().Msgf("Hardware from node blade %s: %s", nodeBladeXname.String(), cHardware.ID)
 				if err := tempDatastore.Add(&cHardware); err != nil {
 					return fmt.Errorf("failed to add hardware (%s) to in memory datastore", cHardware.ID)
 				}
@@ -480,7 +480,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 		if cNode.Properties == nil {
 			cNode.Properties = map[string]interface{}{}
 		}
-		cNode.Properties["csm"] = nodeMetadata
+		cNode.ProviderProperties["csm"] = nodeMetadata
 
 		// Push updates into the datastore
 		if err := tempDatastore.Update(&cNode); err != nil {
@@ -551,7 +551,12 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 
 	ioutil.WriteFile("slsHardwareImportChanges.json", slsChangesRaw, 0600)
 
-	return nil
+	// Commit changes!
+	if err := datastore.Merge(tempDatastore); err != nil {
+		return errors.Join(fmt.Errorf("failed to merge temporary datastore with actual datastore", err))
+	}
+
+	return datastore.Flush()
 }
 
 func (csm *CSM) buildInventoryHardware(deviceTypeSlug string, ordinal int, parentID uuid.UUID, status inventory.HardwareStatus) ([]inventory.Hardware, error) {
