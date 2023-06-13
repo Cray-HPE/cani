@@ -47,9 +47,6 @@ func loadJSON(path string, dest interface{}) error {
 }
 
 func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error {
-	var slsDumpstate sls_client.SlsState
-	var hsmStateComponents hsm_client.ComponentArrayComponentArray
-	var hsmHardwareInventory []hsm_client.HwInventory100HwInventoryByLocation
 
 	//
 	// Retrieve current state from the system
@@ -59,13 +56,16 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 		return errors.Join(fmt.Errorf("failed to perform SLS dumpstate"), err)
 	}
 
-	// Load in data from test data directories for right now
-	if err := loadJSON("./testdata/system/shandy/hsm_state_components.json", &hsmStateComponents); err != nil {
-		return err
+	hsmStateComponents, _, err := csm.hsmClient.ComponentApi.DoComponentsGet(ctx, nil)
+	if err != nil {
+		return errors.Join(fmt.Errorf("failed to retrieve HSM State Components"), err)
 	}
-	if err := loadJSON("testdata/system/shandy/hsm_inventory_hardware.json", &hsmHardwareInventory); err != nil {
-		return err
+
+	hsmHardwareInventory, _, err := csm.hsmClient.HWInventoryByLocationApi.DoHWInvByLocationGetAll(ctx, nil)
+	if err != nil {
+		return errors.Join(fmt.Errorf("failed to retrieve HSM State Components"), err)
 	}
+	log.Info().Msgf("%v", hsmHardwareInventory)
 
 	//
 	// HSM lookup tables
@@ -505,11 +505,6 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 				log.Warn().Msgf("Detected CANI hardware ID change from %s to %s for SLS Hardware %s", slsNodeEP.CaniId, cNode.ID, slsNode.Xname)
 			}
 
-			log.Info().Msgf("%s: %v", nodeXname, slsNodeEP.CaniId)
-			log.Info().Msgf("%s: %v", nodeXname, slsNodeEP.CaniLastModified)
-			log.Info().Msgf("%s: %v", nodeXname, slsNodeEP.CaniSlsSchemaVersion)
-			log.Info().Msgf("%s: %v", nodeXname, slsNode.ExtraProperties)
-
 			// Update it if it has changed
 			slsNodeEP.CaniId = cNode.ID.String()
 			slsNodeEP.CaniSlsSchemaVersion = "v1alpha1" // TODO make this a enum
@@ -518,22 +513,19 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			slsNode.ExtraProperties = slsNodeEP
 			slsHardwareToModify[slsNode.Xname] = slsNode
 
-			panic("why is this changing")
+			log.Debug().Msgf("SLS extra properties changed for %s", slsNode.Xname)
 		}
 	}
-
-	// // 2. Iterate through all node blades and try to identify the hardware
-	// for nodeBladeXname, nodeCards := range nodeBlades {
-	// 	log.Info().Msgf("%s: %v", nodeBladeXname.String(), nodeCards)
-	// }
 
 	//
 	// Import Router BMCs
 	//
+	// TODO
 
 	//
 	// Handle phantom mountain/hill nodes
 	//
+	// TODO this might be better handled in the some code above
 
 	//
 	// Push updates to SLS
@@ -563,39 +555,6 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 		}
 		log.Info().Int("status", r.StatusCode).Msg("Updated hardware to SLS")
 	}
-
-	//
-	// THIS IS TEMP stuff for local testing
-	//
-
-	// For right now dump the contents of the inventory struct to disk
-	importInventory, err := tempDatastore.List()
-	if err != nil {
-		panic(err)
-	}
-	importInventoryRaw, _ := json.MarshalIndent(importInventory, "", "  ")
-	if err != nil {
-		panic(err)
-	}
-
-	ioutil.WriteFile("import_inventory.json", importInventoryRaw, 0600)
-
-	type slsChangesStruct struct {
-		Add    map[string]sls_client.Hardware
-		Modify map[string]sls_client.Hardware
-	}
-
-	slsChanges := slsChangesStruct{
-		Add:    slsHardwareToAdd,
-		Modify: slsHardwareToModify,
-	}
-
-	slsChangesRaw, _ := json.MarshalIndent(slsChanges, "", "  ")
-	if err != nil {
-		panic(err)
-	}
-
-	ioutil.WriteFile("slsHardwareImportChanges.json", slsChangesRaw, 0600)
 
 	// Commit changes!
 	if err := datastore.Merge(tempDatastore); err != nil {
