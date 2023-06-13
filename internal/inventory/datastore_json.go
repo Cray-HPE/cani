@@ -524,7 +524,7 @@ func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 	if len(path) == 0 {
 		return Hardware{}, ErrEmptyLocationPath
 	}
-	log.Debug().Msgf("GetAtLocation: Location Path: %s", path.String())
+	log.Trace().Msgf("GetAtLocation: Location Path: %s", path.String())
 
 	//
 	// Traverse the tree to see if the hardware exists at the given location
@@ -545,13 +545,13 @@ func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 
 	// Vist rest of the path
 	for i, locationToken := range path[1:] {
-		log.Debug().Msgf("GetAtLocation: Processing token %d of %d: '%s'", i+1, len(path), locationToken.String())
-		log.Debug().Msgf("GetAtLocation: Current ID %s", currentHardware.ID)
+		log.Trace().Msgf("GetAtLocation: Processing token %d of %d: '%s'", i+1, len(path), locationToken.String())
+		log.Trace().Msgf("GetAtLocation: Current ID %s", currentHardware.ID)
 
 		// For each child of the current hardware object check to see if it
 		foundMatch := false
 		for _, childID := range currentHardware.Children {
-			log.Debug().Msgf("GetAtLocation: Visiting Child (%s)", childID)
+			log.Trace().Msgf("GetAtLocation: Visiting Child (%s)", childID)
 			// Get the hardware
 			childHardware, ok := dj.inventory.Hardware[childID]
 			if !ok {
@@ -563,15 +563,15 @@ func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 			}
 
 			if childHardware.LocationOrdinal == nil {
-				log.Debug().Msgf("GetAtLocation: Child has no location ordinal set, skipping")
+				log.Trace().Msgf("GetAtLocation: Child has no location ordinal set, skipping")
 				continue
 			}
-			log.Debug().Msgf("GetAtLocation: Child location token: %s:%d", childHardware.Type, *childHardware.LocationOrdinal)
+			log.Trace().Msgf("GetAtLocation: Child location token: %s:%d", childHardware.Type, *childHardware.LocationOrdinal)
 
 			// Check to see if the location token matches
 			if childHardware.Type == locationToken.HardwareType && *childHardware.LocationOrdinal == locationToken.Ordinal {
 				// Found a match!
-				log.Debug().Msgf("GetAtLocation: Child has matching location token")
+				log.Trace().Msgf("GetAtLocation: Child has matching location token")
 				currentHardware = childHardware
 				foundMatch = true
 				break

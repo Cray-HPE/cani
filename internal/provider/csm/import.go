@@ -247,7 +247,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 				return errors.Join(fmt.Errorf("failed to query datastore for %s", locationPath), err)
 			}
 
-			cCabinet.Properties = map[string]interface{}{
+			cCabinet.ProviderProperties = map[string]interface{}{
 				"csm": cabinetMetadata,
 			}
 
@@ -376,7 +376,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 
 			nodeBladeDeviceSlugs[nodeBladeXname] = bladeDeviceSlug
 
-			log.Info().Msgf("%s has blade device slug: %s", nodeBladeXname, bladeDeviceSlug)
+			log.Debug().Msgf("%s has blade device slug: %s", nodeBladeXname, bladeDeviceSlug)
 		}
 
 	}
@@ -392,7 +392,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 		cNodeBlade, err := tempDatastore.GetAtLocation(nodeBladeLocationPath)
 		if err == nil {
 			// Blade currently exists
-			log.Info().Msgf("Node blade %s (%v) exists in datastore with ID (%s)", nodeBladeXname, nodeBladeLocationPath, cNodeBlade.ID)
+			log.Debug().Msgf("Node blade %s (%v) exists in datastore with ID (%s)", nodeBladeXname, nodeBladeLocationPath, cNodeBlade.ID)
 
 			// TODO Build metadata from sls data for merging
 
