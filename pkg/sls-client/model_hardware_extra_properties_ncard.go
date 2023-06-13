@@ -9,7 +9,9 @@
 package sls_client
 
 type HardwareExtraPropertiesNcard struct {
-	CaniId string `json:"@cani.id,omitempty"`
+	CaniId               string `json:"@cani.id,omitempty"`
+	CaniLastModified     string `json:"@cani.lastModified,omitempty"`
+	CaniSlsSchemaVersion string `json:"@cani.slsSchemaVersion,omitempty"`
 	// The ipv6 address that should be assigned to this BMC, or \"DHCPv6\".  If omitted, \"DHCPv6\" is assumed.
 	IP6addr string `json:"IP6addr,omitempty"`
 	// The ipv4 address that should be assigned to this BMC, or \"DHCPv4\".  If omitted, \"DHCPv4\" is assumed.

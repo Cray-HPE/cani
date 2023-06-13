@@ -51,10 +51,15 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 	var hsmStateComponents hsm_client.ComponentArrayComponentArray
 	var hsmHardwareInventory []hsm_client.HwInventory100HwInventoryByLocation
 
-	// Load in data from test data directories for right now
-	if err := loadJSON("./testdata/system/shandy/sls_dump.json", &slsDumpstate); err != nil {
-		return err
+	//
+	// Retrieve current state from the system
+	//
+	slsDumpstate, _, err := csm.slsClient.DumpstateApi.DumpstateGet(ctx)
+	if err != nil {
+		return errors.Join(fmt.Errorf("failed to perform SLS dumpstate"), err)
 	}
+
+	// Load in data from test data directories for right now
 	if err := loadJSON("./testdata/system/shandy/hsm_state_components.json", &hsmStateComponents); err != nil {
 		return err
 	}
@@ -93,26 +98,27 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 	// Import related changes for SLS
 	slsHardwareToAdd := map[string]sls_client.Hardware{}
 	slsHardwareToModify := map[string]sls_client.Hardware{}
-	slsHardwareExists := map[string]sls_client.Hardware{}
+	// slsHardwareExists := map[string]sls_client.Hardware{}
 
 	// CANI Hardware changes
 	// TODO
 
+	// TODO Unable to POST this into SLS
 	// Check to see if a system object exists in the SLS dumpstate
-	slsSystem, exists := slsDumpstate.Hardware["s0"]
-	if !exists {
-		log.Warn().Msgf("SLS does not contain a system object, creating one")
+	// slsSystem, exists := slsDumpstate.Hardware["s0"]
+	// if !exists {
+	// 	log.Warn().Msgf("SLS does not contain a system object, creating one")
+	//
+	// 	slsSystem = sls.NewHardware(xnames.System{}, sls_client.HardwareClassRiver, sls_client.HardwareExtraPropertiesSystem{
+	// 		CaniId:               cSystem.ID.String(),
+	// 		CaniSlsSchemaVersion: "v1alpha1", // TODO make this a enum
+	// 		CaniLastModified:     time.Now().UTC().String(),
+	// 	})
 
-		slsSystem = sls.NewHardware(xnames.System{}, sls_client.HardwareClassRiver, sls_client.HardwareExtraPropertiesSystem{
-			CaniId:               cSystem.ID.String(),
-			CaniSlsSchemaVersion: "v1alpha1", // TODO make this a enum
-			CaniLastModified:     time.Now().UTC().String(),
-		})
+	// 	slsHardwareToAdd[slsSystem.Xname] = slsSystem
+	// }
 
-		slsHardwareToAdd[slsSystem.Xname] = slsSystem
-	}
-
-	log.Info().Msgf("System: %v", slsSystem)
+	// log.Info().Msgf("System: %v", slsSystem)
 
 	//
 	// Import Cabinets and Chassis
@@ -270,7 +276,11 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			if len(slsCabinetEP.CaniId) != 0 {
 				log.Warn().Msgf("Detected CANI hardware ID change from %s to %s for SLS Hardware %s", slsCabinetEP.CaniId, cCabinet.ID, slsCabinet.Xname)
 			}
+
+			// Add in CANI properties
 			slsCabinetEP.CaniId = cCabinet.ID.String()
+			slsCabinetEP.CaniSlsSchemaVersion = "v1alpha1" // TODO make this a enum
+			slsCabinetEP.CaniLastModified = time.Now().UTC().String()
 
 			log.Info().Msgf("SLS extra properties changed for %s", slsCabinet.Xname)
 
@@ -495,10 +505,20 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 				log.Warn().Msgf("Detected CANI hardware ID change from %s to %s for SLS Hardware %s", slsNodeEP.CaniId, cNode.ID, slsNode.Xname)
 			}
 
+			log.Info().Msgf("%s: %v", nodeXname, slsNodeEP.CaniId)
+			log.Info().Msgf("%s: %v", nodeXname, slsNodeEP.CaniLastModified)
+			log.Info().Msgf("%s: %v", nodeXname, slsNodeEP.CaniSlsSchemaVersion)
+			log.Info().Msgf("%s: %v", nodeXname, slsNode.ExtraProperties)
+
 			// Update it if it has changed
 			slsNodeEP.CaniId = cNode.ID.String()
+			slsNodeEP.CaniSlsSchemaVersion = "v1alpha1" // TODO make this a enum
+			slsNodeEP.CaniLastModified = time.Now().UTC().String()
+
 			slsNode.ExtraProperties = slsNodeEP
 			slsHardwareToModify[slsNode.Xname] = slsNode
+
+			panic("why is this changing")
 		}
 	}
 
@@ -515,8 +535,34 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 	// Handle phantom mountain/hill nodes
 	//
 
-	_ = slsHardwareToModify
-	_ = slsHardwareExists
+	//
+	// Push updates to SLS
+	//
+	for _, slsHardware := range slsHardwareToAdd {
+		// Perform a POST against SLS
+
+		_, r, err := csm.slsClient.HardwareApi.HardwarePost(ctx, sls.NewHardwarePostOpts(
+			slsHardware,
+		))
+		if err != nil {
+			return errors.Join(
+				fmt.Errorf("failed to add hardware (%s) to SLS", slsHardware.Xname),
+				err,
+			)
+		}
+		log.Info().Int("status", r.StatusCode).Msg("Added hardware to SLS")
+	}
+	for _, slsHardware := range slsHardwareToModify {
+		// Perform a PUT against SLS
+		_, r, err := csm.slsClient.HardwareApi.HardwareXnamePut(ctx, slsHardware.Xname, sls.NewHardwareXnamePutOpts(slsHardware))
+		if err != nil {
+			return errors.Join(
+				fmt.Errorf("failed to update hardware (%s) from SLS", slsHardware.Xname),
+				err,
+			)
+		}
+		log.Info().Int("status", r.StatusCode).Msg("Updated hardware to SLS")
+	}
 
 	//
 	// THIS IS TEMP stuff for local testing

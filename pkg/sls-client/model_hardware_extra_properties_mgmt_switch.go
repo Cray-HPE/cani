@@ -9,15 +9,17 @@
 package sls_client
 
 type HardwareExtraPropertiesMgmtSwitch struct {
-	CaniId           string   `json:"@cani.id,omitempty"`
-	IP6addr          string   `json:"IP6addr,omitempty"`
-	IP4addr          string   `json:"IP4addr,omitempty"`
-	Brand            string   `json:"Brand,omitempty"`
-	Model            string   `json:"Model,omitempty"`
-	SNMPAuthPassword string   `json:"SNMPAuthPassword,omitempty"`
-	SNMPAuthProtocol string   `json:"SNMPAuthProtocol,omitempty"`
-	SNMPPrivPassword string   `json:"SNMPPrivPassword,omitempty"`
-	SNMPPrivProtocol string   `json:"SNMPPrivProtocol,omitempty"`
-	SNMPUsername     string   `json:"SNMPUsername,omitempty"`
-	Aliases          []string `json:"Aliases,omitempty"`
+	CaniId               string   `json:"@cani.id,omitempty"`
+	CaniLastModified     string   `json:"@cani.lastModified,omitempty"`
+	CaniSlsSchemaVersion string   `json:"@cani.slsSchemaVersion,omitempty"`
+	IP6addr              string   `json:"IP6addr,omitempty"`
+	IP4addr              string   `json:"IP4addr,omitempty"`
+	Brand                string   `json:"Brand,omitempty"`
+	Model                string   `json:"Model,omitempty"`
+	SNMPAuthPassword     string   `json:"SNMPAuthPassword,omitempty"`
+	SNMPAuthProtocol     string   `json:"SNMPAuthProtocol,omitempty"`
+	SNMPPrivPassword     string   `json:"SNMPPrivPassword,omitempty"`
+	SNMPPrivProtocol     string   `json:"SNMPPrivProtocol,omitempty"`
+	SNMPUsername         string   `json:"SNMPUsername,omitempty"`
+	Aliases              []string `json:"Aliases,omitempty"`
 }

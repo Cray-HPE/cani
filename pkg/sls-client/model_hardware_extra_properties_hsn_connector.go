@@ -9,7 +9,9 @@
 package sls_client
 
 type HardwareExtraPropertiesHsnConnector struct {
-	CaniId string `json:"@cani.id,omitempty"`
+	CaniId               string `json:"@cani.id,omitempty"`
+	CaniLastModified     string `json:"@cani.lastModified,omitempty"`
+	CaniSlsSchemaVersion string `json:"@cani.slsSchemaVersion,omitempty"`
 	// An array of xnames that this connector is connected to.  All xnames should have type==comptype_hsn_connector_port
 	NodeNics []string `json:"NodeNics"`
 }

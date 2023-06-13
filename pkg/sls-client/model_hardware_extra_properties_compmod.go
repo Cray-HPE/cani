@@ -9,7 +9,9 @@
 package sls_client
 
 type HardwareExtraPropertiesCompmod struct {
-	CaniId string `json:"@cani.id,omitempty"`
+	CaniId               string `json:"@cani.id,omitempty"`
+	CaniLastModified     string `json:"@cani.lastModified,omitempty"`
+	CaniSlsSchemaVersion string `json:"@cani.slsSchemaVersion,omitempty"`
 	// An array of xnames, where each xname has type==*_pwr_connector.  Empty for Mountain switch cards
 	PowerConnector []string `json:"PowerConnector"`
 }

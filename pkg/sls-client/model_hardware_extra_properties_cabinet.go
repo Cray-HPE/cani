@@ -9,8 +9,10 @@
 package sls_client
 
 type HardwareExtraPropertiesCabinet struct {
-	CaniId string `json:"@cani.id,omitempty"`
-	Model  string `json:"Model,omitempty"`
+	CaniId               string `json:"@cani.id,omitempty"`
+	CaniLastModified     string `json:"@cani.lastModified,omitempty"`
+	CaniSlsSchemaVersion string `json:"@cani.slsSchemaVersion,omitempty"`
+	Model                string `json:"Model,omitempty"`
 	// Networks has at the top the hardware type, then inside of that the network ID, then inside of that the object.
 	Networks          map[string]map[string]HardwareExtraPropertiesCabinetNetworks `json:"Networks,omitempty"`
 	DHCPRelaySwitches []string                                                     `json:"DHCPRelaySwitches,omitempty"`

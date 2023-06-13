@@ -9,7 +9,9 @@
 package sls_client
 
 type HardwareExtraPropertiesNodeHsnNic struct {
-	CaniId string `json:"@cani.id,omitempty"`
+	CaniId               string `json:"@cani.id,omitempty"`
+	CaniLastModified     string `json:"@cani.lastModified,omitempty"`
+	CaniSlsSchemaVersion string `json:"@cani.slsSchemaVersion,omitempty"`
 	// An array of network names that this NIC is connected to
 	Networks []string `json:"Networks"`
 	// An array of xnames this NIC is connected directly to.  These ideally connector xnames, not switches

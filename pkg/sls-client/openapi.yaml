@@ -947,6 +947,10 @@ components:
       properties:
         "@cani.id":
           type: string
+        "@cani.lastModified":
+          type: string
+        "@cani.slsSchemaVersion":
+          type: string
         IP6addr:
           type: string
           description: "The ipv6 address that should be assigned to this BMC, or \"DHCPv6\". If omitted, \"DHCPv6\" is assumed."
@@ -973,6 +977,10 @@ components:
       properties:
         "@cani.id":
           type: string
+        "@cani.lastModified":
+          type: string
+        "@cani.slsSchemaVersion":
+          type: string
         Networks:
           type: array
           items:
@@ -996,6 +1004,10 @@ components:
       type: object
       properties:
         "@cani.id":
+          type: string
+        "@cani.lastModified":
+          type: string
+        "@cani.slsSchemaVersion":
           type: string
         Model:
           type: string
@@ -1035,6 +1047,10 @@ components:
       properties:
         "@cani.id":
           type: string
+        "@cani.lastModified":
+          type: string
+        "@cani.slsSchemaVersion":
+          type: string
         Brand:
           type: string
         Model:
@@ -1062,6 +1078,10 @@ components:
       properties:
         "@cani.id":
           type: string
+        "@cani.lastModified":
+          type: string
+        "@cani.slsSchemaVersion":
+          type: string
         PowerConnector:
           type: array
           items:
@@ -1081,6 +1101,10 @@ components:
       type: object
       properties:
         "@cani.id":
+          type: string
+        "@cani.lastModified":
+          type: string
+        "@cani.slsSchemaVersion":
           type: string
         IP6addr:
           type: string
@@ -1113,6 +1137,10 @@ components:
       properties:
         "@cani.id":
           type: string
+        "@cani.lastModified":
+          type: string
+        "@cani.slsSchemaVersion":
+          type: string
         NodeNics:
           type: array
           items:
@@ -1124,6 +1152,10 @@ components:
       type: object
       properties:
         "@cani.id":
+          type: string
+        "@cani.lastModified":
+          type: string
+        "@cani.slsSchemaVersion":
           type: string
         IP6addr:
           type: string
@@ -1153,6 +1185,10 @@ components:
       properties:
         "@cani.id":
           type: string
+        "@cani.lastModified":
+          type: string
+        "@cani.slsSchemaVersion":
+          type: string
         NodeNics:
           type: array
           items:
@@ -1166,6 +1202,10 @@ components:
       type: object
       properties:
         "@cani.id":
+          type: string
+        "@cani.lastModified":
+          type: string
+        "@cani.slsSchemaVersion":
           type: string
         IP6addr:
           type: string
@@ -1188,6 +1228,10 @@ components:
       required: ["Role", "Aliases"]
       properties:
         "@cani.id":
+          type: string
+        "@cani.lastModified":
+          type: string
+        "@cani.slsSchemaVersion":
           type: string
         NID:
           type: integer
@@ -1212,6 +1256,10 @@ components:
       properties:
         "@cani.id":
           type: string
+        "@cani.lastModified":
+          type: string
+        "@cani.slsSchemaVersion":
+          type: string
         Networks:
           type: array
           items:
@@ -1227,6 +1275,10 @@ components:
       required: ["Networks", "Peers"]
       properties:
         "@cani.id":
+          type: string
+        "@cani.lastModified":
+          type: string
+        "@cani.slsSchemaVersion":
           type: string
         Networks:
           type: array
@@ -1244,6 +1296,10 @@ components:
       required: ["IP6addr", "IP4addr"]
       properties:
         "@cani.id":
+          type: string
+        "@cani.lastModified":
+          type: string
+        "@cani.slsSchemaVersion":
           type: string
         IP6addr:
           type: string
@@ -1267,6 +1323,10 @@ components:
       properties:
         "@cani.id":
           type: string
+        "@cani.lastModified":
+          type: string
+        "@cani.slsSchemaVersion":
+          type: string
         Networks:
           type: array
           items:
@@ -1284,6 +1344,10 @@ components:
       required: ["PowerConnector"]
       properties:
         "@cani.id":
+          type: string
+        "@cani.lastModified":
+          type: string
+        "@cani.slsSchemaVersion":
           type: string
         PowerConnector:
           type: array
