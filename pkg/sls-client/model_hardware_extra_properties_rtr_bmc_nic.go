@@ -9,11 +9,11 @@
 package sls_client
 
 type HardwareExtraPropertiesRtrBmcNic struct {
-	CaniId               string `json:"@cani.id,omitempty"`
-	CaniLastModified     string `json:"@cani.lastModified,omitempty"`
-	CaniSlsSchemaVersion string `json:"@cani.slsSchemaVersion,omitempty"`
+	CaniId               string `json:"@cani.id,omitempty" mapstructure:"@cani.id"`
+	CaniLastModified     string `json:"@cani.lastModified,omitempty" mapstructure:"@cani.lastModified"`
+	CaniSlsSchemaVersion string `json:"@cani.slsSchemaVersion,omitempty" mapstructure:"@cani.slsSchemaVersion"`
 	// An array of network names that this NIC is connected to
-	Networks []string `json:"Networks"`
+	Networks []string `json:"Networks" mapstructure:"Networks"`
 	// An array of xnames this NIC is connected directly to.  These ideally connector xnames, not switches
-	Peers []string `json:"Peers"`
+	Peers []string `json:"Peers" mapstructure:"Peers"`
 }

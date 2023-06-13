@@ -9,6 +9,6 @@
 package sls_client
 
 type HardwareExtraPropertiesCabPduPwrConnector struct {
-	CaniId    string `json:"@cani.id,omitempty"`
-	PoweredBy string `json:"PoweredBy"`
+	CaniId    string `json:"@cani.id,omitempty" mapstructure:"@cani.id"`
+	PoweredBy string `json:"PoweredBy" mapstructure:"PoweredBy"`
 }

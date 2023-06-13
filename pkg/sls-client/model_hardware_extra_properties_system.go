@@ -9,7 +9,7 @@
 package sls_client
 
 type HardwareExtraPropertiesSystem struct {
-	CaniLastModified     string `json:"@cani.lastModified,omitempty"`
-	CaniSlsSchemaVersion string `json:"@cani.slsSchemaVersion,omitempty"`
-	CaniId               string `json:"@cani.id,omitempty"`
+	CaniLastModified     string `json:"@cani.lastModified,omitempty" mapstructure:"@cani.lastModified"`
+	CaniSlsSchemaVersion string `json:"@cani.slsSchemaVersion,omitempty" mapstructure:"@cani.slsSchemaVersion"`
+	CaniId               string `json:"@cani.id,omitempty" mapstructure:"@cani.id"`
 }

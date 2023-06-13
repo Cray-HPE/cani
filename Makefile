@@ -173,7 +173,7 @@ generate-go:
 # Generate clients from the following swagger files:
 # System Layout Service: ./pkg/sls-client/openapi.yaml
 generate-swagger-sls-client: bin/swagger-codegen-cli.jar
-	java -jar bin/swagger-codegen-cli.jar generate -i ./pkg/sls-client/openapi.yaml -l go -o ./pkg/sls-client/ -DpackageName=sls_client
+	java -jar bin/swagger-codegen-cli.jar generate -i ./pkg/sls-client/openapi.yaml -l go -o ./pkg/sls-client/ -DpackageName=sls_client -t ./pkg/sls-client/templates
 	go fmt ./pkg/sls-client/...
 	goimports -w ./pkg/sls-client
 

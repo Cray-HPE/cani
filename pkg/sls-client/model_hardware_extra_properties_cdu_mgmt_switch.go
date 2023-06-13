@@ -9,10 +9,10 @@
 package sls_client
 
 type HardwareExtraPropertiesCduMgmtSwitch struct {
-	CaniId               string   `json:"@cani.id,omitempty"`
-	CaniLastModified     string   `json:"@cani.lastModified,omitempty"`
-	CaniSlsSchemaVersion string   `json:"@cani.slsSchemaVersion,omitempty"`
-	Brand                string   `json:"Brand,omitempty"`
-	Model                string   `json:"Model,omitempty"`
-	Aliases              []string `json:"Aliases,omitempty"`
+	CaniId               string   `json:"@cani.id,omitempty" mapstructure:"@cani.id"`
+	CaniLastModified     string   `json:"@cani.lastModified,omitempty" mapstructure:"@cani.lastModified"`
+	CaniSlsSchemaVersion string   `json:"@cani.slsSchemaVersion,omitempty" mapstructure:"@cani.slsSchemaVersion"`
+	Brand                string   `json:"Brand,omitempty" mapstructure:"Brand"`
+	Model                string   `json:"Model,omitempty" mapstructure:"Model"`
+	Aliases              []string `json:"Aliases,omitempty" mapstructure:"Aliases"`
 }
