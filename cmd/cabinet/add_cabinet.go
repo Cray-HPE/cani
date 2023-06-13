@@ -32,8 +32,8 @@ import (
 	"github.com/Cray-HPE/cani/cmd/session"
 	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/Cray-HPE/cani/internal/tui"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
-	"github.com/manifoldco/promptui"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -60,10 +60,11 @@ func addCabinet(cmd *cobra.Command, args []string) error {
 	if auto {
 		log.Info().Msgf("Automatically assigning cabinet number and VLAN ID")
 		// TODO: Need to auto-generate a VLAN ID and cabinet number from existing provider
-		log.Info().Msgf("Suggested VLAN ID: %d", vlanId)
-		log.Info().Msgf("Suggested cabinet number: %d", cabinetNumber)
+		log.Warn().Msgf("Suggested VLAN ID: %d (not implemented)", vlanId)
+		log.Warn().Msgf("Suggested cabinet number: %d (not implemented)", cabinetNumber)
 		// Prompt the user to confirm the suggestions
-		auto, err = promptToConfimSuggestions()
+		auto, err = tui.CustomConfirmation(
+			fmt.Sprintf("Would you like to accept the recommendations and add the %s", hardwaretypes.Cabinet))
 		if err != nil {
 			return err
 		}
@@ -72,7 +73,7 @@ func addCabinet(cmd *cobra.Command, args []string) error {
 		if !auto {
 			log.Warn().Msgf("Aborted %s add", hardwaretypes.Cabinet)
 			fmt.Printf("\nAuto-generated values can be overridden by re-running the command with explicit values:\n")
-			fmt.Printf("\n\tcani alpha add cabinet %s --vlan %d --cabinet-number %d\n\n", args[0], vlanId, cabinetNumber)
+			fmt.Printf("\n\tcani alpha add %s %s --vlan %d --cabinet-number %d\n\n", cmd.Name(), args[0], vlanId, cabinetNumber)
 
 			return nil
 		}
@@ -114,25 +115,4 @@ func addCabinet(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
-}
-
-func promptToConfimSuggestions() (bool, error) {
-	prompt := promptui.Prompt{
-		Label:     fmt.Sprintf("Would you like to accept the recommendations and add the %s", hardwaretypes.Cabinet),
-		IsConfirm: true,
-	}
-
-	_, err := prompt.Run()
-
-	if err != nil {
-		if err == promptui.ErrAbort {
-			// User chose not to accept the suggestions
-			return false, nil
-		}
-		// An error occurred
-		return false, err
-	}
-
-	// User chose to continue
-	return true, nil
 }
