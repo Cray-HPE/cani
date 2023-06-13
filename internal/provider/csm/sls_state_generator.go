@@ -217,7 +217,7 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 				nodeExtraProperties.NID = int32(*metadata.Nid)
 			}
 			if metadata.Alias != nil {
-				nodeExtraProperties.Aliases = []string{*metadata.Alias} // TODO NEED TO HANDLE hardware types with multiple ALIASES
+				nodeExtraProperties.Aliases = metadata.Alias
 			}
 
 			extraProperties = nodeExtraProperties

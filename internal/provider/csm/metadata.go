@@ -13,7 +13,7 @@ type NodeMetadata struct {
 	Role                 *string
 	SubRole              *string
 	Nid                  *int
-	Alias                *string
+	Alias                []string
 	AdditionalProperties map[string]interface{}
 }
 
@@ -120,7 +120,7 @@ func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperti
 			if aliasRaw == nil {
 				properties.Alias = nil
 			} else {
-				properties.Alias = StringPtr(aliasRaw.(string))
+				properties.Alias = []string{aliasRaw.(string)}
 			}
 		}
 
