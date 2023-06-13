@@ -501,14 +501,26 @@ func (dj *DatastoreJSON) getLocation(hardware Hardware) (LocationPath, error) {
 		}
 
 		// Build up an element in the location path.
-		// Since the tree is being traversed bottom up, need to add each location token to the front of the slice
-		locationPath = append([]LocationToken{{
+		locationPath = append(locationPath, LocationToken{
 			HardwareType: currentHardware.Type,
 			Ordinal:      *currentHardware.LocationOrdinal,
-		}}, locationPath...)
+		})
 
 		// Go the parent node next
 		currentHardwareID = currentHardware.Parent
+	}
+
+	// Reverse in place, since the tree was traversed bottom up
+	// This is more efficient than building prepending the location path, due to not
+	// needing to a lot of memory allocations and slice magic by adding an new element
+	// to the start of the slice every time we visit a new location.
+	//
+	// For loop
+	// Initial condition: Set i to beginning, and j to the end.
+	// Check: Continue if i is before j
+	// Advance: Move i forward, and j backward
+	for i, j := 0, len(locationPath)-1; i < j; i, j = i+1, j-1 {
+		locationPath[j], locationPath[i] = locationPath[i], locationPath[j]
 	}
 
 	return locationPath, nil
