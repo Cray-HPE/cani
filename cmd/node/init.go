@@ -5,17 +5,15 @@ import (
 )
 
 var (
-	hwType      string
-	supportedHw []string
-	cabinet     int
-	chassis     int
-	slot        int
-	bmc         int
-	node        int
-	role        string
-	subrole     string
-	nid         int
-	alias       string
+	cabinet  int
+	chassis  int
+	blade    int
+	nodecard int
+	node     int
+	role     string
+	subrole  string
+	nid      int
+	alias    string
 )
 
 func init() {
@@ -36,8 +34,8 @@ func init() {
 	// Blades have several parents, so we need to add flags for each
 	UpdateNodeCmd.Flags().IntVar(&cabinet, "cabinet", 1001, "Parent cabinet")
 	UpdateNodeCmd.Flags().IntVar(&chassis, "chassis", 7, "Parent chassis")
-	UpdateNodeCmd.Flags().IntVar(&slot, "slot", 1, "Parent slot")
-	UpdateNodeCmd.Flags().IntVar(&bmc, "bmc", 1, "Parent BMC")
+	UpdateNodeCmd.Flags().IntVar(&blade, "blade", 1, "Parent blade")
+	UpdateNodeCmd.Flags().IntVar(&nodecard, "nodecard", 1, "Parent node card")
 	UpdateNodeCmd.Flags().IntVar(&node, "node", 1, "Node to update")
 
 	// CSM specific options
@@ -47,6 +45,6 @@ func init() {
 	UpdateNodeCmd.Flags().IntVar(&nid, "nid", 0, "NID of the node")
 	UpdateNodeCmd.Flags().StringVar(&alias, "alias", "", "Alias of the node")
 
-	UpdateNodeCmd.MarkFlagsRequiredTogether("cabinet", "chassis", "slot")
+	UpdateNodeCmd.MarkFlagsRequiredTogether("cabinet", "chassis", "blade", "nodecard", "node")
 
 }
