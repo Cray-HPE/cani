@@ -61,7 +61,7 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 			)
 	}
 
-	// Check if the slot exists
+	// Check if the blade exists
 	bladePath := inventory.LocationPath{
 		{HardwareType: hardwaretypes.System, Ordinal: 0},
 		{HardwareType: hardwaretypes.Cabinet, Ordinal: cabinetOrdinal},
@@ -150,28 +150,6 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 			panic(err)
 		}
 
-		exists, err = hardwareLocation.Exists(d.datastore)
-		if err != nil {
-			return AddHardwareResult{}, errors.Join(
-				fmt.Errorf("unable to check if %s exists at %s", hardwaretypes.Cabinet, cabinetPath),
-				err,
-			)
-		}
-
-		// parent hardware SHOULD exist (system, cabinet, chassis) and existence checks were already completed to get to this point
-		if hardware.Type == hardwaretypes.Cabinet || hardware.Type == hardwaretypes.Chassis || hardware.Type == hardwaretypes.NodeBlade {
-			// safe to continue since it is should already exist
-			continue
-		} else {
-			// any other hardware types would be children of a blade, so they should NOT exist yet
-			if exists {
-				return AddHardwareResult{}, errors.Join(
-					fmt.Errorf("%s already exists at %s", hardware.Type, hardwareLocation),
-				)
-			}
-		}
-
-		// return the added hardware if it makes it this far
 		result.AddedHardware = append(result.AddedHardware, HardwareLocationPair{
 			Hardware: hardware,
 			Location: hardwareLocation,
