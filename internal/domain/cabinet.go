@@ -13,7 +13,7 @@ import (
 )
 
 // AddCabinet adds a cabinet to the inventory
-func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetOrdinal int) (AddHardwareResult, error) {
+func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetOrdinal int, vlanId int) (AddHardwareResult, error) {
 	// Validate provided cabinet exists
 	// Craft the path to the cabinet
 	cabinetLocationPath := inventory.LocationPath{
@@ -73,15 +73,38 @@ func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetO
 		locationOrdinal := hardwareBuildOut.OrdinalPath[len(hardwareBuildOut.OrdinalPath)-1]
 
 		hardware := inventory.Hardware{
-			ID:     hardwareBuildOut.ID,
-			Parent: hardwareBuildOut.ParentID,
-			Type:   hardwareBuildOut.DeviceType.HardwareType,
-			Vendor: hardwareBuildOut.DeviceType.Manufacturer,
-			Model:  hardwareBuildOut.DeviceType.Model,
-
+			ID:              hardwareBuildOut.ID,
+			Parent:          hardwareBuildOut.ParentID,
+			Type:            hardwareBuildOut.DeviceType.HardwareType,
+			Vendor:          hardwareBuildOut.DeviceType.Manufacturer,
+			Model:           hardwareBuildOut.DeviceType.Model,
 			LocationOrdinal: &locationOrdinal,
+			Status:          inventory.HardwareStatusStaged,
+		}
 
-			Status: inventory.HardwareStatusStaged,
+		const vlanProperty = "VLAN"
+		var pp map[string]interface{}
+		// If there are no provider properties, create it and set the vlan id
+		if hardware.ProviderProperties == nil {
+			pp = map[string]interface{}{
+				vlanProperty: vlanId,
+			}
+			hardware.ProviderProperties = pp
+		} else {
+			// if there are existing provider properties, check if the VLAN key exists
+			value, exists := hardware.ProviderProperties[vlanProperty]
+			if exists {
+				// if it does, check if it matches the vlan the user is trying to set and return an actionable error message
+				if value == vlanId {
+					return AddHardwareResult{},
+						errors.Join(
+							fmt.Errorf("%s number %d is already in use", hardwaretypes.Cabinet, cabinetOrdinal),
+							fmt.Errorf("please re-run the command with an available VLAN number"),
+						)
+				}
+			}
+			// Set the vlan id if it gets this far
+			hardware.ProviderProperties[vlanProperty] = vlanId
 		}
 
 		log.Debug().Any("id", hardware.ID).Msg("Hardware")

@@ -80,7 +80,7 @@ func addCabinet(cmd *cobra.Command, args []string) error {
 	}
 
 	// Add the cabinet to the inventory using domain methods
-	result, err := d.AddCabinet(cmd.Context(), args[0], cabinetNumber)
+	result, err := d.AddCabinet(cmd.Context(), args[0], cabinetNumber, vlanId)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		// TODO the following should probably suggest commands to fix the issue?
 		log.Error().Msgf("Inventory data validation errors encountered")
