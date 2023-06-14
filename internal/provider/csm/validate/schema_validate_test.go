@@ -27,6 +27,7 @@ package validate
 import (
 	"testing"
 
+	"github.com/Cray-HPE/cani/internal/provider/csm/validate/common"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 )
 
@@ -42,12 +43,12 @@ func loadSchemaForTest(t *testing.T, schemafile string) (schema *jsonschema.Sche
 	return subnetsSchema, err
 }
 
-func unmarshalToInterfaceForTest(t *testing.T, filename string, content []byte) (RawJson, ValidationResult, error) {
+func unmarshalToInterfaceForTest(t *testing.T, filename string, content []byte) (RawJson, common.ValidationResult, error) {
 	rawJson, result, err := unmarshalToInterface(content)
 	if err != nil {
 		t.Fatalf("Unexpected error unmarshaling content file: %s, error: %s", filename, err)
 	}
-	if result.Result != Pass {
+	if result.Result != common.Pass {
 		t.Fatalf("Unexpected result unmarshaling content file: %s, result: %v", filename, result)
 	}
 	return rawJson, result, err
@@ -60,17 +61,17 @@ func loadSchemaAndRawJson(t *testing.T, schemafile string, datafile string) (sch
 	return schema, rawJson
 }
 
-func logResults(t *testing.T, results []ValidationResult) {
+func logResults(t *testing.T, results []common.ValidationResult) {
 	passCount := 0
 	warnCount := 0
 	failCount := 0
 	for _, r := range results {
 		switch r.Result {
-		case Pass:
+		case common.Pass:
 			passCount++
-		case Warning:
+		case common.Warning:
 			warnCount++
-		case Fail:
+		case common.Fail:
 			failCount++
 		}
 	}
@@ -85,7 +86,7 @@ func TestNetworks(t *testing.T) {
 	datafile := "mug-dumpstate.json"
 	networksSchema, rawJson := loadSchemaAndRawJson(t, schemafile, datafile)
 
-	networks, found := GetMap(rawJson, "Networks")
+	networks, found := common.GetMap(rawJson, "Networks")
 	if !found {
 		t.Fatalf("Failed to find Networks field in json data file. file: %s", datafile)
 	}
@@ -93,7 +94,7 @@ func TestNetworks(t *testing.T) {
 	results := validateSchemaNetworks(networksSchema, networks)
 	logResults(t, results)
 	for _, r := range results {
-		if r.Result != Pass {
+		if r.Result != common.Pass {
 			t.Errorf("Non passing result for datafile: %s, schemafile: %s, result: %v", datafile, schemafile, r)
 		}
 	}
@@ -104,14 +105,14 @@ func TestNetworksInvalid(t *testing.T) {
 	datafile := "dumpstate-invalid.json"
 	networksSchema, rawJson := loadSchemaAndRawJson(t, schemafile, datafile)
 
-	networks, found := GetMap(rawJson, "Networks")
+	networks, found := common.GetMap(rawJson, "Networks")
 	if !found {
 		t.Fatalf("Failed to find Networks field in json data file. file: %s", datafile)
 	}
 
 	results := validateSchemaNetworks(networksSchema, networks)
 	logResults(t, results)
-	err := allError(results)
+	err := common.AllError(results)
 	if err == nil {
 		t.Errorf("Expected failures but there were none datafile: %s, schemafile: %s, results: \n%v", datafile, schemafile, results)
 	}
