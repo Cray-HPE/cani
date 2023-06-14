@@ -12,6 +12,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const (
+	vlanProperty = "VLAN"
+)
+
 // AddCabinet adds a cabinet to the inventory
 func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetOrdinal int, vlanId int) (AddHardwareResult, error) {
 	// Validate provided cabinet exists
@@ -82,7 +86,15 @@ func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetO
 			Status:          inventory.HardwareStatusStaged,
 		}
 
-		const vlanProperty = "VLAN"
+		existingVlans, err := d.GetVlans()
+		if err != nil {
+			return AddHardwareResult{}, err
+		}
+		for k, v := range existingVlans {
+			if v == vlanId {
+				return AddHardwareResult{}, fmt.Errorf("%s is already using VLAN %v, cannot use %d as a VLAN for this cabinet", k, v, vlanId)
+			}
+		}
 		var pp map[string]interface{}
 		// If there are no provider properties, create it and set the vlan id
 		if hardware.ProviderProperties == nil {
@@ -91,18 +103,6 @@ func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetO
 			}
 			hardware.ProviderProperties = pp
 		} else {
-			// if there are existing provider properties, check if the VLAN key exists
-			value, exists := hardware.ProviderProperties[vlanProperty]
-			if exists {
-				// if it does, check if it matches the vlan the user is trying to set and return an actionable error message
-				if value == vlanId {
-					return AddHardwareResult{},
-						errors.Join(
-							fmt.Errorf("%s number %d is already in use", hardwaretypes.Cabinet, cabinetOrdinal),
-							fmt.Errorf("please re-run the command with an available VLAN number"),
-						)
-				}
-			}
 			// Set the vlan id if it gets this far
 			hardware.ProviderProperties[vlanProperty] = vlanId
 		}
@@ -147,6 +147,37 @@ func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetO
 	}
 
 	return result, d.datastore.Flush()
+}
+
+func (d *Domain) GetVlans() (map[uuid.UUID]interface{}, error) {
+	var existingVlans = make(map[uuid.UUID]interface{}, 0)
+
+	// Get the existing inventory
+	// FIXME: There is probably a better way instead of getting everything and looping through it
+	inv, err := d.datastore.List()
+	if err != nil {
+		return existingVlans, err
+	}
+	// Filter the inventory to only cabinets
+	filtered := make(map[uuid.UUID]inventory.Hardware, 0)
+	for key, hw := range inv.Hardware {
+		if hw.Type == hardwaretypes.Cabinet {
+			filtered[key] = hw
+		}
+	}
+
+	for _, hw := range filtered {
+		// If there are no provider properties, create it and set the vlan id
+		if hw.ProviderProperties != nil {
+			// if there are existing provider properties, check if the VLAN key exists
+			value, exists := hw.ProviderProperties[vlanProperty]
+			if exists {
+				existingVlans[hw.ID] = value
+			}
+		}
+	}
+
+	return existingVlans, nil
 }
 
 func (d *Domain) RemoveCabinet(u uuid.UUID, recursion bool) error {
