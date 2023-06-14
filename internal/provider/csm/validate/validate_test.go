@@ -69,7 +69,7 @@ func loadTestObjects(t *testing.T, filename string) (slsState *sls_client.SlsSta
 }
 
 func TestUnmarshalToString(t *testing.T) {
-	datafile := "mug-dumpstate.json"
+	datafile := "invalid-mug.json"
 	content := loadTestData(t, datafile)
 
 	raw, result, err := unmarshalToInterface(content)
@@ -87,7 +87,7 @@ func TestUnmarshalToString(t *testing.T) {
 }
 
 func TestUnmarshalToSlsState(t *testing.T) {
-	datafile := "mug-dumpstate.json"
+	datafile := "invalid-mug.json"
 	content := loadTestData(t, datafile)
 	slsState, result, err := unmarshalToSlsState(content)
 
@@ -112,14 +112,42 @@ func TestUnmarshalToSlsState(t *testing.T) {
 	}
 }
 
-func TestValidate(t *testing.T) {
-	datafile := "mug-dumpstate.json"
+func TestValidateValid(t *testing.T) {
+	datafile := "valid-mug.json"
 	slsState, rawSLSState := loadTestObjects(t, datafile)
 	results, err := validate(slsState, rawSLSState)
+	passCount, warnCount, failCount := resultsCount(results)
+	logResults(t, results)
 	if err != nil {
-		// Ignore the error because validation failures are expected.
-		t.Logf("ERROR: \n%s", err)
+		t.Logf("Validation Error: \n%s", err)
 	}
 
+	if err != nil {
+		t.Errorf("Expected vaildation to pass and not return an error. pass: %d, warn: %d, fail: %d\n%s", passCount, warnCount, failCount, err)
+	}
+
+	expectedFailures := 0
+	if failCount != expectedFailures {
+		t.Errorf("Expected %d failures. pass: %d, warn: %d, fail: %d", expectedFailures, passCount, warnCount, failCount)
+	}
+}
+
+func TestValidateInvalid(t *testing.T) {
+	datafile := "invalid-mug.json"
+	slsState, rawSLSState := loadTestObjects(t, datafile)
+	results, err := validate(slsState, rawSLSState)
+	passCount, warnCount, failCount := resultsCount(results)
 	logResults(t, results)
+	if err != nil {
+		t.Logf("Validation Error: \n%s", err)
+	}
+
+	if err == nil {
+		t.Errorf("There was no error when one was expected. pass: %d, warn: %d, fail: %d", passCount, warnCount, failCount)
+	}
+
+	expectedFailures := 5
+	if failCount != expectedFailures {
+		t.Errorf("Expected %d failures. pass: %d, warn: %d, fail: %d", expectedFailures, passCount, warnCount, failCount)
+	}
 }

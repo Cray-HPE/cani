@@ -62,9 +62,15 @@ func loadSchemaAndRawJson(t *testing.T, schemafile string, datafile string) (sch
 }
 
 func logResults(t *testing.T, results []common.ValidationResult) {
-	passCount := 0
-	warnCount := 0
-	failCount := 0
+	for _, r := range results {
+		t.Logf("    %v", r)
+	}
+
+	passCount, warnCount, failCount := resultsCount(results)
+	t.Logf("results: total: %d, pass: %d, warning: %d, fail: %d", len(results), passCount, warnCount, failCount)
+}
+
+func resultsCount(results []common.ValidationResult) (passCount int, warnCount int, failCount int) {
 	for _, r := range results {
 		switch r.Result {
 		case common.Pass:
@@ -75,15 +81,13 @@ func logResults(t *testing.T, results []common.ValidationResult) {
 			failCount++
 		}
 	}
-	t.Logf("results: total: %d, pass: %d, warning: %d, fail: %d", len(results), passCount, warnCount, failCount)
-	for _, r := range results {
-		t.Logf("    %v", r)
-	}
+
+	return passCount, warnCount, failCount
 }
 
 func TestNetworks(t *testing.T) {
 	schemafile := "sls_networks_schema.json"
-	datafile := "mug-dumpstate.json"
+	datafile := "invalid-mug.json"
 	networksSchema, rawJson := loadSchemaAndRawJson(t, schemafile, datafile)
 
 	networks, found := common.GetMap(rawJson, "Networks")
