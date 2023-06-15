@@ -28,6 +28,7 @@ package checks
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/Cray-HPE/cani/internal/provider/csm/validate/common"
@@ -43,6 +44,8 @@ const (
 	HardwareMgmtSwitchCheck          common.ValidationCheck = "hardware-mgmt-switch"
 	SwitchBrandCheck                 common.ValidationCheck = "switch-brand"
 	SwitchCredentialsCheck           common.ValidationCheck = "switch-credentials"
+	SwitchVendorCheck                common.ValidationCheck = "switch-vendor"
+	SwitchConnectorCheck             common.ValidationCheck = "switch-connector"
 	SwitchSNMPPropertiesCheck        common.ValidationCheck = "switch-snmp-properties"
 	HardwareMgmtHLSwitchCheck        common.ValidationCheck = "hardware-mgmt-hl-switch"
 	HardwareRouterBMC                common.ValidationCheck = "hardware-router-bmc"
@@ -77,7 +80,7 @@ func (c *HardwareCheck) Validate(results *common.ValidationResults) {
 		case xnametypes.Node:
 			validateNode(results, &h, props)
 		case xnametypes.MgmtSwitchConnector:
-			validateMgmtSwitchConnector(results, &h, props)
+			validateMgmtSwitchConnector(results, &h, props, c.hardware)
 		case xnametypes.MgmtSwitch:
 			validateMgmtSwitch(results, &h, props)
 		case xnametypes.MgmtHLSwitch:
@@ -209,7 +212,76 @@ func validateNode(results *common.ValidationResults, hardware *sls_client.Hardwa
 	}
 }
 
-func validateMgmtSwitchConnector(results *common.ValidationResults, hardware *sls_client.Hardware, props map[string]interface{}) {
+func validateMgmtSwitchConnector(
+	results *common.ValidationResults, hardware *sls_client.Hardware, props map[string]interface{},
+	hardwareMap map[string]sls_client.Hardware) {
+
+	componentId := fmt.Sprintf("/Hardware/%s", hardware.Xname)
+
+	parent, found := hardwareMap[hardware.Parent]
+	if found {
+		results.Pass(
+			SwitchConnectorCheck,
+			componentId,
+			fmt.Sprintf("%s %s parent %s exists. ", hardware.Xname, hardware.TypeString, hardware.Parent))
+	} else {
+		results.Fail(
+			SwitchConnectorCheck,
+			componentId,
+			fmt.Sprintf("%s %s parent %s is missing. ", hardware.Xname, hardware.TypeString, hardware.Parent))
+		return
+	}
+	parentProps, _ := common.GetMap(parent.ExtraProperties)
+	brand, exists := common.GetString(parentProps, "Brand")
+	if !exists {
+		// this will be checked by the MgmtSwitch checks
+		return
+	}
+
+	arubaPattern := regexp.MustCompile("^[0-9]+/[0-9]+/[0-9]+$")
+	dellPattern := regexp.MustCompile("^ethernet[0-9]+/[0-9]+/[0-9]+$")
+	fieldName := "VendorName"
+	vendorName, exists := common.GetString(props, fieldName)
+	if exists {
+		valid := false
+		switch brand {
+		case "Aruba":
+			if arubaPattern.MatchString(vendorName) {
+				results.Pass(
+					SwitchVendorCheck,
+					componentId,
+					fmt.Sprintf("%s %s the value %s in the %s property is correct",
+						hardware.Xname, hardware.TypeString, vendorName, fieldName))
+				valid = true
+			}
+		case "Dell":
+			if dellPattern.MatchString(vendorName) {
+				results.Pass(
+					SwitchVendorCheck,
+					componentId,
+					fmt.Sprintf("%s %s the value %s in the %s property is correct",
+						hardware.Xname, hardware.TypeString, vendorName, fieldName))
+				valid = true
+			}
+		default:
+			if arubaPattern.MatchString(vendorName) || dellPattern.MatchString(vendorName) {
+				results.Pass(
+					SwitchVendorCheck,
+					componentId,
+					fmt.Sprintf("%s %s the value %s in the %s property is correct",
+						hardware.Xname, hardware.TypeString, vendorName, fieldName))
+				valid = true
+			}
+		}
+		if !valid {
+			results.Fail(
+				SwitchVendorCheck,
+				componentId,
+				fmt.Sprintf("%s %s the %s property is missing",
+					hardware.Xname, hardware.TypeString, fieldName))
+		}
+	}
+
 }
 
 func validateMgmtSwitch(results *common.ValidationResults, hardware *sls_client.Hardware, props map[string]interface{}) {
