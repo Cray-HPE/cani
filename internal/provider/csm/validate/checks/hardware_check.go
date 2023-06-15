@@ -45,6 +45,7 @@ const (
 	SwitchBrandCheck                 common.ValidationCheck = "switch-brand"
 	SwitchCredentialsCheck           common.ValidationCheck = "switch-credentials"
 	SwitchVendorCheck                common.ValidationCheck = "switch-vendor"
+	SwitchConnectorNodeNicsCheck     common.ValidationCheck = "switch-connector-node-nics"
 	SwitchConnectorCheck             common.ValidationCheck = "switch-connector"
 	SwitchSNMPPropertiesCheck        common.ValidationCheck = "switch-snmp-properties"
 	HardwareMgmtHLSwitchCheck        common.ValidationCheck = "hardware-mgmt-hl-switch"
@@ -217,6 +218,47 @@ func validateMgmtSwitchConnector(
 	hardwareMap map[string]sls_client.Hardware) {
 
 	componentId := fmt.Sprintf("/Hardware/%s", hardware.Xname)
+
+	nodeNics, found := common.GetSliceOfStrings(props, "NodeNics")
+	if !found || len(nodeNics) == 0 {
+		results.Fail(
+			SwitchConnectorNodeNicsCheck,
+			componentId,
+			fmt.Sprintf("%s %s is missing NodeNics.", hardware.Xname, hardware.TypeString))
+	} else {
+		for _, nodeNic := range nodeNics {
+			t := xnametypes.GetHMSType(nodeNic)
+
+			nodeXnameForBMC := nodeNic
+			if t == xnametypes.NodeBMC {
+				nodeXnameForBMC = nodeNic + "n0"
+			}
+
+			if t == xnametypes.NodeBMC || t == xnametypes.RouterBMC {
+				_, found := hardwareMap[nodeXnameForBMC]
+				if found {
+					results.Pass(
+						SwitchConnectorNodeNicsCheck,
+						componentId,
+						fmt.Sprintf("%s %s the Node, %s, for the BMC %s exists in the NodeNics list.",
+							hardware.Xname, hardware.TypeString, nodeXnameForBMC, nodeNic))
+				} else {
+					results.Fail(
+						SwitchConnectorNodeNicsCheck,
+						componentId,
+						fmt.Sprintf("%s %s the Node %s, for the BMC %s is missing.",
+							hardware.Xname, hardware.TypeString, nodeXnameForBMC, nodeNic))
+				}
+			} else {
+				results.Fail(
+					SwitchConnectorNodeNicsCheck,
+					componentId,
+					fmt.Sprintf("%s %s a NodeNic, %s, is of the type %s when it should be the type %s.",
+						hardware.Xname, hardware.TypeString, nodeNic, t, xnametypes.NodeBMC))
+			}
+		}
+
+	}
 
 	parent, found := hardwareMap[hardware.Parent]
 	if found {
