@@ -17,6 +17,7 @@ func init() {
 	cobra.OnInitialize(initConfig, setupLogging)
 
 	RootCmd.AddCommand(AlphaCmd)
+	RootCmd.AddCommand(MakeDocsCmd)
 	AlphaCmd.AddCommand(AddCmd)
 	AlphaCmd.AddCommand(ListCmd)
 	AlphaCmd.AddCommand(RemoveCmd)
