@@ -1,0 +1,17 @@
+{
+  "Name": "NMN_MTN",
+  "FullName": "Mountain Compute Node Management Network",
+  "IPRanges": [
+    "10.100.0.0/17"
+  ],
+  "Type": "ethernet",
+  "ExtraProperties": {
+    "CIDR": "10.100.0.0/17",
+    "MTU": 9000,
+    "Subnets": [],
+    "VlanRange": [
+      4094,
+      0
+    ]
+  }
+}
