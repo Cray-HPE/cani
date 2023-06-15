@@ -5,6 +5,13 @@ if [[ $DEBUG == "true" ]]; then
   set -x
 fi
 
+# wipe SLS
+# echo '{}' > /tmp/sls_empty.json; curl -X POST -F "sls_dump=@/tmp/sls_empty.json" https://api-gw-service-nmn.local/apis/sls/v1/loadstate -ik
+# show empty
+# curl -k https://localhost:8443/apis/sls/v1/dumpstate | jq
+# populate SLS with a known good config
+# curl -X POST -F "sls_dump=@../sls_dump_1686855722.json" https://api-gw-service-nmn.local/apis/sls/v1/loadstate -ik
+
 # show auth using system certs
 rm -rf ~/.cani && bin/cani alpha session start csm \
   --csm-keycloak-username vshasta \
@@ -43,3 +50,11 @@ bin/cani alpha update node --cabinet 1 --chassis 1 --blade 0 --nodecard 1 --node
 
 # stop the session and validate/commit changes; push to SLS
 bin/cani alpha session stop
+
+# show auth against a real machine using CMN
+rm -rf ~/.cani && CANI_USER="" CANI_PASSWORD="" bin/cani alpha session start csm \
+ --csm-keycloak-username "$CANI_USER" \
+ --csm-keycloak-password "$CANI_PASSWORD" \
+ --csm-base-auth-url https://auth.cmn.drax.hpc.amslabs.hpecorp.net \
+ --csm-url-sls https://api.cmn.drax.hpc.amslabs.hpecorp.net/apis/sls/v1 \
+ -k
