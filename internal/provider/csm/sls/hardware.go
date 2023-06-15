@@ -141,6 +141,7 @@ func HardwareUpdate(slsClient *sls_client.APIClient, ctx context.Context, hardwa
 			// Perform a PUT against SLS
 			_, r, err := slsClient.HardwareApi.HardwareXnamePut(ctx, hardware.Xname, NewHardwareXnamePutOpts(hardware))
 			if err != nil {
+				// TODO need to collect errors
 				// return errors.Join(
 				// 	fmt.Errorf("failed to update hardware (%s) from SLS", hardare.Xname),
 				// 	err,
