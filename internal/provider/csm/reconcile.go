@@ -10,7 +10,6 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider/csm/sls"
-	"github.com/Cray-HPE/cani/internal/provider/csm/validate"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	"github.com/Cray-HPE/hms-xname/xnametypes"
 	"github.com/rs/zerolog/log"
@@ -174,10 +173,18 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 		modifiedState.Hardware[updatedHardware.Xname] = updatedHardware
 	}
 
-	_, err = validate.Validate(&modifiedState)
+	// DEBUG BEGIN
+	modifiedStateRaw, err := json.MarshalIndent(modifiedState, "", "  ")
 	if err != nil {
-		return fmt.Errorf("Validation failed. %v\n", err)
+		panic(err)
 	}
+	ioutil.WriteFile("reconcile_sls_modified_state.json", modifiedStateRaw, 0600)
+	// DEBUG END
+
+	// _, err = validate.Validate(&modifiedState)
+	// if err != nil {
+	// 	return fmt.Errorf("Validation failed. %v\n", err)
+	// }
 
 	//
 	// Modify the System's SLS instance
