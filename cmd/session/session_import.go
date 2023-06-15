@@ -23,6 +23,15 @@ var SessionImportCmd = &cobra.Command{
 
 // stopSession stops a session if one exists
 func importSession(cmd *cobra.Command, args []string) error {
+	// Setup profiling
+	// f, err := os.Create("cpu_profile")
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// pprof.StartCPUProfile(f)
+	// defer pprof.StopCPUProfile()
+
 	ds := root.Conf.Session.DomainOptions.DatastorePath
 	providerName := root.Conf.Session.DomainOptions.Provider
 	d, err := domain.New(root.Conf.Session.DomainOptions)
