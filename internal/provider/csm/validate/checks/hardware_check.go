@@ -135,22 +135,34 @@ func validateUniqueNid(
 	props map[string]interface{}) {
 
 	componentId := fmt.Sprintf("/Hardware/%s", hardware.Xname)
+
 	nid, ok := common.ToInt(props["NID"])
 	if hardware.TypeString != "Node" {
 		if ok {
 			results.Fail(
 				UniqueNid,
 				componentId,
-				fmt.Sprintf("%s should not have a nid %v. It is not of type Node.", hardware.Xname, props["NID"]))
-			return
+				fmt.Sprintf("%s should not have a NID %v, because it does not have the Node Type.", hardware.Xname, props["NID"]))
 		}
 		return
 	}
+
+	role, _ := common.GetString(props, "Role")
+	if role == "Application" {
+		if ok {
+			results.Fail(
+				UniqueNid,
+				componentId,
+				fmt.Sprintf("%s should not have a NID %v, because it is has the Application Role.", hardware.Xname, props["NID"]))
+		}
+		return
+	}
+
 	if !ok {
 		results.Fail(
 			UniqueNid,
 			componentId,
-			fmt.Sprintf("%s does not have a nid", hardware.Xname))
+			fmt.Sprintf("%s does not have a NID", hardware.Xname))
 		return
 	}
 	// todo report both hardware objects as having a non unique nid
@@ -159,14 +171,14 @@ func validateUniqueNid(
 		results.Fail(
 			UniqueNid,
 			componentId,
-			fmt.Sprintf("The nid %d for %s is not unique. It conflicts with %s.", nid, hardware.Xname, otherHardware.Xname))
+			fmt.Sprintf("The NID %d for %s is not unique. It conflicts with %s.", nid, hardware.Xname, otherHardware.Xname))
 		return
 	}
 	nidToHardware[nid] = hardware
 	results.Pass(
 		UniqueNid,
 		componentId,
-		fmt.Sprintf("The nid %d for %s %s is unique.", nid, hardware.Xname, hardware.TypeString))
+		fmt.Sprintf("The NID %d for %s %s is unique.", nid, hardware.Xname, hardware.TypeString))
 }
 
 func validateNode(results *common.ValidationResults, hardware *sls_client.Hardware, props map[string]interface{}) {

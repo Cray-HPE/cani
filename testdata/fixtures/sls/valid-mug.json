@@ -320,7 +320,6 @@
           "uan01",
           "setonix-vis01"
         ],
-        "NID": 2000,
         "Role": "Application",
         "SubRole": "UAN"
       }

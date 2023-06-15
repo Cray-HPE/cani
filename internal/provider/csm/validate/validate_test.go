@@ -146,7 +146,7 @@ func TestValidateInvalid(t *testing.T) {
 		t.Errorf("There was no error when one was expected. pass: %d, warn: %d, fail: %d", passCount, warnCount, failCount)
 	}
 
-	expectedFailures := 5
+	expectedFailures := 4
 	if failCount != expectedFailures {
 		t.Errorf("Expected %d failures. pass: %d, warn: %d, fail: %d", expectedFailures, passCount, warnCount, failCount)
 	}
