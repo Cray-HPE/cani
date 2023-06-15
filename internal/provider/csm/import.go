@@ -65,7 +65,6 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 	if err != nil {
 		return errors.Join(fmt.Errorf("failed to retrieve HSM State Components"), err)
 	}
-	log.Info().Msgf("%v", hsmHardwareInventory)
 
 	//
 	// HSM lookup tables
@@ -96,7 +95,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 	}
 
 	// Import related changes for SLS
-	slsHardwareToAdd := map[string]sls_client.Hardware{}
+	// slsHardwareToAdd := map[string]sls_client.Hardware{}
 	slsHardwareToModify := map[string]sls_client.Hardware{}
 	// slsHardwareExists := map[string]sls_client.Hardware{}
 
@@ -361,7 +360,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 
 			nodeEnclosure, exists := hsmHardwareInventoryMap[nodeEnclosureXname.String()]
 			if !exists {
-				log.Warn().Msgf("%s is missing from HSM hardware inventory", nodeEnclosureXname)
+				log.Warn().Msgf("%s is missing from HSM hardware inventory, possible phantom hardware", nodeEnclosureXname)
 				continue // TODO what should happen here?
 			}
 
@@ -473,17 +472,46 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 		}
 
 		if len(slsNodeEP.Aliases) != 0 {
-			// TODO need to handle multiple aliases
-			nodeMetadata.Alias = &slsNodeEP.Aliases[0]
+			nodeMetadata.Alias = slsNodeEP.Aliases
 		}
 
 		cNode, err := tempDatastore.GetAtLocation(nodeLocationPath)
 		if errors.Is(err, inventory.ErrHardwareNotFound) {
-			log.Warn().Msgf("TODO HANDLE Hardware does not exist: %s", nodeLocationPath)
+			log.Warn().Msgf("Hardware does not exist (possible phantom hardware): %s", nodeLocationPath)
+			// This is a phantom node, and we need to push this into the inventory to preserve the logical information
+			// of the node
+			// TODO an interesting scenario to test with this would be the an bard peak blade in the location that that SLS assumes to be a windom blade
+
+			// The cabinet and chassis should exist
+			// cChassis, err := tempDatastore.GetAtLocation(nodeLocationPath[0:3])
+			// if errors.Is(err, inventory.ErrHardwareNotFound) {
+			// 	return errors.Join(fmt.Errorf("failed to query datastore for %s", nodeLocationPath), err)
+			// } else if err != nil {
+			// 	return errors.Join(fmt.Errorf("chassis of phantom node (%s) does not exist in datastore", nodeLocationPath), err)
+			// }
+
+			// // The Node Blade may not exist
+			// cNodeBlade, err := tempDatastore.GetAtLocation(nodeLocationPath[0:4])
+			// if errors.Is(err, inventory.ErrHardwareNotFound) {
+			// 	// It doesn't exist, so lets create an empty one
+			// 	cNodeBlade = inventory.Hardware{
+			// 		Parent: cChassis.ID,
+			// 	}
+			// 	tempDatastore.Add()
+			// } else if err != nil {
+			// 	return errors.Join(fmt.Errorf("failed to query datastore for %s", nodeLocationPath), err)
+			// }
+
+			// // The Node Card may not exist
+			// nodeCardExists, err := nodeLocationPath[0:5].Exists(tempDatastore)
+			// if err != nil {
+			// 	return errors.Join(fmt.Errorf("failed to query datastore for %s", nodeLocationPath), err)
+			// }
+
+			// log.Fatal().Msg("Panic!")
 			continue
 		} else if err != nil {
 			return errors.Join(fmt.Errorf("failed to query datastore for %s", nodeLocationPath), err)
-
 		}
 
 		// Initialize the properties map if not done already
@@ -530,31 +558,25 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 	//
 	// Push updates to SLS
 	//
-	for _, slsHardware := range slsHardwareToAdd {
-		// Perform a POST against SLS
+	if err := sls.HardwareUpdate(csm.slsClient, ctx, slsHardwareToModify, 10); err != nil {
+		return errors.Join(fmt.Errorf("failed to update hardware in SLS"), err)
+	}
 
-		_, r, err := csm.slsClient.HardwareApi.HardwarePost(ctx, sls.NewHardwarePostOpts(
-			slsHardware,
-		))
-		if err != nil {
-			return errors.Join(
-				fmt.Errorf("failed to add hardware (%s) to SLS", slsHardware.Xname),
-				err,
-			)
-		}
-		log.Info().Int("status", r.StatusCode).Msg("Added hardware to SLS")
-	}
-	for _, slsHardware := range slsHardwareToModify {
-		// Perform a PUT against SLS
-		_, r, err := csm.slsClient.HardwareApi.HardwareXnamePut(ctx, slsHardware.Xname, sls.NewHardwareXnamePutOpts(slsHardware))
-		if err != nil {
-			return errors.Join(
-				fmt.Errorf("failed to update hardware (%s) from SLS", slsHardware.Xname),
-				err,
-			)
-		}
-		log.Info().Int("status", r.StatusCode).Msg("Updated hardware to SLS")
-	}
+	// TODO need a sls.HardwareCreate function
+	// for _, slsHardware := range slsHardwareToAdd {
+	// 	// Perform a POST against SLS
+	//
+	// 	_, r, err := csm.slsClient.HardwareApi.HardwarePost(ctx, sls.NewHardwarePostOpts(
+	// 		slsHardware,
+	// 	))
+	// 	if err != nil {
+	// 		return errors.Join(
+	// 			fmt.Errorf("failed to add hardware (%s) to SLS", slsHardware.Xname),
+	// 			err,
+	// 		)
+	// 	}
+	// 	log.Info().Int("status", r.StatusCode).Msg("Added hardware to SLS")
+	// }
 
 	// Commit changes!
 	if err := datastore.Merge(tempDatastore); err != nil {

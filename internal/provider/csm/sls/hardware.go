@@ -23,14 +23,17 @@
 package sls
 
 import (
+	"context"
 	"fmt"
 	"sort"
+	"sync"
 
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	sls_common "github.com/Cray-HPE/hms-sls/v2/pkg/sls-common"
 	"github.com/Cray-HPE/hms-xname/xnames"
 	"github.com/Cray-HPE/hms-xname/xnametypes"
 	"github.com/antihax/optional"
+	"github.com/rs/zerolog/log"
 )
 
 func NewHardware(xname xnames.Xname, class sls_client.HardwareClass, extraProperties interface{}) sls_client.Hardware {
@@ -122,4 +125,48 @@ func DecodeExtraProperties[T any](hardware sls_client.Hardware) (*T, error) {
 		return nil, fmt.Errorf("unexpected provider metadata type (%T) expected (%T)", epRaw, expectedType)
 	}
 	return &ep, nil
+}
+
+func HardwareUpdate(slsClient *sls_client.APIClient, ctx context.Context, hardwareToUpdate map[string]sls_client.Hardware, workers int) error {
+	var wg sync.WaitGroup
+	queue := make(chan sls_client.Hardware, 10)
+	// errors :=
+	updateWorker := func(id int) {
+		defer wg.Done()
+
+		log.Info().Int("worker", id).Msgf("Starting worker")
+		for hardware := range queue {
+			log.Info().Int("worker", id).Msgf("Updating SLS hardware: %s", hardware.Xname)
+			// Perform a PUT against SLS
+			_, r, err := slsClient.HardwareApi.HardwareXnamePut(ctx, hardware.Xname, NewHardwareXnamePutOpts(hardware))
+			if err != nil {
+				// return errors.Join(
+				// 	fmt.Errorf("failed to update hardware (%s) from SLS", hardare.Xname),
+				// 	err,
+				// )
+				log.Error().Err(err).Msg("failed to update SLS")
+				continue
+			}
+			log.Info().Int("status", r.StatusCode).Msg("Updated hardware to SLS")
+		}
+		log.Info().Int("worker", id).Msgf("Stopping worker")
+
+	}
+
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go updateWorker(i)
+	}
+
+	for _, hardware := range hardwareToUpdate {
+		log.Info().Msgf("Adding %s to queue", hardware.Xname)
+		queue <- hardware
+	}
+	log.Info().Msgf("Queue is closed")
+	close(queue)
+
+	log.Info().Msgf("Waiting for workers to complete")
+	wg.Wait()
+
+	return nil
 }
