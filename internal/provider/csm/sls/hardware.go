@@ -130,13 +130,14 @@ func DecodeExtraProperties[T any](hardware sls_client.Hardware) (*T, error) {
 func HardwareUpdate(slsClient *sls_client.APIClient, ctx context.Context, hardwareToUpdate map[string]sls_client.Hardware, workers int) error {
 	var wg sync.WaitGroup
 	queue := make(chan sls_client.Hardware, 10)
+	// TODO need to collect errors
 	// errors :=
 	updateWorker := func(id int) {
 		defer wg.Done()
 
-		log.Info().Int("worker", id).Msgf("Starting worker")
+		log.Trace().Int("worker", id).Msgf("SLS HardwareUpdate: Starting worker")
 		for hardware := range queue {
-			log.Info().Int("worker", id).Msgf("Updating SLS hardware: %s", hardware.Xname)
+			log.Info().Int("worker", id).Msgf("SLS HardwareUpdate: Updating SLS hardware: %s", hardware.Xname)
 			// Perform a PUT against SLS
 			_, r, err := slsClient.HardwareApi.HardwareXnamePut(ctx, hardware.Xname, NewHardwareXnamePutOpts(hardware))
 			if err != nil {
@@ -147,9 +148,9 @@ func HardwareUpdate(slsClient *sls_client.APIClient, ctx context.Context, hardwa
 				log.Error().Err(err).Msg("failed to update SLS")
 				continue
 			}
-			log.Info().Int("status", r.StatusCode).Msg("Updated hardware to SLS")
+			log.Trace().Int("status", r.StatusCode).Msg("SLS HardwareUpdate: Updated hardware to SLS")
 		}
-		log.Info().Int("worker", id).Msgf("Stopping worker")
+		log.Trace().Int("worker", id).Msgf("SLS HardwareUpdate: Stopping worker")
 
 	}
 
@@ -159,13 +160,13 @@ func HardwareUpdate(slsClient *sls_client.APIClient, ctx context.Context, hardwa
 	}
 
 	for _, hardware := range hardwareToUpdate {
-		log.Info().Msgf("Adding %s to queue", hardware.Xname)
+		log.Trace().Msgf("SLS HardwareUpdate: Adding %s to queue", hardware.Xname)
 		queue <- hardware
 	}
-	log.Info().Msgf("Queue is closed")
+	log.Trace().Msgf("SLS HardwareUpdate: Queue is closed")
 	close(queue)
 
-	log.Info().Msgf("Waiting for workers to complete")
+	log.Trace().Msgf("SLS HardwareUpdate: Waiting for workers to complete")
 	wg.Wait()
 
 	return nil
