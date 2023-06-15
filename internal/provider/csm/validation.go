@@ -270,9 +270,9 @@ func (csm *CSM) validateInternalCabinet(allHardware map[uuid.UUID]inventory.Hard
 
 		if metadata.HMNVlan != nil {
 			// Verify the vlan is within the allowed range
-			if !(0 <= *metadata.HMNVlan && *metadata.HMNVlan <= 4095) {
+			if !(0 <= *metadata.HMNVlan && *metadata.HMNVlan <= 4094) {
 				validationResult.Errors = append(validationResult.Errors,
-					fmt.Sprintf("Specified HMN Vlan (%d) is invalid, must be in range: 0-4095", *metadata.HMNVlan),
+					fmt.Sprintf("Specified HMN Vlan (%d) is invalid, must be in range: 0-4094", *metadata.HMNVlan),
 				)
 			}
 

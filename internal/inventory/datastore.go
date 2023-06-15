@@ -36,10 +36,8 @@ type Datastore interface {
 	// TODO for search properties
 
 	// Clone creates a in-memory version of the datastore to perform location operations
-	// TODO This can be kind of as a primitive to start a database transactions
 	Clone() (Datastore, error)
 
 	// Merge the contents of the remote datastore (most likely a in-memory one with changes)
-	// TODO This can be kind of as a primitive to end a database transactions
 	Merge(Datastore) error
 }
