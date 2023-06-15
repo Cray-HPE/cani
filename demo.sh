@@ -25,7 +25,12 @@ bin/cani alpha add cabinet hpe-ex2000 --vlan-id 1
 bin/cani alpha add cabinet hpe-ex2000 --vlan-id 1 --cabinet 1
 bin/cani alpha list cabinet | jq
 # optionally, show auto-added child hardware
-# bin/cani alpha list | jq
+bin/cani alpha list | jq
+# show where it comes from
+ls -l pkg/hardwaretypes/hardware-types
+# and how it is defined
+head pkg/hardwaretypes/hardware-types/hpe-cabinet-ex2000.yaml
+# folder for user-defined configs TODO
 
 # try to add the same cabinet number should fail
 bin/cani alpha add cabinet hpe-ex2000 --vlan-id 1 --cabinet 1
@@ -35,3 +40,6 @@ bin/cani alpha add cabinet hpe-ex2000 --vlan-id 1 --cabinet 1
 # add blade in the in same way
 bin/cani alpha add blade hpe-crayex-ex420-compute-blade --cabinet 1 --chassis 1 --blade 0
 bin/cani alpha update node --cabinet 1 --chassis 1 --blade 0 --nodecard 1 --node 0 --role "Compute" --alias "nid00001" --nid 1
+
+# stop the session and validate/commit changes; push to SLS
+bin/cani alpha session stop
