@@ -25,7 +25,7 @@ func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetO
 	exists, err := cabinetLocationPath.Exists(d.datastore)
 	if err != nil {
 		return AddHardwareResult{}, errors.Join(
-			fmt.Errorf("unable to check if cabinet exists"),
+			fmt.Errorf("unable to check if %s exists", hardwaretypes.Cabinet),
 			err,
 		)
 	}
@@ -131,7 +131,7 @@ func (d *Domain) RemoveCabinet(u uuid.UUID, recursion bool) error {
 	err := d.datastore.Remove(u, recursion)
 	if err != nil {
 		return errors.Join(
-			fmt.Errorf("unable to remove hardware from inventory datastore"),
+			fmt.Errorf("unable to remove %s from inventory datastore", hardwaretypes.Cabinet),
 			err,
 		)
 	}

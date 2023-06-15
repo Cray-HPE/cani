@@ -589,12 +589,20 @@ func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 				break
 			}
 		}
+		indent := strings.Repeat(" | ", i)
 
-		if !foundMatch {
-			// None of the children match
-			return Hardware{}, ErrHardwareNotFound
+		if i == len(path)-2 { // Subtract 2 instead of 1 because we started from the second element of the slice (path[1:])
+			// This is the last iteration of the loop
+			if !foundMatch {
+				log.Debug().Bool("exists", false).Msgf("%s --%s (%d)", indent, locationToken.HardwareType, locationToken.Ordinal)
+			} else {
+				log.Debug().Bool("exists", true).Str("uuid", currentHardware.ID.String()).Msgf("%s --%s (%d)", indent, locationToken.HardwareType, locationToken.Ordinal)
+			}
 		}
 
+		if !foundMatch {
+			return Hardware{}, ErrHardwareNotFound
+		}
 	}
 
 	if currentHardware.ID == uuid.Nil {

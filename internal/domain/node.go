@@ -14,6 +14,7 @@ import (
 func (d *Domain) UpdateNode(ctx context.Context, cabinet, chassis, slot, bmc, node int, metadata map[string]interface{}) (AddHardwareResult, error) {
 	// Get the node object from the datastore
 	locationPath := inventory.LocationPath{
+		{HardwareType: hardwaretypes.System, Ordinal: 0},
 		{HardwareType: hardwaretypes.Cabinet, Ordinal: cabinet},
 		{HardwareType: hardwaretypes.Chassis, Ordinal: chassis},
 		{HardwareType: hardwaretypes.NodeBlade, Ordinal: slot},

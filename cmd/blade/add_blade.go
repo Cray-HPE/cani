@@ -25,6 +25,7 @@ package blade
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 
 	root "github.com/Cray-HPE/cani/cmd"
@@ -32,6 +33,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/Cray-HPE/cani/internal/tui"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -56,8 +58,31 @@ func addBlade(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if auto {
+		log.Info().Msgf("Automatically assigning cabinet, chassis, and blade for this %s", hardwaretypes.NodeBlade)
+		// TODO: Need to auto-generate a VLAN ID and cabinet number from existing provider
+		log.Warn().Msgf("Suggested %s number: %d (not implemented)", hardwaretypes.Cabinet, cabinet)
+		log.Warn().Msgf("Suggested %s number: %d (not implemented)", hardwaretypes.Chassis, chassis)
+		log.Warn().Msgf("Suggested %s number: %d (not implemented)", hardwaretypes.NodeBlade, blade)
+		// Prompt the user to confirm the suggestions
+		auto, err = tui.CustomConfirmation(
+			fmt.Sprintf("Would you like to accept the recommendations and add the %s", hardwaretypes.NodeBlade))
+		if err != nil {
+			return err
+		}
+
+		// If the user chose not to accept the suggestions, exit
+		if !auto {
+			log.Warn().Msgf("Aborted %s add", hardwaretypes.NodeBlade)
+			fmt.Printf("\nAuto-generated values can be overridden by re-running the command with explicit values:\n")
+			fmt.Printf("\n\tcani alpha add %s %s --cabinet %d --chassis %d --blade %d\n\n", cmd.Name(), args[0], cabinet, chassis, blade)
+
+			return nil
+		}
+	}
+
 	// Add the blade from the inventory using domain methods
-	result, err := d.AddBlade(cmd.Context(), args[0], cabinet, chassis, slot)
+	result, err := d.AddBlade(cmd.Context(), args[0], cabinet, chassis, blade)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		// TODO the following should probably suggest commands to fix the issue?
 		log.Error().Msgf("Inventory data validation errors encountered")
@@ -73,31 +98,13 @@ func addBlade(cmd *cobra.Command, args []string) error {
 	} else if err != nil {
 		return err
 	}
-	log.Info().Msgf("Added blade %s", args[0])
-
-	// Gather info about the parent node
-	// inv, err := d.List()
-	// if err != nil {
-	// 	return err
-	// }
-
-	// A blade can have 1 or more nodes following this heirarchy:
-	//
-	// | hardwaretypes.Cabinet
-	// |-- hardwaretypes.Chassis
-	// |---- hardwaretypes.NodeBlade
-	// |------ hardwaretypes.NodeCard
-	// |-------- hardwaretypes.Node
-	//
-	// After adding a blade, we need to find the node(s) that were added to present the user
-	// with the node(s) that may need additional metadata added
 
 	// Use a map to track already added nodes.
 	newNodes := []domain.HardwareLocationPair{}
 
 	for _, result := range result.AddedHardware {
 		// If the type is a Node
-		if result.Hardware.Type == hardwaretypes.Node {
+		if result.Hardware.Type == hardwaretypes.NodeBlade {
 			log.Debug().Msg(result.Location.String())
 			log.Debug().Msgf("This %s also contains a %s (added %s)",
 				hardwaretypes.NodeBlade,
@@ -110,28 +117,15 @@ func addBlade(cmd *cobra.Command, args []string) error {
 				result.Location)
 			// Add the node to the map
 			newNodes = append(newNodes, result)
+			if root.Conf.Session.DomainOptions.Provider == string(inventory.CSMProvider) {
+				log.Info().Str("status", "SUCCESS").Msgf("%s was successfully staged to be added to the system", hardwaretypes.NodeBlade)
+				log.Info().Msgf("UUID: %s", result.Hardware.ID)
+				log.Info().Msgf("Cabinet: %d", cabinet)
+				log.Info().Msgf("Chassis: %d", chassis)
+				log.Info().Msgf("Blade: %d", blade)
+			}
 		}
 	}
-
-	if root.Conf.Session.DomainOptions.Provider == string(inventory.CSMProvider) {
-		log.Info().Msgf("For provider '%s', additional metadata is needed for each %s in the %s:\n\n",
-			root.Conf.Session.DomainOptions.Provider,
-			hardwaretypes.Node,
-			hardwaretypes.NodeBlade)
-	}
-	// for _, newNode := range newNodes {
-	// 	cabinet := newNode.Location[0].Ordinal // bo.Cabinet()
-	// 	chassis := newNode.Location[1].Ordinal // bo.Chassis()
-	// 	slot := newNode.Location[2].Ordinal    // bo.Slot()
-	// 	bmc := newNode.Location[3].Ordinal     // bo.BMC() // aka NodeCard
-	// 	node := newNode.Location[4].Ordinal    // bo.Node()
-	// 	log.Info().Msgf("cani update node --cabinet \"%d\" --chassis \"%d\" --slot \"%d\" --bmc \"%d\" --node \"%d\" --role \"FIXME\" --subrole \"FIXME\" --alias \"FIXME\" --nid \"FIXME\"\n",
-	// 		cabinet,
-	// 		chassis,
-	// 		slot,
-	// 		bmc,
-	// 		node)
-	// }
 
 	return nil
 }

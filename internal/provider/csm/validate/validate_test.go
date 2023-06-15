@@ -27,6 +27,9 @@ package validate
 import (
 	"os"
 	"testing"
+
+	"github.com/Cray-HPE/cani/internal/provider/csm/validate/common"
+	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 )
 
 func loadTestData(t *testing.T, name string) []byte {
@@ -37,8 +40,36 @@ func loadTestData(t *testing.T, name string) []byte {
 	return content
 }
 
+func loadTestObjects(t *testing.T, filename string) (slsState *sls_client.SlsState, rawSLSState RawJson) {
+	fileContent := loadTestData(t, filename)
+
+	raw, result, err := unmarshalToInterface(fileContent)
+	if err != nil {
+		t.Fatalf("Failed to unmarshal %s. error: %s", filename, err)
+	}
+
+	if result.Result != common.Pass {
+		t.Fatalf("Failed to unmarshal %s. result: %v, error: %s", filename, result, err)
+	}
+
+	if raw == nil {
+		t.Fatalf("Failed to unmarshal %s. the returned interface{} is nil", filename)
+	}
+
+	slsState, result, err = unmarshalToSlsState(fileContent)
+	if err != nil {
+		t.Fatalf("failed to unmarshal %s. error: %s", filename, err)
+	}
+
+	if result.Result != common.Pass {
+		t.Fatalf("Failed to unmarshal %s. result: %v, error: %s", filename, result, err)
+	}
+
+	return slsState, raw
+}
+
 func TestUnmarshalToString(t *testing.T) {
-	datafile := "mug-dumpstate.json"
+	datafile := "invalid-mug.json"
 	content := loadTestData(t, datafile)
 
 	raw, result, err := unmarshalToInterface(content)
@@ -46,7 +77,7 @@ func TestUnmarshalToString(t *testing.T) {
 		t.Fatalf("Failed to unmarshal %s. error: %s", datafile, err)
 	}
 
-	if result.Result != Pass {
+	if result.Result != common.Pass {
 		t.Fatalf("Failed to unmarshal %s. result: %v, error: %s", datafile, result, err)
 	}
 
@@ -56,7 +87,7 @@ func TestUnmarshalToString(t *testing.T) {
 }
 
 func TestUnmarshalToSlsState(t *testing.T) {
-	datafile := "mug-dumpstate.json"
+	datafile := "invalid-mug.json"
 	content := loadTestData(t, datafile)
 	slsState, result, err := unmarshalToSlsState(content)
 
@@ -64,7 +95,7 @@ func TestUnmarshalToSlsState(t *testing.T) {
 		t.Fatalf("failed to unmarshal %s. error: %s", datafile, err)
 	}
 
-	if result.Result != Pass {
+	if result.Result != common.Pass {
 		t.Fatalf("Failed to unmarshal %s. result: %v, error: %s", datafile, result, err)
 	}
 
@@ -78,5 +109,45 @@ func TestUnmarshalToSlsState(t *testing.T) {
 
 	if len(slsState.Networks) == 0 {
 		t.Errorf("Failed to unmarshal %s. Found zero networks", datafile)
+	}
+}
+
+func TestValidateValid(t *testing.T) {
+	datafile := "valid-mug.json"
+	slsState, rawSLSState := loadTestObjects(t, datafile)
+	results, err := validate(slsState, rawSLSState)
+	passCount, warnCount, failCount := resultsCount(results)
+	logResults(t, results)
+	if err != nil {
+		t.Logf("Validation Error: \n%s", err)
+	}
+
+	if err != nil {
+		t.Errorf("Expected vaildation to pass and not return an error. pass: %d, warn: %d, fail: %d\n%s", passCount, warnCount, failCount, err)
+	}
+
+	expectedFailures := 0
+	if failCount != expectedFailures {
+		t.Errorf("Expected %d failures. pass: %d, warn: %d, fail: %d", expectedFailures, passCount, warnCount, failCount)
+	}
+}
+
+func TestValidateInvalid(t *testing.T) {
+	datafile := "invalid-mug.json"
+	slsState, rawSLSState := loadTestObjects(t, datafile)
+	results, err := validate(slsState, rawSLSState)
+	passCount, warnCount, failCount := resultsCount(results)
+	logResults(t, results)
+	if err != nil {
+		t.Logf("Validation Error: \n%s", err)
+	}
+
+	if err == nil {
+		t.Errorf("There was no error when one was expected. pass: %d, warn: %d, fail: %d", passCount, warnCount, failCount)
+	}
+
+	expectedFailures := 4
+	if failCount != expectedFailures {
+		t.Errorf("Expected %d failures. pass: %d, warn: %d, fail: %d", expectedFailures, passCount, warnCount, failCount)
 	}
 }

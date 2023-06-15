@@ -5,12 +5,11 @@ import (
 )
 
 var (
-	cabinet     int
-	chassis     int
-	slot        int
-	hwType      string
-	supportedHw []string
-	recursion   bool
+	auto      bool
+	cabinet   int
+	chassis   int
+	blade     int
+	recursion bool
 )
 
 func init() {
@@ -24,19 +23,15 @@ func init() {
 
 	// Blades have several parents, so we need to add flags for each
 	AddBladeCmd.Flags().IntVar(&cabinet, "cabinet", 1001, "Parent cabinet")
-	// cobra.MarkFlagRequired(AddBladeCmd.Flags(), "cabinet")
-
-	AddBladeCmd.Flags().IntVar(&chassis, "chassis", 7, "Parent chassis")
-	// cobra.MarkFlagRequired(AddBladeCmd.Flags(), "chassis")
-
-	AddBladeCmd.Flags().IntVar(&slot, "slot", 1, "Parent slot")
-	// cobra.MarkFlagRequired(AddBladeCmd.Flags(), "slot")
-
-	AddBladeCmd.MarkFlagsRequiredTogether("list-supported-types")
-	AddBladeCmd.MarkFlagsRequiredTogether("cabinet", "chassis", "slot")
 	AddBladeCmd.MarkFlagRequired("cabinet")
+	AddBladeCmd.Flags().IntVar(&chassis, "chassis", 7, "Parent chassis")
 	AddBladeCmd.MarkFlagRequired("chassis")
-	AddBladeCmd.MarkFlagRequired("slot")
+	AddBladeCmd.Flags().IntVar(&blade, "blade", 1, "Blade")
+	AddBladeCmd.MarkFlagRequired("blade")
+	AddBladeCmd.MarkFlagsRequiredTogether("cabinet", "chassis", "blade")
+
+	AddBladeCmd.Flags().BoolVar(&auto, "auto", false, "Automatically recommend values for parent hardware")
+	AddBladeCmd.MarkFlagsRequiredTogether("list-supported-types")
 
 	RemoveBladeCmd.Flags().BoolVarP(&recursion, "recursive", "R", false, "Recursively delete child hardware")
 

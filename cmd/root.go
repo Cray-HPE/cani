@@ -47,6 +47,8 @@ var (
 	cfgFile string
 	// Debug is a global flag that enables debug logging
 	Debug bool
+	// Verbose is a global flag that enables verbose logging
+	Verbose bool
 	// Simulation is a global flag that enables simulation mode
 	Simulation bool
 	// Conf is the global configuration read from cani.yml (or from --config)

@@ -20,8 +20,7 @@ var UpdateNodeCmd = &cobra.Command{
 	Long:              `Update nodes in the inventory.`,
 	PersistentPreRunE: session.DatastoreExists, // A session must be active to write to a datastore
 	SilenceUsage:      true,                    // Errors are more important than the usage
-	// Args:              validHardware,           // Hardware can only be valid if defined in the hardware library
-	RunE: updateNode, // Update a node when this sub-command is called
+	RunE:              updateNode,              // Update a node when this sub-command is called
 }
 
 // updateNode updates a node to the inventory
@@ -51,7 +50,7 @@ func updateNode(cmd *cobra.Command, args []string) error {
 	}
 
 	// Remove the node from the inventory using domain methods
-	result, err := d.UpdateNode(cmd.Context(), cabinet, chassis, slot, bmc, node, nodeMeta)
+	result, err := d.UpdateNode(cmd.Context(), cabinet, chassis, blade, nodecard, node, nodeMeta)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		// TODO the following should probably suggest commands to fix the issue?
 		log.Error().Msgf("Inventory data validation errors encountered")

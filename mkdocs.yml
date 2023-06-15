@@ -1,0 +1,93 @@
+#
+# MIT License
+#
+# (C) Copyright 2022 Hewlett Packard Enterprise Development LP
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+docs_dir: docs
+site_name: cani
+site_description: cani documenation
+site_author: Cray-HPE
+# site_url:
+repo_url: https://github.com/Cray-HPE/cani
+edit_uri: edit/main/docs
+theme: 
+  name: material
+  custom_dir: docs/custom_theme
+  logo: custom_theme/img/hpe_pri_wht_rev_rgb.png
+  locale: en
+  favicon: custom_theme/img/favicon.ico
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      toggle:
+        primary: teal
+        accent: indigo
+        icon: material/toggle-switch-off-outline
+        name: cani use dark mode?
+    # Palette toggle for dark mode
+    - scheme: slate
+      toggle:
+        primary: teal
+        accent: indigo
+        icon: material/toggle-switch
+        name: cani use light mode?
+# HPE branding
+extra_css:
+  - extra.css
+# version switcher
+extra:
+  version:
+    provider: mike
+plugins:
+    - search
+    - awesome-pages
+nav:
+  - Home: index.md
+  - Installation:
+    - RPM: install/rpm_install.md
+    - Go: install/go_install.md
+  - Getting Started:
+    - Starting A Session: getting_started/starting_a_session.md
+    - Adding Hardware: getting_started/adding_hardware.md
+    - Updating Hardware: getting_started/updating_hardware.md
+    - Validating: getting_started/validating.md
+    - Stopping A Session: getting_started/stopping_a_session.md
+  - Providers:
+    - CSM: providers/csm.md
+    - HPCM: providers/hpcm.md
+  - Inventory Format:
+    - Overview: inventory_format/overview.md
+    - UUID Keys: inventory_format/uuid.md
+    - Metadata: inventory_format/metadata.md
+  - CRUD Ops:
+    - Create (add): crud/create.md
+    - Read (list): crud/read.md
+    - Update: crud/update.md
+    - Delete (remove): crud/delete.md
+  - Development:
+    - HSM Simulator: development/simulator.md
+    - vShasta v2: development/vshasta.md
+    - Testing: development/testing.md
+    - Releasing: development/releasing.md
+    - Versioning: development/versioning.md
+  # add everything else not included above.  Be careful, this is a catch all
+  # currently being used to get all commands/ from auto-generated docs
+  - ...

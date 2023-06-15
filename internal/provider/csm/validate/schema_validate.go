@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"io/fs"
 
+	"github.com/Cray-HPE/cani/internal/provider/csm/validate/common"
 	"github.com/rs/zerolog/log"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 )
@@ -59,13 +60,13 @@ func loadSchema(filename string) (schema *jsonschema.Schema, err error) {
 	return nil, err
 }
 
-func schemaValidationErrors(instancePrefix string, err *jsonschema.ValidationError) []ValidationResult {
-	r := make([]ValidationResult, 0)
+func schemaValidationErrors(instancePrefix string, err *jsonschema.ValidationError) []common.ValidationResult {
+	r := make([]common.ValidationResult, 0)
 	if err.Message != "" {
 		r = append(r,
-			ValidationResult{
-				CheckID:     SLSSchemaCheck,
-				Result:      Fail,
+			common.ValidationResult{
+				CheckID:     common.SLSSchemaCheck,
+				Result:      common.Fail,
 				ComponentID: instancePrefix + err.InstanceLocation,
 				Description: err.Message})
 	}
@@ -76,17 +77,17 @@ func schemaValidationErrors(instancePrefix string, err *jsonschema.ValidationErr
 	return r
 }
 
-func toValidationErrors(instancePrefix string, err error) []ValidationResult {
+func toValidationErrors(instancePrefix string, err error) []common.ValidationResult {
 	var jsonerr *jsonschema.ValidationError
-	r := make([]ValidationResult, 0)
+	r := make([]common.ValidationResult, 0)
 	switch {
 	case errors.As(err, &jsonerr):
 		if len(jsonerr.Causes) == 0 {
 			// todo verify that the top level error is alwasy generic when there are causes
 			r = append(r,
-				ValidationResult{
-					CheckID:     SLSSchemaCheck,
-					Result:      Fail,
+				common.ValidationResult{
+					CheckID:     common.SLSSchemaCheck,
+					Result:      common.Fail,
 					ComponentID: instancePrefix + jsonerr.InstanceLocation,
 					Description: jsonerr.Message})
 		}
@@ -96,9 +97,9 @@ func toValidationErrors(instancePrefix string, err error) []ValidationResult {
 		}
 	default:
 		r = append(r,
-			ValidationResult{
-				CheckID:     SLSSchemaCheck,
-				Result:      Fail,
+			common.ValidationResult{
+				CheckID:     common.SLSSchemaCheck,
+				Result:      common.Fail,
 				ComponentID: "SLS Networks",
 				Description: fmt.Sprintf("SLS Networks error validating schema. %#v", err)})
 	}
@@ -106,36 +107,36 @@ func toValidationErrors(instancePrefix string, err error) []ValidationResult {
 	return r
 }
 
-func validateSchema(schema *jsonschema.Schema, rawJson map[string]interface{}, id string, description string) []ValidationResult {
-	results := make([]ValidationResult, 0)
+func validateSchema(schema *jsonschema.Schema, rawJson map[string]interface{}, id string, description string) []common.ValidationResult {
+	results := make([]common.ValidationResult, 0)
 
 	if err := schema.Validate(rawJson); err != nil {
 		r := toValidationErrors(id, err)
 		return append(results, r...)
 	}
 
-	r := ValidationResult{
-		CheckID:     SLSSchemaCheck,
-		Result:      Pass,
+	r := common.ValidationResult{
+		CheckID:     common.SLSSchemaCheck,
+		Result:      common.Pass,
 		ComponentID: id,
 		Description: description}
 	return append(results, r)
 }
 
-func validateSchemaNetworks(schema *jsonschema.Schema, networks map[string]interface{}) []ValidationResult {
+func validateSchemaNetworks(schema *jsonschema.Schema, networks map[string]interface{}) []common.ValidationResult {
 	return validateSchema(schema, networks, "Networks", "SLS Networks is valid json")
 }
 
 // validateAgainstSchemas validates the SLS response against the schemas
-func validateAgainstSchemas(slsDump RawJson) []ValidationResult {
-	results := make([]ValidationResult, 0)
+func validateAgainstSchemas(slsDump RawJson) []common.ValidationResult {
+	results := make([]common.ValidationResult, 0)
 
-	networks, found := GetMap(slsDump, "Networks")
+	networks, found := common.GetMap(slsDump, "Networks")
 	if !found {
 		results = append(results,
-			ValidationResult{
-				CheckID:     SLSSchemaCheck,
-				Result:      Fail,
+			common.ValidationResult{
+				CheckID:     common.SLSSchemaCheck,
+				Result:      common.Fail,
 				ComponentID: "SLS Networks",
 				Description: "Failed to find Networks data in SLS dump."})
 		return results
