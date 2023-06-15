@@ -56,6 +56,7 @@ Class | Method | HTTP request | Description
  - [HardwareExtraPropertiesCabinet](docs/HardwareExtraPropertiesCabinet.md)
  - [HardwareExtraPropertiesCabinetNetworks](docs/HardwareExtraPropertiesCabinetNetworks.md)
  - [HardwareExtraPropertiesCduMgmtSwitch](docs/HardwareExtraPropertiesCduMgmtSwitch.md)
+ - [HardwareExtraPropertiesChassis](docs/HardwareExtraPropertiesChassis.md)
  - [HardwareExtraPropertiesChassisBmc](docs/HardwareExtraPropertiesChassisBmc.md)
  - [HardwareExtraPropertiesCompmod](docs/HardwareExtraPropertiesCompmod.md)
  - [HardwareExtraPropertiesCompmodPowerConnector](docs/HardwareExtraPropertiesCompmodPowerConnector.md)

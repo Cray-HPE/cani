@@ -137,7 +137,7 @@ func HardwareUpdate(slsClient *sls_client.APIClient, ctx context.Context, hardwa
 
 		log.Trace().Int("worker", id).Msgf("SLS HardwareUpdate: Starting worker")
 		for hardware := range queue {
-			log.Info().Int("worker", id).Msgf("SLS HardwareUpdate: Updating SLS hardware: %s", hardware.Xname)
+			log.Trace().Int("worker", id).Msgf("SLS HardwareUpdate: Updating SLS hardware: %s", hardware.Xname)
 			// Perform a PUT against SLS
 			_, r, err := slsClient.HardwareApi.HardwareXnamePut(ctx, hardware.Xname, NewHardwareXnamePutOpts(hardware))
 			if err != nil {

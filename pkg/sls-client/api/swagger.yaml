@@ -1120,6 +1120,10 @@ components:
       properties:
         '@cani.id':
           type: string
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
+          type: string
         PoweredBy:
           $ref: '#/components/schemas/xname'
     hardware_extra_properties_cabinet:
@@ -1171,10 +1175,23 @@ components:
           type: array
           items:
             type: string
+    hardware_extra_properties_chassis:
+      type: object
+      properties:
+        '@cani.id':
+          type: string
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
+          type: string
     hardware_extra_properties_chassis_bmc:
       type: object
       properties:
         '@cani.id':
+          type: string
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
           type: string
         Aliases:
           type: array
@@ -1203,6 +1220,10 @@ components:
       type: object
       properties:
         '@cani.id':
+          type: string
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
           type: string
         PoweredBy:
           $ref: '#/components/schemas/xname'

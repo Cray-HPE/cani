@@ -9,6 +9,8 @@
 package sls_client
 
 type HardwareExtraPropertiesCompmodPowerConnector struct {
-	CaniId    string `json:"@cani.id,omitempty" mapstructure:"@cani.id"`
-	PoweredBy string `json:"PoweredBy" mapstructure:"PoweredBy"`
+	CaniId               string `json:"@cani.id,omitempty" mapstructure:"@cani.id"`
+	CaniLastModified     string `json:"@cani.lastModified,omitempty" mapstructure:"@cani.lastModified"`
+	CaniSlsSchemaVersion string `json:"@cani.slsSchemaVersion,omitempty" mapstructure:"@cani.slsSchemaVersion"`
+	PoweredBy            string `json:"PoweredBy" mapstructure:"PoweredBy"`
 }
