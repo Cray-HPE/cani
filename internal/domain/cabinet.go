@@ -13,7 +13,7 @@ import (
 )
 
 // AddCabinet adds a cabinet to the inventory
-func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetOrdinal int) (AddHardwareResult, error) {
+func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetOrdinal int, metadata map[string]interface{}) (AddHardwareResult, error) {
 	// Validate provided cabinet exists
 	// Craft the path to the cabinet
 	cabinetLocationPath := inventory.LocationPath{
@@ -73,15 +73,21 @@ func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetO
 		locationOrdinal := hardwareBuildOut.OrdinalPath[len(hardwareBuildOut.OrdinalPath)-1]
 
 		hardware := inventory.Hardware{
-			ID:     hardwareBuildOut.ID,
-			Parent: hardwareBuildOut.ParentID,
-			Type:   hardwareBuildOut.DeviceType.HardwareType,
-			Vendor: hardwareBuildOut.DeviceType.Manufacturer,
-			Model:  hardwareBuildOut.DeviceType.Model,
+			ID:             hardwareBuildOut.ID,
+			Parent:         hardwareBuildOut.ParentID,
+			Type:           hardwareBuildOut.DeviceType.HardwareType,
+			DeviceTypeSlug: hardwareBuildOut.DeviceType.Slug,
+			Vendor:         hardwareBuildOut.DeviceType.Manufacturer,
+			Model:          hardwareBuildOut.DeviceType.Model,
 
 			LocationOrdinal: &locationOrdinal,
 
 			Status: inventory.HardwareStatusStaged,
+		}
+
+		// Ask the inventory provider to craft a metadata object for this information
+		if err := d.externalInventoryProvider.BuildHardwareMetadata(&hardware, metadata); err != nil {
+			return AddHardwareResult{}, err
 		}
 
 		log.Debug().Any("id", hardware.ID).Msg("Hardware")

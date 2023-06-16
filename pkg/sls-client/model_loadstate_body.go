@@ -9,5 +9,5 @@
 package sls_client
 
 type LoadstateBody struct {
-	SlsDump *SlsState `json:"sls_dump,omitempty"`
+	SlsDump *SlsState `json:"sls_dump,omitempty" mapstructure:"sls_dump"`
 }

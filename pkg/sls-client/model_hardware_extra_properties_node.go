@@ -9,8 +9,11 @@
 package sls_client
 
 type HardwareExtraPropertiesNode struct {
-	NID     int32    `json:"NID,omitempty"`
-	Role    string   `json:"Role"`
-	SubRole string   `json:"SubRole,omitempty"`
-	Aliases []string `json:"Aliases"`
+	CaniId               string   `json:"@cani.id,omitempty" mapstructure:"@cani.id"`
+	CaniLastModified     string   `json:"@cani.lastModified,omitempty" mapstructure:"@cani.lastModified"`
+	CaniSlsSchemaVersion string   `json:"@cani.slsSchemaVersion,omitempty" mapstructure:"@cani.slsSchemaVersion"`
+	NID                  int32    `json:"NID,omitempty" mapstructure:"NID"`
+	Role                 string   `json:"Role" mapstructure:"Role"`
+	SubRole              string   `json:"SubRole,omitempty" mapstructure:"SubRole"`
+	Aliases              []string `json:"Aliases" mapstructure:"Aliases"`
 }

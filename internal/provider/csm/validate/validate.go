@@ -135,7 +135,7 @@ func ValidateString(slsStateBytes []byte) ([]common.ValidationResult, error) {
 }
 
 func Validate(slsState *sls_client.SlsState) ([]common.ValidationResult, error) {
-	// If we don't get a raw SLS payload, such as validating an SLS state build inside this tool we need to create the JSON version of the paylpoad
+	// If we don't get a raw SLS payload, such as validating an SLS state build inside this tool we need to create the JSON version of the payload
 	rawSLSState, err := json.Marshal(*slsState)
 	if err != nil {
 		return nil, err

@@ -1,15 +1,13 @@
 package csm
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/Cray-HPE/cani/cmd/taxonomy"
-	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+
 	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
-	"github.com/mitchellh/mapstructure"
 )
 
 type NewOpts struct {
@@ -56,10 +54,15 @@ type CSM struct {
 	// System Configuration data
 	ValidRoles    []string
 	ValidSubRoles []string
+
+	hardwareLibrary *hardwaretypes.Library
 }
 
-func New(opts *NewOpts) (*CSM, error) {
-	csm := &CSM{}
+func New(opts *NewOpts, hardwareLibrary *hardwaretypes.Library) (*CSM, error) {
+	csm := &CSM{
+		hardwareLibrary: hardwareLibrary,
+	}
+
 	// Setup HTTP client and context using csm options
 	httpClient, _, err := opts.newClient()
 	if err != nil {
@@ -107,66 +110,4 @@ func New(opts *NewOpts) (*CSM, error) {
 	csm.ValidRoles = opts.ValidRoles
 	csm.ValidSubRoles = opts.ValidSubRoles
 	return csm, nil
-}
-
-// Import external inventory data into CANI's inventory format
-func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error {
-	return fmt.Errorf("todo")
-
-}
-
-func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperties map[string]interface{}) error {
-	if cHardware.ProviderProperties == nil {
-		cHardware.ProviderProperties = map[string]interface{}{}
-	}
-
-	switch cHardware.Type {
-	case hardwaretypes.Node:
-		// TODO do something interesting with the raw data, and convert it/validate it
-		properties := NodeMetadata{} // Create an empty one
-		if _, exists := cHardware.ProviderProperties["csm"]; exists {
-			// If one exists set it.
-			if err := mapstructure.Decode(cHardware.ProviderProperties["csm"], &properties); err != nil {
-				return err
-			}
-		}
-		// Make changes to the node metadata
-		// The keys of rawProperties need to match what is defined in ./cmd/node/update_node.go
-		if roleRaw, exists := rawProperties["role"]; exists {
-			if roleRaw == nil {
-				properties.Role = nil
-			} else {
-				properties.Role = StringPtr(roleRaw.(string))
-			}
-		}
-		if subroleRaw, exists := rawProperties["subrole"]; exists {
-			if subroleRaw == nil {
-				properties.SubRole = nil
-			} else {
-				properties.SubRole = StringPtr(subroleRaw.(string))
-			}
-		}
-		if nidRaw, exists := rawProperties["nid"]; exists {
-			if nidRaw == nil {
-				properties.Nid = nil
-			} else {
-				properties.Nid = IntPtr(nidRaw.(int))
-			}
-		}
-		if aliasRaw, exists := rawProperties["alias"]; exists {
-			if aliasRaw == nil {
-				properties.Alias = nil
-			} else {
-				properties.Alias = StringPtr(aliasRaw.(string))
-			}
-		}
-
-		cHardware.ProviderProperties["csm"] = properties
-
-		return nil
-	default:
-		// This hardware type doesn't have metadata for it right now
-		return nil
-	}
-
 }

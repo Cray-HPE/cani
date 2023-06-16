@@ -1047,6 +1047,15 @@ components:
         - x0c0s0b0n0
         LastUpdated: 0
         TypeString: CDU
+    hardware_extra_properties_system:
+      type: object
+      properties:
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
+          type: string
+        '@cani.id':
+          type: string
     hardware_extra_properties_bmc_nic:
       required:
       - IP4addr
@@ -1055,6 +1064,12 @@ components:
       - Username
       type: object
       properties:
+        '@cani.id':
+          type: string
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
+          type: string
         IP6addr:
           type: string
           description: "The ipv6 address that should be assigned to this BMC, or \"\
@@ -1081,6 +1096,12 @@ components:
       - Peers
       type: object
       properties:
+        '@cani.id':
+          type: string
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
+          type: string
         Networks:
           type: array
           description: An array of network names that this NIC is connected to
@@ -1097,11 +1118,23 @@ components:
       - PoweredBy
       type: object
       properties:
+        '@cani.id':
+          type: string
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
+          type: string
         PoweredBy:
           $ref: '#/components/schemas/xname'
     hardware_extra_properties_cabinet:
       type: object
       properties:
+        '@cani.id':
+          type: string
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
+          type: string
         Model:
           type: string
         Networks:
@@ -1128,6 +1161,12 @@ components:
     hardware_extra_properties_cdu_mgmt_switch:
       type: object
       properties:
+        '@cani.id':
+          type: string
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
+          type: string
         Brand:
           type: string
         Model:
@@ -1136,9 +1175,24 @@ components:
           type: array
           items:
             type: string
+    hardware_extra_properties_chassis:
+      type: object
+      properties:
+        '@cani.id':
+          type: string
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
+          type: string
     hardware_extra_properties_chassis_bmc:
       type: object
       properties:
+        '@cani.id':
+          type: string
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
+          type: string
         Aliases:
           type: array
           items:
@@ -1148,6 +1202,12 @@ components:
       - PowerConnector
       type: object
       properties:
+        '@cani.id':
+          type: string
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
+          type: string
         PowerConnector:
           type: array
           description: "An array of xnames, where each xname has type==*_pwr_connector.\
@@ -1159,11 +1219,23 @@ components:
       - PoweredBy
       type: object
       properties:
+        '@cani.id':
+          type: string
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
+          type: string
         PoweredBy:
           $ref: '#/components/schemas/xname'
     hardware_extra_properties_mgmt_hl_switch:
       type: object
       properties:
+        '@cani.id':
+          type: string
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
+          type: string
         IP6addr:
           type: string
         IP4addr:
@@ -1191,6 +1263,12 @@ components:
       - NodeNics
       type: object
       properties:
+        '@cani.id':
+          type: string
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
+          type: string
         NodeNics:
           type: array
           description: An array of xnames that this connector is connected to.  All
@@ -1200,6 +1278,12 @@ components:
     hardware_extra_properties_mgmt_switch:
       type: object
       properties:
+        '@cani.id':
+          type: string
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
+          type: string
         IP6addr:
           type: string
         IP4addr:
@@ -1227,6 +1311,12 @@ components:
       - NodeNics
       type: object
       properties:
+        '@cani.id':
+          type: string
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
+          type: string
         NodeNics:
           type: array
           description: An array of xnames that the hardware_mgmt_switch_connector
@@ -1241,6 +1331,12 @@ components:
     hardware_extra_properties_ncard:
       type: object
       properties:
+        '@cani.id':
+          type: string
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
+          type: string
         IP6addr:
           type: string
           description: "The ipv6 address that should be assigned to this BMC, or \"\
@@ -1267,6 +1363,12 @@ components:
       - Role
       type: object
       properties:
+        '@cani.id':
+          type: string
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
+          type: string
         NID:
           minimum: 0
           type: integer
@@ -1287,6 +1389,12 @@ components:
       - Peers
       type: object
       properties:
+        '@cani.id':
+          type: string
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
+          type: string
         Networks:
           type: array
           description: An array of network names that this NIC is connected to
@@ -1304,6 +1412,12 @@ components:
       - Peers
       type: object
       properties:
+        '@cani.id':
+          type: string
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
+          type: string
         Networks:
           type: array
           description: An array of network names that this NIC is connected to
@@ -1321,6 +1435,12 @@ components:
       - IP6addr
       type: object
       properties:
+        '@cani.id':
+          type: string
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
+          type: string
         IP6addr:
           type: string
           description: "The ipv6 address that should be assigned to this BMC, or \"\
@@ -1347,6 +1467,12 @@ components:
       - Peers
       type: object
       properties:
+        '@cani.id':
+          type: string
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
+          type: string
         Networks:
           type: array
           description: An array of network names that this NIC is connected to
@@ -1363,6 +1489,12 @@ components:
       - PowerConnector
       type: object
       properties:
+        '@cani.id':
+          type: string
+        '@cani.lastModified':
+          type: string
+        '@cani.slsSchemaVersion':
+          type: string
         PowerConnector:
           type: array
           description: "An array of xnames, where each xname has type==*_pwr_connector.\
@@ -1390,6 +1522,7 @@ components:
       - $ref: '#/components/schemas/hardware_extra_properties_rtr_bmc'
       - $ref: '#/components/schemas/hardware_extra_properties_rtr_bmc_nic'
       - $ref: '#/components/schemas/hardware_extra_properties_rtrmod'
+      - $ref: '#/components/schemas/hardware_extra_properties_system'
     slsState:
       type: object
       properties:

@@ -3,6 +3,7 @@ package csm
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider/csm/sls"
@@ -180,14 +181,42 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 
 	switch cHardware.Type {
 	case hardwaretypes.Cabinet:
-		return sls_client.Hardware{}, nil
+		var cabinetExtraProperties sls_client.HardwareExtraPropertiesCabinet
+
+		// Apply CANI Metadata
+		cabinetExtraProperties.CaniId = cHardware.ID.String()
+		cabinetExtraProperties.CaniSlsSchemaVersion = "v1alpha1"
+		cabinetExtraProperties.CaniLastModified = time.Now().UTC().String()
+
+		// TODO need cabinet metadata
+
+		extraProperties = cabinetExtraProperties
 	case hardwaretypes.Chassis:
-		return sls_client.Hardware{}, nil
+		var chassisExtraProperties sls_client.HardwareExtraPropertiesChassis
+
+		// Apply CANI Metadata
+		chassisExtraProperties.CaniId = cHardware.ID.String()
+		chassisExtraProperties.CaniSlsSchemaVersion = "v1alpha1"
+		chassisExtraProperties.CaniLastModified = time.Now().UTC().String()
+
+		extraProperties = chassisExtraProperties
+	case hardwaretypes.ChassisManagementModule:
+		var cmmExtraProperties sls_client.HardwareExtraPropertiesChassisBmc
+
+		// Apply CANI Metadata
+		cmmExtraProperties.CaniId = cHardware.ID.String()
+		cmmExtraProperties.CaniSlsSchemaVersion = "v1alpha1"
+		cmmExtraProperties.CaniLastModified = time.Now().UTC().String()
+
+		extraProperties = cmmExtraProperties
 	case hardwaretypes.NodeBlade:
+		// Not represented in SLS
 		return sls_client.Hardware{}, nil
 	case hardwaretypes.NodeCard:
+		// Not represented in SLS
 		return sls_client.Hardware{}, nil
 	case hardwaretypes.NodeController:
+		// Not represented in SLS
 		return sls_client.Hardware{}, nil
 	case hardwaretypes.Node:
 		metadata, err := GetProviderMetadataT[NodeMetadata](cHardware)
@@ -198,8 +227,14 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 			)
 		}
 
+		var nodeExtraProperties sls_client.HardwareExtraPropertiesNode
+		// Apply CANI Metadata
+		nodeExtraProperties.CaniId = cHardware.ID.String()
+		nodeExtraProperties.CaniSlsSchemaVersion = "v1alpha1"
+		nodeExtraProperties.CaniLastModified = time.Now().UTC().String()
+
+		// Logical metadata
 		if metadata != nil {
-			var nodeExtraProperties sls_client.HardwareExtraPropertiesNode
 
 			// In order to properly populate SLS several bits of information are required.
 			// This information should have been collected when hardware was added to the inventory
@@ -217,13 +252,15 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 				nodeExtraProperties.NID = int32(*metadata.Nid)
 			}
 			if metadata.Alias != nil {
-				nodeExtraProperties.Aliases = []string{*metadata.Alias} // TODO NEED TO HANDLE hardware types with multiple ALIASES
+				nodeExtraProperties.Aliases = metadata.Alias
 			}
 
-			extraProperties = nodeExtraProperties
 			log.Info().Any("nodeEp", nodeExtraProperties).Msgf("Generated Extra Properties for %s", xname.String())
 		}
-
+		extraProperties = nodeExtraProperties
+	default:
+		log.Warn().Msgf("Do not known how to handle %s", xname.String())
+		return sls_client.Hardware{}, nil
 	}
 
 	return sls.NewHardware(xname, class, extraProperties), nil

@@ -9,8 +9,8 @@
 package sls_client
 
 type NetworkIpReservation struct {
-	IPAddress string   `json:"IPAddress"`
-	Name      string   `json:"Name"`
-	Aliases   []string `json:"Aliases,omitempty"`
-	Comment   string   `json:"Comment,omitempty"`
+	IPAddress string   `json:"IPAddress" mapstructure:"IPAddress"`
+	Name      string   `json:"Name" mapstructure:"Name"`
+	Aliases   []string `json:"Aliases,omitempty" mapstructure:"Aliases"`
+	Comment   string   `json:"Comment,omitempty" mapstructure:"Comment"`
 }

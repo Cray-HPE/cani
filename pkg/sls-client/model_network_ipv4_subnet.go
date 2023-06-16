@@ -9,13 +9,13 @@
 package sls_client
 
 type NetworkIpv4Subnet struct {
-	Name           string                 `json:"Name"`
-	FullName       string                 `json:"FullName,omitempty"`
-	CIDR           string                 `json:"CIDR"`
-	VlanID         int32                  `json:"VlanID"`
-	Gateway        string                 `json:"Gateway,omitempty"`
-	DHCPStart      string                 `json:"DHCPStart,omitempty"`
-	DHCPEnd        string                 `json:"DHCPEnd,omitempty"`
-	IPReservations []NetworkIpReservation `json:"IPReservations,omitempty"`
-	Comment        string                 `json:"Comment,omitempty"`
+	Name           string                 `json:"Name" mapstructure:"Name"`
+	FullName       string                 `json:"FullName,omitempty" mapstructure:"FullName"`
+	CIDR           string                 `json:"CIDR" mapstructure:"CIDR"`
+	VlanID         int32                  `json:"VlanID" mapstructure:"VlanID"`
+	Gateway        string                 `json:"Gateway,omitempty" mapstructure:"Gateway"`
+	DHCPStart      string                 `json:"DHCPStart,omitempty" mapstructure:"DHCPStart"`
+	DHCPEnd        string                 `json:"DHCPEnd,omitempty" mapstructure:"DHCPEnd"`
+	IPReservations []NetworkIpReservation `json:"IPReservations,omitempty" mapstructure:"IPReservations"`
+	Comment        string                 `json:"Comment,omitempty" mapstructure:"Comment"`
 }

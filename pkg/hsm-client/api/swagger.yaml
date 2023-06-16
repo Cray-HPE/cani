@@ -547,6 +547,9 @@ paths:
           - NodeEnclosure
           - NodeEnclosurePowerSupply
           - HSNBoard
+          - MgmtSwitch
+          - MgmtHLSwitch
+          - CDUMgmtSwitch
           - Node
           - Processor
           - Drive
@@ -1837,6 +1840,9 @@ paths:
           - NodeEnclosure
           - NodeEnclosurePowerSupply
           - HSNBoard
+          - MgmtSwitch
+          - MgmtHLSwitch
+          - CDUMgmtSwitch
           - Node
           - Processor
           - Drive
@@ -2485,6 +2491,9 @@ paths:
           - NodeEnclosure
           - NodeEnclosurePowerSupply
           - HSNBoard
+          - MgmtSwitch
+          - MgmtHLSwitch
+          - CDUMgmtSwitch
           - Node
           - Processor
           - Drive
@@ -3186,6 +3195,9 @@ paths:
           - NodeEnclosure
           - NodeEnclosurePowerSupply
           - HSNBoard
+          - MgmtSwitch
+          - MgmtHLSwitch
+          - CDUMgmtSwitch
           - Node
           - Processor
           - Drive
@@ -3414,6 +3426,9 @@ paths:
           - NodeEnclosure
           - NodeEnclosurePowerSupply
           - HSNBoard
+          - MgmtSwitch
+          - MgmtHLSwitch
+          - CDUMgmtSwitch
           - Node
           - Processor
           - Drive
@@ -3989,6 +4004,9 @@ paths:
           - NodeEnclosure
           - NodeEnclosurePowerSupply
           - HSNBoard
+          - MgmtSwitch
+          - MgmtHLSwitch
+          - CDUMgmtSwitch
           - Node
           - Processor
           - Drive
@@ -4630,6 +4648,9 @@ paths:
           - NodeEnclosure
           - NodeEnclosurePowerSupply
           - HSNBoard
+          - MgmtSwitch
+          - MgmtHLSwitch
+          - CDUMgmtSwitch
           - Node
           - Processor
           - Drive
@@ -4670,7 +4691,7 @@ paths:
         explode: true
         schema:
           type: string
-      - name: laststatus
+      - name: lastdiscoverystatus
         in: query
         description: "Retrieve the RedfishEndpoints with the given discovery status.\
           \ This can be negated (i.e. !DiscoverOK). Valid values are: EndpointInvalid,\
@@ -5161,6 +5182,9 @@ paths:
           - NodeEnclosure
           - NodeEnclosurePowerSupply
           - HSNBoard
+          - MgmtSwitch
+          - MgmtHLSwitch
+          - CDUMgmtSwitch
           - Node
           - Processor
           - Drive
@@ -6750,7 +6774,7 @@ paths:
               $ref: '#/components/schemas/Subscriptions_SCNPostSubscription'
         required: true
       responses:
-        "200":
+        "204":
           description: Success. The subscription has been overwritten.
           content: {}
         "400":
@@ -8023,6 +8047,9 @@ paths:
           - NodeEnclosure
           - NodeEnclosurePowerSupply
           - HSNBoard
+          - MgmtSwitch
+          - MgmtHLSwitch
+          - CDUMgmtSwitch
           - Node
           - Processor
           - Drive
@@ -9627,6 +9654,27 @@ components:
           readOnly: true
           items:
             $ref: '#/components/schemas/HWInvByLocHSNBoard'
+        MgmtSwitches:
+          type: array
+          description: All appropriate components with HMS type 'MgmtSwitch' given
+            Target component/partition and query type.
+          readOnly: true
+          items:
+            $ref: '#/components/schemas/HWInvByLocMgmtSwitch'
+        MgmtHLSwitches:
+          type: array
+          description: All appropriate components with HMS type 'MgmtHLSwitch' given
+            Target component/partition and query type.
+          readOnly: true
+          items:
+            $ref: '#/components/schemas/HWInvByLocMgmtHLSwitch'
+        CDUMgmtSwitches:
+          type: array
+          description: All appropriate components with HMS type 'CDUMgmtSwitch' given
+            Target component/partition and query type.
+          readOnly: true
+          items:
+            $ref: '#/components/schemas/HWInvByLocCDUMgmtSwitch'
         Nodes:
           type: array
           description: All appropriate components with HMS type 'Node' given Target
@@ -9730,6 +9778,9 @@ components:
         HSNBoards:
         - ""
         - ""
+        CDUMgmtSwitches:
+        - ""
+        - ""
         CabinetPDUs:
         - ""
         - ""
@@ -9746,6 +9797,9 @@ components:
         - ""
         - ""
         ComputeModules:
+        - ""
+        - ""
+        MgmtHLSwitches:
         - ""
         - ""
         Drives:
@@ -9777,6 +9831,9 @@ components:
         - ""
         - ""
         Cabinets:
+        - ""
+        - ""
+        MgmtSwitches:
         - ""
         - ""
         Processors:
@@ -9821,6 +9878,9 @@ components:
           - HWInvByLocRouterModule
           - HWInvByLocNodeEnclosure
           - HWInvByLocHSNBoard
+          - HWInvByLocMgmtSwitch
+          - HWInvByLocMgmtHLSwitch
+          - HWInvByLocCDUMgmtSwitch
           - HWInvByLocNode
           - HWInvByLocProcessor
           - HWInvByLocNodeAccel
@@ -9962,6 +10022,39 @@ components:
       - type: object
         properties:
           HSNBoardLocationInfo:
+            $ref: '#/components/schemas/HWInventory.1.0.0_RedfishChassisLocationInfo'
+    HWInvByLocMgmtSwitch:
+      description: "This is a subtype of HWInventoryByLocation for HMSType MgmtSwitch.\
+        \ It represents a management switch.  It is selected via the 'discriminator:\
+        \ HWInventoryByLocationType' of HWInventoryByLocation when HWInventoryByLocationType\
+        \ is 'HWInvByLocMgmtSwitch'."
+      allOf:
+      - $ref: '#/components/schemas/HWInventory.1.0.0_HWInventoryByLocation'
+      - type: object
+        properties:
+          MgmtSwitchLocationInfo:
+            $ref: '#/components/schemas/HWInventory.1.0.0_RedfishChassisLocationInfo'
+    HWInvByLocMgmtHLSwitch:
+      description: "This is a subtype of HWInventoryByLocation for HMSType MgmtHLSwitch.\
+        \ It represents a high level management switch.  It is selected via the 'discriminator:\
+        \ HWInventoryByLocationType' of HWInventoryByLocation when HWInventoryByLocationType\
+        \ is 'HWInvByLocMgmtHLSwitch'."
+      allOf:
+      - $ref: '#/components/schemas/HWInventory.1.0.0_HWInventoryByLocation'
+      - type: object
+        properties:
+          MgmtHLSwitchLocationInfo:
+            $ref: '#/components/schemas/HWInventory.1.0.0_RedfishChassisLocationInfo'
+    HWInvByLocCDUMgmtSwitch:
+      description: "This is a subtype of HWInventoryByLocation for HMSType CDUMgmtSwitch.\
+        \ It represents a CDU management switch.  It is selected via the 'discriminator:\
+        \ HWInventoryByLocationType' of HWInventoryByLocation when HWInventoryByLocationType\
+        \ is 'HWInvByLocCDUMgmtSwitch'."
+      allOf:
+      - $ref: '#/components/schemas/HWInventory.1.0.0_HWInventoryByLocation'
+      - type: object
+        properties:
+          CDUMgmtSwitchLocationInfo:
             $ref: '#/components/schemas/HWInventory.1.0.0_RedfishChassisLocationInfo'
     HWInvByLocNode:
       description: "This is a subtype of HWInventoryByLocation for HMSType Node. It\
@@ -10526,6 +10619,9 @@ components:
           - HWInvByFRURouterModule
           - HWInvByFRUNodeEnclosure
           - HWInvByFRUHSNBoard
+          - HWInvByFRUMgmtSwitch
+          - HWInvByFRUMgmtHLSwitch
+          - HWInvByFRUCDUMgmtSwitch
           - HWInvByFRUNode
           - HWInvByFRUProcessor
           - HWInvByFRUNodeAccel
@@ -10625,6 +10721,36 @@ components:
       - type: object
         properties:
           HSNBoardFRUInfo:
+            $ref: '#/components/schemas/HWInventory.1.0.0_RedfishChassisFRUInfo'
+    HWInvByFRUMgmtSwitch:
+      description: "This is a subtype of HWInventoryByFRU for HMSType MgmtSwitch.\
+        \ It represents a management switch.  It is selected via the 'discriminator:\
+        \ HWInventoryByFRUType' of HWInventoryByFRU when HWInventoryByFRUType is 'HWInvByFRUMgmtSwitch'."
+      allOf:
+      - $ref: '#/components/schemas/HWInventory.1.0.0_HWInventoryByFRU'
+      - type: object
+        properties:
+          MgmtSwitchFRUInfo:
+            $ref: '#/components/schemas/HWInventory.1.0.0_RedfishChassisFRUInfo'
+    HWInvByFRUMgmtHLSwitch:
+      description: "This is a subtype of HWInventoryByFRU for HMSType MgmtHLSwitch.\
+        \ It represents a high level management switch.  It is selected via the 'discriminator:\
+        \ HWInventoryByFRUType' of HWInventoryByFRU when HWInventoryByFRUType is 'HWInvByFRUMgmtHLSwitch'."
+      allOf:
+      - $ref: '#/components/schemas/HWInventory.1.0.0_HWInventoryByFRU'
+      - type: object
+        properties:
+          MgmtHLSwitchFRUInfo:
+            $ref: '#/components/schemas/HWInventory.1.0.0_RedfishChassisFRUInfo'
+    HWInvByFRUCDUMgmtSwitch:
+      description: "This is a subtype of HWInventoryByFRU for HMSType CDUMgmtSwitch.\
+        \ It represents a CDU management switch.  It is selected via the 'discriminator:\
+        \ HWInventoryByFRUType' of HWInventoryByFRU when HWInventoryByFRUType is 'HWInvByFRUCDUMgmtSwitch'."
+      allOf:
+      - $ref: '#/components/schemas/HWInventory.1.0.0_HWInventoryByFRU'
+      - type: object
+        properties:
+          CDUMgmtSwitchFRUInfo:
             $ref: '#/components/schemas/HWInventory.1.0.0_RedfishChassisFRUInfo'
     HWInvByFRUNode:
       description: "This is a subtype of HWInventoryByFRU for HMSType Node. It represents\
@@ -11579,9 +11705,9 @@ components:
         MacRequired: true
         Name: Name
         DiscoveryInfo:
-          LastStatus: EndpointInvalid
+          LastDiscoveryAttempt: 2000-01-23T04:56:07.000+00:00
+          LastDiscoveryStatus: EndpointInvalid
           RedfishVersion: RedfishVersion
-          LastAttempt: 2000-01-23T04:56:07.000+00:00
         Type: Node
         FQDN: FQDN
         UseSSDP: true
@@ -11632,9 +11758,9 @@ components:
           MacRequired: true
           Name: Name
           DiscoveryInfo:
-            LastStatus: EndpointInvalid
+            LastDiscoveryAttempt: 2000-01-23T04:56:07.000+00:00
+            LastDiscoveryStatus: EndpointInvalid
             RedfishVersion: RedfishVersion
-            LastAttempt: 2000-01-23T04:56:07.000+00:00
           Type: Node
           FQDN: FQDN
           UseSSDP: true
@@ -11652,9 +11778,9 @@ components:
           MacRequired: true
           Name: Name
           DiscoveryInfo:
-            LastStatus: EndpointInvalid
+            LastDiscoveryAttempt: 2000-01-23T04:56:07.000+00:00
+            LastDiscoveryStatus: EndpointInvalid
             RedfishVersion: RedfishVersion
-            LastAttempt: 2000-01-23T04:56:07.000+00:00
           Type: Node
           FQDN: FQDN
           UseSSDP: true
@@ -13378,6 +13504,9 @@ components:
       - NodeEnclosure
       - NodeEnclosurePowerSupply
       - HSNBoard
+      - MgmtSwitch
+      - MgmtHLSwitch
+      - CDUMgmtSwitch
       - Node
       - Processor
       - Drive
@@ -13746,12 +13875,12 @@ components:
     RedfishEndpoint.1.0.0_RedfishEndpoint_DiscoveryInfo:
       type: object
       properties:
-        LastAttempt:
+        LastDiscoveryAttempt:
           type: string
           description: The time the last discovery attempt took place.
           format: date-time
           readOnly: true
-        LastStatus:
+        LastDiscoveryStatus:
           type: string
           description: Describes the outcome of the last discovery attempt.
           readOnly: true
@@ -13770,9 +13899,9 @@ components:
       description: Contains info about the discovery status of the given endpoint.
       readOnly: true
       example:
-        LastStatus: EndpointInvalid
+        LastDiscoveryAttempt: 2000-01-23T04:56:07.000+00:00
+        LastDiscoveryStatus: EndpointInvalid
         RedfishVersion: RedfishVersion
-        LastAttempt: 2000-01-23T04:56:07.000+00:00
     Actions_1.0.0_ChassisActions_Chassis.Reset:
       type: object
       properties:
@@ -13957,6 +14086,9 @@ components:
         - NodeEnclosure
         - NodeEnclosurePowerSupply
         - HSNBoard
+        - MgmtSwitch
+        - MgmtHLSwitch
+        - CDUMgmtSwitch
         - Node
         - Processor
         - Drive

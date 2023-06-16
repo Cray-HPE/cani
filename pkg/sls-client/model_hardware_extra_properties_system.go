@@ -8,15 +8,8 @@
  */
 package sls_client
 
-type HardwareExtraPropertiesHlSwitch struct {
-	IP6addr          string   `json:"IP6addr,omitempty"`
-	IP4addr          string   `json:"IP4addr,omitempty"`
-	Brand            string   `json:"Brand,omitempty"`
-	Model            string   `json:"Model,omitempty"`
-	SNMPAuthPassword string   `json:"SNMPAuthPassword,omitempty"`
-	SNMPAuthProtocol string   `json:"SNMPAuthProtocol,omitempty"`
-	SNMPPrivPassword string   `json:"SNMPPrivPassword,omitempty"`
-	SNMPPrivProtocol string   `json:"SNMPPrivProtocol,omitempty"`
-	SNMPUsername     string   `json:"SNMPUsername,omitempty"`
-	Aliases          []string `json:"Aliases,omitempty"`
+type HardwareExtraPropertiesSystem struct {
+	CaniLastModified     string `json:"@cani.lastModified,omitempty" mapstructure:"@cani.lastModified"`
+	CaniSlsSchemaVersion string `json:"@cani.slsSchemaVersion,omitempty" mapstructure:"@cani.slsSchemaVersion"`
+	CaniId               string `json:"@cani.id,omitempty" mapstructure:"@cani.id"`
 }

@@ -202,7 +202,7 @@ Name | Type | Description  | Notes
  **uuid** | **optional.String**| Retrieve the RedfishEndpoint with the given UUID. | 
  **macaddr** | **optional.String**| Retrieve the RedfishEndpoint with the given MAC address. | 
  **ipaddress** | **optional.String**| Retrieve the RedfishEndpoint with the given IP address. A blank string will get Redfish endpoints without IP addresses. | 
- **laststatus** | **optional.String**| Retrieve the RedfishEndpoints with the given discovery status. This can be negated (i.e. !DiscoverOK). Valid values are: EndpointInvalid, EPResponseFailedDecode, HTTPsGetFailed, NotYetQueried, VerificationFailed, ChildVerificationFailed, DiscoverOK | 
+ **lastdiscoverystatus** | **optional.String**| Retrieve the RedfishEndpoints with the given discovery status. This can be negated (i.e. !DiscoverOK). Valid values are: EndpointInvalid, EPResponseFailedDecode, HTTPsGetFailed, NotYetQueried, VerificationFailed, ChildVerificationFailed, DiscoverOK | 
 
 ### Return type
 

@@ -25,6 +25,12 @@ type HwInventory100HwInventory struct {
 	NodeEnclosures []HwInvByLocNodeEnclosure `json:"NodeEnclosures,omitempty"`
 	// All appropriate components with HMS type 'HSNBoard' given Target component/partition and query type.
 	HSNBoards []HwInvByLocHsnBoard `json:"HSNBoards,omitempty"`
+	// All appropriate components with HMS type 'MgmtSwitch' given Target component/partition and query type.
+	MgmtSwitches []HwInvByLocMgmtSwitch `json:"MgmtSwitches,omitempty"`
+	// All appropriate components with HMS type 'MgmtHLSwitch' given Target component/partition and query type.
+	MgmtHLSwitches []HwInvByLocMgmtHlSwitch `json:"MgmtHLSwitches,omitempty"`
+	// All appropriate components with HMS type 'CDUMgmtSwitch' given Target component/partition and query type.
+	CDUMgmtSwitches []HwInvByLocCduMgmtSwitch `json:"CDUMgmtSwitches,omitempty"`
 	// All appropriate components with HMS type 'Node' given Target component/partition and query type.
 	Nodes []HwInvByLocNode `json:"Nodes,omitempty"`
 	// All appropriate components with HMS type 'Processor' given Target component/partition and query type.

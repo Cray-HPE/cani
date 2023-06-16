@@ -419,7 +419,7 @@ func (c *APIClient) decode(v interface{}, b []byte, contentType string) (err err
 		}
 		return nil
 	}
-	return fmt.Errorf("unsupported content type: %s", contentType)
+	return errors.New("undefined response type")
 }
 
 // Add a file to the multipart request

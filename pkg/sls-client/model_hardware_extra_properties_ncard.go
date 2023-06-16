@@ -9,12 +9,15 @@
 package sls_client
 
 type HardwareExtraPropertiesNcard struct {
+	CaniId               string `json:"@cani.id,omitempty" mapstructure:"@cani.id"`
+	CaniLastModified     string `json:"@cani.lastModified,omitempty" mapstructure:"@cani.lastModified"`
+	CaniSlsSchemaVersion string `json:"@cani.slsSchemaVersion,omitempty" mapstructure:"@cani.slsSchemaVersion"`
 	// The ipv6 address that should be assigned to this BMC, or \"DHCPv6\".  If omitted, \"DHCPv6\" is assumed.
-	IP6addr string `json:"IP6addr,omitempty"`
+	IP6addr string `json:"IP6addr,omitempty" mapstructure:"IP6addr"`
 	// The ipv4 address that should be assigned to this BMC, or \"DHCPv4\".  If omitted, \"DHCPv4\" is assumed.
-	IP4addr string `json:"IP4addr,omitempty"`
+	IP4addr string `json:"IP4addr,omitempty" mapstructure:"IP4addr"`
 	// The username that should be used to access the device (or be assigned to the device)
-	Username string `json:"Username,omitempty"`
+	Username string `json:"Username,omitempty" mapstructure:"Username"`
 	// The password that should be used to access the device (or be assigned to the device)
-	Password string `json:"Password,omitempty"`
+	Password string `json:"Password,omitempty" mapstructure:"Password"`
 }

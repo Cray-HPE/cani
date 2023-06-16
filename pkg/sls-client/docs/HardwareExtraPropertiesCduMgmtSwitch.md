@@ -3,6 +3,9 @@
 ## Properties
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
+**CaniId** | **string** |  | [optional] [default to null]
+**CaniLastModified** | **string** |  | [optional] [default to null]
+**CaniSlsSchemaVersion** | **string** |  | [optional] [default to null]
 **Brand** | **string** |  | [optional] [default to null]
 **Model** | **string** |  | [optional] [default to null]
 **Aliases** | **[]string** |  | [optional] [default to null]

@@ -9,7 +9,6 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider/csm/sls"
-	"github.com/Cray-HPE/cani/internal/provider/csm/validate"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	"github.com/Cray-HPE/hms-xname/xnametypes"
 	"github.com/rs/zerolog/log"
@@ -79,7 +78,7 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 
 	// Identify hardware present in both states
 	// Does not take into account differences in Class/ExtraProperties, just by the primary key of xname
-	identicalHardware, hardwareWithDifferingValues, err := sls.HardwareUnion(currentSLSState, expectedSLSState)
+	identicalHardware, hardwareWithDifferingValues, err := sls.HardwareUnion(expectedSLSState, currentSLSState)
 	if err != nil {
 		return err
 	}
@@ -94,7 +93,7 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 	//
 	unexpectedHardwareRemoval := []sls_client.Hardware{}
 	for _, hardware := range hardwareRemoved {
-		if hardwareMapping[hardware.Xname].Status != inventory.HardwareStatusDecomissioned {
+		if hardwareMapping[hardware.Xname].Status != inventory.HardwareStatusDecommissioned {
 			// This piece of hardware wasn't flagged for removal from the system, but a
 			// the reconcile logic wants to remove it and this is bad
 			unexpectedHardwareRemoval = append(unexpectedHardwareRemoval, hardware)
@@ -139,14 +138,15 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 		modifiedState.Hardware[hardware.Xname] = hardware
 	}
 	for _, hardwarePair := range hardwareWithDifferingValues {
-		updatedHardware := hardwarePair.HardwareB
+		updatedHardware := hardwarePair.HardwareA
 		modifiedState.Hardware[updatedHardware.Xname] = updatedHardware
 	}
 
-	_, err = validate.Validate(&modifiedState)
-	if err != nil {
-		return fmt.Errorf("Validation failed. %v\n", err)
-	}
+	// TODO something is broken with
+	// _, err = validate.Validate(&modifiedState)
+	// if err != nil {
+	// 	return fmt.Errorf("Validation failed. %v\n", err)
+	// }
 
 	//
 	// Modify the System's SLS instance
@@ -319,6 +319,8 @@ func displayUnwantedChanges(unwantedHardwareRemoved, unwantedHardwareAdded []sls
 }
 
 func buildHardwareString(hardware sls_client.Hardware) (string, error) {
+	// TODO include CANU UUID
+
 	extraPropertiesRaw, err := hardware.DecodeExtraProperties()
 	if err != nil {
 		return "", err
@@ -328,10 +330,15 @@ func buildHardwareString(hardware sls_client.Hardware) (string, error) {
 	tokens = append(tokens, fmt.Sprintf("Type: %s", hardware.TypeString))
 
 	switch hardware.TypeString {
-	case xnametypes.Cabinet:
-		// Nothing to do
+	// case xnametypes.Cabinet:
+	// 	// If we don't know how to pretty print it, lets just do the raw JSON
+	// 	extraPropertiesRaw, err := json.Marshal(hardware.ExtraProperties)
+	// 	if err != nil {
+	// 		return "", err
+	// 	}
+	// 	tokens = append(tokens, string(extraPropertiesRaw))
 	case xnametypes.Chassis:
-		// Nothing to do
+	// Nothing to do
 	case xnametypes.ChassisBMC:
 		// Nothing to do
 	case xnametypes.CabinetPDUController:

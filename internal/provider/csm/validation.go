@@ -165,17 +165,19 @@ func (csm *CSM) validateInternalNode(allHardware map[uuid.UUID]inventory.Hardwar
 
 		// Verify Alias is valid
 		if metadata.Alias != nil {
-			nodeAliasLookup[*metadata.Alias] = append(nodeAliasLookup[*metadata.Alias], cHardware.ID)
+			for _, alias := range metadata.Alias {
+				nodeAliasLookup[alias] = append(nodeAliasLookup[alias], cHardware.ID)
 
-			if metadata.Alias != nil && len(*metadata.Alias) == 0 {
-				validationResult.Errors = append(validationResult.Errors, "Specified Alias is empty")
-			}
+				if metadata.Alias != nil && len(alias) == 0 {
+					validationResult.Errors = append(validationResult.Errors, "Specified Alias is empty")
+				}
 
-			// TODO a regex here might be better
-			if strings.Contains(*metadata.Alias, " ") {
-				validationResult.Errors = append(validationResult.Errors,
-					fmt.Sprintf("Specified alias (%d) is invalid, alias contains spaces", *metadata.Nid),
-				)
+				// TODO a regex here might be better
+				if strings.Contains(alias, " ") {
+					validationResult.Errors = append(validationResult.Errors,
+						fmt.Sprintf("Specified alias (%d) is invalid, alias contains spaces", *metadata.Nid),
+					)
+				}
 			}
 		}
 
@@ -268,9 +270,9 @@ func (csm *CSM) validateInternalCabinet(allHardware map[uuid.UUID]inventory.Hard
 
 		if metadata.HMNVlan != nil {
 			// Verify the vlan is within the allowed range
-			if 0 <= *metadata.HMNVlan && *metadata.HMNVlan <= 4095 {
+			if !(0 <= *metadata.HMNVlan && *metadata.HMNVlan <= 4094) {
 				validationResult.Errors = append(validationResult.Errors,
-					fmt.Sprintf("Specified HMN Vlan (%d) is invalid, must be in range: 0-4095", *metadata.HMNVlan),
+					fmt.Sprintf("Specified HMN Vlan (%d) is invalid, must be in range: 0-4094", *metadata.HMNVlan),
 				)
 			}
 
