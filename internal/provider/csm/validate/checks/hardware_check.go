@@ -48,6 +48,7 @@ const (
 	SwitchConnectorNodeNicsCheck     common.ValidationCheck = "switch-connector-node-nics"
 	SwitchConnectorCheck             common.ValidationCheck = "switch-connector"
 	SwitchSNMPPropertiesCheck        common.ValidationCheck = "switch-snmp-properties"
+	SwitchIpAddressCheck             common.ValidationCheck = "switch-ip-address"
 	HardwareMgmtHLSwitchCheck        common.ValidationCheck = "hardware-mgmt-hl-switch"
 	HardwareRouterBMC                common.ValidationCheck = "hardware-router-bmc"
 )
@@ -55,12 +56,14 @@ const (
 type HardwareCheck struct {
 	hardware       map[string]sls_client.Hardware
 	typeToHardware map[string][]*sls_client.Hardware
+	networks       map[string]sls_client.Network // only the HMN network is used in the MgmtSwitch and MgmtHLSwitch checks
 }
 
-func NewHardwareCheck(hardware map[string]sls_client.Hardware, typeToHardware map[string][]*sls_client.Hardware) *HardwareCheck {
+func NewHardwareCheck(hardware map[string]sls_client.Hardware, typeToHardware map[string][]*sls_client.Hardware, networks map[string]sls_client.Network) *HardwareCheck {
 	hardwareCheck := HardwareCheck{
 		hardware:       hardware,
 		typeToHardware: typeToHardware,
+		networks:       networks,
 	}
 	return &hardwareCheck
 }
@@ -83,9 +86,9 @@ func (c *HardwareCheck) Validate(results *common.ValidationResults) {
 		case xnametypes.MgmtSwitchConnector:
 			validateMgmtSwitchConnector(results, &h, props, c.hardware)
 		case xnametypes.MgmtSwitch:
-			validateMgmtSwitch(results, &h, props)
+			validateMgmtSwitch(results, &h, props, c.networks)
 		case xnametypes.MgmtHLSwitch:
-			validateMgmtHLSwitch(results, &h, props)
+			validateMgmtHLSwitch(results, &h, props, c.networks)
 		case xnametypes.RouterBMC:
 			validateRouterBMC(results, &h, props)
 		}
@@ -326,7 +329,7 @@ func validateMgmtSwitchConnector(
 
 }
 
-func validateMgmtSwitch(results *common.ValidationResults, hardware *sls_client.Hardware, props map[string]interface{}) {
+func validateMgmtSwitch(results *common.ValidationResults, hardware *sls_client.Hardware, props map[string]interface{}, networks map[string]sls_client.Network) {
 	validateSwitchBrand(results, hardware, props)
 
 	validateFieldExists(results, hardware, props, SwitchCredentialsCheck, "SNMPAuthProtocol")
@@ -338,10 +341,13 @@ func validateMgmtSwitch(results *common.ValidationResults, hardware *sls_client.
 	if value, found := validateFieldExists(results, hardware, props, SwitchCredentialsCheck, "SNMPPrivPassword"); found {
 		validateVaultField(results, hardware, props, "SNMPPrivPassword", value)
 	}
+
+	validateIP4addr(results, hardware, props, networks)
 }
 
-func validateMgmtHLSwitch(results *common.ValidationResults, hardware *sls_client.Hardware, props map[string]interface{}) {
+func validateMgmtHLSwitch(results *common.ValidationResults, hardware *sls_client.Hardware, props map[string]interface{}, networks map[string]sls_client.Network) {
 	validateSwitchBrand(results, hardware, props)
+	validateIP4addr(results, hardware, props, networks)
 }
 
 func validateRouterBMC(results *common.ValidationResults, hardware *sls_client.Hardware, props map[string]interface{}) {
@@ -398,6 +404,61 @@ func validateFieldExists(
 			fmt.Sprintf("%s %s the %s property is missing", hardware.Xname, hardware.TypeString, fieldName))
 	}
 	return field, exists
+}
+
+func validateIP4addr(
+	results *common.ValidationResults,
+	hardware *sls_client.Hardware,
+	props map[string]interface{},
+	networks map[string]sls_client.Network) {
+
+	componentId := fmt.Sprintf("/Hardware/%s", hardware.Xname)
+	fieldName := "IP4addr"
+	ip, exists := common.GetString(props, fieldName)
+	if !exists {
+		results.Fail(
+			SwitchIpAddressCheck,
+			componentId,
+			fmt.Sprintf("%s %s the %s property is missing", hardware.Xname, hardware.TypeString, ip))
+		return
+	}
+
+	hmnNetwork, found := networks["HMN"]
+	if !found {
+		// todo should this fail silently. If the HMN is missing other checks will generate failures
+		results.Fail(
+			SwitchIpAddressCheck,
+			componentId,
+			fmt.Sprintf("%s %s cannot validate the IP Address %s because the HMN network is not defined", hardware.Xname, hardware.TypeString, ip))
+		return
+	}
+
+	// todo should this only check in the HMN Management Network Infrastructure subnet?
+	hasIP := false
+	for _, subnet := range hmnNetwork.ExtraProperties.Subnets {
+		for _, res := range subnet.IPReservations {
+			if ip == res.IPAddress {
+				hasIP = true
+				break
+			}
+		}
+		if hasIP {
+			break
+		}
+	}
+
+	if hasIP {
+		results.Pass(
+			SwitchIpAddressCheck,
+			componentId,
+			fmt.Sprintf("%s %s the IP4addr %s has an IP reservation in the HMN network", hardware.Xname, hardware.TypeString, ip))
+	} else {
+		results.Fail(
+			SwitchIpAddressCheck,
+			componentId,
+			fmt.Sprintf("%s %s the IP4addr %s does not have an IP reservation in the HMN network", hardware.Xname, hardware.TypeString, ip))
+	}
+
 }
 
 func validateVaultField(
