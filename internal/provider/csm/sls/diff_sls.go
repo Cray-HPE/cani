@@ -125,7 +125,7 @@ func HardwareUnion(a, b sls_client.SlsState) (identicalHardware []sls_client.Har
 		if !reflect.DeepEqual(extraPropertiesA, extraPropertiesB) {
 			log.Info().Msgf("Hardware A: %v", extraPropertiesA)
 			log.Info().Msgf("Hardware B: %v", extraPropertiesB)
-			panic("NOOOO")
+			// panic("NOOOO")
 			differingContents = append(differingContents, hardwarePair)
 			continue
 		}

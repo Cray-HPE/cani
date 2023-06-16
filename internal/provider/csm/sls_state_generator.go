@@ -189,20 +189,26 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 		cabinetExtraProperties.CaniLastModified = time.Now().UTC().String()
 
 		// TODO need cabinet metadata
+
+		extraProperties = cabinetExtraProperties
 	case hardwaretypes.Chassis:
-		var cabinetExtraProperties sls_client.HardwareExtraPropertiesChassis
+		var chassisExtraProperties sls_client.HardwareExtraPropertiesChassis
 
 		// Apply CANI Metadata
-		cabinetExtraProperties.CaniId = cHardware.ID.String()
-		cabinetExtraProperties.CaniSlsSchemaVersion = "v1alpha1"
-		cabinetExtraProperties.CaniLastModified = time.Now().UTC().String()
+		chassisExtraProperties.CaniId = cHardware.ID.String()
+		chassisExtraProperties.CaniSlsSchemaVersion = "v1alpha1"
+		chassisExtraProperties.CaniLastModified = time.Now().UTC().String()
+
+		extraProperties = chassisExtraProperties
 	case hardwaretypes.ChassisManagementModule:
-		var cabinetExtraProperties sls_client.HardwareExtraPropertiesChassisBmc
+		var cmmExtraProperties sls_client.HardwareExtraPropertiesChassisBmc
 
 		// Apply CANI Metadata
-		cabinetExtraProperties.CaniId = cHardware.ID.String()
-		cabinetExtraProperties.CaniSlsSchemaVersion = "v1alpha1"
-		cabinetExtraProperties.CaniLastModified = time.Now().UTC().String()
+		cmmExtraProperties.CaniId = cHardware.ID.String()
+		cmmExtraProperties.CaniSlsSchemaVersion = "v1alpha1"
+		cmmExtraProperties.CaniLastModified = time.Now().UTC().String()
+
+		extraProperties = cmmExtraProperties
 	case hardwaretypes.NodeBlade:
 		// Not represented in SLS
 		return sls_client.Hardware{}, nil
@@ -249,9 +255,9 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 				nodeExtraProperties.Aliases = metadata.Alias
 			}
 
-			extraProperties = nodeExtraProperties
 			log.Info().Any("nodeEp", nodeExtraProperties).Msgf("Generated Extra Properties for %s", xname.String())
 		}
+		extraProperties = nodeExtraProperties
 	default:
 		log.Warn().Msgf("Do not known how to handle %s", xname.String())
 		return sls_client.Hardware{}, nil
