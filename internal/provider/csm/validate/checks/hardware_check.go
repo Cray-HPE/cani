@@ -256,11 +256,12 @@ func validateMgmtSwitchConnector(
 				}
 				foundNodeNic = found
 			} else {
+				types := strings.Join([]string{xnametypes.ChassisBMC.String(), xnametypes.NodeBMC.String(), xnametypes.RouterBMC.String()}, ",")
 				results.Fail(
 					SwitchConnectorNodeNicsCheck,
 					componentId,
-					fmt.Sprintf("%s %s a NodeNic, %s, is of the type %s when it should be the type %s.",
-						hardware.Xname, hardware.TypeString, nodeNic, t, xnametypes.NodeBMC))
+					fmt.Sprintf("%s %s a NodeNic %s is of the type %s when it should be of one of the following types %s.",
+						hardware.Xname, hardware.TypeString, nodeNic, t, types))
 			}
 
 			if foundNodeNic {
