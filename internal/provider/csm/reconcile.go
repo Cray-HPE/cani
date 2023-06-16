@@ -337,7 +337,7 @@ func buildHardwareString(hardware sls_client.Hardware) (string, error) {
 	// 		return "", err
 	// 	}
 	// 	tokens = append(tokens, string(extraPropertiesRaw))
-	// case xnametypes.Chassis:
+	case xnametypes.Chassis:
 	// Nothing to do
 	case xnametypes.ChassisBMC:
 		// Nothing to do
