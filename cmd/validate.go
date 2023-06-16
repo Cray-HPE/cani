@@ -51,7 +51,7 @@ func validateInventory(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		// Validate the external inventory
-		result, err := d.Validate(cmd.Context())
+		result, err := d.Validate(cmd.Context(), true)
 		if errors.Is(err, provider.ErrDataValidationFailure) {
 			// TODO the following should probably suggest commands to fix the issue?
 			log.Error().Msgf("Inventory data validation errors encountered")

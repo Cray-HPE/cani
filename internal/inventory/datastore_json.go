@@ -25,7 +25,7 @@ type DatastoreJSON struct {
 	logFilePath   string
 }
 
-func NewDatastoreJSON(dataFilePath string, logfilepath string, provider Provider) (*DatastoreJSON, error) {
+func NewDatastoreJSON(dataFilePath string, logfilepath string, provider Provider) (Datastore, error) {
 	datastore := &DatastoreJSON{
 		dataFilePath: dataFilePath,
 		logFilePath:  logfilepath,
@@ -105,6 +105,31 @@ func NewDatastoreJSON(dataFilePath string, logfilepath string, provider Provider
 	return datastore, nil
 }
 
+func NewDatastoreInMemory(provider Provider) (*DatastoreJSON, error) {
+	datastore := &DatastoreJSON{}
+
+	// Generate a UUID for a new top-level "System" object
+	system := uuid.New()
+	// A system ordinal is required for the top-level system object and is arbitrarily set to 0
+	ordinal := 0
+	// Create a config with default values since one does not exist
+	datastore.inventory = &Inventory{
+		SchemaVersion: SchemaVersionV1Alpha1,
+		Provider:      provider,
+		Hardware: map[uuid.UUID]Hardware{
+			// NOTE: At present, we only allow ONE system in the inventory, but leaving the door open for multiple systems
+			system: {
+				Type:            hardwaretypes.System, // The top-level object is a hardwaretypes.System
+				ID:              system,               // ID is the same as the key for the top-level system object to prevent a uuid.Nil
+				Parent:          uuid.Nil,             // Parent should be nil to prevent illegitimate children
+				LocationOrdinal: &ordinal,
+			},
+		},
+	}
+
+	return datastore, nil
+}
+
 func (dj *DatastoreJSON) GetSchemaVersion() (SchemaVersion, error) {
 	dj.inventoryLock.RLock()
 	defer dj.inventoryLock.RUnlock()
@@ -132,6 +157,11 @@ func (dj *DatastoreJSON) InventoryProvider() (Provider, error) {
 
 // Flush writes the current inventory to the datastore
 func (dj *DatastoreJSON) Flush() error {
+	if dj.dataFilePath == "" {
+		// If running in in-memory mode there is nothing to flush
+		return nil
+	}
+
 	dj.inventoryLock.RLock()
 	defer dj.inventoryLock.RUnlock()
 
@@ -145,6 +175,62 @@ func (dj *DatastoreJSON) Flush() error {
 	err = ioutil.WriteFile(dj.dataFilePath, data, 0644)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (dj *DatastoreJSON) Clone() (Datastore, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
+
+	result, err := NewDatastoreInMemory(dj.inventory.Provider)
+	if err != nil {
+		return nil, errors.Join(fmt.Errorf("failed to create in memory datastore"), err)
+	}
+
+	// Deep copy the hardware information into the datastore
+	// TODO this is a hack
+	raw, err := json.Marshal(dj.inventory.Hardware)
+	if err != nil {
+		return nil, err
+	}
+	result.inventory.Hardware = nil
+	if err := json.Unmarshal(raw, &result.inventory.Hardware); err != nil {
+		return nil, err
+	}
+
+	if err := result.calculateDerivedFields(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (dj *DatastoreJSON) Merge(otherDJ Datastore) error {
+	dj.inventoryLock.Lock()
+	defer dj.inventoryLock.Unlock()
+
+	otherAllHardware, err := otherDJ.List()
+	if err != nil {
+		return errors.Join(fmt.Errorf("failed to retrieve inventory from other datastore"), err)
+	}
+
+	// Identify hardware to remove
+	hardwareToDelete := []uuid.UUID{}
+	for id := range dj.inventory.Hardware {
+		if _, exists := otherAllHardware.Hardware[id]; !exists {
+			hardwareToDelete = append(hardwareToDelete, id)
+		}
+	}
+	// Remove deleted hardware
+	for _, id := range hardwareToDelete {
+		delete(dj.inventory.Hardware, id)
+	}
+
+	// Update or add hardware
+	for id, otherHardware := range otherAllHardware.Hardware {
+		dj.inventory.Hardware[id] = otherHardware
 	}
 
 	return nil
@@ -309,7 +395,7 @@ func (dj *DatastoreJSON) Update(hardware *Hardware) error {
 	dj.logTransaction("UPDATE", hardware.ID.String(), nil, nil)
 
 	// Update derived fields if the parent ID is different than the old value
-	if oldHardware.Parent != hardware.ID {
+	if oldHardware.Parent != hardware.Parent {
 		log.Debug().Msgf("Detected parent ID change for (%s) from (%s) to (%s)", hardware.ID, oldHardware.Parent, hardware.ID)
 		if err := dj.calculateDerivedFields(); err != nil {
 			return errors.Join(
@@ -415,14 +501,26 @@ func (dj *DatastoreJSON) getLocation(hardware Hardware) (LocationPath, error) {
 		}
 
 		// Build up an element in the location path.
-		// Since the tree is being traversed bottom up, need to add each location token to the front of the slice
-		locationPath = append([]LocationToken{{
+		locationPath = append(locationPath, LocationToken{
 			HardwareType: currentHardware.Type,
 			Ordinal:      *currentHardware.LocationOrdinal,
-		}}, locationPath...)
+		})
 
 		// Go the parent node next
 		currentHardwareID = currentHardware.Parent
+	}
+
+	// Reverse in place, since the tree was traversed bottom up
+	// This is more efficient than building prepending the location path, due to not
+	// needing to a lot of memory allocations and slice magic by adding an new element
+	// to the start of the slice every time we visit a new location.
+	//
+	// For loop
+	// Initial condition: Set i to beginning, and j to the end.
+	// Check: Continue if i is before j
+	// Advance: Move i forward, and j backward
+	for i, j := 0, len(locationPath)-1; i < j; i, j = i+1, j-1 {
+		locationPath[j], locationPath[i] = locationPath[i], locationPath[j]
 	}
 
 	return locationPath, nil
@@ -438,7 +536,7 @@ func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 	if len(path) == 0 {
 		return Hardware{}, ErrEmptyLocationPath
 	}
-	// log.Debug().Msgf("Getting %s", path.String())
+	log.Trace().Msgf("GetAtLocation: Location Path: %s", path.String())
 
 	//
 	// Traverse the tree to see if the hardware exists at the given location
@@ -459,12 +557,13 @@ func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 
 	// Vist rest of the path
 	for i, locationToken := range path[1:] {
-		// log.Debug().Msgf("GetAtLocation: Processing token %d of %d: '%s'", i+1, len(path), locationToken.String())
-		// log.Debug().Msgf("GetAtLocation: Current ID %s", currentHardware.ID)
+		log.Trace().Msgf("GetAtLocation: Processing token %d of %d: '%s'", i+1, len(path), locationToken.String())
+		log.Trace().Msgf("GetAtLocation: Current ID %s", currentHardware.ID)
+
 		// For each child of the current hardware object check to see if it
 		foundMatch := false
 		for _, childID := range currentHardware.Children {
-			// log.Debug().Msgf("GetAtLocation: Visiting Child (%s)", childID)
+			log.Trace().Msgf("GetAtLocation: Visiting Child (%s)", childID)
 			// Get the hardware
 			childHardware, ok := dj.inventory.Hardware[childID]
 			if !ok {
@@ -476,15 +575,15 @@ func (dj *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 			}
 
 			if childHardware.LocationOrdinal == nil {
-				// log.Debug().Msgf("GetAtLocation: Child has no location ordinal set, skipping")
+				log.Trace().Msgf("GetAtLocation: Child has no location ordinal set, skipping")
 				continue
 			}
-			// log.Debug().Msgf("GetAtLocation: Child location token: %s:%d", childHardware.Type, *childHardware.LocationOrdinal)
+			log.Trace().Msgf("GetAtLocation: Child location token: %s:%d", childHardware.Type, *childHardware.LocationOrdinal)
 
 			// Check to see if the location token matches
 			if childHardware.Type == locationToken.HardwareType && *childHardware.LocationOrdinal == locationToken.Ordinal {
 				// Found a match!
-				// log.Debug().Msgf("GetAtLocation: Child has matching location token")
+				log.Trace().Msgf("GetAtLocation: Child has matching location token")
 				currentHardware = childHardware
 				foundMatch = true
 				break
@@ -547,6 +646,11 @@ func (dj *DatastoreJSON) getChildren(id uuid.UUID) ([]Hardware, error) {
 
 // logTransaction logs a transaction to logger
 func (dj *DatastoreJSON) logTransaction(operation string, key string, value interface{}, err error) {
+	if dj.dataFilePath == "" {
+		// If running in in-memory mode there is currently no place to log
+		return
+	}
+
 	tl, err = os.OpenFile(
 		dj.logFilePath,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY,

@@ -9,5 +9,8 @@
 package sls_client
 
 type HardwareExtraPropertiesChassisBmc struct {
-	Aliases []string `json:"Aliases,omitempty"`
+	CaniId               string   `json:"@cani.id,omitempty" mapstructure:"@cani.id"`
+	CaniLastModified     string   `json:"@cani.lastModified,omitempty" mapstructure:"@cani.lastModified"`
+	CaniSlsSchemaVersion string   `json:"@cani.slsSchemaVersion,omitempty" mapstructure:"@cani.slsSchemaVersion"`
+	Aliases              []string `json:"Aliases,omitempty" mapstructure:"Aliases"`
 }

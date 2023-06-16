@@ -23,11 +23,12 @@ type Hardware struct {
 	ID                 uuid.UUID
 	Name               string                     `json:"Name,omitempty" yaml:"Name,omitempty" default:"" usage:"Friendly name"`
 	Type               hardwaretypes.HardwareType `json:"Type,omitempty" yaml:"Type,omitempty" default:"" usage:"Type"`
+	DeviceTypeSlug     string                     `json:"DeviceTypeSlug,omitempty" yaml:"DeviceTypeSlug,omitempty" default:"" usage:"Hardware Type Library Device slug"`
 	Vendor             string                     `json:"Vendor,omitempty" yaml:"Vendor,omitempty" default:"" usage:"Vendor"`
 	Architecture       string                     `json:"Architecture,omitempty" yaml:"Architecture,omitempty" default:"" usage:"Architecture"`
 	Model              string                     `json:"Model,omitempty" yaml:"Model,omitempty" default:"" usage:"Model"`
 	Status             HardwareStatus             `json:"Status,omitempty" yaml:"Status,omitempty" default:"Staged" usage:"Hardware can be [staged, provisioned, decomissioned]"`
-	Properties         interface{}                `json:"Properties,omitempty" yaml:"Properties,omitempty" default:"" usage:"Properties"`
+	Properties         map[string]interface{}     `json:"Properties,omitempty" yaml:"Properties,omitempty" default:"" usage:"Properties"`
 	Role               string                     `json:"Role,omitempty" yaml:"Role,omitempty" default:"" usage:"Role"`
 	SubRole            string                     `json:"SubRole,omitempty" yaml:"SubRole,omitempty" default:"" usage:"SubRole"`
 	Alias              string                     `json:"Alias,omitempty" yaml:"Alias,omitempty" default:"" usage:"Alias"`
@@ -54,9 +55,10 @@ type Provider string
 
 const (
 	// Define constants for lifecyle states
-	HardwareStatusStaged        = HardwareStatus("staged")
-	HardwareStatusProvisioned   = HardwareStatus("provisioned")
-	HardwareStatusDecomissioned = HardwareStatus("decomissioned")
+	HardwareStatusEmpty          = HardwareStatus("empty")
+	HardwareStatusStaged         = HardwareStatus("staged")
+	HardwareStatusProvisioned    = HardwareStatus("provisioned")
+	HardwareStatusDecommissioned = HardwareStatus("decommissioned")
 	// Schema and proivider names are constant
 	SchemaVersionV1Alpha1 = SchemaVersion("v1alpha1")
 	CSMProvider           = Provider("csm")

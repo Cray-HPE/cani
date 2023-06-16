@@ -9,9 +9,9 @@
 package sls_client
 
 type HardwareExtraPropertiesCabinetNetworks struct {
-	CIDR       string `json:"CIDR,omitempty"`
-	Gateway    string `json:"Gateway,omitempty"`
-	VLan       int32  `json:"VLan,omitempty"`
-	IPv6Prefix string `json:"IPv6Prefix,omitempty"`
-	MACPrefix  string `json:"MACPrefix,omitempty"`
+	CIDR       string `json:"CIDR,omitempty" mapstructure:"CIDR"`
+	Gateway    string `json:"Gateway,omitempty" mapstructure:"Gateway"`
+	VLan       int32  `json:"VLan,omitempty" mapstructure:"VLan"`
+	IPv6Prefix string `json:"IPv6Prefix,omitempty" mapstructure:"IPv6Prefix"`
+	MACPrefix  string `json:"MACPrefix,omitempty" mapstructure:"MACPrefix"`
 }

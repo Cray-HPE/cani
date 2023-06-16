@@ -24,6 +24,7 @@ func init() {
 	root.SessionCmd.AddCommand(SessionStopCmd)
 	root.SessionCmd.AddCommand(SessionStatusCmd)
 	root.SessionCmd.AddCommand(SessionSummaryCmd)
+	root.SessionCmd.AddCommand(SessionImportCmd)
 
 	// Session start flags
 	// TODO need a quick simulation environment flag

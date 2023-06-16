@@ -12,16 +12,6 @@ import (
 	"time"
 )
 
-// // Contains info about the discovery status of the given endpoint.
-// type RedfishEndpoint100RedfishEndpointDiscoveryInfo struct {
-// 	// The time the last discovery attempt took place.
-// 	LastAttempt time.Time `json:"LastAttempt,omitempty"`
-// 	// Describes the outcome of the last discovery attempt.
-// 	LastStatus string `json:"LastStatus,omitempty"`
-// 	// Version of Redfish as reported by the RF service root.
-// 	RedfishVersion string `json:"RedfishVersion,omitempty"`
-// }
-
 // Contains info about the discovery status of the given endpoint.
 type RedfishEndpoint100RedfishEndpointDiscoveryInfo struct {
 	// The time the last discovery attempt took place.

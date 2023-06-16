@@ -172,12 +172,19 @@ generate-go:
 
 # Generate clients from the following swagger files:
 # System Layout Service: ./pkg/sls-client/openapi.yaml
-generate-swagger: bin/swagger-codegen-cli.jar
-	java -jar bin/swagger-codegen-cli.jar generate -i ./pkg/sls-client/openapi.yaml -l go -o ./pkg/sls-client/ -DpackageName=sls_client
+generate-swagger-sls-client: bin/swagger-codegen-cli.jar
+	java -jar bin/swagger-codegen-cli.jar generate -i ./pkg/sls-client/openapi.yaml -l go -o ./pkg/sls-client/ -DpackageName=sls_client -t ./pkg/sls-client/templates
 	go fmt ./pkg/sls-client/...
 	goimports -w ./pkg/sls-client
 
-generate: generate-swagger generate-go 
+# Generate clients from the following swagger files:
+# Hardware State Manager: ./pkg/hsm-client/openapi.yaml
+generate-swagger-hsm-client: bin/swagger-codegen-cli.jar
+	java -jar bin/swagger-codegen-cli.jar generate -i ./pkg/hsm-client/openapi.yaml -l go -o ./pkg/hsm-client/ -DpackageName=hsm_client
+	go fmt ./pkg/hsm-client/...
+	goimports -w ./pkg/hsm-client
+
+generate: generate-swagger-sls-client generate-swagger-hsm-client  generate-go 
 
 # Jenkins doesn't have java installed, so the generate target fails to run
 bin:

@@ -34,4 +34,10 @@ type Datastore interface {
 	GetSystem(hardware Hardware) (Hardware, error) // Not yet implemented until multiple systems are supported
 
 	// TODO for search properties
+
+	// Clone creates a in-memory version of the datastore to perform location operations
+	Clone() (Datastore, error)
+
+	// Merge the contents of the remote datastore (most likely a in-memory one with changes)
+	Merge(Datastore) error
 }

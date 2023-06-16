@@ -27,6 +27,7 @@ package checks
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/Cray-HPE/cani/internal/provider/csm/validate/common"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
@@ -52,6 +53,11 @@ func (c *HardwareCabinetCheck) Validate(results *common.ValidationResults) {
 	pattern := regexp.MustCompile("^x[0-9]{1,4}")
 	for _, h := range c.hardware {
 		if xnametypes.Cabinet == h.TypeString {
+			continue
+		}
+		if !strings.HasPrefix(h.Xname, "x") {
+			// Only check for hardware that is present withing a cabinet (starts with x),
+			// and not for example a CDU (starts with d).
 			continue
 		}
 

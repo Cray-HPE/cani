@@ -110,7 +110,13 @@ type DeviceType struct {
 	// PowerPowers        []PowerPower        `yaml:"power-ports"`
 	// PowerOutlets       []PowerOutlets      `yaml:"power-outlets"`
 
-	DeviceBays []DeviceBay `yaml:"device-bays"`
+	DeviceBays      []DeviceBay      `yaml:"device-bays"`
+	Identifications []Identification `yaml:"identifications"`
+}
+
+type Identification struct {
+	Manufacturer string `yaml:"manufacturer"`
+	Model        string `yaml:"model"`
 }
 
 type DeviceBay struct {

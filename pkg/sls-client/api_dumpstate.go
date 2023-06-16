@@ -82,6 +82,7 @@ func (a *DumpstateApiService) DumpstateGet(ctx context.Context) (SlsState, *http
 	if err != nil {
 		return localVarReturnValue, localVarHttpResponse, err
 	}
+
 	// This code was manually added
 	// start
 	localVarHttpResponse.Body = io.NopCloser(bytes.NewReader(localVarBody))
