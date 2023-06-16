@@ -460,9 +460,12 @@ func validateIP4addr(
 		return
 	}
 
-	// todo should this only check in the HMN Management Network Infrastructure subnet?
+	subnetName := "network_hardware"
 	hasIP := false
 	for _, subnet := range hmnNetwork.ExtraProperties.Subnets {
+		if subnet.Name != subnetName {
+			continue
+		}
 		for _, res := range subnet.IPReservations {
 			if ip == res.IPAddress {
 				hasIP = true
@@ -478,12 +481,14 @@ func validateIP4addr(
 		results.Pass(
 			SwitchIpAddressCheck,
 			componentId,
-			fmt.Sprintf("%s %s the IP4addr %s has an IP reservation in the HMN network", hardware.Xname, hardware.TypeString, ip))
+			fmt.Sprintf("%s %s the IP4addr %s has an IP reservation in the %s subnet of the HMN network",
+				hardware.Xname, hardware.TypeString, ip, subnetName))
 	} else {
 		results.Fail(
 			SwitchIpAddressCheck,
 			componentId,
-			fmt.Sprintf("%s %s the IP4addr %s does not have an IP reservation in the HMN network", hardware.Xname, hardware.TypeString, ip))
+			fmt.Sprintf("%s %s the IP4addr %s does not have an IP reservation in the %s subnet of the HMN network",
+				hardware.Xname, hardware.TypeString, ip, subnetName))
 	}
 
 }
