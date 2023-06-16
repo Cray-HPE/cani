@@ -60,7 +60,7 @@ head pkg/hardwaretypes/hardware-types/hpe-cabinet-ex4000.yaml
 bin/cani alpha add cabinet hpe-ex2000 --vlan-id 4000 --cabinet 1005
 # same for the same vlan-id (this does not work currently since we aren't checking vlan uniqueness)
 # TODO TEST again, new changes might make this work
-# bin/cani alpha add cabinet hpe-ex2000 --vlan-id 4000 --cabinet 2
+bin/cani alpha add cabinet hpe-ex2000 --vlan-id 4000 --cabinet 2
 
 # add blade in the in same way
 bin/cani alpha add blade hpe-crayex-ex235a-compute-blade --cabinet 1005 --chassis 1 --blade 1
@@ -71,9 +71,20 @@ bin/cani alpha update node --cabinet 1005 --chassis 1 --blade 1 --nodecard 0 --n
     --role Compute --nid 3000 --alias nid003000
 
 bin/cani alpha validate
+
+# Show that duplicate/bad data can't be put in
+# Invalid Role
+bin/cani alpha update node --cabinet 1005 --chassis 1 --blade 1 --nodecard 1 --node 0 \
+    --role MyCompute --nid 3001 --alias nid003001
+# Duplicate NID and alias
+bin/cani alpha update node --cabinet 1005 --chassis 1 --blade 1 --nodecard 1 --node 0 \
+    --role Compute --nid 3000 --alias nid003000
+
+# Update the second node on teh blade for real
 bin/cani alpha update node --cabinet 1005 --chassis 1 --blade 1 --nodecard 1 --node 0 \
     --role Compute --nid 3001 --alias nid003001
 
+# Show no issues
 bin/cani alpha validate
 
 # stop the session and validate/commit changes; push to SLS
