@@ -34,6 +34,11 @@ type SlsStateExtended struct {
 	SlsState       *sls_client.SlsState
 	TypeToHardware map[string][]*sls_client.Hardware
 
+	// A set of all the Parents that other Hardware entries reffer to.
+	// If a map to look up the children is needed then change this to store the chidlren
+	// for example change to: ParentToChildren map[string][]*sls_client.Hardware
+	ParentHasChildren map[string]struct{}
+
 	// todo remove these if they are not used
 	AliasToHardware             map[string]*sls_client.Hardware
 	IPReservationNameToNetworks map[string][]*sls_client.Network
@@ -47,6 +52,7 @@ func NewSlsStateExtended(slsState *sls_client.SlsState) *SlsStateExtended {
 
 	s.TypeToHardware = make(map[string][]*sls_client.Hardware)
 	s.AliasToHardware = make(map[string]*sls_client.Hardware)
+	s.ParentHasChildren = make(map[string]struct{})
 
 	s.HardwareTypeToAlias = make(map[string]map[string]*sls_client.Hardware)
 	for _, hardware := range slsState.Hardware {
@@ -59,6 +65,8 @@ func NewSlsStateExtended(slsState *sls_client.SlsState) *SlsStateExtended {
 		}
 		// todo handle cases where a key is already there
 		aliasToHardware[hardware.Xname] = &h
+
+		s.ParentHasChildren[h.Parent] = struct{}{}
 
 		// todo handle case where slice is not found
 		aliases, _ := GetSliceOfStrings(hardware.ExtraProperties, "Aliases")

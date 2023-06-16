@@ -54,16 +54,22 @@ const (
 )
 
 type HardwareCheck struct {
-	hardware       map[string]sls_client.Hardware
-	typeToHardware map[string][]*sls_client.Hardware
-	networks       map[string]sls_client.Network // only the HMN network is used in the MgmtSwitch and MgmtHLSwitch checks
+	hardware          map[string]sls_client.Hardware
+	typeToHardware    map[string][]*sls_client.Hardware
+	parentHasChildren map[string]struct{}
+	networks          map[string]sls_client.Network // only the HMN network is used in the MgmtSwitch and MgmtHLSwitch checks
 }
 
-func NewHardwareCheck(hardware map[string]sls_client.Hardware, typeToHardware map[string][]*sls_client.Hardware, networks map[string]sls_client.Network) *HardwareCheck {
+func NewHardwareCheck(
+	hardware map[string]sls_client.Hardware,
+	typeToHardware map[string][]*sls_client.Hardware,
+	parentHasChildren map[string]struct{},
+	networks map[string]sls_client.Network) *HardwareCheck {
 	hardwareCheck := HardwareCheck{
-		hardware:       hardware,
-		typeToHardware: typeToHardware,
-		networks:       networks,
+		hardware:          hardware,
+		typeToHardware:    typeToHardware,
+		parentHasChildren: parentHasChildren,
+		networks:          networks,
 	}
 	return &hardwareCheck
 }
@@ -84,7 +90,7 @@ func (c *HardwareCheck) Validate(results *common.ValidationResults) {
 		case xnametypes.Node:
 			validateNode(results, &h, props)
 		case xnametypes.MgmtSwitchConnector:
-			validateMgmtSwitchConnector(results, &h, props, c.hardware)
+			validateMgmtSwitchConnector(results, &h, props, c.parentHasChildren, c.hardware)
 		case xnametypes.MgmtSwitch:
 			validateMgmtSwitch(results, &h, props, c.networks)
 		case xnametypes.MgmtHLSwitch:
@@ -217,7 +223,10 @@ func validateNode(results *common.ValidationResults, hardware *sls_client.Hardwa
 }
 
 func validateMgmtSwitchConnector(
-	results *common.ValidationResults, hardware *sls_client.Hardware, props map[string]interface{},
+	results *common.ValidationResults,
+	hardware *sls_client.Hardware,
+	props map[string]interface{},
+	parentHasChildren map[string]struct{},
 	hardwareMap map[string]sls_client.Hardware) {
 
 	componentId := fmt.Sprintf("/Hardware/%s", hardware.Xname)
@@ -232,26 +241,20 @@ func validateMgmtSwitchConnector(
 		for _, nodeNic := range nodeNics {
 			t := xnametypes.GetHMSType(nodeNic)
 
-			nodeXnameForBMC := nodeNic
-			if t == xnametypes.NodeBMC {
-				nodeXnameForBMC = nodeNic + "n0"
-			}
-
-			if t == xnametypes.NodeBMC || t == xnametypes.RouterBMC {
-				_, found := hardwareMap[nodeXnameForBMC]
-				if found {
-					results.Pass(
-						SwitchConnectorNodeNicsCheck,
-						componentId,
-						fmt.Sprintf("%s %s the Node, %s, for the BMC %s exists in the NodeNics list.",
-							hardware.Xname, hardware.TypeString, nodeXnameForBMC, nodeNic))
-				} else {
-					results.Fail(
-						SwitchConnectorNodeNicsCheck,
-						componentId,
-						fmt.Sprintf("%s %s the Node %s, for the BMC %s is missing.",
-							hardware.Xname, hardware.TypeString, nodeXnameForBMC, nodeNic))
+			foundNodeNic := false
+			message := "in the hardware list"
+			if xnametypes.IsHMSTypeController(t) {
+				_, found := hardwareMap[nodeNic]
+				if !found {
+					if t == xnametypes.NodeBMC && !strings.HasSuffix(nodeNic, "999") {
+						// a NodeNic of type NodeBMC will not exist in the hardware list.
+						// but it will exist as a parent of some hardware
+						// With the exception of NodeBMC's who's xname ends in 999, these should be in the hardware list.
+						_, found = parentHasChildren[nodeNic]
+						message = "in the hardware list as the parent of at least one hardware entry"
+					}
 				}
+				foundNodeNic = found
 			} else {
 				results.Fail(
 					SwitchConnectorNodeNicsCheck,
@@ -259,8 +262,21 @@ func validateMgmtSwitchConnector(
 					fmt.Sprintf("%s %s a NodeNic, %s, is of the type %s when it should be the type %s.",
 						hardware.Xname, hardware.TypeString, nodeNic, t, xnametypes.NodeBMC))
 			}
-		}
 
+			if foundNodeNic {
+				results.Pass(
+					SwitchConnectorNodeNicsCheck,
+					componentId,
+					fmt.Sprintf("%s %s NodeNic %s exists %s.",
+						hardware.Xname, hardware.TypeString, nodeNic, message))
+			} else {
+				results.Fail(
+					SwitchConnectorNodeNicsCheck,
+					componentId,
+					fmt.Sprintf("%s %s NodeNic %s is missing. There should be a hardware entry for the NodeNic, or hardware entry with the NodeNic as a parent.",
+						hardware.Xname, hardware.TypeString, nodeNic))
+			}
+		}
 	}
 
 	parent, found := hardwareMap[hardware.Parent]
@@ -329,7 +345,12 @@ func validateMgmtSwitchConnector(
 
 }
 
-func validateMgmtSwitch(results *common.ValidationResults, hardware *sls_client.Hardware, props map[string]interface{}, networks map[string]sls_client.Network) {
+func validateMgmtSwitch(
+	results *common.ValidationResults,
+	hardware *sls_client.Hardware,
+	props map[string]interface{},
+	networks map[string]sls_client.Network) {
+
 	validateSwitchBrand(results, hardware, props)
 
 	validateFieldExists(results, hardware, props, SwitchCredentialsCheck, "SNMPAuthProtocol")
@@ -345,7 +366,12 @@ func validateMgmtSwitch(results *common.ValidationResults, hardware *sls_client.
 	validateIP4addr(results, hardware, props, networks)
 }
 
-func validateMgmtHLSwitch(results *common.ValidationResults, hardware *sls_client.Hardware, props map[string]interface{}, networks map[string]sls_client.Network) {
+func validateMgmtHLSwitch(
+	results *common.ValidationResults,
+	hardware *sls_client.Hardware,
+	props map[string]interface{},
+	networks map[string]sls_client.Network) {
+
 	validateSwitchBrand(results, hardware, props)
 	validateIP4addr(results, hardware, props, networks)
 }
