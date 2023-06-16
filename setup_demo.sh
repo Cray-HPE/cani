@@ -16,6 +16,7 @@ pushd ~/cani_demo/cani || exit 1
   # cray sls dumpstate list --format json > sls_dump_"$(date +"%s")".json # Backup just in case :)
   # cray sls networks update ./hmn_mtn.json HMN_MTN
   # cray sls networks update ./nmn_mtn.json NMN_MTN
+  cray sls loadstate create sls_beau_dumpstate.json
 
   # Make the binary
   make bin
