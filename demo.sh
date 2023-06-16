@@ -18,6 +18,9 @@ rm -rf ~/.cani && bin/cani alpha session start csm \
   --csm-keycloak-password vshasta \
   --csm-base-auth-url https://api-gw-service-nmn.local/ 
 
+# show only one system in the inventory added by default (also show the basic inventory structure)
+bin/cani alpha list | jq
+
 # Show what SLS looks like before the import for a piece of hardware 
 cray sls hardware describe x1000c0s3b0n0 --format json | jq
 
@@ -34,10 +37,11 @@ cat ~/.cani/canidb.json | jq '.Hardware."26251bc3-9a2c-4658-a90d-d897775c8ba0"'
 # Run again to show idempotencey
 bin/cani alpha session import
 
-
-
-# show only one system in the inventory added by default (also show the basic inventory structure)
+# show updated cani hardware, post-import
 bin/cani alpha list | jq
+
+# show one cabinet (imported)
+bin/cani alpha list cabinet | jq
 
 # add a new cabinet
 bin/cani alpha add cabinet
@@ -47,9 +51,13 @@ bin/cani alpha add cabinet hpe-ex4000 --cabinet 1005
 bin/cani alpha add cabinet hpe-ex4000 --vlan-id 4000
 # show successful add
 bin/cani alpha add cabinet hpe-ex4000 --vlan-id 4000 --cabinet 1005
+
+# show new cabinet
 bin/cani alpha list cabinet | jq
+
 # optionally, show auto-added child hardware
-bin/cani alpha list | jq
+# bin/cani alpha list | jq
+
 # show where it comes from
 ls -l pkg/hardwaretypes/hardware-types
 # and how it is defined
