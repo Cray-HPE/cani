@@ -124,6 +124,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 	//
 	allCabinets, _ := sls.FilterHardwareByType(slsDumpstate.Hardware, xnametypes.Cabinet)
 	allChassis, _ := sls.FilterHardwareByType(slsDumpstate.Hardware, xnametypes.Chassis)
+	allChassisBMCs, _ := sls.FilterHardwareByType(slsDumpstate.Hardware, xnametypes.ChassisBMC)
 
 	// Find all cabinets and what chassis they have
 	cabinetChassisCounts := map[string][]int{}
@@ -286,7 +287,90 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			slsCabinet.ExtraProperties = slsCabinetEP
 			slsHardwareToModify[slsCabinet.Xname] = slsCabinet
 		}
+	}
 
+	//
+	// Fix up Chassis SLS metadata
+	//
+	for _, slsHardware := range allChassis {
+		xname := xnames.FromString(slsHardware.Xname)
+		if xname == nil {
+			return fmt.Errorf("failed to parse xname (%s)", slsHardware.Xname)
+		}
+
+		locationPath, err := FromXname(xname)
+		if err != nil {
+			return errors.Join(fmt.Errorf("failed to build location path for xname (%v)", xname), err)
+		}
+
+		cHardware, err := tempDatastore.GetAtLocation(locationPath)
+		if err != nil {
+			return errors.Join(fmt.Errorf("failed to query datastore for %s", locationPath), err)
+		}
+
+		// Update SLS metadata
+		slsEP, err := sls.DecodeExtraProperties[sls_client.HardwareExtraPropertiesChassis](slsHardware)
+		if err != nil {
+			return fmt.Errorf("failed to decode SLS hardware extra properties (%s)", slsHardware.Xname)
+		}
+
+		if slsEP.CaniId != cHardware.ID.String() {
+			if len(slsEP.CaniId) != 0 {
+				log.Warn().Msgf("Detected CANI hardware ID change from %s to %s for SLS Hardware %s", slsEP.CaniId, cHardware.ID, slsHardware.Xname)
+			}
+
+			// Add in CANI properties
+			slsEP.CaniId = cHardware.ID.String()
+			slsEP.CaniSlsSchemaVersion = "v1alpha1" // TODO make this a enum
+			slsEP.CaniLastModified = time.Now().UTC().String()
+
+			log.Info().Msgf("SLS extra properties changed for %s", slsHardware.Xname)
+
+			slsHardware.ExtraProperties = slsEP
+			slsHardwareToModify[slsHardware.Xname] = slsHardware
+		}
+	}
+
+	//
+	// Fix up ChassisBMC SLS Metadata
+	//
+	for _, slsHardware := range allChassisBMCs {
+		xname := xnames.FromString(slsHardware.Xname)
+		if xname == nil {
+			return fmt.Errorf("failed to parse xname (%s)", slsHardware.Xname)
+		}
+
+		locationPath, err := FromXname(xname)
+		if err != nil {
+			return errors.Join(fmt.Errorf("failed to build location path for xname (%v)", xname), err)
+		}
+
+		cHardware, err := tempDatastore.GetAtLocation(locationPath)
+		if err != nil {
+			return errors.Join(fmt.Errorf("failed to query datastore for %s", locationPath), err)
+		}
+
+		// Update SLS metadata
+		slsEP, err := sls.DecodeExtraProperties[sls_client.HardwareExtraPropertiesChassisBmc](slsHardware)
+		if err != nil {
+			return fmt.Errorf("failed to decode SLS hardware extra properties (%s)", slsHardware.Xname)
+		}
+
+		if slsEP.CaniId != cHardware.ID.String() {
+			if len(slsEP.CaniId) != 0 {
+				log.Warn().Msgf("Detected CANI hardware ID change from %s to %s for SLS Hardware %s", slsEP.CaniId, cHardware.ID, slsHardware.Xname)
+			}
+
+			// Add in CANI properties
+			slsEP.CaniId = cHardware.ID.String()
+			slsEP.CaniSlsSchemaVersion = "v1alpha1" // TODO make this a enum
+			slsEP.CaniLastModified = time.Now().UTC().String()
+
+			log.Info().Msgf("SLS extra properties changed for %s", slsHardware.Xname)
+
+			slsHardware.ExtraProperties = slsEP
+			slsHardwareToModify[slsHardware.Xname] = slsHardware
+		}
 	}
 
 	//
@@ -776,11 +860,4 @@ func (csm *CSM) identifyDeviceSlug(manufacturer, model string) (string, error) {
 	}
 
 	return "", fmt.Errorf("unable to find corrensponding device slug for manufacturer (%s) and model (%s)", manufacturer, model)
-}
-
-type Importer struct {
-}
-
-func (im *Importer) handleCabinets() {
-
 }

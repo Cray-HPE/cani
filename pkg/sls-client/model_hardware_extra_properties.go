@@ -26,6 +26,8 @@ func (hardware *Hardware) DecodeExtraProperties() (result interface{}, err error
 		result = HardwareExtraPropertiesCabPduNic{}
 	case xnametypes.Cabinet:
 		result = HardwareExtraPropertiesCabinet{}
+	case xnametypes.Chassis:
+		result = HardwareExtraPropertiesChassis{}
 	case xnametypes.ChassisBMC:
 		result = HardwareExtraPropertiesChassisBmc{}
 	case xnametypes.ComputeModule:
@@ -60,7 +62,7 @@ func (hardware *Hardware) DecodeExtraProperties() (result interface{}, err error
 			return nil, nil
 		}
 
-		return nil, fmt.Errorf("hardware object (%s) has unexpected properties", hardware.Xname)
+		return nil, fmt.Errorf("hardware object (%s) has unexpected properties of type (%T)", hardware.Xname, hardware.ExtraProperties)
 	}
 
 	// Decode the Raw extra properties into a give structure

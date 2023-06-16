@@ -79,8 +79,16 @@ func addCabinet(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Push all the CLI flags that were provided into a generic map
+	// TODO Need to figure out how to specify to unset something
+	// Right now the build metadata function in the CSM provider will
+	// unset options if nil is passed in.
+	cabinetMetadata := map[string]interface{}{
+		"vlanID": vlanId,
+	}
+
 	// Add the cabinet to the inventory using domain methods
-	result, err := d.AddCabinet(cmd.Context(), args[0], cabinetNumber)
+	result, err := d.AddCabinet(cmd.Context(), args[0], cabinetNumber, cabinetMetadata)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		// TODO the following should probably suggest commands to fix the issue?
 		log.Error().Msgf("Inventory data validation errors encountered")

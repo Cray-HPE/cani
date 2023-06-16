@@ -997,6 +997,10 @@ components:
       properties:
         "@cani.id":
           type: string
+        "@cani.lastModified":
+          type: string
+        "@cani.slsSchemaVersion":
+          type: string
         PoweredBy:
           $ref: '#/components/schemas/xname'
           description: "The hardware this cable is connected to.  May be any type of object.  Parent is excluded"
@@ -1060,11 +1064,23 @@ components:
           items:
             type: string
     # hardware_extra_properties_cec: {}
-    # hardware_extra_properties_chassis: {}
+    hardware_extra_properties_chassis:
+      type: object
+      properties:
+        "@cani.id":
+          type: string
+        "@cani.lastModified":
+          type: string
+        "@cani.slsSchemaVersion":
+          type: string
     hardware_extra_properties_chassis_bmc:
       type: object
       properties:
         "@cani.id":
+          type: string
+        "@cani.lastModified":
+          type: string
+        "@cani.slsSchemaVersion":
           type: string
         Aliases:
           type: array
@@ -1092,6 +1108,10 @@ components:
       required: ["PoweredBy"]
       properties:
         "@cani.id":
+          type: string
+        "@cani.lastModified":
+          type: string
+        "@cani.slsSchemaVersion":
           type: string
         PoweredBy:
           $ref: '#/components/schemas/xname'

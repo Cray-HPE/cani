@@ -84,6 +84,28 @@ func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperti
 	}
 
 	switch cHardware.Type {
+	case hardwaretypes.Cabinet:
+		properties := CabinetMetadata{}
+		if _, exists := cHardware.ProviderProperties["csm"]; exists {
+			// If one exists set it.
+			if err := mapstructure.Decode(cHardware.ProviderProperties["csm"], &properties); err != nil {
+				return err
+			}
+		}
+
+		// Make changes to the node metadata
+		// The keys of rawProperties need to match what is defined in ./cmd/cabinet/add_cabinet.go
+		if vlanIDRaw, exists := rawProperties["vlanID"]; exists {
+			if vlanIDRaw == nil {
+				properties.HMNVlan = nil
+			} else {
+				properties.HMNVlan = IntPtr(vlanIDRaw.(int))
+			}
+		}
+
+		cHardware.ProviderProperties["csm"] = properties
+
+		return nil
 	case hardwaretypes.Node:
 		// TODO do something interesting with the raw data, and convert it/validate it
 		properties := NodeMetadata{} // Create an empty one

@@ -43,103 +43,103 @@ func BuildXname(cHardware inventory.Hardware, locationPath inventory.LocationPat
 		return nil, nil
 	case xnametypes.CDU:
 		return xnames.CDU{
-			CDU: locationPath[0].Ordinal,
+			CDU: locationPath[1].Ordinal,
 		}, nil
 	case xnametypes.CDUMgmtSwitch:
 		return xnames.CDUMgmtSwitch{
-			CDU:           locationPath[0].Ordinal,
-			CDUMgmtSwitch: locationPath[1].Ordinal,
+			CDU:           locationPath[1].Ordinal,
+			CDUMgmtSwitch: locationPath[2].Ordinal,
 		}, nil
 	case xnametypes.Cabinet:
 		return xnames.Cabinet{
-			Cabinet: locationPath[0].Ordinal,
+			Cabinet: locationPath[1].Ordinal,
 		}, nil
 	case xnametypes.CEC:
 		return xnames.CEC{
-			Cabinet: locationPath[0].Ordinal,
-			CEC:     locationPath[1].Ordinal,
+			Cabinet: locationPath[1].Ordinal,
+			CEC:     locationPath[2].Ordinal,
 		}, nil
 	case xnametypes.CabinetPDUController:
 		return xnames.CabinetPDUController{
-			Cabinet:              locationPath[0].Ordinal,
-			CabinetPDUController: locationPath[1].Ordinal,
+			Cabinet:              locationPath[1].Ordinal,
+			CabinetPDUController: locationPath[2].Ordinal,
 		}, nil
 	case xnametypes.CabinetPDU:
 		return xnames.CabinetPDU{
-			Cabinet:              locationPath[0].Ordinal,
-			CabinetPDUController: locationPath[1].Ordinal,
-			CabinetPDU:           locationPath[2].Ordinal,
+			Cabinet:              locationPath[1].Ordinal,
+			CabinetPDUController: locationPath[2].Ordinal,
+			CabinetPDU:           locationPath[3].Ordinal,
 		}, nil
 	case xnametypes.Chassis:
 		return xnames.Chassis{
-			Cabinet: locationPath[0].Ordinal,
-			Chassis: locationPath[1].Ordinal,
+			Cabinet: locationPath[1].Ordinal,
+			Chassis: locationPath[2].Ordinal,
 		}, nil
 	case xnametypes.ChassisBMC:
 		return xnames.ChassisBMC{
-			Cabinet:    locationPath[0].Ordinal,
-			Chassis:    locationPath[1].Ordinal,
-			ChassisBMC: locationPath[2].Ordinal,
+			Cabinet:    locationPath[1].Ordinal,
+			Chassis:    locationPath[2].Ordinal,
+			ChassisBMC: locationPath[3].Ordinal,
 		}, nil
 	case xnametypes.ComputeModule:
 		return xnames.ComputeModule{
-			Cabinet:       locationPath[0].Ordinal,
-			Chassis:       locationPath[1].Ordinal,
-			ComputeModule: locationPath[2].Ordinal,
+			Cabinet:       locationPath[1].Ordinal,
+			Chassis:       locationPath[2].Ordinal,
+			ComputeModule: locationPath[3].Ordinal,
 		}, nil
 	case xnametypes.NodeBMC:
 		return xnames.NodeBMC{
-			Cabinet:       locationPath[0].Ordinal,
-			Chassis:       locationPath[1].Ordinal,
-			ComputeModule: locationPath[2].Ordinal,
-			NodeBMC:       locationPath[3].Ordinal,
+			Cabinet:       locationPath[1].Ordinal,
+			Chassis:       locationPath[2].Ordinal,
+			ComputeModule: locationPath[3].Ordinal,
+			NodeBMC:       locationPath[4].Ordinal,
 		}, nil
 	case xnametypes.Node:
 		return xnames.Node{
-			Cabinet:       locationPath[0].Ordinal,
-			Chassis:       locationPath[1].Ordinal,
-			ComputeModule: locationPath[2].Ordinal,
-			NodeBMC:       locationPath[3].Ordinal,
-			Node:          locationPath[4].Ordinal,
+			Cabinet:       locationPath[1].Ordinal,
+			Chassis:       locationPath[2].Ordinal,
+			ComputeModule: locationPath[3].Ordinal,
+			NodeBMC:       locationPath[4].Ordinal,
+			Node:          locationPath[5].Ordinal,
 		}, nil
 	case xnametypes.NodeEnclosure:
 		return xnames.NodeEnclosure{
-			Cabinet:       locationPath[0].Ordinal,
-			Chassis:       locationPath[1].Ordinal,
-			ComputeModule: locationPath[2].Ordinal,
-			NodeEnclosure: locationPath[3].Ordinal,
+			Cabinet:       locationPath[1].Ordinal,
+			Chassis:       locationPath[2].Ordinal,
+			ComputeModule: locationPath[3].Ordinal,
+			NodeEnclosure: locationPath[4].Ordinal,
 		}, nil
 	case xnametypes.MgmtHLSwitchEnclosure:
 		return xnames.MgmtHLSwitchEnclosure{
-			Cabinet:               locationPath[0].Ordinal,
-			Chassis:               locationPath[1].Ordinal,
-			MgmtHLSwitchEnclosure: locationPath[2].Ordinal,
+			Cabinet:               locationPath[1].Ordinal,
+			Chassis:               locationPath[2].Ordinal,
+			MgmtHLSwitchEnclosure: locationPath[3].Ordinal,
 		}, nil
 	case xnametypes.MgmtHLSwitch:
 		return xnames.MgmtHLSwitch{
-			Cabinet:               locationPath[0].Ordinal,
-			Chassis:               locationPath[1].Ordinal,
-			MgmtHLSwitchEnclosure: locationPath[2].Ordinal,
-			MgmtHLSwitch:          locationPath[3].Ordinal,
+			Cabinet:               locationPath[1].Ordinal,
+			Chassis:               locationPath[2].Ordinal,
+			MgmtHLSwitchEnclosure: locationPath[3].Ordinal,
+			MgmtHLSwitch:          locationPath[4].Ordinal,
 		}, nil
 	case xnametypes.MgmtSwitch:
 		return xnames.MgmtSwitch{
-			Cabinet:    locationPath[0].Ordinal,
-			Chassis:    locationPath[1].Ordinal,
-			MgmtSwitch: locationPath[2].Ordinal,
+			Cabinet:    locationPath[1].Ordinal,
+			Chassis:    locationPath[2].Ordinal,
+			MgmtSwitch: locationPath[3].Ordinal,
 		}, nil
 	case xnametypes.RouterModule:
 		return xnames.RouterModule{
-			Cabinet:      locationPath[0].Ordinal,
-			Chassis:      locationPath[1].Ordinal,
-			RouterModule: locationPath[2].Ordinal,
+			Cabinet:      locationPath[1].Ordinal,
+			Chassis:      locationPath[2].Ordinal,
+			RouterModule: locationPath[3].Ordinal,
 		}, nil
 	case xnametypes.RouterBMC:
 		return xnames.RouterBMC{
-			Cabinet:      locationPath[0].Ordinal,
-			Chassis:      locationPath[1].Ordinal,
-			RouterModule: locationPath[2].Ordinal,
-			RouterBMC:    locationPath[3].Ordinal,
+			Cabinet:      locationPath[1].Ordinal,
+			Chassis:      locationPath[2].Ordinal,
+			RouterModule: locationPath[3].Ordinal,
+			RouterBMC:    locationPath[4].Ordinal,
 		}, nil
 	}
 	return nil, fmt.Errorf("unknown xnametype '%s'", hsmType.String())

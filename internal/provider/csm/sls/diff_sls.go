@@ -142,23 +142,130 @@ func HardwareUnion(a, b sls_client.SlsState) (identicalHardware []sls_client.Har
 }
 
 func stripIpInformationFromHardware(extraPropertiesRaw interface{}) interface{} {
+	// Helper command to build up the switch
+	// grep -R "type HardwareExtraProperties" -R ./pkg/sls-client/ | grep -v HardwareExtraPropertiesCabinetNetworks | awk '{print $2 ":" }' | sort | sed -e 's/^/case sls_client./'
 	switch ep := extraPropertiesRaw.(type) {
+	case sls_client.HardwareExtraPropertiesBmcNic:
+		ep.CaniId = ""
+		ep.CaniSlsSchemaVersion = ""
+		ep.CaniLastModified = ""
+		return ep
+	case sls_client.HardwareExtraPropertiesCabPduNic:
+		ep.CaniId = ""
+		ep.CaniSlsSchemaVersion = ""
+		ep.CaniLastModified = ""
+		return ep
+	case sls_client.HardwareExtraPropertiesCabPduPwrConnector:
+		ep.CaniId = ""
+		ep.CaniSlsSchemaVersion = ""
+		ep.CaniLastModified = ""
+		return ep
 	case sls_client.HardwareExtraPropertiesCabinet:
+		ep.CaniId = ""
+		ep.CaniSlsSchemaVersion = ""
+		ep.CaniLastModified = ""
+
 		ep.Networks = nil
+		ep.Model = ""
 		// TODO deal with this at somepoint
 		// if cabinetKind := csi.CabinetKind(ep.Model); cabinetKind.IsModel() {
 		// 	ep.Model = ""
 		// }
 		return ep
+	case sls_client.HardwareExtraPropertiesCduMgmtSwitch:
+		ep.CaniId = ""
+		ep.CaniSlsSchemaVersion = ""
+		ep.CaniLastModified = ""
+		return ep
+	case sls_client.HardwareExtraPropertiesChassis:
+		ep.CaniId = ""
+		ep.CaniSlsSchemaVersion = ""
+		ep.CaniLastModified = ""
+		return ep
+	case sls_client.HardwareExtraPropertiesChassisBmc:
+		ep.CaniId = ""
+		ep.CaniSlsSchemaVersion = ""
+		ep.CaniLastModified = ""
+		return ep
+	case sls_client.HardwareExtraPropertiesCompmod:
+		ep.CaniId = ""
+		ep.CaniSlsSchemaVersion = ""
+		ep.CaniLastModified = ""
+		return ep
+	case sls_client.HardwareExtraPropertiesCompmodPowerConnector:
+		ep.CaniId = ""
+		ep.CaniSlsSchemaVersion = ""
+		ep.CaniLastModified = ""
+		return ep
+	case sls_client.HardwareExtraPropertiesHsnConnector:
+		ep.CaniId = ""
+		ep.CaniSlsSchemaVersion = ""
+		ep.CaniLastModified = ""
+		return ep
 	case sls_client.HardwareExtraPropertiesMgmtHlSwitch:
+		ep.CaniId = ""
+		ep.CaniSlsSchemaVersion = ""
+		ep.CaniLastModified = ""
+
 		ep.IP4addr = ""
 		ep.IP6addr = ""
 		ep.Model = "" // Not guaranteed that the system was installed with information about the switch model.
 		return ep
 	case sls_client.HardwareExtraPropertiesMgmtSwitch:
+		ep.CaniId = ""
+		ep.CaniSlsSchemaVersion = ""
+		ep.CaniLastModified = ""
+
 		ep.IP4addr = ""
 		ep.IP6addr = ""
 		ep.Model = "" // Not guaranteed that the system was installed with information about the switch model.
+		return ep
+	case sls_client.HardwareExtraPropertiesMgmtSwitchConnector:
+		ep.CaniId = ""
+		ep.CaniSlsSchemaVersion = ""
+		ep.CaniLastModified = ""
+
+		ep.CaniLastModified = ""
+		return ep
+	case sls_client.HardwareExtraPropertiesNcard:
+		ep.CaniId = ""
+		ep.CaniSlsSchemaVersion = ""
+		ep.CaniLastModified = ""
+		return ep
+	case sls_client.HardwareExtraPropertiesNode:
+		ep.CaniId = ""
+		ep.CaniSlsSchemaVersion = ""
+		ep.CaniLastModified = ""
+		return ep
+	case sls_client.HardwareExtraPropertiesNodeHsnNic:
+		ep.CaniId = ""
+		ep.CaniSlsSchemaVersion = ""
+		ep.CaniLastModified = ""
+		return ep
+	case sls_client.HardwareExtraPropertiesNodeNic:
+		ep.CaniId = ""
+		ep.CaniSlsSchemaVersion = ""
+		ep.CaniLastModified = ""
+		return ep
+	case sls_client.HardwareExtraPropertiesRtrBmc:
+		ep.CaniId = ""
+		ep.CaniSlsSchemaVersion = ""
+		ep.CaniLastModified = ""
+		return ep
+	case sls_client.HardwareExtraPropertiesRtrBmcNic:
+		ep.CaniId = ""
+		ep.CaniSlsSchemaVersion = ""
+		ep.CaniLastModified = ""
+		return ep
+	case sls_client.HardwareExtraPropertiesRtrmod:
+		ep.CaniId = ""
+		ep.CaniSlsSchemaVersion = ""
+		ep.CaniLastModified = ""
+		return ep
+	case sls_client.HardwareExtraPropertiesSystem:
+		ep.CaniId = ""
+		ep.CaniSlsSchemaVersion = ""
+		ep.CaniLastModified = ""
 		return ep
 	}
 
