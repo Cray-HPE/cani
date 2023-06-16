@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"strings"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
@@ -44,14 +43,6 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 		)
 	}
 
-	// DEBUG BEGIN
-	currentSLSStateRaw, err := json.MarshalIndent(currentSLSState, "", "  ")
-	if err != nil {
-		panic(err)
-	}
-	ioutil.WriteFile("reconcile_sls_current.json", currentSLSStateRaw, 0600)
-	// DEBUG END
-
 	//
 	// Build up the expected SLS state
 	//
@@ -62,14 +53,6 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 			err,
 		)
 	}
-
-	// DEBUG BEGIN
-	expectedSLSStateRaw, err := json.MarshalIndent(expectedSLSState, "", "  ")
-	if err != nil {
-		panic(err)
-	}
-	ioutil.WriteFile("reconcile_sls_expected.json", expectedSLSStateRaw, 0600)
-	// DEBUG END
 
 	// HACK Prune non-supported hardware from the current SLS state.
 	// For right only remove all objects from the current SLS state that the SLS generator
@@ -103,20 +86,6 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 	if err := displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHardware, hardwareWithDifferingValues); err != nil {
 		return err
 	}
-
-	// debug
-	identicalHardwareRaw, err := json.MarshalIndent(identicalHardware, "", "  ")
-	if err != nil {
-		panic(err)
-	}
-	ioutil.WriteFile("reconcile_sls_identical_hardware.json", identicalHardwareRaw, 0600)
-
-	hardwareWithDifferingValuesRaw, err := json.MarshalIndent(hardwareWithDifferingValues, "", "  ")
-	if err != nil {
-		panic(err)
-	}
-	ioutil.WriteFile("reconcile_sls_hardware_with_differing_values.json", hardwareWithDifferingValuesRaw, 0600)
-	// debug
 
 	//
 	// Verify expected hardware actions are taking place.
@@ -173,13 +142,11 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 		modifiedState.Hardware[updatedHardware.Xname] = updatedHardware
 	}
 
-	// DEBUG BEGIN
-	modifiedStateRaw, err := json.MarshalIndent(modifiedState, "", "  ")
-	if err != nil {
-		panic(err)
-	}
-	ioutil.WriteFile("reconcile_sls_modified_state.json", modifiedStateRaw, 0600)
-	// DEBUG END
+	// TODO something is broken with
+	// _, err = validate.Validate(&modifiedState)
+	// if err != nil {
+	// 	return fmt.Errorf("Validation failed. %v\n", err)
+	// }
 
 	//
 	// Modify the System's SLS instance

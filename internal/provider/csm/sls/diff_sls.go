@@ -28,7 +28,6 @@ import (
 	"sort"
 
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
-	"github.com/rs/zerolog/log"
 )
 
 // Hardware present in A that is missing from B
@@ -123,9 +122,6 @@ func HardwareUnion(a, b sls_client.SlsState) (identicalHardware []sls_client.Har
 		extraPropertiesB = stripIpInformationFromHardware(extraPropertiesB)
 
 		if !reflect.DeepEqual(extraPropertiesA, extraPropertiesB) {
-			log.Info().Msgf("Hardware A: %v", extraPropertiesA)
-			log.Info().Msgf("Hardware B: %v", extraPropertiesB)
-			// panic("NOOOO")
 			differingContents = append(differingContents, hardwarePair)
 			continue
 		}

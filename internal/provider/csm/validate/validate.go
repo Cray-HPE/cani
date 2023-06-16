@@ -29,7 +29,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/Cray-HPE/cani/internal/provider/csm/validate/checks"
@@ -141,7 +140,6 @@ func Validate(slsState *sls_client.SlsState) ([]common.ValidationResult, error) 
 	if err != nil {
 		return nil, err
 	}
-	ioutil.WriteFile("reconcile_validate_marshsal_state.json", rawSLSState, 0600)
 
 	results := make([]common.ValidationResult, 0)
 	rawJson, result, err := unmarshalToInterface(rawSLSState)
