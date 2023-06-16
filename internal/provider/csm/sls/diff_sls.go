@@ -181,6 +181,11 @@ func stripIpInformationFromHardware(extraPropertiesRaw interface{}) interface{} 
 		ep.CaniSlsSchemaVersion = ""
 		ep.CaniLastModified = ""
 		return ep
+	case sls_client.HardwareExtraPropertiesChassis:
+		ep.CaniId = ""
+		ep.CaniSlsSchemaVersion = ""
+		ep.CaniLastModified = ""
+		return ep
 	case sls_client.HardwareExtraPropertiesChassisBmc:
 		ep.CaniId = ""
 		ep.CaniSlsSchemaVersion = ""
