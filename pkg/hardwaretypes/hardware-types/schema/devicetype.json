@@ -116,6 +116,12 @@
                 "$ref": "components.json#/definitions/device-bay"
             }
         },
+        "identifications": {
+          "type": "array",
+          "items": {
+              "$ref": "components.json#/definitions/identifications"
+          }
+      },
         "inventory-items": {
             "type": "array",
             "items": {
