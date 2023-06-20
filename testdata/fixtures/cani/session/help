@@ -1,0 +1,22 @@
+Interact with a session.
+
+Usage:
+  cani alpha session [flags]
+  cani alpha session [command]
+
+Available Commands:
+  import      TODO THIS IS JUST A SHIM COMMAND
+  start       Start a session.
+  status      View session status.
+  stop        Stop a session.
+  summary     Show the summary of a stopped session
+
+Flags:
+  -h, --help   help for session
+
+Global Flags:
+      --config string   Path to the configuration file
+  -D, --debug           additional debug output
+  -v, --verbose         additional verbose output
+
+Use "cani alpha session [command] --help" for more information about a command.

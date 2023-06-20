@@ -1,7 +1,7 @@
 Add pdus to the inventory.
 
 Usage:
-  cani add pdu [flags]
+  cani alpha add pdu [flags]
 
 Flags:
   -h, --help                   help for pdu
@@ -10,7 +10,4 @@ Flags:
 Global Flags:
       --config string   Path to the configuration file
   -D, --debug           additional debug output
-  -n, --name string     Name
-  -S, --simulation      Use simulation mode for hsm-simulation-environment
-  -u, --uuid string     Specific UUID to use
-  -m, --vendor string   Vendor (default "HPE")
+  -v, --verbose         additional verbose output

@@ -43,7 +43,7 @@ canitest_invalid_empty_db(){ cp -f "$FIXTURES"/cani/configs/canitest_invalid_emp
 rm_canitest_valid_empty_db(){ rm -f canitest_valid_empty_db.json; }
 
 It '--help'
-  When call bin/cani add pdu --help
+  When call bin/cani alpha add pdu --help
   The status should equal 0
   The stdout should satisfy fixture 'cani/add/pdu/help'
 End

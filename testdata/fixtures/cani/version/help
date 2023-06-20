@@ -1,11 +1,10 @@
-Add switches to the inventory.
+Show the version of this utility.
 
 Usage:
-  cani alpha add switch [flags]
+  cani version [flags]
 
 Flags:
-  -h, --help                   help for switch
-  -L, --list-supported-types   List supported hardware types.
+  -h, --help   help for version
 
 Global Flags:
       --config string   Path to the configuration file

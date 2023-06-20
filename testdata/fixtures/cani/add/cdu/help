@@ -1,10 +1,10 @@
-Add switches to the inventory.
+Add cdus to the inventory.
 
 Usage:
-  cani alpha add switch [flags]
+  cani alpha add cdu [flags]
 
 Flags:
-  -h, --help                   help for switch
+  -h, --help                   help for cdu
   -L, --list-supported-types   List supported hardware types.
 
 Global Flags:

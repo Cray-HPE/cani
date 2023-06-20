@@ -49,17 +49,12 @@ func init() {
 	AlphaCmd.AddCommand(SessionCmd)
 	AlphaCmd.AddCommand(UpdateCmd)
 	AlphaCmd.AddCommand(ValidateCmd)
-	AlphaCmd.AddCommand(VersionCmd)
+	RootCmd.AddCommand(VersionCmd)
 
 	// Global root command flags
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", cfgFile, "Path to the configuration file")
 	RootCmd.PersistentFlags().BoolVarP(&Debug, "debug", "D", false, "additional debug output")
 	RootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "additional verbose output")
-
-	// Global add flags
-	AddCmd.PersistentFlags().StringVarP(&vendor, "vendor", "m", "HPE", "Vendor")
-	AddCmd.PersistentFlags().StringVarP(&name, "name", "n", "", "Name")
-	AddCmd.PersistentFlags().StringVarP(&u, "uuid", "u", "", "Specific UUID to use")
 }
 
 // setupLogging sets up the global logger
