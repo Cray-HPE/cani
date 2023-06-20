@@ -24,10 +24,15 @@ OTHER DEALINGS IN THE SOFTWARE.
 package sw
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
-	"os"
 
-	"github.com/rs/zerolog/log"
+	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
@@ -36,16 +41,37 @@ var ListSwitchCmd = &cobra.Command{
 	Use:   "switch",
 	Short: "List switches in the inventory.",
 	Long:  `List switches in the inventory.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		err := listSwitch(args)
-		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
-			os.Exit(1)
-		}
-	},
+	Args:  cobra.ArbitraryArgs,
+	RunE:  listSwitch,
 }
 
-func listSwitch(args []string) error {
-	fmt.Println("list switch called")
+// listSwitch lists switches in the inventory
+func listSwitch(cmd *cobra.Command, args []string) error {
+	// Create a domain object to interact with the datastore
+	d, err := domain.New(root.Conf.Session.DomainOptions)
+	if err != nil {
+		return err
+	}
+
+	// Get the entire inventory
+	inv, err := d.List()
+	if err != nil {
+		return err
+	}
+	// Filter the inventory to only switches
+	filtered := make(map[uuid.UUID]inventory.Hardware, 0)
+	for key, hw := range inv.Hardware {
+		if hw.Type == hardwaretypes.HighSpeedSwitch || hw.Type == hardwaretypes.ManagementSwitch {
+			filtered[key] = hw
+		}
+	}
+	// Convert the filtered inventory into a formatted JSON string
+	inventoryJSON, err := json.MarshalIndent(filtered, "", "  ")
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error marshaling inventory to JSON: %v", err))
+	}
+
+	// Print the inventory
+	fmt.Println(string(inventoryJSON))
 	return nil
 }

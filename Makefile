@@ -88,7 +88,12 @@ endif
 	build \
 	rpm \
 	doc \
-	version
+	version \
+	spec \
+	validate-hardware-type-schemas \
+	generate \
+	generate-go \
+	generate-swagger
 
 all: bin
 
@@ -123,16 +128,27 @@ clean:
 	  bin \
 	  $(BUILD_DIR)
 
-specfiles:
+spec:
 	go run cmd/shellspec/main.go
 
-test: bin
-	shellspec --format tap --no-warning-as-failure --jobs 3
+validate-hardware-type-schemas:
+	go run ./pkg/hardwaretypes/validate pkg/hardwaretypes/hardware-types/schema  pkg/hardwaretypes/hardware-types/
+
+unittest: bin
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go test -cover github.com/Cray-HPE/cani/internal/provider/csm/validate
+
+test: bin validate-hardware-type-schemas unittest
+	shellspec --format tap --no-warning-as-failure
 
 tools:
 	go install golang.org/x/lint/golint@latest
 	go install github.com/t-yuki/gocover-cobertura@latest
 	go install github.com/jstemmer/go-junit-report@latest
+	go install golang.org/x/tools/cmd/goimports@latest
+
+bin/swagger-codegen-cli.jar:
+	mkdir -p ./bin
+	wget https://repo1.maven.org/maven2/io/swagger/codegen/v3/swagger-codegen-cli/3.0.43/swagger-codegen-cli-3.0.43.jar -O bin/swagger-codegen-cli.jar
 
 vet: version
 	go vet -v ./...
@@ -151,6 +167,26 @@ env:
 tidy:
 	go mod tidy
 
+generate-go:
+	go generate ./...
+
+# Generate clients from the following swagger files:
+# System Layout Service: ./pkg/sls-client/openapi.yaml
+generate-swagger-sls-client: bin/swagger-codegen-cli.jar
+	java -jar bin/swagger-codegen-cli.jar generate -i ./pkg/sls-client/openapi.yaml -l go -o ./pkg/sls-client/ -DpackageName=sls_client -t ./pkg/sls-client/templates
+	go fmt ./pkg/sls-client/...
+	goimports -w ./pkg/sls-client
+
+# Generate clients from the following swagger files:
+# Hardware State Manager: ./pkg/hsm-client/openapi.yaml
+generate-swagger-hsm-client: bin/swagger-codegen-cli.jar
+	java -jar bin/swagger-codegen-cli.jar generate -i ./pkg/hsm-client/openapi.yaml -l go -o ./pkg/hsm-client/ -DpackageName=hsm_client
+	go fmt ./pkg/hsm-client/...
+	goimports -w ./pkg/hsm-client
+
+generate: generate-swagger-sls-client generate-swagger-hsm-client  generate-go 
+
+# Jenkins doesn't have java installed, so the generate target fails to run
 bin:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o bin/${NAME} -ldflags "\
 	-X github.com/Cray-HPE/${NAME}/cmd.version=${.GIT_VERSION} \

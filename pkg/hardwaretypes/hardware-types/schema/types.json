@@ -1,0 +1,29 @@
+{
+
+    "type": "object",
+    "additionalProperties": false,
+    "definitions": {
+        "hardware-type": {
+            "type": "string",
+            "enum": [
+                "Cabinet",
+                "Chassis",
+                "ChassisManagementModule",
+                "CabinetEnvironmentalController",
+                "NodeBlade",
+                "NodeCard",
+                "NodeController",
+                "Node",
+                "ManagementSwitchEnclosure",
+                "ManagementSwitch",
+                "ManagementSwitchController",
+                "HighSpeedSwitchEnclosure",
+                "HighSpeedSwitch",
+                "HighSpeedSwitchController",
+                "CabinetPDUController",
+                "CabinetPDU",
+                "CoolingDistributionUnit"
+            ] 
+        }
+    }
+}

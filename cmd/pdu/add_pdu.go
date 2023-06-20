@@ -24,53 +24,37 @@ OTHER DEALINGS IN THE SOFTWARE.
 package pdu
 
 import (
-	"fmt"
-	"os"
-	"strings"
-
-	"github.com/Cray-HPE/cani/cmd/inventory"
+	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/Cray-HPE/cani/cmd/session"
+	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
-var (
-	listSupportedTypes bool
-	horizontalU        string
-	models             []string
-	hwType             string
-	id                 string
-	port               int
-	cabinet            int
-)
-
-// AddPduCmd represents the PDU add command
+// AddPduCmd represents the pdu add command
 var AddPduCmd = &cobra.Command{
-	Use:   "pdu",
-	Short: "Add PDUs to the inventory.",
-	Long:  `Add PDUs to the inventory.`,
-	Args:  cobra.ArbitraryArgs,
-	Run: func(cmd *cobra.Command, args []string) {
-		err := addPdu(args)
-		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
-			os.Exit(1)
-		}
-	},
+	Use:               "pdu",
+	Short:             "Add pdus to the inventory.",
+	Long:              `Add pdus to the inventory.`,
+	PersistentPreRunE: session.DatastoreExists, // A session must be active to write to a datastore
+	Args:              validHardware,           // Hardware can only be valid if defined in the hardware library
+	RunE:              addPdu,                  // Add a pdu when this sub-command is called
 }
 
-func init() {
-	supportedHw := inventory.SupportedHardware()
-	for _, hw := range supportedHw {
-		models = append(models, hw.Model)
+// addPdu adds a pdu to the inventory
+func addPdu(cmd *cobra.Command, args []string) error {
+	// Create a domain object to interact with the datastore
+	_, err := domain.New(root.Conf.Session.DomainOptions)
+	if err != nil {
+		return err
 	}
-	AddPduCmd.Flags().BoolVarP(&listSupportedTypes, "list-supported-types", "l", false, "List supported hardware types.")
-	AddPduCmd.Flags().StringVarP(&hwType, "type", "t", "", fmt.Sprintf("Hardware type.  Allowed values: [%+v]", strings.Join(models, "\", \"")))
-	AddPduCmd.Flags().IntVarP(&cabinet, "cabinet", "C", 1000, "Cabinet ID.")
-	AddPduCmd.Flags().StringVarP(&id, "id", "i", "L", "ID")
-	AddPduCmd.Flags().IntVarP(&port, "port", "p", 0, "Switchport")
-}
-
-func addPdu(args []string) error {
-	fmt.Println("add pdu called")
+	log.Info().Msgf("Not yet implemented")
+	// Remove the pdu from the inventory using domain methods
+	// TODO:
+	// err = d.AddPdu()
+	// if err != nil {
+	// 	return err
+	// }
+	// log.Info().Msgf("Added pdu %s", args[0])
 	return nil
 }

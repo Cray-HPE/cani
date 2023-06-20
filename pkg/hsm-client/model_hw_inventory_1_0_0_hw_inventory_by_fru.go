@@ -16,4 +16,29 @@ type HwInventory100HwInventoryByFru struct {
 	FRUSubtype string `json:"FRUSubtype,omitempty"`
 	// This is used as a discriminator to determine the additional HMS-type specific subtype that is returned.
 	HWInventoryByFRUType string `json:"HWInventoryByFRUType"`
+
+	//   HMSType             Underlying RF Type      How named in json object
+	HMSCabinetFRUInfo       *HwInventory100RedfishChassisFruInfo   `json:"CabinetFRUInfo,omitempty"`
+	HMSChassisFRUInfo       *HwInventory100RedfishChassisFruInfo   `json:"ChassisFRUInfo,omitempty"` // Mountain chassis
+	HMSComputeModuleFRUInfo *HwInventory100RedfishChassisFruInfo   `json:"ComputeModuleFRUInfo,omitempty"`
+	HMSRouterModuleFRUInfo  *HwInventory100RedfishChassisFruInfo   `json:"RouterModuleFRUInfo,omitempty"`
+	HMSNodeEnclosureFRUInfo *HwInventory100RedfishChassisFruInfo   `json:"NodeEnclosureFRUInfo,omitempty"`
+	HMSHSNBoardFRUInfo      *HwInventory100RedfishChassisFruInfo   `json:"HSNBoardFRUInfo,omitempty"`
+	HMSMgmtSwitchFRUInfo    *HwInventory100RedfishChassisFruInfo   `json:"MgmtSwitchFRUInfo,omitempty"`
+	HMSMgmtHLSwitchFRUInfo  *HwInventory100RedfishChassisFruInfo   `json:"MgmtHLSwitchFRUInfo,omitempty"`
+	HMSCDUMgmtSwitchFRUInfo *HwInventory100RedfishChassisFruInfo   `json:"CDUMgmtSwitchFRUInfo,omitempty"`
+	HMSNodeFRUInfo          *HwInventory100RedfishSystemFruInfo    `json:"NodeFRUInfo,omitempty"`
+	HMSProcessorFRUInfo     *HwInventory100RedfishProcessorFruInfo `json:"ProcessorFRUInfo,omitempty"`
+	HMSNodeAccelFRUInfo     *HwInventory100RedfishProcessorFruInfo `json:"NodeAccelFRUInfo,omitempty"`
+	HMSMemoryFRUInfo        *HwInventory100RedfishMemoryFruInfo    `json:"MemoryFRUInfo,omitempty"`
+	HMSDriveFRUInfo         *HwInventory100RedfishDriveFruInfo     `json:"DriveFRUInfo,omitempty"`
+	// HMSHSNNICFRUInfo        *HwInventory100Redfish                 `json:"NodeHsnNicFRUInfo,omitempty"`
+
+	HMSPDUFRUInfo                      *HwInventory100RedfishPdufruInfo                      `json:"PDUFRUInfo,omitempty"`
+	HMSOutletFRUInfo                   *HwInventory100RedfishOutletFruInfo                   `json:"OutletFRUInfo,omitempty"`
+	HMSCMMRectifierFRUInfo             *HwInventory100RedfishCmmRectifierFruInfo             `json:"CMMRectifierFRUInfo,omitempty"`
+	HMSNodeEnclosurePowerSupplyFRUInfo *HwInventory100RedfishNodeEnclosurePowerSupplyFruInfo `json:"NodeEnclosurePowerSupplyFRUInfo,omitempty"`
+	HMSNodeBMCFRUInfo                  *HwInventory100RedfishManagerFruInfo                  `json:"NodeBMCFRUInfo,omitempty"`
+	HMSRouterBMCFRUInfo                *HwInventory100RedfishManagerFruInfo                  `json:"RouterBMCFRUInfo,omitempty"`
+	HMSNodeAccelRiserFRUInfo           *HwInventory100RedfishNodeAccelRiserFruInfo           `json:"NodeAccelRiserFRUInfo,omitempty"`
 }

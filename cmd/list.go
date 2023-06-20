@@ -24,38 +24,43 @@ OTHER DEALINGS IN THE SOFTWARE.
 package cmd
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
-	"os"
 
-	"github.com/Cray-HPE/cani/cmd/blade"
-	"github.com/Cray-HPE/cani/cmd/cabinet"
-	sw "github.com/Cray-HPE/cani/cmd/switch"
-	"github.com/rs/zerolog/log"
+	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/spf13/cobra"
 )
 
 // listCmd represents the switch list command
-var listCmd = &cobra.Command{
+var ListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List assets in the inventory.",
 	Long:  `List assets in the inventory.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		err := listInventory(args)
-		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
-			os.Exit(1)
-		}
-
-	},
+	RunE:  listInventory,
 }
 
-func init() {
-	listCmd.AddCommand(blade.ListBladeCmd)
-	listCmd.AddCommand(cabinet.ListCabinetCmd)
-	listCmd.AddCommand(sw.ListSwitchCmd)
-}
+// listInventory lists all assets in the inventory
+func listInventory(cmd *cobra.Command, args []string) error {
+	// Create a domain object to interact with the datastore
+	d, err := domain.New(Conf.Session.DomainOptions)
+	if err != nil {
+		return err
+	}
 
-func listInventory(args []string) error {
-	fmt.Println("list called")
+	// Get the entire inventory
+	inv, err := d.List()
+	if err != nil {
+		return err
+	}
+
+	// Convert the inventory into a formatted JSON string
+	inventoryJSON, err := json.MarshalIndent(inv.Hardware, "", "  ")
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error marshaling inventory to JSON: %v", err))
+	}
+
+	// Print the inventory
+	fmt.Println(string(inventoryJSON))
 	return nil
 }

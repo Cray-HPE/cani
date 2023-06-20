@@ -22,34 +22,3 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
 package cabinet
-
-import (
-	"fmt"
-	"io/fs"
-	"os"
-
-	"github.com/rs/zerolog/log"
-)
-
-// writeHelperScriptsToDisk writes the helper scripts for adding a cabinet to disk
-func writeHelperScriptsToDisk() error {
-	// loop through all files in the helperScripts embed.FS
-	files, err := fs.ReadDir(helperScripts, "scripts")
-	if err != nil {
-		return err
-	}
-	for _, file := range files {
-		src := fmt.Sprintf("scripts/%s", file.Name())
-		content, err := helperScripts.ReadFile(src)
-		if err != nil {
-			return err
-		}
-		log.Info().Msg(fmt.Sprintf("Unpacking %s...\n", file.Name()))
-		dest := fmt.Sprintf("/tmp/%s", file.Name())
-		err = os.WriteFile(dest, content, 0755)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}

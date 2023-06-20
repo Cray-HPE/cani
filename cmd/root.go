@@ -24,53 +24,37 @@ OTHER DEALINGS IN THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
 	"os"
-	"path/filepath"
 
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
-	"github.com/Cray-HPE/cani/cmd/blade"
 	"github.com/Cray-HPE/cani/cmd/config"
-	"github.com/Cray-HPE/cani/cmd/inventory"
+	"github.com/Cray-HPE/cani/cmd/taxonomy"
+	"github.com/Cray-HPE/cani/internal/domain"
 )
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:   "cani",
-	Short: "From subfloor to top-of-rack, manage your HPC cluster's inventory!",
-	Long:  `From subfloor to top-of-rack, manage your HPC cluster's inventory!`,
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		// Set the value for the internal variable in the subcommand package
-		if simulation {
-			log.Info().Msg("Using Simulation Mode")
-			blade.EnableSimulation()
-			inventory.EnableSimulation()
-		} else {
-			blade.DisableSimulation()
-		}
-		// Set the value for the internal variable in the subcommand package
-		if debug {
-			blade.EnableDebug()
-		}
-	},
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) == 0 {
-			cmd.Help()
-		}
-		setupLogging()
-		return nil
-	},
+	Use:               taxonomy.App,
+	Short:             taxonomy.ShortDescription,
+	Long:              taxonomy.LongDescription,
+	PersistentPreRunE: loadConfigAndDomainOpts, // Load the domain options and config file settings
+	RunE:              runRoot,
 }
 
 var (
-	debug      bool
-	simulation bool
-	cfgFile    string
-	conf       *config.Config
-	spec       bool
+	// cfgFile is the global configuration file path (from --config)
+	cfgFile string
+	// Debug is a global flag that enables debug logging
+	Debug bool
+	// Verbose is a global flag that enables verbose logging
+	Verbose bool
+	// Simulation is a global flag that enables simulation mode
+	Simulation bool
+	// Conf is the global configuration read from cani.yml (or from --config)
+	Conf *config.Config
+	// Domain is the global domain object, which is used to interact with the datastore
+	Domain *domain.Domain
 )
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -82,62 +66,11 @@ func Execute() {
 	}
 }
 
-func init() {
-	cobra.OnInitialize(initConfig)
-
-	RootCmd.AddCommand(addCmd)
-	RootCmd.AddCommand(listCmd)
-	RootCmd.AddCommand(removeCmd)
-	RootCmd.AddCommand(versionCmd)
-
-	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", cfgFile, "Path to the configuration file")
-	RootCmd.PersistentFlags().BoolVarP(&debug, "debug", "D", false, "additional debug output")
-	RootCmd.PersistentFlags().BoolVarP(&simulation, "simulation", "S", false, "Use simulation mode for hsm-simulation-environment")
-
-}
-
-// setupLogging sets up the global logger
-func setupLogging() {
-	// Default level for this example is info, unless debug flag is present
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	if debug {
-		// enable debug output globally
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-		log.Debug().Msg("Debug logging enabled")
-		// include file and line number in debug output
-		log.Logger = log.With().Caller().Logger()
-	}
-}
-
-// initConfig reads in config file and ENV variables if set
-func initConfig() {
-	homeDir, err := os.UserHomeDir()
-	cobra.CheckErr(err)
-	if cfgFile != "" {
-		// global debug cannot be run during init() so check for debug flag here
-		if debug {
-			log.Debug().Msg(fmt.Sprintf("Using user-defined config file: %s", cfgFile))
-		}
-	} else {
-		// Set a default configuration file
-		cfgFile = filepath.Join(homeDir, config.CfgDir, config.CfgFile)
-		if debug {
-			log.Debug().Msg(fmt.Sprintf("Using default config file %s", cfgFile))
-		}
-	}
-	// Initialize the configuration file if it does not exist
-	err = config.InitConfig(cfgFile)
-	if err != nil {
-		log.Error().Msg(fmt.Sprintf("Error initializing config file: %s", err))
-		os.Exit(1)
+// runRoot is the main entrypoint for the cani command
+func runRoot(cmd *cobra.Command, args []string) error {
+	if len(args) == 0 {
+		cmd.Help()
 	}
 
-	// Load the configuration file
-	conf, err = config.LoadConfig(cfgFile, conf)
-	if err != nil {
-		log.Error().Msg(fmt.Sprintf("Error loading config file: %s", err))
-		os.Exit(1)
-	}
-	// Set up other global flags or settings based on the loaded configuration
+	return nil
 }

@@ -14,7 +14,7 @@ import (
 
 type VersionResponse struct {
 	// A monotonically increasing counter that increases every time a change is made to SLS
-	Counter int32 `json:"counter,omitempty"`
+	Counter int32 `json:"counter,omitempty" mapstructure:"counter"`
 	// An ISO-8601 datetime representing when a change was last made to SLS
-	LastUpdated time.Time `json:"last_updated,omitempty"`
+	LastUpdated time.Time `json:"last_updated,omitempty" mapstructure:"last_updated"`
 }

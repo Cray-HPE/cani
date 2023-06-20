@@ -9,6 +9,6 @@
 package sls_client
 
 type SlsState struct {
-	Hardware map[string]Hardware `json:"Hardware,omitempty"`
-	Networks map[string]Network  `json:"Networks,omitempty"`
+	Hardware map[string]Hardware `json:"Hardware,omitempty" mapstructure:"Hardware"`
+	Networks map[string]Network  `json:"Networks,omitempty" mapstructure:"Networks"`
 }

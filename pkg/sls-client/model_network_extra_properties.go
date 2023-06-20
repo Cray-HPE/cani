@@ -9,9 +9,9 @@
 package sls_client
 
 type NetworkExtraProperties struct {
-	CIDR      string              `json:"CIDR,omitempty"`
-	VlanRange []int32             `json:"VlanRange,omitempty"`
-	MTU       int32               `json:"MTU,omitempty"`
-	Subnets   []NetworkIpv4Subnet `json:"Subnets,omitempty"`
-	Comment   string              `json:"Comment,omitempty"`
+	CIDR      string              `json:"CIDR,omitempty" mapstructure:"CIDR"`
+	VlanRange []int32             `json:"VlanRange,omitempty" mapstructure:"VlanRange"`
+	MTU       int32               `json:"MTU,omitempty" mapstructure:"MTU"`
+	Subnets   []NetworkIpv4Subnet `json:"Subnets,omitempty" mapstructure:"Subnets"`
+	Comment   string              `json:"Comment,omitempty" mapstructure:"Comment"`
 }

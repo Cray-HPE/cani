@@ -10,9 +10,9 @@ package sls_client
 
 // RFC 7807 compliant error payload.  All fields are optional except the 'type' field.
 type Problem7807 struct {
-	Type_    string  `json:"type"`
-	Detail   string  `json:"detail,omitempty"`
-	Instance string  `json:"instance,omitempty"`
-	Status   float64 `json:"status,omitempty"`
-	Title    string  `json:"title,omitempty"`
+	Type_    string  `json:"type" mapstructure:"type"`
+	Detail   string  `json:"detail,omitempty" mapstructure:"detail"`
+	Instance string  `json:"instance,omitempty" mapstructure:"instance"`
+	Status   float64 `json:"status,omitempty" mapstructure:"status"`
+	Title    string  `json:"title,omitempty" mapstructure:"title"`
 }

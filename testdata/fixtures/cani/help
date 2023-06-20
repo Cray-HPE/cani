@@ -10,6 +10,8 @@ Available Commands:
   help        Help about any command
   list        List assets in the inventory.
   remove      Remove assets from the inventory.
+  session     Interact with a session.
+  validate    Validate assets in the inventory.
   version     Show the version of this utility.
 
 Flags:
@@ -17,6 +19,5 @@ Flags:
   -D, --debug           additional debug output
   -h, --help            help for cani
   -S, --simulation      Use simulation mode for hsm-simulation-environment
-  -t, --toggle          Help message for toggle
 
 Use "cani [command] --help" for more information about a command.

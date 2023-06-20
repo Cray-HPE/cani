@@ -9,6 +9,6 @@
 package sls_client
 
 type HardwarePut struct {
-	Class           *Hwclass                 `json:"Class"`
-	ExtraProperties *HardwareExtraProperties `json:"ExtraProperties,omitempty"`
+	Class           *HardwareClass           `json:"Class" mapstructure:"Class"`
+	ExtraProperties *HardwareExtraProperties `json:"ExtraProperties,omitempty" mapstructure:"ExtraProperties"`
 }

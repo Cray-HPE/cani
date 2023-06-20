@@ -7,13 +7,17 @@ Usage:
 Available Commands:
   blade       Add blades to the inventory.
   cabinet     Add cabinets to the inventory.
-  hsn         Add high speed hardware to the inventory.
+  cdu         Add cdus to the inventory.
+  chassis     Add chassis to the inventory.
   node        Add nodes to the inventory.
-  pdu         Add PDUs to the inventory.
+  pdu         Add pdus to the inventory.
   switch      Add switches to the inventory.
 
 Flags:
-  -h, --help   help for add
+  -h, --help            help for add
+  -n, --name string     Name
+  -u, --uuid string     Specific UUID to use
+  -m, --vendor string   Vendor (default "HPE")
 
 Global Flags:
       --config string   Path to the configuration file

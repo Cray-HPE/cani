@@ -25,9 +25,10 @@ package blade
 
 import (
 	"fmt"
-	"os"
 
-	"github.com/rs/zerolog/log"
+	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
@@ -37,16 +38,28 @@ var RemoveBladeCmd = &cobra.Command{
 	Short: "Remove blades from the inventory.",
 	Long:  `Remove blades from the inventory.`,
 	Args:  cobra.ArbitraryArgs,
-	Run: func(cmd *cobra.Command, args []string) {
-		err := removeBlade(args)
-		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
-			os.Exit(1)
-		}
-	},
+	RunE:  removeBlade,
 }
 
-func removeBlade(args []string) error {
-	fmt.Println("remove blade called")
+// removeBlade removes a blade from the inventory.
+func removeBlade(cmd *cobra.Command, args []string) error {
+	for _, arg := range args {
+		// Convert the argument to a UUID
+		u, err := uuid.Parse(arg)
+		if err != nil {
+			return fmt.Errorf("Need a UUID to remove: %s", err.Error())
+		}
+
+		d, err := domain.New(root.Conf.Session.DomainOptions)
+		if err != nil {
+			return err
+		}
+
+		// Remove the blade from the inventory
+		err = d.RemoveBlade(u, recursion)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }

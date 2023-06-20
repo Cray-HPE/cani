@@ -24,8 +24,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 package sw
 
 import (
-	"fmt"
-
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -35,11 +34,23 @@ var RemoveSwitchCmd = &cobra.Command{
 	Short: "Remove switches from the inventory.",
 	Long:  `Remove switches from the inventory.`,
 	Args:  cobra.ArbitraryArgs,
-	Run: func(cmd *cobra.Command, args []string) {
-		removeSwitch(args)
-	},
+	RunE:  removeSwitch,
 }
 
-func removeSwitch(args []string) {
-	fmt.Println("remove switch called")
+// removeSwitch removes a switch from the inventory.
+func removeSwitch(cmd *cobra.Command, args []string) error {
+	log.Info().Msgf("Not yet implemented")
+	// for _, arg := range args {
+	// 	// Convert the argument to a UUID
+	// 	u, err := uuid.Parse(arg)
+	// 	if err != nil {
+	// 		return fmt.Errorf("Need a UUID to remove: %s", err.Error())
+	// 	}
+	// 	// Remove item from the inventory
+	// 	err = root.Domain.RemoveSwitch(u)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
+	return nil
 }

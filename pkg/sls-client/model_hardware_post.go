@@ -9,7 +9,7 @@
 package sls_client
 
 type HardwarePost struct {
-	Xname           string                   `json:"Xname"`
-	Class           *Hwclass                 `json:"Class"`
-	ExtraProperties *HardwareExtraProperties `json:"ExtraProperties,omitempty"`
+	Xname           string                   `json:"Xname" mapstructure:"Xname"`
+	Class           *HardwareClass           `json:"Class" mapstructure:"Class"`
+	ExtraProperties *HardwareExtraProperties `json:"ExtraProperties,omitempty" mapstructure:"ExtraProperties"`
 }

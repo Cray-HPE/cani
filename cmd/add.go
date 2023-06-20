@@ -24,109 +24,24 @@ OTHER DEALINGS IN THE SOFTWARE.
 package cmd
 
 import (
-	"context"
-	"fmt"
-	"os"
-
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/network"
-	client "github.com/docker/docker/client"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/spf13/cobra"
-
-	"github.com/Cray-HPE/cani/cmd/blade"
-	"github.com/Cray-HPE/cani/cmd/cabinet"
-	"github.com/Cray-HPE/cani/cmd/hsn"
-	"github.com/Cray-HPE/cani/cmd/node"
-	"github.com/Cray-HPE/cani/cmd/pdu"
-	sw "github.com/Cray-HPE/cani/cmd/switch"
 )
 
-// addCmd represents the switch add command
-var addCmd = &cobra.Command{
+var (
+	vendor string
+	name   string
+	u      string
+)
+
+// AddCmd represents the switch add command
+var AddCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Add assets to the inventory.",
 	Long:  `Add assets to the inventory.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) == 0 {
-			cmd.Help()
-			os.Exit(0)
-		}
-		if simulation {
-			blade.AddBladeCmd.SetArgs([]string{"-S"})
-		}
-	},
+	RunE:  add,
 }
 
-func init() {
-	addCmd.AddCommand(blade.AddBladeCmd)
-	addCmd.AddCommand(cabinet.AddCabinetCmd)
-	addCmd.AddCommand(hsn.AddHsnCmd)
-	addCmd.AddCommand(node.AddNodeCmd)
-	addCmd.AddCommand(pdu.AddPduCmd)
-	addCmd.AddCommand(sw.AddSwitchCmd)
-}
-
-// CreateNewContainer creates a container from an image
-func CreateNewContainer(image string) (string, error) {
-	cli, err := client.NewEnvClient()
-	if err != nil {
-		fmt.Println("Unable to create container client")
-		panic(err)
-	}
-
-	cont, err := cli.ContainerCreate(
-		context.Background(),
-		&container.Config{
-			Image: image,
-		},
-		&container.HostConfig{},
-		&network.NetworkingConfig{},
-		&v1.Platform{},
-		image)
-	if err != nil {
-		panic(err)
-	}
-
-	cli.ContainerStart(context.Background(), cont.ID, types.ContainerStartOptions{})
-	fmt.Printf("Container %s is started\n", cont.ID)
-	cli.ContainerRemove(context.Background(), cont.ID, types.ContainerRemoveOptions{})
-	return cont.ID, nil
-}
-
-// StopContainer stops a running container
-func StopContainer(containerID string) error {
-	cli, err := client.NewEnvClient()
-	if err != nil {
-		panic(err)
-	}
-
-	err = cli.ContainerStop(context.Background(), containerID, container.StopOptions{})
-	if err != nil {
-		panic(err)
-	}
-	return err
-}
-
-// ListContainers lists all running containers
-func ListContainers() error {
-	cli, err := client.NewEnvClient()
-	if err != nil {
-		panic(err)
-	}
-
-	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{})
-	if err != nil {
-		panic(err)
-	}
-
-	if len(containers) > 0 {
-		for _, container := range containers {
-			fmt.Printf("Container ID: %s", container.ID)
-		}
-	} else {
-		fmt.Println("There are no containers running")
-	}
+// add is the main entry point for the add command.
+func add(cmd *cobra.Command, args []string) error {
 	return nil
 }

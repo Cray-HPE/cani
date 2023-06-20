@@ -24,29 +24,33 @@ OTHER DEALINGS IN THE SOFTWARE.
 package pdu
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
-// RemovePduCmd represents the PDU remove command
+// RemovePduCmd represents the pdu remove command
 var RemovePduCmd = &cobra.Command{
 	Use:   "pdu",
-	Short: "Remove PDUs from the inventory.",
-	Long:  `Remove PDUs from the inventory.`,
+	Short: "Remove pdus from the inventory.",
+	Long:  `Remove pdus from the inventory.`,
 	Args:  cobra.ArbitraryArgs,
-	Run: func(cmd *cobra.Command, args []string) {
-		err := removePdu(args)
-		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
-			os.Exit(1)
-		}
-	},
+	RunE:  removePdu,
 }
 
-func removePdu(args []string) error {
-	fmt.Println("remove pdu called")
+// removePdu removes a pdu from the inventory.
+func removePdu(cmd *cobra.Command, args []string) error {
+	log.Info().Msgf("Not yet implemented")
+	// for _, arg := range args {
+	// 	// Convert the argument to a UUID
+	// 	u, err := uuid.Parse(arg)
+	// 	if err != nil {
+	// 		return fmt.Errorf("Need a UUID to remove: %s", err.Error())
+	// 	}
+	// 	// Remove item from the inventory
+	// 	err = root.Domain.RemovePdu(u)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
 	return nil
 }

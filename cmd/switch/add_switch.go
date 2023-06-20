@@ -24,48 +24,37 @@ OTHER DEALINGS IN THE SOFTWARE.
 package sw
 
 import (
-	"fmt"
-	"os"
-	"strings"
-
-	"github.com/Cray-HPE/cani/cmd/inventory"
+	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/Cray-HPE/cani/cmd/session"
+	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
-var (
-	listSupportedTypes bool
-	horizontalU        string
-	models             []string
-	hwType             string
-)
-
 // AddSwitchCmd represents the switch add command
 var AddSwitchCmd = &cobra.Command{
-	Use:   "switch",
-	Short: "Add switches to the inventory.",
-	Long:  `Add switches to the inventory.`,
-	Args:  cobra.ArbitraryArgs,
-	Run: func(cmd *cobra.Command, args []string) {
-		err := addSwitch(args)
-		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
-			os.Exit(1)
-		}
-	},
+	Use:               "switch",
+	Short:             "Add switches to the inventory.",
+	Long:              `Add switches to the inventory.`,
+	PersistentPreRunE: session.DatastoreExists, // A session must be active to write to a datastore
+	Args:              validHardware,           // Hardware can only be valid if defined in the hardware library
+	RunE:              addSwitch,               // Add a switch when this sub-command is called
 }
 
-func init() {
-	supportedHw := inventory.SupportedHardware()
-	for _, hw := range supportedHw {
-		models = append(models, hw.Model)
+// addSwitch adds a switch to the inventory
+func addSwitch(cmd *cobra.Command, args []string) error {
+	// Create a domain object to interact with the datastore
+	_, err := domain.New(root.Conf.Session.DomainOptions)
+	if err != nil {
+		return err
 	}
-	AddSwitchCmd.Flags().BoolVarP(&listSupportedTypes, "list-supported-types", "l", false, "List supported hardware types.")
-	AddSwitchCmd.Flags().StringVarP(&hwType, "type", "t", "", fmt.Sprintf("Hardware type.  Allowed values: [%+v]", strings.Join(models, "\", \"")))
-	AddSwitchCmd.Flags().StringVarP(&horizontalU, "horizontal", "u", "L", "Horizontal U location.")
-}
-
-func addSwitch(args []string) error {
-	fmt.Println("add switch called")
+	log.Info().Msgf("Not yet implemented")
+	// Remove the switch from the inventory using domain methods
+	// TODO:
+	// err = d.AddSwitch()
+	// if err != nil {
+	// 	return err
+	// }
+	// log.Info().Msgf("Added switch %s", args[0])
 	return nil
 }

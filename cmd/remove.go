@@ -24,36 +24,18 @@ OTHER DEALINGS IN THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-
-	"github.com/Cray-HPE/cani/cmd/blade"
-	"github.com/Cray-HPE/cani/cmd/cabinet"
-	sw "github.com/Cray-HPE/cani/cmd/switch"
 	"github.com/spf13/cobra"
 )
 
-// removeCmd represents the switch remove command
-var removeCmd = &cobra.Command{
+// removeCmd represents the remove command
+var RemoveCmd = &cobra.Command{
 	Use:   "remove",
 	Short: "Remove assets from the inventory.",
 	Long:  `Remove assets from the inventory.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("remove called")
-	},
+	RunE:  remove,
 }
 
-func init() {
-	removeCmd.AddCommand(blade.RemoveBladeCmd)
-	removeCmd.AddCommand(cabinet.RemoveCabinetCmd)
-	removeCmd.AddCommand(sw.RemoveSwitchCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// removeCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// removeCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+// remove is the main entry point for the switch command.
+func remove(cmd *cobra.Command, args []string) error {
+	return nil
 }

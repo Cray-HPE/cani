@@ -24,8 +24,15 @@ OTHER DEALINGS IN THE SOFTWARE.
 package blade
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 
+	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -36,15 +43,62 @@ var ListBladeCmd = &cobra.Command{
 	Short: "List blades in the inventory.",
 	Long:  `List blades in the inventory.`,
 	Args:  cobra.ArbitraryArgs,
-	Run: func(cmd *cobra.Command, args []string) {
-		err := listBlade(args)
-		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
-		}
-	},
+	RunE:  listBlade,
 }
 
-func listBlade(args []string) error {
-	fmt.Println("list blade called")
+// listBlade lists blades in the inventory
+func listBlade(cmd *cobra.Command, args []string) error {
+	// Instantiate a new logic object to interact with the datastore
+	d, err := domain.New(root.Conf.Session.DomainOptions)
+	if err != nil {
+		return err
+	}
+
+	// Get the entire inventory
+	inv, err := d.List()
+	if err != nil {
+		return err
+	}
+
+	// Filter the inventory to only blades
+	filtered := make(map[uuid.UUID]inventory.Hardware, 0)
+
+	// If no args are provided, list all blades
+	if len(args) == 0 {
+		for key, hw := range inv.Hardware {
+			if hw.Type == hardwaretypes.NodeBlade {
+				filtered[key] = hw
+			}
+		}
+	} else {
+		// List each blade specified in the args
+		for _, arg := range args {
+			// Convert the argument to a UUID
+			u, err := uuid.Parse(arg)
+			if err != nil {
+				return fmt.Errorf("Need a UUID: %s", err.Error())
+			}
+			// if blade does not exist, error
+			if _, exists := inv.Hardware[u]; !exists {
+				return fmt.Errorf("%s %s not found in inventory.", hardwaretypes.NodeBlade, u)
+			}
+			// If the hardware is a blade
+			if inv.Hardware[u].Type == hardwaretypes.NodeBlade {
+				// add it to the filtered inventory
+				filtered[u] = inv.Hardware[u]
+			} else {
+				log.Debug().Msgf("%s is not a %s.  It is a %s", u, hardwaretypes.NodeBlade, inv.Hardware[u].Type)
+			}
+		}
+	}
+
+	// Convert the filtered inventory into a formatted JSON string
+	inventoryJSON, err := json.MarshalIndent(filtered, "", "  ")
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error marshaling inventory to JSON: %v", err))
+	}
+
+	// Print the inventory
+	fmt.Println(string(inventoryJSON))
 	return nil
 }

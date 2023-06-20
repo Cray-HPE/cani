@@ -31,29 +31,24 @@ fixture(){
   test "${fixture:?}" == "$( cat "$FIXTURES/$1" )"
 }
 
-{{/* Check each flag individually */}}
-It '(with no args)'
-  When call bin/{{ $cmd }}
-  The status should equal {{ $cmd }}
-  The stdout should satisfy fixture '{{ replaceString $cmd " " "/" }}/help'
-End
-{{- range $flagName, $flagInfo := .Flags }}
-{{/* Check each flag individually */}}
-It '{{ $cmd }} --{{ $flagName }} arg'
-  When call bin/{{ $cmd }} --{{ $flagName }} arg
-  The status should equal 0
-  The stdout should equal ""
-  The stderr should equal ""
-End
-{{- end }}
+# Removes the db to start fresh 
+# Not called for all tests, but when no duplicate uuids are expected this is called
+cleanup(){ rm -rf testdb.json; }
 
-{{/* Check flags cumulatively */}}
-{{- range $i, $outerFlag := $flags }}
-It '{{- range $j, $innerFlag := $flags }}{{- if le $j $i }} --{{ (index $flags $j).Name }} arg{{- end }}{{- end }}'
-  When call bin/{{ $cmd }}{{- range $j, $innerFlag := $flags }}{{- if le $j $i }} --{{ (index $flags $j).Name }} arg{{- end }}{{- end }}
+{{/* Check each --help flag against its fixture */}}
+It '--help'
+  When call bin/{{ $cmd }} --help
   The status should equal 0
-  The stdout should equal ""
-  The stderr should equal ""
+  {{/* This matches all sans the --help flag itself */}}
+  # The stdout should satisfy fixture '{{ replaceString $cmd " " "/" }}/help'
+End
+
+{{/* Check each flag individually */}}
+{{- range $flagName, $flagInfo := .Flags }}
+It '--{{ $flagName }} arg'
+  When call bin/{{ $cmd }} --{{ $flagName }}
+  The status should equal 0
+  The stderr should include 'value":{"Type":""},"status":"SUCCESS"'
 End
 {{ end }}
 

@@ -26,8 +26,8 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **xname** | [**optional.Interface of string**](.md)| Matches the specified xname | 
  **parent** | [**optional.Interface of string**](.md)| Matches all objects that are direct children of the given xname | 
- **class** | [**optional.Interface of Hwclass**](.md)| Matches all objects of the given class | 
- **type_** | [**optional.Interface of string**](.md)| Matches all objects of the given type | 
+ **class** | [**optional.Interface of HardwareClass**](.md)| Matches all objects of the given class | 
+ **type_** | [**optional.Interface of HardwareType**](.md)| Matches all objects of the given type | 
  **powerConnector** | [**optional.Interface of string**](.md)| Matches all objects with the given xname in their power_connector property | 
  **object** | [**optional.Interface of string**](.md)| Matches all objects with the given xname in their object property. | 
  **nodeNics** | [**optional.Interface of string**](.md)| Matches all objects with the given xname in their node_nics property | 

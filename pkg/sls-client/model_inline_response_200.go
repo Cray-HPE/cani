@@ -10,7 +10,7 @@ package sls_client
 
 type InlineResponse200 struct {
 	// Status of the Vault.
-	Vault string `json:"Vault"`
+	Vault string `json:"Vault" mapstructure:"Vault"`
 	// Status of the connection with the database.
-	DBConnection string `json:"DBConnection"`
+	DBConnection string `json:"DBConnection" mapstructure:"DBConnection"`
 }

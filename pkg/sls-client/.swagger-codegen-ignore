@@ -21,3 +21,10 @@
 #docs/*.md
 # Then explicitly reverse the ignore rule for a single file:
 #!docs/README.md
+
+api_dumpstate.go
+model_hardware.go
+model_hardware_class.go
+model_hardware_extra_properties.go
+model_hardware_extra_properties_cabinet.go
+model_hardware_type_string.go

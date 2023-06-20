@@ -24,78 +24,103 @@ OTHER DEALINGS IN THE SOFTWARE.
 package cabinet
 
 import (
-	"embed"
+	"errors"
 	"fmt"
-	"os"
-	"strings"
+	"sort"
 
-	"github.com/Cray-HPE/cani/cmd/inventory"
+	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/Cray-HPE/cani/cmd/session"
+	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/Cray-HPE/cani/internal/tui"
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
 // AddCabinetCmd represents the cabinet add command
 var AddCabinetCmd = &cobra.Command{
-	Use:   "cabinet",
-	Short: "Add cabinets to the inventory.",
-	Long:  `Add cabinets to the inventory.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		err := addCabinet(args)
-		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
-			os.Exit(1)
-		}
-	},
+	Use:               "cabinet",
+	Short:             "Add cabinets to the inventory.",
+	Long:              `Add cabinets to the inventory.`,
+	PersistentPreRunE: session.DatastoreExists, // A session must be active to write to a datastore
+	Args:              validHardware,           // Hardware can only be valid if defined in the hardware library
+	SilenceUsage:      true,                    // Errors are more important than the usage
+	RunE:              addCabinet,              // Add a cabinet when this sub-command is called
 }
 
-var (
-	listSupportedTypes bool
-	hmnVlanId          int
-	cabinetId          int
-	chassis            int
-	models             []string
-	hwType             string
-	slot               int
-	port               int
-	role               string
-	subRole            string
-	//go:embed scripts/*
-	helperScripts              embed.FS
-	addLiquidCooledCabinet     bool
-	addLiquidCooledCabinetName = "add_liquid_cooled_cabinet.py"
-	addLiqudCooledCabinetFlag  = "add-liquid-cooled-cabinet"
-	backupSlsPostgres          bool
-	backupSlsPostgresName      = "backup_sls_postgres.sh"
-	backupSlsPostgresFlag      = "backup-sls-postgres"
-	inspectSlsCabinets         bool
-	inspectSlsCabinetsName     = "inspect_sls_cabinets.py"
-	inspectSlsCabinetsFlag     = "inspect-sls-cabinets"
-	updateNcnEtcHosts          bool
-	updateNcnEtcHostsName      = "update_ncn_etc_hosts.py"
-	updateNcnEtcHostsNameFlag  = "update-ncn-etc-hosts"
-	updateNcnCabinetRoutes     bool
-	updateNcnCabinetRoutesName = "update_ncn_cabinet_routes.py"
-	updateNcnCabinetRoutesFlag = "update-ncn-cabinet-routes"
-	verifyBmcCredentials       bool
-	verifyBmcCredentialsName   = "verify_bmc_credentials.sh"
-	verifyBmcCredentialsFlag   = "verify-bmc-credentials"
-	runScriptUsage             = "Run the %s script"
-)
-
-func init() {
-	supportedHw := inventory.SupportedHardware()
-	for _, hw := range supportedHw {
-		models = append(models, hw.Model)
+// addCabinet adds a cabinet to the inventory
+func addCabinet(cmd *cobra.Command, args []string) error {
+	// Create a domain object to interact with the datastore
+	d, err := domain.New(root.Conf.Session.DomainOptions)
+	if err != nil {
+		return err
 	}
-	AddCabinetCmd.Flags().BoolVarP(&listSupportedTypes, "list-supported-types", "l", false, "List supported hardware types.")
-	AddCabinetCmd.Flags().StringVarP(&hwType, "type", "t", "", fmt.Sprintf("Hardware type.  Allowed values: [%+v]", strings.Join(models, "\", \"")))
-	AddCabinetCmd.Flags().IntVarP(&cabinetId, "cabinet", "C", 1000, "Cabinet ID")
-	AddCabinetCmd.Flags().IntVarP(&chassis, "chassis", "c", 0, "Chassis ID")
-	AddCabinetCmd.Flags().IntVarP(&slot, "slot", "s", 0, "Slot ID")
-	AddCabinetCmd.Flags().IntVarP(&hmnVlanId, "hmn-vlan", "v", 0, "HMN VLAN ID")
-}
 
-func addCabinet(args []string) error {
-	fmt.Println("add cabinet called")
+	if auto {
+		log.Info().Msgf("Automatically assigning cabinet number and VLAN ID")
+		// TODO: Need to auto-generate a VLAN ID and cabinet number from existing provider
+		log.Warn().Msgf("Suggested VLAN ID: %d (not implemented)", vlanId)
+		log.Warn().Msgf("Suggested cabinet number: %d (not implemented)", cabinetNumber)
+		// Prompt the user to confirm the suggestions
+		auto, err = tui.CustomConfirmation(
+			fmt.Sprintf("Would you like to accept the recommendations and add the %s", hardwaretypes.Cabinet))
+		if err != nil {
+			return err
+		}
+
+		// If the user chose not to accept the suggestions, exit
+		if !auto {
+			log.Warn().Msgf("Aborted %s add", hardwaretypes.Cabinet)
+			fmt.Printf("\nAuto-generated values can be overridden by re-running the command with explicit values:\n")
+			fmt.Printf("\n\tcani alpha add %s %s --vlan %d --cabinet-number %d\n\n", cmd.Name(), args[0], vlanId, cabinetNumber)
+
+			return nil
+		}
+	}
+
+	// Push all the CLI flags that were provided into a generic map
+	// TODO Need to figure out how to specify to unset something
+	// Right now the build metadata function in the CSM provider will
+	// unset options if nil is passed in.
+	cabinetMetadata := map[string]interface{}{
+		"vlanID": vlanId,
+	}
+
+	// Add the cabinet to the inventory using domain methods
+	result, err := d.AddCabinet(cmd.Context(), args[0], cabinetNumber, cabinetMetadata)
+	if errors.Is(err, provider.ErrDataValidationFailure) {
+		// TODO the following should probably suggest commands to fix the issue?
+		log.Error().Msgf("Inventory data validation errors encountered")
+		for id, failedValidation := range result.ProviderValidationErrors {
+			log.Error().Msgf("  %s: %s", id, failedValidation.Hardware.LocationPath.String())
+			sort.Strings(failedValidation.Errors)
+			for _, validationError := range failedValidation.Errors {
+				log.Error().Msgf("    - %s", validationError)
+			}
+		}
+
+		return err
+	} else if err != nil {
+		return err
+	}
+
+	log.Info().Str("status", "SUCCESS").Msgf("%s %d was successfully staged to be added to the system", hardwaretypes.Cabinet, cabinetNumber)
+
+	// Use a map to track already added nodes.
+	newNodes := []domain.HardwareLocationPair{}
+
+	for _, result := range result.AddedHardware {
+		// If the type is a Node
+		if result.Hardware.Type == hardwaretypes.Cabinet {
+			log.Debug().Msgf("%s added at %s with parent %s (%s)", result.Hardware.Type, result.Location.String(), hardwaretypes.System, result.Hardware.Parent)
+			log.Info().Msgf("UUID: %s", result.Hardware.ID)
+			log.Info().Msgf("Cabinet Number: %d", cabinetNumber)
+			log.Info().Msgf("VLAN ID: %d", vlanId)
+			// Add the node to the map
+			newNodes = append(newNodes, result)
+		}
+	}
+
 	return nil
 }

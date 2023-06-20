@@ -6,20 +6,31 @@
 
 > Can I manage an inventory of an entire datacenter? From subfloor to top-of-rack, **yes** you can.
 
-# `cani` Inventory Hardware
+# `cani` Converges Disparate Hardware Inventory Systems
 
-You can inventory hardware with this utility.  Phase 1 of this tool communicates with SLS.  It also defines a portable inventory data structure that will allow other data sources to plug in such as HPCM, MAAS, Harvester, etc.  Utilizing Extract, Transform, and Load (ETL) functions, any potential data source can be integrated with this utility.
+You can inventory hardware with this utility.  The tool itself generates a portable inventory format that can serve as the source of truth itself.  It can also be used to transition from one inventory system to another, using `cani`'s portable format as an intermediate inventory.
 
-Phase 1 implements some basic functional commands that are consistent across activites someone needs to do to maintain their systems:
+## Portable Inventory Format
 
-- `add` 
-- `remove`
-- `list` 
+`cani` uses a simple key/value approach where each piece of hardware as a unique identifier.  Any metadata or relationships to other hardware components is self-contained to that entry in the datastore.
 
-Some simple examples of this might be:
-
-```shell
-cani list
-cani add switch [FLAGS]...
-cani remove cabinet [FLAGS]...
+```json
+"f5d90c28-f480-4f76-a329-d645ee7af350": {
+  "ID": "f5d90c28-f480-4f76-a329-d645ee7af350",
+  "Type": "Chassis",
+  "Vendor": "HPE",
+  "Model": "CrayEX liquid-cooled cabinet chassis",
+  "Status": "staged",
+  "Parent": "4c7e02e7-5068-4dc2-b727-089a6b11eb66",
+  "Children": ["49aa81e0-413e-4142-b56f-8c78cf4daa0c"],
+  "LocationPath": [
+    {"HardwareType": "Cabinet","Ordinal": 0},
+    {"HardwareType": "Chassis","Ordinal": 1}
+  ],
+  "LocationOrdinal": 1
+}
 ```
+
+## External Inventory Providers
+
+`cani` has built-in support for CSM and can communicate with SLS and HSM.  Support for other inventory providers is still under development.
