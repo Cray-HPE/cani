@@ -1,8 +1,7 @@
-#! /usr/bin/env bash
 #
 # MIT License
 #
-# (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2022-2023 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -22,26 +21,28 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
-failed=0
+name: Check Licenses
 
-for file in *.yaml; do 
-    echo
-    echo "========================================"
-    echo "Validating ${file}"
-    echo "========================================"
-    if ! jv -output detailed schema/devicetype.json "$file"; then
-        echo "Not Valid"
-        failed=1
-    fi   
-done
+on:
+  pull_request:
 
-echo "========================================"
-echo "Validation Results"
-echo "========================================"
+jobs:
+  license-check:
+    runs-on: self-hosted
 
-if [[ $failed -eq 1 ]]; then
-    echo "One or more hardware types have validation errors"
-    exit 1
-else
-    echo "Pass"
-fi
+    container:
+      image: artifactory.algol60.net/csm-docker/stable/license-checker:latest
+      credentials:
+          username: ${{ secrets.ARTIFACTORY_ALGOL60_READONLY_USERNAME }}
+          password: ${{ secrets.ARTIFACTORY_ALGOL60_READONLY_TOKEN }}
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Get changed files
+      id: changed-files
+      uses: tj-actions/changed-files@v36
+
+    - name: License Check
+      if: ${{ steps.changed-files.outputs.all_changed_files }}
+      run: /usr/local/bin/python3 /license_check/license_check.py ${{ steps.changed-files.outputs.all_changed_files }}
