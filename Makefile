@@ -186,6 +186,9 @@ generate-swagger-hsm-client: bin/swagger-codegen-cli.jar
 
 generate: generate-swagger-sls-client generate-swagger-hsm-client  generate-go 
 
+license:
+	docker run -it --rm -v $(pwd):/github/workspace artifactory.algol60.net/csm-docker/stable/license-checker cmd/ internal pkg/hardwaretypes pkg/xname --fix
+
 # Jenkins doesn't have java installed, so the generate target fails to run
 bin:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o bin/${NAME} -ldflags "\
