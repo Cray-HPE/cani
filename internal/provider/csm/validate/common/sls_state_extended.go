@@ -50,8 +50,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 package common
 
 import (
-	"fmt"
-
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 )
 
@@ -86,9 +84,9 @@ func NewSlsStateExtended(slsState *sls_client.SlsState) *SlsStateExtended {
 		aliasToHardware[hardware.Xname] = &h
 
 		// todo handle case where slice is not found
-		aliases, _ := GetSlice(hardware.ExtraProperties, "Aliases")
+		aliases, _ := GetSliceOfStrings(hardware.ExtraProperties, "Aliases")
 		for _, alias := range aliases {
-			aliasToHardware[fmt.Sprintf("%v", alias)] = &h
+			aliasToHardware[alias] = &h
 		}
 	}
 
@@ -110,10 +108,9 @@ func NewSlsStateExtended(slsState *sls_client.SlsState) *SlsStateExtended {
 		list := append(s.TypeToHardware[t], &h)
 		s.TypeToHardware[t] = list
 
-		aliases, _ := GetSlice(hardware.ExtraProperties, "Aliases")
+		aliases, _ := GetSliceOfStrings(hardware.ExtraProperties, "Aliases")
 		for _, alias := range aliases {
-			a := fmt.Sprintf("%v", alias)
-			s.AliasToHardware[a] = &h
+			s.AliasToHardware[alias] = &h
 		}
 	}
 	return s

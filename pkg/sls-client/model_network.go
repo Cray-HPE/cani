@@ -10,10 +10,10 @@ package sls_client
 
 type Network struct {
 	Name            string                  `json:"Name" mapstructure:"Name"`
-	FullName        string                  `json:"FullName,omitempty" mapstructure:"FullName"`
+	FullName        string                  `json:"FullName" mapstructure:"FullName"`
 	IPRanges        []string                `json:"IPRanges" mapstructure:"IPRanges"`
 	Type_           string                  `json:"Type" mapstructure:"Type"`
 	LastUpdated     int32                   `json:"LastUpdated,omitempty" mapstructure:"LastUpdated"`
 	LastUpdatedTime string                  `json:"LastUpdatedTime,omitempty" mapstructure:"LastUpdatedTime"`
-	ExtraProperties *NetworkExtraProperties `json:"ExtraProperties,omitempty" mapstructure:"ExtraProperties"`
+	ExtraProperties *NetworkExtraProperties `json:"ExtraProperties" mapstructure:"ExtraProperties"`
 }
