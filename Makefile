@@ -34,7 +34,7 @@ export ARCH := $(shell uname -m)
 endif
 
 ifeq ($(VERSION),)
-export VERSION := $(shell git describe --tags --always | tr -s '-' '~' | tr -d '^v')
+export VERSION := $(shell git describe --tags | tr -s '-' '~' | tr -d '^v')
 endif
 
 # By default, if these are not set then set them to match the host.
@@ -62,7 +62,7 @@ CHANGELOG_VERSION_ORIG=$(grep -m1 \## CHANGELOG.MD | sed -e "s/\].*\$//" |sed -e
 CHANGELOG_VERSION=$(shell grep -m1 \ \[[0-9]*.[0-9]*.[0-9]*\] CHANGELOG.MD | sed -e "s/\].*$$//" |sed -e "s/^.*\[//")
 BUILD_DIR ?= $(PWD)/dist/rpmbuild
 SPEC_FILE ?= ${NAME}.spec
-SOURCE_NAME ?= ${NAME}-${.GIT_VERSION}
+SOURCE_NAME ?= ${NAME}-${VERSION}
 SOURCE_PATH := ${BUILD_DIR}/SOURCES/${SOURCE_NAME}.tar.bz2
 TEST_OUTPUT_DIR ?= $(CURDIR)/build/results
 
