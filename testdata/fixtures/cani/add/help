@@ -1,8 +1,8 @@
 Add assets to the inventory.
 
 Usage:
-  cani add [flags]
-  cani add [command]
+  cani alpha add [flags]
+  cani alpha add [command]
 
 Available Commands:
   blade       Add blades to the inventory.
@@ -14,14 +14,11 @@ Available Commands:
   switch      Add switches to the inventory.
 
 Flags:
-  -h, --help            help for add
-  -n, --name string     Name
-  -u, --uuid string     Specific UUID to use
-  -m, --vendor string   Vendor (default "HPE")
+  -h, --help   help for add
 
 Global Flags:
       --config string   Path to the configuration file
   -D, --debug           additional debug output
-  -S, --simulation      Use simulation mode for hsm-simulation-environment
+  -v, --verbose         additional verbose output
 
-Use "cani add [command] --help" for more information about a command.
+Use "cani alpha add [command] --help" for more information about a command.

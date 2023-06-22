@@ -31,10 +31,6 @@ fixture(){
   test "${fixture:?}" == "$( cat "$FIXTURES/$1" )"
 }
 
-# Removes the db to start fresh 
-# Not called for all tests, but when no duplicate uuids are expected this is called
-cleanup(){ rm -rf testdb.json; }
-
 It '--help'
   When call bin/cani version --help
   The status should equal 0

@@ -1,6 +1,7 @@
+#
 # MIT License
 #
-# (C) Copyright 2021-2022 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2021-2023 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -19,6 +20,7 @@
 # OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
+#
 NAME := cani
 SHELL := /bin/bash -o pipefail
 lc =$(subst A,a,$(subst B,b,$(subst C,c,$(subst D,d,$(subst E,e,$(subst F,f,$(subst G,g,$(subst H,h,$(subst I,i,$(subst J,j,$(subst K,k,$(subst L,l,$(subst M,m,$(subst N,n,$(subst O,o,$(subst P,p,$(subst Q,q,$(subst R,r,$(subst S,s,$(subst T,t,$(subst U,u,$(subst V,v,$(subst W,w,$(subst X,x,$(subst Y,y,$(subst Z,z,$1))))))))))))))))))))))))))
@@ -32,7 +34,7 @@ export ARCH := $(shell uname -m)
 endif
 
 ifeq ($(VERSION),)
-export VERSION := $(shell git describe --tags --always | tr -s '-' '~' | tr -d '^v')
+export VERSION := $(shell git describe --tags | tr -s '-' '~' | tr -d '^v')
 endif
 
 # By default, if these are not set then set them to match the host.
@@ -60,7 +62,7 @@ CHANGELOG_VERSION_ORIG=$(grep -m1 \## CHANGELOG.MD | sed -e "s/\].*\$//" |sed -e
 CHANGELOG_VERSION=$(shell grep -m1 \ \[[0-9]*.[0-9]*.[0-9]*\] CHANGELOG.MD | sed -e "s/\].*$$//" |sed -e "s/^.*\[//")
 BUILD_DIR ?= $(PWD)/dist/rpmbuild
 SPEC_FILE ?= ${NAME}.spec
-SOURCE_NAME ?= ${NAME}-${.GIT_VERSION}
+SOURCE_NAME ?= ${NAME}-${VERSION}
 SOURCE_PATH := ${BUILD_DIR}/SOURCES/${SOURCE_NAME}.tar.bz2
 TEST_OUTPUT_DIR ?= $(CURDIR)/build/results
 
@@ -187,7 +189,7 @@ generate-swagger-hsm-client: bin/swagger-codegen-cli.jar
 generate: generate-swagger-sls-client generate-swagger-hsm-client  generate-go 
 
 license:
-	docker run -it --rm -v $(pwd):/github/workspace artifactory.algol60.net/csm-docker/stable/license-checker cmd/ internal pkg/hardwaretypes pkg/xname --fix
+	docker run -it --rm -v $(pwd):/github/workspace artifactory.algol60.net/csm-docker/stable/license-checker .github/workflows/ cmd/ internal pkg/hardwaretypes pkg/xname --fix
 
 # Jenkins doesn't have java installed, so the generate target fails to run
 bin:

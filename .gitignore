@@ -33,4 +33,8 @@ coverage/
 # cani
 .cani/
 cani.yml
-cani.yaml
+canidb.json
+canidb.log
+canitest.yml
+canitestdb.json
+canitestdb.log

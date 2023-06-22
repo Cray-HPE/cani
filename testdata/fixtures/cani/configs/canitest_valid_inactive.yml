@@ -1,7 +1,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2022-2023 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2023 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -21,23 +21,36 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
-name: shellcheck
-on:
-  pull_request:
-    branches:
-      - develop
-      - main
-      - lts/*
-
-jobs:
-  shellcheck:
-    name: shellcheck
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    
-    - name: run shellcheck
-      uses: ludeeus/action-shellcheck@master
-      with:
-        severity: error
-        ignore_paths: vendor
+session:
+    domain_options:
+        datastore_path: ./canitestdb.json
+        log_file_path: ./canitestdb.log
+        provider: csm
+        csm_options:
+            usesimulation: true
+            insecureskipverify: true
+            apigatewaytoken: ""
+            baseurlsls: https://localhost:8443/apis/sls/v1
+            baseurlhsm: https://localhost:8443/apis/smd/hsm/v2
+            secretname: admin-client-auth
+            kubeconfig: ""
+            tokenhost: ""
+            cacertpath: ""
+            validroles:
+                - Compute
+                - Service
+                - System
+                - Application
+                - Storage
+                - Management
+            validsubroles:
+                - Worker
+                - Master
+                - Storage
+                - UAN
+                - Gateway
+                - LNETRouter
+                - Visualization
+                - UserDefined
+    domain: {}
+    active: false

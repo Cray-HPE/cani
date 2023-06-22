@@ -32,88 +32,73 @@ fixture(){
 }
 
 # functions to deploy various fixtures with different scenarios
-cleanup(){ rm -f canitest.*; }
-canitest_valid_active(){ cp "$FIXTURES"/cani/configs/canitest_valid_active.yml .; }
-canitest_valid_inactive(){ cp "$FIXTURES"/cani/configs/canitest_valid_inactive.yml  .; }
-canitest_invalid_datastore_path(){ cp "$FIXTURES"/cani/configs/canitest_invalid_datastore_path.yml .; }
-canitest_invalid_log_file_path(){ cp "$FIXTURES"/cani/configs/canitest_invalid_log_file_path.yml .; }
-canitest_invalid_provider(){ cp "$FIXTURES"/cani/configs/canitest_invalid_provider.yml .; }
-canitest_valid_empty_db(){ cp -f "$FIXTURES"/cani/configs/canitest_valid_empty_db.json .; }
-canitest_invalid_empty_db(){ cp -f "$FIXTURES"/cani/configs/canitest_invalid_empty_db.json .; }
-rm_canitest_valid_empty_db(){ rm -f canitest_valid_empty_db.json; }
+remove_config(){ rm -f canitest.yml; }
+remove_datastore() { rm -f canitestdb.json; }
+remove_log() { rm -f canitestdb.log; }
 
+use_active_session(){ cp "$FIXTURES"/cani/configs/canitest_valid_active.yml canitest.yml; } # deploys a config with session.active = true
+use_inactive_session(){ cp "$FIXTURES"/cani/configs/canitest_valid_inactive.yml canitest.yml; } # deploys a config with session.active = false
+use_valid_datastore_system_only(){ cp "$FIXTURES"/cani/configs/canitestdb_valid_system_only.json canitestdb.json; } # deploys a datastore with one system only
+use_valid_datastore_one_cabinet(){ cp "$FIXTURES"/cani/configs/canitestdb_valid_one_cabinet.json canitestdb.json; } # deploys a datastore with one cabinet (and child hardware)
 
+# help output should succeed and match the fixture
+# a config file should be created if one does not exist
 It '--help'
-  When call bin/cani session --help
+  BeforeCall remove_config # Remove the config to start fresh
+  When call bin/cani alpha session --help
   The status should equal 0
   The stdout should satisfy fixture 'cani/session/help'
+  AfterCall The path canitest.yml should be exist
+  AfterCall The path canitest.yml should be file
 End
 
-# Status with a valid config should suceed and show the status of the session
-It '--config canitest_invalid_provider.yml status'
-  BeforeCall 'canitest_valid_inactive'
-  When call bin/cani session --config canitest_invalid_provider.yml status
+# Status should be INACTIVE if active: false
+It '--config canitest.yml status'
+  BeforeCall use_inactive_session # session is inactive
+  When call bin/cani alpha session --config canitest.yml status
   The status should equal 0
-  The line 1 of stderr should include '"message":"See canitest_invalid_provider.yml for session details"'
-  The line 2 of stderr should include '"message":"Session is INACTIVE"'
+  The line 1 of stderr should include 'See canitest.yml for session details'
+  The line 2 of stderr should include 'Session is INACTIVE'
 End
 
-# Starting a session with a bad provider in a config should fail
-It '--config canitest_invalid_provider.yml start'
-  BeforeCall 'canitest_invalid_provider'
-  When call bin/cani session --config canitest_invalid_provider.yml start
+
+# Status should be ACTIVE if active: true
+It '--config canitest.yml status'
+  BeforeCall use_active_session # session is active
+  When call bin/cani alpha session --config canitest.yml status
+  The status should equal 0
+  The line 1 of stderr should include 'See canitest.yml for session details'
+  The line 2 of stderr should include 'Session is ACTIVE'
+End
+
+
+# Starting a session without passing a provider should fail
+It '--config canitest.yml start'
+  BeforeCall remove_config
+  When call bin/cani alpha session --config canitest.yml start
+  The status should equal 1
+  The line 1 of stderr should equal 'Error: Need a provider.  Choose from: [csm]'
+End
+
+# Starting a session without passing a provider should fail
+It '--config canitest.yml start fake'
+  BeforeCall remove_config
+  When call bin/cani alpha session --config canitest.yml start fake
   The status should equal 1
   The line 1 of stderr should equal 'Error: fake is not a valid provider.  Valid providers: [csm]'
 End
 
-# Starting a session with a valid config should suceed and show the status of the session
-It '--config canitest_valid_inactive.yml start'
-  BeforeCall 'canitest_valid_inactive'
-  BeforeCall 'canitest_valid_empty_db'
-  When call bin/cani session --config canitest_valid_inactive.yml start
-  The status should equal 0
-  The line 1 of stderr should include '"message":"Session is now ACTIVE with provider csm and datastore'
-End
-
-# # TODO: Deal with interactive prompts
-# It '--config canitest_valid_inactive.yml start'
-#   BeforeCall 'canitest_valid_inactive'
-#   When call bin/cani session --config canitest_valid_inactive.yml start
-#   The status should equal 0
-#   The line 1 stderr should include '"message":"Session is now ACTIVE with provider csm and datastore'
-# End
-
-# Status should show active after starting a session
-It '--config canitest_valid_inactive.yml status (after starting)'
-  When call bin/cani session --config canitest_valid_inactive.yml status
-  The status should equal 0
-  The line 1 of stderr should include '"message":"See canitest_valid_inactive.yml for session details"'
-  The line 2 of stderr should include '"message":"Session is ACTIVE"'
-End
-
-# # TODO: Deal with interactive prompts
-# Status should show active after starting a session
-# It 'stop (after starting)'
-#   When call bin/cani session stop
-#   The status should equal 0
-#   The line 1 stderr should include '"message":"Session is STOPPED"'
-# End
-
-# # TODO: Deal with interactive prompts
-# It '--config canitest_valid_inactive.yml stop'
-#   BeforeCall 'canitest_valid_inactive'
-#   When call bin/cani session --config canitest_valid_inactive.yml stop
-#   The status should equal 1
-#   The line 1 stderr should include '"Session with provider 'csm' and datastore './canitest_valid_empty_db.json' is already STOPPED"'
-# End
-
-# Stopping a session with the --commit flag should succeed and not prompt the user for anything
-It '--config canitest_valid_inactive.yml stop --commit'
-  BeforeCall 'canitest_valid_inactive'
-  When call bin/cani session --config canitest_valid_inactive.yml stop --commit
+# Starting a session should fail with:
+#  - a valid proivder
+#  - no connection to SLS
+It '--config canitest.yml start csm'
+  BeforeCall remove_config
+  BeforeCall remove_datastore
+  When call bin/cani alpha session --config canitest.yml start csm
   The status should equal 1
-  The line 1 of stderr should include "Session with provider 'csm' and datastore './canitest_valid_empty_db.json' is already STOPPED"
-  The line 2 of stderr should include '"message":"Committing changes to session"'
+  The line 1 of stderr should include 'canidb.json does not exist, creating default datastore'
+  The line 2 of stderr should include 'No API Gateway token provided, getting one from provider '
+  The line 3 of stderr should include 'POST /keycloak/realms/shasta/protocol/openid-connect/token'
 End
 
 End

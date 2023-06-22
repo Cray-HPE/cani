@@ -32,20 +32,174 @@ fixture(){
 }
 
 # functions to deploy various fixtures with different scenarios
-cleanup(){ rm -f canitest.*; }
-canitest_valid_active(){ cp "$FIXTURES"/cani/configs/canitest_valid_active.yml .; }
-canitest_valid_inactive(){ cp "$FIXTURES"/cani/configs/canitest_valid_inactive.yml  .; }
-canitest_invalid_datastore_path(){ cp "$FIXTURES"/cani/configs/canitest_invalid_datastore_path.yml .; }
-canitest_invalid_log_file_path(){ cp "$FIXTURES"/cani/configs/canitest_invalid_log_file_path.yml .; }
-canitest_invalid_provider(){ cp "$FIXTURES"/cani/configs/canitest_invalid_provider.yml .; }
-canitest_valid_empty_db(){ cp -f "$FIXTURES"/cani/configs/canitest_valid_empty_db.json .; }
-canitest_invalid_empty_db(){ cp -f "$FIXTURES"/cani/configs/canitest_invalid_empty_db.json .; }
-rm_canitest_valid_empty_db(){ rm -f canitest_valid_empty_db.json; }
+remove_config(){ rm -f canitest.yml; }
+remove_datastore() { rm -f canitestdb.json; }
+remove_log() { rm -f canitestdb.log; }
 
+use_active_session(){ cp "$FIXTURES"/cani/configs/canitest_valid_active.yml canitest.yml; } # deploys a config with session.active = true
+use_inactive_session(){ cp "$FIXTURES"/cani/configs/canitest_valid_inactive.yml canitest.yml; } # deploys a config with session.active = false
+use_valid_datastore_system_only(){ cp "$FIXTURES"/cani/configs/canitestdb_valid_system_only.json canitestdb.json; } # deploys a datastore with one system only
+use_valid_datastore_one_cabinet(){ cp "$FIXTURES"/cani/configs/canitestdb_valid_one_cabinet.json canitestdb.json; } # deploys a datastore with one cabinet (and child hardware)
+
+# help output should succeed and match the fixture
+# a config file should be created if one does not exist
 It '--help'
-  When call bin/cani add cabinet --help
+  BeforeCall remove_config # Remove the config to start fresh
+  When call bin/cani alpha add cabinet --help
   The status should equal 0
   The stdout should satisfy fixture 'cani/add/cabinet/help'
+  AfterCall The path canitest.yml should be exist
+  AfterCall The path canitest.yml should be file
+End
+
+# Adding a cabinet withot a hardware type should fail
+# it should list the available hardware types
+It '--config canitest.yml'
+  When call bin/cani alpha add cabinet --config canitest.yml
+  The status should equal 1
+  The line 1 of stderr should include 'Error: No hardware type provided: Choose from: hpe-eia-cabinet", "hpe-ex2000", "hpe-ex2500-1-liquid-cooled-chassis", "hpe-ex2500-2-liquid-cooled-chassis", "hpe-ex2500-3-liquid-cooled-chassis", "hpe-ex3000", "hpe-ex4000'
+End
+
+# Adding a cabinet with an invalid hardware type should fail
+It '--config canitest.yml fake-hardware-type'
+  When call bin/cani alpha add cabinet --config canitest.yml fake-hardware-type
+  The status should equal 1
+  The line 1 of stderr should equal 'Error: Invalid hardware type: fake-hardware-type'
+End
+
+# Listing hardware types should show available hardware types
+It '--config canitest.yml -L'
+  When call bin/cani alpha add cabinet --config canitest.yml -L
+  The status should equal 0
+  The line 1 of stderr should equal "- hpe-eia-cabinet"
+  The line 2 of stderr should equal "- hpe-ex2000"
+  The line 3 of stderr should equal "- hpe-ex2500-1-liquid-cooled-chassis"
+  The line 4 of stderr should equal "- hpe-ex2500-2-liquid-cooled-chassis"
+  The line 5 of stderr should equal "- hpe-ex2500-3-liquid-cooled-chassis"
+  The line 6 of stderr should equal "- hpe-ex3000"
+  The line 7 of stderr should equal "- hpe-ex4000"
+End
+
+# Adding a cabinet should fail if no session is active
+It '--config canitest.yml hpe-ex2000'
+  BeforeCall use_inactive_session # session is inactive
+  BeforeCall use_valid_datastore_system_only # deploy a valid datastore
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-ex2000
+  The status should equal 1
+  The line 1 of stderr should equal "Error: No active session.  Run 'session start' to begin"
+End
+
+# Adding a cabinet should fail if:
+#   - a session is active
+#   - a datastore does not exist
+It '--config canitest.yml hpe-ex2000'
+  BeforeCall use_active_session # session is active
+  BeforeCall remove_datastore # datastore does not exist
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-ex2000
+  The status should equal 1
+  The line 1 of stderr should equal "Error: Datastore './canitestdb.json' does not exist.  Run 'session start' to begin"
+End
+
+# Adding a cabinet should fail if:
+#   - a session is active
+#   - a datastore exists
+#   - cabinet flag is not set
+#   - vlan-id flag is not set
+It '--config canitest.yml hpe-ex2000'
+  BeforeCall use_active_session # session is active
+  BeforeCall use_valid_datastore_system_only # deploy a valid datastore
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-ex2000
+  The status should equal 1
+  The line 1 of stderr should equal 'Error: required flag(s) "cabinet", "vlan-id" not set'
+End
+
+# Adding a cabinet should fail if:
+#   - a session is active
+#   - a datastore exists
+#   - cabinet flag is set
+#   - vlan-id flag is not set
+It '--config canitest.yml hpe-ex2000 --cabinet 1234'
+  BeforeCall use_active_session # session is active
+  BeforeCall use_valid_datastore_system_only # deploy a valid datastore
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-ex2000 --cabinet 1234
+  The status should equal 1
+  The line 1 of stderr should equal 'Error: required flag(s) "vlan-id" not set'
+End
+
+# Adding a cabinet should fail if:
+#   - a session is active
+#   - a datastore exists
+#   - cabinet flag is not set
+#   - vlan-id flag is set
+It '--config canitest.yml hpe-ex2000 --vlan-id 1234'
+  BeforeCall use_active_session # session is active
+  BeforeCall use_valid_datastore_system_only # deploy a valid datastore
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-ex2000 --vlan-id 1234
+  The status should equal 1
+  The line 1 of stderr should equal 'Error: required flag(s) "cabinet" not set'
+End
+
+# Adding a cabinet should fail if:
+#   - a session is active
+#   - a datastore exists
+#   - cabinet flag is set
+#   - vlan-id flag is set
+#   - vlan-id flag is not within an acceptable range
+It '--config canitest.yml hpe-ex2000 --cabinet 1234 --vlan-id 12345678'
+  BeforeCall use_active_session # session is active
+  BeforeCall use_valid_datastore_system_only # deploy a valid datastore
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-ex2000 --cabinet 1234 --vlan-id 12345678
+  The status should equal 1
+  The line 1 of stderr should include "Inventory data validation errors encountered"
+  The line 2 of stderr should include "System:0->Cabinet:1234"
+  The line 3 of stderr should include "    - Specified HMN Vlan (12345678) is invalid, must be in range: 0-4094"
+  The line 4 of stderr should equal "Error: data validation failure"
+End
+
+# Adding a cabinet should succeed if:
+#   - a session is active
+#   - a datastore exists
+#   - cabinet flag is set
+#   - vlan-id flag is set
+#   - the cabinet does not exist
+It '--config canitest.yml hpe-ex2000 --cabinet 1234 --vlan-id 1234'
+  BeforeCall use_active_session # session is active
+  BeforeCall use_valid_datastore_system_only # deploy a valid datastore
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-ex2000 --cabinet 1234 --vlan-id 1234
+  The status should equal 0
+  The line 1 of stderr should include "Cabinet 1234 was successfully staged to be added to the system"
+  The line 2 of stderr should include "UUID: "
+  The line 3 of stderr should include "Cabinet Number: 1234"
+  The line 4 of stderr should include "VLAN ID: 1234"
+End
+
+# Adding a cabinet should fail if (re-run the above command):
+#   - a session is active
+#   - a datastore exists
+#   - cabinet flag is set
+#   - vlan-id flag is set
+#   - the cabinet already exists
+It '--config canitest.yml hpe-ex2000 --cabinet 1234 --vlan-id 1234'
+  BeforeCall use_active_session # session is active
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-ex2000 --cabinet 1234 --vlan-id 1234
+  The status should equal 1
+  The line 1 of stderr should equal "Error: Cabinet number 1234 is already in use"
+  The line 2 of stderr should equal "please re-run the command with an available Cabinet number"
+End
+
+# Adding a cabinet should fail if:
+#   - a session is active
+#   - a datastore exists
+#   - cabinet flag is set
+#   - vlan-id flag is set
+#   - the cabinet does not exist
+#   - the vlan already exists 
+It '--config canitest.yml hpe-ex2000 --cabinet 4321 --vlan-id 1234'
+  BeforeCall use_active_session # session is active
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-ex2000 --cabinet 4321 --vlan-id 1234
+  The status should equal 1
+  The line 1 of stderr should include "Inventory data validation errors encountered"
+  The stderr should include "    - Specified HMN Vlan (1234) is not unique, shared by: "
 End
 
 End

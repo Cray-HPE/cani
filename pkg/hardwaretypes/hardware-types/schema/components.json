@@ -620,6 +620,25 @@
             "additionalProperties": false
         },
 
+
+        "identifications": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+              "manufacturer": {
+                  "type": "string"
+              },
+              "model": {
+                  "type": "string"
+              }
+          },
+          "required": [
+              "manufacturer",
+              "model"
+          ],
+          "title": "identifications"
+        },
+
         "inventory-item": {
             "type": "object",
             "properties": {

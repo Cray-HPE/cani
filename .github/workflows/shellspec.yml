@@ -29,7 +29,7 @@ jobs:
   shellspec:
     strategy:
       matrix:
-        os: [self-hosted, self-hosted-small]
+        os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
