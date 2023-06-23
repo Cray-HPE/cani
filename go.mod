@@ -7,6 +7,7 @@ require (
 	github.com/Cray-HPE/hms-xname v1.1.1-0.20230602152417-25bcdeda83c9
 	github.com/antihax/optional v1.0.0
 	github.com/fatih/color v1.13.0
+	github.com/fatih/structs v1.1.0
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-retryablehttp v0.7.2
 	github.com/manifoldco/promptui v0.9.0

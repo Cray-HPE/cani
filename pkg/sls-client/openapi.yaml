@@ -657,7 +657,7 @@ components:
 
     network:
       type: object
-      required: ["Name", "Type", "IPRanges"]
+      required: ["Name", "FullName", "IPRanges", "Type", "ExtraProperties"]
       properties:
         Name:
           type: string
@@ -686,6 +686,7 @@ components:
       pattern: "slingshot10|slingshot11|cassini|ethernet|OPA|infiniband|mixed"
       example: "slingshot10"
     network_extra_properties:
+      required: ["CIDR", "VlanRange", "MTU", "Subnets"]
       type: object
       properties:
         CIDR:
@@ -707,7 +708,7 @@ components:
           type: string
     network_ipv4_subnet:
       type: object
-      required: ["Name", "CIDR", "VlanID"]
+      required: ["Name", "FullName", "CIDR", "Gateway", "VlanID"]
       properties:
         Name:
           type: string

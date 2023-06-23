@@ -616,6 +616,8 @@ components:
         counter: 0
     network:
       required:
+      - ExtraProperties
+      - FullName
       - IPRanges
       - Name
       - Type
@@ -707,6 +709,11 @@ components:
       type: string
       example: slingshot10
     network_extra_properties:
+      required:
+      - CIDR
+      - MTU
+      - Subnets
+      - VlanRange
       type: object
       properties:
         CIDR:
@@ -779,6 +786,8 @@ components:
     network_ipv4_subnet:
       required:
       - CIDR
+      - FullName
+      - Gateway
       - Name
       - VlanID
       type: object

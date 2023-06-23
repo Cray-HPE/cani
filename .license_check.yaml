@@ -1,0 +1,4 @@
+add_exclude:
+  - ".license_check.yaml"
+  - "vendor"
+  - "pkg/sls-client"
