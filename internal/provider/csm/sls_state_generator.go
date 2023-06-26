@@ -38,20 +38,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// func GetProviderProperties[T any](hardware inventory.Hardware) (*T, error) {
-// 	providerPropertiesRaw, ok := hardware.ProviderProperties["csm"]
-// 	if !ok {
-// 		return nil, nil // This should be ok, as its possible as not all hardware inventory items may have CSM specific data
-// 	}
-
-// 	var result T
-// 	if err := mapstructure.Decode(providerPropertiesRaw, &result); err != nil {
-// 		return nil, err
-// 	}
-
-// 	return &providerProperties, nil
-// }
-
 func DetermineHardwareClass(hardware inventory.Hardware, data inventory.Inventory, hardwareTypeLibrary hardwaretypes.Library) (string, error) {
 	// TODO the datastore might be good to have get hierarchy?
 	currentHardwareID := hardware.ID
