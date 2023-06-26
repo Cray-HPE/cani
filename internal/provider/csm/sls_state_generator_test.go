@@ -1,6 +1,8 @@
 package csm
 
 import (
+	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
@@ -8,77 +10,281 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-func buildCabinet(hardwareTypeLibrary hardwaretypes.Library, cabinetDeviceType string, chassisPopulation map[int]map[int]string) ([]inventory.Hardware, error) {
-	allHardware := []inventory.Hardware{}
+func buildCabinet(hardwareTypeLibrary hardwaretypes.Library, datastore inventory.Datastore, cabinetDeviceType string, cabinetOrdinal int, chassisPopulation map[int]map[int]string) error {
+	system, err := datastore.GetSystemZero()
+	if err != nil {
+		return err
+	}
 
 	// Build cabinet hardware
-
-	// Build up blade hardware
-	for chassisOrdinal, slots := range chassisPopulation {
-		// Get chassis ID
-		for bladeOrdinal, bladeDeviceType := range slots {
-			
+	cabinetHardwareBuildOut, err := hardwareTypeLibrary.GetDefaultHardwareBuildOut(cabinetDeviceType, cabinetOrdinal, system.ID)
+	if err != nil {
+		return errors.Join(fmt.Errorf("failed to build cabinet hardware for device type %s with ordinal %d", cabinetDeviceType, cabinetOrdinal), err)
+	}
+	for _, hardwareBuildOut := range cabinetHardwareBuildOut {
+		hardware := inventory.NewHardwareFromBuildOut(hardwareBuildOut, inventory.HardwareStatusProvisioned)
+		if err := datastore.Add(&hardware); err != nil {
+			return err
 		}
 	}
 
-	return allHardware, nil
+	// Build up blade hardware
+	for chassisOrdinal, slots := range chassisPopulation {
+		// fmt.Println(slots)
+
+		// Get chassis ID
+		chassisLocationPath := inventory.LocationPath{
+			{HardwareType: hardwaretypes.System, Ordinal: 0},
+			{HardwareType: hardwaretypes.Cabinet, Ordinal: cabinetOrdinal},
+			{HardwareType: hardwaretypes.Chassis, Ordinal: chassisOrdinal},
+		}
+
+		chassis, err := datastore.GetAtLocation(chassisLocationPath)
+		if err != nil {
+			return errors.Join(fmt.Errorf("failed to find chassis at %v", chassisLocationPath), err)
+		}
+		// fmt.Println(chassis)
+
+		// Build up hardware for each slot
+		for bladeOrdinal, bladeDeviceType := range slots {
+			cabinetHardwareBuildOut, err := hardwareTypeLibrary.GetDefaultHardwareBuildOut(bladeDeviceType, bladeOrdinal, chassis.ID)
+			if err != nil {
+				return errors.Join(fmt.Errorf("failed to build cabinet hardware for blade type (%s) with ordinal (%d) in chassis (%v)", bladeDeviceType, bladeOrdinal, chassisLocationPath), err)
+			}
+			// fmt.Println(cabinetHardwareBuildOut)
+			for _, hardwareBuildOut := range cabinetHardwareBuildOut {
+				hardware := inventory.NewHardwareFromBuildOut(hardwareBuildOut, inventory.HardwareStatusProvisioned)
+				if err := datastore.Add(&hardware); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 type DetermineHardwareClassSuite struct {
 	suite.Suite
 
 	hardwareTypeLibrary *hardwaretypes.Library
-	data                inventory.Inventory
+	datastore           inventory.Datastore
 }
 
-func (suite *DetermineHardwareClassSuite) SetupSuite() {
+func (suite *DetermineHardwareClassSuite) getHardwareInCabinet(cabinetOrdinal int) []inventory.Hardware {
+	inventoryData, err := suite.datastore.List()
+	suite.NoError(err)
+
+	hardwareToCheck := []inventory.Hardware{}
+	for _, hardware := range inventoryData.Hardware {
+		if len(hardware.LocationPath) < 2 {
+			continue
+		}
+
+		if hardware.LocationPath[1].HardwareType == hardwaretypes.Cabinet && hardware.LocationPath[1].Ordinal == cabinetOrdinal {
+			hardwareToCheck = append(hardwareToCheck, hardware)
+		}
+	}
+
+	return hardwareToCheck
+}
+
+func (suite *DetermineHardwareClassSuite) SetupTest() {
 	var err error
 	suite.hardwareTypeLibrary, err = hardwaretypes.NewEmbeddedLibrary()
 	suite.NoError(err)
 
 	// Generate a inventory of hardware
-	datastore, err := inventory.NewDatastoreInMemory(inventory.CSMProvider)
+	suite.datastore, err = inventory.NewDatastoreInMemory(inventory.CSMProvider)
 	suite.NoError(err)
 
-	system, err := datastore.GetSystemZero()
-	suite.NoError(err)
-
-	// Add a Mountain Cabinet
-	// mountainCabinetHardware, err := suite.hardwareTypeLibrary.GetDefaultHardwareBuildOut("hpe-ex4000", 1000, system.ID)
-	// suite.NoError(err)
-	// // for
-
-	// mountainBladeHardware, err := suite.hardwareTypeLibrary.GetDefaultHardwareBuildOut("hpe-crayex-ex420-compute-blade")
-	mountainCabinetHardware := buildCabinet("hpe-ex4000", map[int]map[int]string{
+	// Build up the different versions of the supported Mountain cabinets
+	err = buildCabinet(*suite.hardwareTypeLibrary, suite.datastore, "hpe-ex3000", 1000, map[int]map[int]string{
 		1: {
 			0: "hpe-crayex-ex420-compute-blade",
 		},
 	})
-	for _, hardware := range mountainCabinetHardware {
-		err = datastore.Add(&hardware)
+	suite.NoError(err)
+
+	err = buildCabinet(*suite.hardwareTypeLibrary, suite.datastore, "hpe-ex4000", 1001, map[int]map[int]string{
+		1: {
+			0: "hpe-crayex-ex420-compute-blade",
+		},
+	})
+	suite.NoError(err)
+
+	// Build up the different versions of the supported Hill cabinets
+	err = buildCabinet(*suite.hardwareTypeLibrary, suite.datastore, "hpe-ex2000", 9000, map[int]map[int]string{
+		3: {
+			1: "hpe-crayex-ex420-compute-blade",
+		},
+	})
+	suite.NoError(err)
+
+	err = buildCabinet(*suite.hardwareTypeLibrary, suite.datastore, "hpe-ex2500-1-liquid-cooled-chassis", 8000, map[int]map[int]string{
+		0: {
+			1: "hpe-crayex-ex420-compute-blade",
+		},
+	})
+	suite.NoError(err)
+
+	err = buildCabinet(*suite.hardwareTypeLibrary, suite.datastore, "hpe-ex2500-2-liquid-cooled-chassis", 8001, map[int]map[int]string{
+		1: {
+			1: "hpe-crayex-ex420-compute-blade",
+		},
+	})
+	suite.NoError(err)
+
+	err = buildCabinet(*suite.hardwareTypeLibrary, suite.datastore, "hpe-ex2500-3-liquid-cooled-chassis", 8002, map[int]map[int]string{
+		2: {
+			1: "hpe-crayex-ex420-compute-blade",
+		},
+	})
+	suite.NoError(err)
+
+	// Build up the different versions of the supported River cabinets
+	err = buildCabinet(*suite.hardwareTypeLibrary, suite.datastore, "hpe-eia-cabinet", 3000, map[int]map[int]string{})
+	suite.NoError(err)
+}
+
+func (suite *DetermineHardwareClassSuite) TestClassMountainEX3000() {
+	//
+	// Find hardware in the 1001 cabinet
+	//
+	hardwareToCheck := suite.getHardwareInCabinet(1000)
+	suite.Len(hardwareToCheck, 28) // Verify the expected number of items was found
+
+	//
+	// Verify all hardware in cabinet 1001 has class Mountain
+	//
+	inventoryData, err := suite.datastore.List()
+	suite.NoError(err)
+	for _, hardware := range hardwareToCheck {
+		// Determine the cabinet class
+		class, err := DetermineHardwareClass(hardware, inventoryData, *suite.hardwareTypeLibrary)
 		suite.NoError(err)
+		suite.Equal("Mountain", class)
 	}
-
-	// Add a Hill Cabinet
-
-	// Add a blade in the hill cabinet
-
-	// Add a River Cabinet
-
-	// Add a blade in the river cabinet
-
 }
 
-func (suite *DetermineHardwareClassSuite) ClassMountain() {
+func (suite *DetermineHardwareClassSuite) TestClassMountainEX4000() {
+	//
+	// Find hardware in the 1001 cabinet
+	//
+	hardwareToCheck := suite.getHardwareInCabinet(1001)
+	suite.Len(hardwareToCheck, 28) // Verify the expected number of items was found
 
+	//
+	// Verify all hardware in cabinet 1001 has class Mountain
+	//
+	inventoryData, err := suite.datastore.List()
+	suite.NoError(err)
+	for _, hardware := range hardwareToCheck {
+		// Determine the cabinet class
+		class, err := DetermineHardwareClass(hardware, inventoryData, *suite.hardwareTypeLibrary)
+		suite.NoError(err)
+		suite.Equal("Mountain", class)
+	}
 }
 
-func (suite *DetermineHardwareClassSuite) ClassHill() {
+func (suite *DetermineHardwareClassSuite) TestClassHillEX2000() {
+	//
+	// Find hardware in the 9000 cabinet
+	//
+	hardwareToCheck := suite.getHardwareInCabinet(9000)
+	suite.Len(hardwareToCheck, 15) // Verify the expected number of items was found
 
+	//
+	// Verify all hardware in cabinet 9000 has class Hill
+	//
+	inventoryData, err := suite.datastore.List()
+	suite.NoError(err)
+	for _, hardware := range hardwareToCheck {
+		// Determine the cabinet class
+		class, err := DetermineHardwareClass(hardware, inventoryData, *suite.hardwareTypeLibrary)
+		suite.NoError(err)
+		suite.Equal("Hill", class)
+	}
 }
 
-func (suite *DetermineHardwareClassSuite) ClassRiver() {
+func (suite *DetermineHardwareClassSuite) TestClassHillEX2500_1Chassis() {
+	//
+	// Find hardware in the 8000 cabinet
+	//
+	hardwareToCheck := suite.getHardwareInCabinet(8000)
+	suite.Len(hardwareToCheck, 13) // Verify the expected number of items was found
 
+	//
+	// Verify all hardware in cabinet 8000 has class Hill
+	//
+	inventoryData, err := suite.datastore.List()
+	suite.NoError(err)
+	for _, hardware := range hardwareToCheck {
+		// Determine the cabinet class
+		class, err := DetermineHardwareClass(hardware, inventoryData, *suite.hardwareTypeLibrary)
+		suite.NoError(err)
+		suite.Equal("Hill", class)
+	}
+}
+
+func (suite *DetermineHardwareClassSuite) TestClassHillEX2500_2Chassis() {
+	//
+	// Find hardware in the 8001 cabinet
+	//
+	hardwareToCheck := suite.getHardwareInCabinet(8001)
+	suite.Len(hardwareToCheck, 15) // Verify the expected number of items was found
+
+	//
+	// Verify all hardware in cabinet 8001 has class Hill
+	//
+	inventoryData, err := suite.datastore.List()
+	suite.NoError(err)
+	for _, hardware := range hardwareToCheck {
+		// Determine the cabinet class
+		class, err := DetermineHardwareClass(hardware, inventoryData, *suite.hardwareTypeLibrary)
+		suite.NoError(err)
+		suite.Equal("Hill", class)
+	}
+}
+
+func (suite *DetermineHardwareClassSuite) TestClassHillEX2500_3Chassis() {
+	//
+	// Find hardware in the 8002 cabinet
+	//
+	hardwareToCheck := suite.getHardwareInCabinet(8002)
+	suite.Len(hardwareToCheck, 17) // Verify the expected number of items was found
+
+	//
+	// Verify all hardware in cabinet 8002 has class Hill
+	//
+	inventoryData, err := suite.datastore.List()
+	suite.NoError(err)
+	for _, hardware := range hardwareToCheck {
+		// Determine the cabinet class
+		class, err := DetermineHardwareClass(hardware, inventoryData, *suite.hardwareTypeLibrary)
+		suite.NoError(err)
+		suite.Equal("Hill", class)
+	}
+}
+
+func (suite *DetermineHardwareClassSuite) TestClassRiver() {
+	//
+	// Find hardware in the 3000 cabinet
+	//
+	hardwareToCheck := suite.getHardwareInCabinet(3000)
+	suite.Len(hardwareToCheck, 2) // Verify the expected number of items was found
+
+	//
+	// Verify all hardware in cabinet 3000 has class River
+	//
+	inventoryData, err := suite.datastore.List()
+	suite.NoError(err)
+	for _, hardware := range hardwareToCheck {
+		// Determine the cabinet class
+		class, err := DetermineHardwareClass(hardware, inventoryData, *suite.hardwareTypeLibrary)
+		suite.NoError(err)
+		suite.Equal("River", class)
+	}
 }
 
 func TestDetermineHardwareClassSuite(t *testing.T) {
