@@ -37,6 +37,7 @@ device-bays:
 provider_defaults:
   csm:
     Class: River
+    Ordinal: 3000
 
 ---
 manufacturer: HPE
@@ -47,3 +48,4 @@ slug: hpe-eia-chassis
 provider_defaults:
   csm:
     Class: River
+    starting_cabinet: 3000

@@ -48,3 +48,4 @@ device-bays:
 provider_defaults:
   csm:
     Class: Hill
+    Ordinal: 9000

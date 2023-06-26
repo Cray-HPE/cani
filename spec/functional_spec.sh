@@ -21,31 +21,3 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-Describe 'Hardware types'
-  Parameters
-    'Liquid-cooled cabinet'
-    'Air-cooled cabinet'
-    'Management network switch'
-  End
-
-  It "The user interface must allow for the addition and removal of $1"  
-  End
-  
-End
-
-It 'Users must be able to add a single unit of hardware'
-End
-It 'Users must be able to bulk add several units of hardware'
-End
-It 'Users must be able to remove a single unit of hardware'
-End
-It 'Users must be able to bulk remove several units of hardware'
-End
-It 'Users must be able to extract the inventory on a running CSM machine to a portable format (the long term goal being that this inventory can be ingested to make reinstallation easier) (stretch goal)'
-End
-It 'For phase 1, only hardware added after CSM install is in scope'
-End
-It 'The user interface solution should not directly parse SHCD documents, but it must be assumed that admins may be using an SHCD when adding or removing hardware'
-End
-It 'Development must consider that while admins will ultimately have a need to query hardware inventory, system role/classification (e.g. return all management storage nodes or return all UAN nodes), system network information, or cabling/connectivity information, this data will likely not be a part of hardware inventory.  The design of future data structure changes and APIs should consider this carefully.'
-End

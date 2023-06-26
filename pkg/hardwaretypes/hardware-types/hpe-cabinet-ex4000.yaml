@@ -83,3 +83,4 @@ device-bays:
 provider_defaults:
   csm:
     Class: Mountain
+    Ordinal: 1000

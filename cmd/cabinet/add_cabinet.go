@@ -31,9 +31,9 @@ import (
 	"sort"
 
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/cmd/session"
 	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/Cray-HPE/cani/internal/tui"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/rs/zerolog/log"
@@ -45,10 +45,10 @@ var AddCabinetCmd = &cobra.Command{
 	Use:               "cabinet",
 	Short:             "Add cabinets to the inventory.",
 	Long:              `Add cabinets to the inventory.`,
-	PersistentPreRunE: session.DatastoreExists, // A session must be active to write to a datastore
-	Args:              validHardware,           // Hardware can only be valid if defined in the hardware library
-	SilenceUsage:      true,                    // Errors are more important than the usage
-	RunE:              addCabinet,              // Add a cabinet when this sub-command is called
+	PersistentPreRunE: validFlagCombos, // Also ensures a session is active
+	Args:              validHardware,   // Hardware can only be valid if defined in the hardware library
+	SilenceUsage:      true,            // Errors are more important than the usage
+	RunE:              addCabinet,      // Add a cabinet when this sub-command is called
 }
 
 // addCabinet adds a cabinet to the inventory
@@ -60,10 +60,17 @@ func addCabinet(cmd *cobra.Command, args []string) error {
 	}
 
 	if auto {
-		log.Info().Msgf("Automatically assigning cabinet number and VLAN ID")
-		// TODO: Need to auto-generate a VLAN ID and cabinet number from existing provider
-		log.Warn().Msgf("Suggested VLAN ID: %d (not implemented)", vlanId)
-		log.Warn().Msgf("Suggested cabinet number: %d (not implemented)", cabinetNumber)
+		recommendations, err := d.Recommend(args[0])
+		if err != nil {
+			return err
+		}
+		log.Info().Msgf("Querying inventory to suggest cabinet number and VLAN ID")
+		// set the vars to the recommendations
+		cabinetNumber = recommendations.LocationOrdinal
+		vlanId = recommendations.ProviderMetadata[csm.ProviderPropertyVlanId].(int)
+		log.Debug().Msgf("Provider recommendations: %+v", recommendations)
+		log.Info().Msgf("Suggested cabinet number: %d", cabinetNumber)
+		log.Info().Msgf("Suggested VLAN ID: %d", vlanId)
 		// Prompt the user to confirm the suggestions
 		auto, err = tui.CustomConfirmation(
 			fmt.Sprintf("Would you like to accept the recommendations and add the %s", hardwaretypes.Cabinet))
@@ -75,7 +82,7 @@ func addCabinet(cmd *cobra.Command, args []string) error {
 		if !auto {
 			log.Warn().Msgf("Aborted %s add", hardwaretypes.Cabinet)
 			fmt.Printf("\nAuto-generated values can be overridden by re-running the command with explicit values:\n")
-			fmt.Printf("\n\tcani alpha add %s %s --vlan %d --cabinet-number %d\n\n", cmd.Name(), args[0], vlanId, cabinetNumber)
+			fmt.Printf("\n\tcani alpha add %s %s --vlan-id %d --cabinet %d\n\n", cmd.Name(), args[0], vlanId, cabinetNumber)
 
 			return nil
 		}
@@ -86,7 +93,7 @@ func addCabinet(cmd *cobra.Command, args []string) error {
 	// Right now the build metadata function in the CSM provider will
 	// unset options if nil is passed in.
 	cabinetMetadata := map[string]interface{}{
-		"vlanID": vlanId,
+		csm.ProviderPropertyVlanId: vlanId,
 	}
 
 	// Add the cabinet to the inventory using domain methods
