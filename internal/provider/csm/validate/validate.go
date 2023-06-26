@@ -165,7 +165,7 @@ func validate(slsState *sls_client.SlsState, rawSLSState RawJson, additionalResu
 	checkers := []common.Checker{
 		checks.NewHardwareCabinetCheck(slsState.Hardware),
 		checks.NewSwitchIpCheck(slsStateExtended),
-		checks.NewHardwareCheck(slsState.Hardware, slsStateExtended.TypeToHardware),
+		checks.NewHardwareCheck(slsState.Hardware, slsStateExtended.TypeToHardware, slsStateExtended.ParentHasChildren, slsState.Networks),
 		checks.NewRequiedNetworkCheck(slsState.Networks),
 		checks.NewNetworkIpRangeCheck(slsStateExtended),
 	}
