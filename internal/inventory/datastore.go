@@ -58,7 +58,6 @@ type Datastore interface {
 	GetSystemZero() (Hardware, error)              // TODO replace this when multiple systems are supported
 	GetSystem(hardware Hardware) (Hardware, error) // Not yet implemented until multiple systems are supported
 
-	// GetHardwareHierarchy(hardware Hardware) ([]Hardware, error)
 	// TODO for search properties
 
 	// Clone creates a in-memory version of the datastore to perform location operations

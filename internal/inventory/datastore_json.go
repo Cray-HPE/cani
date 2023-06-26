@@ -489,21 +489,6 @@ func (dj *DatastoreJSON) List() (Inventory, error) {
 	return *dj.inventory, nil
 }
 
-// // GetHardwareHierarchy will follow the parent links up to the root node, which is signaled when a NIL parent UUID is found
-// // This will return all of the parental hardware objects
-// func (dj *DatastoreJSON) GetHardwareHierarchy(hardware Hardware) ([]Hardware, error) {
-// 	dj.inventoryLock.RLock()
-// 	defer dj.inventoryLock.RUnlock()
-
-// 	return dj.getHardwareHierarchy(hardware)
-// }
-
-// // getHardwareHierarchy is just like GetHardwareHierarchy except it doesn't attempt to acquire the inventory RWMutex, so it can be
-// // composed into other DatastoreJSON functions that make changes to the inventory structure.
-// func (dj *DatastoreJSON) getHardwareHierarchy(hardware Hardware) ([]Hardware, error) {
-
-// }
-
 // GetLocation will follow the parent links up to the root node, which is signaled when a NIL parent UUID is found
 // This will either return a partial location path, or a full path up to a cabinet or CDU
 // TODO THIS NEEDS UNIT TESTS
