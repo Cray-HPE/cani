@@ -11,7 +11,7 @@
             "$ref": "types.json#/definitions/hardware-type"
         },
         "slug": {
-           "$ref": "components.json#/definitions/slug"
+            "$ref": "components.json#/definitions/slug"
         },
         "part_number": {
             "type": "string"
@@ -117,11 +117,11 @@
             }
         },
         "identifications": {
-          "type": "array",
-          "items": {
-              "$ref": "components.json#/definitions/identifications"
-          }
-      },
+            "type": "array",
+            "items": {
+                "$ref": "components.json#/definitions/identifications"
+            }
+        },
         "inventory-items": {
             "type": "array",
             "items": {
@@ -130,8 +130,26 @@
         },
         "comments": {
             "type": "string"
+        },
+        "provider_defaults": {
+            "type": "object",
+            "properties": {
+                "csm": {
+                    "type": "object",
+                    "properties": {
+                        "Class": {
+                            "type": "string"
+                        }
+                    }  
+                }
+            }
         }
     },
-    "required": ["manufacturer", "model", "slug", "hardware-type"],
+    "required": [
+        "manufacturer",
+        "model",
+        "slug",
+        "hardware-type"
+    ],
     "additionalProperties": false
 }

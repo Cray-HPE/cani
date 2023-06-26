@@ -95,7 +95,8 @@ endif
 	validate-hardware-type-schemas \
 	generate \
 	generate-go \
-	generate-swagger
+	generate-swagger \
+	license
 
 all: bin
 
