@@ -113,8 +113,9 @@ type DeviceType struct {
 	// PowerPowers        []PowerPower        `yaml:"power-ports"`
 	// PowerOutlets       []PowerOutlets      `yaml:"power-outlets"`
 
-	DeviceBays      []DeviceBay      `yaml:"device-bays"`
-	Identifications []Identification `yaml:"identifications"`
+	DeviceBays       []DeviceBay       `yaml:"device-bays"`
+	Identifications  []Identification  `yaml:"identifications"`
+	ProviderDefaults *ProviderDefaults `yaml:"provider_defaults"`
 }
 
 type Identification struct {
@@ -135,6 +136,14 @@ type AllowedHardware struct {
 
 type DefaultHardware struct {
 	Slug string `yaml:"slug"`
+}
+
+type ProviderDefaults struct {
+	CSM *ProviderDefaultsCSM `yaml:"csm"`
+}
+
+type ProviderDefaultsCSM struct {
+	Class *string `yaml:"Class"`
 }
 
 // TODO

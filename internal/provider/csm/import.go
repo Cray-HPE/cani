@@ -689,7 +689,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 
 	// Commit changes!
 	if err := datastore.Merge(tempDatastore); err != nil {
-		return errors.Join(fmt.Errorf("failed to merge temporary datastore with actual datastore", err))
+		return errors.Join(fmt.Errorf("failed to merge temporary datastore with actual datastore"), err)
 	}
 
 	return datastore.Flush()

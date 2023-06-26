@@ -32,6 +32,10 @@ device-bays:
       slug: [hpe-crayex-ex235n-compute-blade-grizzly-peak-node-card]
     default:
       slug: hpe-crayex-ex235n-compute-blade-grizzly-peak-node-card
+identifications:
+  # In CSM we can learn the type of a node blade based off the contents of the NodeEnclosure
+  - manufacturer: HPE
+    model: GrizzlyPkNodeCard
 ---
 manufacturer: HPE
 model: EX235N AMD NVIDIA accelerator blade, Grizzly Peak Node Card (GPNC)

@@ -34,6 +34,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/provider/csm/sls"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 )
 
@@ -51,6 +52,35 @@ import (
 // 	return &providerProperties, nil
 // }
 
+func DetermineHardwareClass(hardware inventory.Hardware, data inventory.Inventory, hardwareTypeLibrary hardwaretypes.Library) (string, error) {
+	// TODO the datastore might be good to have get hierarchy?
+	currentHardwareID := hardware.ID
+	for currentHardwareID != uuid.Nil {
+		currentHardware, exists := data.Hardware[currentHardwareID]
+		if !exists {
+			return "", errors.Join(
+				fmt.Errorf("unable to find ancestor (%s) of (%s)", currentHardwareID, hardware.ID),
+			)
+		}
+
+		deviceType, exists := hardwareTypeLibrary.DeviceTypes[currentHardware.DeviceTypeSlug]
+		if !exists {
+			return "", errors.Join(
+				fmt.Errorf("unable to find device type (%s) for (%s)", currentHardware.DeviceTypeSlug, currentHardwareID),
+			)
+		}
+
+		if deviceType.ProviderDefaults != nil && deviceType.ProviderDefaults.CSM != nil && deviceType.ProviderDefaults.CSM.Class != nil {
+			return *deviceType.ProviderDefaults.CSM.Class, nil
+		}
+
+		// Go the parent node next
+		currentHardwareID = currentHardware.Parent
+	}
+
+	return "", fmt.Errorf("unable to determine CSM Class of (%s)", hardware.ID)
+}
+
 func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_client.SlsState, map[string]inventory.Hardware, error) {
 	// Retrieve the CANI inventory data
 	data, err := datastore.List()
@@ -59,6 +89,29 @@ func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_client.SlsSt
 			fmt.Errorf("failed to list hardware from the datastore"),
 			err,
 		)
+	}
+
+	// Infer class of cabinets
+	// TO properly infer the class of hardware we need to identify the chassis class
+	for _, hardware := range data.Hardware {
+		if hardware.Type != hardwaretypes.Cabinet {
+			continue
+		}
+
+		// Find the child chassis of this hardware
+		childChassis := []inventory.Hardware{}
+		for _, childHardwareID := range hardware.Children {
+			childHardware, ok := data.Hardware[childHardwareID]
+			if !ok {
+				return sls_client.SlsState{}, nil, fmt.Errorf("unable to find child hardware object with ID (%s) of (%s)", childHardwareID, hardware.ID)
+			}
+
+			if childHardware.Type != hardwaretypes.Chassis {
+				continue
+			}
+
+			childChassis = append(childChassis, childHardware)
+		}
 	}
 
 	// This is a lookup map that keeps track of what CANI hardware object generated a
@@ -150,35 +203,6 @@ func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_client.SlsSt
 
 	}
 
-	// Generate Cabinet Objects
-	// TODO this will be handled in the code above ^
-	// for cabinetKind, cabinets := range cabinetLookup {
-	// 	for _, cabinet := range cabinets {
-	// 		class, err := cabinetKind.Class()
-	// 		if err != nil {
-	// 			panic(err)
-	// 		}
-
-	// 		extraProperties := sls_client.ComptypeCabinet{
-	// 			Networks: map[string]map[string]sls_client.CabinetNetworks{}, // TODO this should be outright removed. MEDS and KEA no longer look here for network info, but MEDS still needs this key to exist.
-	// 		}
-
-	// 		if cabinetKind.IsModel() {
-	// 			extraProperties.Model = string(cabinetKind)
-	// 		}
-
-	// 		hardware := sls_client.NewGenericHardware(cabinet, class, extraProperties)
-
-	// 		// Verify new hardware
-	// 		if _, present := allHardware[hardware.Xname]; present {
-	// 			err := fmt.Errorf("found duplicate xname %v", hardware.Xname)
-	// 			panic(err)
-	// 		}
-
-	// 		allHardware[hardware.Xname] = hardware
-	// 	}
-	// }
-
 	// Build up and the SLS state
 	return sls_client.SlsState{
 		Hardware: allHardware,
@@ -194,7 +218,7 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 	if err != nil {
 		return sls_client.Hardware{}, err
 	} else if xname == nil {
-		// This means that this piece of the hardware inventory can't be represented in SLS, so just skip it
+		// This means that this piece of the hardware inventory can't be represented in SLS due to no xname, so just skip it
 		return sls_client.Hardware{}, nil
 	}
 
@@ -291,41 +315,6 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 	return sls.NewHardware(xname, class, extraProperties), nil
 }
 
-// func buildSLSPDUController(location Location) (sls_client.GenericHardware, error) {
-// }
-
-// func buildSLSSlingshotHSNSwitch(location Location) (sls_client.GenericHardware, error) {
-// }
-
-// func buildSLSCMC(location Location) (sls_client.GenericHardware, error) {
-// 	// TODO what should be done if if the CMC does not have a bmc connection? Ie the Intel CMC that doesn't really exist
-// 	// Right now we are emulating the current behavior of CSI, where the fake CMC exists in SLS and no MgmtSwitchConnector exists.
-
-// }
-
-// // BuildNodeExtraProperties will attempt to build up all of the known extra properties form a Node present in a CCJ.
-// // Limiitations the following information is not populated:
-// // - Management NCN NID
-// // - Application Node Subrole and Alias
-
-// func BuildNodeExtraProperties(topologyNode TopologyNode) (extraProperties sls_client.ComptypeNode, err error) {
-// }
-
-// func buildSLSNode(xname) (sls_client.GenericHardware, error) {
-// }
-
-// func buildSLSMgmtSwitch(topologyNode TopologyNode, switchAliasesOverrides map[string][]string) (sls_client.GenericHardware, error) {
-// }
-
-// func buildSLSMgmtHLSwitch(topologyNode TopologyNode, switchAliasesOverrides map[string][]string) (sls_client.GenericHardware, error) {
-// }
-
-// func buildSLSCDUMgmtSwitch(topologyNode TopologyNode, switchAliasesOverrides map[string][]string) (sls_client.GenericHardware, error) {
-// }
-
 func BuildSLSMgmtSwitchConnector(hardware sls_client.Hardware, cHardware inventory.Hardware) (sls_client.Hardware, error) {
 	return sls_client.Hardware{}, nil
 }
-
-// func buildSLSChassisBMC(location Location, cl configs.CabinetLookup) (sls_client.GenericHardware, error) {
-// }

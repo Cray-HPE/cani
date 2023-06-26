@@ -33,8 +33,17 @@ device-bays:
       slug: [hpe-eia-chassis]
     default:
       slug: hpe-eia-chassis
+
+provider_defaults:
+  csm:
+    Class: River
+
 ---
 manufacturer: HPE
 model: Standard/EIA Chassis
 hardware-type: Chassis
 slug: hpe-eia-chassis
+
+provider_defaults:
+  csm:
+    Class: River

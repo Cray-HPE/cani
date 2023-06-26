@@ -36,7 +36,11 @@ device-bays:
     allowed:
       slug: [hpe-crayex-ex420-compute-blade-castle-node-card]
     default:
-      slug: hpe-crayex-ex420-compute-blade-castle-node-card
+      slug: hpe-crayex-ex420-compute-blade-castle-node-card]
+identifications:
+  # In CSM we can learn the type of a node blade based off the contents of the NodeEnclosure
+  - manufacturer: HPE
+    model: CNC
 ---
 manufacturer: HPE
 model: EX420 Intel Xeon compute blade, Castle Node Card (CNC)
