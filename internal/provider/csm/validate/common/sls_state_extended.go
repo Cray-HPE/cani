@@ -34,8 +34,9 @@ type SlsStateExtended struct {
 	SlsState       *sls_client.SlsState
 	TypeToHardware map[string][]*sls_client.Hardware
 
-	// A set of all the Parents that other Hardware entries reffer to.
-	// If a map to look up the children is needed then change this to store the chidlren
+	// This contains all the xnames that are specified as parents in the hardware entries.
+	// This is currently treated as a set (a map with no meaningful value)
+	// If something needs to look up hardware by parent, then change this to a map
 	// for example change to: ParentToChildren map[string][]*sls_client.Hardware
 	ParentHasChildren map[string]struct{}
 
