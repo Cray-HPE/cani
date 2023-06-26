@@ -138,10 +138,9 @@ validate-hardware-type-schemas:
 
 unittest: bin
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go test -cover \
+	     github.com/Cray-HPE/cani/internal/provider/csm \
 	     github.com/Cray-HPE/cani/internal/provider/csm/validate \
 	     github.com/Cray-HPE/cani/internal/provider/csm/validate/common
-
-# TODO need to add my unit tests to this
 
 test: bin validate-hardware-type-schemas unittest
 	shellspec --format tap --no-warning-as-failure
