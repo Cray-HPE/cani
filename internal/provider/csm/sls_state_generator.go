@@ -38,8 +38,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func DetermineHardwareClass(hardware inventory.Hardware, data inventory.Inventory, hardwareTypeLibrary hardwaretypes.Library) (string, error) {
-	// TODO the datastore might be good to have get hierarchy?
+func DetermineHardwareClass(hardware inventory.Hardware, data inventory.Inventory, hardwareTypeLibrary hardwaretypes.Library) (sls_client.HardwareClass, error) {
 	currentHardwareID := hardware.ID
 	for currentHardwareID != uuid.Nil {
 		currentHardware, exists := data.Hardware[currentHardwareID]
@@ -57,7 +56,17 @@ func DetermineHardwareClass(hardware inventory.Hardware, data inventory.Inventor
 		}
 
 		if deviceType.ProviderDefaults != nil && deviceType.ProviderDefaults.CSM != nil && deviceType.ProviderDefaults.CSM.Class != nil {
-			return *deviceType.ProviderDefaults.CSM.Class, nil
+			classRaw := *deviceType.ProviderDefaults.CSM.Class
+			switch classRaw {
+			case "River":
+				return sls_client.HardwareClassRiver, nil
+			case "Mountain":
+				return sls_client.HardwareClassMountain, nil
+			case "Hill":
+				return sls_client.HardwareClassHill, nil
+			default:
+				return "", fmt.Errorf("encountered unknown CSM hardware class (%s)", classRaw)
+			}
 		}
 
 		// Go the parent node next
@@ -67,7 +76,7 @@ func DetermineHardwareClass(hardware inventory.Hardware, data inventory.Inventor
 	return "", fmt.Errorf("unable to determine CSM Class of (%s)", hardware.ID)
 }
 
-func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_client.SlsState, map[string]inventory.Hardware, error) {
+func BuildExpectedHardwareState(datastore inventory.Datastore, hardwareTypeLibrary hardwaretypes.Library) (sls_client.SlsState, map[string]inventory.Hardware, error) {
 	// Retrieve the CANI inventory data
 	data, err := datastore.List()
 	if err != nil {
@@ -77,29 +86,6 @@ func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_client.SlsSt
 		)
 	}
 
-	// Infer class of cabinets
-	// TO properly infer the class of hardware we need to identify the chassis class
-	for _, hardware := range data.Hardware {
-		if hardware.Type != hardwaretypes.Cabinet {
-			continue
-		}
-
-		// Find the child chassis of this hardware
-		childChassis := []inventory.Hardware{}
-		for _, childHardwareID := range hardware.Children {
-			childHardware, ok := data.Hardware[childHardwareID]
-			if !ok {
-				return sls_client.SlsState{}, nil, fmt.Errorf("unable to find child hardware object with ID (%s) of (%s)", childHardwareID, hardware.ID)
-			}
-
-			if childHardware.Type != hardwaretypes.Chassis {
-				continue
-			}
-
-			childChassis = append(childChassis, childHardware)
-		}
-	}
-
 	// This is a lookup map that keeps track of what CANI hardware object generated a
 	// piece of SLS hardware
 	hardwareMapping := map[string]inventory.Hardware{}
@@ -107,6 +93,11 @@ func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_client.SlsSt
 	// Iterate over the CANI inventory data to build SLS data
 	allHardware := map[string]sls_client.Hardware{}
 	for _, cHardware := range data.Hardware {
+		// Skip systems
+		if cHardware.Type == hardwaretypes.System {
+			continue
+		}
+
 		//
 		// Build the SLS hardware representation
 		//
@@ -119,7 +110,15 @@ func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_client.SlsSt
 			)
 		}
 
-		hardware, err := BuildSLSHardware(cHardware, locationPath)
+		slsClass, err := DetermineHardwareClass(cHardware, data, hardwareTypeLibrary)
+		if err != nil {
+			return sls_client.SlsState{}, nil, errors.Join(
+				fmt.Errorf("failed to determine SLS class of hardware (%s)", cHardware.ID),
+				err,
+			)
+		}
+
+		hardware, err := BuildSLSHardware(cHardware, locationPath, slsClass)
 		// if err != nil && ignoreUnknownCANUHardwareArchitectures && strings.Contains(err.Error(), "unknown architecture type") {
 		// 	log.Printf("WARNING %s", err.Error())
 		// } else if err != nil {
@@ -195,7 +194,7 @@ func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_client.SlsSt
 	}, hardwareMapping, nil
 }
 
-func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.LocationPath) (sls_client.Hardware, error) {
+func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.LocationPath, class sls_client.HardwareClass) (sls_client.Hardware, error) {
 	log.Debug().Stringer("locationPath", locationPath).Msg("LocationPath")
 
 	// Get the physical location for the hardware
@@ -212,7 +211,6 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 	// Generally this will match the class of the containing cabinet, the exception is river hardware within a EX2500 cabinet.
 	// TODO
 	var extraProperties interface{}
-	class := sls_client.HardwareClassMountain
 
 	switch cHardware.Type {
 	case hardwaretypes.Cabinet:

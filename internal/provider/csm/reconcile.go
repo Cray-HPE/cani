@@ -72,7 +72,7 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 	//
 	// Build up the expected SLS state
 	//
-	expectedSLSState, hardwareMapping, err := BuildExpectedHardwareState(datastore)
+	expectedSLSState, hardwareMapping, err := BuildExpectedHardwareState(datastore, *csm.hardwareLibrary)
 	if err != nil {
 		return errors.Join(
 			fmt.Errorf("failed to build expected SLS state"),
@@ -215,7 +215,7 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 
 	// Update existing hardware
 	for _, hardwarePair := range hardwareWithDifferingValues {
-		updatedHardware := hardwarePair.HardwareB
+		updatedHardware := hardwarePair.HardwareA // A is expected, B is actual
 		log.Info().Str("xname", updatedHardware.Xname).Msg("Updating")
 		// Put into transaction log with old and new value
 		// TODO
@@ -353,17 +353,34 @@ func buildHardwareString(hardware sls_client.Hardware) (string, error) {
 
 	var tokens []string
 	tokens = append(tokens, fmt.Sprintf("Type: %s", hardware.TypeString))
+	tokens = append(tokens, fmt.Sprintf("Class: %s", hardware.Class))
 
 	switch hardware.TypeString {
-	// case xnametypes.Cabinet:
-	// 	// If we don't know how to pretty print it, lets just do the raw JSON
-	// 	extraPropertiesRaw, err := json.Marshal(hardware.ExtraProperties)
-	// 	if err != nil {
-	// 		return "", err
-	// 	}
-	// 	tokens = append(tokens, string(extraPropertiesRaw))
+	case xnametypes.Cabinet:
+		// If we don't know how to pretty print it, lets just do the raw JSON
+		// extraPropertiesRaw, err := json.Marshal(hardware.ExtraProperties)
+		// if err != nil {
+		// 	return "", err
+		// }
+		// tokens = append(tokens, string(extraPropertiesRaw))
+		if extraProperties, ok := extraPropertiesRaw.(sls_client.HardwareExtraPropertiesCabinet); ok {
+			if extraProperties.Model != "" {
+				tokens = append(tokens, fmt.Sprintf("Model: %s", extraProperties.Model))
+			}
+			if extraProperties.DHCPRelaySwitches != nil {
+				tokens = append(tokens, fmt.Sprintf("DHCPRelaySwitches: %s", strings.Join(extraProperties.DHCPRelaySwitches, ",")))
+			}
+			if extraProperties.Networks != nil {
+				networksRaw, err := json.Marshal(extraProperties.Networks)
+				if err != nil {
+					return "", err
+				}
+				tokens = append(tokens, fmt.Sprintf("Networks: %s", networksRaw))
+			}
+		}
+
 	case xnametypes.Chassis:
-	// Nothing to do
+		// Nothing to do
 	case xnametypes.ChassisBMC:
 		// Nothing to do
 	case xnametypes.CabinetPDUController:
