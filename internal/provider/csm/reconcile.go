@@ -72,7 +72,7 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 	//
 	// Build up the expected SLS state
 	//
-	expectedSLSState, hardwareMapping, err := BuildExpectedHardwareState(datastore, *csm.hardwareLibrary)
+	expectedSLSState, hardwareMapping, err := BuildExpectedHardwareState(*csm.hardwareLibrary, datastore, currentSLSState.Networks)
 	if err != nil {
 		return errors.Join(
 			fmt.Errorf("failed to build expected SLS state"),

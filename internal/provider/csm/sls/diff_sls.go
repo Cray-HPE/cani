@@ -167,13 +167,7 @@ func stripIpInformationFromHardware(extraPropertiesRaw interface{}) interface{} 
 		ep.CaniId = ""
 		ep.CaniSlsSchemaVersion = ""
 		ep.CaniLastModified = ""
-
-		ep.Networks = nil
 		ep.Model = ""
-		// TODO deal with this at somepoint
-		// if cabinetKind := csi.CabinetKind(ep.Model); cabinetKind.IsModel() {
-		// 	ep.Model = ""
-		// }
 		return ep
 	case sls_client.HardwareExtraPropertiesCduMgmtSwitch:
 		ep.CaniId = ""

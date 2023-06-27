@@ -76,7 +76,7 @@ func DetermineHardwareClass(hardware inventory.Hardware, data inventory.Inventor
 	return "", fmt.Errorf("unable to determine CSM Class of (%s)", hardware.ID)
 }
 
-func BuildExpectedHardwareState(datastore inventory.Datastore, hardwareTypeLibrary hardwaretypes.Library) (sls_client.SlsState, map[string]inventory.Hardware, error) {
+func BuildExpectedHardwareState(hardwareTypeLibrary hardwaretypes.Library, datastore inventory.Datastore, slsNetworks map[string]sls_client.Network) (sls_client.SlsState, map[string]inventory.Hardware, error) {
 	// Retrieve the CANI inventory data
 	data, err := datastore.List()
 	if err != nil {
@@ -118,7 +118,7 @@ func BuildExpectedHardwareState(datastore inventory.Datastore, hardwareTypeLibra
 			)
 		}
 
-		hardware, err := BuildSLSHardware(cHardware, locationPath, slsClass)
+		hardware, err := BuildSLSHardware(cHardware, locationPath, slsClass, slsNetworks)
 		// if err != nil && ignoreUnknownCANUHardwareArchitectures && strings.Contains(err.Error(), "unknown architecture type") {
 		// 	log.Printf("WARNING %s", err.Error())
 		// } else if err != nil {
@@ -194,7 +194,7 @@ func BuildExpectedHardwareState(datastore inventory.Datastore, hardwareTypeLibra
 	}, hardwareMapping, nil
 }
 
-func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.LocationPath, class sls_client.HardwareClass) (sls_client.Hardware, error) {
+func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.LocationPath, class sls_client.HardwareClass, slsNetworks map[string]sls_client.Network) (sls_client.Hardware, error) {
 	log.Debug().Stringer("locationPath", locationPath).Msg("LocationPath")
 
 	// Get the physical location for the hardware
@@ -216,12 +216,65 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 	case hardwaretypes.Cabinet:
 		var cabinetExtraProperties sls_client.HardwareExtraPropertiesCabinet
 
+		//
 		// Apply CANI Metadata
+		//
 		cabinetExtraProperties.CaniId = cHardware.ID.String()
 		cabinetExtraProperties.CaniSlsSchemaVersion = "v1alpha1"
 		cabinetExtraProperties.CaniLastModified = time.Now().UTC().String()
 
-		// TODO need cabinet metadata
+		//
+		// Build cabinet metadata
+		//
+		cabinetExtraProperties.Networks = map[string]map[string]sls_client.HardwareExtraPropertiesCabinetNetworks{
+			"cn": map[string]sls_client.HardwareExtraPropertiesCabinetNetworks{},
+		}
+
+		// Determine which SLS network contains the cabinet subnet
+		hmnNetworkName := "HMN_MTN"
+		nmnNetworkName := "NMN_MTN"
+		if class == sls_client.HardwareClassRiver {
+			hmnNetworkName = "HMN_RVR"
+			nmnNetworkName = "NMN_RVR"
+		}
+
+		// Determine the subnet name, should be the same between the HMN_* and NMN_* networks
+		subnetName := fmt.Sprintf("cabinet_%d", *cHardware.LocationOrdinal)
+
+		// Find cabinet HMN subnet
+		hmnNetwork, exists := slsNetworks[hmnNetworkName]
+		if !exists {
+			return sls_client.Hardware{}, fmt.Errorf("SLS Network (%s) does not exist", hmnNetworkName)
+		}
+		for _, subnet := range hmnNetwork.ExtraProperties.Subnets {
+			if subnet.Name == subnetName {
+				cabinetExtraProperties.Networks["cn"]["HMN"] = sls_client.HardwareExtraPropertiesCabinetNetworks{
+					CIDR:    subnet.CIDR,
+					Gateway: subnet.Gateway,
+					VLan:    subnet.VlanID,
+				}
+			}
+		}
+
+		// Find cabinet NMN subnet
+		nmnNetwork, exists := slsNetworks[nmnNetworkName]
+		if !exists {
+			return sls_client.Hardware{}, fmt.Errorf("SLS Network (%s) does not exist", nmnNetworkName)
+		}
+		for _, subnet := range nmnNetwork.ExtraProperties.Subnets {
+			if subnet.Name == subnetName {
+				cabinetExtraProperties.Networks["cn"]["NMN"] = sls_client.HardwareExtraPropertiesCabinetNetworks{
+					CIDR:    subnet.CIDR,
+					Gateway: subnet.Gateway,
+					VLan:    subnet.VlanID,
+				}
+			}
+		}
+
+		if class == sls_client.HardwareClassRiver {
+			// If this is a river cabinet, we need to make a entry for ncn network.
+			cabinetExtraProperties.Networks["ncn"] = cabinetExtraProperties.Networks["cn"]
+		}
 
 		extraProperties = cabinetExtraProperties
 	case hardwaretypes.Chassis:
