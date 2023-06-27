@@ -17,6 +17,10 @@ const (
 	testSLSFile = "../../../../testdata/fixtures/sls/valid-mug.json"
 )
 
+//
+// ExistingIPAddressesSuite
+//
+
 type ExistingIPAddressesSuite struct {
 	suite.Suite
 
@@ -33,12 +37,60 @@ func (suite *ExistingIPAddressesSuite) SetupTest() {
 
 }
 
-func (suite *ExistingIPAddressesSuite) TestExistingIPAddresses_CAN() {
+func (suite *ExistingIPAddressesSuite) TestExistingIPAddresses_CAN_BootstrapDHCP() {
+	subnet, _, err := sls.LookupSubnet(suite.slsState.Networks["CAN"], "bootstrap_dhcp")
+	suite.NoError(err)
 
+	existingIPAddresses, err := ExistingIPAddresses(subnet)
+	suite.NoError(err)
+
+	// Build up expected IP address set
+	expectedIPAddressesBuilder := &netaddr.IPSetBuilder{}
+	for i := 129; i <= 152; i++ {
+		expectedIPAddressesBuilder.Add(netaddr.MustParseIP(fmt.Sprintf("10.102.162.%d", i)))
+	}
+	expectedIPAddresses, err := expectedIPAddressesBuilder.IPSet()
+
+	suite.NoError(err)
+	suite.Equal(expectedIPAddresses, existingIPAddresses)
 }
 
-func (suite *ExistingIPAddressesSuite) TestExistingIPAddresses_CMN() {
+func (suite *ExistingIPAddressesSuite) TestExistingIPAddresses_CMN_BootstrapDHCP() {
+	subnet, _, err := sls.LookupSubnet(suite.slsState.Networks["CMN"], "bootstrap_dhcp")
+	suite.NoError(err)
 
+	existingIPAddresses, err := ExistingIPAddresses(subnet)
+	suite.NoError(err)
+
+	// Build up expected IP address set
+	expectedIPAddressesBuilder := &netaddr.IPSetBuilder{}
+	expectedIPAddressesBuilder.Add(netaddr.MustParseIP("10.102.162.1")) // Gateway
+	for i := 18; i <= 37; i++ {
+		expectedIPAddressesBuilder.Add(netaddr.MustParseIP(fmt.Sprintf("10.102.162.%d", i)))
+	}
+	expectedIPAddresses, err := expectedIPAddressesBuilder.IPSet()
+
+	suite.NoError(err)
+	suite.Equal(expectedIPAddresses, existingIPAddresses)
+}
+
+func (suite *ExistingIPAddressesSuite) TestExistingIPAddresses_CMN_NetworkHardware() {
+	subnet, _, err := sls.LookupSubnet(suite.slsState.Networks["CMN"], "network_hardware")
+	suite.NoError(err)
+
+	existingIPAddresses, err := ExistingIPAddresses(subnet)
+	suite.NoError(err)
+
+	// Build up expected IP address set
+	expectedIPAddressesBuilder := &netaddr.IPSetBuilder{}
+	expectedIPAddressesBuilder.Add(netaddr.MustParseIP("10.102.162.1")) // Gateway
+	for i := 2; i <= 4; i++ {
+		expectedIPAddressesBuilder.Add(netaddr.MustParseIP(fmt.Sprintf("10.102.162.%d", i)))
+	}
+	expectedIPAddresses, err := expectedIPAddressesBuilder.IPSet()
+
+	suite.NoError(err)
+	suite.Equal(expectedIPAddresses, existingIPAddresses)
 }
 
 func (suite *ExistingIPAddressesSuite) TestExistingIPAddresses_NMN_NetworkHardware() {
@@ -57,7 +109,6 @@ func (suite *ExistingIPAddressesSuite) TestExistingIPAddresses_NMN_NetworkHardwa
 
 	suite.NoError(err)
 	suite.Equal(expectedIPAddresses, existingIPAddresses)
-
 }
 
 func (suite *ExistingIPAddressesSuite) TestExistingIPAddresses_NMN_BootstrapDHCP() {
@@ -200,4 +251,100 @@ func (suite *ExistingIPAddressesSuite) TestExistingIPAddresses_InvalidIPAddressR
 
 func TestExistingIPAddressesSuite(t *testing.T) {
 	suite.Run(t, new(ExistingIPAddressesSuite))
+}
+
+//
+// FindNextAvailableIPSuite
+//
+
+type FindNextAvailableIPSuite struct {
+	suite.Suite
+}
+
+func TestFindNextAvailableIPSuite(t *testing.T) {
+	suite.Run(t, new(FindNextAvailableIPSuite))
+}
+
+//
+// AdvanceIPSuite
+//
+
+type AdvanceIPSuite struct {
+	suite.Suite
+}
+
+func TestAdvanceIPSuite(t *testing.T) {
+	suite.Run(t, new(AdvanceIPSuite))
+}
+
+//
+// SplitNetworkSuite
+//
+
+type SplitNetworkSuite struct {
+	suite.Suite
+}
+
+func TestSplitNetworkSuite(t *testing.T) {
+	suite.Run(t, new(SplitNetworkSuite))
+}
+
+//
+// FindNextAvailableSubnetSuite
+//
+
+type FindNextAvailableSubnetSuite struct {
+	suite.Suite
+}
+
+func TestFindNextAvailableSubnetSuite(t *testing.T) {
+	suite.Run(t, new(FindNextAvailableSubnetSuite))
+}
+
+//
+// AllocateCabinetSubnetSuite
+//
+
+type AllocateCabinetSubnetSuite struct {
+	suite.Suite
+}
+
+func TestAllocateCabinetSubnetSuite(t *testing.T) {
+	suite.Run(t, new(AllocateCabinetSubnetSuite))
+}
+
+//
+// AllocateIPSuite
+//
+
+type AllocateIPSuite struct {
+	suite.Suite
+}
+
+func TestAllocateIPSuite(t *testing.T) {
+	suite.Run(t, new(AllocateIPSuite))
+}
+
+//
+// FreeIPsInStaticRangeSuite
+//
+
+type FreeIPsInStaticRangeSuite struct {
+	suite.Suite
+}
+
+func TestFreeIPsInStaticRangeSuite(t *testing.T) {
+	suite.Run(t, new(FreeIPsInStaticRangeSuite))
+}
+
+//
+// ExpandSubnetStaticRangeSuite
+//
+
+type ExpandSubnetStaticRangeSuite struct {
+	suite.Suite
+}
+
+func TestExpandSubnetStaticRangeSuite(t *testing.T) {
+	suite.Run(t, new(ExpandSubnetStaticRangeSuite))
 }
