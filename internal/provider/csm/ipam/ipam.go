@@ -27,26 +27,28 @@ package ipam
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math"
 
+	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	sls_common "github.com/Cray-HPE/hms-sls/v2/pkg/sls-common"
 	"github.com/Cray-HPE/hms-xname/xnames"
 	"inet.af/netaddr"
 )
 
-func ExistingIPAddresses(slsSubnet sls_common.IPV4Subnet) (*netaddr.IPSet, error) {
+func ExistingIPAddresses(slsSubnet sls_client.NetworkIpv4Subnet) (*netaddr.IPSet, error) {
 	var existingIPAddresses netaddr.IPSetBuilder
-	gatewayIP, ok := netaddr.FromStdIP(slsSubnet.Gateway)
-	if !ok {
-		return nil, fmt.Errorf("failed to parse gateway IP (%v)", slsSubnet.Gateway)
+	gatewayIP, err := netaddr.ParseIP(slsSubnet.Gateway)
+	if err != nil {
+		return nil, errors.Join(fmt.Errorf("failed to parse gateway IP (%v)", slsSubnet.Gateway), err)
 	}
 	existingIPAddresses.Add(gatewayIP)
 
 	for _, ipReservation := range slsSubnet.IPReservations {
-		ip, ok := netaddr.FromStdIP(ipReservation.IPAddress)
-		if !ok {
-			return nil, fmt.Errorf("failed to parse IPReservation IP (%v)", ipReservation.IPAddress)
+		ip, err := netaddr.ParseIP(ipReservation.IPAddress)
+		if err != nil {
+			return nil, errors.Join(fmt.Errorf("failed to parse IPReservation IP (%v)", ipReservation.IPAddress), err)
 		}
 		existingIPAddresses.Add(ip)
 	}
@@ -54,7 +56,7 @@ func ExistingIPAddresses(slsSubnet sls_common.IPV4Subnet) (*netaddr.IPSet, error
 	return existingIPAddresses.IPSet()
 }
 
-func FindNextAvailableIP(slsSubnet sls_common.IPV4Subnet) (netaddr.IP, error) {
+func FindNextAvailableIP(slsSubnet sls_client.NetworkIpv4Subnet) (netaddr.IP, error) {
 	subnet, err := netaddr.ParseIPPrefix(slsSubnet.CIDR)
 	if err != nil {
 		return netaddr.IP{}, fmt.Errorf("failed to parse subnet CIDR (%v): %w", slsSubnet.CIDR, err)
@@ -128,7 +130,7 @@ func SplitNetwork(network netaddr.IPPrefix, subnetMaskOneBits uint8) ([]netaddr.
 	return subnets, nil
 }
 
-func FindNextAvailableSubnet(slsNetwork sls_common.NetworkExtraProperties) (netaddr.IPPrefix, error) {
+func FindNextAvailableSubnet(slsNetwork sls_client.NetworkExtraProperties) (netaddr.IPPrefix, error) {
 	// TODO make the /22 configurable
 	var existingSubnets netaddr.IPSetBuilder
 	for _, slsSubnet := range slsNetwork.Subnets {
@@ -165,22 +167,23 @@ func FindNextAvailableSubnet(slsNetwork sls_common.NetworkExtraProperties) (neta
 	return netaddr.IPPrefix{}, fmt.Errorf("network space has been exhausted")
 }
 
-func AllocateCabinetSubnet(networkName string, slsNetwork sls_common.NetworkExtraProperties, xname xnames.Cabinet, vlanOverride *int16) (sls_common.IPV4Subnet, error) {
+func AllocateCabinetSubnet(networkName string, slsNetwork sls_client.NetworkExtraProperties, xname xnames.Cabinet, vlanOverride *int32) (sls_client.NetworkIpv4Subnet, error) {
 	cabinetSubnet, err := FindNextAvailableSubnet(slsNetwork)
 	if err != nil {
-		return sls_common.IPV4Subnet{}, fmt.Errorf("failed to allocate subnet for (%s) in CIDR (%s)", xname.String(), slsNetwork.CIDR)
+		return sls_client.NetworkIpv4Subnet{}, fmt.Errorf("failed to allocate subnet for (%s) in CIDR (%s)", xname.String(), slsNetwork.CIDR)
 	}
 
 	// Verify this subnet is new
 	subnetName := fmt.Sprintf("cabinet_%d", xname.Cabinet)
 	for _, otherSubnet := range slsNetwork.Subnets {
 		if otherSubnet.Name == subnetName {
-			return sls_common.IPV4Subnet{}, fmt.Errorf("subnet (%s) already exists", subnetName)
+			return sls_client.NetworkIpv4Subnet{}, fmt.Errorf("subnet (%s) already exists", subnetName)
 		}
 	}
 
 	// Calculate VLAN if one was not provided
-	vlan := int16(-1)
+	// TODO This needs to be updated to calculate only the NMN_MTN network for Cray EX cabinets. River both HMN_RVR and NMN_RVR networks
+	vlan := int32(-1)
 	if vlanOverride != nil {
 		vlan = *vlanOverride
 	} else {
@@ -188,14 +191,14 @@ func AllocateCabinetSubnet(networkName string, slsNetwork sls_common.NetworkExtr
 		// TODO THIS MIGHT FALL APART WITH LIQUID-COOLED CABINETS AS THOSE CAN BE USER SUPPLIED, but we don't currently support adding this with this tool
 
 		// Determine the current vlans in use by other cabinets
-		vlansInUse := map[int16]bool{}
+		vlansInUse := map[int32]bool{}
 		for _, existingSubnet := range slsNetwork.Subnets {
 			vlansInUse[existingSubnet.VlanID] = true
 		}
 
 		// Now lest find the smallest free Vlan!
-		var vlanLow int16 = -1
-		var vlanHigh int16 = -1
+		var vlanLow int32 = -1
+		var vlanHigh int32 = -1
 
 		if networkName == "HMN_RVR" {
 			// The following values are defined here in CSI: https://github.com/Cray-HPE/cray-site-init/blob/4ead6fccd0ba0710e7250357f1c3a2525996d293/cmd/init.go#L160
@@ -207,7 +210,7 @@ func AllocateCabinetSubnet(networkName string, slsNetwork sls_common.NetworkExtr
 			vlanHigh = 1999
 
 		} else {
-			return sls_common.IPV4Subnet{}, fmt.Errorf("unknown network (%s) unable to allocate vlan for cabinet subnet", networkName)
+			return sls_client.NetworkIpv4Subnet{}, fmt.Errorf("unknown network (%s) unable to allocate vlan for cabinet subnet", networkName)
 		}
 
 		for vlanCandidate := vlanLow; vlanCandidate <= vlanHigh; vlanCandidate++ {
@@ -222,26 +225,26 @@ func AllocateCabinetSubnet(networkName string, slsNetwork sls_common.NetworkExtr
 	}
 
 	if vlan == -1 {
-		return sls_common.IPV4Subnet{}, fmt.Errorf("failed to allocate VLAN for cabinet subnet (%s)", subnetName)
+		return sls_client.NetworkIpv4Subnet{}, fmt.Errorf("failed to allocate VLAN for cabinet subnet (%s)", subnetName)
 	}
 
 	// DHCP starts 10 into the subnet
 	dhcpStart, err := AdvanceIP(cabinetSubnet.Range().From(), 10)
 	if err != nil {
-		return sls_common.IPV4Subnet{}, fmt.Errorf("failed to determine DHCP start in CIDR (%s)", cabinetSubnet.String())
+		return sls_client.NetworkIpv4Subnet{}, fmt.Errorf("failed to determine DHCP start in CIDR (%s)", cabinetSubnet.String())
 	}
 
-	return sls_common.IPV4Subnet{
+	return sls_client.NetworkIpv4Subnet{
 		Name:      subnetName,
 		CIDR:      cabinetSubnet.String(),
 		VlanID:    vlan,
-		Gateway:   cabinetSubnet.Range().From().Next().IPAddr().IP,
-		DHCPStart: dhcpStart.IPAddr().IP,
-		DHCPEnd:   cabinetSubnet.Range().To().Prior().IPAddr().IP,
+		Gateway:   cabinetSubnet.Range().From().Next().IPAddr().IP.String(),
+		DHCPStart: dhcpStart.IPAddr().IP.String(),
+		DHCPEnd:   cabinetSubnet.Range().To().Prior().IPAddr().IP.String(),
 	}, nil
 }
 
-func AllocateIP(slsSubnet sls_common.IPV4Subnet, xname xnames.Xname, alias string) (sls_common.IPReservation, error) {
+func AllocateIP(slsSubnet sls_client.NetworkIpv4Subnet, xname xnames.Xname, alias string) (sls_common.IPReservation, error) {
 	ip, err := FindNextAvailableIP(slsSubnet)
 	if err != nil {
 		return sls_common.IPReservation{}, fmt.Errorf("failed to allocate ip for switch (%s) in subnet (%s)", xname.String(), slsSubnet.CIDR)
@@ -267,14 +270,14 @@ func AllocateIP(slsSubnet sls_common.IPV4Subnet, xname xnames.Xname, alias strin
 	// using the IP address.
 
 	// Verify IP is within the static IP range
-	if slsSubnet.DHCPStart != nil {
-		dhcpStart, ok := netaddr.FromStdIP(slsSubnet.DHCPStart)
-		if !ok {
+	if slsSubnet.DHCPStart != "" {
+		dhcpStart, err := netaddr.ParseIP(slsSubnet.DHCPStart)
+		if err != nil {
 			return sls_common.IPReservation{}, fmt.Errorf("failed to convert DHCP Start IP address to netaddr struct")
 		}
 
 		if !ip.Less(dhcpStart) {
-			return sls_common.IPReservation{}, fmt.Errorf("ip reservation with xname (%v) and IP %s is outside the static IP address range - starting DHCP IP is %s", xname.String(), ip.String(), slsSubnet.DHCPStart.String())
+			return sls_common.IPReservation{}, fmt.Errorf("ip reservation with xname (%v) and IP %s is outside the static IP address range - starting DHCP IP is %s", xname.String(), ip.String(), slsSubnet.DHCPStart)
 		}
 	}
 
@@ -285,7 +288,7 @@ func AllocateIP(slsSubnet sls_common.IPV4Subnet, xname xnames.Xname, alias strin
 	}, nil
 }
 
-func FreeIPsInStaticRange(slsSubnet sls_common.IPV4Subnet) (uint32, error) {
+func FreeIPsInStaticRange(slsSubnet sls_client.NetworkIpv4Subnet) (uint32, error) {
 	// Probably need to steal some of the logic for allocate IP. Need to share the logic between the two
 
 	subnet, err := netaddr.ParseIPPrefix(slsSubnet.CIDR)
@@ -299,8 +302,8 @@ func FreeIPsInStaticRange(slsSubnet sls_common.IPV4Subnet) (uint32, error) {
 	}
 
 	startingIP := subnet.Range().From().Next() // Start at the first usable available IP in the subnet.
-	endingIP, ok := netaddr.FromStdIP(slsSubnet.DHCPStart)
-	if !ok {
+	endingIP, err := netaddr.ParseIP(slsSubnet.DHCPStart)
+	if err != nil {
 		return 0, fmt.Errorf("failed to convert DHCP Start IP address to netaddr struct")
 	}
 
