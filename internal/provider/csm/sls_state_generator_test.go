@@ -32,6 +32,7 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -188,7 +189,7 @@ func (suite *DetermineHardwareClassSuite) TestClassMountainEX3000() {
 		// Determine the cabinet class
 		class, err := DetermineHardwareClass(hardware, inventoryData, *suite.hardwareTypeLibrary)
 		suite.NoError(err)
-		suite.Equal("Mountain", class)
+		suite.Equal(sls_client.HardwareClassMountain, class)
 	}
 }
 
@@ -208,7 +209,7 @@ func (suite *DetermineHardwareClassSuite) TestClassMountainEX4000() {
 		// Determine the cabinet class
 		class, err := DetermineHardwareClass(hardware, inventoryData, *suite.hardwareTypeLibrary)
 		suite.NoError(err)
-		suite.Equal("Mountain", class)
+		suite.Equal(sls_client.HardwareClassMountain, class)
 	}
 }
 
@@ -228,7 +229,7 @@ func (suite *DetermineHardwareClassSuite) TestClassHillEX2000() {
 		// Determine the cabinet class
 		class, err := DetermineHardwareClass(hardware, inventoryData, *suite.hardwareTypeLibrary)
 		suite.NoError(err)
-		suite.Equal("Hill", class)
+		suite.Equal(sls_client.HardwareClassHill, class)
 	}
 }
 
@@ -248,7 +249,7 @@ func (suite *DetermineHardwareClassSuite) TestClassHillEX2500_1Chassis() {
 		// Determine the cabinet class
 		class, err := DetermineHardwareClass(hardware, inventoryData, *suite.hardwareTypeLibrary)
 		suite.NoError(err)
-		suite.Equal("Hill", class)
+		suite.Equal(sls_client.HardwareClassHill, class)
 	}
 }
 
@@ -268,7 +269,7 @@ func (suite *DetermineHardwareClassSuite) TestClassHillEX2500_2Chassis() {
 		// Determine the cabinet class
 		class, err := DetermineHardwareClass(hardware, inventoryData, *suite.hardwareTypeLibrary)
 		suite.NoError(err)
-		suite.Equal("Hill", class)
+		suite.Equal(sls_client.HardwareClassHill, class)
 	}
 }
 
@@ -288,7 +289,7 @@ func (suite *DetermineHardwareClassSuite) TestClassHillEX2500_3Chassis() {
 		// Determine the cabinet class
 		class, err := DetermineHardwareClass(hardware, inventoryData, *suite.hardwareTypeLibrary)
 		suite.NoError(err)
-		suite.Equal("Hill", class)
+		suite.Equal(sls_client.HardwareClassHill, class)
 	}
 }
 
@@ -308,7 +309,7 @@ func (suite *DetermineHardwareClassSuite) TestClassRiver() {
 		// Determine the cabinet class
 		class, err := DetermineHardwareClass(hardware, inventoryData, *suite.hardwareTypeLibrary)
 		suite.NoError(err)
-		suite.Equal("River", class)
+		suite.Equal(sls_client.HardwareClassRiver, class)
 	}
 }
 
