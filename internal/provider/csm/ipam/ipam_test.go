@@ -329,6 +329,74 @@ type SplitNetworkSuite struct {
 	suite.Suite
 }
 
+func (suite *SplitNetworkSuite) TestCabinetSplitScenario() {
+	network := netaddr.MustParseIPPrefix("10.254.0.0/17")
+
+	subnets, err := SplitNetwork(network, 22)
+	suite.NoError(err)
+
+	expectedSubnets := []netaddr.IPPrefix{}
+	for i := 0; i <= 124; i = i + 4 {
+		subnet := netaddr.MustParseIPPrefix(fmt.Sprintf("10.254.%d.0/22", i))
+		expectedSubnets = append(expectedSubnets, subnet)
+	}
+	suite.Equal(expectedSubnets, subnets)
+}
+
+func (suite *SplitNetworkSuite) TestSplitInHalf() {
+	network := netaddr.MustParseIPPrefix("10.0.0.0/23")
+
+	subnets, err := SplitNetwork(network, 24)
+	suite.NoError(err)
+
+	expectedSubnets := []netaddr.IPPrefix{
+		netaddr.MustParseIPPrefix("10.0.0.0/24"),
+		netaddr.MustParseIPPrefix("10.0.1.0/24"),
+	}
+	suite.Equal(expectedSubnets, subnets)
+}
+
+func (suite *SplitNetworkSuite) TestSubnetLargerThanNetworkBeingSplit() {
+	network := netaddr.MustParseIPPrefix("10.0.0.0/24")
+
+	subnets, err := SplitNetwork(network, 16)
+	suite.EqualError(err, "provided subnet mask bits /16 is larger than starting network subnet mask /24")
+	suite.Empty(subnets)
+}
+
+func (suite *SplitNetworkSuite) TestSameSubnetSize() {
+	network := netaddr.MustParseIPPrefix("10.0.0.0/16")
+
+	subnets, err := SplitNetwork(network, 16)
+	suite.NoError(err)
+
+	expectedSubnets := []netaddr.IPPrefix{
+		netaddr.MustParseIPPrefix("10.0.0.0/16"),
+	}
+	suite.Equal(expectedSubnets, subnets)
+}
+
+func (suite *SplitNetworkSuite) TestInvalidSubnets() {
+	network := netaddr.MustParseIPPrefix("10.0.0.0/16")
+
+	// Build up subnet mask bits.
+	// Basically all of the values of unint8 that are not between 16 and 30
+	invalidSubnetMaskOneBits := []uint8{}
+	for i := uint8(0); i < uint8(16); i++ {
+		invalidSubnetMaskOneBits = append(invalidSubnetMaskOneBits, i)
+	}
+	for i := uint8(31); i < uint8(255); i++ {
+		invalidSubnetMaskOneBits = append(invalidSubnetMaskOneBits, i)
+	}
+
+	for _, subnetMaskOneBits := range invalidSubnetMaskOneBits {
+		subnets, err := SplitNetwork(network, subnetMaskOneBits)
+		suite.EqualError(err, fmt.Sprintf("invalid subnet mask provided /%d", subnetMaskOneBits))
+		suite.Empty(subnets)
+	}
+
+}
+
 func TestSplitNetworkSuite(t *testing.T) {
 	suite.Run(t, new(SplitNetworkSuite))
 }

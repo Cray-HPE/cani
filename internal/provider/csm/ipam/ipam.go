@@ -102,8 +102,14 @@ func AdvanceIP(ip netaddr.IP, n uint32) (netaddr.IP, error) {
 }
 
 func SplitNetwork(network netaddr.IPPrefix, subnetMaskOneBits uint8) ([]netaddr.IPPrefix, error) {
+	// TODO why only allow this range?
 	if subnetMaskOneBits < 16 || 30 < subnetMaskOneBits {
 		return nil, fmt.Errorf("invalid subnet mask provided /%d", subnetMaskOneBits)
+	}
+
+	// Verify that the network can be split (this is allowing a split of the same size)
+	if subnetMaskOneBits < network.Bits() {
+		return nil, fmt.Errorf("provided subnet mask bits /%d is larger than starting network subnet mask /%d", subnetMaskOneBits, network.Bits())
 	}
 
 	subnetStartIP := network.Range().From()
