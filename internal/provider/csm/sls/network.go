@@ -26,6 +26,9 @@
 package sls
 
 import (
+	"fmt"
+
+	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	sls_common "github.com/Cray-HPE/hms-sls/v2/pkg/sls-common"
 	"github.com/mitchellh/mapstructure"
 )
@@ -49,4 +52,37 @@ func Networks(state sls_common.SLSState) (networks sls_common.NetworkArray) {
 	}
 
 	return networks
+}
+
+// LookupSubnet returns a subnet by name
+// Note the return index value is useful to put modifications back into the subnet slice of a network's extra properties
+func LookupSubnet(network sls_client.Network, subnetName string) (sls_client.NetworkIpv4Subnet, int, error) {
+	var found []sls_client.NetworkIpv4Subnet
+	if network.ExtraProperties == nil || len(network.ExtraProperties.Subnets) == 0 {
+		return sls_client.NetworkIpv4Subnet{}, 0, fmt.Errorf("subnet not found (%v)", subnetName)
+	}
+	var index int
+	for i, v := range network.ExtraProperties.Subnets {
+		if v.Name == subnetName {
+			index = i
+			found = append(found, v)
+		}
+	}
+	if len(found) == 1 {
+		// The Index is valid since, only one match was found!
+		return found[0], index, nil
+	}
+	if len(found) > 1 {
+		return found[0], 0, fmt.Errorf("found %v subnets instead of just one", len(found))
+	}
+	return sls_client.NetworkIpv4Subnet{}, 0, fmt.Errorf("subnet not found (%v)", subnetName)
+}
+
+// ReservationsByName presents the IPReservations in a map by name
+func ReservationsByName(subnet sls_client.NetworkIpv4Subnet) map[string]sls_client.NetworkIpReservation {
+	reservations := make(map[string]sls_client.NetworkIpReservation)
+	for _, v := range subnet.IPReservations {
+		reservations[v.Name] = v
+	}
+	return reservations
 }
