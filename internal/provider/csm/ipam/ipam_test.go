@@ -273,6 +273,50 @@ type AdvanceIPSuite struct {
 	suite.Suite
 }
 
+func (suite *AdvanceIPSuite) TestAdvanceZero() {
+	startingIP := netaddr.MustParseIP("10.254.0.10")
+
+	ip, err := AdvanceIP(startingIP, 0)
+	suite.NoError(err)
+
+	expectedIP := netaddr.MustParseIP("10.254.0.10")
+	suite.Equal(expectedIP, ip)
+}
+
+func (suite *AdvanceIPSuite) TestAdvanceOne() {
+	startingIP := netaddr.MustParseIP("10.254.0.10")
+
+	ip, err := AdvanceIP(startingIP, 1)
+	suite.NoError(err)
+
+	expectedIP := netaddr.MustParseIP("10.254.0.11")
+	suite.Equal(expectedIP, ip)
+}
+
+func (suite *AdvanceIPSuite) TestAdvanceTen() {
+	startingIP := netaddr.MustParseIP("10.254.0.10")
+
+	ip, err := AdvanceIP(startingIP, 10)
+	suite.NoError(err)
+
+	expectedIP := netaddr.MustParseIP("10.254.0.20")
+	suite.Equal(expectedIP, ip)
+}
+
+func (suite *AdvanceIPSuite) TestIPV6() {
+	ip := netaddr.MustParseIP("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
+
+	_, err := AdvanceIP(ip, 1)
+	suite.EqualError(err, "IPv6 is not supported")
+}
+
+func (suite *AdvanceIPSuite) TestEmptyIP() {
+	ip := netaddr.IP{}
+
+	_, err := AdvanceIP(ip, 1)
+	suite.EqualError(err, "empty IP address provided")
+}
+
 func TestAdvanceIPSuite(t *testing.T) {
 	suite.Run(t, new(AdvanceIPSuite))
 }
