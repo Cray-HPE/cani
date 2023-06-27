@@ -142,7 +142,7 @@ func FindNextAvailableSubnet(slsNetwork sls_client.NetworkExtraProperties) (neta
 	for _, slsSubnet := range slsNetwork.Subnets {
 		subnet, err := netaddr.ParseIPPrefix(slsSubnet.CIDR)
 		if err != nil {
-			return netaddr.IPPrefix{}, fmt.Errorf("failed to parse subnet CIDR (%v): %w", slsSubnet.CIDR, err)
+			return netaddr.IPPrefix{}, errors.Join(fmt.Errorf("failed to parse subnet CIDR (%v)", slsSubnet.CIDR), err)
 		}
 
 		existingSubnets.AddPrefix(subnet)
@@ -155,12 +155,12 @@ func FindNextAvailableSubnet(slsNetwork sls_client.NetworkExtraProperties) (neta
 
 	network, err := netaddr.ParseIPPrefix(slsNetwork.CIDR)
 	if err != nil {
-		return netaddr.IPPrefix{}, err
+		return netaddr.IPPrefix{}, errors.Join(fmt.Errorf("failed to parse network CIDR (%s)", slsNetwork.CIDR), err)
 	}
 
 	availableSubnets, err := SplitNetwork(network, 22)
 	if err != nil {
-		return netaddr.IPPrefix{}, err
+		return netaddr.IPPrefix{}, errors.Join(fmt.Errorf("failed to split network CIDR (%s)", slsNetwork.CIDR), err)
 	}
 	for _, subnet := range availableSubnets {
 		if existingSubnetsSet.Contains(subnet.IP()) {

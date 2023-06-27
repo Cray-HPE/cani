@@ -407,6 +407,147 @@ func TestSplitNetworkSuite(t *testing.T) {
 
 type FindNextAvailableSubnetSuite struct {
 	suite.Suite
+
+	slsState sls_client.SlsState
+}
+
+func (suite *FindNextAvailableSubnetSuite) SetupTest() {
+	// Load SLS state
+	slsStateRaw, err := ioutil.ReadFile(testSLSFile)
+	suite.NoError(err)
+
+	err = json.Unmarshal(slsStateRaw, &suite.slsState)
+	suite.NoError(err)
+}
+
+func (suite *FindNextAvailableSubnetSuite) TestAllocate_HMN_MTN() {
+	networkExtraProperties := *suite.slsState.Networks["HMN_MTN"].ExtraProperties
+
+	subnet, err := FindNextAvailableSubnet(networkExtraProperties)
+	suite.NoError(err)
+
+	expectedSubnet := netaddr.MustParseIPPrefix("11.254.0.0/22")
+	suite.Equal(expectedSubnet, subnet)
+}
+
+func (suite *FindNextAvailableSubnetSuite) TestAllocate_HMN_RVR() {
+	networkExtraProperties := *suite.slsState.Networks["HMN_RVR"].ExtraProperties
+
+	subnet, err := FindNextAvailableSubnet(networkExtraProperties)
+	suite.NoError(err)
+
+	expectedSubnet := netaddr.MustParseIPPrefix("10.107.8.0/22")
+	suite.Equal(expectedSubnet, subnet)
+}
+func (suite *FindNextAvailableSubnetSuite) TestAllocate_NMN_MTN() {
+	networkExtraProperties := *suite.slsState.Networks["NMN_MTN"].ExtraProperties
+
+	subnet, err := FindNextAvailableSubnet(networkExtraProperties)
+	suite.NoError(err)
+
+	expectedSubnet := netaddr.MustParseIPPrefix("11.252.0.0/22")
+	suite.Equal(expectedSubnet, subnet)
+}
+
+func (suite *FindNextAvailableSubnetSuite) TestAllocate_NMN_RVR() {
+	networkExtraProperties := *suite.slsState.Networks["NMN_RVR"].ExtraProperties
+
+	subnet, err := FindNextAvailableSubnet(networkExtraProperties)
+	suite.NoError(err)
+
+	expectedSubnet := netaddr.MustParseIPPrefix("10.106.8.0/22")
+	suite.Equal(expectedSubnet, subnet)
+}
+
+func (suite *FindNextAvailableSubnetSuite) TestNearFullNetwork() {
+	networkExtraProperties := sls_client.NetworkExtraProperties{
+		CIDR: "10.254.0.0/21",
+		Subnets: []sls_client.NetworkIpv4Subnet{
+			{CIDR: "10.254.0.0/22"},
+		},
+	}
+
+	subnet, err := FindNextAvailableSubnet(networkExtraProperties)
+	suite.NoError(err)
+
+	expectedSubnet := netaddr.MustParseIPPrefix("10.254.4.0/22")
+	suite.Equal(expectedSubnet, subnet)
+}
+
+func (suite *FindNextAvailableSubnetSuite) TestNetworkTooSmall() {
+	networkExtraProperties := sls_client.NetworkExtraProperties{
+		CIDR: "10.254.0.0/24",
+	}
+
+	subnet, err := FindNextAvailableSubnet(networkExtraProperties)
+
+	expectedErrorStrings := []string{
+		"failed to split network CIDR (10.254.0.0/24)",
+		"provided subnet mask bits /22 is larger than starting network subnet mask /24",
+	}
+	suite.EqualError(err, strings.Join(expectedErrorStrings, "\n"))
+	suite.Empty(subnet)
+}
+
+func (suite *FindNextAvailableSubnetSuite) TestNoRoom() {
+	networkExtraProperties := sls_client.NetworkExtraProperties{
+		CIDR: "10.254.0.0/21",
+		Subnets: []sls_client.NetworkIpv4Subnet{
+			{CIDR: "10.254.0.0/22"},
+			{CIDR: "10.254.4.0/22"},
+		},
+	}
+
+	subnet, err := FindNextAvailableSubnet(networkExtraProperties)
+	suite.EqualError(err, "network space has been exhausted")
+	suite.Empty(subnet)
+}
+
+func (suite *FindNextAvailableSubnetSuite) TestInvalidNetworkCIDR() {
+	networkExtraProperties := sls_client.NetworkExtraProperties{
+		CIDR: "10.254.0.0/16",
+		Subnets: []sls_client.NetworkIpv4Subnet{
+			{CIDR: "10.254.4.0/22"},
+			{CIDR: "not-a-cidr"},
+		},
+	}
+
+	subnet, err := FindNextAvailableSubnet(networkExtraProperties)
+
+	expectedErrorStrings := []string{
+		"failed to parse subnet CIDR (not-a-cidr)",
+		"netaddr.ParseIPPrefix(\"not-a-cidr\"): no '/'",
+	}
+	suite.EqualError(err, strings.Join(expectedErrorStrings, "\n"))
+	suite.Empty(subnet)
+}
+
+func (suite *FindNextAvailableSubnetSuite) TestInvalidSubnetCIDR() {
+	networkExtraProperties := sls_client.NetworkExtraProperties{
+		CIDR: "not-a-cidr",
+	}
+
+	subnet, err := FindNextAvailableSubnet(networkExtraProperties)
+
+	expectedErrorStrings := []string{
+		"failed to parse network CIDR (not-a-cidr)",
+		"netaddr.ParseIPPrefix(\"not-a-cidr\"): no '/'",
+	}
+	suite.EqualError(err, strings.Join(expectedErrorStrings, "\n"))
+	suite.Empty(subnet)
+}
+
+func (suite *FindNextAvailableSubnetSuite) TestEmptyNetworkExtraProperties() {
+	networkExtraProperties := sls_client.NetworkExtraProperties{}
+
+	subnet, err := FindNextAvailableSubnet(networkExtraProperties)
+
+	expectedErrorStrings := []string{
+		"failed to parse network CIDR ()",
+		"netaddr.ParseIPPrefix(\"\"): no '/'",
+	}
+	suite.EqualError(err, strings.Join(expectedErrorStrings, "\n"))
+	suite.Empty(subnet)
 }
 
 func TestFindNextAvailableSubnetSuite(t *testing.T) {
