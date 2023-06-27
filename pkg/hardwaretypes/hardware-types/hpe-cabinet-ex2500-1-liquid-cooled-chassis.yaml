@@ -44,3 +44,7 @@ device-bays:
       # - name: Chassis 4
       #   default:
       #     slug: hpe-crayex-chassis-management-module
+
+provider_defaults:
+  csm:
+    Class: Hill

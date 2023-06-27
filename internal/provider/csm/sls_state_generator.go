@@ -34,24 +34,49 @@ import (
 	"github.com/Cray-HPE/cani/internal/provider/csm/sls"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 )
 
-// func GetProviderProperties[T any](hardware inventory.Hardware) (*T, error) {
-// 	providerPropertiesRaw, ok := hardware.ProviderProperties["csm"]
-// 	if !ok {
-// 		return nil, nil // This should be ok, as its possible as not all hardware inventory items may have CSM specific data
-// 	}
+func DetermineHardwareClass(hardware inventory.Hardware, data inventory.Inventory, hardwareTypeLibrary hardwaretypes.Library) (sls_client.HardwareClass, error) {
+	currentHardwareID := hardware.ID
+	for currentHardwareID != uuid.Nil {
+		currentHardware, exists := data.Hardware[currentHardwareID]
+		if !exists {
+			return "", errors.Join(
+				fmt.Errorf("unable to find ancestor (%s) of (%s)", currentHardwareID, hardware.ID),
+			)
+		}
 
-// 	var result T
-// 	if err := mapstructure.Decode(providerPropertiesRaw, &result); err != nil {
-// 		return nil, err
-// 	}
+		deviceType, exists := hardwareTypeLibrary.DeviceTypes[currentHardware.DeviceTypeSlug]
+		if !exists {
+			return "", errors.Join(
+				fmt.Errorf("unable to find device type (%s) for (%s)", currentHardware.DeviceTypeSlug, currentHardwareID),
+			)
+		}
 
-// 	return &providerProperties, nil
-// }
+		if deviceType.ProviderDefaults != nil && deviceType.ProviderDefaults.CSM != nil && deviceType.ProviderDefaults.CSM.Class != nil {
+			classRaw := *deviceType.ProviderDefaults.CSM.Class
+			switch classRaw {
+			case "River":
+				return sls_client.HardwareClassRiver, nil
+			case "Mountain":
+				return sls_client.HardwareClassMountain, nil
+			case "Hill":
+				return sls_client.HardwareClassHill, nil
+			default:
+				return "", fmt.Errorf("encountered unknown CSM hardware class (%s)", classRaw)
+			}
+		}
 
-func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_client.SlsState, map[string]inventory.Hardware, error) {
+		// Go the parent node next
+		currentHardwareID = currentHardware.Parent
+	}
+
+	return "", fmt.Errorf("unable to determine CSM Class of (%s)", hardware.ID)
+}
+
+func BuildExpectedHardwareState(hardwareTypeLibrary hardwaretypes.Library, datastore inventory.Datastore, slsNetworks map[string]sls_client.Network) (sls_client.SlsState, map[string]inventory.Hardware, error) {
 	// Retrieve the CANI inventory data
 	data, err := datastore.List()
 	if err != nil {
@@ -68,6 +93,11 @@ func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_client.SlsSt
 	// Iterate over the CANI inventory data to build SLS data
 	allHardware := map[string]sls_client.Hardware{}
 	for _, cHardware := range data.Hardware {
+		// Skip systems
+		if cHardware.Type == hardwaretypes.System {
+			continue
+		}
+
 		//
 		// Build the SLS hardware representation
 		//
@@ -80,7 +110,15 @@ func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_client.SlsSt
 			)
 		}
 
-		hardware, err := BuildSLSHardware(cHardware, locationPath)
+		slsClass, err := DetermineHardwareClass(cHardware, data, hardwareTypeLibrary)
+		if err != nil {
+			return sls_client.SlsState{}, nil, errors.Join(
+				fmt.Errorf("failed to determine SLS class of hardware (%s)", cHardware.ID),
+				err,
+			)
+		}
+
+		hardware, err := BuildSLSHardware(cHardware, locationPath, slsClass, slsNetworks)
 		// if err != nil && ignoreUnknownCANUHardwareArchitectures && strings.Contains(err.Error(), "unknown architecture type") {
 		// 	log.Printf("WARNING %s", err.Error())
 		// } else if err != nil {
@@ -150,42 +188,13 @@ func BuildExpectedHardwareState(datastore inventory.Datastore) (sls_client.SlsSt
 
 	}
 
-	// Generate Cabinet Objects
-	// TODO this will be handled in the code above ^
-	// for cabinetKind, cabinets := range cabinetLookup {
-	// 	for _, cabinet := range cabinets {
-	// 		class, err := cabinetKind.Class()
-	// 		if err != nil {
-	// 			panic(err)
-	// 		}
-
-	// 		extraProperties := sls_client.ComptypeCabinet{
-	// 			Networks: map[string]map[string]sls_client.CabinetNetworks{}, // TODO this should be outright removed. MEDS and KEA no longer look here for network info, but MEDS still needs this key to exist.
-	// 		}
-
-	// 		if cabinetKind.IsModel() {
-	// 			extraProperties.Model = string(cabinetKind)
-	// 		}
-
-	// 		hardware := sls_client.NewGenericHardware(cabinet, class, extraProperties)
-
-	// 		// Verify new hardware
-	// 		if _, present := allHardware[hardware.Xname]; present {
-	// 			err := fmt.Errorf("found duplicate xname %v", hardware.Xname)
-	// 			panic(err)
-	// 		}
-
-	// 		allHardware[hardware.Xname] = hardware
-	// 	}
-	// }
-
 	// Build up and the SLS state
 	return sls_client.SlsState{
 		Hardware: allHardware,
 	}, hardwareMapping, nil
 }
 
-func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.LocationPath) (sls_client.Hardware, error) {
+func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.LocationPath, class sls_client.HardwareClass, slsNetworks map[string]sls_client.Network) (sls_client.Hardware, error) {
 	log.Debug().Stringer("locationPath", locationPath).Msg("LocationPath")
 
 	// Get the physical location for the hardware
@@ -194,7 +203,7 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 	if err != nil {
 		return sls_client.Hardware{}, err
 	} else if xname == nil {
-		// This means that this piece of the hardware inventory can't be represented in SLS, so just skip it
+		// This means that this piece of the hardware inventory can't be represented in SLS due to no xname, so just skip it
 		return sls_client.Hardware{}, nil
 	}
 
@@ -202,18 +211,70 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 	// Generally this will match the class of the containing cabinet, the exception is river hardware within a EX2500 cabinet.
 	// TODO
 	var extraProperties interface{}
-	class := sls_client.HardwareClassMountain
 
 	switch cHardware.Type {
 	case hardwaretypes.Cabinet:
 		var cabinetExtraProperties sls_client.HardwareExtraPropertiesCabinet
 
+		//
 		// Apply CANI Metadata
+		//
 		cabinetExtraProperties.CaniId = cHardware.ID.String()
 		cabinetExtraProperties.CaniSlsSchemaVersion = "v1alpha1"
 		cabinetExtraProperties.CaniLastModified = time.Now().UTC().String()
 
-		// TODO need cabinet metadata
+		//
+		// Build cabinet metadata
+		//
+		cabinetExtraProperties.Networks = map[string]map[string]sls_client.HardwareExtraPropertiesCabinetNetworks{
+			"cn": map[string]sls_client.HardwareExtraPropertiesCabinetNetworks{},
+		}
+
+		// Determine which SLS network contains the cabinet subnet
+		hmnNetworkName := "HMN_MTN"
+		nmnNetworkName := "NMN_MTN"
+		if class == sls_client.HardwareClassRiver {
+			hmnNetworkName = "HMN_RVR"
+			nmnNetworkName = "NMN_RVR"
+		}
+
+		// Determine the subnet name, should be the same between the HMN_* and NMN_* networks
+		subnetName := fmt.Sprintf("cabinet_%d", *cHardware.LocationOrdinal)
+
+		// Find cabinet HMN subnet
+		hmnNetwork, exists := slsNetworks[hmnNetworkName]
+		if !exists {
+			return sls_client.Hardware{}, fmt.Errorf("SLS Network (%s) does not exist", hmnNetworkName)
+		}
+		for _, subnet := range hmnNetwork.ExtraProperties.Subnets {
+			if subnet.Name == subnetName {
+				cabinetExtraProperties.Networks["cn"]["HMN"] = sls_client.HardwareExtraPropertiesCabinetNetworks{
+					CIDR:    subnet.CIDR,
+					Gateway: subnet.Gateway,
+					VLan:    subnet.VlanID,
+				}
+			}
+		}
+
+		// Find cabinet NMN subnet
+		nmnNetwork, exists := slsNetworks[nmnNetworkName]
+		if !exists {
+			return sls_client.Hardware{}, fmt.Errorf("SLS Network (%s) does not exist", nmnNetworkName)
+		}
+		for _, subnet := range nmnNetwork.ExtraProperties.Subnets {
+			if subnet.Name == subnetName {
+				cabinetExtraProperties.Networks["cn"]["NMN"] = sls_client.HardwareExtraPropertiesCabinetNetworks{
+					CIDR:    subnet.CIDR,
+					Gateway: subnet.Gateway,
+					VLan:    subnet.VlanID,
+				}
+			}
+		}
+
+		if class == sls_client.HardwareClassRiver {
+			// If this is a river cabinet, we need to make a entry for ncn network.
+			cabinetExtraProperties.Networks["ncn"] = cabinetExtraProperties.Networks["cn"]
+		}
 
 		extraProperties = cabinetExtraProperties
 	case hardwaretypes.Chassis:
@@ -291,41 +352,6 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 	return sls.NewHardware(xname, class, extraProperties), nil
 }
 
-// func buildSLSPDUController(location Location) (sls_client.GenericHardware, error) {
-// }
-
-// func buildSLSSlingshotHSNSwitch(location Location) (sls_client.GenericHardware, error) {
-// }
-
-// func buildSLSCMC(location Location) (sls_client.GenericHardware, error) {
-// 	// TODO what should be done if if the CMC does not have a bmc connection? Ie the Intel CMC that doesn't really exist
-// 	// Right now we are emulating the current behavior of CSI, where the fake CMC exists in SLS and no MgmtSwitchConnector exists.
-
-// }
-
-// // BuildNodeExtraProperties will attempt to build up all of the known extra properties form a Node present in a CCJ.
-// // Limiitations the following information is not populated:
-// // - Management NCN NID
-// // - Application Node Subrole and Alias
-
-// func BuildNodeExtraProperties(topologyNode TopologyNode) (extraProperties sls_client.ComptypeNode, err error) {
-// }
-
-// func buildSLSNode(xname) (sls_client.GenericHardware, error) {
-// }
-
-// func buildSLSMgmtSwitch(topologyNode TopologyNode, switchAliasesOverrides map[string][]string) (sls_client.GenericHardware, error) {
-// }
-
-// func buildSLSMgmtHLSwitch(topologyNode TopologyNode, switchAliasesOverrides map[string][]string) (sls_client.GenericHardware, error) {
-// }
-
-// func buildSLSCDUMgmtSwitch(topologyNode TopologyNode, switchAliasesOverrides map[string][]string) (sls_client.GenericHardware, error) {
-// }
-
 func BuildSLSMgmtSwitchConnector(hardware sls_client.Hardware, cHardware inventory.Hardware) (sls_client.Hardware, error) {
 	return sls_client.Hardware{}, nil
 }
-
-// func buildSLSChassisBMC(location Location, cl configs.CabinetLookup) (sls_client.GenericHardware, error) {
-// }

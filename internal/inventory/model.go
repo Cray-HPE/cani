@@ -67,6 +67,23 @@ type Hardware struct {
 	LocationOrdinal *int
 }
 
+func NewHardwareFromBuildOut(hardwareBuildOut hardwaretypes.HardwareBuildOut, status HardwareStatus) Hardware {
+	locationOrdinal := hardwareBuildOut.OrdinalPath[len(hardwareBuildOut.OrdinalPath)-1]
+
+	return Hardware{
+		ID:             hardwareBuildOut.ID,
+		Parent:         hardwareBuildOut.ParentID,
+		Type:           hardwareBuildOut.DeviceType.HardwareType,
+		DeviceTypeSlug: hardwareBuildOut.DeviceType.Slug,
+		Vendor:         hardwareBuildOut.DeviceType.Manufacturer,
+		Model:          hardwareBuildOut.DeviceType.Model,
+
+		LocationOrdinal: &locationOrdinal,
+
+		Status: status,
+	}
+}
+
 // HardwareStatus is the current state of the hardware
 // Using a status allows for the hardware to be tracked through its lifecycle
 // and allows for historical tracking of the hardware even if it is replaced or removed

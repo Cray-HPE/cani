@@ -209,7 +209,7 @@ func (l *Library) GetDefaultHardwareBuildOut(deviceTypeString string, deviceOrdi
 		log.Debug().Msgf("Visiting: %s", current.DeviceTypeString)
 		currentDeviceType, ok := l.DeviceTypes[current.DeviceTypeString]
 		if !ok {
-			return nil, fmt.Errorf("device type (%v) does not exist", current.DeviceType)
+			return nil, fmt.Errorf("device type (%v) does not exist", current.DeviceTypeString)
 		}
 
 		// Retrieve the hardware type at this point in time, so we only lookup in the map once

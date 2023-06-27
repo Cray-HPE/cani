@@ -79,3 +79,7 @@ device-bays:
       slug: [hpe-crayex-chassis]
     default:
       slug: hpe-crayex-chassis
+
+provider_defaults:
+  csm:
+    Class: Mountain
