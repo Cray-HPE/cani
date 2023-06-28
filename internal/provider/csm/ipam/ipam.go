@@ -252,10 +252,10 @@ func AllocateCabinetSubnet(networkName string, slsNetwork sls_client.NetworkExtr
 	}, nil
 }
 
-func AllocateIP(slsSubnet sls_client.NetworkIpv4Subnet, xname xnames.Xname, alias string) (sls_common.IPReservation, error) {
+func AllocateIP(slsSubnet sls_client.NetworkIpv4Subnet, xname xnames.Xname, alias string) (sls_client.NetworkIpReservation, error) {
 	ip, err := FindNextAvailableIP(slsSubnet)
 	if err != nil {
-		return sls_common.IPReservation{}, fmt.Errorf("failed to allocate ip for switch (%s) in subnet (%s)", xname.String(), slsSubnet.CIDR)
+		return sls_client.NetworkIpReservation{}, fmt.Errorf("failed to allocate ip for hardware (%s) in subnet (%s)", xname.String(), slsSubnet.CIDR)
 	}
 
 	// Verify this switch is unique within the subnet
@@ -265,11 +265,11 @@ func AllocateIP(slsSubnet sls_client.NetworkIpv4Subnet, xname xnames.Xname, alia
 
 		if matchingAlias && matchingXName {
 			// IP reservation already exists
-			return sls_common.IPReservation{}, nil
+			return sls_client.NetworkIpReservation{}, nil
 		} else if matchingAlias {
-			return sls_common.IPReservation{}, fmt.Errorf("ip reservation with name (%v) already exits on (%v)", alias, ipReservation.Comment)
+			return sls_client.NetworkIpReservation{}, fmt.Errorf("ip reservation with name (%v) already exists on (%v)", alias, ipReservation.Comment)
 		} else if matchingXName {
-			return sls_common.IPReservation{}, fmt.Errorf("ip reservation with xname (%v) already exits with name (%v)", xname.String(), ipReservation.Name)
+			return sls_client.NetworkIpReservation{}, fmt.Errorf("ip reservation with xname (%v) already exists with name (%v)", xname.String(), ipReservation.Name)
 		}
 	}
 
@@ -277,21 +277,21 @@ func AllocateIP(slsSubnet sls_client.NetworkIpv4Subnet, xname xnames.Xname, alia
 	// Verify that the IP is actually valid ie within the DHCP range, and if not in the DHCP range expand it and verify nothing is
 	// using the IP address.
 
-	// Verify IP is within the static IP range
+	// Verify IP is within the static IP range. The static range
 	if slsSubnet.DHCPStart != "" {
 		dhcpStart, err := netaddr.ParseIP(slsSubnet.DHCPStart)
 		if err != nil {
-			return sls_common.IPReservation{}, fmt.Errorf("failed to convert DHCP Start IP address to netaddr struct")
+			return sls_client.NetworkIpReservation{}, errors.Join(fmt.Errorf("failed to parse DHCP Start IP (%s) address", slsSubnet.DHCPStart), err)
 		}
 
 		if !ip.Less(dhcpStart) {
-			return sls_common.IPReservation{}, fmt.Errorf("ip reservation with xname (%v) and IP %s is outside the static IP address range - starting DHCP IP is %s", xname.String(), ip.String(), slsSubnet.DHCPStart)
+			return sls_client.NetworkIpReservation{}, fmt.Errorf("ip reservation with xname (%v) and IP %s is outside the static IP address range, with starting DHCP IP of %s", xname.String(), ip.String(), slsSubnet.DHCPStart)
 		}
 	}
 
-	return sls_common.IPReservation{
+	return sls_client.NetworkIpReservation{
 		Comment:   xname.String(),
-		IPAddress: ip.IPAddr().IP,
+		IPAddress: ip.IPAddr().IP.String(),
 		Name:      alias,
 	}, nil
 }
