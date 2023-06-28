@@ -60,7 +60,6 @@ func (suite *ExistingIPAddressesSuite) SetupTest() {
 
 	err = json.Unmarshal(slsStateRaw, &suite.slsState)
 	suite.NoError(err)
-
 }
 
 func (suite *ExistingIPAddressesSuite) TestExistingIPAddresses_CAN_BootstrapDHCP() {
