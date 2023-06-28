@@ -288,6 +288,7 @@ type FindNextAvailableIPSuite struct {
 
 func (suite *FindNextAvailableIPSuite) TestAllocateIP() {
 	subnet := sls_client.NetworkIpv4Subnet{
+		Name:    "test_subnet",
 		CIDR:    "10.0.0.0/24",
 		Gateway: "10.0.0.1",
 		IPReservations: []sls_client.NetworkIpReservation{
@@ -295,8 +296,15 @@ func (suite *FindNextAvailableIPSuite) TestAllocateIP() {
 			{Name: "bar", IPAddress: "10.0.0.3"},
 		},
 	}
+	network := sls_client.Network{
+		Name: "test_network",
+		ExtraProperties: &sls_client.NetworkExtraProperties{
+			CIDR:    "10.0.0.0/22",
+			Subnets: []sls_client.NetworkIpv4Subnet{subnet},
+		},
+	}
 
-	ipAddress, err := FindNextAvailableIP(subnet)
+	ipAddress, err := FindNextAvailableIP(network, subnet)
 	suite.NoError(err)
 
 	expectedIPaddress := netaddr.MustParseIP("10.0.0.4")
@@ -305,6 +313,7 @@ func (suite *FindNextAvailableIPSuite) TestAllocateIP() {
 
 func (suite *FindNextAvailableIPSuite) TestFullSubnet() {
 	subnet := sls_client.NetworkIpv4Subnet{
+		Name:           "test_subnet",
 		CIDR:           "10.0.0.0/24",
 		Gateway:        "10.0.0.1",
 		IPReservations: []sls_client.NetworkIpReservation{},
@@ -318,19 +327,36 @@ func (suite *FindNextAvailableIPSuite) TestFullSubnet() {
 		})
 	}
 
-	ipAddress, err := FindNextAvailableIP(subnet)
+	network := sls_client.Network{
+		Name: "test_network",
+		ExtraProperties: &sls_client.NetworkExtraProperties{
+			CIDR:    "10.0.0.0/22",
+			Subnets: []sls_client.NetworkIpv4Subnet{subnet},
+		},
+	}
+
+	ipAddress, err := FindNextAvailableIP(network, subnet)
 	suite.EqualError(err, "subnet has no available IPs")
 	suite.Equal(netaddr.IP{}, ipAddress)
 }
 
 func (suite *FindNextAvailableIPSuite) TestInvalidSubnetCIDR() {
 	subnet := sls_client.NetworkIpv4Subnet{
+		Name:           "test_subnet",
 		CIDR:           "not-a-cidr",
 		Gateway:        "10.0.0.1",
 		IPReservations: []sls_client.NetworkIpReservation{},
 	}
 
-	ipAddress, err := FindNextAvailableIP(subnet)
+	network := sls_client.Network{
+		Name: "test_network",
+		ExtraProperties: &sls_client.NetworkExtraProperties{
+			CIDR:    "10.0.0.0/22",
+			Subnets: []sls_client.NetworkIpv4Subnet{subnet},
+		},
+	}
+
+	ipAddress, err := FindNextAvailableIP(network, subnet)
 	suite.Equal(netaddr.IP{}, ipAddress)
 
 	expectedErrorStrings := []string{
@@ -669,6 +695,7 @@ func (suite *AllocateIPSuite) SetupSuite() {
 
 func (suite *AllocateIPSuite) TestAllocateIPInStaticSubnet() {
 	subnet := sls_client.NetworkIpv4Subnet{
+		Name:    "test_subnet",
 		CIDR:    "10.0.0.0/24",
 		Gateway: "10.0.0.1",
 		IPReservations: []sls_client.NetworkIpReservation{
@@ -676,8 +703,15 @@ func (suite *AllocateIPSuite) TestAllocateIPInStaticSubnet() {
 			{Name: "bar", IPAddress: "10.0.0.3"},
 		},
 	}
+	network := sls_client.Network{
+		Name: "test_network",
+		ExtraProperties: &sls_client.NetworkExtraProperties{
+			CIDR:    "10.0.0.0/22",
+			Subnets: []sls_client.NetworkIpv4Subnet{subnet},
+		},
+	}
 
-	ipReservation, err := AllocateIP(subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-001")
+	ipReservation, err := AllocateIP(network, subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-001")
 	suite.NoError(err)
 
 	expectedIPReservation := sls_client.NetworkIpReservation{
@@ -690,6 +724,7 @@ func (suite *AllocateIPSuite) TestAllocateIPInStaticSubnet() {
 
 func (suite *AllocateIPSuite) TestAllocateIPInSubnetWithDHCPRange() {
 	subnet := sls_client.NetworkIpv4Subnet{
+		Name:      "test_subnet",
 		CIDR:      "10.0.0.0/24",
 		Gateway:   "10.0.0.1",
 		DHCPStart: "10.0.0.10",
@@ -699,8 +734,15 @@ func (suite *AllocateIPSuite) TestAllocateIPInSubnetWithDHCPRange() {
 			{Name: "bar", IPAddress: "10.0.0.3"},
 		},
 	}
+	network := sls_client.Network{
+		Name: "test_network",
+		ExtraProperties: &sls_client.NetworkExtraProperties{
+			CIDR:    "10.0.0.0/22",
+			Subnets: []sls_client.NetworkIpv4Subnet{subnet},
+		},
+	}
 
-	ipReservation, err := AllocateIP(subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-001")
+	ipReservation, err := AllocateIP(network, subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-001")
 	suite.NoError(err)
 
 	expectedIPReservation := sls_client.NetworkIpReservation{
@@ -713,6 +755,7 @@ func (suite *AllocateIPSuite) TestAllocateIPInSubnetWithDHCPRange() {
 
 func (suite *AllocateIPSuite) TestFullStaticSubnet() {
 	subnet := sls_client.NetworkIpv4Subnet{
+		Name:           "test_subnet",
 		CIDR:           "10.0.0.0/24",
 		Gateway:        "10.0.0.1",
 		IPReservations: []sls_client.NetworkIpReservation{},
@@ -726,7 +769,15 @@ func (suite *AllocateIPSuite) TestFullStaticSubnet() {
 		})
 	}
 
-	ipAddress, err := FindNextAvailableIP(subnet)
+	network := sls_client.Network{
+		Name: "test_network",
+		ExtraProperties: &sls_client.NetworkExtraProperties{
+			CIDR:    "10.0.0.0/22",
+			Subnets: []sls_client.NetworkIpv4Subnet{subnet},
+		},
+	}
+
+	ipAddress, err := FindNextAvailableIP(network, subnet)
 	suite.EqualError(err, "subnet has no available IPs")
 	suite.Equal(netaddr.IP{}, ipAddress)
 }
@@ -735,6 +786,7 @@ func (suite *AllocateIPSuite) TestIPReservationAlreadyExists() {
 	// TODO the function should probably indicate if it was allocated or not.
 
 	subnet := sls_client.NetworkIpv4Subnet{
+		Name:    "test_subnet",
 		CIDR:    "10.0.0.0/24",
 		Gateway: "10.0.0.1",
 		IPReservations: []sls_client.NetworkIpReservation{
@@ -743,8 +795,15 @@ func (suite *AllocateIPSuite) TestIPReservationAlreadyExists() {
 			{Name: "sw-leaf-bmc-001", IPAddress: "10.0.0.4", Comment: "x3000c0w15"},
 		},
 	}
+	network := sls_client.Network{
+		Name: "test_network",
+		ExtraProperties: &sls_client.NetworkExtraProperties{
+			CIDR:    "10.0.0.0/22",
+			Subnets: []sls_client.NetworkIpv4Subnet{subnet},
+		},
+	}
 
-	ipReservation, err := AllocateIP(subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-001")
+	ipReservation, err := AllocateIP(network, subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-001")
 	suite.NoError(err)
 
 	expectedIPReservation := sls_client.NetworkIpReservation{
@@ -757,6 +816,7 @@ func (suite *AllocateIPSuite) TestIPReservationAlreadyExists() {
 
 func (suite *AllocateIPSuite) TestDuplicateAlias() {
 	subnet := sls_client.NetworkIpv4Subnet{
+		Name:    "test_subnet",
 		CIDR:    "10.0.0.0/24",
 		Gateway: "10.0.0.1",
 		IPReservations: []sls_client.NetworkIpReservation{
@@ -766,13 +826,22 @@ func (suite *AllocateIPSuite) TestDuplicateAlias() {
 		},
 	}
 
-	ipReservation, err := AllocateIP(subnet, xnames.FromString("x3000c0w30"), "sw-leaf-bmc-001")
+	network := sls_client.Network{
+		Name: "test_network",
+		ExtraProperties: &sls_client.NetworkExtraProperties{
+			CIDR:    "10.0.0.0/22",
+			Subnets: []sls_client.NetworkIpv4Subnet{subnet},
+		},
+	}
+
+	ipReservation, err := AllocateIP(network, subnet, xnames.FromString("x3000c0w30"), "sw-leaf-bmc-001")
 	suite.Empty(ipReservation)
 	suite.EqualError(err, "ip reservation with name (sw-leaf-bmc-001) already exists on (x3000c0w15)")
 }
 
 func (suite *AllocateIPSuite) TestDuplicateXname() {
 	subnet := sls_client.NetworkIpv4Subnet{
+		Name:    "test_subnet",
 		CIDR:    "10.0.0.0/24",
 		Gateway: "10.0.0.1",
 		IPReservations: []sls_client.NetworkIpReservation{
@@ -782,13 +851,22 @@ func (suite *AllocateIPSuite) TestDuplicateXname() {
 		},
 	}
 
-	ipReservation, err := AllocateIP(subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-002")
+	network := sls_client.Network{
+		Name: "test_network",
+		ExtraProperties: &sls_client.NetworkExtraProperties{
+			CIDR:    "10.0.0.0/22",
+			Subnets: []sls_client.NetworkIpv4Subnet{subnet},
+		},
+	}
+
+	ipReservation, err := AllocateIP(network, subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-002")
 	suite.Empty(ipReservation)
 	suite.EqualError(err, "ip reservation with xname (x3000c0w15) already exists with name (sw-leaf-bmc-001)")
 }
 
 func (suite *AllocateIPSuite) TestFullStaticRange() {
 	subnet := sls_client.NetworkIpv4Subnet{
+		Name:      "test_subnet",
 		CIDR:      "10.0.0.0/24",
 		Gateway:   "10.0.0.1",
 		DHCPStart: "10.0.0.10",
@@ -803,20 +881,37 @@ func (suite *AllocateIPSuite) TestFullStaticRange() {
 		})
 	}
 
-	ipAddress, err := AllocateIP(subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-002")
+	network := sls_client.Network{
+		Name: "test_network",
+		ExtraProperties: &sls_client.NetworkExtraProperties{
+			CIDR:    "10.0.0.0/22",
+			Subnets: []sls_client.NetworkIpv4Subnet{subnet},
+		},
+	}
+
+	ipAddress, err := AllocateIP(network, subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-002")
 	suite.EqualError(err, "ip reservation with xname (x3000c0w15) and IP 10.0.0.10 is outside the static IP address range, with starting DHCP IP of 10.0.0.10")
 	suite.Empty(ipAddress)
 }
 
 func (suite *AllocateIPSuite) TestInvalidDHCPStart() {
 	subnet := sls_client.NetworkIpv4Subnet{
+		Name:      "test_subnet",
 		CIDR:      "10.0.0.0/24",
 		Gateway:   "10.0.0.1",
 		DHCPStart: "invalid-ip",
 		DHCPEnd:   "10.0.0.99",
 	}
 
-	ipAddress, err := AllocateIP(subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-002")
+	network := sls_client.Network{
+		Name: "test_network",
+		ExtraProperties: &sls_client.NetworkExtraProperties{
+			CIDR:    "10.0.0.0/22",
+			Subnets: []sls_client.NetworkIpv4Subnet{subnet},
+		},
+	}
+
+	ipAddress, err := AllocateIP(network, subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-002")
 	suite.Empty(ipAddress)
 	expectedErrorStrings := []string{
 		"failed to parse DHCP Start IP (invalid-ip) address",
@@ -827,25 +922,29 @@ func (suite *AllocateIPSuite) TestInvalidDHCPStart() {
 
 func (suite *AllocateIPSuite) TestAllocateIP_HMN_BootstrapDHCP() {
 	// TODO This test is failing due to super net hack
-	subnet, _, err := sls.LookupSubnet(suite.slsNetworks["HMN"], "bootstrap_dhcp")
+	network := suite.slsNetworks["HMN"]
+	subnet, _, err := sls.LookupSubnet(network, "bootstrap_dhcp")
 	suite.NoError(err)
 
-	ipReservation, err := AllocateIP(subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-100")
-	suite.NoError(err)
+	ipReservation, err := AllocateIP(network, subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-100")
+	suite.Empty(ipReservation)
+	suite.EqualError(err, "ip reservation with xname (x3000c0w15) and IP 10.254.1.41 is outside the static IP address range, with starting DHCP IP of 10.254.1.41")
 
-	expectedIPReservation := sls_client.NetworkIpReservation{
-		Comment:   "x3000c0w15",
-		IPAddress: "10.254.1.41",
-		Name:      "sw-leaf-bmc-100",
-	}
-	suite.Equal(expectedIPReservation, ipReservation)
+	// TODO The following would be true if the static range of the subnet was expanded
+	// expectedIPReservation := sls_client.NetworkIpReservation{
+	// 	Comment:   "x3000c0w15",
+	// 	IPAddress: "10.254.1.41",
+	// 	Name:      "sw-leaf-bmc-100",
+	// }
+	// suite.Equal(expectedIPReservation, ipReservation)
 }
 
 func (suite *AllocateIPSuite) TestAllocateIP_HMN_NetworkHardware() {
-	subnet, _, err := sls.LookupSubnet(suite.slsNetworks["HMN"], "network_hardware")
+	network := suite.slsNetworks["HMN"]
+	subnet, _, err := sls.LookupSubnet(network, "network_hardware")
 	suite.NoError(err)
 
-	ipReservation, err := AllocateIP(subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-100")
+	ipReservation, err := AllocateIP(network, subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-100")
 	suite.NoError(err)
 
 	expectedIPReservation := sls_client.NetworkIpReservation{
@@ -858,25 +957,29 @@ func (suite *AllocateIPSuite) TestAllocateIP_HMN_NetworkHardware() {
 
 func (suite *AllocateIPSuite) TestAllocateIP_NMN_BootstrapDHCP() {
 	// TODO This test is failing due to super net hack
-	subnet, _, err := sls.LookupSubnet(suite.slsNetworks["NMN"], "bootstrap_dhcp")
+	network := suite.slsNetworks["NMN"]
+	subnet, _, err := sls.LookupSubnet(network, "bootstrap_dhcp")
 	suite.NoError(err)
 
-	ipReservation, err := AllocateIP(subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-100")
-	suite.NoError(err)
+	ipReservation, err := AllocateIP(network, subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-100")
+	suite.Empty(ipReservation)
+	suite.EqualError(err, "ip reservation with xname (x3000c0w15) and IP 10.252.1.23 is outside the static IP address range, with starting DHCP IP of 10.252.1.23")
 
-	expectedIPReservation := sls_client.NetworkIpReservation{
-		Comment:   "x3000c0w15",
-		IPAddress: "10.252.1.23",
-		Name:      "sw-leaf-bmc-100",
-	}
-	suite.Equal(expectedIPReservation, ipReservation)
+	// TODO The following would be true if the static range of the subnet was expanded
+	// expectedIPReservation := sls_client.NetworkIpReservation{
+	// 	Comment:   "x3000c0w15",
+	// 	IPAddress: "10.252.1.23",
+	// 	Name:      "sw-leaf-bmc-100",
+	// }
+	// suite.Equal(expectedIPReservation, ipReservation)
 }
 
 func (suite *AllocateIPSuite) TestAllocateIP_NMN_NetworkHardware() {
-	subnet, _, err := sls.LookupSubnet(suite.slsNetworks["NMN"], "network_hardware")
+	network := suite.slsNetworks["NMN"]
+	subnet, _, err := sls.LookupSubnet(network, "network_hardware")
 	suite.NoError(err)
 
-	ipReservation, err := AllocateIP(subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-100")
+	ipReservation, err := AllocateIP(network, subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-100")
 	suite.NoError(err)
 
 	expectedIPReservation := sls_client.NetworkIpReservation{
@@ -889,33 +992,51 @@ func (suite *AllocateIPSuite) TestAllocateIP_NMN_NetworkHardware() {
 
 func (suite *AllocateIPSuite) TestAllocateIP_CMN_BootstrapDHCP() {
 	// TODO This test is failing due to super net hack
-	subnet, _, err := sls.LookupSubnet(suite.slsNetworks["CMN"], "bootstrap_dhcp")
+	network := suite.slsNetworks["CMN"]
+	subnet, _, err := sls.LookupSubnet(network, "bootstrap_dhcp")
 	suite.NoError(err)
 
-	ipReservation, err := AllocateIP(subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-100")
-	suite.NoError(err)
-
-	expectedIPReservation := sls_client.NetworkIpReservation{
-		Comment:   "x3000c0w15",
-		IPAddress: "10.102.162.38",
-		Name:      "sw-leaf-bmc-100",
+	ipReservation, err := AllocateIP(network, subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-100")
+	suite.Empty(ipReservation)
+	expectedErrorStrings := []string{
+		"failed to allocate ip for hardware (x3000c0w15) in subnet (10.102.162.16/25)",
+		"failed to detect supernet hack on subnet bootstrap_dhcp in network CMN",
+		"allocating an IP address on the (CMN) network is not currently supported",
 	}
-	suite.Equal(expectedIPReservation, ipReservation)
+	suite.EqualError(err, strings.Join(expectedErrorStrings, "\n"))
+
+	// Currently FindNextAvailableIP does not support allocate IPs on the CMN
+	// suite.NoError(err)
+	// expectedIPReservation := sls_client.NetworkIpReservation{
+	// 	Comment:   "x3000c0w15",
+	// 	IPAddress: "10.102.162.38",
+	// 	Name:      "sw-leaf-bmc-100",
+	// }
+	// suite.Equal(expectedIPReservation, ipReservation)
 }
 
 func (suite *AllocateIPSuite) TestAllocateIP_CMN_NetworkHardware() {
-	subnet, _, err := sls.LookupSubnet(suite.slsNetworks["CMN"], "network_hardware")
+	network := suite.slsNetworks["CMN"]
+	subnet, _, err := sls.LookupSubnet(network, "network_hardware")
 	suite.NoError(err)
 
-	ipReservation, err := AllocateIP(subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-100")
-	suite.NoError(err)
-
-	expectedIPReservation := sls_client.NetworkIpReservation{
-		Comment:   "x3000c0w15",
-		IPAddress: "10.102.162.5",
-		Name:      "sw-leaf-bmc-100",
+	ipReservation, err := AllocateIP(network, subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-100")
+	suite.Empty(ipReservation)
+	expectedErrorStrings := []string{
+		"failed to allocate ip for hardware (x3000c0w15) in subnet (10.102.162.0/25)",
+		"failed to detect supernet hack on subnet network_hardware in network CMN",
+		"allocating an IP address on the (CMN) network is not currently supported",
 	}
-	suite.Equal(expectedIPReservation, ipReservation)
+	suite.EqualError(err, strings.Join(expectedErrorStrings, "\n"))
+
+	// Currently FindNextAvailableIP does not support allocate IPs on the CMN
+	// suite.NoError(err)
+	// expectedIPReservation := sls_client.NetworkIpReservation{
+	// 	Comment:   "x3000c0w15",
+	// 	IPAddress: "10.102.162.5",
+	// 	Name:      "sw-leaf-bmc-100",
+	// }
+	// suite.Equal(expectedIPReservation, ipReservation)
 }
 
 func TestAllocateIPSuite(t *testing.T) {

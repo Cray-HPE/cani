@@ -34,6 +34,7 @@ import (
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	sls_common "github.com/Cray-HPE/hms-sls/v2/pkg/sls-common"
 	"github.com/Cray-HPE/hms-xname/xnames"
+	"github.com/rs/zerolog/log"
 	"inet.af/netaddr"
 )
 
@@ -56,12 +57,23 @@ func ExistingIPAddresses(slsSubnet sls_client.NetworkIpv4Subnet) (*netaddr.IPSet
 	return existingIPAddresses.IPSet()
 }
 
-func FindNextAvailableIP(slsSubnet sls_client.NetworkIpv4Subnet) (netaddr.IP, error) {
+func FindNextAvailableIP(slsNetwork sls_client.Network, slsSubnet sls_client.NetworkIpv4Subnet) (netaddr.IP, error) {
 	// TODO this function should have guardrails to ensure that the IPs are within the static range.
 
 	subnet, err := netaddr.ParseIPPrefix(slsSubnet.CIDR)
 	if err != nil {
 		return netaddr.IP{}, errors.Join(fmt.Errorf("failed to parse subnet CIDR (%v)", slsSubnet.CIDR), err)
+	}
+
+	// If the subnet has been supernet hacked, then the unhacked CIDR will be returned. Otherwise none will be returned.
+	if correctedSubnet, correctedGateway, err := IsSupernetHacked(slsNetwork, slsSubnet); correctedSubnet != nil {
+		log.Info().Msgf("Info the %s subnet in the %s network has been supernet hacked! Changing CIDR from %v to %v for IP address calculation", slsSubnet.Name, slsNetwork.Name, subnet, correctedSubnet)
+		subnet = *correctedSubnet
+		// This won't alter the incoming SLS object, as it is passed in by value
+		slsSubnet.CIDR = correctedSubnet.String()
+		slsSubnet.Gateway = correctedGateway.String()
+	} else if err != nil {
+		return netaddr.IP{}, errors.Join(fmt.Errorf("failed to detect supernet hack on subnet %s in network %s", slsSubnet.Name, slsNetwork.Name), err)
 	}
 
 	existingIPAddressesSet, err := ExistingIPAddresses(slsSubnet)
@@ -252,10 +264,13 @@ func AllocateCabinetSubnet(networkName string, slsNetwork sls_client.NetworkExtr
 	}, nil
 }
 
-func AllocateIP(slsSubnet sls_client.NetworkIpv4Subnet, xname xnames.Xname, alias string) (sls_client.NetworkIpReservation, error) {
-	ip, err := FindNextAvailableIP(slsSubnet)
+func AllocateIP(slsNetwork sls_client.Network, slsSubnet sls_client.NetworkIpv4Subnet, xname xnames.Xname, alias string) (sls_client.NetworkIpReservation, error) {
+	ip, err := FindNextAvailableIP(slsNetwork, slsSubnet)
 	if err != nil {
-		return sls_client.NetworkIpReservation{}, fmt.Errorf("failed to allocate ip for hardware (%s) in subnet (%s)", xname.String(), slsSubnet.CIDR)
+		return sls_client.NetworkIpReservation{}, errors.Join(
+			fmt.Errorf("failed to allocate ip for hardware (%s) in subnet (%s)", xname.String(), slsSubnet.CIDR),
+			err,
+		)
 	}
 
 	// Verify this switch is unique within the subnet

@@ -10,7 +10,7 @@ import (
 )
 
 // IsSupernetHacked will determine if a subnet has the supernet hack applied
-func IsSupernetHacked(network sls_client.Network, subnet sls_client.NetworkIpv4Subnet) (*netaddr.IPPrefix, error) {
+func IsSupernetHacked(network sls_client.Network, subnet sls_client.NetworkIpv4Subnet) (*netaddr.IPPrefix, *netaddr.IP, error) {
 	// Args:
 	//     network_address (netaddr.IP): Address of the network the subnet is in
 	//     subnet (sls_client.NetworkIpv4Subnet): The subnet in question
@@ -38,53 +38,53 @@ func IsSupernetHacked(network sls_client.Network, subnet sls_client.NetworkIpv4S
 	if network.Name == "CMN" || network.Name == "CAN" {
 		// TODO allocating new IP addresses on the CMN/CAN networks can be tricky and at the current point in the time is not
 		// needed (will be needed if wanting to add management switches and management nodes)
-		return nil, fmt.Errorf("allocating an IP address on the (%s) network is not currently supported", network.Name)
+		return nil, nil, fmt.Errorf("allocating an IP address on the (%s) network is not currently supported", network.Name)
 	}
 
 	// A clear clue as to the application of the supernet hack is where the subnet
 	// mask is the same as the network mask.
 	networkCIDR, err := netaddr.ParseIPPrefix(network.ExtraProperties.CIDR)
 	if err != nil {
-		return nil, errors.Join(fmt.Errorf("unable to parse network CIDR (%s)", network.ExtraProperties.CIDR), err)
+		return nil, nil, errors.Join(fmt.Errorf("unable to parse network CIDR (%s)", network.ExtraProperties.CIDR), err)
 	}
 	subnetCIDR, err := netaddr.ParseIPPrefix(subnet.CIDR)
 	if err != nil {
-		return nil, errors.Join(fmt.Errorf("unable to parse subnet CIDR (%s)", network.ExtraProperties.CIDR), err)
+		return nil, nil, errors.Join(fmt.Errorf("unable to parse subnet CIDR (%s)", network.ExtraProperties.CIDR), err)
 	}
 	if subnetCIDR.Bits() != networkCIDR.Bits() {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	usedAddressesBuilder := netaddr.IPSetBuilder{}
 	for _, ipReservation := range subnet.IPReservations {
 		ip, err := netaddr.ParseIP(ipReservation.IPAddress)
 		if err != nil {
-			return nil, errors.Join(fmt.Errorf("unable to parse IPReservation IP (%s)", ipReservation.IPAddress), err)
+			return nil, nil, errors.Join(fmt.Errorf("unable to parse IPReservation IP (%s)", ipReservation.IPAddress), err)
 		}
 		usedAddressesBuilder.Add(ip)
 	}
 	if subnet.DHCPStart != "" {
 		ip, err := netaddr.ParseIP(subnet.DHCPStart)
 		if err != nil {
-			return nil, errors.Join(fmt.Errorf("unable to parse DHCP Start IP (%s)", subnet.DHCPStart), err)
+			return nil, nil, errors.Join(fmt.Errorf("unable to parse DHCP Start IP (%s)", subnet.DHCPStart), err)
 		}
 		usedAddressesBuilder.Add(ip)
 	}
 	if subnet.DHCPEnd != "" {
 		ip, err := netaddr.ParseIP(subnet.DHCPEnd)
 		if err != nil {
-			return nil, errors.Join(fmt.Errorf("unable to parse DHCP End IP (%s)", subnet.DHCPEnd), err)
+			return nil, nil, errors.Join(fmt.Errorf("unable to parse DHCP End IP (%s)", subnet.DHCPEnd), err)
 		}
 		usedAddressesBuilder.Add(ip)
 	}
 	usedAddresses, err := usedAddressesBuilder.IPSet()
 	if err != nil {
-		return nil, errors.Join(fmt.Errorf("failed to build used IP addresses set"), err)
+		return nil, nil, errors.Join(fmt.Errorf("failed to build used IP addresses set"), err)
 	}
 
 	usedIPRanges := usedAddresses.Ranges()
 	if len(usedIPRanges) == 0 {
-		return nil, nil
+		return nil, nil, nil
 	}
 	minIP := usedIPRanges[0].From()
 	maxIP := usedIPRanges[len(usedIPRanges)-1].To()
@@ -115,7 +115,7 @@ func IsSupernetHacked(network sls_client.Network, subnet sls_client.NetworkIpv4S
 	// Do not apply the reverse hackology for subnets in CSI it is not applied
 	if !(coreSubnets[subnet.Name] || staticPoolSubnets[subnet.Name] || dynamicPoolSubnets[subnet.Name]) {
 		log.Info().Msgf("Subnet %s is present in supernet hacked subnet", subnet.Name)
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	// Subnet masks found in CSI for different subnets. This prevents reverse
@@ -134,18 +134,20 @@ func IsSupernetHacked(network sls_client.Network, subnet sls_client.NetworkIpv4S
 
 		blocks, err := SplitNetwork(networkCIDR, subnetMaskBits)
 		if err != nil {
-			return nil, errors.Join(fmt.Errorf("failed to split network CIDR (%v) with subnet size /%d", networkCIDR, subnetMaskBits), err)
+			return nil, nil, errors.Join(fmt.Errorf("failed to split network CIDR (%v) with subnet size /%d", networkCIDR, subnetMaskBits), err)
 		}
 
 		for _, block := range blocks {
 			if block.Contains(minIP) && block.Contains(maxIP) {
+				gatewayIP := block.Range().From().Next()
+
 				log.Info().Msgf("CATCH: %v in %v", block, blocks)
 				log.Info().Msgf("    Address: %v", block)
-				log.Info().Msgf("    Gateway: %v", block.Range().From())
-				return &block, nil
+				log.Info().Msgf("    Gateway: %v", gatewayIP)
+				return &block, &gatewayIP, nil
 			}
 		}
 	}
 
-	return nil, fmt.Errorf("unable to determine prefix length")
+	return nil, nil, fmt.Errorf("unable to determine prefix length")
 }

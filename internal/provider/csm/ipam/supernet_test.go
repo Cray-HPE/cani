@@ -34,11 +34,14 @@ func (suite *IsSupernetHackedSuite) TestHMN_BootstrapDHCP() {
 	subnet, _, err := sls.LookupSubnet(network, "bootstrap_dhcp")
 	suite.NoError(err)
 
-	correctedSubnetCIDR, err := IsSupernetHacked(network, subnet)
+	correctedSubnetCIDR, correctedGatwayIP, err := IsSupernetHacked(network, subnet)
 	suite.NoError(err)
 
 	expectedSubnetCIDR := netaddr.MustParseIPPrefix("10.254.1.0/24")
 	suite.Equal(&expectedSubnetCIDR, correctedSubnetCIDR)
+
+	expectedGatewayIP := netaddr.MustParseIP("10.254.1.1")
+	suite.Equal(&expectedGatewayIP, correctedGatwayIP)
 }
 
 func (suite *IsSupernetHackedSuite) TestHMN_NetworkHardware() {
@@ -46,11 +49,14 @@ func (suite *IsSupernetHackedSuite) TestHMN_NetworkHardware() {
 	subnet, _, err := sls.LookupSubnet(network, "network_hardware")
 	suite.NoError(err)
 
-	correctedSubnetCIDR, err := IsSupernetHacked(network, subnet)
+	correctedSubnetCIDR, correctedGatwayIP, err := IsSupernetHacked(network, subnet)
 	suite.NoError(err)
 
 	expectedSubnetCIDR := netaddr.MustParseIPPrefix("10.254.0.0/24")
 	suite.Equal(&expectedSubnetCIDR, correctedSubnetCIDR)
+
+	expectedGatewayIP := netaddr.MustParseIP("10.254.0.1")
+	suite.Equal(&expectedGatewayIP, correctedGatwayIP)
 }
 
 func (suite *IsSupernetHackedSuite) TestNMN_BootstrapDHCP() {
@@ -58,11 +64,14 @@ func (suite *IsSupernetHackedSuite) TestNMN_BootstrapDHCP() {
 	subnet, _, err := sls.LookupSubnet(network, "bootstrap_dhcp")
 	suite.NoError(err)
 
-	correctedSubnetCIDR, err := IsSupernetHacked(network, subnet)
+	correctedSubnetCIDR, correctedGatwayIP, err := IsSupernetHacked(network, subnet)
 	suite.NoError(err)
 
 	expectedSubnetCIDR := netaddr.MustParseIPPrefix("10.252.1.0/24")
 	suite.Equal(&expectedSubnetCIDR, correctedSubnetCIDR)
+
+	expectedGatewayIP := netaddr.MustParseIP("10.252.1.1")
+	suite.Equal(&expectedGatewayIP, correctedGatwayIP)
 }
 
 func (suite *IsSupernetHackedSuite) TestNMN_NetworkHardware() {
@@ -70,11 +79,14 @@ func (suite *IsSupernetHackedSuite) TestNMN_NetworkHardware() {
 	subnet, _, err := sls.LookupSubnet(network, "network_hardware")
 	suite.NoError(err)
 
-	correctedSubnetCIDR, err := IsSupernetHacked(network, subnet)
+	correctedSubnetCIDR, correctedGatwayIP, err := IsSupernetHacked(network, subnet)
 	suite.NoError(err)
 
 	expectedSubnetCIDR := netaddr.MustParseIPPrefix("10.252.0.0/24")
 	suite.Equal(&expectedSubnetCIDR, correctedSubnetCIDR)
+
+	expectedGatewayIP := netaddr.MustParseIP("10.252.0.1")
+	suite.Equal(&expectedGatewayIP, correctedGatwayIP)
 }
 
 func (suite *IsSupernetHackedSuite) TestMTL_BootstrapDHCP() {
@@ -82,11 +94,14 @@ func (suite *IsSupernetHackedSuite) TestMTL_BootstrapDHCP() {
 	subnet, _, err := sls.LookupSubnet(network, "bootstrap_dhcp")
 	suite.NoError(err)
 
-	correctedSubnetCIDR, err := IsSupernetHacked(network, subnet)
+	correctedSubnetCIDR, correctedGatwayIP, err := IsSupernetHacked(network, subnet)
 	suite.NoError(err)
 
 	expectedSubnetCIDR := netaddr.MustParseIPPrefix("10.1.1.0/24")
 	suite.Equal(&expectedSubnetCIDR, correctedSubnetCIDR)
+
+	expectedGatewayIP := netaddr.MustParseIP("10.1.1.1")
+	suite.Equal(&expectedGatewayIP, correctedGatwayIP)
 }
 
 func (suite *IsSupernetHackedSuite) TestMTL_NetworkHardware() {
@@ -94,11 +109,14 @@ func (suite *IsSupernetHackedSuite) TestMTL_NetworkHardware() {
 	subnet, _, err := sls.LookupSubnet(network, "network_hardware")
 	suite.NoError(err)
 
-	correctedSubnetCIDR, err := IsSupernetHacked(network, subnet)
+	correctedSubnetCIDR, correctedGatwayIP, err := IsSupernetHacked(network, subnet)
 	suite.NoError(err)
 
 	expectedSubnetCIDR := netaddr.MustParseIPPrefix("10.1.0.0/24")
 	suite.Equal(&expectedSubnetCIDR, correctedSubnetCIDR)
+
+	expectedGatewayIP := netaddr.MustParseIP("10.1.0.1")
+	suite.Equal(&expectedGatewayIP, correctedGatwayIP)
 }
 
 func (suite *IsSupernetHackedSuite) TestCMN_MetalLBStaticPool() {
@@ -106,9 +124,11 @@ func (suite *IsSupernetHackedSuite) TestCMN_MetalLBStaticPool() {
 	subnet, _, err := sls.LookupSubnet(network, "cmn_metallb_static_pool")
 	suite.NoError(err)
 
-	correctedSubnetCIDR, err := IsSupernetHacked(network, subnet)
+	correctedSubnetCIDR, correctedGatwayIP, err := IsSupernetHacked(network, subnet)
 	suite.EqualError(err, "allocating an IP address on the (CMN) network is not currently supported")
 	suite.Nil(correctedSubnetCIDR)
+	suite.Nil(correctedGatwayIP)
+
 }
 
 func (suite *IsSupernetHackedSuite) TestCMN_MetalLBDynamicPool() {
@@ -116,9 +136,10 @@ func (suite *IsSupernetHackedSuite) TestCMN_MetalLBDynamicPool() {
 	subnet, _, err := sls.LookupSubnet(network, "cmn_metallb_address_pool")
 	suite.NoError(err)
 
-	correctedSubnetCIDR, err := IsSupernetHacked(network, subnet)
+	correctedSubnetCIDR, correctedGatwayIP, err := IsSupernetHacked(network, subnet)
 	suite.EqualError(err, "allocating an IP address on the (CMN) network is not currently supported")
 	suite.Nil(correctedSubnetCIDR)
+	suite.Nil(correctedGatwayIP)
 }
 
 func (suite *IsSupernetHackedSuite) TestCMN_NetworkHardware() {
@@ -126,9 +147,11 @@ func (suite *IsSupernetHackedSuite) TestCMN_NetworkHardware() {
 	subnet, _, err := sls.LookupSubnet(network, "network_hardware")
 	suite.NoError(err)
 
-	correctedSubnetCIDR, err := IsSupernetHacked(network, subnet)
+	correctedSubnetCIDR, correctedGatwayIP, err := IsSupernetHacked(network, subnet)
 	suite.EqualError(err, "allocating an IP address on the (CMN) network is not currently supported")
 	suite.Nil(correctedSubnetCIDR)
+	suite.Nil(correctedGatwayIP)
+
 }
 
 func (suite *IsSupernetHackedSuite) TestCAN_MetalLBDynamicPool() {
@@ -136,9 +159,11 @@ func (suite *IsSupernetHackedSuite) TestCAN_MetalLBDynamicPool() {
 	subnet, _, err := sls.LookupSubnet(network, "can_metallb_address_pool")
 	suite.NoError(err)
 
-	correctedSubnetCIDR, err := IsSupernetHacked(network, subnet)
+	correctedSubnetCIDR, correctedGatwayIP, err := IsSupernetHacked(network, subnet)
 	suite.EqualError(err, "allocating an IP address on the (CAN) network is not currently supported")
 	suite.Nil(correctedSubnetCIDR)
+	suite.Nil(correctedGatwayIP)
+
 }
 
 func TestIsSupernetHackedSuite(t *testing.T) {
