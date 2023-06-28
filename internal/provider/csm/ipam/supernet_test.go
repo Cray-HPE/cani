@@ -131,16 +131,6 @@ func (suite *IsSupernetHackedSuite) TestCMN_NetworkHardware() {
 	suite.Nil(correctedSubnetCIDR)
 }
 
-func (suite *IsSupernetHackedSuite) TestCAN_MetalLBStaticPool() {
-	network := suite.slsNetworks["CAN"]
-	subnet, _, err := sls.LookupSubnet(network, "cmn_metallb_static_pool")
-	suite.NoError(err)
-
-	correctedSubnetCIDR, err := IsSupernetHacked(network, subnet)
-	suite.EqualError(err, "allocating an IP address on the (CAN) network is not currently supported")
-	suite.Nil(correctedSubnetCIDR)
-}
-
 func (suite *IsSupernetHackedSuite) TestCAN_MetalLBDynamicPool() {
 	network := suite.slsNetworks["CAN"]
 	subnet, _, err := sls.LookupSubnet(network, "can_metallb_address_pool")

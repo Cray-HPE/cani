@@ -130,11 +130,6 @@ func IsSupernetHacked(network sls_client.Network, subnet sls_client.NetworkIpv4S
 	}
 	log.Info().Msgf("PREFIXLEN: %v", expectedSubnetMaskBits)
 
-	if expectedSubnetMaskBits > networkCIDR.Bits() {
-		// This is a small subnet like one found in the CAN/CMN networks
-		return nil, nil
-	}
-
 	for subnetMaskBits := expectedSubnetMaskBits; subnetMaskBits <= 30; subnetMaskBits++ {
 
 		blocks, err := SplitNetwork(networkCIDR, subnetMaskBits)
