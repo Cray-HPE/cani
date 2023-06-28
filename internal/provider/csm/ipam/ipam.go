@@ -57,9 +57,11 @@ func ExistingIPAddresses(slsSubnet sls_client.NetworkIpv4Subnet) (*netaddr.IPSet
 }
 
 func FindNextAvailableIP(slsSubnet sls_client.NetworkIpv4Subnet) (netaddr.IP, error) {
+	// TODO this function should have guardrails to ensure that the IPs are within the static range.
+
 	subnet, err := netaddr.ParseIPPrefix(slsSubnet.CIDR)
 	if err != nil {
-		return netaddr.IP{}, fmt.Errorf("failed to parse subnet CIDR (%v): %w", slsSubnet.CIDR, err)
+		return netaddr.IP{}, errors.Join(fmt.Errorf("failed to parse subnet CIDR (%v)", slsSubnet.CIDR), err)
 	}
 
 	existingIPAddressesSet, err := ExistingIPAddresses(slsSubnet)

@@ -286,6 +286,60 @@ type FindNextAvailableIPSuite struct {
 	suite.Suite
 }
 
+func (suite *FindNextAvailableIPSuite) TestAllocateIP() {
+	subnet := sls_client.NetworkIpv4Subnet{
+		CIDR:    "10.0.0.0/24",
+		Gateway: "10.0.0.1",
+		IPReservations: []sls_client.NetworkIpReservation{
+			{Name: "foo", IPAddress: "10.0.0.2"},
+			{Name: "bar", IPAddress: "10.0.0.3"},
+		},
+	}
+
+	ipAddress, err := FindNextAvailableIP(subnet)
+	suite.NoError(err)
+
+	expectedIPaddress := netaddr.MustParseIP("10.0.0.4")
+	suite.Equal(expectedIPaddress, ipAddress)
+}
+
+func (suite *FindNextAvailableIPSuite) TestFullSubnet() {
+	subnet := sls_client.NetworkIpv4Subnet{
+		CIDR:           "10.0.0.0/24",
+		Gateway:        "10.0.0.1",
+		IPReservations: []sls_client.NetworkIpReservation{},
+	}
+
+	// Fill subnet with IP address reservations
+	for i := 2; i < 255; i++ {
+		subnet.IPReservations = append(subnet.IPReservations, sls_client.NetworkIpReservation{
+			Name:      fmt.Sprintf("reservation_%d", i),
+			IPAddress: fmt.Sprintf("10.0.0.%d", i),
+		})
+	}
+
+	ipAddress, err := FindNextAvailableIP(subnet)
+	suite.EqualError(err, "subnet has no available IPs")
+	suite.Equal(netaddr.IP{}, ipAddress)
+}
+
+func (suite *FindNextAvailableIPSuite) TestInvalidSubnetCIDR() {
+	subnet := sls_client.NetworkIpv4Subnet{
+		CIDR:           "not-a-cidr",
+		Gateway:        "10.0.0.1",
+		IPReservations: []sls_client.NetworkIpReservation{},
+	}
+
+	ipAddress, err := FindNextAvailableIP(subnet)
+	suite.Equal(netaddr.IP{}, ipAddress)
+
+	expectedErrorStrings := []string{
+		"failed to parse subnet CIDR (not-a-cidr)",
+		"netaddr.ParseIPPrefix(\"not-a-cidr\"): no '/'",
+	}
+	suite.EqualError(err, strings.Join(expectedErrorStrings, "\n"))
+}
+
 func TestFindNextAvailableIPSuite(t *testing.T) {
 	suite.Run(t, new(FindNextAvailableIPSuite))
 }
