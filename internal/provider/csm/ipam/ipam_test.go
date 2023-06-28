@@ -783,8 +783,6 @@ func (suite *AllocateIPSuite) TestFullStaticSubnet() {
 }
 
 func (suite *AllocateIPSuite) TestIPReservationAlreadyExists() {
-	// TODO the function should probably indicate if it was allocated or not.
-
 	subnet := sls_client.NetworkIpv4Subnet{
 		Name:    "test_subnet",
 		CIDR:    "10.0.0.0/24",
@@ -804,14 +802,9 @@ func (suite *AllocateIPSuite) TestIPReservationAlreadyExists() {
 	}
 
 	ipReservation, err := AllocateIP(network, subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-001")
-	suite.NoError(err)
+	suite.Empty(ipReservation)
+	suite.EqualError(err, "ip reservation with name (sw-leaf-bmc-001) and xname (x3000c0w15) already exists with IP (10.0.0.4)")
 
-	expectedIPReservation := sls_client.NetworkIpReservation{
-		Comment:   "x3000c0w15",
-		IPAddress: "10.0.0.4",
-		Name:      "sw-leaf-bmc-001",
-	}
-	suite.Equal(expectedIPReservation, ipReservation)
 }
 
 func (suite *AllocateIPSuite) TestDuplicateAlias() {
@@ -836,7 +829,7 @@ func (suite *AllocateIPSuite) TestDuplicateAlias() {
 
 	ipReservation, err := AllocateIP(network, subnet, xnames.FromString("x3000c0w30"), "sw-leaf-bmc-001")
 	suite.Empty(ipReservation)
-	suite.EqualError(err, "ip reservation with name (sw-leaf-bmc-001) already exists on (x3000c0w15)")
+	suite.EqualError(err, "ip reservation with name (sw-leaf-bmc-001) already exists on (x3000c0w15) with IP (10.0.0.4)")
 }
 
 func (suite *AllocateIPSuite) TestDuplicateXname() {
@@ -861,7 +854,7 @@ func (suite *AllocateIPSuite) TestDuplicateXname() {
 
 	ipReservation, err := AllocateIP(network, subnet, xnames.FromString("x3000c0w15"), "sw-leaf-bmc-002")
 	suite.Empty(ipReservation)
-	suite.EqualError(err, "ip reservation with xname (x3000c0w15) already exists with name (sw-leaf-bmc-001)")
+	suite.EqualError(err, "ip reservation with xname (x3000c0w15) already exists with name (sw-leaf-bmc-001) with IP (10.0.0.4)")
 }
 
 func (suite *AllocateIPSuite) TestFullStaticRange() {

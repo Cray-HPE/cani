@@ -141,7 +141,7 @@ func IsSupernetHacked(network sls_client.Network, subnet sls_client.NetworkIpv4S
 			if block.Contains(minIP) && block.Contains(maxIP) {
 				gatewayIP := block.Range().From().Next()
 
-				log.Info().Msgf("CATCH: %v in %v", block, blocks)
+				log.Info().Msgf("CATCH: %v", block)
 				log.Info().Msgf("    Address: %v", block)
 				log.Info().Msgf("    Gateway: %v", gatewayIP)
 				return &block, &gatewayIP, nil

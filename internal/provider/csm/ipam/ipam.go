@@ -280,11 +280,11 @@ func AllocateIP(slsNetwork sls_client.Network, slsSubnet sls_client.NetworkIpv4S
 
 		if matchingAlias && matchingXName {
 			// IP reservation already exists
-			return sls_client.NetworkIpReservation{}, nil
+			return sls_client.NetworkIpReservation{}, fmt.Errorf("ip reservation with name (%v) and xname (%v) already exists with IP (%s)", ipReservation.Name, ipReservation.Comment, ipReservation.IPAddress)
 		} else if matchingAlias {
-			return sls_client.NetworkIpReservation{}, fmt.Errorf("ip reservation with name (%v) already exists on (%v)", alias, ipReservation.Comment)
+			return sls_client.NetworkIpReservation{}, fmt.Errorf("ip reservation with name (%v) already exists on (%v) with IP (%s)", alias, ipReservation.Comment, ipReservation.IPAddress)
 		} else if matchingXName {
-			return sls_client.NetworkIpReservation{}, fmt.Errorf("ip reservation with xname (%v) already exists with name (%v)", xname.String(), ipReservation.Name)
+			return sls_client.NetworkIpReservation{}, fmt.Errorf("ip reservation with xname (%v) already exists with name (%v) with IP (%s)", xname.String(), ipReservation.Name, ipReservation.IPAddress)
 		}
 	}
 
