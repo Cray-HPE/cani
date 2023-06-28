@@ -35,6 +35,12 @@ func IsSupernetHacked(network sls_client.Network, subnet sls_client.NetworkIpv4S
 	// The most important heuristic indicator of the supernet hack is if a subnet has the same netmask
 	// as its containing network then the supernet.
 
+	if network.Name == "CMN" || network.Name == "CAN" {
+		// TODO allocating new IP addresses on the CMN/CAN networks can be tricky and at the current point in the time is not
+		// needed (will be needed if wanting to add management switches and management nodes)
+		return nil, fmt.Errorf("allocating an IP address on the (%s) network is not currently supported", network.Name)
+	}
+
 	// A clear clue as to the application of the supernet hack is where the subnet
 	// mask is the same as the network mask.
 	networkCIDR, err := netaddr.ParseIPPrefix(network.ExtraProperties.CIDR)
@@ -98,10 +104,12 @@ func IsSupernetHacked(network sls_client.Network, subnet sls_client.NetworkIpv4S
 	staticPoolSubnets := map[string]bool{
 		// Static bool Subnets
 		"can_metallb_static_pool": true,
+		"cmn_metallb_static_pool": true,
 	}
 	dynamicPoolSubnets := map[string]bool{
 		// Dynamic pool subnets
 		"can_metallb_address_pool": true,
+		"cmn_metallb_address_pool": true,
 	}
 
 	// Do not apply the reverse hackology for subnets in CSI it is not applied
@@ -112,22 +120,26 @@ func IsSupernetHacked(network sls_client.Network, subnet sls_client.NetworkIpv4S
 
 	// Subnet masks found in CSI for different subnets. This prevents reverse
 	// engineering very small subnets based on number of hosts and dhcp ranges alone.
-	prefixDiff := 30
+	expectedSubnetMaskBits := uint8(30)
 	if coreSubnets[subnet.Name] {
-		prefixDiff = 24
+		expectedSubnetMaskBits = 24
 	} else if staticPoolSubnets[subnet.Name] {
-		prefixDiff = 28
+		expectedSubnetMaskBits = 28
 	} else if dynamicPoolSubnets[subnet.Name] {
-		prefixDiff = 27
+		expectedSubnetMaskBits = 27
 	}
-	log.Info().Msgf("PREFIXLEN: %v", prefixDiff)
-	prefixDiff -= int(networkCIDR.Bits())
+	log.Info().Msgf("PREFIXLEN: %v", expectedSubnetMaskBits)
 
-	for level := prefixDiff; level > 0; level-- {
+	if expectedSubnetMaskBits > networkCIDR.Bits() {
+		// This is a small subnet like one found in the CAN/CMN networks
+		return nil, nil
+	}
 
-		blocks, err := SplitNetwork(networkCIDR, uint8(level))
+	for subnetMaskBits := expectedSubnetMaskBits; subnetMaskBits <= 30; subnetMaskBits++ {
+
+		blocks, err := SplitNetwork(networkCIDR, subnetMaskBits)
 		if err != nil {
-			return nil, errors.Join(fmt.Errorf("failed to split network CIDR (%v) with subnet size /%d", networkCIDR, level), err)
+			return nil, errors.Join(fmt.Errorf("failed to split network CIDR (%v) with subnet size /%d", networkCIDR, subnetMaskBits), err)
 		}
 
 		for _, block := range blocks {
