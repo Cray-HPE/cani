@@ -24,6 +24,6 @@ rm -rf ~/.cani && go run . alpha session start csm -S -k
 # wipe out SLS
 echo '{}' > /tmp/sls_empty.json; curl -X POST -F "sls_dump=@/tmp/sls_empty.json" https://localhost:8443/apis/sls/v1/loadstate -ik
 # put in a known good-config (this could be any valid SLS file)
-curl -X POST -F "sls_dump=@testdata/fixtures/sls/mug-dumpstate.json" https://localhost:8443/apis/sls/v1/loadstate -ik
+curl -X POST -F "sls_dump=@testdata/fixtures/sls/valid-mug.json" https://localhost:8443/apis/sls/v1/loadstate -ik
 # run cani commands...
 ```

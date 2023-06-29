@@ -54,9 +54,17 @@ type InventoryProvider interface {
 	// Build metadata, and add ito the hardware object
 	// This function could return the data to put into object
 	BuildHardwareMetadata(hw *inventory.Hardware, rawProperties map[string]interface{}) error
+
+	// RecommendCabinet returns recommended settings for adding a cabinet
+	RecommendCabinet(inv inventory.Inventory, deviceTypeSlug string) (HardwareRecommendations, error)
 }
 
 type HardwareValidationResult struct {
 	Hardware inventory.Hardware
 	Errors   []string
+}
+
+type HardwareRecommendations struct {
+	LocationOrdinal  int
+	ProviderMetadata map[string]interface{}
 }

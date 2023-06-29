@@ -143,7 +143,8 @@ type ProviderDefaults struct {
 }
 
 type ProviderDefaultsCSM struct {
-	Class *string `yaml:"Class"`
+	Class   *string `yaml:"Class"`
+	Ordinal int     `yaml:"Ordinal"`
 }
 
 // TODO

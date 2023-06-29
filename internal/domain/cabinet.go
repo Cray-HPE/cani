@@ -71,7 +71,7 @@ func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetO
 		)
 	}
 
-	// Verify the provided device type slug is a node blade
+	// Verify the provided device type slug is a cabinet
 	deviceType, err := d.hardwareTypeLibrary.GetDeviceType(deviceTypeSlug)
 	if err != nil {
 		return AddHardwareResult{}, err
@@ -167,4 +167,18 @@ func (d *Domain) RemoveCabinet(u uuid.UUID, recursion bool) error {
 	}
 
 	return d.datastore.Flush()
+}
+
+func (d *Domain) Recommend(deviceTypeSlug string) (recommendations provider.HardwareRecommendations, err error) {
+	// Get the existing inventory
+	inv, err := d.List()
+	if err != nil {
+		return recommendations, err
+	}
+	// Get recommendations from the CSM provider for the cabinet
+	recommendations, err = d.externalInventoryProvider.RecommendCabinet(inv, deviceTypeSlug)
+	if err != nil {
+		return recommendations, err
+	}
+	return recommendations, nil
 }
