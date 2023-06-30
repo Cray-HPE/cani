@@ -56,14 +56,11 @@ var SessionStartCmd = &cobra.Command{
 }
 
 var (
-	providerName string
-	validArgs    = []string{"csm"}
+	validArgs = []string{"csm"}
 )
 
 // startSession starts a session if one does not exist
 func startSession(cmd *cobra.Command, args []string) error {
-	// TODO This is probably not the right way todo this, but hopefully this will be easy way...
-	// Sorry Jacob
 	if useSimulation {
 		log.Warn().Msg("Using simulation mode")
 		root.Conf.Session.DomainOptions.CsmOptions.UseSimulation = true
@@ -136,7 +133,7 @@ func startSession(cmd *cobra.Command, args []string) error {
 		return err
 	} else if err != nil {
 		return errors.Join(err,
-			errors.New("External inventory is unstable.  Fix, and check with 'cani validate' before continuing."))
+			errors.New("External inventory is unstable.  Fix issues before starting another session."))
 	}
 
 	// "Activate" the session
