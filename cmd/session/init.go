@@ -59,7 +59,7 @@ func init() {
 	SessionStartCmd.Flags().BoolVarP(&useSimulation, "csm-simulator", "S", false, "(CSM Provider) Use simulation environment URLs")
 
 	// These three pieces are needed for the CSM provider to get a token
-	SessionStartCmd.Flags().StringVar(&providerHost, "csm-api-host", "api-gw-service-nmn.local", "(CSM Provider) Host or FQDN for authentation and APIs")
+	SessionStartCmd.Flags().StringVar(&providerHost, "csm-api-host", "", "(CSM Provider) Host or FQDN for authentation and APIs")
 	// SessionStartCmd.MarkFlagRequired("csm-api-host")
 	SessionStartCmd.Flags().StringVar(&tokenUsername, "csm-keycloak-username", "", "(CSM Provider) Keycloak username")
 	// SessionStartCmd.MarkFlagRequired("csm-keycloak-username")

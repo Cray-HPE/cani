@@ -33,6 +33,7 @@ var (
 	cabinetNumber int
 	vlanId        int
 	auto          bool
+	accept        bool
 )
 
 func init() {
@@ -52,4 +53,5 @@ func init() {
 	AddCabinetCmd.MarkFlagsRequiredTogether("cabinet", "vlan-id")
 	AddCabinetCmd.Flags().BoolVar(&auto, "auto", false, "Automatically recommend and assign required flags.")
 	AddCabinetCmd.MarkFlagsMutuallyExclusive("auto")
+	AddCabinetCmd.Flags().BoolVarP(&accept, "accept", "y", false, "Automatically accept recommended values.")
 }
