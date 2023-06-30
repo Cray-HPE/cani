@@ -32,7 +32,6 @@ import (
 	"math"
 
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
-	sls_common "github.com/Cray-HPE/hms-sls/v2/pkg/sls-common"
 	"github.com/Cray-HPE/hms-xname/xnames"
 	"github.com/rs/zerolog/log"
 	"inet.af/netaddr"
@@ -319,64 +318,68 @@ func AllocateIP(slsNetwork sls_client.Network, slsSubnet sls_client.NetworkIpv4S
 	}, nil
 }
 
-func FreeIPsInStaticRange(slsSubnet sls_client.NetworkIpv4Subnet) (uint32, error) {
-	// Probably need to steal some of the logic for allocate IP. Need to share the logic between the two
+//
+// The following functions may be needed when adding hardware like application or management nodes
+//
 
-	subnet, err := netaddr.ParseIPPrefix(slsSubnet.CIDR)
-	if err != nil {
-		return 0, fmt.Errorf("failed to parse subnet CIDR (%v): %w", slsSubnet.CIDR, err)
-	}
+// func FreeIPsInStaticRange(slsSubnet sls_client.NetworkIpv4Subnet) (uint32, error) {
+// 	// Probably need to steal some of the logic for allocate IP. Need to share the logic between the two
+//
+// 	subnet, err := netaddr.ParseIPPrefix(slsSubnet.CIDR)
+// 	if err != nil {
+// 		return 0, fmt.Errorf("failed to parse subnet CIDR (%v): %w", slsSubnet.CIDR, err)
+// 	}
+//
+// 	existingIPAddressesSet, err := ExistingIPAddresses(slsSubnet)
+// 	if err != nil {
+// 		return 0, err
+// 	}
+//
+// 	startingIP := subnet.Range().From().Next() // Start at the first usable available IP in the subnet.
+// 	endingIP, err := netaddr.ParseIP(slsSubnet.DHCPStart)
+// 	if err != nil {
+// 		return 0, fmt.Errorf("failed to convert DHCP Start IP address to netaddr struct")
+// 	}
+//
+// 	var count uint32
+// 	for ip := startingIP; ip.Less(endingIP); ip = ip.Next() {
+// 		if existingIPAddressesSet.Contains(ip) {
+// 			// IP address currently in use
+// 			continue
+// 		}
+// 		count++
+// 	}
+//
+// 	return count, nil
+// }
 
-	existingIPAddressesSet, err := ExistingIPAddresses(slsSubnet)
-	if err != nil {
-		return 0, err
-	}
-
-	startingIP := subnet.Range().From().Next() // Start at the first usable available IP in the subnet.
-	endingIP, err := netaddr.ParseIP(slsSubnet.DHCPStart)
-	if err != nil {
-		return 0, fmt.Errorf("failed to convert DHCP Start IP address to netaddr struct")
-	}
-
-	var count uint32
-	for ip := startingIP; ip.Less(endingIP); ip = ip.Next() {
-		if existingIPAddressesSet.Contains(ip) {
-			// IP address currently in use
-			continue
-		}
-		count++
-	}
-
-	return count, nil
-}
-
-func ExpandSubnetStaticRange(slsSubnet *sls_common.IPV4Subnet, count uint32) error {
-	if slsSubnet.DHCPStart == nil || slsSubnet.DHCPEnd == nil {
-		return fmt.Errorf("subnet does not have DHCP range")
-	}
-
-	dhcpStart, ok := netaddr.FromStdIP(slsSubnet.DHCPStart)
-	if !ok {
-		return fmt.Errorf("failed to convert DHCP Start IP address to netaddr struct")
-	}
-
-	dhcpEnd, ok := netaddr.FromStdIP(slsSubnet.DHCPEnd)
-	if !ok {
-		return fmt.Errorf("failed to convert DHCP END IP address to netaddr struct")
-	}
-
-	// Move it forward!
-	dhcpStart, err := AdvanceIP(dhcpStart, count)
-	if err != nil {
-		return fmt.Errorf("failed to advice DHCP Start IP address: %w", err)
-	}
-
-	// Verify the DHCP Start address is smaller than the end address
-	if !dhcpStart.Less(dhcpEnd) {
-		return fmt.Errorf("new DHCP Start address %v is equal or larger then the DHCP End address %v", dhcpStart, dhcpEnd)
-	}
-
-	// Now update the SLS subnet
-	slsSubnet.DHCPStart = dhcpStart.IPAddr().IP
-	return nil
-}
+// func ExpandSubnetStaticRange(slsSubnet *sls_common.IPV4Subnet, count uint32) error {
+// 	if slsSubnet.DHCPStart == nil || slsSubnet.DHCPEnd == nil {
+// 		return fmt.Errorf("subnet does not have DHCP range")
+// 	}
+//
+// 	dhcpStart, ok := netaddr.FromStdIP(slsSubnet.DHCPStart)
+// 	if !ok {
+// 		return fmt.Errorf("failed to convert DHCP Start IP address to netaddr struct")
+// 	}
+//
+// 	dhcpEnd, ok := netaddr.FromStdIP(slsSubnet.DHCPEnd)
+// 	if !ok {
+// 		return fmt.Errorf("failed to convert DHCP END IP address to netaddr struct")
+// 	}
+//
+// 	// Move it forward!
+// 	dhcpStart, err := AdvanceIP(dhcpStart, count)
+// 	if err != nil {
+// 		return fmt.Errorf("failed to advice DHCP Start IP address: %w", err)
+// 	}
+//
+// 	// Verify the DHCP Start address is smaller than the end address
+// 	if !dhcpStart.Less(dhcpEnd) {
+// 		return fmt.Errorf("new DHCP Start address %v is equal or larger then the DHCP End address %v", dhcpStart, dhcpEnd)
+// 	}
+//
+// 	// Now update the SLS subnet
+// 	slsSubnet.DHCPStart = dhcpStart.IPAddr().IP
+// 	return nil
+// }

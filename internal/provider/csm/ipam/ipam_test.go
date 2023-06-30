@@ -1409,30 +1409,30 @@ func TestAllocateIPSuite(t *testing.T) {
 	suite.Run(t, new(AllocateIPSuite))
 }
 
+// //
+// // FreeIPsInStaticRangeSuite
+// //
 //
-// FreeIPsInStaticRangeSuite
+// // TODO
 //
-
-// TODO
-
-type FreeIPsInStaticRangeSuite struct {
-	suite.Suite
-}
-
-func TestFreeIPsInStaticRangeSuite(t *testing.T) {
-	suite.Run(t, new(FreeIPsInStaticRangeSuite))
-}
-
+// type FreeIPsInStaticRangeSuite struct {
+// 	suite.Suite
+// }
 //
-// ExpandSubnetStaticRangeSuite
+// func TestFreeIPsInStaticRangeSuite(t *testing.T) {
+// 	suite.Run(t, new(FreeIPsInStaticRangeSuite))
+// }
 //
-
-// TODO
-
-type ExpandSubnetStaticRangeSuite struct {
-	suite.Suite
-}
-
-func TestExpandSubnetStaticRangeSuite(t *testing.T) {
-	suite.Run(t, new(ExpandSubnetStaticRangeSuite))
-}
+// //
+// // ExpandSubnetStaticRangeSuite
+// //
+//
+// // TODO
+//
+// type ExpandSubnetStaticRangeSuite struct {
+// 	suite.Suite
+// }
+//
+// func TestExpandSubnetStaticRangeSuite(t *testing.T) {
+// 	suite.Run(t, new(ExpandSubnetStaticRangeSuite))
+// }
