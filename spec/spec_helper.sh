@@ -32,6 +32,10 @@ spec_helper_precheck() {
   # Available functions: info, warn, error, abort, setenv, unsetenv
   # Available variables: VERSION, SHELL_TYPE, SHELL_VERSION
   : minimum_version "0.28.1"
+
+  # Fixtures location ./spec/fixtures
+  setenv FIXTURES="$SHELLSPEC_HELPERDIR/testdata/fixtures"
+  
 }
 
 # This callback function will be invoked after a specfile has been loaded.
@@ -43,6 +47,23 @@ spec_helper_loaded() {
 spec_helper_configure() {
   # Available functions: import, before_each, after_each, before_all, after_all
   : import 'support/custom_matcher'
+
+  # compare value to file content
+  fixture(){
+    test "${fixture:?}" == "$( cat "$FIXTURES/$1" )"
+  }
+
+  remove_config(){ rm -f canitest.yml; }
+  remove_datastore() { rm -f canitestdb.json; }
+  remove_log() { rm -f canitestdb.log; }
+
+  # functions to deploy various fixtures with different scenarios
+  use_active_session(){ cp "$FIXTURES"/cani/configs/canitest_valid_active.yml canitest.yml; } # deploys a config with session.active = true
+  use_inactive_session(){ cp "$FIXTURES"/cani/configs/canitest_valid_inactive.yml canitest.yml; } # deploys a config with session.active = false
+  use_valid_datastore_system_only(){ cp "$FIXTURES"/cani/configs/canitestdb_valid_system_only.json canitestdb.json; } # deploys a datastore with one system only
+  use_valid_datastore_one_cabinet(){ cp "$FIXTURES"/cani/configs/canitestdb_valid_one_cabinet.json canitestdb.json; } # deploys a datastore with one cabinet (and child hardware)
+  
+
 }
 
 # Custom matcher used to find a string inside of a text containing ANSI escape codes.

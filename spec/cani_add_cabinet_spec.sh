@@ -23,23 +23,6 @@
 
 
 Describe 'cani add cabinet'
-# Fixtures location ./spec/fixtures
-FIXTURES="$SHELLSPEC_HELPERDIR/testdata/fixtures"
-
-# compare value to file content
-fixture(){
-  test "${fixture:?}" == "$( cat "$FIXTURES/$1" )"
-}
-
-# functions to deploy various fixtures with different scenarios
-remove_config(){ rm -f canitest.yml; }
-remove_datastore() { rm -f canitestdb.json; }
-remove_log() { rm -f canitestdb.log; }
-
-use_active_session(){ cp "$FIXTURES"/cani/configs/canitest_valid_active.yml canitest.yml; } # deploys a config with session.active = true
-use_inactive_session(){ cp "$FIXTURES"/cani/configs/canitest_valid_inactive.yml canitest.yml; } # deploys a config with session.active = false
-use_valid_datastore_system_only(){ cp "$FIXTURES"/cani/configs/canitestdb_valid_system_only.json canitestdb.json; } # deploys a datastore with one system only
-use_valid_datastore_one_cabinet(){ cp "$FIXTURES"/cani/configs/canitestdb_valid_one_cabinet.json canitestdb.json; } # deploys a datastore with one cabinet (and child hardware)
 
 # help output should succeed and match the fixture
 # a config file should be created if one does not exist
