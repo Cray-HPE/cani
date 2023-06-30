@@ -65,8 +65,18 @@ func startSession(cmd *cobra.Command, args []string) error {
 		log.Warn().Msg("Using simulation mode")
 		root.Conf.Session.DomainOptions.CsmOptions.UseSimulation = true
 	} else {
-		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlSLS, _ = cmd.Flags().GetString("csm-url-sls")
-		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlHSM, _ = cmd.Flags().GetString("csm-url-hsm")
+		slsUrl, _ := cmd.Flags().GetString("csm-url-sls")
+		if slsUrl != "" {
+			root.Conf.Session.DomainOptions.CsmOptions.BaseUrlSLS = slsUrl
+		} else {
+			root.Conf.Session.DomainOptions.CsmOptions.BaseUrlSLS = fmt.Sprintf("https://%s/apis/sls/v1", providerHost)
+		}
+		hsmUrl, _ := cmd.Flags().GetString("csm-url-hsm")
+		if hsmUrl != "" {
+			root.Conf.Session.DomainOptions.CsmOptions.BaseUrlHSM = hsmUrl
+		} else {
+			root.Conf.Session.DomainOptions.CsmOptions.BaseUrlHSM = fmt.Sprintf("https://%s/apis/smd/hsm/v2", providerHost)
+		}
 		root.Conf.Session.DomainOptions.CsmOptions.InsecureSkipVerify, _ = cmd.Flags().GetBool("csm-insecure-https")
 	}
 	if insecure {

@@ -53,8 +53,8 @@ func init() {
 
 	// Session start flags
 	// TODO need a quick simulation environment flag
-	SessionStartCmd.Flags().String("csm-url-sls", "https://api-gw-service-nmn.local/apis/sls/v1", "(CSM Provider) Base URL for the System Layout Service (SLS)")
-	SessionStartCmd.Flags().String("csm-url-hsm", "https://api-gw-service-nmn.local/apis/smd/hsm/v2", "(CSM Provider) Base URL for the Hardware State Manager (HSM)")
+	SessionStartCmd.Flags().String("csm-url-sls", "", "(CSM Provider) Base URL for the System Layout Service (SLS)")
+	SessionStartCmd.Flags().String("csm-url-hsm", "", "(CSM Provider) Base URL for the Hardware State Manager (HSM)")
 	SessionStartCmd.Flags().BoolVarP(&insecure, "csm-insecure-https", "k", false, "(CSM Provider) Allow insecure connections when using HTTPS to CSM services")
 	SessionStartCmd.Flags().BoolVarP(&useSimulation, "csm-simulator", "S", false, "(CSM Provider) Use simulation environment URLs")
 
