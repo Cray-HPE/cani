@@ -663,8 +663,381 @@ func TestFindNextAvailableSubnetSuite(t *testing.T) {
 // AllocateCabinetSubnetSuite
 //
 
+// TODO
+
 type AllocateCabinetSubnetSuite struct {
 	suite.Suite
+
+	slsNetworks map[string]sls_client.Network
+}
+
+func (suite *AllocateCabinetSubnetSuite) SetupTest() {
+	// Load SLS state
+	slsStateRaw, err := ioutil.ReadFile(testSLSFile)
+	suite.NoError(err)
+
+	var slsState sls_client.SlsState
+	err = json.Unmarshal(slsStateRaw, &slsState)
+	suite.NoError(err)
+
+	suite.slsNetworks = slsState.Networks
+}
+
+func (suite *AllocateCabinetSubnetSuite) TestAllocateNMN_MTN() {
+	network := suite.slsNetworks["NMN_MTN"]
+	network.ExtraProperties.Subnets = nil
+
+	// Allocate a subnet into a network without subnets
+	subnet, err := AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 1000}, nil)
+	suite.NoError(err)
+
+	expectedSubnet := sls_client.NetworkIpv4Subnet{
+		Name:      "cabinet_1000",
+		CIDR:      "11.252.0.0/22",
+		Gateway:   "11.252.0.1",
+		DHCPStart: "11.252.0.10",
+		DHCPEnd:   "11.252.3.254",
+		VlanID:    2000,
+	}
+	suite.Equal(expectedSubnet, subnet)
+
+	// Add a second cabinet subnet
+	network.ExtraProperties.Subnets = append(network.ExtraProperties.Subnets, expectedSubnet)
+
+	subnet, err = AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 1001}, nil)
+	suite.NoError(err)
+	expectedSubnet = sls_client.NetworkIpv4Subnet{
+		Name:      "cabinet_1001",
+		CIDR:      "11.252.4.0/22",
+		Gateway:   "11.252.4.1",
+		DHCPStart: "11.252.4.10",
+		DHCPEnd:   "11.252.7.254",
+		VlanID:    2001,
+	}
+	suite.Equal(expectedSubnet, subnet)
+}
+
+func (suite *AllocateCabinetSubnetSuite) TestAllocateHMN_MTN() {
+	network := suite.slsNetworks["HMN_MTN"]
+	network.ExtraProperties.Subnets = nil
+
+	// Allocate a subnet into a network without subnets
+	subnet, err := AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 1000}, nil)
+	suite.NoError(err)
+
+	expectedSubnet := sls_client.NetworkIpv4Subnet{
+		Name:      "cabinet_1000",
+		CIDR:      "11.254.0.0/22",
+		Gateway:   "11.254.0.1",
+		DHCPStart: "11.254.0.10",
+		DHCPEnd:   "11.254.3.254",
+		VlanID:    3000,
+	}
+	suite.Equal(expectedSubnet, subnet)
+
+	// Add a second cabinet subnet
+	network.ExtraProperties.Subnets = append(network.ExtraProperties.Subnets, expectedSubnet)
+
+	subnet, err = AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 1001}, nil)
+	suite.NoError(err)
+	expectedSubnet = sls_client.NetworkIpv4Subnet{
+		Name:      "cabinet_1001",
+		CIDR:      "11.254.4.0/22",
+		Gateway:   "11.254.4.1",
+		DHCPStart: "11.254.4.10",
+		DHCPEnd:   "11.254.7.254",
+		VlanID:    3001,
+	}
+	suite.Equal(expectedSubnet, subnet)
+}
+
+func (suite *AllocateCabinetSubnetSuite) TestAllocateNMN_MTN_VlanOverride() {
+	network := suite.slsNetworks["NMN_MTN"]
+	network.ExtraProperties.Subnets = nil
+
+	// Allocate a subnet into a network without subnets
+	vlanOverride := int32(1234)
+	subnet, err := AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 1000}, &vlanOverride)
+	suite.NoError(err)
+
+	expectedSubnet := sls_client.NetworkIpv4Subnet{
+		Name:      "cabinet_1000",
+		CIDR:      "11.252.0.0/22",
+		Gateway:   "11.252.0.1",
+		DHCPStart: "11.252.0.10",
+		DHCPEnd:   "11.252.3.254",
+		VlanID:    1234,
+	}
+	suite.Equal(expectedSubnet, subnet)
+
+	// Add a second cabinet subnet
+	network.ExtraProperties.Subnets = append(network.ExtraProperties.Subnets, expectedSubnet)
+
+	vlanOverride = int32(2234)
+	subnet, err = AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 1001}, &vlanOverride)
+	suite.NoError(err)
+	expectedSubnet = sls_client.NetworkIpv4Subnet{
+		Name:      "cabinet_1001",
+		CIDR:      "11.252.4.0/22",
+		Gateway:   "11.252.4.1",
+		DHCPStart: "11.252.4.10",
+		DHCPEnd:   "11.252.7.254",
+		VlanID:    2234,
+	}
+	suite.Equal(expectedSubnet, subnet)
+}
+
+func (suite *AllocateCabinetSubnetSuite) TestAllocateHMN_MTN_VlanOverride() {
+	network := suite.slsNetworks["HMN_MTN"]
+	network.ExtraProperties.Subnets = nil
+
+	// Allocate a subnet into a network without subnets
+	vlanOverride := int32(1234)
+	subnet, err := AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 1000}, &vlanOverride)
+	suite.NoError(err)
+
+	expectedSubnet := sls_client.NetworkIpv4Subnet{
+		Name:      "cabinet_1000",
+		CIDR:      "11.254.0.0/22",
+		Gateway:   "11.254.0.1",
+		DHCPStart: "11.254.0.10",
+		DHCPEnd:   "11.254.3.254",
+		VlanID:    1234,
+	}
+	suite.Equal(expectedSubnet, subnet)
+
+	// Add a second cabinet subnet
+	network.ExtraProperties.Subnets = append(network.ExtraProperties.Subnets, expectedSubnet)
+
+	vlanOverride = int32(2234)
+	subnet, err = AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 1001}, &vlanOverride)
+	suite.NoError(err)
+	expectedSubnet = sls_client.NetworkIpv4Subnet{
+		Name:      "cabinet_1001",
+		CIDR:      "11.254.4.0/22",
+		Gateway:   "11.254.4.1",
+		DHCPStart: "11.254.4.10",
+		DHCPEnd:   "11.254.7.254",
+		VlanID:    2234,
+	}
+	suite.Equal(expectedSubnet, subnet)
+}
+
+func (suite *AllocateCabinetSubnetSuite) TestAllocateNMN_RVR() {
+	network := suite.slsNetworks["NMN_RVR"]
+	network.ExtraProperties.Subnets = nil
+
+	// Allocate a subnet into a network without subnets
+	subnet, err := AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 3000}, nil)
+	suite.NoError(err)
+
+	expectedSubnet := sls_client.NetworkIpv4Subnet{
+		Name:      "cabinet_3000",
+		CIDR:      "10.106.0.0/22",
+		Gateway:   "10.106.0.1",
+		DHCPStart: "10.106.0.10",
+		DHCPEnd:   "10.106.3.254",
+		VlanID:    1770,
+	}
+	suite.Equal(expectedSubnet, subnet)
+
+	// Add a second cabinet subnet
+	network.ExtraProperties.Subnets = append(network.ExtraProperties.Subnets, expectedSubnet)
+
+	subnet, err = AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 3001}, nil)
+	suite.NoError(err)
+	expectedSubnet = sls_client.NetworkIpv4Subnet{
+		Name:      "cabinet_3001",
+		CIDR:      "10.106.4.0/22",
+		Gateway:   "10.106.4.1",
+		DHCPStart: "10.106.4.10",
+		DHCPEnd:   "10.106.7.254",
+		VlanID:    1771,
+	}
+	suite.Equal(expectedSubnet, subnet)
+}
+
+func (suite *AllocateCabinetSubnetSuite) TestAllocateHMN_RVR() {
+	network := suite.slsNetworks["HMN_RVR"]
+	network.ExtraProperties.Subnets = nil
+
+	// Allocate a subnet into a network without subnets
+	subnet, err := AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 3000}, nil)
+	suite.NoError(err)
+
+	expectedSubnet := sls_client.NetworkIpv4Subnet{
+		Name:      "cabinet_3000",
+		CIDR:      "10.107.0.0/22",
+		Gateway:   "10.107.0.1",
+		DHCPStart: "10.107.0.10",
+		DHCPEnd:   "10.107.3.254",
+		VlanID:    1513,
+	}
+	suite.Equal(expectedSubnet, subnet)
+
+	// Add a second cabinet subnet
+	network.ExtraProperties.Subnets = append(network.ExtraProperties.Subnets, expectedSubnet)
+
+	subnet, err = AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 3001}, nil)
+	suite.NoError(err)
+	expectedSubnet = sls_client.NetworkIpv4Subnet{
+		Name:      "cabinet_3001",
+		CIDR:      "10.107.4.0/22",
+		Gateway:   "10.107.4.1",
+		DHCPStart: "10.107.4.10",
+		DHCPEnd:   "10.107.7.254",
+		VlanID:    1514,
+	}
+	suite.Equal(expectedSubnet, subnet)
+}
+
+func (suite *AllocateCabinetSubnetSuite) TestAllocateNMN_RVR_VlanOverride() {
+	network := suite.slsNetworks["NMN_RVR"]
+	network.ExtraProperties.Subnets = nil
+
+	// Allocate a subnet into a network without subnets
+	vlanOverride := int32(1234)
+	subnet, err := AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 3000}, &vlanOverride)
+	suite.NoError(err)
+
+	expectedSubnet := sls_client.NetworkIpv4Subnet{
+		Name:      "cabinet_3000",
+		CIDR:      "10.106.0.0/22",
+		Gateway:   "10.106.0.1",
+		DHCPStart: "10.106.0.10",
+		DHCPEnd:   "10.106.3.254",
+		VlanID:    1234,
+	}
+	suite.Equal(expectedSubnet, subnet)
+
+	// Add a second cabinet subnet
+	network.ExtraProperties.Subnets = append(network.ExtraProperties.Subnets, expectedSubnet)
+
+	vlanOverride = int32(2234)
+	subnet, err = AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 3001}, &vlanOverride)
+	suite.NoError(err)
+	expectedSubnet = sls_client.NetworkIpv4Subnet{
+		Name:      "cabinet_3001",
+		CIDR:      "10.106.4.0/22",
+		Gateway:   "10.106.4.1",
+		DHCPStart: "10.106.4.10",
+		DHCPEnd:   "10.106.7.254",
+		VlanID:    2234,
+	}
+	suite.Equal(expectedSubnet, subnet)
+}
+
+func (suite *AllocateCabinetSubnetSuite) TestAllocateHMN_RVR_VlanOverride() {
+	network := suite.slsNetworks["HMN_RVR"]
+	network.ExtraProperties.Subnets = nil
+
+	// Allocate a subnet into a network without subnets
+	vlanOverride := int32(1234)
+	subnet, err := AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 3000}, &vlanOverride)
+	suite.NoError(err)
+
+	expectedSubnet := sls_client.NetworkIpv4Subnet{
+		Name:      "cabinet_3000",
+		CIDR:      "10.107.0.0/22",
+		Gateway:   "10.107.0.1",
+		DHCPStart: "10.107.0.10",
+		DHCPEnd:   "10.107.3.254",
+		VlanID:    1234,
+	}
+	suite.Equal(expectedSubnet, subnet)
+
+	// Add a second cabinet subnet
+	network.ExtraProperties.Subnets = append(network.ExtraProperties.Subnets, expectedSubnet)
+
+	vlanOverride = int32(2234)
+	subnet, err = AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 3001}, &vlanOverride)
+	suite.NoError(err)
+	expectedSubnet = sls_client.NetworkIpv4Subnet{
+		Name:      "cabinet_3001",
+		CIDR:      "10.107.4.0/22",
+		Gateway:   "10.107.4.1",
+		DHCPStart: "10.107.4.10",
+		DHCPEnd:   "10.107.7.254",
+		VlanID:    2234,
+	}
+	suite.Equal(expectedSubnet, subnet)
+}
+
+func (suite *AllocateCabinetSubnetSuite) TestInvalidNetworkCIDR() {
+	slsNetworkEP := sls_client.NetworkExtraProperties{
+		CIDR: "not-a-cidr",
+	}
+
+	subnet, err := AllocateCabinetSubnet("HMN_MTN", slsNetworkEP, xnames.Cabinet{Cabinet: 1000}, nil)
+	suite.Empty(subnet)
+	expectedErrorStrings := []string{
+		"failed to allocate cabinet subnet for (x1000) in CIDR (not-a-cidr)",
+		"failed to parse network CIDR (not-a-cidr)",
+		"netaddr.ParseIPPrefix(\"not-a-cidr\"): no '/'",
+	}
+	suite.EqualError(err, strings.Join(expectedErrorStrings, "\n"))
+}
+
+func (suite *AllocateCabinetSubnetSuite) TestSubnetAlreadyExists() {
+	slsNetworkEP := sls_client.NetworkExtraProperties{
+		CIDR: "10.0.0.0/16",
+		Subnets: []sls_client.NetworkIpv4Subnet{
+			{
+				Name:      "cabinet_1000",
+				CIDR:      "10.0.0.0/24",
+				DHCPStart: "10.0.0.10",
+				DHCPEnd:   "10.0.0.254",
+				VlanID:    1234,
+			},
+		},
+	}
+
+	subnet, err := AllocateCabinetSubnet("HMN_MTN", slsNetworkEP, xnames.Cabinet{Cabinet: 1000}, nil)
+	suite.Empty(subnet)
+	suite.EqualError(err, "subnet (cabinet_1000) already exists")
+}
+
+func (suite *AllocateCabinetSubnetSuite) TestUnsupportedNetworkNames() {
+	for _, name := range []string{"CAN", "CMN", "MTL", "HMNLB", "NMNLB", "BICAN", "IDK"} {
+		slsNetworkEP := sls_client.NetworkExtraProperties{
+			CIDR: "10.0.0.0/16",
+		}
+
+		subnet, err := AllocateCabinetSubnet(name, slsNetworkEP, xnames.Cabinet{Cabinet: 1000}, nil)
+		suite.Empty(subnet)
+		suite.EqualError(err, fmt.Sprintf("unsupported network (%s) unable to allocate vlan for cabinet subnet", name))
+	}
+}
+
+func (suite *AllocateCabinetSubnetSuite) TestVLANSpaceExhausted() {
+	slsNetworkEP := sls_client.NetworkExtraProperties{
+		CIDR: "10.0.0.0/21",
+		Subnets: []sls_client.NetworkIpv4Subnet{
+			{
+				Name:      "cabinet_1",
+				CIDR:      "10.0.0.0/22",
+				DHCPStart: "10.0.0.10",
+				DHCPEnd:   "10.0.3.254",
+				VlanID:    1234,
+			},
+			{
+				Name:      "cabinet_2",
+				CIDR:      "10.0.4.0/22",
+				DHCPStart: "10.0.4.10",
+				DHCPEnd:   "10.0.4.254",
+				VlanID:    1234,
+			},
+		},
+	}
+
+	subnet, err := AllocateCabinetSubnet("HMN_MTN", slsNetworkEP, xnames.Cabinet{Cabinet: 1000}, nil)
+	suite.Empty(subnet)
+
+	expectedErrorStrings := []string{
+		"failed to allocate cabinet subnet for (x1000) in CIDR (10.0.0.0/21)",
+		"network space has been exhausted",
+	}
+	suite.EqualError(err, strings.Join(expectedErrorStrings, "\n"))
 }
 
 func TestAllocateCabinetSubnetSuite(t *testing.T) {
@@ -1040,6 +1413,8 @@ func TestAllocateIPSuite(t *testing.T) {
 // FreeIPsInStaticRangeSuite
 //
 
+// TODO
+
 type FreeIPsInStaticRangeSuite struct {
 	suite.Suite
 }
@@ -1051,6 +1426,8 @@ func TestFreeIPsInStaticRangeSuite(t *testing.T) {
 //
 // ExpandSubnetStaticRangeSuite
 //
+
+// TODO
 
 type ExpandSubnetStaticRangeSuite struct {
 	suite.Suite

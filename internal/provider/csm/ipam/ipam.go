@@ -190,7 +190,7 @@ func FindNextAvailableSubnet(slsNetwork sls_client.NetworkExtraProperties) (neta
 func AllocateCabinetSubnet(networkName string, slsNetwork sls_client.NetworkExtraProperties, xname xnames.Cabinet, vlanOverride *int32) (sls_client.NetworkIpv4Subnet, error) {
 	cabinetSubnet, err := FindNextAvailableSubnet(slsNetwork)
 	if err != nil {
-		return sls_client.NetworkIpv4Subnet{}, fmt.Errorf("failed to allocate subnet for (%s) in CIDR (%s)", xname.String(), slsNetwork.CIDR)
+		return sls_client.NetworkIpv4Subnet{}, errors.Join(fmt.Errorf("failed to allocate cabinet subnet for (%s) in CIDR (%s)", xname.String(), slsNetwork.CIDR), err)
 	}
 
 	// Verify this subnet is new
@@ -228,9 +228,17 @@ func AllocateCabinetSubnet(networkName string, slsNetwork sls_client.NetworkExtr
 			// The following values are defined here in CSI: https://github.com/Cray-HPE/cray-site-init/blob/4ead6fccd0ba0710e7250357f1c3a2525996d293/cmd/init.go#L189
 			vlanLow = 1770
 			vlanHigh = 1999
+		} else if networkName == "HMN_MTN" {
+			// The following values are defined here in CSI: https://github.com/Cray-HPE/cray-site-init/blob/4ead6fccd0ba0710e7250357f1c3a2525996d293/cmd/init.go#L148
+			vlanLow = 3000
+			vlanHigh = 3999
+		} else if networkName == "NMN_MTN" {
+			// The following values are defined here in CSI: https://github.com/Cray-HPE/cray-site-init/blob/4ead6fccd0ba0710e7250357f1c3a2525996d293/cmd/init.go#L176
+			vlanLow = 2000
+			vlanHigh = 2999
 
 		} else {
-			return sls_client.NetworkIpv4Subnet{}, fmt.Errorf("unknown network (%s) unable to allocate vlan for cabinet subnet", networkName)
+			return sls_client.NetworkIpv4Subnet{}, fmt.Errorf("unsupported network (%s) unable to allocate vlan for cabinet subnet", networkName)
 		}
 
 		for vlanCandidate := vlanLow; vlanCandidate <= vlanHigh; vlanCandidate++ {
@@ -245,7 +253,7 @@ func AllocateCabinetSubnet(networkName string, slsNetwork sls_client.NetworkExtr
 	}
 
 	if vlan == -1 {
-		return sls_client.NetworkIpv4Subnet{}, fmt.Errorf("failed to allocate VLAN for cabinet subnet (%s)", subnetName)
+		return sls_client.NetworkIpv4Subnet{}, fmt.Errorf("failed to allocate cabinet subnet for (%s) no subnets available", subnetName)
 	}
 
 	// DHCP starts 10 into the subnet
