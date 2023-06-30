@@ -49,3 +49,5 @@ provider_defaults:
   csm:
     Class: Hill
     Ordinal: 9000
+    StartingHmnVlan: 3000
+    EndingHmnVlan: 3999

@@ -142,7 +142,13 @@
                         },
                         "Ordinal": {
                           "type": "integer"
-                      }
+                        },
+                        "StartingHmnVlan": {
+                          "type": "integer"
+                        },
+                        "EndingHmnVlan": {
+                          "type": "integer"
+                        }
                     }  
                 }
             }

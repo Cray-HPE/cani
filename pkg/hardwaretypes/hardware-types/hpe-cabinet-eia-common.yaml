@@ -38,6 +38,8 @@ provider_defaults:
   csm:
     Class: River
     Ordinal: 3000
+    StartingHmnVlan: 1513
+    EndingHmnVlan: 1769
 
 ---
 manufacturer: HPE
@@ -49,3 +51,5 @@ provider_defaults:
   csm:
     Class: River
     starting_cabinet: 3000
+    StartingHmnVlan: 1513
+    EndingHmnVlan: 1769
