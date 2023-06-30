@@ -202,4 +202,340 @@ It '--config canitest.yml hpe-ex2000 --cabinet 4321 --vlan-id 1234'
   The stderr should include "    - Specified HMN Vlan (1234) is not unique, shared by: "
 End
 
+# Adding a cabinet should fail if:
+#   - a session is active
+#   - a datastore exists
+#   - auto flag is set
+#   - cabinet flag is set
+#   - vlan-id flag is not set 
+It '--config canitest.yml hpe-ex2000 --auto --vlan-id 1234'
+  BeforeCall use_active_session # session is active
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-ex2000 --auto --vlan-id 1234
+  The status should equal 1
+  The line 1 of stderr should equal "Error: if any flags in the group [cabinet vlan-id] are set they must all be set; missing [cabinet]"
+End
+
+# Adding a cabinet should fail if:
+#   - a session is active
+#   - a datastore exists
+#   - auto flag is set
+#   - cabinet flag is not set
+#   - vlan-id flag is set 
+It '--config canitest.yml hpe-ex2000 --auto --cabinet 4321'
+  BeforeCall use_active_session # session is active
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-ex2000 --auto --cabinet 4321 
+  The status should equal 1
+  The line 1 of stderr should equal "Error: if any flags in the group [cabinet vlan-id] are set they must all be set; missing [vlan-id]"
+End
+
+# Adding a cabinet should succeed if:
+#   - a session is active
+#   - a datastore exists
+#   - auto flag is set
+#   - accept flag is set
+It '--config canitest.yml hpe-ex2000 --auto --accept'
+  BeforeCall use_active_session # session is active
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-ex2000 --auto --accept 
+  The status should equal 0
+  The line 1 of stderr should include " Querying inventory to suggest cabinet number and VLAN ID"
+  The line 2 of stderr should include " Suggested cabinet number: "
+  The line 3 of stderr should include " Suggested VLAN ID: "
+  The line 4 of stderr should include " was successfully staged to be added to the system"
+  The line 5 of stderr should include " UUID: "
+  The line 6 of stderr should include " Cabinet Number: "
+  The line 7 of stderr should include " VLAN ID: "
+End
+
+# Adding a hpe-eia-cabinet should succeed if:
+#   - a session is active
+#   - a datastore exists
+#   - auto flag is set
+#   - accept flag is set
+# given a system with zero cabinets, the added cabinet should have:
+#   - cabinet number 3000
+#   - vlan id 1513
+It '--config canitest.yml hpe-eia-cabinet --auto --accept'
+  BeforeCall use_active_session # session is active
+  BeforeCall use_valid_datastore_system_only # deploy a valid datastore
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-eia-cabinet --auto --accept 
+  The status should equal 0
+  The line 1 of stderr should include " Querying inventory to suggest cabinet number and VLAN ID"
+  The line 2 of stderr should include " Suggested cabinet number: "
+  The line 3 of stderr should include " Suggested VLAN ID: "
+  The line 4 of stderr should include " was successfully staged to be added to the system"
+  The line 5 of stderr should include " UUID: "
+  The line 6 of stderr should include " Cabinet Number: 3000"
+  The line 7 of stderr should include " VLAN ID: 1513"
+End
+
+# Adding another hpe-eia-cabinet should succeed if:
+#   - a session is active
+#   - a datastore exists
+#   - auto flag is set
+#   - accept flag is set
+# given a system with zero cabinets, the added cabinet should have:
+#   - cabinet number 3001 (incremented by one)
+#   - vlan id 1514 (incremented by one)
+It '--config canitest.yml hpe-eia-cabinet --auto --accept'
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-eia-cabinet --auto --accept 
+  The status should equal 0
+  The line 1 of stderr should include " Querying inventory to suggest cabinet number and VLAN ID"
+  The line 2 of stderr should include " Suggested cabinet number: "
+  The line 3 of stderr should include " Suggested VLAN ID: "
+  The line 4 of stderr should include " was successfully staged to be added to the system"
+  The line 5 of stderr should include " UUID: "
+  The line 6 of stderr should include " Cabinet Number: 3001"
+  The line 7 of stderr should include " VLAN ID: 1514"
+End
+
+# Adding a hpe-ex2000 should succeed if:
+#   - a session is active
+#   - a datastore exists
+#   - auto flag is set
+#   - accept flag is set
+# given a system with zero cabinets, the added cabinet should have:
+#   - cabinet number 9000
+#   - vlan id 3000
+It '--config canitest.yml hpe-ex2000 --auto --accept'
+  BeforeCall use_active_session # session is active
+  BeforeCall use_valid_datastore_system_only # deploy a valid datastore
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-ex2000 --auto --accept 
+  The status should equal 0
+  The line 1 of stderr should include " Querying inventory to suggest cabinet number and VLAN ID"
+  The line 2 of stderr should include " Suggested cabinet number: "
+  The line 3 of stderr should include " Suggested VLAN ID: "
+  The line 4 of stderr should include " was successfully staged to be added to the system"
+  The line 5 of stderr should include " UUID: "
+  The line 6 of stderr should include " Cabinet Number: 9000"
+  The line 7 of stderr should include " VLAN ID: 3000"
+End
+
+# Adding another hpe-ex2000 should succeed if:
+#   - a session is active
+#   - a datastore exists
+#   - auto flag is set
+#   - accept flag is set
+# given a system with zero cabinets, the added cabinet should have:
+#   - cabinet number 9001 (incremented by one)
+#   - vlan id 3001 (incremented by one)
+It '--config canitest.yml hpe-ex2000 --auto --accept'
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-ex2000 --auto --accept 
+  The status should equal 0
+  The line 1 of stderr should include " Querying inventory to suggest cabinet number and VLAN ID"
+  The line 2 of stderr should include " Suggested cabinet number: "
+  The line 3 of stderr should include " Suggested VLAN ID: "
+  The line 4 of stderr should include " was successfully staged to be added to the system"
+  The line 5 of stderr should include " UUID: "
+  The line 6 of stderr should include " Cabinet Number: 9001"
+  The line 7 of stderr should include " VLAN ID: 3001"
+End
+
+# Adding a hpe-ex2500-1-liquid-cooled-chassis should succeed if:
+#   - a session is active
+#   - a datastore exists
+#   - auto flag is set
+#   - accept flag is set
+# given a system with zero cabinets, the added cabinet should have:
+#   - cabinet number 8000
+#   - vlan id 3000
+It '--config canitest.yml hpe-ex2500-1-liquid-cooled-chassis --auto --accept'
+  BeforeCall use_active_session # session is active
+  BeforeCall use_valid_datastore_system_only # deploy a valid datastore
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-ex2500-1-liquid-cooled-chassis --auto --accept 
+  The status should equal 0
+  The line 1 of stderr should include " Querying inventory to suggest cabinet number and VLAN ID"
+  The line 2 of stderr should include " Suggested cabinet number: "
+  The line 3 of stderr should include " Suggested VLAN ID: "
+  The line 4 of stderr should include " was successfully staged to be added to the system"
+  The line 5 of stderr should include " UUID: "
+  The line 6 of stderr should include " Cabinet Number: 8000"
+  The line 7 of stderr should include " VLAN ID: 3000"
+End
+
+# Adding another hpe-ex2500-1-liquid-cooled-chassis should succeed if:
+#   - a session is active
+#   - a datastore exists
+#   - auto flag is set
+#   - accept flag is set
+# given a system with zero cabinets, the added cabinet should have:
+#   - cabinet number 8001 (incremented by one)
+#   - vlan id 3001 (incremented by one)
+It '--config canitest.yml hpe-ex2500-1-liquid-cooled-chassis --auto --accept'
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-ex2500-1-liquid-cooled-chassis --auto --accept 
+  The status should equal 0
+  The line 1 of stderr should include " Querying inventory to suggest cabinet number and VLAN ID"
+  The line 2 of stderr should include " Suggested cabinet number: "
+  The line 3 of stderr should include " Suggested VLAN ID: "
+  The line 4 of stderr should include " was successfully staged to be added to the system"
+  The line 5 of stderr should include " UUID: "
+  The line 6 of stderr should include " Cabinet Number: 8001"
+  The line 7 of stderr should include " VLAN ID: 3001"
+End
+
+# Adding a hpe-ex2500-2-liquid-cooled-chassis should succeed if:
+#   - a session is active
+#   - a datastore exists
+#   - auto flag is set
+#   - accept flag is set
+# given a system with zero cabinets, the added cabinet should have:
+#   - cabinet number 8000
+#   - vlan id 3000
+It '--config canitest.yml hpe-ex2500-2-liquid-cooled-chassis --auto --accept'
+  BeforeCall use_active_session # session is active
+  BeforeCall use_valid_datastore_system_only # deploy a valid datastore
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-ex2500-2-liquid-cooled-chassis --auto --accept 
+  The status should equal 0
+  The line 1 of stderr should include " Querying inventory to suggest cabinet number and VLAN ID"
+  The line 2 of stderr should include " Suggested cabinet number: "
+  The line 3 of stderr should include " Suggested VLAN ID: "
+  The line 4 of stderr should include " was successfully staged to be added to the system"
+  The line 5 of stderr should include " UUID: "
+  The line 6 of stderr should include " Cabinet Number: 8000"
+  The line 7 of stderr should include " VLAN ID: 3000"
+End
+
+# Adding another hpe-ex2500-2-liquid-cooled-chassis should succeed if:
+#   - a session is active
+#   - a datastore exists
+#   - auto flag is set
+#   - accept flag is set
+# given a system with zero cabinets, the added cabinet should have:
+#   - cabinet number 8001 (incremented by one)
+#   - vlan id 3000 (incremented by one)
+It '--config canitest.yml hpe-ex2500-2-liquid-cooled-chassis --auto --accept'
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-ex2500-2-liquid-cooled-chassis --auto --accept 
+  The status should equal 0
+  The line 1 of stderr should include " Querying inventory to suggest cabinet number and VLAN ID"
+  The line 2 of stderr should include " Suggested cabinet number: "
+  The line 3 of stderr should include " Suggested VLAN ID: "
+  The line 4 of stderr should include " was successfully staged to be added to the system"
+  The line 5 of stderr should include " UUID: "
+  The line 6 of stderr should include " Cabinet Number: 8001"
+  The line 7 of stderr should include " VLAN ID: 3001"
+End
+
+# Adding a hpe-ex2500-3-liquid-cooled-chassis should succeed if:
+#   - a session is active
+#   - a datastore exists
+#   - auto flag is set
+#   - accept flag is set
+# given a system with zero cabinets, the added cabinet should have:
+#   - cabinet number 8000
+#   - vlan id 3000
+It '--config canitest.yml hpe-ex2500-3-liquid-cooled-chassis --auto --accept'
+  BeforeCall use_active_session # session is active
+  BeforeCall use_valid_datastore_system_only # deploy a valid datastore
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-ex2500-3-liquid-cooled-chassis --auto --accept 
+  The status should equal 0
+  The line 1 of stderr should include " Querying inventory to suggest cabinet number and VLAN ID"
+  The line 2 of stderr should include " Suggested cabinet number: "
+  The line 3 of stderr should include " Suggested VLAN ID: "
+  The line 4 of stderr should include " was successfully staged to be added to the system"
+  The line 5 of stderr should include " UUID: "
+  The line 6 of stderr should include " Cabinet Number: 8000"
+  The line 7 of stderr should include " VLAN ID: 3000"
+End
+
+# Adding another hpe-ex2500-3-liquid-cooled-chassis should succeed if:
+#   - a session is active
+#   - a datastore exists
+#   - auto flag is set
+#   - accept flag is set
+# given a system with zero cabinets, the added cabinet should have:
+#   - cabinet number 8001 (incremented by one)
+#   - vlan id 3001 (incremented by one)
+It '--config canitest.yml hpe-ex2500-3-liquid-cooled-chassis --auto --accept'
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-ex2500-3-liquid-cooled-chassis --auto --accept 
+  The status should equal 0
+  The line 1 of stderr should include " Querying inventory to suggest cabinet number and VLAN ID"
+  The line 2 of stderr should include " Suggested cabinet number: "
+  The line 3 of stderr should include " Suggested VLAN ID: "
+  The line 4 of stderr should include " was successfully staged to be added to the system"
+  The line 5 of stderr should include " UUID: "
+  The line 6 of stderr should include " Cabinet Number: 8001"
+  The line 7 of stderr should include " VLAN ID: 3001"
+End
+
+# Adding a hpe-ex3000 should succeed if:
+#   - a session is active
+#   - a datastore exists
+#   - auto flag is set
+#   - accept flag is set
+# given a system with zero cabinets, the added cabinet should have:
+#   - cabinet number 1000
+#   - vlan id 3000
+It '--config canitest.yml hpe-ex3000 --auto --accept'
+  BeforeCall use_active_session # session is active
+  BeforeCall use_valid_datastore_system_only # deploy a valid datastore
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-ex3000 --auto --accept 
+  The status should equal 0
+  The line 1 of stderr should include " Querying inventory to suggest cabinet number and VLAN ID"
+  The line 2 of stderr should include " Suggested cabinet number: "
+  The line 3 of stderr should include " Suggested VLAN ID: "
+  The line 4 of stderr should include " was successfully staged to be added to the system"
+  The line 5 of stderr should include " UUID: "
+  The line 6 of stderr should include " Cabinet Number: 1000"
+  The line 7 of stderr should include " VLAN ID: 3000"
+End
+
+# Adding another hpe-ex3000 should succeed if:
+#   - a session is active
+#   - a datastore exists
+#   - auto flag is set
+#   - accept flag is set
+# given a system with zero cabinets, the added cabinet should have:
+#   - cabinet number 1001 (incremented by one)
+#   - vlan id 3001 (incremented by one)
+It '--config canitest.yml hpe-ex3000 --auto --accept'
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-ex3000 --auto --accept 
+  The status should equal 0
+  The line 1 of stderr should include " Querying inventory to suggest cabinet number and VLAN ID"
+  The line 2 of stderr should include " Suggested cabinet number: "
+  The line 3 of stderr should include " Suggested VLAN ID: "
+  The line 4 of stderr should include " was successfully staged to be added to the system"
+  The line 5 of stderr should include " UUID: "
+  The line 6 of stderr should include " Cabinet Number: 1001"
+  The line 7 of stderr should include " VLAN ID: 3001"
+End
+
+# Adding a hpe-ex4000 should succeed if:
+#   - a session is active
+#   - a datastore exists
+#   - auto flag is set
+#   - accept flag is set
+# given a system with zero cabinets, the added cabinet should have:
+#   - cabinet number 1002
+#   - vlan id 3002
+It '--config canitest.yml hpe-ex4000 --auto --accept'
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-ex4000 --auto --accept 
+  The status should equal 0
+  The line 1 of stderr should include " Querying inventory to suggest cabinet number and VLAN ID"
+  The line 2 of stderr should include " Suggested cabinet number: "
+  The line 3 of stderr should include " Suggested VLAN ID: "
+  The line 4 of stderr should include " was successfully staged to be added to the system"
+  The line 5 of stderr should include " UUID: "
+  The line 6 of stderr should include " Cabinet Number: 1002"
+  The line 7 of stderr should include " VLAN ID: 3002"
+End
+
+# Adding another hpe-ex4000 should succeed if:
+#   - a session is active
+#   - a datastore exists
+#   - auto flag is set
+#   - accept flag is set
+# given a system with zero cabinets, the added cabinet should have:
+#   - cabinet number 1003 (incremented by one)
+#   - vlan id 3003 (incremented by one)
+It '--config canitest.yml hpe-ex4000 --auto --accept'
+  When call bin/cani alpha add cabinet --config canitest.yml hpe-ex4000 --auto --accept 
+  The status should equal 0
+  The line 1 of stderr should include " Querying inventory to suggest cabinet number and VLAN ID"
+  The line 2 of stderr should include " Suggested cabinet number: "
+  The line 3 of stderr should include " Suggested VLAN ID: "
+  The line 4 of stderr should include " was successfully staged to be added to the system"
+  The line 5 of stderr should include " UUID: "
+  The line 6 of stderr should include " Cabinet Number: 1003"
+  The line 7 of stderr should include " VLAN ID: 3003"
+End
+
 End

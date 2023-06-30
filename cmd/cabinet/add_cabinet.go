@@ -71,11 +71,15 @@ func addCabinet(cmd *cobra.Command, args []string) error {
 		log.Debug().Msgf("Provider recommendations: %+v", recommendations)
 		log.Info().Msgf("Suggested cabinet number: %d", cabinetNumber)
 		log.Info().Msgf("Suggested VLAN ID: %d", vlanId)
-		// Prompt the user to confirm the suggestions
-		auto, err = tui.CustomConfirmation(
-			fmt.Sprintf("Would you like to accept the recommendations and add the %s", hardwaretypes.Cabinet))
-		if err != nil {
-			return err
+		if accept {
+			auto = true
+		} else {
+			// Prompt the user to confirm the suggestions
+			auto, err = tui.CustomConfirmation(
+				fmt.Sprintf("Would you like to accept the recommendations and add the %s", hardwaretypes.Cabinet))
+			if err != nil {
+				return err
+			}
 		}
 
 		// If the user chose not to accept the suggestions, exit
