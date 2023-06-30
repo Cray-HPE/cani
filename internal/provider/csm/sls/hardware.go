@@ -114,6 +114,25 @@ func FilterHardwareByType(allHardware map[string]sls_client.Hardware, types ...x
 	return result
 }
 
+func FindManagementNCNs(allHardware map[string]sls_client.Hardware) (map[string]sls_client.Hardware, error) {
+	return FilterHardware(allHardware, func(hardware sls_client.Hardware) (bool, error) {
+		if hardware.TypeString != xnametypes.Node {
+			return false, nil
+		}
+
+		nodeEP, err := DecodeExtraProperties[sls_client.HardwareExtraPropertiesNode](hardware)
+		if err != nil {
+			return false, err
+		}
+
+		if nodeEP == nil {
+			return false, nil
+		}
+
+		return nodeEP.Role == "Management", nil
+	})
+}
+
 func DecodeExtraProperties[T any](hardware sls_client.Hardware) (*T, error) {
 	epRaw, err := hardware.DecodeExtraProperties()
 	if err != nil {

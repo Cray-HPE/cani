@@ -73,6 +73,29 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 	}
 
 	//
+	// Retrieve the current BSS state
+	//
+
+	// bssGlobalBootParameters, err := csm.bssClient.GetBSSBootparametersByName("Global")
+	// if err != nil {
+	// 	return errors.Join(
+	// 		fmt.Errorf("failed to retrieve Global Boot parameters"),
+	// 		err,
+	// 	)
+	// }
+	// managementNCNBootParams := map[string]*bssTypes.BootParams{}
+	// for _, managementNCN := range managementNCNs {
+	// 	log.Printf("Retrieving boot parameters for %s from BSS\n", managementNCN.Xname)
+	// 	bootParams, err := bssClient.GetBSSBootparametersByName(managementNCN.Xname)
+	// 	if err != nil {
+	// 		log.Fatal("Error: ", err)
+	// 	}
+
+	// 	managementNCNBootParams[managementNCN.Xname] = bootParams
+
+	// }
+
+	//
 	// Reconcile Hardware changes
 	//
 	hardwareChanges, err := reconcileHardwareChanges(*csm.hardwareLibrary, datastore, currentSLSState)
@@ -112,6 +135,74 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 	if err != nil {
 		return fmt.Errorf("Validation failed. %v\n", err)
 	}
+
+	//
+	// Determine changes requires to downstream services from SLS. Like HSM and BSS
+	//
+
+	// TODO For right now lets just always push the host records, unless the reflect.DeepEqual
+	// says they are equal.
+	// Because the logic to compare the expected BSS host records with the current ones
+	// is kind of hard. If anything is different just recalculate it.
+	// This should be harmless just the order of records will shift around.
+
+	// Recalculate the systems host recorded
+	// TODO the following should be required for adding UAN/Management types of nodes and management switches
+	// modifiedGlobalBootParameters := false
+	// expectedGlobalHostRecords := bss.GetBSSGlobalHostRecords(managementNCNs, sls.Networks(currentSLSState))
+	// var currentGlobalHostRecords bss.HostRecords
+	// if err := mapstructure.Decode(bssGlobalBootParameters.CloudInit.MetaData["host_records"], &currentGlobalHostRecords); err != nil {
+	// 	log.Fatal("Error: ", err)
+	// }
+
+	// if !reflect.DeepEqual(currentGlobalHostRecords, expectedGlobalHostRecords) {
+	// 	log.Println("Host records in BSS Global boot parameters are out of date")
+	// 	bssGlobalBootParameters.CloudInit.MetaData["host_records"] = expectedGlobalHostRecords
+	// 	modifiedGlobalBootParameters = true
+	// }
+
+	// Recalculate cabinet routes
+	// TODO NOTE this is the list of the managementNCNs before the topology of SLS changed.
+	// modifiedManagementNCNBootParams := map[string]bool{}
+	// for _, managementNCN := range managementNCNs {
+
+	// 	// The following was stolen from CSI
+	// 	extraNets := []string{}
+	// 	var foundCAN = false
+	// 	var foundCHN = false
+
+	// 	for _, net := range sls.Networks(currentSLSState) {
+	// 		if strings.ToLower(net.Name) == "can" {
+	// 			extraNets = append(extraNets, "can")
+	// 			foundCAN = true
+	// 		}
+	// 		if strings.ToLower(net.Name) == "chn" {
+	// 			foundCHN = true
+	// 		}
+	// 	}
+	// 	if !foundCAN && !foundCHN {
+	// 		log.Fatal("Error no CAN or CHN network defined in SLS networks")
+	// 	}
+
+	// 	// IPAM
+	// 	ipamNetworks := bss.GetIPAMForNCN(managementNCN, sls.Networks(currentSLSState), extraNets...)
+	// 	expectedWriteFiles := bss.GetWriteFiles(sls.Networks(currentSLSState), ipamNetworks)
+
+	// 	var currentWriteFiles []bss.WriteFile
+	// 	if err := mapstructure.Decode(managementNCNBootParams[managementNCN.Xname].CloudInit.UserData["write_files"], &currentWriteFiles); err != nil {
+	// 		panic(err)
+	// 	}
+
+	// 	// TODO For right now lets just always push the writefiles, unless the reflect.DeepEqual
+	// 	// says they are equal.
+	// 	// This should be harmless, the cabinet routes may be in a different order. This is due to cabinet routes do not overlap with each other.
+	// 	if !reflect.DeepEqual(expectedWriteFiles, currentWriteFiles) {
+	// 		log.Printf("Cabinet routes for %s in BSS Global boot parameters are out of date\n", managementNCN.Xname)
+	// 		managementNCNBootParams[managementNCN.Xname].CloudInit.UserData["write_files"] = expectedWriteFiles
+	// 		modifiedManagementNCNBootParams[managementNCN.Xname] = true
+	// 	}
+
+	// }
 
 	//
 	// Modify the System's SLS instance
@@ -171,6 +262,46 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 		}
 		log.Info().Int("status", r.StatusCode).Msg("Updated hardware to SLS")
 	}
+
+	//
+	// Modify the System's BSS instance
+	//
+
+	// if !modifiedGlobalBootParameters {
+	// 	log.Println("No BSS Global boot parameters changes required")
+	// } else {
+	// 	log.Println("Updating BSS Global boot parameters")
+
+	// 	if dryRun {
+	// 		log.Println("  Dry run enabled not modifying BSS")
+	// 	} else {
+	// 		_, err := bssClient.UploadEntryToBSS(*bssGlobalBootParameters, http.MethodPut)
+	// 		if err != nil {
+	// 			log.Fatal("Error: ", err)
+	// 		}
+	// 	}
+	// }
+
+	// // Update per NCN BSS Boot parameters
+	// for _, managementNCN := range managementNCNs {
+	// 	xname := managementNCN.Xname
+
+	// 	if !modifiedManagementNCNBootParams[xname] {
+	// 		log.Printf("No changes to BSS boot parameters for %s\n", xname)
+	// 		continue
+	// 	}
+	// 	log.Printf("Updating BSS boot parameters for %s\n", xname)
+
+	// 	if dryRun {
+	// 		log.Println("  Dry run enabled not modifying BSS")
+	// 	} else {
+	// 		_, err := bssClient.UploadEntryToBSS(*managementNCNBootParams[xname], http.MethodPut)
+	// 		if err != nil {
+	// 			log.Fatal("Error: ", err)
+	// 		}
+
+	// 	}
+	// }
 
 	return nil
 }

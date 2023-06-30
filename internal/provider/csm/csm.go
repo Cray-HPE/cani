@@ -31,6 +31,7 @@ import (
 	"github.com/Cray-HPE/cani/cmd/taxonomy"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 
+	bss_client "github.com/Cray-HPE/cani/pkg/bss-client"
 	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 )
@@ -41,6 +42,7 @@ type NewOpts struct {
 	APIGatewayToken    string
 	BaseUrlSLS         string
 	BaseUrlHSM         string
+	BaseUrlBSS         string
 	SecretName         string
 	KubeConfig         string
 	ClientID           string `json:"-" yaml:"-"` // omit credentials from cani.yml
@@ -76,6 +78,7 @@ type CSM struct {
 	// Clients
 	slsClient *sls_client.APIClient
 	hsmClient *hsm_client.APIClient
+	bssClient *bss_client.BSSClient
 	// System Configuration data
 	ValidRoles    []string
 	ValidSubRoles []string
@@ -100,6 +103,9 @@ func New(opts *NewOpts, hardwareLibrary *hardwaretypes.Library) (*CSM, error) {
 		}
 		if opts.BaseUrlHSM == "" {
 			opts.BaseUrlHSM = "https://localhost:8443/apis/smd/hsm/v2"
+		}
+		if opts.BaseUrlBSS == "" {
+			opts.BaseUrlHSM = "https://localhost:8443/apis/bss/boot/v1"
 		}
 	}
 
@@ -130,6 +136,9 @@ func New(opts *NewOpts, hardwareLibrary *hardwaretypes.Library) (*CSM, error) {
 	// Set the clients
 	csm.slsClient = sls_client.NewAPIClient(slsClientConfiguration)
 	csm.hsmClient = hsm_client.NewAPIClient(hsmClientConfiguration)
+
+	// Create the BSS client, since its not swagger generated need to do it differently
+	csm.bssClient = bss_client.NewBSSClient(opts.BaseUrlBSS, httpClient.StandardClient(), opts.APIGatewayToken)
 
 	// Load system specific config data
 	csm.ValidRoles = opts.ValidRoles
