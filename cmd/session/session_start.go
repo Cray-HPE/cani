@@ -80,7 +80,7 @@ func startSession(cmd *cobra.Command, args []string) error {
 	root.Conf.Session.DomainOptions.CsmOptions.CaCertPath = caCertPath
 	root.Conf.Session.DomainOptions.CsmOptions.ClientID = clientId
 	root.Conf.Session.DomainOptions.CsmOptions.ClientSecret = clientSecret
-	root.Conf.Session.DomainOptions.CsmOptions.TokenHost = strings.TrimRight(tokenUrl, "/") // Remove trailing slash if present
+	root.Conf.Session.DomainOptions.CsmOptions.ProviderHost = strings.TrimRight(providerHost, "/") // Remove trailing slash if present
 	root.Conf.Session.DomainOptions.CsmOptions.TokenUsername = tokenUsername
 	root.Conf.Session.DomainOptions.CsmOptions.TokenPassword = tokenPassword
 

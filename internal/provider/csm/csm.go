@@ -45,7 +45,7 @@ type NewOpts struct {
 	KubeConfig         string
 	ClientID           string `json:"-" yaml:"-"` // omit credentials from cani.yml
 	ClientSecret       string `json:"-" yaml:"-"` // omit credentials from cani.yml
-	TokenHost          string
+	ProviderHost       string
 	TokenUsername      string `json:"-" yaml:"-"` // omit credentials from cani.yml
 	TokenPassword      string `json:"-" yaml:"-"` // omit credentials from cani.yml
 	CaCertPath         string
@@ -88,19 +88,25 @@ func New(opts *NewOpts, hardwareLibrary *hardwaretypes.Library) (*CSM, error) {
 		hardwareLibrary: hardwareLibrary,
 	}
 
+	if opts.UseSimulation {
+		opts.InsecureSkipVerify = true
+
+		if opts.ProviderHost == "" {
+			opts.ProviderHost = "localhost:8443"
+		}
+
+		if opts.BaseUrlSLS == "" {
+			opts.BaseUrlSLS = fmt.Sprintf("https://%s/apis/sls/v1", opts.ProviderHost)
+		}
+		if opts.BaseUrlHSM == "" {
+			opts.BaseUrlHSM = fmt.Sprintf("https://%s/apis/smd/hsm/v2", opts.ProviderHost)
+		}
+	}
+
 	// Setup HTTP client and context using csm options
 	httpClient, _, err := opts.newClient()
 	if err != nil {
 		return nil, err
-	}
-
-	if opts.UseSimulation {
-		if opts.BaseUrlSLS == "" {
-			opts.BaseUrlSLS = "https://localhost:8443/apis/sls/v1"
-		}
-		if opts.BaseUrlHSM == "" {
-			opts.BaseUrlHSM = "https://localhost:8443/apis/smd/hsm/v2"
-		}
 	}
 
 	slsClientConfiguration := &sls_client.Configuration{

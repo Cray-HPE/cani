@@ -82,7 +82,7 @@ func (opts *NewOpts) newClient() (httpClient *retryablehttp.Client, ctx context.
 	ctx = context.WithValue(ctx, oauth2.HTTPClient, httpClient.StandardClient())
 
 	if opts.APIGatewayToken == "" && !opts.UseSimulation {
-		log.Info().Msgf("No API Gateway token provided, getting one from provider %s", opts.BaseUrlSLS)
+		log.Info().Msgf("No API Gateway token provided, getting one from provider %s", opts.ProviderHost)
 		// Get the auth token from keycloak
 		token, err := opts.getAuthToken(ctx)
 		if err != nil {
@@ -100,7 +100,7 @@ func (opts *NewOpts) getAuthToken(ctx context.Context) (*oauth2.Token, error) {
 	conf := &oauth2.Config{
 		ClientID: "shasta",
 		Endpoint: oauth2.Endpoint{
-			TokenURL: fmt.Sprintf("%s/keycloak/realms/shasta/protocol/openid-connect/token", opts.TokenHost),
+			TokenURL: fmt.Sprintf("https://%s/keycloak/realms/shasta/protocol/openid-connect/token", opts.ProviderHost),
 		},
 		Scopes: []string{"openid"},
 	}
