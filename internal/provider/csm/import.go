@@ -147,9 +147,9 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 	//
 	// Import Cabinets and Chassis
 	//
-	allCabinets, _ := sls.FilterHardwareByType(slsDumpstate.Hardware, xnametypes.Cabinet)
-	allChassis, _ := sls.FilterHardwareByType(slsDumpstate.Hardware, xnametypes.Chassis)
-	allChassisBMCs, _ := sls.FilterHardwareByType(slsDumpstate.Hardware, xnametypes.ChassisBMC)
+	allCabinets := sls.FilterHardwareByType(slsDumpstate.Hardware, xnametypes.Cabinet)
+	allChassis := sls.FilterHardwareByType(slsDumpstate.Hardware, xnametypes.Chassis)
+	allChassisBMCs := sls.FilterHardwareByType(slsDumpstate.Hardware, xnametypes.ChassisBMC)
 
 	// Find all cabinets and what chassis they have
 	cabinetChassisCounts := map[string][]int{}
@@ -401,7 +401,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 	//
 	// Import Nodes
 	//
-	allNodes, _ := sls.FilterHardwareByType(slsDumpstate.Hardware, xnametypes.Node)
+	allNodes := sls.FilterHardwareByType(slsDumpstate.Hardware, xnametypes.Node)
 
 	// 1. Find all slots holding blades (either currently populated or could be populated) from SLS
 	slsNodeBladeXnames := []xnames.ComputeModule{}

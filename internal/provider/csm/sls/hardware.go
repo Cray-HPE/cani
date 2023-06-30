@@ -101,8 +101,8 @@ func FilterHardware(allHardware map[string]sls_client.Hardware, filter func(sls_
 	return result, nil
 }
 
-func FilterHardwareByType(allHardware map[string]sls_client.Hardware, types ...xnametypes.HMSType) (map[string]sls_client.Hardware, error) {
-	return FilterHardware(allHardware, func(hardware sls_client.Hardware) (bool, error) {
+func FilterHardwareByType(allHardware map[string]sls_client.Hardware, types ...xnametypes.HMSType) map[string]sls_client.Hardware {
+	result, _ := FilterHardware(allHardware, func(hardware sls_client.Hardware) (bool, error) {
 		for _, hmsType := range types {
 			if hardware.TypeString == hmsType {
 				return true, nil
@@ -110,6 +110,8 @@ func FilterHardwareByType(allHardware map[string]sls_client.Hardware, types ...x
 		}
 		return false, nil
 	})
+
+	return result
 }
 
 func DecodeExtraProperties[T any](hardware sls_client.Hardware) (*T, error) {
@@ -174,4 +176,46 @@ func HardwareUpdate(slsClient *sls_client.APIClient, ctx context.Context, hardwa
 	wg.Wait()
 
 	return nil
+}
+
+func HardwareMap(allHardware []sls_client.Hardware) map[string]sls_client.Hardware {
+	result := map[string]sls_client.Hardware{}
+
+	for _, hardware := range allHardware {
+		result[hardware.Xname] = hardware
+	}
+
+	return result
+}
+
+func HardwareSlice(allHardware map[string]sls_client.Hardware) []sls_client.Hardware {
+	result := []sls_client.Hardware{}
+
+	for _, hardware := range allHardware {
+		result = append(result, hardware)
+	}
+
+	return result
+
+}
+
+func HardwarePairMap(allHardware []HardwarePair) map[string]HardwarePair {
+	result := map[string]HardwarePair{}
+
+	for _, hardware := range allHardware {
+		result[hardware.Xname] = hardware
+	}
+
+	return result
+}
+
+func HardwarePairSlice(allHardware map[string]HardwarePair) []HardwarePair {
+	result := []HardwarePair{}
+
+	for _, hardware := range allHardware {
+		result = append(result, hardware)
+	}
+
+	return result
+
 }

@@ -33,9 +33,12 @@ import (
 	"strings"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider/csm/ipam"
 	"github.com/Cray-HPE/cani/internal/provider/csm/sls"
 	"github.com/Cray-HPE/cani/internal/provider/csm/validate"
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
+	"github.com/Cray-HPE/hms-xname/xnames"
 	"github.com/Cray-HPE/hms-xname/xnametypes"
 	"github.com/rs/zerolog/log"
 )
@@ -70,11 +73,126 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 	}
 
 	//
+	// Reconcile Hardware changes
+	//
+	hardwareChanges, err := reconcileHardwareChanges(*csm.hardwareLibrary, datastore, currentSLSState)
+	if err != nil {
+		return errors.Join(fmt.Errorf("failed to reconcile hardware changes"), err)
+	}
+
+	//
+	// Reconcile Network changes
+	//
+	_, err = reconcileNetworkChanges(currentSLSState.Networks, hardwareChanges)
+	if err != nil {
+		return errors.Join(fmt.Errorf("failed to reconcile network changes"), err)
+	}
+
+	// TODO a summary of network changes might be nice
+
+	//
+	// Simulate and validate SLS actions
+	//
+	modifiedState, err := sls.CopyState(currentSLSState)
+	if err != nil {
+		return errors.Join(fmt.Errorf("unable to copy SLS state"), err)
+	}
+	for _, hardware := range hardwareChanges.Removed {
+		delete(modifiedState.Hardware, hardware.Xname)
+	}
+	for _, hardware := range hardwareChanges.Added {
+		modifiedState.Hardware[hardware.Xname] = hardware
+	}
+	for _, hardwarePair := range hardwareChanges.Changed {
+		updatedHardware := hardwarePair.HardwareA
+		modifiedState.Hardware[updatedHardware.Xname] = updatedHardware
+	}
+
+	_, err = validate.Validate(&modifiedState)
+	if err != nil {
+		return fmt.Errorf("Validation failed. %v\n", err)
+	}
+
+	//
+	// Modify the System's SLS instance
+	//
+
+	// Sort hardware so children are deleted before their parents
+	sls.SortHardwareReverse(hardwareChanges.Removed)
+
+	// Remove hardware that no longer exists
+	for _, hardware := range hardwareChanges.Removed {
+		log.Info().Str("xname", hardware.Xname).Msg("Removing")
+		// Put into transaction log with old and new value
+		// TODO
+
+		// Perform a DELETE against SLS
+		r, err := csm.slsClient.HardwareApi.HardwareXnameDelete(ctx, hardware.Xname)
+		if err != nil {
+			return errors.Join(
+				fmt.Errorf("failed to delete hardware (%s) from SLS", hardware.Xname),
+				err,
+			)
+		}
+		log.Info().Int("status", r.StatusCode).Msg("Deleted hardware from SLS")
+	}
+
+	// Add hardware new hardware
+	for _, hardware := range hardwareChanges.Added {
+		log.Info().Str("xname", hardware.Xname).Msg("Adding")
+		// Put into transaction log with old and new value
+		// TODO
+
+		// Perform a POST against SLS
+		_, r, err := csm.slsClient.HardwareApi.HardwarePost(ctx, sls.NewHardwarePostOpts(hardware))
+		if err != nil {
+			return errors.Join(
+				fmt.Errorf("failed to add hardware (%s) to SLS", hardware.Xname),
+				err,
+			)
+		}
+		log.Info().Int("status", r.StatusCode).Msg("Added hardware to SLS")
+	}
+
+	// Update existing hardware
+	for _, hardwarePair := range hardwareChanges.Changed {
+		updatedHardware := hardwarePair.HardwareA // A is expected, B is actual
+		log.Info().Str("xname", updatedHardware.Xname).Msg("Updating")
+		// Put into transaction log with old and new value
+		// TODO
+
+		// Perform a PUT against SLS
+		_, r, err := csm.slsClient.HardwareApi.HardwareXnamePut(ctx, updatedHardware.Xname, sls.NewHardwareXnamePutOpts(updatedHardware))
+		if err != nil {
+			return errors.Join(
+				fmt.Errorf("failed to update hardware (%s) from SLS", updatedHardware.Xname),
+				err,
+			)
+		}
+		log.Info().Int("status", r.StatusCode).Msg("Updated hardware to SLS")
+	}
+
+	return nil
+}
+
+//
+// Hardware Changes
+//
+
+type HardwareChanges struct {
+	Removed   []sls_client.Hardware
+	Added     []sls_client.Hardware
+	Changed   []sls.HardwarePair
+	Identical []sls_client.Hardware
+}
+
+func reconcileHardwareChanges(hardwareTypeLibrary hardwaretypes.Library, datastore inventory.Datastore, currentSLSState sls_client.SlsState) (*HardwareChanges, error) {
+	//
 	// Build up the expected SLS state
 	//
-	expectedSLSState, hardwareMapping, err := BuildExpectedHardwareState(*csm.hardwareLibrary, datastore, currentSLSState.Networks)
+	expectedSLSState, hardwareMapping, err := BuildExpectedHardwareState(hardwareTypeLibrary, datastore, currentSLSState.Networks)
 	if err != nil {
-		return errors.Join(
+		return nil, errors.Join(
 			fmt.Errorf("failed to build expected SLS state"),
 			err,
 		)
@@ -94,23 +212,23 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 
 	hardwareRemoved, err := sls.HardwareSubtract(currentSLSState, expectedSLSState)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	hardwareAdded, err := sls.HardwareSubtract(expectedSLSState, currentSLSState)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Identify hardware present in both states
 	// Does not take into account differences in Class/ExtraProperties, just by the primary key of xname
 	identicalHardware, hardwareWithDifferingValues, err := sls.HardwareUnion(expectedSLSState, currentSLSState)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHardware, hardwareWithDifferingValues); err != nil {
-		return err
+		return nil, err
 	}
 
 	//
@@ -147,98 +265,248 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 
 	if len(unexpectedHardwareRemoval) != 0 || len(unexpectedHardwareAdditions) != 0 {
 		displayUnwantedChanges(unexpectedHardwareRemoval, unexpectedHardwareAdditions)
-		return fmt.Errorf("detected unexpected hardware changes between current and expected system states")
+		return nil, fmt.Errorf("detected unexpected hardware changes between current and expected system states")
 	}
 
-	//
-	// Simulate and validate SLS actions
-	//
-	modifiedState, err := sls.CopyState(currentSLSState)
-	if err != nil {
-		return errors.Join(fmt.Errorf("unable to copy SLS state"), err)
-	}
-	for _, hardware := range hardwareRemoved {
-		delete(modifiedState.Hardware, hardware.Xname)
-	}
-	for _, hardware := range hardwareAdded {
-		modifiedState.Hardware[hardware.Xname] = hardware
-	}
-	for _, hardwarePair := range hardwareWithDifferingValues {
-		updatedHardware := hardwarePair.HardwareA
-		modifiedState.Hardware[updatedHardware.Xname] = updatedHardware
+	return &HardwareChanges{
+		Added:     (hardwareAdded),
+		Removed:   (hardwareRemoved),
+		Identical: (identicalHardware),
+		Changed:   (hardwareWithDifferingValues),
+	}, nil
+}
+
+//
+// IPAM/Network Changes Handling
+//
+
+type SubnetChange struct {
+	NetworkName string
+	Subnet      sls_client.NetworkIpv4Subnet
+}
+
+type IPReservationChange struct {
+	NetworkName   string
+	SubnetName    string
+	IPReservation sls_client.NetworkIpReservation
+
+	// TODO have a better description of what caused the changed
+
+	// This is the hardware object that triggered the change
+	// If empty, then this was not changed by hardware
+	ChangedByXname string
+}
+
+type NetworkChanges struct {
+	// ModifiedHardware contains hardware that has changed related to
+	ModifiedAddedHardware map[string]sls_client.Hardware
+
+	ModifiedNetworks map[string]sls_client.Network
+
+	// The following fields are for book keeping to trigger other events
+	SubnetsAdded        []SubnetChange
+	IPReservationsAdded []IPReservationChange
+
+	// TODO Add in HSM EthernetEthernetInterface information
+	// This is needed if the state IP address range for a network needs to be expanded
+	// so we can check to see if the IP has been allocated.
+	// These issues need to be recorded, as the subnets DHCP range needs to be expanded.
+}
+
+func reconcileNetworkChanges(networks map[string]sls_client.Network, hardwareChanges *HardwareChanges) (*NetworkChanges, error) {
+	// Create lookup maps for hardware
+	hardwareAdded := sls.HardwareMap(hardwareChanges.Added)
+	hardwareRemoved := sls.HardwareMap(hardwareChanges.Removed)
+
+	// Create lookup maps for network extra properties for easier modified networks
+	modifiedNetworks := map[string]bool{}
+	networkExtraProperties := map[string]*sls_client.NetworkExtraProperties{}
+	for networkName, slsNetwork := range networks {
+		networkExtraProperties[networkName] = slsNetwork.ExtraProperties
 	}
 
-	_, err = validate.Validate(&modifiedState)
-	if err != nil {
-		return fmt.Errorf("Validation failed. %v\n", err)
-	}
+	// More bookkeeping to keep track of what network items have changed at a more granular level
+	subnetsAdded := []SubnetChange{}
+	ipReservationsAdded := []IPReservationChange{}
 
-	//
-	// Modify the System's SLS instance
-	//
-
-	// Sort hardware so children are deleted before their parents
-	sls.SortHardwareReverse(hardwareRemoved)
-	// Remove hardware that no longer exists
-	for _, hardware := range hardwareRemoved {
-		log.Info().Str("xname", hardware.Xname).Msg("Removing")
-		// Put into transaction log with old and new value
-		// TODO
-
-		// Perform a DELETE against SLS
-		r, err := csm.slsClient.HardwareApi.HardwareXnameDelete(ctx, hardware.Xname)
-		if err != nil {
-			return errors.Join(
-				fmt.Errorf("failed to delete hardware (%s) from SLS", hardware.Xname),
-				err,
-			)
+	// Allocate Cabinet Subnets
+	for _, cabinet := range sls.FilterHardwareByType(hardwareAdded, xnametypes.Cabinet) {
+		xnameRaw := xnames.FromString(cabinet.Xname)
+		xname, ok := xnameRaw.(xnames.Cabinet)
+		if !ok {
+			return nil, fmt.Errorf("unable to parse cabinet xname (%s)", xname)
 		}
-		log.Info().Int("status", r.StatusCode).Msg("Deleted hardware from SLS")
-	}
 
-	// Add hardware new hardware
-	for _, hardware := range hardwareAdded {
-		log.Info().Str("xname", hardware.Xname).Msg("Adding")
-		// Put into transaction log with old and new value
-		// TODO
+		log.Info().Msgf("Allocating Subnets for cabinet %s", cabinet.Xname)
 
-		// Perform a POST against SLS
-		_, r, err := csm.slsClient.HardwareApi.HardwarePost(ctx, sls.NewHardwarePostOpts(hardware))
-		if err != nil {
-			return errors.Join(
-				fmt.Errorf("failed to add hardware (%s) to SLS", hardware.Xname),
-				err,
-			)
+		// Allocation of the Cabinet Subnets
+		for _, networkPrefix := range []string{"HMN", "NMN"} {
+			networkName, err := determineCabinetNetwork(networkPrefix, cabinet.Class)
+			if err != nil {
+				return nil, err
+			}
+
+			// Retrieve the network
+			networkExtraProperties, present := networkExtraProperties[networkName]
+			if !present {
+				return nil, fmt.Errorf("unable to allocate cabinet subnet network does not exist (%s)", networkName)
+			}
+
+			// TODO Check to see if an subnet already exists
+
+			// Find an available subnet
+			subnet, err := ipam.AllocateCabinetSubnet(networkName, *networkExtraProperties, xname, nil)
+			if err != nil {
+				return nil, fmt.Errorf("unable to allocate subnet for cabinet (%s) in network (%s)", cabinet.Xname, networkName)
+			}
+
+			// TODO Verify subnet VLAN is unique
+
+			log.Printf("Allocated cabinet subnet %s with vlan %d in network %s for %s\n", subnet.CIDR, subnet.VlanID, networkName, cabinet.Xname)
+			subnetsAdded = append(subnetsAdded, SubnetChange{
+				NetworkName: networkName,
+				Subnet:      subnet,
+			})
+
+			// Push in the newly created subnet into the SLS network
+			networkExtraProperties.Subnets = append(networkExtraProperties.Subnets, subnet)
+			modifiedNetworks[networkName] = true
+
+			// TODO This is the same problem in CSI, should make the logic that builds the extra properties
+			// resuable from the SLS state generator.
+
+			// TODO push cabinet subnet changes into hardwareChanges.Added
+			// Also networkChanges.ModifiedAddedHardware
+
+			// Update the cabinet hardware object to include the updated network info
+			// extraProperties, ok := hardware.ExtraPropertiesRaw.(sls_common.ComptypeCabinet)
+			// if !ok {
+			// 	return nil, fmt.Errorf("cabinet (%s) is missing its extra properties structure", hardware.Xname)
+			// }
+			// TODO This network information in the long term should not exist here in SLS.
+			// extraProperties.Networks["cn"] = map[string]sls_common.CabinetNetworks{
+			// 	"HMN": {
+			// 		CIDR:    subnet.CIDR,
+			// 		Gateway: subnet.Gateway.String(),
+			// 		VLan:    int(subnet.VlanID),
+			// 	},
+			// }
+
+			// if hardware.Class == sls_common.ClassRiver {
+			// 	extraProperties.Networks["ncn"] = extraProperties.Networks["cn"]
+			// }
+			// hardwareAdded[i] = hardware
+
 		}
-		log.Info().Int("status", r.StatusCode).Msg("Added hardware to SLS")
 	}
 
-	// Update existing hardware
-	for _, hardwarePair := range hardwareWithDifferingValues {
-		updatedHardware := hardwarePair.HardwareA // A is expected, B is actual
-		log.Info().Str("xname", updatedHardware.Xname).Msg("Updating")
-		// Put into transaction log with old and new value
-		// TODO
+	// Deallocate Cabinet Subnets
+	for _, cabinet := range sls.FilterHardwareByType(hardwareRemoved, xnametypes.Cabinet) {
+		return nil, fmt.Errorf("de-allocating subnets for cabinet (%s) is not currently supported", cabinet.Xname)
+	}
 
-		// Perform a PUT against SLS
-		_, r, err := csm.slsClient.HardwareApi.HardwareXnamePut(ctx, updatedHardware.Xname, sls.NewHardwareXnamePutOpts(updatedHardware))
+	// Allocate Management Switch IPs
+	for _, mgmtSwitch := range sls.FilterHardwareByType(hardwareAdded, xnametypes.MgmtSwitch, xnametypes.MgmtHLSwitch, xnametypes.CDUMgmtSwitch) {
+		// TODO in the future the code from here can be adapted: https://github.com/Cray-HPE/hardware-topology-assistant/blob/main/internal/engine/engine.go#L292-L392
+		return nil, fmt.Errorf("allocating IP addresses for switch (%s) is not currently supported", mgmtSwitch.Xname)
+	}
+
+	// Deallocate Management Switch IPs
+	for _, mgmtSwitch := range sls.FilterHardwareByType(hardwareRemoved, xnametypes.MgmtSwitch, xnametypes.MgmtHLSwitch, xnametypes.CDUMgmtSwitch) {
+		return nil, fmt.Errorf("de-allocating IP addresses for switch (%s) is not currently supported", mgmtSwitch.Xname)
+	}
+
+	// Allocate Node IPs
+	for _, node := range sls.FilterHardwareByType(hardwareAdded, xnametypes.Node) {
+		nodeEP, err := sls.DecodeExtraProperties[sls_client.HardwareExtraPropertiesNode](node)
 		if err != nil {
-			return errors.Join(
-				fmt.Errorf("failed to update hardware (%s) from SLS", updatedHardware.Xname),
-				err,
-			)
+			return nil, errors.Join(fmt.Errorf("failed to decode SLS extra properties for node (%s)", node.Xname), err)
 		}
-		log.Info().Int("status", r.StatusCode).Msg("Updated hardware to SLS")
+
+		switch nodeEP.Role {
+		case "Application":
+			if nodeEP.SubRole != "UAN" {
+				continue
+			}
+
+			// TODO the code from here can be adapted: https://github.com/Cray-HPE/hardware-topology-assistant/blob/main/internal/engine/engine.go#L394-L525
+
+			return nil, fmt.Errorf("allocating IP addresses for UAN node (%s) is not currently supported", node.Xname)
+		case "Management":
+
+			// TODO the logic from here can be adapted: https://github.com/Cray-HPE/docs-csm/blob/main/scripts/operations/node_management/Add_Remove_Replace_NCNs/add_management_ncn.py#L734
+
+			return nil, fmt.Errorf("allocating IP addresses for Management node (%s) is not currently supported", node.Xname)
+		default:
+			// Nothing to do here
+		}
 	}
 
-	return nil
+	// Deallocate  Node IPs
+	for _, node := range sls.FilterHardwareByType(hardwareRemoved, xnametypes.Node) {
+		nodeEP, err := sls.DecodeExtraProperties[sls_client.HardwareExtraPropertiesNode](node)
+		if err != nil {
+			return nil, errors.Join(fmt.Errorf("failed to decode SLS extra properties for node (%s)", node.Xname), err)
+		}
+
+		switch nodeEP.Role {
+		case "Application":
+			if nodeEP.SubRole != "UAN" {
+				continue
+			}
+
+			return nil, fmt.Errorf("de-allocating IP addresses for UAN node (%s) is not currently supported", node.Xname)
+		case "Management":
+			return nil, fmt.Errorf("de-allocating IP addresses for Management node (%s) is not currently supported", node.Xname)
+		default:
+			// Nothing to do here
+		}
+	}
+
+	// Filter NetworkExtraProperties to include only the modified networks
+	modifiedNetworksSet := map[string]sls_client.Network{}
+	for networkName, networkExtraProperties := range networkExtraProperties {
+		if !modifiedNetworks[networkName] {
+			continue
+		}
+
+		// Merge extra properties with the top level network with SLS
+		slsNetwork := networks[networkName]
+		slsNetwork.ExtraProperties = networkExtraProperties
+
+		// TODO update vlan range.
+
+		modifiedNetworksSet[networkName] = slsNetwork
+	}
+
+	return &NetworkChanges{
+		ModifiedNetworks:    modifiedNetworksSet,
+		SubnetsAdded:        subnetsAdded,
+		IPReservationsAdded: ipReservationsAdded,
+	}, nil
+}
+
+func determineCabinetNetwork(networkPrefix string, class sls_client.HardwareClass) (string, error) {
+	var suffix string
+	switch class {
+	case sls_client.HardwareClassRiver:
+		suffix = "_RVR"
+	case sls_client.HardwareClassHill:
+		fallthrough
+	case sls_client.HardwareClassMountain:
+		suffix = "_MTN"
+	default:
+		return "", fmt.Errorf("unknown cabinet class (%s)", class)
+	}
+
+	return networkPrefix + suffix, nil
 }
 
 //
 // The following is taken from: https://github.com/Cray-HPE/hardware-topology-assistant/blob/main/internal/engine/engine.go
 //
 
-func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHardware []sls_client.Hardware, hardwareWithDifferingValues []sls.GenericHardwarePair) error {
+func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHardware []sls_client.Hardware, hardwareWithDifferingValues []sls.HardwarePair) error {
 	log.Info().Msgf("")
 	log.Info().Msgf("Identical hardware between current and expected states")
 	if len(identicalHardware) == 0 {

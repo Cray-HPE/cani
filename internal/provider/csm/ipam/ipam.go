@@ -207,7 +207,6 @@ func AllocateCabinetSubnet(networkName string, slsNetwork sls_client.NetworkExtr
 		vlan = *vlanOverride
 	} else {
 		// Look at other cabinets in the subnet and pick one.
-		// TODO THIS MIGHT FALL APART WITH LIQUID-COOLED CABINETS AS THOSE CAN BE USER SUPPLIED, but we don't currently support adding this with this tool
 
 		// Determine the current vlans in use by other cabinets
 		vlansInUse := map[int32]bool{}

@@ -663,8 +663,6 @@ func TestFindNextAvailableSubnetSuite(t *testing.T) {
 // AllocateCabinetSubnetSuite
 //
 
-// TODO
-
 type AllocateCabinetSubnetSuite struct {
 	suite.Suite
 
