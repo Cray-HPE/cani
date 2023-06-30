@@ -110,11 +110,25 @@ func DetermineStartingOrdinalFromSlug(deviceTypeSlug string, hardwareTypeLibrary
 	}
 
 	if deviceType.ProviderDefaults != nil && deviceType.ProviderDefaults.CSM != nil {
-		log.Debug().Msgf("kj %+v", deviceType.ProviderDefaults.CSM)
 		return deviceType.ProviderDefaults.CSM.Ordinal, nil
 	}
 
 	return 0, fmt.Errorf("unable to determine CSM starting ordinal of (%s) %+v", deviceTypeSlug, deviceType.ProviderDefaults.CSM)
+}
+
+func DetermineStartingVlanFromSlug(deviceTypeSlug string, hardwareTypeLibrary hardwaretypes.Library) (int, error) {
+	deviceType, exists := hardwareTypeLibrary.DeviceTypes[deviceTypeSlug]
+	if !exists {
+		return 0, errors.Join(
+			fmt.Errorf("unable to find device type (%s)", deviceTypeSlug),
+		)
+	}
+
+	if deviceType.ProviderDefaults != nil && deviceType.ProviderDefaults.CSM != nil {
+		return deviceType.ProviderDefaults.CSM.StartingHmnVlan, nil
+	}
+
+	return 0, fmt.Errorf("unable to determine CSM starting VLAN of (%s) %+v", deviceTypeSlug, deviceType.ProviderDefaults.CSM)
 }
 
 func BuildExpectedHardwareState(hardwareTypeLibrary hardwaretypes.Library, datastore inventory.Datastore, slsNetworks map[string]sls_client.Network) (sls_client.SlsState, map[string]inventory.Hardware, error) {

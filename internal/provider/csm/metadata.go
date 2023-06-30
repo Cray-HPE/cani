@@ -32,7 +32,6 @@ import (
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
-	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	"github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog/log"
 )
@@ -189,15 +188,6 @@ func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperti
 }
 
 func (csm *CSM) RecommendCabinet(inv inventory.Inventory, deviceTypeSlug string) (recommended provider.HardwareRecommendations, err error) {
-	// defined by csi
-	const riverStartingVlan = 1513
-	const riverEndingVlan = 1769
-	// var riverVlanRange = []int16{riverStartingVlan, riverEndingVlan}
-	// defined by csi
-	const mountainStartingVlan = 3000
-	const mountainEndingVlan = 3999
-	// var mountainVlanRange = []int16{mountainStartingVlan, mountainEndingVlan}
-
 	// slice to track existing vlans
 	var existingVlans = []int{}
 	// slice to track existing cabinets
@@ -222,8 +212,6 @@ func (csm *CSM) RecommendCabinet(inv inventory.Inventory, deviceTypeSlug string)
 				}
 			}
 
-			// Make changes to the node metadata
-			// The keys of rawProperties need to match what is defined in ./cmd/cabinet/add_cabinet.go
 			if properties.HMNVlan != nil {
 				// add it to the slice that tracks existing vlans
 				existingVlans = append(existingVlans, *properties.HMNVlan)
@@ -263,24 +251,18 @@ func (csm *CSM) RecommendCabinet(inv inventory.Inventory, deviceTypeSlug string)
 	}
 
 	// Set the metadata vlan
-	var chosenVlan int
+	var startingVlan, chosenVlan int
+	startingVlan, err = DetermineStartingVlanFromSlug(deviceTypeSlug, *csm.hardwareLibrary)
+	if err != nil {
+		return recommended, err
+	}
 	if len(existingCabinets) == 0 {
 		// choose a starting vlan based on the class
-		if class == sls_client.HardwareClassMountain || class == sls_client.HardwareClassHill {
-			chosenVlan = mountainStartingVlan
-		}
-		if class == sls_client.HardwareClassRiver {
-			chosenVlan = riverStartingVlan
-		}
+		chosenVlan = startingVlan
 		log.Debug().Msgf("No cabinet VLANs found, using %d for %s %s", chosenVlan, class, hardwaretypes.Cabinet)
 	} else {
 		// set the recommended vlan by finding an available one from the existing
-		if class == sls_client.HardwareClassMountain || class == sls_client.HardwareClassHill {
-			chosenVlan = nextAvailableInt(existingVlans, mountainStartingVlan)
-		}
-		if class == sls_client.HardwareClassRiver {
-			chosenVlan = nextAvailableInt(existingVlans, riverStartingVlan)
-		}
+		chosenVlan = nextAvailableInt(existingVlans, startingVlan)
 
 	}
 
