@@ -204,6 +204,8 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 
 	// }
 
+	// TODO determine changes to BSS NTP data to ensure that the {HMN,NMN}_{RVR,MTN} networks are present.
+
 	//
 	// Modify the System's SLS instance
 	//
