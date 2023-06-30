@@ -37,7 +37,7 @@ var (
 	secretName    string
 	clientId      string
 	clientSecret  string
-	tokenUrl      string
+	providerHost  string
 	tokenUsername string
 	tokenPassword string
 	useSimulation bool
@@ -53,19 +53,19 @@ func init() {
 
 	// Session start flags
 	// TODO need a quick simulation environment flag
-	SessionStartCmd.Flags().String("csm-url-sls", "https://api-gw-service-nmn.local/apis/sls/v1", "(CSM Provider) Base URL for the System Layout Service (SLS)")
-	SessionStartCmd.Flags().String("csm-url-hsm", "https://api-gw-service-nmn.local/apis/smd/hsm/v2", "(CSM Provider) Base URL for the Hardware State Manager (HSM)")
+	SessionStartCmd.Flags().String("csm-url-sls", "", "(CSM Provider) Base URL for the System Layout Service (SLS)")
+	SessionStartCmd.Flags().String("csm-url-hsm", "", "(CSM Provider) Base URL for the Hardware State Manager (HSM)")
 	SessionStartCmd.Flags().BoolVarP(&insecure, "csm-insecure-https", "k", false, "(CSM Provider) Allow insecure connections when using HTTPS to CSM services")
 	SessionStartCmd.Flags().BoolVarP(&useSimulation, "csm-simulator", "S", false, "(CSM Provider) Use simulation environment URLs")
 
 	// These three pieces are needed for the CSM provider to get a token
-	SessionStartCmd.Flags().StringVar(&tokenUrl, "csm-base-auth-url", "", "(CSM Provider) Base URL for the CSM authentication")
-	// SessionStartCmd.MarkFlagRequired("csm-base-auth-url")
+	SessionStartCmd.Flags().StringVar(&providerHost, "csm-api-host", "api-gw-service-nmn.local", "(CSM Provider) Host or FQDN for authentation and APIs")
+	// SessionStartCmd.MarkFlagRequired("csm-api-host")
 	SessionStartCmd.Flags().StringVar(&tokenUsername, "csm-keycloak-username", "", "(CSM Provider) Keycloak username")
 	// SessionStartCmd.MarkFlagRequired("csm-keycloak-username")
 	SessionStartCmd.Flags().StringVar(&tokenPassword, "csm-keycloak-password", "", "(CSM Provider) Keycloak password")
 	// SessionStartCmd.MarkFlagRequired("csm-keycloak-password")
-	SessionStartCmd.MarkFlagsRequiredTogether("csm-base-auth-url", "csm-keycloak-username", "csm-keycloak-password")
+	SessionStartCmd.MarkFlagsRequiredTogether("csm-api-host", "csm-keycloak-username", "csm-keycloak-password")
 	// TODO the API token, do we save ito the file?
 
 	// Less secure auth methods for CSM that follow existing patterns, but to discourage use, mark them hidden

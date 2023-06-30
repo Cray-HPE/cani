@@ -56,20 +56,27 @@ var SessionStartCmd = &cobra.Command{
 }
 
 var (
-	providerName string
-	validArgs    = []string{"csm"}
+	validArgs = []string{"csm"}
 )
 
 // startSession starts a session if one does not exist
 func startSession(cmd *cobra.Command, args []string) error {
-	// TODO This is probably not the right way todo this, but hopefully this will be easy way...
-	// Sorry Jacob
 	if useSimulation {
 		log.Warn().Msg("Using simulation mode")
 		root.Conf.Session.DomainOptions.CsmOptions.UseSimulation = true
 	} else {
-		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlSLS, _ = cmd.Flags().GetString("csm-url-sls")
-		root.Conf.Session.DomainOptions.CsmOptions.BaseUrlHSM, _ = cmd.Flags().GetString("csm-url-hsm")
+		slsUrl, _ := cmd.Flags().GetString("csm-url-sls")
+		if slsUrl != "" {
+			root.Conf.Session.DomainOptions.CsmOptions.BaseUrlSLS = slsUrl
+		} else {
+			root.Conf.Session.DomainOptions.CsmOptions.BaseUrlSLS = fmt.Sprintf("https://%s/apis/sls/v1", providerHost)
+		}
+		hsmUrl, _ := cmd.Flags().GetString("csm-url-hsm")
+		if hsmUrl != "" {
+			root.Conf.Session.DomainOptions.CsmOptions.BaseUrlHSM = hsmUrl
+		} else {
+			root.Conf.Session.DomainOptions.CsmOptions.BaseUrlHSM = fmt.Sprintf("https://%s/apis/smd/hsm/v2", providerHost)
+		}
 		root.Conf.Session.DomainOptions.CsmOptions.InsecureSkipVerify, _ = cmd.Flags().GetBool("csm-insecure-https")
 	}
 	if insecure {
@@ -80,7 +87,7 @@ func startSession(cmd *cobra.Command, args []string) error {
 	root.Conf.Session.DomainOptions.CsmOptions.CaCertPath = caCertPath
 	root.Conf.Session.DomainOptions.CsmOptions.ClientID = clientId
 	root.Conf.Session.DomainOptions.CsmOptions.ClientSecret = clientSecret
-	root.Conf.Session.DomainOptions.CsmOptions.TokenHost = strings.TrimRight(tokenUrl, "/") // Remove trailing slash if present
+	root.Conf.Session.DomainOptions.CsmOptions.ProviderHost = strings.TrimRight(providerHost, "/") // Remove trailing slash if present
 	root.Conf.Session.DomainOptions.CsmOptions.TokenUsername = tokenUsername
 	root.Conf.Session.DomainOptions.CsmOptions.TokenPassword = tokenPassword
 
@@ -136,7 +143,7 @@ func startSession(cmd *cobra.Command, args []string) error {
 		return err
 	} else if err != nil {
 		return errors.Join(err,
-			errors.New("External inventory is unstable.  Fix, and check with 'cani validate' before continuing."))
+			errors.New("External inventory is unstable.  Fix issues before starting another session."))
 	}
 
 	// "Activate" the session
