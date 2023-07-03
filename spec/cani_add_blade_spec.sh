@@ -23,7 +23,7 @@
 
 
 Describe 'cani add blade'
-
+ 
 # help output should succeed and match the fixture
 # a config file should be created if one does not exist
 It '--help'
@@ -99,10 +99,10 @@ End
 #   - a datastore exists
 #   - chassis flag is not set
 #   - blade flag is not set
-It '--config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 1234'
+It '--config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 3000'
   BeforeCall use_active_session # session is active
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
-  When call bin/cani alpha add blade --config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 1234
+  When call bin/cani alpha add blade --config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 3000
   The status should equal 1
   The line 1 of stderr should equal 'Error: required flag(s) "blade", "chassis" not set'
 End
@@ -111,10 +111,10 @@ End
 #   - a session is active
 #   - a datastore exists
 #   - blade flag is not set
-It '--config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 1234 --chassis 1234'
+It '--config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 3000 --chassis 0'
   BeforeCall use_active_session # session is active
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
-  When call bin/cani alpha add blade --config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 1234 --chassis 1234
+  When call bin/cani alpha add blade --config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 3000 --chassis 0
   The status should equal 1
   The line 1 of stderr should equal 'Error: required flag(s) "blade" not set'
 End
@@ -126,12 +126,12 @@ End
 #   - chassis flag is set
 #   - blade flag is set
 #   - the cabinet does not exist
-It '--config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 1234 --chassis 1234 --blade 1234'
+It '--config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 3000 --chassis 1 --blade 0'
   BeforeCall use_active_session # session is active
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
-  When call bin/cani alpha add blade --config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 1234 --chassis 1234 --blade 1234
+  When call bin/cani alpha add blade --config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 3000 --chassis 1 --blade 0
   The status should equal 1
-  The line 1 of stderr should equal 'Error: unable to find Cabinet at System:0->Cabinet:1234'
+  The line 1 of stderr should equal 'Error: unable to find Cabinet at System:0->Cabinet:3000'
   The line 2 of stderr should equal "try 'go run main.go alpha list cabinet'"
 End
 
@@ -143,13 +143,13 @@ End
 #   - blade flag is set
 #   - the cabinet exists
 #   - the chassis does not exist
-It '--config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 1234 --chassis 1234 --blade 1234'
+It '--config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 3000 --chassis 1234 --blade 0'
   BeforeCall use_active_session # session is active
-  BeforeCall use_valid_datastore_one_cabinet # deploy a valid datastore with one cabinet
-  When call bin/cani alpha add blade --config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 1234 --chassis 1234 --blade 1234
+  BeforeCall use_valid_datastore_one_eia_cabinet # deploy a valid datastore with one cabinet
+  When call bin/cani alpha add blade --config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 3000 --chassis 1234 --blade 0
   The status should equal 1
   The line 1 of stderr should equal 'Error: in order to add a NodeBlade, a Chassis is needed'
-  The line 2 of stderr should equal "unable to find Chassis at System:0->Cabinet:1234->Chassis:1234"
+  The line 2 of stderr should equal "unable to find Chassis at System:0->Cabinet:3000->Chassis:1234"
 End
 
 # Adding a blade should succeed if:
@@ -160,16 +160,16 @@ End
 #   - blade flag is set
 #   - the cabinet exists
 #   - the chassis exists
-It '--config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 1234 --chassis 1 --blade 1234'
+It '--config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 3000 --chassis 0 --blade 0'
   BeforeCall use_active_session # session is active
-  BeforeCall use_valid_datastore_one_cabinet # deploy a valid datastore with one cabinet
-  When call bin/cani alpha add blade --config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 1234 --chassis 1 --blade 1234
+  BeforeCall use_valid_datastore_one_eia_cabinet # deploy a valid datastore with one cabinet
+  When call bin/cani alpha add blade --config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 3000 --chassis 0 --blade 0
   The status should equal 0
   The line 1 of stderr should include "NodeBlade was successfully staged to be added to the system"
   The line 2 of stderr should include "UUID: "
-  The line 3 of stderr should include "Cabinet: 1234"
-  The line 4 of stderr should include "Chassis: 1"
-  The line 5 of stderr should include "Blade: 1234"
+  The line 3 of stderr should include "Cabinet: 3000"
+  The line 4 of stderr should include "Chassis: 0"
+  The line 5 of stderr should include "Blade: 0"
 End
 
 # (re-run the last command) Adding a blade should fail if:
@@ -181,11 +181,11 @@ End
 #   - the cabinet exists
 #   - the chassis exists
 #   - the blade already exists
-It '--config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 1234 --chassis 1 --blade 1234'
+It '--config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 3000 --chassis 0 --blade 0'
   BeforeCall use_active_session # session is active
-  When call bin/cani alpha add blade --config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 1234 --chassis 1 --blade 1234
+  When call bin/cani alpha add blade --config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 3000 --chassis 0 --blade 0
   The status should equal 1
-  The line 1 of stderr should equal "Error: NodeBlade number 1234 is already in use"
+  The line 1 of stderr should equal "Error: NodeBlade number 0 is already in use"
   The line 2 of stderr should equal "please re-run the command with an available NodeBlade number"
   The line 3 of stderr should equal "try 'cani alpha list blade'"
 End
