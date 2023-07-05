@@ -27,6 +27,7 @@ package provider
 
 import (
 	"context"
+	"encoding/csv"
 	"fmt"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
@@ -57,6 +58,10 @@ type InventoryProvider interface {
 
 	// RecommendCabinet returns recommended settings for adding a cabinet
 	RecommendCabinet(inv inventory.Inventory, deviceTypeSlug string) (HardwareRecommendations, error)
+
+	ExportCsv(ctx context.Context, datastore inventory.Datastore, writer *csv.Writer, headers []string) error
+
+	ImportCsv(ctx context.Context, datastore inventory.Datastore, reader *csv.Reader) (result CsvImportResult, err error)
 }
 
 type HardwareValidationResult struct {
@@ -67,4 +72,10 @@ type HardwareValidationResult struct {
 type HardwareRecommendations struct {
 	LocationOrdinal  int
 	ProviderMetadata map[string]interface{}
+}
+
+type CsvImportResult struct {
+	Total             int
+	Modified          int
+	ValidationResults map[uuid.UUID]HardwareValidationResult
 }
