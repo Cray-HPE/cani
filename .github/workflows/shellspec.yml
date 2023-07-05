@@ -52,7 +52,7 @@ jobs:
         name: Install shellspec (macOS)
         run: |
           brew tap shellspec/shellspec
-          brew update
+          # brew update
           brew install shellspec ksh93 bash
 
       - if: ${{ matrix.os == 'macos-latest' }}
