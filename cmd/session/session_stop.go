@@ -26,6 +26,7 @@
 package session
 
 import (
+	"encoding/csv"
 	"errors"
 	"fmt"
 	"os"
@@ -96,6 +97,50 @@ func stopSession(cmd *cobra.Command, args []string) error {
 		} else if err != nil {
 			return err
 		}
+	}
+	// Get the entire inventory
+	inv, err := d.List()
+	if err != nil {
+		return err
+	}
+
+	canicsvFname := "./canisv.csv"
+
+	// check if file exists
+	var canisv *os.File
+	canisv, err = os.Create(canicsvFname)
+	if err != nil {
+		return err
+	}
+	defer canisv.Close()
+	w := csv.NewWriter(canisv)
+	// write headers TODO: build from struct
+	w.Write([]string{
+		"ID",
+		"Name",
+		"Type",
+		"DeviceTypeSlug",
+		"Status",
+		"Role",
+		"SubRole",
+		"Alias",
+	})
+	// each map entry is a row in the csv
+	for _, hw := range inv.Hardware {
+		err := w.Write([]string{
+			fmt.Sprintf("%v", hw.ID),
+			fmt.Sprintf("%v", hw.Name),
+			fmt.Sprintf("%v", hw.Type),
+			fmt.Sprintf("%v", hw.DeviceTypeSlug),
+			fmt.Sprintf("%v", hw.Status),
+			fmt.Sprintf("%v", hw.Role),
+			fmt.Sprintf("%v", hw.SubRole),
+			fmt.Sprintf("%v", hw.Alias)})
+		if err != nil {
+			panic(err)
+		}
+
+		w.Flush()
 	}
 
 	// "Deactivate" the session if the function has made it this far
