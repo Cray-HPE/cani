@@ -34,6 +34,7 @@ var (
 	vlanId        int
 	auto          bool
 	accept        bool
+	format        string
 )
 
 func init() {
@@ -54,4 +55,5 @@ func init() {
 	AddCabinetCmd.Flags().BoolVar(&auto, "auto", false, "Automatically recommend and assign required flags.")
 	AddCabinetCmd.MarkFlagsMutuallyExclusive("auto")
 	AddCabinetCmd.Flags().BoolVarP(&accept, "accept", "y", false, "Automatically accept recommended values.")
+	ListCabinetCmd.Flags().StringVarP(&format, "format", "f", "pretty", "Format out output")
 }

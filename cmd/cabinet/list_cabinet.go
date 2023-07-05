@@ -29,6 +29,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"text/tabwriter"
 
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/internal/domain"
@@ -67,13 +69,60 @@ func listCabinet(cmd *cobra.Command, args []string) error {
 			filtered[key] = hw
 		}
 	}
-	// Convert the filtered inventory into a formatted JSON string
-	inventoryJSON, err := json.MarshalIndent(filtered, "", "  ")
-	if err != nil {
-		return errors.New(fmt.Sprintf("Error marshaling inventory to JSON: %v", err))
-	}
 
-	// Print the inventory
-	fmt.Println(string(inventoryJSON))
+	switch format {
+	case "json":
+		// Convert the filtered inventory into a formatted JSON string
+		inventoryJSON, err := json.MarshalIndent(filtered, "", "  ")
+		if err != nil {
+			return errors.New(fmt.Sprintf("Error marshaling inventory to JSON: %v", err))
+		}
+		// Print the inventory
+		fmt.Println(string(inventoryJSON))
+
+	case "pretty":
+		// 		tpl := `{{ printf "%.25s" CABINET }}
+		//{{- range . }}
+		// |{{ .ID }} | {{ .DeviceTypeSlug }} | {{ .DeviceTypeSlug }}  | {{ .LocationPath }} | {{ end }}
+		// 		`
+
+		minwidth := 0         // minimal cell width including any padding
+		tabwidth := 4         // width of tab characters (equivalent number of spaces)
+		padding := 1          // padding added to a cell before computing its width
+		padchar := byte('\t') // ASCII char used for padding
+
+		w := tabwriter.NewWriter(os.Stdout, minwidth, tabwidth, padding, padchar, tabwriter.AlignRight)
+		defer w.Flush()
+		// t := template.New("cabinets")
+		// t, _ = t.Parse(tpl)
+		// if err := t.Execute(w, filtered); err != nil {
+		// 	return err
+		// }
+		// fmt.Fprintln(w, "Cabinet\tSlug\tHMN VLAN\tLocation")
+
+		var hmnVlan float64
+		fmt.Fprintf(w, "%s\t%s\t%v\t%s\n",
+			"UUID",
+			"Type",
+			"HMN VLAN",
+			"Location")
+
+		for _, hw := range filtered {
+			if _, exists := hw.ProviderProperties[string(inventory.CSMProvider)]; exists {
+				for k, v := range hw.ProviderProperties[string(inventory.CSMProvider)].(map[string]interface{}) {
+					if _, e := hw.ProviderProperties[string(inventory.CSMProvider)].(map[string]interface{})[k]; e {
+						hmnVlan = v.(float64)
+					}
+
+				}
+			}
+			fmt.Fprintf(w, "%s\t%s\t%v\t%s\n",
+				hw.ID.String(),
+				hw.DeviceTypeSlug,
+				hmnVlan,
+				hw.LocationPath.String())
+		}
+
+	}
 	return nil
 }
