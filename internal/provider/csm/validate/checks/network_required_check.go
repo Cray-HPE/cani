@@ -27,6 +27,8 @@
 package checks
 
 import (
+	"fmt"
+
 	"github.com/Cray-HPE/cani/internal/provider/csm/validate/common"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 )
@@ -47,7 +49,10 @@ func NewRequiedNetworkCheck(networks map[string]sls_client.Network) *RequiredNet
 }
 
 func (n *RequiredNetworkCheck) Validate(results *common.ValidationResults) {
-
+	const (
+		networksEndpoint      = "/Networks"
+		fixMissingNetworksUrl = "https://cray-hpe.github.io/cani/latest/troubleshooting/known_errors/#required-network-hmn_mtn-is-missing-or-required-network-nmn_mtn-is-missing"
+	)
 	foundHmnMtnNetwork := false
 	foundNmnMtnNetwork := false
 	for _, network := range n.networks {
@@ -62,25 +67,25 @@ func (n *RequiredNetworkCheck) Validate(results *common.ValidationResults) {
 	if foundHmnMtnNetwork {
 		results.Pass(
 			requiredNetworkCheck,
-			"/Networks",
+			networksEndpoint,
 			"Required network HMN_MTN is present")
 	} else {
 		results.Fail(
 			requiredNetworkCheck,
-			"/Networks",
-			"Required network HMN_MTN is missing")
+			networksEndpoint,
+			fmt.Sprintf("Required network HMN_MTN is missing.  The procedure to fix this can be found here: %s", fixMissingNetworksUrl))
 
 	}
 
 	if foundNmnMtnNetwork {
 		results.Pass(
 			requiredNetworkCheck,
-			"/Networks",
+			networksEndpoint,
 			"Required network NMN_MTN is present")
 	} else {
 		results.Fail(
 			requiredNetworkCheck,
-			"/Networks",
-			"Required network NMN_MTN is missing")
+			networksEndpoint,
+			fmt.Sprintf("Required network NMN_MTN is missing.  The procedure to fix this can be found here: %s", fixMissingNetworksUrl))
 	}
 }
