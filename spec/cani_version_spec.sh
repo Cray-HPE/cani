@@ -23,13 +23,6 @@
 
 
 Describe 'cani version'
-# Fixtures location ./spec/fixtures
-FIXTURES="$SHELLSPEC_HELPERDIR/testdata/fixtures"
-
-# compare value to file content
-fixture(){
-  test "${fixture:?}" == "$( cat "$FIXTURES/$1" )"
-}
 
 It '--help'
   When call bin/cani version --help
