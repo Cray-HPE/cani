@@ -72,6 +72,12 @@ func loadJSON(path string, dest interface{}) error {
 }
 
 func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error {
+	// Check the schema version defined in the datastore
+	datastoreSchema, err := datastore.GetSchemaVersion()
+	if err != nil {
+		return err
+	}
+	currentSchema := string(datastoreSchema)
 
 	//
 	// Retrieve current state from the system
@@ -297,6 +303,11 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			return fmt.Errorf("failed to decode SLS hardware extra properties (%s)", slsCabinet.Xname)
 		}
 
+		// if a schema is present but does not match the current schema, warn but accept so the user can adjust as needed
+		if slsCabinetEP.CaniSlsSchemaVersion != "" && slsCabinetEP.CaniSlsSchemaVersion != currentSchema {
+			log.Warn().Msgf("Schema mismatch: expected %s but found %s for SLS %s %s (%s)", currentSchema, slsCabinetEP.CaniSlsSchemaVersion, cCabinet.Type, slsCabinet.Xname, cCabinet.ID)
+		}
+
 		if slsCabinetEP.CaniId != cCabinet.ID.String() {
 			if len(slsCabinetEP.CaniId) != 0 {
 				log.Warn().Msgf("Detected CANI hardware ID change from %s to %s for SLS Hardware %s", slsCabinetEP.CaniId, cCabinet.ID, slsCabinet.Xname)
@@ -339,6 +350,11 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			return fmt.Errorf("failed to decode SLS hardware extra properties (%s)", slsHardware.Xname)
 		}
 
+		// if a schema is present but does not match the current schema, warn but accept so the user can adjust as needed
+		if slsEP.CaniSlsSchemaVersion != "" && slsEP.CaniSlsSchemaVersion != currentSchema {
+			log.Warn().Msgf("Schema mismatch: expected %s but found %s for SLS %s %s (%s)", currentSchema, slsEP.CaniSlsSchemaVersion, cHardware.Type, slsHardware.Xname, cHardware.ID)
+		}
+
 		if slsEP.CaniId != cHardware.ID.String() {
 			if len(slsEP.CaniId) != 0 {
 				log.Warn().Msgf("Detected CANI hardware ID change from %s to %s for SLS Hardware %s", slsEP.CaniId, cHardware.ID, slsHardware.Xname)
@@ -379,6 +395,11 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 		slsEP, err := sls.DecodeExtraProperties[sls_client.HardwareExtraPropertiesChassisBmc](slsHardware)
 		if err != nil {
 			return fmt.Errorf("failed to decode SLS hardware extra properties (%s)", slsHardware.Xname)
+		}
+
+		// if a schema is present but does not match the current schema, warn but accept so the user can adjust as needed
+		if slsEP.CaniSlsSchemaVersion != "" && slsEP.CaniSlsSchemaVersion != currentSchema {
+			log.Warn().Msgf("Schema mismatch: expected %s but found %s for SLS %s %s (%s)", currentSchema, slsEP.CaniSlsSchemaVersion, cHardware.Type, slsHardware.Xname, cHardware.ID)
 		}
 
 		if slsEP.CaniId != cHardware.ID.String() {
@@ -632,6 +653,11 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 		// Push updates into the datastore
 		if err := tempDatastore.Update(&cNode); err != nil {
 			return fmt.Errorf("failed to update hardware (%s) in memory datastore", cNode.ID)
+		}
+
+		// if a schema is present but does not match the current schema, warn but accept so the user can adjust as needed
+		if slsNodeEP.CaniSlsSchemaVersion != "" && slsNodeEP.CaniSlsSchemaVersion != currentSchema {
+			log.Warn().Msgf("Schema mismatch: expected %s but found %s for SLS %s %s (%s)", currentSchema, slsNodeEP.CaniSlsSchemaVersion, cNode.Type, slsNode.Xname, cNode.ID)
 		}
 
 		//
