@@ -89,6 +89,8 @@ nav:
     - Testing: development/testing.md
     - Releasing: development/releasing.md
     - Versioning: development/versioning.md
+  - Troubleshooting:
+    - Known Errors: troubleshooting/known_errors.md
   # add everything else not included above.  Be careful, this is a catch all
   # currently being used to get all commands/ from auto-generated docs
   - ...
