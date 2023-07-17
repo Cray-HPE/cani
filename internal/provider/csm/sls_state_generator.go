@@ -76,6 +76,61 @@ func DetermineHardwareClass(hardware inventory.Hardware, data inventory.Inventor
 	return "", fmt.Errorf("unable to determine CSM Class of (%s)", hardware.ID)
 }
 
+func DetermineHardwareClassFromSlug(deviceTypeSlug string, hardwareTypeLibrary hardwaretypes.Library) (sls_client.HardwareClass, error) {
+	deviceType, exists := hardwareTypeLibrary.DeviceTypes[deviceTypeSlug]
+	if !exists {
+		return "", errors.Join(
+			fmt.Errorf("unable to find device type (%s)", deviceTypeSlug),
+		)
+	}
+
+	if deviceType.ProviderDefaults != nil && deviceType.ProviderDefaults.CSM != nil && deviceType.ProviderDefaults.CSM.Class != nil {
+		classRaw := *deviceType.ProviderDefaults.CSM.Class
+		switch classRaw {
+		case "River":
+			return sls_client.HardwareClassRiver, nil
+		case "Mountain":
+			return sls_client.HardwareClassMountain, nil
+		case "Hill":
+			return sls_client.HardwareClassHill, nil
+		default:
+			return "", fmt.Errorf("encountered unknown CSM hardware class (%s)", classRaw)
+		}
+	}
+
+	return "", fmt.Errorf("unable to determine CSM Class of (%s)", deviceTypeSlug)
+}
+
+func DetermineStartingOrdinalFromSlug(deviceTypeSlug string, hardwareTypeLibrary hardwaretypes.Library) (int, error) {
+	deviceType, exists := hardwareTypeLibrary.DeviceTypes[deviceTypeSlug]
+	if !exists {
+		return 0, errors.Join(
+			fmt.Errorf("unable to find device type (%s)", deviceTypeSlug),
+		)
+	}
+
+	if deviceType.ProviderDefaults != nil && deviceType.ProviderDefaults.CSM != nil {
+		return deviceType.ProviderDefaults.CSM.Ordinal, nil
+	}
+
+	return 0, fmt.Errorf("unable to determine CSM starting ordinal of (%s) %+v", deviceTypeSlug, deviceType.ProviderDefaults.CSM)
+}
+
+func DetermineStartingVlanFromSlug(deviceTypeSlug string, hardwareTypeLibrary hardwaretypes.Library) (int, error) {
+	deviceType, exists := hardwareTypeLibrary.DeviceTypes[deviceTypeSlug]
+	if !exists {
+		return 0, errors.Join(
+			fmt.Errorf("unable to find device type (%s)", deviceTypeSlug),
+		)
+	}
+
+	if deviceType.ProviderDefaults != nil && deviceType.ProviderDefaults.CSM != nil {
+		return deviceType.ProviderDefaults.CSM.StartingHmnVlan, nil
+	}
+
+	return 0, fmt.Errorf("unable to determine CSM starting VLAN of (%s) %+v", deviceTypeSlug, deviceType.ProviderDefaults.CSM)
+}
+
 func BuildExpectedHardwareState(hardwareTypeLibrary hardwaretypes.Library, datastore inventory.Datastore, slsNetworks map[string]sls_client.Network) (sls_client.SlsState, map[string]inventory.Hardware, error) {
 	// Retrieve the CANI inventory data
 	data, err := datastore.List()

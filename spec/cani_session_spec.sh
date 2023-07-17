@@ -23,23 +23,6 @@
 
 
 Describe 'cani session'
-# Fixtures location ./spec/fixtures
-FIXTURES="$SHELLSPEC_HELPERDIR/testdata/fixtures"
-
-# compare value to file content
-fixture(){
-  test "${fixture:?}" == "$( cat "$FIXTURES/$1" )"
-}
-
-# functions to deploy various fixtures with different scenarios
-remove_config(){ rm -f canitest.yml; }
-remove_datastore() { rm -f canitestdb.json; }
-remove_log() { rm -f canitestdb.log; }
-
-use_active_session(){ cp "$FIXTURES"/cani/configs/canitest_valid_active.yml canitest.yml; } # deploys a config with session.active = true
-use_inactive_session(){ cp "$FIXTURES"/cani/configs/canitest_valid_inactive.yml canitest.yml; } # deploys a config with session.active = false
-use_valid_datastore_system_only(){ cp "$FIXTURES"/cani/configs/canitestdb_valid_system_only.json canitestdb.json; } # deploys a datastore with one system only
-use_valid_datastore_one_cabinet(){ cp "$FIXTURES"/cani/configs/canitestdb_valid_one_cabinet.json canitestdb.json; } # deploys a datastore with one cabinet (and child hardware)
 
 # help output should succeed and match the fixture
 # a config file should be created if one does not exist
@@ -88,17 +71,18 @@ It '--config canitest.yml start fake'
   The line 1 of stderr should equal 'Error: fake is not a valid provider.  Valid providers: [csm]'
 End
 
+# TODO: timeout is slow for tests; renable when simulator is hooked up in pipeline
 # Starting a session should fail with:
 #  - a valid proivder
 #  - no connection to SLS
-It '--config canitest.yml start csm'
-  BeforeCall remove_config
-  BeforeCall remove_datastore
-  When call bin/cani alpha session --config canitest.yml start csm
-  The status should equal 1
-  The line 1 of stderr should include 'canidb.json does not exist, creating default datastore'
-  The line 2 of stderr should include 'No API Gateway token provided, getting one from provider '
-  The line 3 of stderr should include 'POST /keycloak/realms/shasta/protocol/openid-connect/token'
-End
+# It '--config canitest.yml start csm'
+#   BeforeCall remove_config
+#   BeforeCall remove_datastore
+#   When call bin/cani alpha session --config canitest.yml start csm
+#   The status should equal 1
+#   The line 1 of stderr should include 'canidb.json does not exist, creating default datastore'
+#   The line 2 of stderr should include 'No API Gateway token provided, getting one from provider '
+#   The line 3 of stderr should include '/keycloak/realms/shasta/protocol/openid-connect/token'
+# End
 
 End

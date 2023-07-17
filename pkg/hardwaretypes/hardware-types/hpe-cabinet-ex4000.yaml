@@ -83,3 +83,6 @@ device-bays:
 provider_defaults:
   csm:
     Class: Mountain
+    Ordinal: 1000
+    StartingHmnVlan: 3000
+    EndingHmnVlan: 3999

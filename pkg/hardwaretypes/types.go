@@ -143,7 +143,10 @@ type ProviderDefaults struct {
 }
 
 type ProviderDefaultsCSM struct {
-	Class *string `yaml:"Class"`
+	Class           *string `yaml:"Class"`
+	Ordinal         int     `yaml:"Ordinal"`
+	StartingHmnVlan int     `yaml:"StartingHmnVlan"`
+	EndingHmnVlan   int     `yaml:"EndingHmnVlan"`
 }
 
 // TODO

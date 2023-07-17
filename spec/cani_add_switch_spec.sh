@@ -23,24 +23,6 @@
 
 
 Describe 'cani add switch'
-# Fixtures location ./spec/fixtures
-FIXTURES="$SHELLSPEC_HELPERDIR/testdata/fixtures"
-
-# compare value to file content
-fixture(){
-  test "${fixture:?}" == "$( cat "$FIXTURES/$1" )"
-}
-
-# functions to deploy various fixtures with different scenarios
-cleanup(){ rm -f canitest.*; }
-canitest_valid_active(){ cp "$FIXTURES"/cani/configs/canitest_valid_active.yml .; }
-canitest_valid_inactive(){ cp "$FIXTURES"/cani/configs/canitest_valid_inactive.yml  .; }
-canitest_invalid_datastore_path(){ cp "$FIXTURES"/cani/configs/canitest_invalid_datastore_path.yml .; }
-canitest_invalid_log_file_path(){ cp "$FIXTURES"/cani/configs/canitest_invalid_log_file_path.yml .; }
-canitest_invalid_provider(){ cp "$FIXTURES"/cani/configs/canitest_invalid_provider.yml .; }
-canitest_valid_empty_db(){ cp -f "$FIXTURES"/cani/configs/canitest_valid_empty_db.json .; }
-canitest_invalid_empty_db(){ cp -f "$FIXTURES"/cani/configs/canitest_invalid_empty_db.json .; }
-rm_canitest_valid_empty_db(){ rm -f canitest_valid_empty_db.json; }
 
 It '--help'
   When call bin/cani alpha add switch --help

@@ -4,6 +4,7 @@ Usage:
   cani alpha add cabinet [flags]
 
 Flags:
+  -y, --accept                 Automatically accept recommended values.
       --auto                   Automatically recommend and assign required flags.
       --cabinet int            Cabinet number. (default 1001)
   -h, --help                   help for cabinet

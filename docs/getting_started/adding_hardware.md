@@ -10,8 +10,8 @@ One common use-case is adding a new cabinet to the system.
 # example: adding a supported cabinet
 # list available types
 cani alpha add cabinet --list-supported-types
-# add a ex2000 cabinet
-cani alpha add cabinet hpe-ex2000
+# add a ex2000 cabinet, accepting recommended values
+cani alpha add cabinet hpe-ex2000 --auto --accept 
 ```
 
 ### List Hardware

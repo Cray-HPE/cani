@@ -32,6 +32,10 @@ spec_helper_precheck() {
   # Available functions: info, warn, error, abort, setenv, unsetenv
   # Available variables: VERSION, SHELL_TYPE, SHELL_VERSION
   : minimum_version "0.28.1"
+
+  # Fixtures location ./spec/fixtures
+  setenv FIXTURES="$SHELLSPEC_HELPERDIR/testdata/fixtures"
+  
 }
 
 # This callback function will be invoked after a specfile has been loaded.
@@ -43,6 +47,81 @@ spec_helper_loaded() {
 spec_helper_configure() {
   # Available functions: import, before_each, after_each, before_all, after_all
   : import 'support/custom_matcher'
+
+  # compare value to file content
+  fixture(){
+    #shellcheck disable=SC2317
+    test "${fixture:?}" == "$( cat "$FIXTURES/$1" )"
+  }
+
+  #shellcheck disable=SC2317
+  remove_config(){ rm -f canitest.yml; }
+  #shellcheck disable=SC2317
+  remove_datastore() { rm -f canitestdb.json; }
+  #shellcheck disable=SC2317
+  remove_log() { rm -f canitestdb.log; }
+
+  # functions to deploy various fixtures with different scenarios
+
+  # deploys a config with session.active = true
+  use_active_session(){
+    #shellcheck disable=SC2317
+    cp "$FIXTURES"/cani/configs/canitest_valid_active.yml canitest.yml 
+  }
+  
+  # deploys a config with session.active = false
+  use_inactive_session(){ 
+    #shellcheck disable=SC2317
+    cp "$FIXTURES"/cani/configs/canitest_valid_inactive.yml canitest.yml
+  } 
+
+  # deploys a datastore with one system only
+  use_valid_datastore_system_only(){ 
+    #shellcheck disable=SC2317
+    cp "$FIXTURES"/cani/configs/canitestdb_valid_system_only.json canitestdb.json
+  }
+  
+  # deploys a datastore with one eia cabinet (and child hardware)
+  use_valid_datastore_one_eia_cabinet(){ 
+    #shellcheck disable=SC2317
+    cp "$FIXTURES"/cani/configs/canitestdb_valid_eia_only.json canitestdb.json 
+  } 
+
+  # deploys a datastore with one ex2000 cabinet (and child hardware)
+  use_valid_datastore_one_ex2000_cabinet(){ 
+    #shellcheck disable=SC2317
+    cp "$FIXTURES"/cani/configs/canitestdb_valid_ex2000_only.json canitestdb.json 
+  } 
+
+  # deploys a datastore with one ex2500_1 cabinet (and child hardware)
+  use_valid_datastore_one_ex2500_1_cabinet(){ 
+    #shellcheck disable=SC2317
+    cp "$FIXTURES"/cani/configs/canitestdb_valid_ex2500_1_only.json canitestdb.json 
+  } 
+
+  # deploys a datastore with one ex2500_2 cabinet (and child hardware)
+  use_valid_datastore_one_ex2500_2_cabinet(){ 
+    #shellcheck disable=SC2317
+    cp "$FIXTURES"/cani/configs/canitestdb_valid_ex2500_2_only.json canitestdb.json 
+  } 
+
+  # deploys a datastore with one ex2500_3 cabinet (and child hardware)
+  use_valid_datastore_one_ex2500_3_cabinet(){ 
+    #shellcheck disable=SC2317
+    cp "$FIXTURES"/cani/configs/canitestdb_valid_ex2500_3_only.json canitestdb.json 
+  } 
+
+  # deploys a datastore with one ex3000 cabinet (and child hardware)
+  use_valid_datastore_one_ex3000_cabinet(){ 
+    #shellcheck disable=SC2317
+    cp "$FIXTURES"/cani/configs/canitestdb_valid_ex3000_only.json canitestdb.json 
+  } 
+
+  # deploys a datastore with one ex4000 cabinet (and child hardware)
+  use_valid_datastore_one_ex4000_cabinet(){ 
+    #shellcheck disable=SC2317
+    cp "$FIXTURES"/cani/configs/canitestdb_valid_ex4000_only.json canitestdb.json 
+  } 
 }
 
 # Custom matcher used to find a string inside of a text containing ANSI escape codes.

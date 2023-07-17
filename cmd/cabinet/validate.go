@@ -31,6 +31,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Cray-HPE/cani/cmd/session"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/spf13/cobra"
 )
@@ -70,6 +71,35 @@ func validHardware(cmd *cobra.Command, args []string) error {
 		}
 		if !matchFound {
 			return errors.New("Invalid hardware type: " + arg)
+		}
+	}
+
+	return nil
+}
+
+// validFlagCombos has additional flag logic to account for overiding required flags with the --auto flag
+func validFlagCombos(cmd *cobra.Command, args []string) error {
+	// ensure the session is up and the datastore exists
+	err := session.DatastoreExists(cmd, args)
+	if err != nil {
+		return err
+	}
+
+	cabinetSet := cmd.Flags().Changed("cabinet")
+	vlanIdSet := cmd.Flags().Changed("vlan-id")
+	autoSet := cmd.Flags().Changed("auto")
+	// if auto is set, the values are recommended and the required flags are bypassed
+	if autoSet {
+		return nil
+	} else {
+		if !cabinetSet && !vlanIdSet {
+			return errors.New("required flag(s) \"cabinet\", \"vlan-id\" not set")
+		}
+		if cabinetSet && !vlanIdSet {
+			return errors.New("required flag(s) \"vlan-id\" not set")
+		}
+		if !cabinetSet && vlanIdSet {
+			return errors.New("required flag(s) \"cabinet\" not set")
 		}
 	}
 

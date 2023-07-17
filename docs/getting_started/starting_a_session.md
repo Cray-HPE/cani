@@ -17,8 +17,7 @@ Starting a simple session might look like this, which authorizes a user over the
 cani alpha session start csm \
   --csm-keycloak-username username \
   --csm-keycloak-password password \
-  --csm-base-auth-url https://auth.cmn.example.com/ \
-  --csm-url-sls https://api.cmn.example.com/apis/sls/v1 \
+  --csm-api-host cmn.example.com \
   -k
 ```
 
@@ -31,6 +30,5 @@ Just as common, is running `cani` on an NCN.
 cani alpha session start csm \
   --csm-keycloak-username username \
   --csm-keycloak-password password \
-  --csm-base-auth-url https://api-gw-service-nmn.local/ \
-  --csm-url-sls https://api-gw-service-nmn.local/apis/sls/v1
+  --csm-api-host api-gw-service-nmn.local
 ```

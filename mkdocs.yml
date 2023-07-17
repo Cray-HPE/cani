@@ -1,7 +1,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2022 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2022-2023 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -66,6 +66,7 @@ nav:
     - Go: install/go_install.md
   - Getting Started:
     - Starting A Session: getting_started/starting_a_session.md
+    - Importing Data: getting_started/importing_provider_data.md
     - Adding Hardware: getting_started/adding_hardware.md
     - Updating Hardware: getting_started/updating_hardware.md
     - Validating: getting_started/validating.md
@@ -88,6 +89,8 @@ nav:
     - Testing: development/testing.md
     - Releasing: development/releasing.md
     - Versioning: development/versioning.md
+  - Troubleshooting:
+    - Known Errors: troubleshooting/known_errors.md
   # add everything else not included above.  Be careful, this is a catch all
   # currently being used to get all commands/ from auto-generated docs
   - ...

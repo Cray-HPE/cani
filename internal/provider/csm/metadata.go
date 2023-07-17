@@ -27,11 +27,17 @@ package csm
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog/log"
+)
+
+const (
+	ProviderPropertyVlanId = "vlanID"
 )
 
 type NodeMetadata struct {
@@ -120,7 +126,7 @@ func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperti
 
 		// Make changes to the node metadata
 		// The keys of rawProperties need to match what is defined in ./cmd/cabinet/add_cabinet.go
-		if vlanIDRaw, exists := rawProperties["vlanID"]; exists {
+		if vlanIDRaw, exists := rawProperties[ProviderPropertyVlanId]; exists {
 			if vlanIDRaw == nil {
 				properties.HMNVlan = nil
 			} else {
@@ -179,4 +185,115 @@ func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperti
 		return nil
 	}
 
+}
+
+func (csm *CSM) RecommendCabinet(inv inventory.Inventory, deviceTypeSlug string) (recommended provider.HardwareRecommendations, err error) {
+	// slice to track existing vlans
+	var existingVlans = []int{}
+	// slice to track existing cabinets
+	var existingCabinets = []int{}
+
+	// loop through the existing inventory to check for vlans
+	log.Debug().Msg("Checking existing hardware to find recommendations")
+	for _, cHardware := range inv.Hardware {
+		if cHardware.ProviderProperties == nil {
+			cHardware.ProviderProperties = map[string]interface{}{}
+		}
+
+		switch cHardware.Type {
+		case hardwaretypes.Cabinet:
+			log.Debug().Msgf("Checking %s (%s)", cHardware.Type, cHardware.ID.String())
+			properties := CabinetMetadata{}
+			if _, exists := cHardware.ProviderProperties[string(inventory.CSMProvider)]; exists {
+				// If one exists set it.
+				log.Debug().Msgf("Decoding csm properties %+v", cHardware.ProviderProperties)
+				if err := mapstructure.Decode(cHardware.ProviderProperties[string(inventory.CSMProvider)], &properties); err != nil {
+					return recommended, err
+				}
+			}
+
+			if properties.HMNVlan != nil {
+				// add it to the slice that tracks existing vlans
+				existingVlans = append(existingVlans, *properties.HMNVlan)
+			}
+
+			// add the ordinal to the existing cabinets slice for choosing a new one later
+			existingCabinets = append(existingCabinets, *cHardware.LocationOrdinal)
+
+		default:
+			// This function only handles cabinets
+			continue
+		}
+	}
+
+	var chosenOrdinal int
+	chosenOrdinal, err = DetermineStartingOrdinalFromSlug(deviceTypeSlug, *csm.hardwareLibrary)
+	if err != nil {
+		return recommended, err
+	}
+	log.Debug().Msgf("chosenOrdinal %d (%s)", chosenOrdinal, deviceTypeSlug)
+	// Set the cabinet location
+	if len(existingCabinets) == 0 {
+		// there are no cabinets yet, so set it to the provider default
+		recommended.LocationOrdinal = chosenOrdinal
+		log.Debug().Msgf("No cabinets found, using %d", recommended.LocationOrdinal)
+	} else {
+		// set the recommended cabinet number
+		recommended.LocationOrdinal = nextAvailableInt(existingCabinets, chosenOrdinal)
+		log.Debug().Msgf("Existing cabinets found (%v), using %d", existingCabinets, recommended.LocationOrdinal)
+	}
+
+	// Determine the hardware class based off the slug
+	// This is needed to assign an approriate VLAN from the ranges defined above
+	class, err := DetermineHardwareClassFromSlug(deviceTypeSlug, *csm.hardwareLibrary)
+	if err != nil {
+		return recommended, err
+	}
+
+	// Set the metadata vlan
+	var startingVlan, chosenVlan int
+	startingVlan, err = DetermineStartingVlanFromSlug(deviceTypeSlug, *csm.hardwareLibrary)
+	if err != nil {
+		return recommended, err
+	}
+	if len(existingCabinets) == 0 {
+		// choose a starting vlan based on the class
+		chosenVlan = startingVlan
+		log.Debug().Msgf("No cabinet VLANs found, using %d for %s %s", chosenVlan, class, hardwaretypes.Cabinet)
+	} else {
+		// set the recommended vlan by finding an available one from the existing
+		chosenVlan = nextAvailableInt(existingVlans, startingVlan)
+
+	}
+
+	// set the provider metadata
+	recommended.ProviderMetadata = map[string]interface{}{
+		// there are no vlans yet, and presumably no cabinets, so set it to 1
+		ProviderPropertyVlanId: chosenVlan,
+	}
+
+	// return the recommendations
+	return recommended, nil
+}
+
+func nextAvailableInt(s []int, offset int) int {
+	// slice must be sorted in order to work properly
+	sort.Ints(s)
+
+	// If the slice is empty, return the offset
+	if len(s) == 0 || offset < s[0] {
+		return offset
+	}
+	// Check if the offset is in the slice
+	i := sort.Search(len(s), func(i int) bool { return s[i] >= offset })
+	if i < len(s) && s[i] == offset {
+		for ; i < len(s); i++ {
+			// if it is the last element or there is a gap to the next one
+			if i == len(s)-1 || s[i+1]-s[i] > 1 {
+				return s[i] + 1
+			}
+		}
+	}
+	// the offset is not in the slice, so return it
+	return offset
 }

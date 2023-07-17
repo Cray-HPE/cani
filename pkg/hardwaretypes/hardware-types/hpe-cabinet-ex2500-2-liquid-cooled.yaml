@@ -48,3 +48,6 @@ device-bays:
 provider_defaults:
   csm:
     Class: Hill
+    Ordinal: 8000
+    StartingHmnVlan: 3000
+    EndingHmnVlan: 3999

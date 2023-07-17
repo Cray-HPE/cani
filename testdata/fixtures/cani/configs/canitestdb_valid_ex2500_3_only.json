@@ -1,0 +1,241 @@
+{
+  "SchemaVersion": "v1alpha1",
+  "Provider": "csm",
+  "Hardware": {
+    "15db88c2-8adc-4463-9a01-8993145ac2aa": {
+      "ID": "15db88c2-8adc-4463-9a01-8993145ac2aa",
+      "Type": "Cabinet",
+      "DeviceTypeSlug": "hpe-ex2500-3-liquid-cooled-chassis",
+      "Vendor": "HPE",
+      "Model": "EX2500 3 Liquid Cooled Chassis",
+      "Status": "staged",
+      "ProviderProperties": {
+        "csm": {
+          "HMNVlan": 3000
+        }
+      },
+      "Parent": "abcdef12-3456-2789-abcd-ef1234567890",
+      "Children": [
+        "4d5b41d7-b498-4855-8604-7930908b8c0f",
+        "a9045880-15f6-4ba0-b624-4ecab9c2dbb1",
+        "b927e7aa-2bcb-4fe6-b580-e11c1c99a6e6",
+        "c2da454a-8a51-48a5-8e42-a8e9b11eac58"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 8000
+        }
+      ],
+      "LocationOrdinal": 8000
+    },
+    "2a3b4cad-02d5-4bc3-b0a6-b08f112d4070": {
+      "ID": "2a3b4cad-02d5-4bc3-b0a6-b08f112d4070",
+      "Type": "ChassisManagementModule",
+      "DeviceTypeSlug": "hpe-crayex-chassis-management-module",
+      "Vendor": "HPE",
+      "Model": "CrayEX Chassis Management Module",
+      "Status": "staged",
+      "Parent": "c2da454a-8a51-48a5-8e42-a8e9b11eac58",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 8000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "ChassisManagementModule",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "3d4f92f9-826a-401d-91e3-261e25031139": {
+      "ID": "3d4f92f9-826a-401d-91e3-261e25031139",
+      "Type": "ChassisManagementModule",
+      "DeviceTypeSlug": "hpe-crayex-chassis-management-module",
+      "Vendor": "HPE",
+      "Model": "CrayEX Chassis Management Module",
+      "Status": "staged",
+      "Parent": "a9045880-15f6-4ba0-b624-4ecab9c2dbb1",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 8000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 2
+        },
+        {
+          "HardwareType": "ChassisManagementModule",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "4d5b41d7-b498-4855-8604-7930908b8c0f": {
+      "ID": "4d5b41d7-b498-4855-8604-7930908b8c0f",
+      "Type": "Chassis",
+      "DeviceTypeSlug": "hpe-crayex-chassis",
+      "Vendor": "HPE",
+      "Model": "CrayEX liquid-cooled cabinet chassis",
+      "Status": "staged",
+      "Parent": "15db88c2-8adc-4463-9a01-8993145ac2aa",
+      "Children": [
+        "ec3a02f9-191d-4f0f-9411-a25f034db62f"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 8000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "a9045880-15f6-4ba0-b624-4ecab9c2dbb1": {
+      "ID": "a9045880-15f6-4ba0-b624-4ecab9c2dbb1",
+      "Type": "Chassis",
+      "DeviceTypeSlug": "hpe-crayex-chassis",
+      "Vendor": "HPE",
+      "Model": "CrayEX liquid-cooled cabinet chassis",
+      "Status": "staged",
+      "Parent": "15db88c2-8adc-4463-9a01-8993145ac2aa",
+      "Children": [
+        "3d4f92f9-826a-401d-91e3-261e25031139"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 8000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 2
+        }
+      ],
+      "LocationOrdinal": 2
+    },
+    "abcdef12-3456-2789-abcd-ef1234567890": {
+      "ID": "abcdef12-3456-2789-abcd-ef1234567890",
+      "Type": "System",
+      "Parent": "00000000-0000-0000-0000-000000000000",
+      "Children": [
+        "15db88c2-8adc-4463-9a01-8993145ac2aa"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "b927e7aa-2bcb-4fe6-b580-e11c1c99a6e6": {
+      "ID": "b927e7aa-2bcb-4fe6-b580-e11c1c99a6e6",
+      "Type": "CabinetEnvironmentalController",
+      "DeviceTypeSlug": "hpe-crayex-cabinet-environmental-controller",
+      "Vendor": "HPE",
+      "Model": "CrayEX Cabinet Environmental Controller",
+      "Status": "staged",
+      "Parent": "15db88c2-8adc-4463-9a01-8993145ac2aa",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 8000
+        },
+        {
+          "HardwareType": "CabinetEnvironmentalController",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "c2da454a-8a51-48a5-8e42-a8e9b11eac58": {
+      "ID": "c2da454a-8a51-48a5-8e42-a8e9b11eac58",
+      "Type": "Chassis",
+      "DeviceTypeSlug": "hpe-crayex-chassis",
+      "Vendor": "HPE",
+      "Model": "CrayEX liquid-cooled cabinet chassis",
+      "Status": "staged",
+      "Parent": "15db88c2-8adc-4463-9a01-8993145ac2aa",
+      "Children": [
+        "2a3b4cad-02d5-4bc3-b0a6-b08f112d4070"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 8000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "ec3a02f9-191d-4f0f-9411-a25f034db62f": {
+      "ID": "ec3a02f9-191d-4f0f-9411-a25f034db62f",
+      "Type": "ChassisManagementModule",
+      "DeviceTypeSlug": "hpe-crayex-chassis-management-module",
+      "Vendor": "HPE",
+      "Model": "CrayEX Chassis Management Module",
+      "Status": "staged",
+      "Parent": "4d5b41d7-b498-4855-8604-7930908b8c0f",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 8000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "ChassisManagementModule",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    }
+  }
+}

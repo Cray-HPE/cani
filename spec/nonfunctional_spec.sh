@@ -20,13 +20,3 @@
 # OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
-
-
-It 'The interface for adding and removing hardware must have a versioned schema/CLI signature'
-End
-It 'The interface for adding and removing hardware should be reasonably stable when it ships in CSM 1.5, meaning it should not change in future versions, even as we change the backend system(s)'
-End
-It 'If a change is necessary, the old CLI signature should be supported'
-End
-It 'The first release of the hardware add/remove CLI should only plan to work with existing APIs and data structures'
-End
