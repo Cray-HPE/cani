@@ -104,6 +104,9 @@ func New(opts *NewOpts, hardwareLibrary *hardwaretypes.Library) (*CSM, error) {
 		if opts.BaseUrlHSM == "" {
 			opts.BaseUrlHSM = fmt.Sprintf("https://%s/apis/smd/hsm/v2", opts.ProviderHost)
 		}
+		if opts.BaseUrlBSS == "" {
+			opts.BaseUrlBSS = fmt.Sprintf("https://%s/apis/bss/boot/v1", opts.ProviderHost)
+		}
 	}
 
 	// Setup HTTP client and context using csm options
