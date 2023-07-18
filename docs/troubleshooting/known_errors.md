@@ -23,12 +23,12 @@ Here is an example `hmn_mtn.json` file that creates the network when patched int
   "ExtraProperties": {
     "CIDR": "10.104.0.0/17",
     "MTU": 9000,
-    "Subnets": []
-  },
-  "VlanRange": [
-    2000,
-    2999
-  ]
+    "Subnets": [],
+    "VlanRange": [
+      2000,
+      2999
+    ]
+  }
 }
 ```
 
