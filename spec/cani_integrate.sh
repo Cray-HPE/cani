@@ -38,12 +38,18 @@ do
     filename="${filename%.*}"
     # run shellspec to emulate human interation
     if [ "${DEBUG:-false}" = "true" ]; then
+      set -x
       shellspec "${test}" -f tap --no-banner -x
-    else 
+      set +x
+    else
+      set -x
       shellspec "${test}" -f tap --no-banner
+      set +x
     fi
+    set -x
     # strip the _spec.sh extension and replace it with .yml (an assertion file with the same name as the shellspec test)
     # run the tavern test to validate cani changed or didn't change the correct things within CSM services
     tavern-ci ./spec/integration/tavern/test_"${filename%_spec}".tavern.yml
+    set +x
   fi 
 done
