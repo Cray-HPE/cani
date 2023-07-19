@@ -49,7 +49,7 @@ type InventoryProvider interface {
 	Import(ctx context.Context, datastore inventory.Datastore) error
 
 	// Reconcile CANI's inventory state with the external inventory state and apply required changes
-	Reconcile(ctx context.Context, datastore inventory.Datastore) error
+	Reconcile(ctx context.Context, datastore inventory.Datastore, dryrun bool) error
 
 	// Build metadata, and add ito the hardware object
 	// This function could return the data to put into object

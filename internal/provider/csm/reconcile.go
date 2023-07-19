@@ -53,7 +53,7 @@ import (
 //     2. Validate the changes
 //     3. Display what changed
 //     4. Make changes
-func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (err error) {
+func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore, dryrun bool) (err error) {
 	// TODO should we have a presentation callback to confirm the removal of hardware?
 
 	log.Info().Msg("Starting CSM reconcile process")
@@ -106,12 +106,17 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 	//
 	// Reconcile Network changes
 	//
-	_, err = reconcileNetworkChanges(currentSLSState.Networks, hardwareChanges)
+	networkChanges, err := reconcileNetworkChanges(currentSLSState.Networks, hardwareChanges)
 	if err != nil {
 		return errors.Join(fmt.Errorf("failed to reconcile network changes"), err)
 	}
 
-	// TODO a summary of network changes might be nice
+	//
+	// Rebuild Hardware extra properties
+	//
+	for _, subnetAdded := range networkChanges.SubnetsAdded {
+
+	}
 
 	//
 	// Simulate and validate SLS actions
@@ -129,6 +134,9 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 	for _, hardwarePair := range hardwareChanges.Changed {
 		updatedHardware := hardwarePair.HardwareA
 		modifiedState.Hardware[updatedHardware.Xname] = updatedHardware
+	}
+	for _, network := range networkChanges.ModifiedNetworks {
+		modifiedState.Networks[network.Name] = network
 	}
 
 	_, err = validate.Validate(&modifiedState)
@@ -210,100 +218,105 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore) (e
 	// Modify the System's SLS instance
 	//
 
-	// Sort hardware so children are deleted before their parents
-	sls.SortHardwareReverse(hardwareChanges.Removed)
+	if !dryrun {
 
-	// Remove hardware that no longer exists
-	for _, hardware := range hardwareChanges.Removed {
-		log.Info().Str("xname", hardware.Xname).Msg("Removing")
-		// Put into transaction log with old and new value
-		// TODO
+		// Sort hardware so children are deleted before their parents
+		sls.SortHardwareReverse(hardwareChanges.Removed)
 
-		// Perform a DELETE against SLS
-		r, err := csm.slsClient.HardwareApi.HardwareXnameDelete(ctx, hardware.Xname)
-		if err != nil {
-			return errors.Join(
-				fmt.Errorf("failed to delete hardware (%s) from SLS", hardware.Xname),
-				err,
-			)
+		// Remove hardware that no longer exists
+		for _, hardware := range hardwareChanges.Removed {
+			log.Info().Str("xname", hardware.Xname).Msg("Removing")
+			// Put into transaction log with old and new value
+			// TODO
+
+			// Perform a DELETE against SLS
+			r, err := csm.slsClient.HardwareApi.HardwareXnameDelete(ctx, hardware.Xname)
+			if err != nil {
+				return errors.Join(
+					fmt.Errorf("failed to delete hardware (%s) from SLS", hardware.Xname),
+					err,
+				)
+			}
+			log.Info().Int("status", r.StatusCode).Msg("Deleted hardware from SLS")
 		}
-		log.Info().Int("status", r.StatusCode).Msg("Deleted hardware from SLS")
-	}
 
-	// Add hardware new hardware
-	for _, hardware := range hardwareChanges.Added {
-		log.Info().Str("xname", hardware.Xname).Msg("Adding")
-		// Put into transaction log with old and new value
-		// TODO
+		// Add hardware new hardware
+		for _, hardware := range hardwareChanges.Added {
+			log.Info().Str("xname", hardware.Xname).Msg("Adding")
+			// Put into transaction log with old and new value
+			// TODO
 
-		// Perform a POST against SLS
-		_, r, err := csm.slsClient.HardwareApi.HardwarePost(ctx, sls.NewHardwarePostOpts(hardware))
-		if err != nil {
-			return errors.Join(
-				fmt.Errorf("failed to add hardware (%s) to SLS", hardware.Xname),
-				err,
-			)
+			// Perform a POST against SLS
+			_, r, err := csm.slsClient.HardwareApi.HardwarePost(ctx, sls.NewHardwarePostOpts(hardware))
+			if err != nil {
+				return errors.Join(
+					fmt.Errorf("failed to add hardware (%s) to SLS", hardware.Xname),
+					err,
+				)
+			}
+			log.Info().Int("status", r.StatusCode).Msg("Added hardware to SLS")
 		}
-		log.Info().Int("status", r.StatusCode).Msg("Added hardware to SLS")
-	}
 
-	// Update existing hardware
-	for _, hardwarePair := range hardwareChanges.Changed {
-		updatedHardware := hardwarePair.HardwareA // A is expected, B is actual
-		log.Info().Str("xname", updatedHardware.Xname).Msg("Updating")
-		// Put into transaction log with old and new value
-		// TODO
+		// Update existing hardware
+		for _, hardwarePair := range hardwareChanges.Changed {
+			updatedHardware := hardwarePair.HardwareA // A is expected, B is actual
+			log.Info().Str("xname", updatedHardware.Xname).Msg("Updating")
+			// Put into transaction log with old and new value
+			// TODO
 
-		// Perform a PUT against SLS
-		_, r, err := csm.slsClient.HardwareApi.HardwareXnamePut(ctx, updatedHardware.Xname, sls.NewHardwareXnamePutOpts(updatedHardware))
-		if err != nil {
-			return errors.Join(
-				fmt.Errorf("failed to update hardware (%s) from SLS", updatedHardware.Xname),
-				err,
-			)
+			// Perform a PUT against SLS
+			_, r, err := csm.slsClient.HardwareApi.HardwareXnamePut(ctx, updatedHardware.Xname, sls.NewHardwareXnamePutOpts(updatedHardware))
+			if err != nil {
+				return errors.Join(
+					fmt.Errorf("failed to update hardware (%s) from SLS", updatedHardware.Xname),
+					err,
+				)
+			}
+			log.Info().Int("status", r.StatusCode).Msg("Updated hardware to SLS")
 		}
-		log.Info().Int("status", r.StatusCode).Msg("Updated hardware to SLS")
+
+		//
+		// Modify the System's BSS instance
+		//
+
+		// if !modifiedGlobalBootParameters {
+		// 	log.Println("No BSS Global boot parameters changes required")
+		// } else {
+		// 	log.Println("Updating BSS Global boot parameters")
+
+		// 	if dryRun {
+		// 		log.Println("  Dry run enabled not modifying BSS")
+		// 	} else {
+		// 		_, err := bssClient.UploadEntryToBSS(*bssGlobalBootParameters, http.MethodPut)
+		// 		if err != nil {
+		// 			log.Fatal("Error: ", err)
+		// 		}
+		// 	}
+		// }
+
+		// // Update per NCN BSS Boot parameters
+		// for _, managementNCN := range managementNCNs {
+		// 	xname := managementNCN.Xname
+
+		// 	if !modifiedManagementNCNBootParams[xname] {
+		// 		log.Printf("No changes to BSS boot parameters for %s\n", xname)
+		// 		continue
+		// 	}
+		// 	log.Printf("Updating BSS boot parameters for %s\n", xname)
+
+		// 	if dryRun {
+		// 		log.Println("  Dry run enabled not modifying BSS")
+		// 	} else {
+		// 		_, err := bssClient.UploadEntryToBSS(*managementNCNBootParams[xname], http.MethodPut)
+		// 		if err != nil {
+		// 			log.Fatal("Error: ", err)
+		// 		}
+
+		// 	}
+		// }
+	} else {
+		log.Warn().Msgf("Dryrun enabled, no changes performed!")
 	}
-
-	//
-	// Modify the System's BSS instance
-	//
-
-	// if !modifiedGlobalBootParameters {
-	// 	log.Println("No BSS Global boot parameters changes required")
-	// } else {
-	// 	log.Println("Updating BSS Global boot parameters")
-
-	// 	if dryRun {
-	// 		log.Println("  Dry run enabled not modifying BSS")
-	// 	} else {
-	// 		_, err := bssClient.UploadEntryToBSS(*bssGlobalBootParameters, http.MethodPut)
-	// 		if err != nil {
-	// 			log.Fatal("Error: ", err)
-	// 		}
-	// 	}
-	// }
-
-	// // Update per NCN BSS Boot parameters
-	// for _, managementNCN := range managementNCNs {
-	// 	xname := managementNCN.Xname
-
-	// 	if !modifiedManagementNCNBootParams[xname] {
-	// 		log.Printf("No changes to BSS boot parameters for %s\n", xname)
-	// 		continue
-	// 	}
-	// 	log.Printf("Updating BSS boot parameters for %s\n", xname)
-
-	// 	if dryRun {
-	// 		log.Println("  Dry run enabled not modifying BSS")
-	// 	} else {
-	// 		_, err := bssClient.UploadEntryToBSS(*managementNCNBootParams[xname], http.MethodPut)
-	// 		if err != nil {
-	// 			log.Fatal("Error: ", err)
-	// 		}
-
-	// 	}
-	// }
 
 	return nil
 }
@@ -470,7 +483,7 @@ func reconcileNetworkChanges(networks map[string]sls_client.Network, hardwareCha
 			return nil, fmt.Errorf("unable to parse cabinet xname (%s)", xname)
 		}
 
-		log.Info().Msgf("Allocating Subnets for cabinet %s", cabinet.Xname)
+		log.Info().Msgf("Attempting to allocate cabinet subnets for %s", cabinet.Xname)
 
 		// Allocation of the Cabinet Subnets
 		for _, networkPrefix := range []string{"HMN", "NMN"} {
@@ -493,6 +506,8 @@ func reconcileNetworkChanges(networks map[string]sls_client.Network, hardwareCha
 				return nil, fmt.Errorf("unable to allocate subnet for cabinet (%s) in network (%s)", cabinet.Xname, networkName)
 			}
 
+			log.Info().Msgf("Allocated subnet in network %s for cabinet %s with CIDR %v", networkName, cabinet.Xname, subnet.CIDR)
+
 			// TODO Verify subnet VLAN is unique
 
 			log.Printf("Allocated cabinet subnet %s with vlan %d in network %s for %s\n", subnet.CIDR, subnet.VlanID, networkName, cabinet.Xname)
@@ -504,32 +519,6 @@ func reconcileNetworkChanges(networks map[string]sls_client.Network, hardwareCha
 			// Push in the newly created subnet into the SLS network
 			networkExtraProperties.Subnets = append(networkExtraProperties.Subnets, subnet)
 			modifiedNetworks[networkName] = true
-
-			// TODO This is the same problem in CSI, should make the logic that builds the extra properties
-			// resuable from the SLS state generator.
-
-			// TODO push cabinet subnet changes into hardwareChanges.Added
-			// Also networkChanges.ModifiedAddedHardware
-
-			// Update the cabinet hardware object to include the updated network info
-			// extraProperties, ok := hardware.ExtraPropertiesRaw.(sls_common.ComptypeCabinet)
-			// if !ok {
-			// 	return nil, fmt.Errorf("cabinet (%s) is missing its extra properties structure", hardware.Xname)
-			// }
-			// TODO This network information in the long term should not exist here in SLS.
-			// extraProperties.Networks["cn"] = map[string]sls_common.CabinetNetworks{
-			// 	"HMN": {
-			// 		CIDR:    subnet.CIDR,
-			// 		Gateway: subnet.Gateway.String(),
-			// 		VLan:    int(subnet.VlanID),
-			// 	},
-			// }
-
-			// if hardware.Class == sls_common.ClassRiver {
-			// 	extraProperties.Networks["ncn"] = extraProperties.Networks["cn"]
-			// }
-			// hardwareAdded[i] = hardware
-
 		}
 	}
 

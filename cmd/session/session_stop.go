@@ -69,6 +69,10 @@ func stopSession(cmd *cobra.Command, args []string) error {
 		log.Info().Msgf("Session with provider '%s' and datastore '%s' is already STOPPED", providerName, ds)
 	}
 
+	if dryrun {
+		log.Warn().Msg("Performing dryrun no changes will be applied to the system!")
+	}
+
 	if !commit {
 		// Prompt user to commit changes if the commit flag is not set
 		commit, err = promptForCommit(ds)
@@ -80,7 +84,7 @@ func stopSession(cmd *cobra.Command, args []string) error {
 		log.Info().Msgf("Committing changes to session")
 
 		// Commit the external inventory
-		result, err := d.Commit(cmd.Context())
+		result, err := d.Commit(cmd.Context(), dryrun)
 		if errors.Is(err, provider.ErrDataValidationFailure) {
 			// TODO the following should probably suggest commands to fix the issue?
 			log.Error().Msgf("Inventory data validation errors encountered")
