@@ -45,3 +45,18 @@ func CopyState(in sls_client.SlsState) (sls_client.SlsState, error) {
 
 	return out, nil
 }
+
+func CopyNetworks(in map[string]sls_client.Network) (map[string]sls_client.Network, error) {
+	// This is a hack to easily create a copy of the SLS Networks
+	raw, err := json.Marshal(in)
+	if err != nil {
+		return nil, err
+	}
+
+	var out map[string]sls_client.Network
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}

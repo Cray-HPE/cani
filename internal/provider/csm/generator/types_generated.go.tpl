@@ -52,3 +52,17 @@ func BuildXname(cHardware inventory.Hardware, locationPath inventory.LocationPat
 	}
 	return nil, fmt.Errorf("unknown xnametype '%s'", hsmType.String())
 }
+
+func BuildXnameT[T xnames.Xname](cHardware inventory.Hardware, locationPath inventory.LocationPath) (*T, error) {
+	xnameRaw, err := BuildXname(cHardware, locationPath)
+	if err != nil {
+		return nil, nil
+	}
+
+	xname, ok := xnameRaw.(T)
+	if !ok {
+		return nil, nil
+	}
+
+	return &xname, nil
+}

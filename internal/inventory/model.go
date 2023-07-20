@@ -42,6 +42,49 @@ type Inventory struct {
 	Hardware      map[uuid.UUID]Hardware
 }
 
+func (i *Inventory) FilterHardware(filter func(Hardware) (bool, error)) (map[uuid.UUID]Hardware, error) {
+	result := map[uuid.UUID]Hardware{}
+
+	for id, hardware := range i.Hardware {
+		ok, err := filter(hardware)
+		if err != nil {
+			return nil, err
+		}
+
+		if ok {
+			result[id] = hardware
+		}
+	}
+
+	return result, nil
+}
+
+func (i *Inventory) FilterHardwareByType(types ...hardwaretypes.HardwareType) map[uuid.UUID]Hardware {
+	result, _ := i.FilterHardware(func(hardware Hardware) (bool, error) {
+		for _, hadwareType := range types {
+			if hardware.Type == hadwareType {
+				return true, nil
+			}
+		}
+		return false, nil
+	})
+
+	return result
+}
+
+func (i *Inventory) FilterHardwareByTypeStatus(status HardwareStatus, types ...hardwaretypes.HardwareType) map[uuid.UUID]Hardware {
+	result, _ := i.FilterHardware(func(hardware Hardware) (bool, error) {
+		for _, hardwareType := range types {
+			if hardware.Status == status && hardware.Type == hardwareType {
+				return true, nil
+			}
+		}
+		return false, nil
+	})
+
+	return result
+}
+
 // Hardware is the smallest unit of inventory
 // It has all the potential fields that hardware can have
 type Hardware struct {

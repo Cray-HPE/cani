@@ -96,27 +96,35 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore, dr
 	// }
 
 	//
-	// Reconcile Hardware changes
-	//
-	hardwareChanges, err := reconcileHardwareChanges(*csm.hardwareLibrary, datastore, currentSLSState)
-	if err != nil {
-		return errors.Join(fmt.Errorf("failed to reconcile hardware changes"), err)
-	}
-
-	//
 	// Reconcile Network changes
 	//
-	networkChanges, err := reconcileNetworkChanges(currentSLSState.Networks, hardwareChanges)
+	networkChanges, err := reconcileNetworkChangesEarly(datastore, *csm.hardwareLibrary, currentSLSState.Networks)
 	if err != nil {
 		return errors.Join(fmt.Errorf("failed to reconcile network changes"), err)
 	}
 
 	//
+	// Reconcile Hardware changes
+	//
+	hardwareChanges, err := reconcileHardwareChanges(*csm.hardwareLibrary, datastore, currentSLSState, networkChanges)
+	if err != nil {
+		return errors.Join(fmt.Errorf("failed to reconcile hardware changes"), err)
+	}
+
+	// //
+	// // Reconcile Network changes
+	// //
+	// networkChanges, err := reconcileNetworkChanges(currentSLSState.Networks, hardwareChanges)
+	// if err != nil {
+	// 	return errors.Join(fmt.Errorf("failed to reconcile network changes"), err)
+	// }
+
+	//
 	// Rebuild Hardware extra properties
 	//
-	for _, subnetAdded := range networkChanges.SubnetsAdded {
+	// for _, subnetAdded := range networkChanges.SubnetsAdded {
 
-	}
+	// }
 
 	//
 	// Simulate and validate SLS actions
@@ -332,11 +340,22 @@ type HardwareChanges struct {
 	Identical []sls_client.Hardware
 }
 
-func reconcileHardwareChanges(hardwareTypeLibrary hardwaretypes.Library, datastore inventory.Datastore, currentSLSState sls_client.SlsState) (*HardwareChanges, error) {
+func reconcileHardwareChanges(hardwareTypeLibrary hardwaretypes.Library, datastore inventory.Datastore, currentSLSState sls_client.SlsState, networkChanges *NetworkChanges) (*HardwareChanges, error) {
 	//
 	// Build up the expected SLS state
 	//
-	expectedSLSState, hardwareMapping, err := BuildExpectedHardwareState(hardwareTypeLibrary, datastore, currentSLSState.Networks)
+
+	// First merge in any network changes
+	expectedSLSNetworks, err := sls.CopyNetworks(currentSLSState.Networks)
+	if err != nil {
+		return nil, errors.Join(fmt.Errorf("unable to copy SLS networks"), err)
+	}
+	for _, network := range networkChanges.ModifiedNetworks {
+		expectedSLSNetworks[network.Name] = network
+	}
+
+	// Secondly generate the expected SLS state
+	expectedSLSState, hardwareMapping, err := BuildExpectedHardwareState(hardwareTypeLibrary, datastore, expectedSLSNetworks)
 	if err != nil {
 		return nil, errors.Join(
 			fmt.Errorf("failed to build expected SLS state"),
@@ -459,10 +478,12 @@ type NetworkChanges struct {
 	// These issues need to be recorded, as the subnets DHCP range needs to be expanded.
 }
 
-func reconcileNetworkChanges(networks map[string]sls_client.Network, hardwareChanges *HardwareChanges) (*NetworkChanges, error) {
+func reconcileNetworkChangesEarly(datastore inventory.Datastore, hardwareTypeLibrary hardwaretypes.Library, networks map[string]sls_client.Network) (*NetworkChanges, error) {
 	// Create lookup maps for hardware
-	hardwareAdded := sls.HardwareMap(hardwareChanges.Added)
-	hardwareRemoved := sls.HardwareMap(hardwareChanges.Removed)
+	allHardware, err := datastore.List()
+	if err != nil {
+		return nil, errors.Join(fmt.Errorf("failed to list hardware from the datastore"), err)
+	}
 
 	// Create lookup maps for network extra properties for easier modified networks
 	modifiedNetworks := map[string]bool{}
@@ -476,18 +497,28 @@ func reconcileNetworkChanges(networks map[string]sls_client.Network, hardwareCha
 	ipReservationsAdded := []IPReservationChange{}
 
 	// Allocate Cabinet Subnets
-	for _, cabinet := range sls.FilterHardwareByType(hardwareAdded, xnametypes.Cabinet) {
-		xnameRaw := xnames.FromString(cabinet.Xname)
-		xname, ok := xnameRaw.(xnames.Cabinet)
-		if !ok {
-			return nil, fmt.Errorf("unable to parse cabinet xname (%s)", xname)
+	for _, cabinet := range allHardware.FilterHardwareByTypeStatus(inventory.HardwareStatusStaged, hardwaretypes.Cabinet) {
+		// Determine the xname of the cabinet
+		locationPath, err := datastore.GetLocation(cabinet)
+		if err != nil {
+			return nil, errors.Join(fmt.Errorf("failed to get location path for cabinet (%v)", cabinet.ID), err)
 		}
 
-		log.Info().Msgf("Attempting to allocate cabinet subnets for %s", cabinet.Xname)
+		xname, err := BuildXnameT[xnames.Cabinet](cabinet, locationPath)
+		if err != nil {
+			return nil, errors.Join(fmt.Errorf("failed to build xname for cabinet (%v)", cabinet.ID), err)
+		}
+
+		// Determine cabinet class
+		class, err := DetermineHardwareClass(cabinet, allHardware, hardwareTypeLibrary)
+		if err != nil {
+			return nil, errors.Join(fmt.Errorf("failed to determine class of cabinet (%v)", xname), err)
+		}
 
 		// Allocation of the Cabinet Subnets
+		log.Info().Msgf("Attempting to allocate cabinet subnets for %s", xname.String())
 		for _, networkPrefix := range []string{"HMN", "NMN"} {
-			networkName, err := determineCabinetNetwork(networkPrefix, cabinet.Class)
+			networkName, err := determineCabinetNetwork(networkPrefix, class)
 			if err != nil {
 				return nil, err
 			}
@@ -498,19 +529,26 @@ func reconcileNetworkChanges(networks map[string]sls_client.Network, hardwareCha
 				return nil, fmt.Errorf("unable to allocate cabinet subnet network does not exist (%s)", networkName)
 			}
 
-			// TODO Check to see if an subnet already exists
-
-			// Find an available subnet
-			subnet, err := ipam.AllocateCabinetSubnet(networkName, *networkExtraProperties, xname, nil)
-			if err != nil {
-				return nil, fmt.Errorf("unable to allocate subnet for cabinet (%s) in network (%s)", cabinet.Xname, networkName)
+			// Check to see if an subnet already exists
+			if subnet, _, err := sls.LookupSubnetInEP(networkExtraProperties, fmt.Sprintf("cabinet_%d", xname.Cabinet)); err == nil {
+				// Subnet Already exists
+				log.Info().Msgf("Found existing subnet in network %s for cabinet %s with CIDR %v", networkName, xname, subnet.CIDR)
+				continue
+			} else if !errors.Is(err, sls.ErrSubnetNotFound) {
+				return nil, errors.Join(fmt.Errorf("failed to lookup subnet for %d", xname))
 			}
 
-			log.Info().Msgf("Allocated subnet in network %s for cabinet %s with CIDR %v", networkName, cabinet.Xname, subnet.CIDR)
+			// Find an available subnet
+			subnet, err := ipam.AllocateCabinetSubnet(networkName, *networkExtraProperties, *xname, nil)
+			if err != nil {
+				return nil, fmt.Errorf("unable to allocate subnet for cabinet (%s) in network (%s)", xname, networkName)
+			}
+
+			log.Info().Msgf("Allocated subnet in network %s for cabinet %s with CIDR %v", networkName, xname, subnet.CIDR)
 
 			// TODO Verify subnet VLAN is unique
 
-			log.Printf("Allocated cabinet subnet %s with vlan %d in network %s for %s\n", subnet.CIDR, subnet.VlanID, networkName, cabinet.Xname)
+			log.Printf("Allocated cabinet subnet %s with vlan %d in network %s for %s\n", subnet.CIDR, subnet.VlanID, networkName, xname)
 			subnetsAdded = append(subnetsAdded, SubnetChange{
 				NetworkName: networkName,
 				Subnet:      subnet,
@@ -523,63 +561,90 @@ func reconcileNetworkChanges(networks map[string]sls_client.Network, hardwareCha
 	}
 
 	// Deallocate Cabinet Subnets
-	for _, cabinet := range sls.FilterHardwareByType(hardwareRemoved, xnametypes.Cabinet) {
-		return nil, fmt.Errorf("de-allocating subnets for cabinet (%s) is not currently supported", cabinet.Xname)
+	for _, cabinet := range allHardware.FilterHardwareByTypeStatus(inventory.HardwareStatusDecommissioned, hardwaretypes.Cabinet) {
+		// Determine the xname of the cabinet
+		locationPath, err := datastore.GetLocation(cabinet)
+		if err != nil {
+			return nil, errors.Join(fmt.Errorf("failed to get location path for cabinet (%v)", cabinet.ID), err)
+		}
+
+		xname, err := BuildXnameT[xnames.Cabinet](cabinet, locationPath)
+		if err != nil {
+			return nil, errors.Join(fmt.Errorf("failed to build xname for cabinet (%v)", cabinet.ID), err)
+		}
+
+		return nil, fmt.Errorf("de-allocating subnets for cabinet (%s) is not currently supported", xname)
 	}
 
 	// Allocate Management Switch IPs
-	for _, mgmtSwitch := range sls.FilterHardwareByType(hardwareAdded, xnametypes.MgmtSwitch, xnametypes.MgmtHLSwitch, xnametypes.CDUMgmtSwitch) {
+	for _, mgmtSwitch := range allHardware.FilterHardwareByTypeStatus(inventory.HardwareStatusStaged, hardwaretypes.ManagementSwitch) {
 		// TODO in the future the code from here can be adapted: https://github.com/Cray-HPE/hardware-topology-assistant/blob/main/internal/engine/engine.go#L292-L392
-		return nil, fmt.Errorf("allocating IP addresses for switch (%s) is not currently supported", mgmtSwitch.Xname)
+		return nil, fmt.Errorf("allocating IP addresses for ManagementSwitch (%s) is not currently supported", mgmtSwitch.ID)
 	}
 
 	// Deallocate Management Switch IPs
-	for _, mgmtSwitch := range sls.FilterHardwareByType(hardwareRemoved, xnametypes.MgmtSwitch, xnametypes.MgmtHLSwitch, xnametypes.CDUMgmtSwitch) {
-		return nil, fmt.Errorf("de-allocating IP addresses for switch (%s) is not currently supported", mgmtSwitch.Xname)
+	for _, mgmtSwitch := range allHardware.FilterHardwareByTypeStatus(inventory.HardwareStatusDecommissioned, hardwaretypes.ManagementSwitch) {
+		return nil, fmt.Errorf("de-allocating IP addresses for switch (%s) is not currently supported", mgmtSwitch.ID)
 	}
 
 	// Allocate Node IPs
-	for _, node := range sls.FilterHardwareByType(hardwareAdded, xnametypes.Node) {
-		nodeEP, err := sls.DecodeExtraProperties[sls_client.HardwareExtraPropertiesNode](node)
+	for _, node := range allHardware.FilterHardwareByTypeStatus(inventory.HardwareStatusStaged, hardwaretypes.Node) {
+		providerProperties, err := GetProviderMetadataT[NodeMetadata](node)
 		if err != nil {
-			return nil, errors.Join(fmt.Errorf("failed to decode SLS extra properties for node (%s)", node.Xname), err)
+			return nil, errors.Join(fmt.Errorf("failed to get provider properties for node (%s)", node.ID), err)
 		}
 
-		switch nodeEP.Role {
+		var role, subRole string
+		if providerProperties.Role != nil {
+			role = *providerProperties.Role
+		}
+		if providerProperties.SubRole != nil {
+			subRole = *providerProperties.SubRole
+		}
+
+		switch role {
 		case "Application":
-			if nodeEP.SubRole != "UAN" {
+			if subRole != "UAN" {
 				continue
 			}
 
 			// TODO the code from here can be adapted: https://github.com/Cray-HPE/hardware-topology-assistant/blob/main/internal/engine/engine.go#L394-L525
 
-			return nil, fmt.Errorf("allocating IP addresses for UAN node (%s) is not currently supported", node.Xname)
+			return nil, fmt.Errorf("allocating IP addresses for UAN node (%s) is not currently supported", node.ID)
 		case "Management":
 
 			// TODO the logic from here can be adapted: https://github.com/Cray-HPE/docs-csm/blob/main/scripts/operations/node_management/Add_Remove_Replace_NCNs/add_management_ncn.py#L734
 
-			return nil, fmt.Errorf("allocating IP addresses for Management node (%s) is not currently supported", node.Xname)
+			return nil, fmt.Errorf("allocating IP addresses for Management node (%s) is not currently supported", node.ID)
 		default:
 			// Nothing to do here
 		}
 	}
 
 	// Deallocate  Node IPs
-	for _, node := range sls.FilterHardwareByType(hardwareRemoved, xnametypes.Node) {
-		nodeEP, err := sls.DecodeExtraProperties[sls_client.HardwareExtraPropertiesNode](node)
+	for _, node := range allHardware.FilterHardwareByTypeStatus(inventory.HardwareStatusStaged, hardwaretypes.Node) {
+		providerProperties, err := GetProviderMetadataT[NodeMetadata](node)
 		if err != nil {
-			return nil, errors.Join(fmt.Errorf("failed to decode SLS extra properties for node (%s)", node.Xname), err)
+			return nil, errors.Join(fmt.Errorf("failed to get provider properties for node (%s)", node.ID), err)
 		}
 
-		switch nodeEP.Role {
+		var role, subRole string
+		if providerProperties.Role != nil {
+			role = *providerProperties.Role
+		}
+		if providerProperties.SubRole != nil {
+			subRole = *providerProperties.SubRole
+		}
+
+		switch role {
 		case "Application":
-			if nodeEP.SubRole != "UAN" {
+			if subRole != "UAN" {
 				continue
 			}
 
-			return nil, fmt.Errorf("de-allocating IP addresses for UAN node (%s) is not currently supported", node.Xname)
+			return nil, fmt.Errorf("de-allocating IP addresses for UAN node (%s) is not currently supported", node.ID)
 		case "Management":
-			return nil, fmt.Errorf("de-allocating IP addresses for Management node (%s) is not currently supported", node.Xname)
+			return nil, fmt.Errorf("de-allocating IP addresses for Management node (%s) is not currently supported", node.ID)
 		default:
 			// Nothing to do here
 		}
@@ -606,6 +671,7 @@ func reconcileNetworkChanges(networks map[string]sls_client.Network, hardwareCha
 		SubnetsAdded:        subnetsAdded,
 		IPReservationsAdded: ipReservationsAdded,
 	}, nil
+
 }
 
 func determineCabinetNetwork(networkPrefix string, class sls_client.HardwareClass) (string, error) {
