@@ -280,106 +280,41 @@ stages:
                               - type: int
 
 ---
-test_name: ensure hardware exists and has cani metadata
+test_name: ensure child hardware exists
+
+marks:
+  # child hardware from added cabinet should exist
+  - parametrize:
+      key: Xname
+      vals:
+        - x1000
+        - x1000c0
+        - x1000c0b0
+        - x1000c1
+        - x1000c1b0
+        - x1000c2
+        - x1000c2b0
+        - x1000c3
+        - x1000c3b0
+        - x1000c4
+        - x1000c4b0
+        - x1000c5
+        - x1000c5b0
+        - x1000c6
+        - x1000c6b0
+        - x1000c7
+        - x1000c7b0
 
 stages: 
-  - name: ensure x1000 cabinet exists and has cani metadata
+  - name: ensure {Xname} exists and has cani metadata
     request:
-      url: https://localhost:8443/apis/sls/v1/hardware/x1000
+      url: https://localhost:8443/apis/sls/v1/hardware/{Xname}
       method: GET
       verify: false
     response:
       status_code: 200
-      verify_response_with:
-        function: tavern.helpers:validate_pykwalify
-        extra_kwargs:
-          schema:
-            type: map
-            required: True
-            mapping:
-              Parent:
-                type: str
-                required: True
-                pattern: "^s0$"
-              Children:
-                type: seq
-                required: True
-                matching: all
-                sequence:
-                  - type: str
-                    pattern: "^[xsd].+"
-              Xname:
-                type: str
-                required: True
-                pattern: "^x1000$"
-              Type:
-                type: str
-                required: True
-                pattern: "^comptype_cabinet$"
-              Class:
-                type: str
-                required: True
-                pattern: "^Mountain$"
-              TypeString:
-                type: str
-                required: True
-                pattern: "^Cabinet$"
-              LastUpdated:
-                type: int
-                required: True
-              LastUpdatedTime:
-                type: str
-                required: True
-                pattern: "^[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} [0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}.[0-9]+ \\+[0-9]{{4}} \\+[0-9]{{4}}|[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} [0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}.[0-9]+ \\+[0-9]{{4}} UTC$"
-              ExtraProperties:
-                type: map
-                required: False
-                allowempty: True
-                mapping:
-                  '@cani.id':
-                    type: str
-                    required: True
-                    # pattern: "^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$"
-                  '@cani.lastModified':
-                    type: str
-                    required: True
-                    # pattern: "^[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} [0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}.[0-9]+ \\+[0-9]{{4}} \\+[0-9]{{4}}|[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} [0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}.[0-9]+ \\+[0-9]{{4}} UTC$"
-                  '@cani.slsSchemaVersion':
-                    type: str
-                    required: True
-                    pattern: "^v1alpha1$"
-                  Aliases:
-                    type: seq
-                    required: False
-                    matching: all
-                    sequence:
-                      - type: str
-                  Brand:
-                    type: str
-                    required: False
-                  IP4addr:
-                    type: str
-                    required: False
-                  Networks:
-                    type: map
-                    required: False
-                    allowempty: True
-                    mapping:
-                      cn:
-                        type: map
-                        required: False
-                        allowempty: True
-                        mapping:
-                          HMN:
-                            type: map
-                            required: False
-                            mapping:
-                              CIDR:
-                                type: str
-                                required: True
-                              Gateway:
-                                type: str
-                                required: True
-                              VLan:
-                                type: int
-                                required: True
+      # the dumpstate check covers the overall structure
+      # just check if the the xname matches and the entry exists
+      strict: False 
+      json:
+        Xname: "{Xname}"
