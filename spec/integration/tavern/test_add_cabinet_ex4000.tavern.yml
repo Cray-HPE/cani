@@ -285,7 +285,7 @@ test_name: ensure child hardware exists
 marks:
   # child hardware from added cabinet should exist
   - parametrize:
-      key:
+      key: 
         - Xname
         - Parent
       vals:

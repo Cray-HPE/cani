@@ -285,28 +285,25 @@ test_name: ensure child hardware exists
 marks:
   # child hardware from added cabinet should exist
   - parametrize:
-      key:
+      key: 
         - Xname
         - Parent
       vals:
-        - [x1000, s0]
-        - [x1000c0, x1000]
-        - [x1000c0b0, x1000c0]
-        - [x1000c1, x1000]
-        - [x1000c1b0, x1000c1]
-        - [x1000c2, x1000]
-        - [x1000c2b0, x1000c2]
-        - [x1000c3, x1000]
-        - [x1000c3b0, x1000c3]
-        - [x1000c4, x1000]
-        - [x1000c4b0, x1000c4]
-        - [x1000c5, x1000]
-        - [x1000c5b0, x1000c5]
-        - [x1000c6, x1000]
-        - [x1000c6b0, x1000c6]
-        - [x1000c7, x1000]
-        - [x1000c7b0, x1000c7]
-
+        - [x8000, s0]
+        - [x8000c0, x8000]
+        - [x8000c0b0, x8000c0]
+        - [x8001, s0]
+        - [x8001c0, x8001]
+        - [x8001c0b0, x8001c0]
+        - [x8001c1, x8001]
+        - [x8001c1b0, x8001c1]
+        - [x8002, s0]
+        - [x8002c0, x8002]
+        - [x8002c0b0, x8002c0]
+        - [x8002c1, x8002]
+        - [x8002c1b0, x8002c1]
+        - [x8002c2, x8002]
+        - [x8002c2b0, x8002c2]
 stages: 
   - name: ensure {Xname} exists
     request:
