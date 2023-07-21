@@ -85,14 +85,14 @@ func (suite *LookupSubnetSuite) Test_BootstrapDHCP() {
 
 func (suite *LookupSubnetSuite) TestInvalid_NotFound() {
 	_, _, err := LookupSubnet(suite.networkUnderTest, "does-not-exist")
-	suite.EqualError(err, "subnet not found (does-not-exist)")
+	suite.EqualError(err, "subnet not found")
 }
 
 func (suite *LookupSubnetSuite) TestInvalid_EmptyNetwork() {
 	emptyNetwork := sls_client.Network{}
 
 	_, _, err := LookupSubnet(emptyNetwork, "some-subnet")
-	suite.EqualError(err, "subnet not found (some-subnet)")
+	suite.EqualError(err, "subnet not found")
 }
 
 func (suite *LookupSubnetSuite) TestInvalid_NoSubnets() {
@@ -101,7 +101,7 @@ func (suite *LookupSubnetSuite) TestInvalid_NoSubnets() {
 	}
 
 	_, _, err := LookupSubnet(emptyNetwork, "some-subnet")
-	suite.EqualError(err, "subnet not found (some-subnet)")
+	suite.EqualError(err, "subnet not found")
 }
 
 func (suite *LookupSubnetSuite) TestInvalid_MultipleSubnetsWithSameName() {

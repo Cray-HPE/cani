@@ -98,7 +98,7 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore, dr
 	//
 	// Reconcile Network changes
 	//
-	networkChanges, err := reconcileNetworkChangesEarly(datastore, *csm.hardwareLibrary, currentSLSState.Networks)
+	networkChanges, err := reconcileNetworkChanges(datastore, *csm.hardwareLibrary, currentSLSState.Networks)
 	if err != nil {
 		return errors.Join(fmt.Errorf("failed to reconcile network changes"), err)
 	}
@@ -110,21 +110,6 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore, dr
 	if err != nil {
 		return errors.Join(fmt.Errorf("failed to reconcile hardware changes"), err)
 	}
-
-	// //
-	// // Reconcile Network changes
-	// //
-	// networkChanges, err := reconcileNetworkChanges(currentSLSState.Networks, hardwareChanges)
-	// if err != nil {
-	// 	return errors.Join(fmt.Errorf("failed to reconcile network changes"), err)
-	// }
-
-	//
-	// Rebuild Hardware extra properties
-	//
-	// for _, subnetAdded := range networkChanges.SubnetsAdded {
-
-	// }
 
 	//
 	// Simulate and validate SLS actions
@@ -463,9 +448,6 @@ type IPReservationChange struct {
 }
 
 type NetworkChanges struct {
-	// ModifiedHardware contains hardware that has changed related to
-	ModifiedAddedHardware map[string]sls_client.Hardware
-
 	ModifiedNetworks map[string]sls_client.Network
 
 	// The following fields are for book keeping to trigger other events
@@ -478,7 +460,7 @@ type NetworkChanges struct {
 	// These issues need to be recorded, as the subnets DHCP range needs to be expanded.
 }
 
-func reconcileNetworkChangesEarly(datastore inventory.Datastore, hardwareTypeLibrary hardwaretypes.Library, networks map[string]sls_client.Network) (*NetworkChanges, error) {
+func reconcileNetworkChanges(datastore inventory.Datastore, hardwareTypeLibrary hardwaretypes.Library, networks map[string]sls_client.Network) (*NetworkChanges, error) {
 	// Create lookup maps for hardware
 	allHardware, err := datastore.List()
 	if err != nil {
