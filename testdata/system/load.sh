@@ -7,6 +7,8 @@ set -eux
 SCRIPT_DIR=$(dirname "$0")
 echo "Script directory: ${SCRIPT_DIR}"
 
+source "${SCRIPT_DIR}/../../venv/bin/activate"
+
 if [[ -z "$1" ]]; then
     echo "Missing system name argument!"
     echo "usage: ${0} system_xname "

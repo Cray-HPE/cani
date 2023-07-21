@@ -207,11 +207,10 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore, dr
 
 	// TODO determine changes to BSS NTP data to ensure that the {HMN,NMN}_{RVR,MTN} networks are present.
 
-	//
-	// Modify the System's SLS instance
-	//
-
 	if !dryrun {
+		//
+		// Modify the System's SLS instance
+		//
 
 		// Sort hardware so children are deleted before their parents
 		sls.SortHardwareReverse(hardwareChanges.Removed)
