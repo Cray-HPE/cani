@@ -30,13 +30,16 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sort"
 	"text/tabwriter"
 
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
+	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cobra"
 )
 
@@ -87,40 +90,54 @@ func listCabinet(cmd *cobra.Command, args []string) error {
 		// 		`
 
 		minwidth := 0         // minimal cell width including any padding
-		tabwidth := 4         // width of tab characters (equivalent number of spaces)
+		tabwidth := 8         // width of tab characters (equivalent number of spaces)
 		padding := 1          // padding added to a cell before computing its width
 		padchar := byte('\t') // ASCII char used for padding
 
 		w := tabwriter.NewWriter(os.Stdout, minwidth, tabwidth, padding, padchar, tabwriter.AlignRight)
 		defer w.Flush()
-		// t := template.New("cabinets")
-		// t, _ = t.Parse(tpl)
-		// if err := t.Execute(w, filtered); err != nil {
-		// 	return err
-		// }
-		// fmt.Fprintln(w, "Cabinet\tSlug\tHMN VLAN\tLocation")
 
-		var hmnVlan float64
 		fmt.Fprintf(w, "%s\t%s\t%v\t%s\n",
 			"UUID",
 			"Type",
 			"HMN VLAN",
 			"Location")
 
-		for _, hw := range filtered {
-			if _, exists := hw.ProviderProperties[string(inventory.CSMProvider)]; exists {
-				for k, v := range hw.ProviderProperties[string(inventory.CSMProvider)].(map[string]interface{}) {
-					if _, e := hw.ProviderProperties[string(inventory.CSMProvider)].(map[string]interface{})[k]; e {
-						hmnVlan = v.(float64)
-					}
+		// make keys slice to sort by values in the map
+		keys := make([]uuid.UUID, 0, len(filtered))
+		for key := range filtered {
+			keys = append(keys, key)
+		}
 
+		// sort by what the user wants
+		sort.Slice(keys, func(i, j int) bool {
+			switch sortBy {
+			case "location":
+				return filtered[keys[i]].LocationPath.String() < filtered[keys[j]].LocationPath.String()
+
+			case "type":
+				return string(filtered[keys[i]].DeviceTypeSlug) < string(filtered[keys[j]].DeviceTypeSlug)
+
+			case "uuid":
+				return filtered[keys[i]].ID.String() < filtered[keys[j]].ID.String()
+			}
+
+			// default is sorted by loc
+			return filtered[keys[i]].LocationPath.String() < filtered[keys[j]].LocationPath.String()
+		})
+
+		properties := csm.CabinetMetadata{}
+		for _, hw := range keys {
+			if _, exists := filtered[hw].ProviderProperties[string(inventory.CSMProvider)]; exists {
+				if err := mapstructure.Decode(filtered[hw].ProviderProperties["csm"], &properties); err != nil {
+					return err
 				}
 			}
 			fmt.Fprintf(w, "%s\t%s\t%v\t%s\n",
-				hw.ID.String(),
-				hw.DeviceTypeSlug,
-				hmnVlan,
-				hw.LocationPath.String())
+				filtered[hw].ID.String(),
+				filtered[hw].DeviceTypeSlug,
+				*properties.HMNVlan,
+				filtered[hw].LocationPath.String())
 		}
 
 	}
