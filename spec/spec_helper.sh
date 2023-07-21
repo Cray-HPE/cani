@@ -1,3 +1,4 @@
+#
 # MIT License
 #
 # (C) Copyright 2023 Hewlett Packard Enterprise Development LP
@@ -19,7 +20,7 @@
 # OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
-
+#
 # shellcheck shell=sh
 
 # Defining variables and functions here will affect all specfiles.
@@ -51,13 +52,13 @@ spec_helper_configure() {
   # compare value to file content
   fixture(){
     #shellcheck disable=SC2317
-    test "${fixture:?}" == "$( cat "$FIXTURES/$1" )"
+    [ "${fixture:?}" = "$( cat "$FIXTURES/$1" )" ]
   }
 
   #shellcheck disable=SC2317
   remove_config(){ rm -f canitest.yml; }
   #shellcheck disable=SC2317
-  remove_datastore() { rm -f canitestdb.json; }
+  remove_datastore() { rm -f canitestdb.json;rm -f canidb.json; }
   #shellcheck disable=SC2317
   remove_log() { rm -f canitestdb.log; }
 
@@ -122,6 +123,7 @@ spec_helper_configure() {
     #shellcheck disable=SC2317
     cp "$FIXTURES"/cani/configs/canitestdb_valid_ex4000_only.json canitestdb.json 
   } 
+
 }
 
 # Custom matcher used to find a string inside of a text containing ANSI escape codes.

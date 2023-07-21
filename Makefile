@@ -131,7 +131,7 @@ clean:
 	  bin \
 	  $(BUILD_DIR)
 
-spec:
+shellspec:
 	go run cmd/shellspec/main.go
 
 validate-hardware-type-schemas:
@@ -145,8 +145,13 @@ unittest: bin
 	     github.com/Cray-HPE/cani/internal/provider/csm/validate \
 	     github.com/Cray-HPE/cani/internal/provider/csm/validate/common
 
-test: bin validate-hardware-type-schemas unittest
-	shellspec --format tap --no-warning-as-failure
+spec: bin
+	shellspec --format tap --no-warning-as-failure spec/*_spec.sh
+
+integrate: bin
+	./spec/cani_integrate.sh
+
+test: bin validate-hardware-type-schemas unittest spec integrate
 
 tools:
 	go install golang.org/x/lint/golint@latest

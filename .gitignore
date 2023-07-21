@@ -27,6 +27,7 @@ go.work
 .shellspec-local
 .shellspec-quick.log
 bin/
+!spec/support/bin
 report/
 coverage/
 

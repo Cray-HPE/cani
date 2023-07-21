@@ -21,7 +21,7 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
-name: shell (unit tests)
+name: shellspec (unit and integration tests)
 on:
   push:
   workflow_dispatch:
@@ -29,33 +29,62 @@ jobs:
   shellspec:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest] # no macos for now; docker install takes too long and causes issues but steps in the flow remain if situation improves
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - if: ${{ matrix.os == 'ubuntu-latest' }}
-        uses: cachix/install-nix-action@v18
+      - name: checkout hms-simulation-environment
+        uses: actions/checkout@v3
         with:
-          nix_path: nixpkgs=channel:nixos-unstable
-          extra_nix_config: |
-            experimental-features = nix-command flakes
-
-      - if: ${{ matrix.os == 'ubuntu-latest' }}
-        name: Run shellspec
-        run: |
-          nix-shell -p shellspec --run 'make test'
+          path: hms-simulation-environment
+          repository: Cray-HPE/hms-simulation-environment
+          ref: v1
+          fetch-depth: 0
+        
+      - name: checkout shellspec
+        uses: actions/checkout@v3
+        with:
+          path: shellspec
+          repository: shellspec/shellspec
+          fetch-depth: 0
+        
+      - name: set up python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+        
+      - name: install python dependencies
+        run: pip3 install -r requirements.txt
 
       - if: ${{ matrix.os == 'macos-latest' }}
-        name: Install shellspec (macOS)
+        name: install docker for macos
         run: |
-          brew tap shellspec/shellspec
-          # brew update
-          brew install shellspec ksh93 bash
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask docker
+          sudo /Applications/Docker.app/Contents/MacOS/Docker --unattended --install-privileged-components
+          open -a /Applications/Docker.app --args --unattended --accept-license
+          echo "waiting for Docker to start...this can take a while on github runners"
+          while ! /Applications/Docker.app/Contents/Resources/bin/docker info &>/dev/null; do sleep 1; done
 
-      - if: ${{ matrix.os == 'macos-latest' }}
-        name: Run shellspec
+      - name: login to algol60 container registry
+        uses: docker/login-action@v2
+        with:
+          registry: artifactory.algol60.net
+          username: ${{ secrets.ARTIFACTORY_ALGOL60_USERNAME }}
+          password: ${{ secrets.ARTIFACTORY_ALGOL60_TOKEN }}
+
+      - name: standup simulation environment
+        id: setup-simulation-environment
+        continue-on-error: false
+        shell: bash
         run: |
+          spec/setup_simulator.sh ./hms-simulation-environment ../testdata/fixtures/sls/no_hardware.json
+
+      - name: Run shellspec
+        shell: bash
+        run: |
+          ln -s "$PWD"/shellspec/shellspec /usr/local/bin/
           make test
+

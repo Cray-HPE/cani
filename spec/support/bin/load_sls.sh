@@ -1,6 +1,8 @@
+#!/bin/sh
+#
 # MIT License
 #
-# (C) Copyright 2021-2022 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2023 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -19,59 +21,17 @@
 # OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
-Name: %(echo $NAME)
-License: MIT License
-BuildArch: %(echo $ARCH)
-Summary: cani
-Version: %(echo ${VERSION})
-Release: 1
-Source: %{name}-%{version}.tar.bz2
-Vendor: Hewlett Packard Enterprise
-Provides: cani
+#
+# loads SLS from a local file
+set -e
+set -u
 
-%ifarch %ix86
-    %global GOARCH 386
-%endif
-%ifarch aarch64
-    %global GOARCH arm64
-%endif
-%ifarch x86_64
-    %global GOARCH amd64
-%endif
+if [ "${DEBUG:-false}" = "true" ]; then
+  set -x
+fi
 
-%description
-Installs the cani binary.
+sls_file="${1:-testdata/fixtures/sls/valid_hardware_networks.json}"
+host="${2:-localhost:8443}"
 
-%prep
-%setup -q
-
-%build
-CGO_ENABLED=0
-GOOS=linux
-GOARCH="%{GOARCH}"
-GO111MODULE=on
-export CGO_ENABLED GOOS GOARCH GO111MODULE
-
-go version
-
-make bin
-
-%install
-CGO_ENABLED=0
-GOOS=linux
-GOARCH="%{GOARCH}"
-GO111MODULE=on
-export CGO_ENABLED GOOS GOARCH GO111MODULE
-
-mkdir -pv ${RPM_BUILD_ROOT}/usr/bin/
-cp -pv bin/cani ${RPM_BUILD_ROOT}/usr/bin/cani
-
-%clean
-
-%files
-%doc README.md
-%license LICENSE
-%defattr(755,root,root)
-/usr/bin/cani
-
-%changelog
+#shellcheck disable=SC2317
+curl -X POST -F "sls_dump=@${sls_file}" https://"${host}"/apis/sls/v1/loadstate -sk
