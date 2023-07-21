@@ -61,16 +61,27 @@ func addBlade(cmd *cobra.Command, args []string) error {
 	}
 
 	if auto {
-		log.Info().Msgf("Automatically assigning cabinet, chassis, and blade for this %s", hardwaretypes.NodeBlade)
-		// TODO: Need to auto-generate a VLAN ID and cabinet number from existing provider
-		log.Warn().Msgf("Suggested %s number: %d (not implemented)", hardwaretypes.Cabinet, cabinet)
-		log.Warn().Msgf("Suggested %s number: %d (not implemented)", hardwaretypes.Chassis, chassis)
-		log.Warn().Msgf("Suggested %s number: %d (not implemented)", hardwaretypes.NodeBlade, blade)
-		// Prompt the user to confirm the suggestions
-		auto, err = tui.CustomConfirmation(
-			fmt.Sprintf("Would you like to accept the recommendations and add the %s", hardwaretypes.NodeBlade))
+		recommendations, err := d.Recommend(args[0])
 		if err != nil {
 			return err
+		}
+		log.Info().Msgf("Querying inventory to suggest cabinet, chassis, and blade for this %s", hardwaretypes.NodeBlade)
+		cabinet = recommendations.CabinetOrdinal
+		chassis = recommendations.ChassisOrdinal
+		blade = recommendations.BladeOrdinal
+		log.Debug().Msgf("Provider recommendations: %+v", recommendations)
+		log.Info().Msgf("Suggested %s number: %d", hardwaretypes.Cabinet, cabinet)
+		log.Info().Msgf("Suggested %s number: %d", hardwaretypes.Chassis, chassis)
+		log.Info().Msgf("Suggested %s number: %d", hardwaretypes.NodeBlade, blade)
+		if accept {
+			auto = true
+		} else {
+			// Prompt the user to confirm the suggestions
+			auto, err = tui.CustomConfirmation(
+				fmt.Sprintf("Would you like to accept the recommendations and add the %s", hardwaretypes.NodeBlade))
+			if err != nil {
+				return err
+			}
 		}
 
 		// If the user chose not to accept the suggestions, exit

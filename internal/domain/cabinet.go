@@ -161,7 +161,7 @@ func (d *Domain) Recommend(deviceTypeSlug string) (recommendations provider.Hard
 		return recommendations, err
 	}
 	// Get recommendations from the CSM provider for the cabinet
-	recommendations, err = d.externalInventoryProvider.RecommendCabinet(inv, deviceTypeSlug)
+	recommendations, err = d.externalInventoryProvider.RecommendHardware(inv, deviceTypeSlug)
 	if err != nil {
 		return recommendations, err
 	}

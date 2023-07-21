@@ -33,52 +33,62 @@ device-bays:
       slug: [hpe-crayex-cabinet-environmental-controller]
     default:
       slug: hpe-crayex-cabinet-environmental-controller
+    ordinal: 0
   - name: CEC 1 Bay
     allowed:
       slug: [hpe-crayex-cabinet-environmental-controller]
     default:
       slug: hpe-crayex-cabinet-environmental-controller
+    ordinal: 1
 
   - name: Chassis 0
     allowed:
       slug: [hpe-crayex-chassis]
     default:
       slug: hpe-crayex-chassis
+    ordinal: 0
   - name: Chassis 1
     allowed:
       slug: [hpe-crayex-chassis]
     default:
       slug: hpe-crayex-chassis
+    ordinal: 1
   - name: Chassis 2
     allowed:
       slug: [hpe-crayex-chassis]
     default:
       slug: hpe-crayex-chassis
+    ordinal: 2
   - name: Chassis 3
     allowed:
       slug: [hpe-crayex-chassis]
     default:
       slug: hpe-crayex-chassis
+    ordinal: 3
   - name: Chassis 4
     allowed:
       slug: [hpe-crayex-chassis]
     default:
       slug: hpe-crayex-chassis
+    ordinal: 4
   - name: Chassis 5
     allowed:
       slug: [hpe-crayex-chassis]
     default:
       slug: hpe-crayex-chassis
+    ordinal: 5
   - name: Chassis 6
     allowed:
       slug: [hpe-crayex-chassis]
     default:
       slug: hpe-crayex-chassis
+    ordinal: 6
   - name: Chassis 7
     allowed:
       slug: [hpe-crayex-chassis]
     default:
       slug: hpe-crayex-chassis
+    ordinal: 7
 
 provider_defaults:
   csm:

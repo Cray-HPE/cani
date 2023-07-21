@@ -32,6 +32,7 @@ device-bays:
       slug: [hpe-crayex-ex235n-compute-blade-grizzly-peak-node-card]
     default:
       slug: hpe-crayex-ex235n-compute-blade-grizzly-peak-node-card
+    ordinal: 0
 identifications:
   # In CSM we can learn the type of a node blade based off the contents of the NodeEnclosure
   - manufacturer: HPE
@@ -47,16 +48,19 @@ device-bays:
       slug: [hpe-crayex-ex235n-compute-blade-grizzly-peak-node-bmc]
     default:
       slug: hpe-crayex-ex235n-compute-blade-grizzly-peak-node-bmc
+    ordinal: 0
   - name: Node 0
     allowed:
       slug: [hpe-crayex-ex235n-compute-node]
     default:
       slug: hpe-crayex-ex235n-compute-node
+    ordinal: 0
   - name: Node 1
     allowed:
       slug: [hpe-crayex-ex235n-compute-node]
     default:
       slug: hpe-crayex-ex235n-compute-node
+    ordinal: 1
 ---
 manufacturer: HPE
 model: EX235N AMD NVIDIA accelerator blade, Grizzly Peak Node BMC

@@ -42,56 +42,73 @@ device-bays:
       types: [CabinetManagementModule]
     default:
       slug: hpe-crayex-chassis-management-module
+    ordinal: 0
 
   - name: Compute Blade Bay 0
     allowed:
-      types: [ComputeBlade]
+      types: [NodeBlade]
+    ordinal: 0
   - name: Compute Blade Bay 1
     allowed:
-      types: [ComputeBlade]
+      types: [NodeBlade]
+    ordinal: 1
   - name: Compute Blade Bay 2
     allowed:
-      types: [ComputeBlade]
+      types: [NodeBlade]
+    ordinal: 2
   - name: Compute Blade Bay 3
     allowed:
-      types: [ComputeBlade]
+      types: [NodeBlade]
+    ordinal: 3
   - name: Compute Blade Bay 4
     allowed:
-      types: [ComputeBlade]
+      types: [NodeBlade]
+    ordinal: 4
   - name: Compute Blade Bay 5
     allowed:
-      types: [ComputeBlade]
+      types: [NodeBlade]
+    ordinal: 5
   - name: Compute Blade Bay 6
     allowed:
-      types: [ComputeBlade]
+      types: [NodeBlade]
+    ordinal: 6
   - name: Compute Blade Bay 7
     allowed:
-      types: [ComputeBlade]
+      types: [NodeBlade]
+    ordinal: 7
 
   - name: Switch/Peripheral Blade Bay 0
     allowed:
       types: [HighSpeedSwitchBlade]
+    ordinal: 0
   - name: Switch/Peripheral Blade Bay 1
     allowed:
       types: [HighSpeedSwitchBlade]
+    ordinal: 1
   - name: Switch/Peripheral Blade Bay 2
     allowed:
       types: [HighSpeedSwitchBlade]
+    ordinal: 2
   - name: Switch/Peripheral Blade Bay 3
     allowed:
       types: [HighSpeedSwitchBlade]
+    ordinal: 3
   - name: Switch/Peripheral Blade Bay 4
     allowed:
       types: [HighSpeedSwitchBlade]
+    ordinal: 4
   - name: Switch/Peripheral Blade Bay 5
     allowed:
       types: [HighSpeedSwitchBlade]
+    ordinal: 5
   - name: Switch/Peripheral Blade Bay 6
     allowed:
       types: [HighSpeedSwitchBlade]
+    ordinal: 6
   - name: Switch/Peripheral Blade Bay 7
     allowed:
       types: [HighSpeedSwitchBlade]
+    ordinal: 7
 
 ---
 manufacturer: HPE

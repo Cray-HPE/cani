@@ -32,11 +32,13 @@ device-bays:
       slug: [hpe-crayex-ex235a-compute-blade-bard-peak-node-card]
     default:
       slug: hpe-crayex-ex235a-compute-blade-bard-peak-node-card
+    ordinal: 0
   - name: Node Card 1
     allowed:
       slug: [hpe-crayex-ex235a-compute-blade-bard-peak-node-card]
     default:
       slug: hpe-crayex-ex235a-compute-blade-bard-peak-node-card
+    ordinal: 1
 identifications:
   # In CSM we can learn the type of a node blade based off the contents of the NodeEnclosure
   - manufacturer: HPE
@@ -52,11 +54,13 @@ device-bays:
       slug: [hpe-crayex-ex235a-compute-blade-bard-peak-node-bmc]
     default:
       slug: hpe-crayex-ex235a-compute-blade-bard-peak-node-bmc
+    ordinal: 0
   - name: Node 0
     allowed:
       slug: [hpe-crayex-ex235a-compute-node]
     default:
       slug: hpe-crayex-ex235a-compute-node
+    ordinal: 0
 ---
 manufacturer: HPE
 model: EX235A AMD MI200 accelerator blade, Bard Peak Node BMC

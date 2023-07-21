@@ -33,6 +33,7 @@ device-bays:
       slug: [hpe-eia-chassis]
     default:
       slug: hpe-eia-chassis
+    ordinal: 0
 
 provider_defaults:
   csm:
