@@ -30,6 +30,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
@@ -40,6 +41,7 @@ import (
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	"github.com/Cray-HPE/hms-xname/xnames"
 	"github.com/Cray-HPE/hms-xname/xnametypes"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 )
 
@@ -267,6 +269,21 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore, dr
 			log.Info().Int("status", r.StatusCode).Msg("Updated hardware to SLS")
 		}
 
+		// Update modified networks
+		for _, network := range networkChanges.ModifiedNetworks {
+			log.Info().Msgf("Updating SLS network %s", network.Name)
+
+			// Perform a PUT against SLS
+			_, r, err := csm.slsClient.NetworkApi.NetworksNetworkPut(ctx, network.Name, sls.NewNetworkApiNetworksNetworkPutOpts(network))
+			if err != nil {
+				return errors.Join(
+					fmt.Errorf("failed to update hardware (%s) from SLS", network.Name),
+					err,
+				)
+			}
+			log.Info().Int("status", r.StatusCode).Msgf("Updated network %s in SLS", network.Name)
+		}
+
 		//
 		// Modify the System's BSS instance
 		//
@@ -459,6 +476,23 @@ type NetworkChanges struct {
 	// These issues need to be recorded, as the subnets DHCP range needs to be expanded.
 }
 
+func sortByLocationPath(allHardware map[uuid.UUID]inventory.Hardware) []inventory.Hardware {
+	result := []inventory.Hardware{}
+
+	// Convert to a slice
+	for _, hardware := range allHardware {
+		result = append(result, hardware)
+	}
+
+	// Perform the sort
+	sort.Slice(result, func(i, j int) bool {
+		// Simple way
+		return result[i].LocationPath.String() < result[j].LocationPath.String()
+	})
+
+	return result
+}
+
 func reconcileNetworkChanges(datastore inventory.Datastore, hardwareTypeLibrary hardwaretypes.Library, networks map[string]sls_client.Network) (*NetworkChanges, error) {
 	// Create lookup maps for hardware
 	allHardware, err := datastore.List()
@@ -478,7 +512,7 @@ func reconcileNetworkChanges(datastore inventory.Datastore, hardwareTypeLibrary 
 	ipReservationsAdded := []IPReservationChange{}
 
 	// Allocate Cabinet Subnets
-	for _, cabinet := range allHardware.FilterHardwareByTypeStatus(inventory.HardwareStatusStaged, hardwaretypes.Cabinet) {
+	for _, cabinet := range sortByLocationPath(allHardware.FilterHardwareByTypeStatus(inventory.HardwareStatusStaged, hardwaretypes.Cabinet)) {
 		// Determine the xname of the cabinet
 		locationPath, err := datastore.GetLocation(cabinet)
 		if err != nil {
@@ -558,7 +592,7 @@ func reconcileNetworkChanges(datastore inventory.Datastore, hardwareTypeLibrary 
 	}
 
 	// Allocate Management Switch IPs
-	for _, mgmtSwitch := range allHardware.FilterHardwareByTypeStatus(inventory.HardwareStatusStaged, hardwaretypes.ManagementSwitch) {
+	for _, mgmtSwitch := range sortByLocationPath(allHardware.FilterHardwareByTypeStatus(inventory.HardwareStatusStaged, hardwaretypes.ManagementSwitch)) {
 		// TODO in the future the code from here can be adapted: https://github.com/Cray-HPE/hardware-topology-assistant/blob/main/internal/engine/engine.go#L292-L392
 		return nil, fmt.Errorf("allocating IP addresses for ManagementSwitch (%s) is not currently supported", mgmtSwitch.ID)
 	}
@@ -569,7 +603,7 @@ func reconcileNetworkChanges(datastore inventory.Datastore, hardwareTypeLibrary 
 	}
 
 	// Allocate Node IPs
-	for _, node := range allHardware.FilterHardwareByTypeStatus(inventory.HardwareStatusStaged, hardwaretypes.Node) {
+	for _, node := range sortByLocationPath(allHardware.FilterHardwareByTypeStatus(inventory.HardwareStatusStaged, hardwaretypes.Node)) {
 		providerProperties, err := GetProviderMetadataT[NodeMetadata](node)
 		if err != nil {
 			return nil, errors.Join(fmt.Errorf("failed to get provider properties for node (%s)", node.ID), err)
@@ -646,6 +680,8 @@ func reconcileNetworkChanges(datastore inventory.Datastore, hardwareTypeLibrary 
 
 		modifiedNetworksSet[networkName] = slsNetwork
 	}
+
+	// TODO pretty print network changes
 
 	return &NetworkChanges{
 		ModifiedNetworks:    modifiedNetworksSet,

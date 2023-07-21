@@ -30,6 +30,7 @@ import (
 
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	sls_common "github.com/Cray-HPE/hms-sls/v2/pkg/sls-common"
+	"github.com/antihax/optional"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -93,4 +94,10 @@ func ReservationsByName(subnet sls_client.NetworkIpv4Subnet) map[string]sls_clie
 		reservations[v.Name] = v
 	}
 	return reservations
+}
+
+func NewNetworkApiNetworksNetworkPutOpts(network sls_client.Network) *sls_client.NetworkApiNetworksNetworkPutOpts {
+	return &sls_client.NetworkApiNetworksNetworkPutOpts{
+		Body: optional.NewInterface(network),
+	}
 }
