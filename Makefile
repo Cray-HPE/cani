@@ -147,9 +147,12 @@ spec: bin
 	shellspec --format tap --no-warning-as-failure spec/*_spec.sh
 
 integrate: bin
-	./spec/cani_integrate.sh
+	./spec/cani_integrate.sh integration
 
-test: bin validate-hardware-type-schemas unittest spec integrate
+edge: bin
+	./spec/cani_integrate.sh edge
+
+test: bin validate-hardware-type-schemas unittest spec integrate edge
 
 tools:
 	go install golang.org/x/lint/golint@latest
