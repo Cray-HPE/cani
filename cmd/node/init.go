@@ -39,6 +39,8 @@ var (
 	subrole  string
 	nid      int
 	alias    string
+	format   string
+	sortBy   string
 )
 
 func init() {
@@ -71,5 +73,6 @@ func init() {
 	UpdateNodeCmd.Flags().StringVar(&alias, "alias", "", "Alias of the node")
 
 	UpdateNodeCmd.MarkFlagsRequiredTogether("cabinet", "chassis", "blade", "nodecard", "node")
-
+	ListNodeCmd.Flags().StringVarP(&format, "format", "f", "pretty", "Format output")
+	ListNodeCmd.Flags().StringVarP(&sortBy, "sort", "s", "location", "Sort by a specific key")
 }
