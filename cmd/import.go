@@ -28,7 +28,6 @@ package cmd
 import (
 	"encoding/csv"
 	"errors"
-	"fmt"
 	"os"
 	"sort"
 
@@ -86,6 +85,6 @@ func importAssets(cmd *cobra.Command, args []string) error {
 		log.Error().Msgf("import failed. %s", err)
 		return nil
 	}
-	fmt.Printf("Success: Wrote %d records of a total %d records in the CSV data\n", result.Modified, result.Total)
+	log.Info().Msgf("Success: Wrote %d records of a total %d records from the CSV data", result.Modified, result.Total)
 	return nil
 }
