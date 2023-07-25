@@ -41,21 +41,20 @@ var (
 	csvFile string
 )
 
-func init() {
-	ImportCmd.PersistentFlags().StringVarP(&csvFile, "file", "f", "", "Path to the data file")
-}
-
 // ImportCmd represents the import command
 var ImportCmd = &cobra.Command{
-	Use:               "import",
+	Use:               "import FILE",
 	Short:             "Import assets into the inventory.",
 	Long:              `Import assets into the inventory.`,
+	Args:              cobra.ExactArgs(1),
 	PersistentPreRunE: DatastoreExists,
 	RunE:              importAssets,
 }
 
 // import is the main entry point for the update command.
 func importAssets(cmd *cobra.Command, args []string) error {
+	csvFile = args[0]
+
 	// Create a domain object to interact with the datastore
 	d, err := domain.New(Conf.Session.DomainOptions)
 	if err != nil {
