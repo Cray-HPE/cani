@@ -133,10 +133,7 @@ It '--config canitest.yml hpe-ex2000 --cabinet 1234 --vlan-id 12345678'
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
   When call bin/cani alpha add cabinet --config canitest.yml hpe-ex2000 --cabinet 1234 --vlan-id 12345678
   The status should equal 1
-  The line 1 of stderr should include "Inventory data validation errors encountered"
-  The line 2 of stderr should include "System:0->Cabinet:1234"
-  The line 3 of stderr should include "    - Specified HMN Vlan (12345678) is invalid, must be in range: 0-4094"
-  The line 4 of stderr should equal "Error: data validation failure"
+  The line 1 of stderr should include "Error: VLAN exceeds the provider's maximum range (3999).  Please choose a valid VLAN"
 End
 
 # Adding a cabinet should succeed if:

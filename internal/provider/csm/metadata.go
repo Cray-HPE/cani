@@ -127,6 +127,15 @@ func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperti
 		// Make changes to the node metadata
 		// The keys of rawProperties need to match what is defined in ./cmd/cabinet/add_cabinet.go
 		if vlanIDRaw, exists := rawProperties[ProviderPropertyVlanId]; exists {
+			// Check if the VLAN exceeds the valid range for the hardware
+			max, err := DetermineEndingVlanFromSlug(cHardware.DeviceTypeSlug, *csm.hardwareLibrary)
+			if err != nil {
+				return err
+			}
+			// if trhe VLAN is greater than the max, fail
+			if vlanIDRaw.(int) > max {
+				return fmt.Errorf("VLAN exceeds the provider's maximum range (%d).  Please choose a valid VLAN", max)
+			}
 			if vlanIDRaw == nil {
 				properties.HMNVlan = nil
 			} else {
