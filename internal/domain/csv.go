@@ -161,7 +161,7 @@ func (d *Domain) ImportCsv(ctx context.Context, reader *csv.Reader) (result prov
 	}
 
 	if result.Modified > 0 {
-		results, err := d.externalInventoryProvider.ValidateInternal(ctx, tempDatastore, true)
+		results, err := d.externalInventoryProvider.ValidateInternal(ctx, tempDatastore, false)
 		if err != nil {
 			result.ValidationResults = results
 			return result, err
