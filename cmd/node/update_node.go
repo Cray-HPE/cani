@@ -34,8 +34,6 @@ import (
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-
-	"github.com/Cray-HPE/cani/cmd/session"
 )
 
 // UpdateNodeCmd represents the node update command
@@ -43,9 +41,9 @@ var UpdateNodeCmd = &cobra.Command{
 	Use:               "node",
 	Short:             "Update nodes in the inventory.",
 	Long:              `Update nodes in the inventory.`,
-	PersistentPreRunE: session.DatastoreExists, // A session must be active to write to a datastore
-	SilenceUsage:      true,                    // Errors are more important than the usage
-	RunE:              updateNode,              // Update a node when this sub-command is called
+	PersistentPreRunE: root.DatastoreExists, // A session must be active to write to a datastore
+	SilenceUsage:      true,                 // Errors are more important than the usage
+	RunE:              updateNode,           // Update a node when this sub-command is called
 }
 
 // updateNode updates a node to the inventory
