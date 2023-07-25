@@ -3,7 +3,6 @@ module github.com/Cray-HPE/cani
 go 1.20
 
 require (
-	github.com/Cray-HPE/hms-bss v1.25.1
 	github.com/Cray-HPE/hms-sls/v2 v2.1.0
 	github.com/Cray-HPE/hms-xname v1.1.1-0.20230602152417-25bcdeda83c9
 	github.com/antihax/optional v1.0.0
