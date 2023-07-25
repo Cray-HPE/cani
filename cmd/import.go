@@ -48,10 +48,11 @@ func init() {
 
 // ImportCmd represents the import command
 var ImportCmd = &cobra.Command{
-	Use:   "import",
-	Short: "Import assets into the inventory.",
-	Long:  `Import assets into the inventory.`,
-	RunE:  importAssets,
+	Use:               "import",
+	Short:             "Import assets into the inventory.",
+	Long:              `Import assets into the inventory.`,
+	PersistentPreRunE: DatastoreExists,
+	RunE:              importAssets,
 }
 
 // import is the main entry point for the update command.

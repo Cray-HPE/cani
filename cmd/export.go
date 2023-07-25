@@ -46,10 +46,11 @@ func init() {
 
 // ExportCmd represents the export command
 var ExportCmd = &cobra.Command{
-	Use:   "export",
-	Short: "Export assets from the inventory.",
-	Long:  `Export assets from the inventory.`,
-	RunE:  export,
+	Use:               "export",
+	Short:             "Export assets from the inventory.",
+	Long:              `Export assets from the inventory.`,
+	PersistentPreRunE: DatastoreExists,
+	RunE:              export,
 }
 
 // export is the main entry point for the update command.
