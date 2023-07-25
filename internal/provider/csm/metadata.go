@@ -48,6 +48,14 @@ type NodeMetadata struct {
 	AdditionalProperties map[string]interface{}
 }
 
+type NodeMetadataStrings struct {
+	Role                 string
+	SubRole              string
+	Nid                  string
+	Alias                []string
+	AdditionalProperties map[string]interface{}
+}
+
 type CabinetMetadata struct {
 	HMNVlan *int
 }
@@ -305,4 +313,36 @@ func nextAvailableInt(s []int, offset int) int {
 	}
 	// the offset is not in the slice, so return it
 	return offset
+}
+
+func (nm *NodeMetadata) Pretty() (prettyNm NodeMetadataStrings) {
+	var role, subrole, nid string
+	var alias []string
+	if nm.Role == nil {
+		role = ""
+	} else {
+		role = *nm.Role
+	}
+	if nm.SubRole == nil {
+		subrole = ""
+	} else {
+		subrole = *nm.SubRole
+	}
+	if nm.Alias == nil {
+		alias = []string{}
+	} else {
+		alias = nm.Alias
+	}
+	if nm.Nid == nil {
+		nid = ""
+	} else {
+		nid = fmt.Sprint(*nm.Nid)
+	}
+
+	prettyNm.Role = role
+	prettyNm.SubRole = subrole
+	prettyNm.Nid = nid
+	prettyNm.Alias = alias
+
+	return prettyNm
 }
