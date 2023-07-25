@@ -171,7 +171,7 @@ func (csm *CSM) validateInternalNode(allHardware map[uuid.UUID]inventory.Hardwar
 
 		// Verify all specified SubRoles are valid
 		if metadata.SubRole != nil {
-			if !validRoles[*metadata.SubRole] {
+			if !validSubRoles[*metadata.SubRole] {
 				validationResult.Errors = append(validationResult.Errors,
 					fmt.Sprintf("Specified sub-role (%s) is invalid, choose from: %s", *metadata.SubRole, strings.Join(csm.ValidSubRoles, ", ")),
 				)
