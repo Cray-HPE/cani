@@ -131,6 +131,21 @@ func DetermineStartingVlanFromSlug(deviceTypeSlug string, hardwareTypeLibrary ha
 	return 0, fmt.Errorf("unable to determine CSM starting VLAN of (%s) %+v", deviceTypeSlug, deviceType.ProviderDefaults.CSM)
 }
 
+func DetermineEndingVlanFromSlug(deviceTypeSlug string, hardwareTypeLibrary hardwaretypes.Library) (int, error) {
+	deviceType, exists := hardwareTypeLibrary.DeviceTypes[deviceTypeSlug]
+	if !exists {
+		return 0, errors.Join(
+			fmt.Errorf("unable to find device type (%s)", deviceTypeSlug),
+		)
+	}
+
+	if deviceType.ProviderDefaults != nil && deviceType.ProviderDefaults.CSM != nil {
+		return deviceType.ProviderDefaults.CSM.EndingHmnVlan, nil
+	}
+
+	return 0, fmt.Errorf("unable to determine CSM ending VLAN of (%s) %+v", deviceTypeSlug, deviceType.ProviderDefaults.CSM)
+}
+
 func BuildExpectedHardwareState(hardwareTypeLibrary hardwaretypes.Library, datastore inventory.Datastore, slsNetworks map[string]sls_client.Network) (sls_client.SlsState, map[string]inventory.Hardware, error) {
 	// Retrieve the CANI inventory data
 	data, err := datastore.List()

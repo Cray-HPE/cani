@@ -27,9 +27,10 @@ set -u
 
 # SIM_REPO="${1:-../hms-simulation-environment}"
 # SLS_DUMP="${2:-../hms-simulation-environment/configs/sls/no_hardware.json}"
+TEST_TYPE="${1:-integration}"
 
 # run a cani workflow, then inspect the CSM services 
-for test in ./spec/integration/*
+for test in ./spec/"${TEST_TYPE}"/*
 do
   if ! [ -d "${test}" ]; then
     # get the filename and extension
@@ -46,10 +47,12 @@ do
       shellspec "${test}" -f tap --no-banner
       set +x
     fi
-    set -x
     # strip the _spec.sh extension and replace it with .yml (an assertion file with the same name as the shellspec test)
     # run the tavern test to validate cani changed or didn't change the correct things within CSM services
-    tavern-ci ./spec/integration/tavern/test_"${filename%_spec}".tavern.yml
-    set +x
+    if [ -f ./spec/integration/tavern/test_"${filename%_spec}".tavern.yml ]; then
+      set -x
+      tavern-ci ./spec/integration/tavern/test_"${filename%_spec}".tavern.yml
+      set +x
+    fi
   fi 
 done
