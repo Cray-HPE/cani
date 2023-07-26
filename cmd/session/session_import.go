@@ -40,8 +40,8 @@ var SessionImportCmd = &cobra.Command{
 	Use:               "import",
 	Short:             "TODO THIS IS JUST A SHIM COMMAND",
 	Long:              `TODO THIS IS JUST A SHIM COMMAND`,
-	SilenceUsage:      true,            // Errors are more important than the usage
-	PersistentPreRunE: DatastoreExists, // A session must be active to write to a datastore
+	SilenceUsage:      true,                 // Errors are more important than the usage
+	PersistentPreRunE: root.DatastoreExists, // A session must be active to write to a datastore
 	RunE:              importSession,
 	// PersistentPostRunE: writeSession,
 }

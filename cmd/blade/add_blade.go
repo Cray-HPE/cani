@@ -31,7 +31,6 @@ import (
 	"sort"
 
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/cmd/session"
 	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
@@ -46,10 +45,10 @@ var AddBladeCmd = &cobra.Command{
 	Use:               "blade",
 	Short:             "Add blades to the inventory.",
 	Long:              `Add blades to the inventory.`,
-	PersistentPreRunE: session.DatastoreExists, // A session must be active to write to a datastore
-	SilenceUsage:      true,                    // Errors are more important than the usage
-	Args:              validHardware,           // Hardware can only be valid if defined in the hardware library
-	RunE:              addBlade,                // Add a blade when this sub-command is called
+	PersistentPreRunE: root.DatastoreExists, // A session must be active to write to a datastore
+	SilenceUsage:      true,                 // Errors are more important than the usage
+	Args:              validHardware,        // Hardware can only be valid if defined in the hardware library
+	RunE:              addBlade,             // Add a blade when this sub-command is called
 }
 
 // addBlade adds a blade to the inventory

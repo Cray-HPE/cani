@@ -31,7 +31,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Cray-HPE/cani/cmd/session"
+	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/spf13/cobra"
 )
@@ -80,7 +80,7 @@ func validHardware(cmd *cobra.Command, args []string) error {
 // validFlagCombos has additional flag logic to account for overiding required flags with the --auto flag
 func validFlagCombos(cmd *cobra.Command, args []string) error {
 	// ensure the session is up and the datastore exists
-	err := session.DatastoreExists(cmd, args)
+	err := root.DatastoreExists(cmd, args)
 	if err != nil {
 		return err
 	}
