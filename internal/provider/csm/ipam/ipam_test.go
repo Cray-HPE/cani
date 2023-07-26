@@ -487,7 +487,7 @@ func (suite *SplitNetworkSuite) TestInvalidSubnets() {
 	// Build up subnet mask bits.
 	// Basically all of the values of unint8 that are not between 16 and 30
 	invalidSubnetMaskOneBits := []uint8{}
-	for i := uint8(0); i < uint8(16); i++ {
+	for i := uint8(0); i < uint8(1); i++ {
 		invalidSubnetMaskOneBits = append(invalidSubnetMaskOneBits, i)
 	}
 	for i := uint8(31); i < uint8(255); i++ {
@@ -528,7 +528,7 @@ func (suite *FindNextAvailableSubnetSuite) SetupTest() {
 func (suite *FindNextAvailableSubnetSuite) TestAllocate_HMN_MTN() {
 	networkExtraProperties := *suite.slsState.Networks["HMN_MTN"].ExtraProperties
 
-	subnet, err := FindNextAvailableSubnet(networkExtraProperties)
+	subnet, err := FindNextAvailableSubnet(networkExtraProperties, 22)
 	suite.NoError(err)
 
 	expectedSubnet := netaddr.MustParseIPPrefix("11.254.0.0/22")
@@ -538,7 +538,7 @@ func (suite *FindNextAvailableSubnetSuite) TestAllocate_HMN_MTN() {
 func (suite *FindNextAvailableSubnetSuite) TestAllocate_HMN_RVR() {
 	networkExtraProperties := *suite.slsState.Networks["HMN_RVR"].ExtraProperties
 
-	subnet, err := FindNextAvailableSubnet(networkExtraProperties)
+	subnet, err := FindNextAvailableSubnet(networkExtraProperties, 22)
 	suite.NoError(err)
 
 	expectedSubnet := netaddr.MustParseIPPrefix("10.107.8.0/22")
@@ -547,7 +547,7 @@ func (suite *FindNextAvailableSubnetSuite) TestAllocate_HMN_RVR() {
 func (suite *FindNextAvailableSubnetSuite) TestAllocate_NMN_MTN() {
 	networkExtraProperties := *suite.slsState.Networks["NMN_MTN"].ExtraProperties
 
-	subnet, err := FindNextAvailableSubnet(networkExtraProperties)
+	subnet, err := FindNextAvailableSubnet(networkExtraProperties, 22)
 	suite.NoError(err)
 
 	expectedSubnet := netaddr.MustParseIPPrefix("11.252.0.0/22")
@@ -557,7 +557,7 @@ func (suite *FindNextAvailableSubnetSuite) TestAllocate_NMN_MTN() {
 func (suite *FindNextAvailableSubnetSuite) TestAllocate_NMN_RVR() {
 	networkExtraProperties := *suite.slsState.Networks["NMN_RVR"].ExtraProperties
 
-	subnet, err := FindNextAvailableSubnet(networkExtraProperties)
+	subnet, err := FindNextAvailableSubnet(networkExtraProperties, 22)
 	suite.NoError(err)
 
 	expectedSubnet := netaddr.MustParseIPPrefix("10.106.8.0/22")
@@ -572,7 +572,7 @@ func (suite *FindNextAvailableSubnetSuite) TestNearFullNetwork() {
 		},
 	}
 
-	subnet, err := FindNextAvailableSubnet(networkExtraProperties)
+	subnet, err := FindNextAvailableSubnet(networkExtraProperties, 22)
 	suite.NoError(err)
 
 	expectedSubnet := netaddr.MustParseIPPrefix("10.254.4.0/22")
@@ -584,7 +584,7 @@ func (suite *FindNextAvailableSubnetSuite) TestNetworkTooSmall() {
 		CIDR: "10.254.0.0/24",
 	}
 
-	subnet, err := FindNextAvailableSubnet(networkExtraProperties)
+	subnet, err := FindNextAvailableSubnet(networkExtraProperties, 22)
 
 	expectedErrorStrings := []string{
 		"failed to split network CIDR (10.254.0.0/24)",
@@ -603,7 +603,7 @@ func (suite *FindNextAvailableSubnetSuite) TestNoRoom() {
 		},
 	}
 
-	subnet, err := FindNextAvailableSubnet(networkExtraProperties)
+	subnet, err := FindNextAvailableSubnet(networkExtraProperties, 22)
 	suite.EqualError(err, "network space has been exhausted")
 	suite.Empty(subnet)
 }
@@ -617,7 +617,7 @@ func (suite *FindNextAvailableSubnetSuite) TestInvalidNetworkCIDR() {
 		},
 	}
 
-	subnet, err := FindNextAvailableSubnet(networkExtraProperties)
+	subnet, err := FindNextAvailableSubnet(networkExtraProperties, 22)
 
 	expectedErrorStrings := []string{
 		"failed to parse subnet CIDR (not-a-cidr)",
@@ -632,7 +632,7 @@ func (suite *FindNextAvailableSubnetSuite) TestInvalidSubnetCIDR() {
 		CIDR: "not-a-cidr",
 	}
 
-	subnet, err := FindNextAvailableSubnet(networkExtraProperties)
+	subnet, err := FindNextAvailableSubnet(networkExtraProperties, 22)
 
 	expectedErrorStrings := []string{
 		"failed to parse network CIDR (not-a-cidr)",
@@ -645,7 +645,7 @@ func (suite *FindNextAvailableSubnetSuite) TestInvalidSubnetCIDR() {
 func (suite *FindNextAvailableSubnetSuite) TestEmptyNetworkExtraProperties() {
 	networkExtraProperties := sls_client.NetworkExtraProperties{}
 
-	subnet, err := FindNextAvailableSubnet(networkExtraProperties)
+	subnet, err := FindNextAvailableSubnet(networkExtraProperties, 22)
 
 	expectedErrorStrings := []string{
 		"failed to parse network CIDR ()",
@@ -686,7 +686,7 @@ func (suite *AllocateCabinetSubnetSuite) TestAllocateNMN_MTN() {
 	network.ExtraProperties.Subnets = nil
 
 	// Allocate a subnet into a network without subnets
-	subnet, err := AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 1000}, nil)
+	subnet, err := AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 1000}, 22, nil)
 	suite.NoError(err)
 
 	expectedSubnet := sls_client.NetworkIpv4Subnet{
@@ -702,7 +702,7 @@ func (suite *AllocateCabinetSubnetSuite) TestAllocateNMN_MTN() {
 	// Add a second cabinet subnet
 	network.ExtraProperties.Subnets = append(network.ExtraProperties.Subnets, expectedSubnet)
 
-	subnet, err = AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 1001}, nil)
+	subnet, err = AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 1001}, 22, nil)
 	suite.NoError(err)
 	expectedSubnet = sls_client.NetworkIpv4Subnet{
 		Name:      "cabinet_1001",
@@ -720,7 +720,7 @@ func (suite *AllocateCabinetSubnetSuite) TestAllocateHMN_MTN() {
 	network.ExtraProperties.Subnets = nil
 
 	// Allocate a subnet into a network without subnets
-	subnet, err := AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 1000}, nil)
+	subnet, err := AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 1000}, 22, nil)
 	suite.NoError(err)
 
 	expectedSubnet := sls_client.NetworkIpv4Subnet{
@@ -736,7 +736,7 @@ func (suite *AllocateCabinetSubnetSuite) TestAllocateHMN_MTN() {
 	// Add a second cabinet subnet
 	network.ExtraProperties.Subnets = append(network.ExtraProperties.Subnets, expectedSubnet)
 
-	subnet, err = AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 1001}, nil)
+	subnet, err = AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 1001}, 22, nil)
 	suite.NoError(err)
 	expectedSubnet = sls_client.NetworkIpv4Subnet{
 		Name:      "cabinet_1001",
@@ -755,7 +755,7 @@ func (suite *AllocateCabinetSubnetSuite) TestAllocateNMN_MTN_VlanOverride() {
 
 	// Allocate a subnet into a network without subnets
 	vlanOverride := int32(1234)
-	subnet, err := AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 1000}, &vlanOverride)
+	subnet, err := AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 1000}, 22, &vlanOverride)
 	suite.NoError(err)
 
 	expectedSubnet := sls_client.NetworkIpv4Subnet{
@@ -772,7 +772,7 @@ func (suite *AllocateCabinetSubnetSuite) TestAllocateNMN_MTN_VlanOverride() {
 	network.ExtraProperties.Subnets = append(network.ExtraProperties.Subnets, expectedSubnet)
 
 	vlanOverride = int32(2234)
-	subnet, err = AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 1001}, &vlanOverride)
+	subnet, err = AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 1001}, 22, &vlanOverride)
 	suite.NoError(err)
 	expectedSubnet = sls_client.NetworkIpv4Subnet{
 		Name:      "cabinet_1001",
@@ -791,7 +791,7 @@ func (suite *AllocateCabinetSubnetSuite) TestAllocateHMN_MTN_VlanOverride() {
 
 	// Allocate a subnet into a network without subnets
 	vlanOverride := int32(1234)
-	subnet, err := AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 1000}, &vlanOverride)
+	subnet, err := AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 1000}, 22, &vlanOverride)
 	suite.NoError(err)
 
 	expectedSubnet := sls_client.NetworkIpv4Subnet{
@@ -808,7 +808,7 @@ func (suite *AllocateCabinetSubnetSuite) TestAllocateHMN_MTN_VlanOverride() {
 	network.ExtraProperties.Subnets = append(network.ExtraProperties.Subnets, expectedSubnet)
 
 	vlanOverride = int32(2234)
-	subnet, err = AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 1001}, &vlanOverride)
+	subnet, err = AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 1001}, 22, &vlanOverride)
 	suite.NoError(err)
 	expectedSubnet = sls_client.NetworkIpv4Subnet{
 		Name:      "cabinet_1001",
@@ -826,7 +826,7 @@ func (suite *AllocateCabinetSubnetSuite) TestAllocateNMN_RVR() {
 	network.ExtraProperties.Subnets = nil
 
 	// Allocate a subnet into a network without subnets
-	subnet, err := AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 3000}, nil)
+	subnet, err := AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 3000}, 22, nil)
 	suite.NoError(err)
 
 	expectedSubnet := sls_client.NetworkIpv4Subnet{
@@ -842,7 +842,7 @@ func (suite *AllocateCabinetSubnetSuite) TestAllocateNMN_RVR() {
 	// Add a second cabinet subnet
 	network.ExtraProperties.Subnets = append(network.ExtraProperties.Subnets, expectedSubnet)
 
-	subnet, err = AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 3001}, nil)
+	subnet, err = AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 3001}, 22, nil)
 	suite.NoError(err)
 	expectedSubnet = sls_client.NetworkIpv4Subnet{
 		Name:      "cabinet_3001",
@@ -860,7 +860,7 @@ func (suite *AllocateCabinetSubnetSuite) TestAllocateHMN_RVR() {
 	network.ExtraProperties.Subnets = nil
 
 	// Allocate a subnet into a network without subnets
-	subnet, err := AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 3000}, nil)
+	subnet, err := AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 3000}, 22, nil)
 	suite.NoError(err)
 
 	expectedSubnet := sls_client.NetworkIpv4Subnet{
@@ -876,7 +876,7 @@ func (suite *AllocateCabinetSubnetSuite) TestAllocateHMN_RVR() {
 	// Add a second cabinet subnet
 	network.ExtraProperties.Subnets = append(network.ExtraProperties.Subnets, expectedSubnet)
 
-	subnet, err = AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 3001}, nil)
+	subnet, err = AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 3001}, 22, nil)
 	suite.NoError(err)
 	expectedSubnet = sls_client.NetworkIpv4Subnet{
 		Name:      "cabinet_3001",
@@ -895,7 +895,7 @@ func (suite *AllocateCabinetSubnetSuite) TestAllocateNMN_RVR_VlanOverride() {
 
 	// Allocate a subnet into a network without subnets
 	vlanOverride := int32(1234)
-	subnet, err := AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 3000}, &vlanOverride)
+	subnet, err := AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 3000}, 22, &vlanOverride)
 	suite.NoError(err)
 
 	expectedSubnet := sls_client.NetworkIpv4Subnet{
@@ -912,7 +912,7 @@ func (suite *AllocateCabinetSubnetSuite) TestAllocateNMN_RVR_VlanOverride() {
 	network.ExtraProperties.Subnets = append(network.ExtraProperties.Subnets, expectedSubnet)
 
 	vlanOverride = int32(2234)
-	subnet, err = AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 3001}, &vlanOverride)
+	subnet, err = AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 3001}, 22, &vlanOverride)
 	suite.NoError(err)
 	expectedSubnet = sls_client.NetworkIpv4Subnet{
 		Name:      "cabinet_3001",
@@ -931,7 +931,7 @@ func (suite *AllocateCabinetSubnetSuite) TestAllocateHMN_RVR_VlanOverride() {
 
 	// Allocate a subnet into a network without subnets
 	vlanOverride := int32(1234)
-	subnet, err := AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 3000}, &vlanOverride)
+	subnet, err := AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 3000}, 22, &vlanOverride)
 	suite.NoError(err)
 
 	expectedSubnet := sls_client.NetworkIpv4Subnet{
@@ -948,7 +948,7 @@ func (suite *AllocateCabinetSubnetSuite) TestAllocateHMN_RVR_VlanOverride() {
 	network.ExtraProperties.Subnets = append(network.ExtraProperties.Subnets, expectedSubnet)
 
 	vlanOverride = int32(2234)
-	subnet, err = AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 3001}, &vlanOverride)
+	subnet, err = AllocateCabinetSubnet(network.Name, *network.ExtraProperties, xnames.Cabinet{Cabinet: 3001}, 22, &vlanOverride)
 	suite.NoError(err)
 	expectedSubnet = sls_client.NetworkIpv4Subnet{
 		Name:      "cabinet_3001",
@@ -966,7 +966,7 @@ func (suite *AllocateCabinetSubnetSuite) TestInvalidNetworkCIDR() {
 		CIDR: "not-a-cidr",
 	}
 
-	subnet, err := AllocateCabinetSubnet("HMN_MTN", slsNetworkEP, xnames.Cabinet{Cabinet: 1000}, nil)
+	subnet, err := AllocateCabinetSubnet("HMN_MTN", slsNetworkEP, xnames.Cabinet{Cabinet: 1000}, 22, nil)
 	suite.Empty(subnet)
 	expectedErrorStrings := []string{
 		"failed to allocate cabinet subnet for (x1000) in CIDR (not-a-cidr)",
@@ -990,7 +990,7 @@ func (suite *AllocateCabinetSubnetSuite) TestSubnetAlreadyExists() {
 		},
 	}
 
-	subnet, err := AllocateCabinetSubnet("HMN_MTN", slsNetworkEP, xnames.Cabinet{Cabinet: 1000}, nil)
+	subnet, err := AllocateCabinetSubnet("HMN_MTN", slsNetworkEP, xnames.Cabinet{Cabinet: 1000}, 22, nil)
 	suite.Empty(subnet)
 	suite.EqualError(err, "subnet (cabinet_1000) already exists")
 }
@@ -1001,7 +1001,7 @@ func (suite *AllocateCabinetSubnetSuite) TestUnsupportedNetworkNames() {
 			CIDR: "10.0.0.0/16",
 		}
 
-		subnet, err := AllocateCabinetSubnet(name, slsNetworkEP, xnames.Cabinet{Cabinet: 1000}, nil)
+		subnet, err := AllocateCabinetSubnet(name, slsNetworkEP, xnames.Cabinet{Cabinet: 1000}, 22, nil)
 		suite.Empty(subnet)
 		suite.EqualError(err, fmt.Sprintf("unsupported network (%s) unable to allocate vlan for cabinet subnet", name))
 	}
@@ -1028,7 +1028,7 @@ func (suite *AllocateCabinetSubnetSuite) TestVLANSpaceExhausted() {
 		},
 	}
 
-	subnet, err := AllocateCabinetSubnet("HMN_MTN", slsNetworkEP, xnames.Cabinet{Cabinet: 1000}, nil)
+	subnet, err := AllocateCabinetSubnet("HMN_MTN", slsNetworkEP, xnames.Cabinet{Cabinet: 1000}, 22, nil)
 	suite.Empty(subnet)
 
 	expectedErrorStrings := []string{

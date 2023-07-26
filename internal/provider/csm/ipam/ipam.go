@@ -116,7 +116,7 @@ func AdvanceIP(ip netaddr.IP, n uint32) (netaddr.IP, error) {
 
 func SplitNetwork(network netaddr.IPPrefix, subnetMaskOneBits uint8) ([]netaddr.IPPrefix, error) {
 	// TODO why only allow this range?
-	if subnetMaskOneBits < 16 || 30 < subnetMaskOneBits {
+	if subnetMaskOneBits < 1 || 30 < subnetMaskOneBits {
 		return nil, fmt.Errorf("invalid subnet mask provided /%d", subnetMaskOneBits)
 	}
 
@@ -149,7 +149,7 @@ func SplitNetwork(network netaddr.IPPrefix, subnetMaskOneBits uint8) ([]netaddr.
 	return subnets, nil
 }
 
-func FindNextAvailableSubnet(slsNetwork sls_client.NetworkExtraProperties) (netaddr.IPPrefix, error) {
+func FindNextAvailableSubnet(slsNetwork sls_client.NetworkExtraProperties, desiredSubnetMaskBits uint8) (netaddr.IPPrefix, error) {
 	// TODO make the /22 configurable
 	var existingSubnets netaddr.IPSetBuilder
 	for _, slsSubnet := range slsNetwork.Subnets {
@@ -171,7 +171,7 @@ func FindNextAvailableSubnet(slsNetwork sls_client.NetworkExtraProperties) (neta
 		return netaddr.IPPrefix{}, errors.Join(fmt.Errorf("failed to parse network CIDR (%s)", slsNetwork.CIDR), err)
 	}
 
-	availableSubnets, err := SplitNetwork(network, 22)
+	availableSubnets, err := SplitNetwork(network, desiredSubnetMaskBits)
 	if err != nil {
 		return netaddr.IPPrefix{}, errors.Join(fmt.Errorf("failed to split network CIDR (%s)", slsNetwork.CIDR), err)
 	}
@@ -186,8 +186,8 @@ func FindNextAvailableSubnet(slsNetwork sls_client.NetworkExtraProperties) (neta
 	return netaddr.IPPrefix{}, fmt.Errorf("network space has been exhausted")
 }
 
-func AllocateCabinetSubnet(networkName string, slsNetwork sls_client.NetworkExtraProperties, xname xnames.Cabinet, vlanOverride *int32) (sls_client.NetworkIpv4Subnet, error) {
-	cabinetSubnet, err := FindNextAvailableSubnet(slsNetwork)
+func AllocateCabinetSubnet(networkName string, slsNetwork sls_client.NetworkExtraProperties, xname xnames.Cabinet, desiredSubnetMaskBits uint8, vlanOverride *int32) (sls_client.NetworkIpv4Subnet, error) {
+	cabinetSubnet, err := FindNextAvailableSubnet(slsNetwork, desiredSubnetMaskBits)
 	if err != nil {
 		return sls_client.NetworkIpv4Subnet{}, errors.Join(fmt.Errorf("failed to allocate cabinet subnet for (%s) in CIDR (%s)", xname.String(), slsNetwork.CIDR), err)
 	}

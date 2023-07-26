@@ -27,7 +27,7 @@ Describe 'EDGE:'
 It 'start a session'
   BeforeCall use_inactive_session
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
-  BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
+  BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks_giant_mnt_networks.json" # simulator is running, load a specific SLS config
   When call bin/cani alpha session --config canitest.yml start csm -S
   The status should equal 0
   The line 1 of stderr should include 'Using simulation mode'

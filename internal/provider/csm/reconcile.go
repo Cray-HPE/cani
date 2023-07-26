@@ -421,9 +421,9 @@ func reconcileNetworkChanges(datastore inventory.Datastore, hardwareTypeLibrary 
 			}
 
 			// Find an available subnet
-			subnet, err := ipam.AllocateCabinetSubnet(networkName, *networkExtraProperties, *xname, nil)
+			subnet, err := ipam.AllocateCabinetSubnet(networkName, *networkExtraProperties, *xname, 22, nil)
 			if err != nil {
-				return nil, fmt.Errorf("unable to allocate subnet for cabinet (%s) in network (%s)", xname, networkName)
+				return nil, errors.Join(fmt.Errorf("unable to allocate subnet for cabinet (%s) in network (%s)", xname, networkName), err)
 			}
 
 			log.Info().Msgf("Allocated subnet in network %s for cabinet %s with CIDR %v", networkName, xname, subnet.CIDR)
