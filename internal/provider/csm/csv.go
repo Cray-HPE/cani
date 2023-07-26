@@ -109,7 +109,7 @@ func (csm *CSM) SetFields(hw *inventory.Hardware, values map[string]string) (res
 			return result, err
 		}
 		current := csmProps["HMNVlan"]
-		if current != vlan {
+		if current != float64(vlan) {
 			result.ModifiedFields = append(result.ModifiedFields, "Vlan")
 			csmProps["HMNVlan"] = vlan
 		}
