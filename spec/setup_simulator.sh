@@ -35,4 +35,10 @@ pushd "${SIM_REPO}" || exit 1
   #shellcheck disable=SC1091
   . ./venv/bin/activate
   ./run.py "${SLS_DUMP}"
+
+  # Stop Discovery services as they are not currently required.
+  # Some edge case tests cause high load with HSM and MEDS as they are 
+  # trying to reach out to hardware that does not exist.
+  docker compose stop cray-meds
+  docker compose stop cray-reds
 popd || exit 1
