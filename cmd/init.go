@@ -49,6 +49,8 @@ func init() {
 	AlphaCmd.AddCommand(SessionCmd)
 	AlphaCmd.AddCommand(UpdateCmd)
 	AlphaCmd.AddCommand(ValidateCmd)
+	AlphaCmd.AddCommand(ExportCmd)
+	AlphaCmd.AddCommand(ImportCmd)
 	RootCmd.AddCommand(VersionCmd)
 
 	// Global root command flags

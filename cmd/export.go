@@ -23,48 +23,55 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package session
+package cmd
 
 import (
-	"fmt"
+	"encoding/csv"
+	"os"
+	"strings"
 
-	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
-// validProvider checks that the provider is valid and that at least one argument is provided
-func validProvider(cmd *cobra.Command, args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("Need a provider.  Choose from: %+v", validArgs)
+var (
+	csvHeaders string
+)
+
+func init() {
+	ExportCmd.PersistentFlags().StringVar(
+		&csvHeaders, "headers", "ID,Name,Type,Vlan,Role,SubRole,Nid,Alias", "Comma separated list of fields to get")
+}
+
+// ExportCmd represents the export command
+var ExportCmd = &cobra.Command{
+	Use:               "export",
+	Short:             "Export assets from the inventory.",
+	Long:              `Export assets from the inventory.`,
+	PersistentPreRunE: DatastoreExists,
+	RunE:              export,
+}
+
+// export is the main entry point for the update command.
+func export(cmd *cobra.Command, args []string) error {
+	// Create a domain object to interact with the datastore
+	d, err := domain.New(Conf.Session.DomainOptions)
+	if err != nil {
+		return err
 	}
 
-	// This helper function checks if a provider is valid.
-	isValidProvider := func(provider string) bool {
-		for _, validArg := range cmd.ValidArgs {
-			if provider == validArg {
-				return true
-			}
-		}
-		return false
+	headers := strings.Split(csvHeaders, ",")
+	for i, header := range headers {
+		headers[i] = strings.TrimSpace(header)
 	}
 
-	// Check the session provider.
-	sessionProvider := root.Conf.Session.DomainOptions.Provider
-	if sessionProvider == "" {
-		// Check that at least one argument is provided.
-		if len(args) < 1 {
-			return fmt.Errorf("Need a provider.  Choose from: %+v", validArgs)
-		}
-	} else if !isValidProvider(sessionProvider) {
-		return fmt.Errorf("%s is not a valid provider.  Valid providers: %+v", sessionProvider, validArgs)
-	}
+	log.Debug().Msgf("headers: %v", headers)
 
-	// Check all argument providers.
-	for _, arg := range args {
-		if !isValidProvider(arg) {
-			return fmt.Errorf("%s is not a valid provider.  Valid providers: %+v", arg, validArgs)
-		}
+	w := csv.NewWriter(os.Stdout)
+	err = d.ExportCsv(cmd.Context(), w, headers)
+	if err != nil {
+		log.Error().Msgf("export failed: %s", err)
 	}
-
 	return nil
 }

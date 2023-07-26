@@ -27,7 +27,6 @@ package sw
 
 import (
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/cmd/session"
 	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -38,9 +37,9 @@ var AddSwitchCmd = &cobra.Command{
 	Use:               "switch",
 	Short:             "Add switches to the inventory.",
 	Long:              `Add switches to the inventory.`,
-	PersistentPreRunE: session.DatastoreExists, // A session must be active to write to a datastore
-	Args:              validHardware,           // Hardware can only be valid if defined in the hardware library
-	RunE:              addSwitch,               // Add a switch when this sub-command is called
+	PersistentPreRunE: root.DatastoreExists, // A session must be active to write to a datastore
+	Args:              validHardware,        // Hardware can only be valid if defined in the hardware library
+	RunE:              addSwitch,            // Add a switch when this sub-command is called
 }
 
 // addSwitch adds a switch to the inventory

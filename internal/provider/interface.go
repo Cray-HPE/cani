@@ -57,6 +57,10 @@ type InventoryProvider interface {
 
 	// RecommendCabinet returns recommended settings for adding a cabinet
 	RecommendCabinet(inv inventory.Inventory, deviceTypeSlug string) (HardwareRecommendations, error)
+
+	GetFields(hw *inventory.Hardware, fieldNames []string) (values []string, err error)
+
+	SetFields(hw *inventory.Hardware, values map[string]string) (result SetFieldsResult, err error)
 }
 
 type HardwareValidationResult struct {
@@ -67,4 +71,14 @@ type HardwareValidationResult struct {
 type HardwareRecommendations struct {
 	LocationOrdinal  int
 	ProviderMetadata map[string]interface{}
+}
+
+type CsvImportResult struct {
+	Total             int
+	Modified          int
+	ValidationResults map[uuid.UUID]HardwareValidationResult
+}
+
+type SetFieldsResult struct {
+	ModifiedFields []string
 }
