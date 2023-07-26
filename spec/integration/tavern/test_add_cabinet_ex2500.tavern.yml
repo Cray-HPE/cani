@@ -289,6 +289,14 @@ marks:
         - Xname
         - Parent
       vals:
+        # Existing Cabinet
+        - [x9000, s0]
+        - [x9000c1, x9000]
+        - [x9000c1b0, x9000c1]
+        - [x9000c3, x9000]
+        - [x9000c3b0, x9000c3]
+
+        # New cabinets
         - [x8000, s0]
         - [x8000c0, x8000]
         - [x8000c0b0, x8000c0]
