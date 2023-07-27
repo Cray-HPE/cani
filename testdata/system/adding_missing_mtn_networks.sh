@@ -1,8 +1,8 @@
-#!/usr/bin/env bash
+#! /usr/bin/env bash
 #
 # MIT License
 #
-# (C) Copyright 2022-2023 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2023 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -22,23 +22,40 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
-set -e
-set -u
-set -o pipefail
+set -eu
 
-SIM_REPO="${1:-../hms-simulation-environment}"
-SLS_DUMP="${2:-../hms-simulation-environment/configs/sls/no_hardware.json}"
+curl -X PUT -k -i https://localhost:8443/apis/sls/v1/networks/HMN_MTN -d '{
+  "Name": "HMN_MTN",
+  "FullName": "Mountain Compute Hardware Management Network",
+  "IPRanges": [
+    "10.104.0.0/17"
+  ],
+  "Type": "ethernet",
+  "ExtraProperties": {
+    "CIDR": "10.104.0.0/17",
+    "MTU": 9000,
+    "Subnets": [],
+    "VlanRange": [
+      2000,
+      2999
+    ]
+  }
+}'
 
-# start the simulator with the specified SLS config
-pushd "${SIM_REPO}" || exit 1
-  ./setup_venv.sh
-  #shellcheck disable=SC1091
-  . ./venv/bin/activate
-  ./run.py "${SLS_DUMP}"
-
-  # Stop Discovery services as they are not currently required.
-  # Some edge case tests cause high load with HSM and MEDS as they are 
-  # trying to reach out to hardware that does not exist.
-  docker compose stop cray-meds
-  docker compose stop cray-reds
-popd || exit 1
+curl -X PUT -k -i https://localhost:8443/apis/sls/v1/networks/NMN_MTN -d '{
+  "Name": "NMN_MTN",
+  "FullName": "Mountain Compute Node Management Network",
+  "IPRanges": [
+    "10.100.0.0/17"
+  ],
+  "Type": "ethernet",
+  "ExtraProperties": {
+    "CIDR": "10.100.0.0/17",
+    "MTU": 9000,
+    "Subnets": [],
+    "VlanRange": [
+      3000,
+      3999
+    ]
+  }
+}'

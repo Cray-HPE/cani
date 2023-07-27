@@ -347,6 +347,9 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 		}
 
 		extraProperties = cabinetExtraProperties
+	case hardwaretypes.CabinetEnvironmentalController:
+		// Not represented in SLS
+		return sls_client.Hardware{}, nil
 	case hardwaretypes.Chassis:
 		var chassisExtraProperties sls_client.HardwareExtraPropertiesChassis
 

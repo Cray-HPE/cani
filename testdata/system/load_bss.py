@@ -1,8 +1,8 @@
-#!/usr/bin/env bash
+#! /usr/bin/env python3
 #
 # MIT License
 #
-# (C) Copyright 2022-2023 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2023 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -22,23 +22,29 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
-set -e
-set -u
-set -o pipefail
 
-SIM_REPO="${1:-../hms-simulation-environment}"
-SLS_DUMP="${2:-../hms-simulation-environment/configs/sls/no_hardware.json}"
+import requests
+import sys
+import json
 
-# start the simulator with the specified SLS config
-pushd "${SIM_REPO}" || exit 1
-  ./setup_venv.sh
-  #shellcheck disable=SC1091
-  . ./venv/bin/activate
-  ./run.py "${SLS_DUMP}"
+print("Clearing BSS")
 
-  # Stop Discovery services as they are not currently required.
-  # Some edge case tests cause high load with HSM and MEDS as they are 
-  # trying to reach out to hardware that does not exist.
-  docker compose stop cray-meds
-  docker compose stop cray-reds
-popd || exit 1
+result = requests.get("http://localhost:27778/boot/v1/bootparameters")
+if result.status_code != 200:
+    print(f"Unexpected status code: {result.status_code}, expected 200")
+    sys.exit(1)
+
+if result.json() is  None:
+    print("No bootparams to remove")
+else:
+    bootparams = result.json()
+    for i, bootparam in enumerate(bootparams, start=1):
+        result = requests.delete("http://localhost:27778/boot/v1/bootparameters", json=bootparam)
+        print(f"Deleted bootparameter {i} of {len(bootparams)}: {result.status_code}")
+
+print("Loading BSS")
+with open(sys.argv[1], 'r') as f:
+    bootparams = json.load(f)
+    for i, bootparam in enumerate(bootparams, start=1):
+        result = requests.post("http://localhost:27778/boot/v1/bootparameters", json=bootparam)
+        print(f"Created bootparameter {i} of {len(bootparams)}: {result.status_code}")

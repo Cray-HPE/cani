@@ -30,6 +30,7 @@ import (
 )
 
 var (
+	dryrun        bool
 	commit        bool
 	kubeconfig    string
 	caCertPath    string
@@ -82,5 +83,6 @@ func init() {
 
 	// Session stop flags
 	SessionStopCmd.Flags().BoolVarP(&commit, "commit", "c", false, "Commit changes to session")
+	SessionStopCmd.Flags().BoolVarP(&dryrun, "dryrun", "d", false, "Perform dryrun, and do not make changes to the system")
 
 }

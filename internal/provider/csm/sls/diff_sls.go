@@ -66,7 +66,7 @@ func HardwareSubtract(a, b sls_client.SlsState) ([]sls_client.Hardware, error) {
 	return missingHardware, nil
 }
 
-type GenericHardwarePair struct {
+type HardwarePair struct {
 	Xname     string
 	HardwareA sls_client.Hardware
 	HardwareB sls_client.Hardware
@@ -75,7 +75,7 @@ type GenericHardwarePair struct {
 // Identify hardware
 // Note when comparing hardware network information like IP address and subnets are not considered.
 // TODO make striping of networking information toggable
-func HardwareUnion(a, b sls_client.SlsState) (identicalHardware []sls_client.Hardware, differingContents []GenericHardwarePair, err error) {
+func HardwareUnion(a, b sls_client.SlsState) (identicalHardware []sls_client.Hardware, differingContents []HardwarePair, err error) {
 	// Build up a lookup map for the hardware in set B
 	bHardwareMap := map[string]sls_client.Hardware{}
 	for _, hardware := range b.Hardware {
@@ -94,7 +94,7 @@ func HardwareUnion(a, b sls_client.SlsState) (identicalHardware []sls_client.Har
 			continue
 		}
 
-		hardwarePair := GenericHardwarePair{
+		hardwarePair := HardwarePair{
 			Xname:     hardwareA.Xname,
 			HardwareA: hardwareA,
 			HardwareB: hardwareB,

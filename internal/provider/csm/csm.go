@@ -76,6 +76,7 @@ type CSM struct {
 	// Clients
 	slsClient *sls_client.APIClient
 	hsmClient *hsm_client.APIClient
+
 	// System Configuration data
 	ValidRoles    []string
 	ValidSubRoles []string

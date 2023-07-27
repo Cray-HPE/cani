@@ -74,9 +74,9 @@ It 'commit and reconcile'
   When call bin/cani alpha session --config canitest.yml stop --commit
   The status should equal 0
   The stderr should include 'Hardware added to the system'
-  The stderr should include 'x8000            - Type: Cabinet, Class: Hill, Networks: {"cn":{}}'
-  The stderr should include 'x8001            - Type: Cabinet, Class: Hill, Networks: {"cn":{}}'
-  The stderr should include 'x8002            - Type: Cabinet, Class: Hill, Networks: {"cn":{}}'
+  The stderr should include 'x8000            - Type: Cabinet, Class: Hill, Networks: {"cn":{"HMN":{"CIDR":"10.104.4.0/22","Gateway":"10.104.4.1","VLan":3001},"NMN":{"CIDR":"10.100.4.0/22","Gateway":"10.100.4.1","VLan":2001}}}'
+  The stderr should include 'x8001            - Type: Cabinet, Class: Hill, Networks: {"cn":{"HMN":{"CIDR":"10.104.8.0/22","Gateway":"10.104.8.1","VLan":3002},"NMN":{"CIDR":"10.100.8.0/22","Gateway":"10.100.8.1","VLan":2002}}}'
+  The stderr should include 'x8002            - Type: Cabinet, Class: Hill, Networks: {"cn":{"HMN":{"CIDR":"10.104.12.0/22","Gateway":"10.104.12.1","VLan":3003},"NMN":{"CIDR":"10.100.12.0/22","Gateway":"10.100.12.1","VLan":2003}}}'
   The stdout should include 'Cabinet                         (staged)'
 End
 

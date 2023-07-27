@@ -1,8 +1,8 @@
-#!/usr/bin/env bash
+#! /usr/bin/env bash
 #
 # MIT License
 #
-# (C) Copyright 2022-2023 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2023 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -22,23 +22,32 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
-set -e
-set -u
-set -o pipefail
+set -eux
 
-SIM_REPO="${1:-../hms-simulation-environment}"
-SLS_DUMP="${2:-../hms-simulation-environment/configs/sls/no_hardware.json}"
+SCRIPT_DIR=$(dirname "$0")
+echo "Script directory: ${SCRIPT_DIR}"
 
-# start the simulator with the specified SLS config
-pushd "${SIM_REPO}" || exit 1
-  ./setup_venv.sh
-  #shellcheck disable=SC1091
-  . ./venv/bin/activate
-  ./run.py "${SLS_DUMP}"
+source "${SCRIPT_DIR}/../../venv/bin/activate"
 
-  # Stop Discovery services as they are not currently required.
-  # Some edge case tests cause high load with HSM and MEDS as they are 
-  # trying to reach out to hardware that does not exist.
-  docker compose stop cray-meds
-  docker compose stop cray-reds
-popd || exit 1
+if [[ -z "$1" ]]; then
+    echo "Missing system name argument!"
+    echo "usage: ${0} system_xname "
+fi
+SYSTEM_NAME="$1"
+echo "System name: ${SYSTEM_NAME}"
+
+# Load SLS
+SLS_FILE="${SCRIPT_DIR}/${SYSTEM_NAME}/sls_dumpstate.json"
+curl -k -X POST -F "sls_dump=@${SLS_FILE}" https://localhost:8443/apis/sls/v1/loadstate -i
+"${SCRIPT_DIR}/adding_missing_mtn_networks.sh"
+
+# Load HSM
+FILL_SMD_DB_FULLPATH=$(realpath "${SCRIPT_DIR}/fill-smd-db.sh")
+SMD_SQL_PATH=$(realpath "${SCRIPT_DIR}/${SYSTEM_NAME}/smd.sql")
+pushd "${SCRIPT_DIR}/../../hms-simulation-environment" || exit
+    "${FILL_SMD_DB_FULLPATH}" "${SMD_SQL_PATH}"
+popd
+
+# Load BSS
+"${SCRIPT_DIR}/load_bss.py" "${SCRIPT_DIR}/${SYSTEM_NAME}/bss_bootparameters.json"
+

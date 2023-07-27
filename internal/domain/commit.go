@@ -38,7 +38,7 @@ type CommitResult struct {
 	ProviderValidationErrors map[uuid.UUID]provider.HardwareValidationResult
 }
 
-func (d *Domain) Commit(ctx context.Context) (CommitResult, error) {
+func (d *Domain) Commit(ctx context.Context, dryrun bool) (CommitResult, error) {
 	inventoryProvider := d.externalInventoryProvider
 
 	// Perform validation integrity of CANI's inventory data
@@ -71,6 +71,6 @@ func (d *Domain) Commit(ctx context.Context) (CommitResult, error) {
 	}
 
 	// Reconcile our inventory with the external inventory system
-	return CommitResult{}, inventoryProvider.Reconcile(ctx, d.datastore)
+	return CommitResult{}, inventoryProvider.Reconcile(ctx, d.datastore, dryrun)
 
 }

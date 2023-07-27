@@ -1,8 +1,8 @@
-#!/usr/bin/env bash
+#! /usr/bin/env bash
 #
 # MIT License
 #
-# (C) Copyright 2022-2023 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2023 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -22,23 +22,35 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
-set -e
-set -u
-set -o pipefail
+set -eu
 
-SIM_REPO="${1:-../hms-simulation-environment}"
-SLS_DUMP="${2:-../hms-simulation-environment/configs/sls/no_hardware.json}"
+# Stop HSM
+docker compose stop cray-smd
 
-# start the simulator with the specified SLS config
-pushd "${SIM_REPO}" || exit 1
-  ./setup_venv.sh
-  #shellcheck disable=SC1091
-  . ./venv/bin/activate
-  ./run.py "${SLS_DUMP}"
+# Destroy existing HSM database data 
+docker compose stop cray-smd-postgres
+docker compose rm cray-smd-postgres -f
 
-  # Stop Discovery services as they are not currently required.
-  # Some edge case tests cause high load with HSM and MEDS as they are 
-  # trying to reach out to hardware that does not exist.
-  docker compose stop cray-meds
-  docker compose stop cray-reds
-popd || exit 1
+# Bring up fresh database
+docker compose up -d --no-deps cray-smd-postgres
+
+# Wait for database to comeup
+until docker exec -it hms-simulation-environment-cray-smd-postgres-1 pg_isready -h hmsds-postgres -p 5432 -U hmsdsuser -d hmsds
+do
+    echo "Postgres not up: $?"
+    sleep 2
+done
+echo "Postgres is up: $?"
+
+# Push in database backup
+docker exec -i -e PGPASSWORD=hmsdsuser hms-simulation-environment-cray-smd-postgres-1 psql -h hmsds-postgres -p 5432 -U hmsdsuser hmsds < "$1"
+
+# Perform any schema migrations
+docker compose up --no-deps cray-smd-init  
+
+# Bring backup HSM
+docker compose up -d --no-deps cray-smd
+
+# TODO for some reason the API gateway needs to be restarted
+docker compose restart api-gateway
+

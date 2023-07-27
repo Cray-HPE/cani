@@ -289,6 +289,14 @@ marks:
         - Xname
         - Parent
       vals:
+        # Existing Cabinet
+        - [x9000, s0]
+        - [x9000c1, x9000]
+        - [x9000c1b0, x9000c1]
+        - [x9000c3, x9000]
+        - [x9000c3b0, x9000c3]
+
+        # New cabinet
         - [x9001, s0]
         - [x9001c1, x9001]
         - [x9001c1b0, x9001c1]
@@ -309,3 +317,88 @@ stages:
       json:
         Xname: "{Xname}"
         Parent: "{Parent}"
+
+---
+test_name: Verify network information in SLS Hardware
+
+marks:
+  # List of cabinets and their network information
+  - parametrize:
+      key:
+       - Xname
+       - HMNCIDR
+       - HMNGateway
+       - HMNVlan
+       - NMNCIDR
+       - NMNGateway
+       - NMNVlan
+      vals:
+      - [x9000, "10.104.0.0/22", "10.104.0.1", 3000, "10.100.0.0/22", "10.100.0.1", 2000]
+      - [x9001, "10.104.4.0/22", "10.104.4.1", 3001, "10.100.4.0/22", "10.100.4.1", 2001]
+
+stages:
+  - name: Verify network data for {Xname} exists in SLS Hardware
+    request:
+      url: "https://localhost:8443/apis/sls/v1/hardware/{Xname}"
+      method: GET
+      verify: false
+    response:
+      status_code: 200
+      strict: false
+      json:
+        ExtraProperties:
+          Networks:
+            cn:
+              HMN:
+                CIDR: "{HMNCIDR}"
+                Gateway: "{HMNGateway}"
+                VLan: !int "{HMNVlan}"
+              NMN:
+                CIDR: "{NMNCIDR}"
+                Gateway: "{NMNGateway}"
+                VLan: !int "{NMNVlan}"
+
+---
+test_name: Verify network information in SLS Networks
+
+marks:
+  # List of cabinets subnets
+  - parametrize:
+      key:
+      - Network
+      - CabinetOrdinal
+      - Vlan
+      - Subnet
+      - Gateway
+      - DHCPStart
+      - DHCPEnd
+
+      vals:
+      # HMN Subnets
+      - [HMN_MTN, 9000, 3000, 10.104.0.0/22, "10.104.0.1", "10.104.0.10", "10.104.3.254"]
+      - [HMN_MTN, 9001, 3001, 10.104.4.0/22, "10.104.4.1", "10.104.4.10", "10.104.7.254"]
+
+      # NMN Subnets
+      - [NMN_MTN, 9000, 2000, 10.100.0.0/22, "10.100.0.1", "10.100.0.10", "10.100.3.254"]
+      - [NMN_MTN, 9001, 2001, 10.100.4.0/22, "10.100.4.1", "10.100.4.10", "10.100.7.254"]
+
+
+stages:
+  - name: Verify network data for x9000 in SLS Network HMN_MTN
+    request:
+      url: https://localhost:8443/apis/sls/v1/networks/{Network}
+      method: GET
+      verify: false
+    response:
+      status_code: 200
+      strict: false
+      json:
+        ExtraProperties:
+          Subnets:
+            - CIDR: "{Subnet}"
+              DHCPEnd: "{DHCPEnd}"
+              DHCPStart: "{DHCPStart}"
+              FullName: ""
+              Gateway: "{Gateway}"
+              Name: "cabinet_{CabinetOrdinal}"
+              VlanID: !int "{Vlan}"

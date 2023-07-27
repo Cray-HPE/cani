@@ -56,7 +56,7 @@ It 'commit and reconcile'
   When call bin/cani alpha session --config canitest.yml stop --commit
   The status should equal 0
   The stderr should include 'Hardware added to the system'
-  The stderr should include 'x1000            - Type: Cabinet, Class: Mountain, Networks: {"cn":{}}'
+  The stderr should include 'x1000            - Type: Cabinet, Class: Mountain, Networks: {"cn":{"HMN":{"CIDR":"10.104.4.0/22","Gateway":"10.104.4.1","VLan":3001},"NMN":{"CIDR":"10.100.4.0/22","Gateway":"10.100.4.1","VLan":2001}}}'
   The stdout should include 'Cabinet                         (staged)'
 End
 

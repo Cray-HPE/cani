@@ -22,7 +22,7 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
-Describe 'INTEGRATION:'
+Describe 'EDGE:'
 
 It 'start a session'
   BeforeCall use_inactive_session
@@ -36,28 +36,44 @@ End
 It 'import from SLS'
   When call bin/cani alpha session --config canitest.yml import
   The status should equal 0
-    The line 1 of stderr should include 'Session is STOPPED'
+  The line 1 of stderr should include 'Session is STOPPED'
   The line 2 of stderr should include 'Committing changes to session'
   The line 3 of stderr should include 'GET https://localhost:8443/apis/sls/v1/dumpstate'
   The line 4 of stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/State/Components'
   The line 5 of stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/Inventory/Hardware'
 End
 
-It 'add ex3000 cabinet'
-  When call bin/cani alpha --config canitest.yml add cabinet hpe-ex3000 --auto --accept
+End
+
+Describe 'EDGE:'
+
+Parameters:dynamic
+  for i in $(seq 1 32); do
+    #shellcheck disable=SC2004
+    %data "$((9000+$i))" "$((3000+$i))"
+  done
+End
+
+It 'Add ex2000 cabinet to reach subnet limit'
+  When call bin/cani alpha --config canitest.yml add cabinet hpe-ex2000 --auto --accept
   The status should equal 0
   The line 1 of stderr should include 'Querying inventory to suggest cabinet number and VLAN ID'
-  The line 2 of stderr should include 'Suggested cabinet number: 1000'
-  The line 3 of stderr should include 'Suggested VLAN ID: 3001'
-  The line 4 of stderr should include 'Cabinet 1000 was successfully staged to be added to the system'
+  The line 2 of stderr should include "Suggested cabinet number: $1"
+  The line 3 of stderr should include "Suggested VLAN ID: $2"
+  The line 4 of stderr should include "Cabinet $1 was successfully staged to be added to the system"
 End
+
+End
+
+Describe 'EDGE:'
 
 It 'commit and reconcile'
   When call bin/cani alpha session --config canitest.yml stop --commit
-  The status should equal 0
-  The stderr should include 'Hardware added to the system'
-  The stderr should include 'x1000            - Type: Cabinet, Class: Mountain, Networks: {"cn":{"HMN":{"CIDR":"10.104.4.0/22","Gateway":"10.104.4.1","VLan":3001},"NMN":{"CIDR":"10.100.4.0/22","Gateway":"10.100.4.1","VLan":2001}}}'
-  The stdout should include 'Cabinet                         (staged)'
+  The status should equal 1
+  The stderr should include 'Error: failed to reconcile network changes'
+  The stderr should include 'unable to allocate subnet for cabinet (x9032) in network (HMN_MTN)'
+  The stderr should include 'failed to allocate cabinet subnet for (x9032) in CIDR (10.104.0.0/17)'
+  The stderr should include 'network space has been exhausted'
 End
 
 End
