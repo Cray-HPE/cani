@@ -54,7 +54,7 @@ Parameters:dynamic
   done
 End
 
-It 'Add ex2000 cabinet to reach the vlan limit'
+It 'Add ex2000 cabinet to reach subnet limit'
   When call bin/cani alpha --config canitest.yml add cabinet hpe-ex2000 --auto --accept
   The status should equal 0
   The line 1 of stderr should include 'Querying inventory to suggest cabinet number and VLAN ID'
