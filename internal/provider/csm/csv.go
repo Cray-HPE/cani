@@ -92,50 +92,55 @@ func (csm *CSM) GetFields(hw *inventory.Hardware, fieldNames []string) (values [
 }
 
 func (csm *CSM) SetFields(hw *inventory.Hardware, values map[string]string) (result provider.SetFieldsResult, err error) {
-	rawCsmProps := hw.ProviderProperties["csm"]
-	csmProps, ok := rawCsmProps.(map[string]interface{})
-	if !ok {
-		// NodeCard's do not have csm props
-		// todo possibly verify that the writable columns are empty in the csv input
+	csmHardware, err := ToCsmHardware(hw)
+	if err != nil {
+		return result, err
+	}
+
+	if csmHardware.CabinetMetadata == nil && csmHardware.NodeMetadata == nil {
 		log.Debug().Msgf("Skipping %v of the type %v. It does not have writable properties", hw.ID, hw.Type)
 		return
 	}
 
-	for key, value := range values {
-		switch key {
-		case "Vlan":
-			modified, err := setVlan(value, csmProps)
-			if err != nil {
-				return result, err
+	if csmHardware.NodeMetadata != nil {
+		for key, value := range values {
+			switch key {
+			case "Role":
+				modified := setRole(value, csmHardware.NodeMetadata)
+				if modified {
+					result.ModifiedFields = append(result.ModifiedFields, "Role")
+				}
+			case "SubRole":
+				modified := setSubRole(value, csmHardware.NodeMetadata)
+				if modified {
+					result.ModifiedFields = append(result.ModifiedFields, "SubRole")
+				}
+			case "Alias":
+				modified := setAlias(value, csmHardware.NodeMetadata)
+				if modified {
+					result.ModifiedFields = append(result.ModifiedFields, "Alias")
+				}
+			case "Nid":
+				modified, err := setNid(value, csmHardware.NodeMetadata)
+				if err != nil {
+					return result, err
+				}
+				if modified {
+					result.ModifiedFields = append(result.ModifiedFields, "Nid")
+				}
 			}
-			if modified {
-				result.ModifiedFields = append(result.ModifiedFields, "Vlan")
-			}
-		case "Role":
-			modified := setRole(value, csmProps)
-			if modified {
-				result.ModifiedFields = append(result.ModifiedFields, "Role")
-			}
-		case "SubRole":
-			modified := setSubRole(value, csmProps)
-			if modified {
-				result.ModifiedFields = append(result.ModifiedFields, "SubRole")
-			}
-		case "Alias":
-			modified, err := setAlias(value, csmProps, hw)
-			if err != nil {
-				return result, err
-			}
-			if modified {
-				result.ModifiedFields = append(result.ModifiedFields, "Alias")
-			}
-		case "Nid":
-			modified, err := setNid(value, csmProps)
-			if err != nil {
-				return result, err
-			}
-			if modified {
-				result.ModifiedFields = append(result.ModifiedFields, "Nid")
+		}
+	} else if csmHardware.CabinetMetadata != nil {
+		for key, value := range values {
+			switch key {
+			case "Vlan":
+				modified, err := setVlan(value, csmHardware.CabinetMetadata)
+				if err != nil {
+					return result, err
+				}
+				if modified {
+					result.ModifiedFields = append(result.ModifiedFields, "Vlan")
+				}
 			}
 		}
 	}
@@ -143,7 +148,7 @@ func (csm *CSM) SetFields(hw *inventory.Hardware, values map[string]string) (res
 	return
 }
 
-func setVlan(vlanStr string, csmProperties map[string]interface{}) (bool, error) {
+func setVlan(vlanStr string, cabinetMetadata *CabinetMetadata) (bool, error) {
 	modified := false
 	if vlanStr != "" {
 		// todo should vlanStr == "" cause the "HMNVlan" field to be removed?
@@ -151,92 +156,72 @@ func setVlan(vlanStr string, csmProperties map[string]interface{}) (bool, error)
 		if err != nil {
 			return modified, err
 		}
-		current := csmProperties["HMNVlan"]
-		vlanFloat := float64(vlan)
-		if current != vlanFloat {
-			csmProperties["HMNVlan"] = vlanFloat
+		vlanInt := int(vlan)
+		if cabinetMetadata.HMNVlan == nil || *cabinetMetadata.HMNVlan != vlanInt {
+			cabinetMetadata.HMNVlan = &vlanInt
 			modified = true
 		}
 	}
 	return modified, nil
 }
 
-func setRole(role string, csmProperties map[string]interface{}) bool {
+func setRole(role string, nodeMetadata *NodeMetadata) bool {
 	modified := false
 	if role != "" {
-		if role != csmProperties["Role"] {
-			csmProperties["Role"] = role
+		if nodeMetadata.Role == nil || role != *nodeMetadata.Role {
+			nodeMetadata.Role = &role
 			modified = true
 		}
 	}
 	return modified
 }
 
-func setSubRole(subRole string, csmProperties map[string]interface{}) bool {
+func setSubRole(subRole string, nodeMetadata *NodeMetadata) bool {
 	modified := false
-	currentSubRole, ok := csmProperties["SubRole"]
 	if subRole == "" {
-		if ok {
-			if nil != currentSubRole && subRole != currentSubRole {
-				csmProperties["SubRole"] = nil
-				modified = true
-			}
+		if nodeMetadata.SubRole != nil {
+			nodeMetadata.SubRole = nil
+			modified = true
 		}
 	} else {
-		if subRole != currentSubRole {
-			csmProperties["SubRole"] = subRole
+		if nodeMetadata.SubRole == nil || subRole != *nodeMetadata.SubRole {
+			nodeMetadata.SubRole = &subRole
 			modified = true
 		}
 	}
 	return modified
 }
 
-func setNid(nidStr string, csmProperties map[string]interface{}) (bool, error) {
+func setNid(nidStr string, nodeMetadata *NodeMetadata) (bool, error) {
 	modified := false
 	if nidStr != "" {
 		nid, err := strconv.ParseInt(nidStr, 10, 64)
 		if err != nil {
 			return modified, errors.Join(fmt.Errorf("failed to parse nid %v", nidStr), err)
 		}
-		currentNidRaw := csmProperties["Nid"]
-		currentNid, ok := currentNidRaw.(float64)
-		nidFloat := float64(nid)
-		if !ok || nidFloat != currentNid {
-			csmProperties["Nid"] = nidFloat
+		nidInt := int(nid)
+		if nodeMetadata.Nid == nil || nidInt != *nodeMetadata.Nid {
+			nodeMetadata.Nid = &nidInt
 			modified = true
 		}
 	}
 	return modified, nil
 }
 
-func setAlias(alias string, csmProperties map[string]interface{}, hw *inventory.Hardware) (bool, error) {
+func setAlias(alias string, nodeMetadata *NodeMetadata) bool {
 	modified := false
 	if alias != "" {
-		rawAlias, ok := csmProperties["Alias"]
-		if !ok {
-			a := make([]interface{}, 0)
-			a = append(a, alias)
-			csmProperties["Alias"] = a
-			modified = true
-		} else {
-			v, ok := rawAlias.([]interface{})
-			if !ok {
-				return modified, fmt.Errorf("expected the Alias field to be an array in the hardware %v", hw)
-			}
-			if len(v) > 0 {
-				if v[0] != alias {
-					v[0] = alias
-					csmProperties["Alias"] = v
-					modified = true
-				}
-			} else {
-				v = append(v, alias)
-				csmProperties["Alias"] = v
+		if len(nodeMetadata.Alias) > 0 {
+			if nodeMetadata.Alias[0] != alias {
+				nodeMetadata.Alias[0] = alias
 				modified = true
 			}
+		} else {
+			nodeMetadata.Alias = append(nodeMetadata.Alias, alias)
+			modified = true
 		}
 	}
-	return modified, nil
+	return modified
 }
 
 func getStringFromArray(value interface{}, i int) string {

@@ -27,13 +27,12 @@ package csm
 
 import (
 	"testing"
-
-	"github.com/Cray-HPE/cani/internal/inventory"
 )
 
 func TestSetVlan(t *testing.T) {
-	csmProps := make(map[string]interface{})
-	modified, err := setVlan("", csmProps)
+	props := &CabinetMetadata{}
+
+	modified, err := setVlan("", props)
 	if err != nil {
 		t.Errorf("set empty vlan unexpected error: %v", err)
 	}
@@ -41,133 +40,134 @@ func TestSetVlan(t *testing.T) {
 		t.Errorf("set empty vlan, modified should be false")
 	}
 
-	var value = "1000"
-	var expected float64 = 1000
-	csmProps["HMNVlan"] = expected
-	modified, err = setVlan(value, csmProps)
+	value := "1000"
+	expected := 1000
+	props.HMNVlan = new(int)
+	*props.HMNVlan = expected
+	modified, err = setVlan(value, props)
 	if err != nil {
 		t.Errorf("set same vlan unexpected error: %v", err)
 	}
 	if modified {
 		t.Errorf("set same vlan, modified should be false")
 	}
-	if csmProps["HMNVlan"] != expected {
-		t.Errorf("set same vlan, wrong value, expected: %v, actual: %v", expected, csmProps["HMNVlan"])
+	if *props.HMNVlan != expected {
+		t.Errorf("set same vlan, wrong value, expected: %v, actual: %v", expected, *props.HMNVlan)
 	}
 
 	value = "3333"
 	expected = 3333
-	modified, err = setVlan(value, csmProps)
+	modified, err = setVlan(value, props)
 	if err != nil {
 		t.Errorf("set new vlan unexpected error: %v", err)
 	}
 	if !modified {
 		t.Errorf("set new vlan, modified should be true")
 	}
-	if csmProps["HMNVlan"] != expected {
-		t.Errorf("set new vlan, wrong value, expected: %v, actual: %v", expected, csmProps["HMNVlan"])
+	if *props.HMNVlan != expected {
+		t.Errorf("set new vlan, wrong value, expected: %v, actual: %v", expected, *props.HMNVlan)
 	}
 }
 
 func TestSetRole(t *testing.T) {
-	csmProps := make(map[string]interface{})
+	props := &NodeMetadata{}
 
 	// test empty value
-	modified := setRole("", csmProps)
+	modified := setRole("", props)
 	if modified {
 		t.Errorf("set empty role, modified should be false")
 	}
 
 	// test set to Compute
 	expected := "Compute"
-	modified = setRole(expected, csmProps)
+	modified = setRole(expected, props)
 	if !modified {
 		t.Errorf("set role Compute, modified should be true")
 	}
-	actual := csmProps["Role"]
+	actual := *props.Role
 	if expected != actual {
 		t.Errorf("set role Compute, expected: %s, actual: %v", expected, actual)
 	}
 
 	// test set to same value
-	modified = setRole(expected, csmProps)
+	modified = setRole(expected, props)
 	if modified {
 		t.Errorf("set role to same value, modified should be false")
 	}
-	actual = csmProps["Role"]
+	actual = *props.Role
 	if expected != actual {
 		t.Errorf("set role to same value, expected: %s, actual: %v", expected, actual)
 	}
 
 	// test set to new value
 	expected = "Application"
-	modified = setRole(expected, csmProps)
+	modified = setRole(expected, props)
 	if !modified {
 		t.Errorf("set role Application, modified should be true")
 	}
-	actual = csmProps["Role"]
+	actual = *props.Role
 	if expected != actual {
 		t.Errorf("set role Application, expected: %s, actual: %v", expected, actual)
 	}
 }
 
 func TestSetSubRole(t *testing.T) {
-	csmProps := make(map[string]interface{})
+	props := &NodeMetadata{}
 
 	// test empty value
-	modified := setSubRole("", csmProps)
+	modified := setSubRole("", props)
 	if modified {
 		t.Errorf("set empty subrole, modified should be false")
 	}
 
 	// test set to Compute
 	expected := "Worker"
-	modified = setSubRole(expected, csmProps)
+	modified = setSubRole(expected, props)
 	if !modified {
 		t.Errorf("set subrole Worker, modified should be true")
 	}
-	actual := csmProps["SubRole"]
-	if expected != actual {
+	actual := props.SubRole
+	if actual == nil || expected != *actual {
 		t.Errorf("set subrole worker, expected: %s, actual: %v", expected, actual)
 	}
 
 	// test set to same value
-	modified = setSubRole(expected, csmProps)
+	modified = setSubRole(expected, props)
 	if modified {
 		t.Errorf("set subrole to same value, modified should be false")
 	}
-	actual = csmProps["SubRole"]
-	if expected != actual {
+	actual = props.SubRole
+	if actual == nil || expected != *actual {
 		t.Errorf("set subrole to same value, expected: %s, actual: %v", expected, actual)
 	}
 
 	// test set to new value
 	expected = "Storage"
-	modified = setSubRole(expected, csmProps)
+	modified = setSubRole(expected, props)
 	if !modified {
 		t.Errorf("set subrole Storage, modified should be true")
 	}
-	actual = csmProps["SubRole"]
-	if expected != actual {
+	actual = props.SubRole
+	if actual == nil || expected != *actual {
 		t.Errorf("set subrole Storage, expected: %s, actual: %v", expected, actual)
 	}
 
 	// set back to empty
-	modified = setSubRole("", csmProps)
+	modified = setSubRole("", props)
 	if !modified {
 		t.Errorf("set back to empty subrole, modified should be true")
 	}
-	actual = csmProps["SubRole"]
+	actual = props.SubRole
 	if actual != nil {
 		t.Errorf("set subrole Storage, expected: nil, actual: %v", actual)
 	}
 }
 
 func TestSetNid(t *testing.T) {
-	csmProps := make(map[string]interface{})
+	props := &NodeMetadata{}
 
 	// test empty value
-	modified, err := setNid("", csmProps)
+	modified, err := setNid("", props)
 	if err != nil {
 		t.Errorf("set empty nid, unexpected error: %v", err)
 	}
@@ -176,87 +176,76 @@ func TestSetNid(t *testing.T) {
 	}
 
 	// Test good value
-	var expected float64 = 42
-	modified, err = setNid("42", csmProps)
+	expected := 42
+	modified, err = setNid("42", props)
 	if err != nil {
 		t.Errorf("set nid, unexpected error: %v", err)
 	}
 	if !modified {
 		t.Errorf("set nid, modified should be true")
 	}
-	actual := csmProps["Nid"]
-	if actual != expected {
+	actual := props.Nid
+	if actual == nil || *actual != expected {
 		t.Errorf("set nid, expected: %v, actual: %v", expected, actual)
 	}
 
 	// Test same value
-	modified, err = setNid("42", csmProps)
+	modified, err = setNid("42", props)
 	if err != nil {
 		t.Errorf("set nid to same value, unexpected error: %v", err)
 	}
 	if modified {
 		t.Errorf("set nid to same value, modified should be false")
 	}
-	actual = csmProps["Nid"]
-	if actual != expected {
+	actual = props.Nid
+	if actual == nil || *actual != expected {
 		t.Errorf("set nid to same value, expected: %v, actual: %v", expected, actual)
 	}
 
 	// Test bad value
-	modified, err = setNid("42.42", csmProps)
+	modified, err = setNid("42.42", props)
 	if err == nil {
 		t.Errorf("set nid to bad value, expected to get an error: %v", err)
 	}
 	if modified {
 		t.Errorf("set nid to bad value, modified should be false")
 	}
-	actual = csmProps["Nid"]
-	if actual != expected {
+	actual = props.Nid
+	if actual == nil || *actual != expected {
 		t.Errorf("set nid to bad value, expected: %v, actual: %v", expected, actual)
 	}
 
 	// Test new value
 	expected = 3
-	modified, err = setNid("3", csmProps)
+	modified, err = setNid("3", props)
 	if err != nil {
 		t.Errorf("set nid to new value, unexpected error: %v", err)
 	}
 	if !modified {
 		t.Errorf("set nid to new value, modified should be true")
 	}
-	actual = csmProps["Nid"]
-	if actual != expected {
+	actual = props.Nid
+	if actual == nil || *actual != expected {
 		t.Errorf("set nid to new value, expected: %v, actual: %v", expected, actual)
 	}
 }
 
 func TestSetAlias(t *testing.T) {
-	csmProps := make(map[string]interface{})
-	var hw inventory.Hardware
+	props := &NodeMetadata{}
 
 	// Test empty alias
-	modified, err := setAlias("", csmProps, &hw)
-	if err != nil {
-		t.Errorf("set empty alias, unexpected error: %v", err)
-	}
+	modified := setAlias("", props)
 	if modified {
 		t.Errorf("set empty alias, modified should be false")
 	}
 
 	// Test alias
 	expected := "rabbit"
-	modified, err = setAlias(expected, csmProps, &hw)
-	if err != nil {
-		t.Errorf("set alias, unexpected error: %v", err)
-	}
+	modified = setAlias(expected, props)
 	if !modified {
 		t.Errorf("set alias, modified should be true")
 	}
-	actualRaw := csmProps["Alias"]
-	actual, ok := actualRaw.([]interface{})
-	if !ok {
-		t.Errorf("set alias, expected alias to be []interface{}, alias: %v, type: %T", actualRaw, actualRaw)
-	}
+	actual := props.Alias
 	if len(actual) != 1 {
 		t.Errorf("set alias, expected length: %d, actual length: %d", 1, len(actual))
 	} else if actual[0] != expected {
@@ -264,18 +253,11 @@ func TestSetAlias(t *testing.T) {
 	}
 
 	// Test same alias
-	modified, err = setAlias(expected, csmProps, &hw)
-	if err != nil {
-		t.Errorf("set same alias, unexpected error: %v", err)
-	}
+	modified = setAlias(expected, props)
 	if modified {
 		t.Errorf("set same alias, modified should be false")
 	}
-	actualRaw = csmProps["Alias"]
-	actual, ok = actualRaw.([]interface{})
-	if !ok {
-		t.Errorf("set same alias, expected alias to be []interface{}, alias: %v, type: %T", actualRaw, actualRaw)
-	}
+	actual = props.Alias
 	if len(actual) != 1 {
 		t.Errorf("set same alias, expected length: %d, actual length: %d", 1, len(actual))
 	} else if actual[0] != expected {
@@ -284,18 +266,11 @@ func TestSetAlias(t *testing.T) {
 
 	// Test new alias
 	expected = "squirrel"
-	modified, err = setAlias(expected, csmProps, &hw)
-	if err != nil {
-		t.Errorf("set new alias, unexpected error: %v", err)
-	}
+	modified = setAlias(expected, props)
 	if !modified {
 		t.Errorf("set new alias, modified should be true")
 	}
-	actualRaw = csmProps["Alias"]
-	actual, ok = actualRaw.([]interface{})
-	if !ok {
-		t.Errorf("set new alias, expected alias to be []interface{}, alias: %v, type: %T", actualRaw, actualRaw)
-	}
+	actual = props.Alias
 	if len(actual) != 1 {
 		t.Errorf("set new alias, expected length: %d, actual length: %d", 1, len(actual))
 	} else if actual[0] != expected {
@@ -303,23 +278,16 @@ func TestSetAlias(t *testing.T) {
 	}
 
 	// Test multiple aliases
-	expectedAliases := make([]interface{}, 0)
+	expectedAliases := make([]string, 0)
 	expectedAliases = append(expectedAliases, "fish")
 	expectedAliases = append(expectedAliases, "bird")
-	csmProps["Alias"] = expectedAliases
+	props.Alias = expectedAliases
 	expected = "pig"
-	modified, err = setAlias(expected, csmProps, &hw)
-	if err != nil {
-		t.Errorf("set alias on multiple aliases, unexpected error: %v", err)
-	}
+	modified = setAlias(expected, props)
 	if !modified {
 		t.Errorf("set alias on multiple aliases, modified should be true")
 	}
-	actualRaw = csmProps["Alias"]
-	actual, ok = actualRaw.([]interface{})
-	if !ok {
-		t.Errorf("set alias on multiple aliases, expected alias to be []interface{}, alias: %v, type: %T", actualRaw, actualRaw)
-	}
+	actual = props.Alias
 	if len(actual) != 2 {
 		t.Errorf("set alias, expected length: %d, actual length: %d, aliases: %v", 1, len(actual), actual)
 	} else if actual[0] != expected || actual[1] != "bird" {
