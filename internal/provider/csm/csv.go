@@ -77,7 +77,7 @@ func (csm *CSM) GetFields(hw *inventory.Hardware, fieldNames []string) (values [
 		case "SubRole":
 			values[i] = toString(csmProps["SubRole"])
 		case "Alias":
-			values[i] = toStringArray(csmProps["Alias"], 0)
+			values[i] = getStringFromArray(csmProps["Alias"], 0)
 		case "Nid":
 			values[i] = toString(csmProps["Nid"])
 		default:
@@ -101,90 +101,146 @@ func (csm *CSM) SetFields(hw *inventory.Hardware, values map[string]string) (res
 		return
 	}
 
-	vlanStr, ok := values["Vlan"]
-	if ok && vlanStr != "" {
-		// todo should vlanStr == "" cause the "HMNVlan" field to be removed?
-		vlan, err := strconv.ParseInt(vlanStr, 10, 64)
-		if err != nil {
-			return result, err
-		}
-		current := csmProps["HMNVlan"]
-		if current != float64(vlan) {
-			result.ModifiedFields = append(result.ModifiedFields, "Vlan")
-			csmProps["HMNVlan"] = vlan
-		}
-	}
-
-	role, ok := values["Role"]
-	if ok && role != "" {
-		if role != csmProps["Role"] {
-			result.ModifiedFields = append(result.ModifiedFields, "Role")
-			csmProps["Role"] = role
-		}
-	}
-
-	subRole, ok := values["SubRole"]
-	if ok {
-		currentSubRole, ok := csmProps["SubRole"]
-		if subRole == "" {
-			if ok {
-				if nil != currentSubRole && subRole != currentSubRole {
-					result.ModifiedFields = append(result.ModifiedFields, "SubRole")
-					csmProps["SubRole"] = nil
-				}
+	for key, value := range values {
+		switch key {
+		case "Vlan":
+			modified, err := setVlan(value, csmProps)
+			if err != nil {
+				return result, err
 			}
-		} else {
-			if subRole != currentSubRole {
+			if modified {
+				result.ModifiedFields = append(result.ModifiedFields, "Vlan")
+			}
+		case "Role":
+			modified := setRole(value, csmProps)
+			if modified {
+				result.ModifiedFields = append(result.ModifiedFields, "Role")
+			}
+		case "SubRole":
+			modified := setSubRole(value, csmProps)
+			if modified {
 				result.ModifiedFields = append(result.ModifiedFields, "SubRole")
-				csmProps["SubRole"] = subRole
 			}
-		}
-	}
-
-	alias, ok := values["Alias"]
-	if ok && alias != "" {
-		rawAlias, ok := csmProps["Alias"]
-		if !ok {
-			result.ModifiedFields = append(result.ModifiedFields, "Alias")
-			var a [1]string
-			a[0] = alias
-			csmProps["Alias"] = a
-		} else {
-			v, ok := rawAlias.([]interface{})
-			if !ok {
-				return result, fmt.Errorf("expected the Alias field to be an array in the hardware %v", hw)
+		case "Alias":
+			modified, err := setAlias(value, csmProps, hw)
+			if err != nil {
+				return result, err
 			}
-			if len(v) > 0 {
-				if v[0] != alias {
-					result.ModifiedFields = append(result.ModifiedFields, "Alias")
-					v[0] = alias
-				}
-			} else {
+			if modified {
 				result.ModifiedFields = append(result.ModifiedFields, "Alias")
-				v = append(v, alias)
 			}
-			csmProps["Alias"] = v
+		case "Nid":
+			modified, err := setNid(value, csmProps)
+			if err != nil {
+				return result, err
+			}
+			if modified {
+				result.ModifiedFields = append(result.ModifiedFields, "Nid")
+			}
 		}
 	}
 
-	nidStr, ok := values["Nid"]
-	if ok && nidStr != "" {
-		nid, err := strconv.ParseInt(nidStr, 10, 64)
-		if err != nil {
-			return result, errors.Join(fmt.Errorf("failed to parse nid %v", nidStr), err)
-		}
-		currentNidRaw := csmProps["Nid"]
-		currentNid, ok := currentNidRaw.(float64)
-		if !ok || float64(nid) != currentNid {
-			result.ModifiedFields = append(result.ModifiedFields, "Nid")
-			csmProps["Nid"] = nid
-		}
-	}
 	return
 }
 
-func toStringArray(value interface{}, i int) string {
-	if value == nil {
+func setVlan(vlanStr string, csmProperties map[string]interface{}) (bool, error) {
+	modified := false
+	if vlanStr != "" {
+		// todo should vlanStr == "" cause the "HMNVlan" field to be removed?
+		vlan, err := strconv.ParseInt(vlanStr, 10, 64)
+		if err != nil {
+			return modified, err
+		}
+		current := csmProperties["HMNVlan"]
+		vlanFloat := float64(vlan)
+		if current != vlanFloat {
+			csmProperties["HMNVlan"] = vlanFloat
+			modified = true
+		}
+	}
+	return modified, nil
+}
+
+func setRole(role string, csmProperties map[string]interface{}) bool {
+	modified := false
+	if role != "" {
+		if role != csmProperties["Role"] {
+			csmProperties["Role"] = role
+			modified = true
+		}
+	}
+	return modified
+}
+
+func setSubRole(subRole string, csmProperties map[string]interface{}) bool {
+	modified := false
+	currentSubRole, ok := csmProperties["SubRole"]
+	if subRole == "" {
+		if ok {
+			if nil != currentSubRole && subRole != currentSubRole {
+				csmProperties["SubRole"] = nil
+				modified = true
+			}
+		}
+	} else {
+		if subRole != currentSubRole {
+			csmProperties["SubRole"] = subRole
+			modified = true
+		}
+	}
+	return modified
+}
+
+func setNid(nidStr string, csmProperties map[string]interface{}) (bool, error) {
+	modified := false
+	if nidStr != "" {
+		nid, err := strconv.ParseInt(nidStr, 10, 64)
+		if err != nil {
+			return modified, errors.Join(fmt.Errorf("failed to parse nid %v", nidStr), err)
+		}
+		currentNidRaw := csmProperties["Nid"]
+		currentNid, ok := currentNidRaw.(float64)
+		nidFloat := float64(nid)
+		if !ok || nidFloat != currentNid {
+			csmProperties["Nid"] = nidFloat
+			modified = true
+		}
+	}
+	return modified, nil
+}
+
+func setAlias(alias string, csmProperties map[string]interface{}, hw *inventory.Hardware) (bool, error) {
+	modified := false
+	if alias != "" {
+		rawAlias, ok := csmProperties["Alias"]
+		if !ok {
+			a := make([]interface{}, 0)
+			a = append(a, alias)
+			csmProperties["Alias"] = a
+			modified = true
+		} else {
+			v, ok := rawAlias.([]interface{})
+			if !ok {
+				return modified, fmt.Errorf("expected the Alias field to be an array in the hardware %v", hw)
+			}
+			if len(v) > 0 {
+				if v[0] != alias {
+					v[0] = alias
+					csmProperties["Alias"] = v
+					modified = true
+				}
+			} else {
+				v = append(v, alias)
+				csmProperties["Alias"] = v
+				modified = true
+			}
+		}
+	}
+	return modified, nil
+}
+
+func getStringFromArray(value interface{}, i int) string {
+	if value == nil || i < 0 {
 		return ""
 	}
 	v, ok := value.([]interface{})
