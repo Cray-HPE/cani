@@ -41,7 +41,7 @@ var (
 
 func init() {
 	ExportCmd.PersistentFlags().StringVar(
-		&csvHeaders, "headers", "ID,Name,Type,Vlan,Role,SubRole,Nid,Alias", "Comma separated list of fields to get")
+		&csvHeaders, "headers", "Location,ID,Name,Type,Vlan,Role,SubRole,Nid,Alias", "Comma separated list of fields to get")
 }
 
 // ExportCmd represents the export command

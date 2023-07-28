@@ -35,20 +35,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var (
-	csvAllowedHeaders = map[string]string{
-		"id":             "ID",
-		"name":           "Name",
-		"type":           "Type",
-		"devicetypeslug": "DeviceTypeSlug",
-		"status":         "Status",
-		"vlan":           "Vlan",
-		"role":           "Role",
-		"subrole":        "SubRole",
-		"alias":          "Alias",
-		"nid":            "Nid"}
-)
-
 func (csm *CSM) GetFields(hw *inventory.Hardware, fieldNames []string) (values []string, err error) {
 	values = make([]string, len(fieldNames))
 
@@ -62,6 +48,8 @@ func (csm *CSM) GetFields(hw *inventory.Hardware, fieldNames []string) (values [
 		switch name {
 		case "ID":
 			values[i] = fmt.Sprintf("%v", hw.ID)
+		case "Location":
+			values[i] = fmt.Sprintf("%v", hw.LocationPath)
 		case "Name":
 			values[i] = fmt.Sprintf("%v", hw.Name)
 		case "Type":

@@ -42,6 +42,7 @@ import (
 var (
 	csvAllowedHeaders = map[string]string{
 		"id":             "ID",
+		"location":       "Location",
 		"name":           "Name",
 		"type":           "Type",
 		"devicetypeslug": "DeviceTypeSlug",
