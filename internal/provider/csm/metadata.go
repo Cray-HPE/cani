@@ -60,12 +60,73 @@ type CabinetMetadata struct {
 	HMNVlan *int
 }
 
+type CsmHardware struct {
+	Hardware        *inventory.Hardware
+	CabinetMetadata *CabinetMetadata
+	NodeMetadata    *NodeMetadata
+}
+
 // TODO this might need a better home
 func StringPtr(s string) *string {
 	return &s
 }
 func IntPtr(i int) *int {
 	return &i
+}
+
+// Warning: This modifies the provider properties of the passed in hardware object
+func ToCsmHardware(hardware *inventory.Hardware) (csmHardware CsmHardware, err error) {
+	csmHardware = CsmHardware{
+		Hardware: hardware,
+	}
+
+	providerPropertiesRaw, hasCsmProperties := hardware.ProviderProperties["csm"]
+
+	// check if the properties exist, and if they have already been parsed into the CSM struct
+	if hasCsmProperties {
+		switch providerPropertiesRaw.(type) {
+		case NodeMetadata:
+			csmHardware.NodeMetadata = providerPropertiesRaw.(*NodeMetadata)
+			return
+		case CabinetMetadata:
+			csmHardware.CabinetMetadata = providerPropertiesRaw.(*CabinetMetadata)
+			return
+		}
+	}
+
+	// create new CSM struct
+	var properties interface{}
+	switch hardware.Type {
+	case hardwaretypes.Node:
+		csmHardware.NodeMetadata = &NodeMetadata{}
+		properties = csmHardware.NodeMetadata
+	case hardwaretypes.Cabinet:
+		csmHardware.CabinetMetadata = &CabinetMetadata{}
+		properties = csmHardware.CabinetMetadata
+	}
+
+	// parse existing properties into the CSM struct
+	// and set the struct as the properties on the hardware object
+	if properties != nil {
+		if hasCsmProperties {
+			decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+				DecodeHook: mapstructure.StringToIPHookFunc(),
+				Result:     &properties,
+			})
+			if err != nil {
+				return csmHardware, err
+			}
+			err = decoder.Decode(providerPropertiesRaw)
+			if err != nil {
+				return csmHardware, err
+			}
+		} else {
+			hardware.ProviderProperties = make(map[string]interface{})
+		}
+		hardware.ProviderProperties["csm"] = properties
+	}
+
+	return csmHardware, err
 }
 
 func GetProviderMetadata(cHardware inventory.Hardware) (result interface{}, err error) {
