@@ -66,9 +66,13 @@ func (d *Domain) ExportCsv(ctx context.Context, writer *csv.Writer, headers []st
 		keys = append(keys, key)
 	}
 	sort.Slice(keys, func(i, j int) bool {
-		ki := fmt.Sprintf("%v", keys[i])
-		kj := fmt.Sprintf("%v", keys[j])
-		return ki < kj
+		hwi := inv.Hardware[keys[i]]
+		hwj := inv.Hardware[keys[j]]
+		if hwi.Type == hwj.Type {
+			// todo sort by location parts
+			return hwi.LocationPath.String() < hwj.LocationPath.String()
+		}
+		return hwi.Type < hwj.Type
 	})
 
 	normalizedHeaders, err := toNormalizedHeaders(headers)
