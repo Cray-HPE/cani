@@ -150,7 +150,12 @@ func (csm *CSM) SetFields(hw *inventory.Hardware, values map[string]string) (res
 
 func setVlan(vlanStr string, cabinetMetadata *CabinetMetadata) (bool, error) {
 	modified := false
-	if vlanStr != "" {
+	if vlanStr == "" {
+		if cabinetMetadata.HMNVlan != nil {
+			cabinetMetadata.HMNVlan = nil
+			modified = true
+		}
+	} else {
 		// todo should vlanStr == "" cause the "HMNVlan" field to be removed?
 		vlan, err := strconv.ParseInt(vlanStr, 10, 64)
 		if err != nil {
@@ -167,7 +172,12 @@ func setVlan(vlanStr string, cabinetMetadata *CabinetMetadata) (bool, error) {
 
 func setRole(role string, nodeMetadata *NodeMetadata) bool {
 	modified := false
-	if role != "" {
+	if role == "" {
+		if nodeMetadata.Role != nil {
+			nodeMetadata.Role = nil
+			modified = true
+		}
+	} else {
 		if nodeMetadata.Role == nil || role != *nodeMetadata.Role {
 			nodeMetadata.Role = &role
 			modified = true
@@ -194,7 +204,12 @@ func setSubRole(subRole string, nodeMetadata *NodeMetadata) bool {
 
 func setNid(nidStr string, nodeMetadata *NodeMetadata) (bool, error) {
 	modified := false
-	if nidStr != "" {
+	if nidStr == "" {
+		if nodeMetadata.Nid != nil {
+			nodeMetadata.Nid = nil
+			modified = true
+		}
+	} else {
 		nid, err := strconv.ParseInt(nidStr, 10, 64)
 		if err != nil {
 			return modified, errors.Join(fmt.Errorf("failed to parse nid %v", nidStr), err)
@@ -210,6 +225,8 @@ func setNid(nidStr string, nodeMetadata *NodeMetadata) (bool, error) {
 
 func setAlias(alias string, nodeMetadata *NodeMetadata) bool {
 	modified := false
+	// todo what should be done with an empty string
+	//   should it remove all alias, or remove the first element, or do nothing
 	if alias != "" {
 		if len(nodeMetadata.Alias) > 0 {
 			if nodeMetadata.Alias[0] != alias {

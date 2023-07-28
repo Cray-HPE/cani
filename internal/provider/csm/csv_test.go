@@ -67,6 +67,30 @@ func TestSetVlan(t *testing.T) {
 	if *props.HMNVlan != expected {
 		t.Errorf("set new vlan, wrong value, expected: %v, actual: %v", expected, *props.HMNVlan)
 	}
+
+	// test set vlan to empty
+	modified, err = setVlan("", props)
+	if err != nil {
+		t.Errorf("set vlan to empty, unexpected error: %v", err)
+	}
+	if !modified {
+		t.Errorf("set vlan to empty, modified should be true")
+	}
+	if props.HMNVlan != nil {
+		t.Errorf("set vlan to empty, wrong value, expected: nil, actual: %v", *props.HMNVlan)
+	}
+
+	// test set vlan to empty again
+	modified, err = setVlan("", props)
+	if err != nil {
+		t.Errorf("set vlan to empty again, unexpected error: %v", err)
+	}
+	if modified {
+		t.Errorf("set vlan to empty again, modified should be false")
+	}
+	if props.HMNVlan != nil {
+		t.Errorf("set vlan to empty again, wrong value, expected: nil, actual: %v", *props.HMNVlan)
+	}
 }
 
 func TestSetRole(t *testing.T) {
@@ -108,6 +132,15 @@ func TestSetRole(t *testing.T) {
 	actual = *props.Role
 	if expected != actual {
 		t.Errorf("set role Application, expected: %s, actual: %v", expected, actual)
+	}
+
+	// test set to empty
+	modified = setRole("", props)
+	if !modified {
+		t.Errorf("set role to empty, modified should be true")
+	}
+	if props.Role != nil {
+		t.Errorf("set role to empty, expected: nil, actual: %v", *props.Role)
 	}
 }
 
@@ -227,6 +260,18 @@ func TestSetNid(t *testing.T) {
 	actual = props.Nid
 	if actual == nil || *actual != expected {
 		t.Errorf("set nid to new value, expected: %v, actual: %v", expected, actual)
+	}
+
+	// test empty value
+	modified, err = setNid("", props)
+	if err != nil {
+		t.Errorf("set nid back to empty, unexpected error: %v", err)
+	}
+	if !modified {
+		t.Errorf("set nid back to empty, modified should be true")
+	}
+	if props.Nid != nil {
+		t.Errorf("set nid back to empty, expected: nil, actual: %v", *props.Nid)
 	}
 }
 
