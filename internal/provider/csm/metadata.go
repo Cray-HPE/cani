@@ -33,6 +33,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+	"github.com/Cray-HPE/cani/pkg/pointers"
 	"github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog/log"
 )
@@ -71,14 +72,6 @@ type NodeMetadataStrings struct {
 
 type CabinetMetadata struct {
 	HMNVlan *int `json:"HMNVlan" mapstructure:"HMNVlan"`
-}
-
-// TODO this might need a better home
-func StringPtr(s string) *string {
-	return &s
-}
-func IntPtr(i int) *int {
-	return &i
 }
 
 // DecodeProviderMetadata return a Metadata structure from the given hardwares CSM Provider properties.
@@ -157,7 +150,7 @@ func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperti
 			if vlanIDRaw == nil {
 				metadata.Cabinet.HMNVlan = nil
 			} else {
-				metadata.Cabinet.HMNVlan = IntPtr(vlanIDRaw.(int))
+				metadata.Cabinet.HMNVlan = pointers.IntPtr(vlanIDRaw.(int))
 			}
 		}
 	case hardwaretypes.Node:
@@ -172,21 +165,21 @@ func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperti
 			if roleRaw == nil {
 				metadata.Node.Role = nil
 			} else {
-				metadata.Node.Role = StringPtr(roleRaw.(string))
+				metadata.Node.Role = pointers.StringPtr(roleRaw.(string))
 			}
 		}
 		if subroleRaw, exists := rawProperties[ProviderPropertySubRole]; exists {
 			if subroleRaw == nil {
 				metadata.Node.SubRole = nil
 			} else {
-				metadata.Node.SubRole = StringPtr(subroleRaw.(string))
+				metadata.Node.SubRole = pointers.StringPtr(subroleRaw.(string))
 			}
 		}
 		if nidRaw, exists := rawProperties[ProviderPropertyNID]; exists {
 			if nidRaw == nil {
 				metadata.Node.Nid = nil
 			} else {
-				metadata.Node.Nid = IntPtr(nidRaw.(int))
+				metadata.Node.Nid = pointers.IntPtr(nidRaw.(int))
 			}
 		}
 		if aliasRaw, exists := rawProperties[ProviderPropertyAlias]; exists {
@@ -323,33 +316,15 @@ func nextAvailableInt(s []int, offset int) int {
 }
 
 func (nm *NodeMetadata) Pretty() (prettyNm NodeMetadataStrings) {
-	var role, subrole, nid string
-	var alias []string
-	if nm.Role == nil {
-		role = ""
-	} else {
-		role = *nm.Role
-	}
-	if nm.SubRole == nil {
-		subrole = ""
-	} else {
-		subrole = *nm.SubRole
-	}
-	if nm.Alias == nil {
-		alias = []string{}
-	} else {
+	alias := []string{}
+	if nm.Alias != nil {
 		alias = nm.Alias
 	}
-	if nm.Nid == nil {
-		nid = ""
-	} else {
-		nid = fmt.Sprint(*nm.Nid)
+
+	return NodeMetadataStrings{
+		Role:    pointers.StrPtrToStr(nm.Role),
+		SubRole: pointers.StrPtrToStr(nm.SubRole),
+		Alias:   alias,
+		Nid:     pointers.IntPtrToStr(nm.Nid),
 	}
-
-	prettyNm.Role = role
-	prettyNm.SubRole = subrole
-	prettyNm.Nid = nid
-	prettyNm.Alias = alias
-
-	return prettyNm
 }

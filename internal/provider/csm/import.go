@@ -41,6 +41,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/provider/csm/sls"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
+	"github.com/Cray-HPE/cani/pkg/pointers"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	"github.com/Cray-HPE/hms-xname/xnames"
 	"github.com/Cray-HPE/hms-xname/xnametypes"
@@ -276,7 +277,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			// Set cabinet metadata
 			cabinetMetadata := CabinetMetadata{}
 			if vlan, exists := cabinetHMNVlans[slsCabinet.Xname]; exists {
-				cabinetMetadata.HMNVlan = IntPtr(vlan)
+				cabinetMetadata.HMNVlan = pointers.IntPtr(vlan)
 			}
 
 			cCabinet, err = tempDatastore.GetAtLocation(locationPath)
@@ -594,15 +595,15 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 
 		nodeMetadata := NodeMetadata{}
 		if slsNodeEP.Role != "" {
-			nodeMetadata.Role = StringPtr(slsNodeEP.Role)
+			nodeMetadata.Role = pointers.StringPtr(slsNodeEP.Role)
 		}
 
 		if slsNodeEP.SubRole != "" {
-			nodeMetadata.Role = StringPtr(slsNodeEP.SubRole)
+			nodeMetadata.Role = pointers.StringPtr(slsNodeEP.SubRole)
 		}
 
 		if slsNodeEP.NID != 0 {
-			nodeMetadata.Nid = IntPtr(int(slsNodeEP.NID))
+			nodeMetadata.Nid = pointers.IntPtr(int(slsNodeEP.NID))
 		}
 
 		if len(slsNodeEP.Aliases) != 0 {

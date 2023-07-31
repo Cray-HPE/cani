@@ -33,6 +33,7 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+	"github.com/Cray-HPE/cani/pkg/pointers"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
 )
@@ -171,7 +172,7 @@ func (suite *BuildHardwareMetadataTestSuite) TestCabinet() {
 
 	expectedMetadata := Metadata{
 		Cabinet: &CabinetMetadata{
-			HMNVlan: IntPtr(1234),
+			HMNVlan: pointers.IntPtr(1234),
 		},
 	}
 	suite.EqualValues(expectedMetadata, csmMetadata)
@@ -196,7 +197,7 @@ type EncodeProviderMetadataTestSuite struct {
 func (suite *EncodeProviderMetadataTestSuite) TestCabinet() {
 	metadata := Metadata{
 		Cabinet: &CabinetMetadata{
-			HMNVlan: IntPtr(4321),
+			HMNVlan: pointers.IntPtr(4321),
 		},
 	}
 
@@ -205,7 +206,7 @@ func (suite *EncodeProviderMetadataTestSuite) TestCabinet() {
 
 	expectedMetadata := map[string]interface{}{
 		"Cabinet": map[string]interface{}{
-			"HMNVlan": IntPtr(4321),
+			"HMNVlan": pointers.IntPtr(4321),
 		},
 	}
 	suite.EqualValues(expectedMetadata, metadataRaw)
@@ -214,9 +215,9 @@ func (suite *EncodeProviderMetadataTestSuite) TestCabinet() {
 func (suite *EncodeProviderMetadataTestSuite) TestNode() {
 	metadata := Metadata{
 		Node: &NodeMetadata{
-			Role:    StringPtr("Management"),
-			SubRole: StringPtr("Worker"),
-			Nid:     IntPtr(10000),
+			Role:    pointers.StringPtr("Management"),
+			SubRole: pointers.StringPtr("Worker"),
+			Nid:     pointers.IntPtr(10000),
 			Alias: []string{
 				"ncn-w001",
 			},
@@ -228,9 +229,9 @@ func (suite *EncodeProviderMetadataTestSuite) TestNode() {
 
 	expectedMetadata := map[string]interface{}{
 		"Node": map[string]interface{}{
-			"Role":    StringPtr("Management"),
-			"SubRole": StringPtr("Worker"),
-			"Nid":     IntPtr(10000),
+			"Role":    pointers.StringPtr("Management"),
+			"SubRole": pointers.StringPtr("Worker"),
+			"Nid":     pointers.IntPtr(10000),
 			"Alias": []string{
 				"ncn-w001",
 			},
