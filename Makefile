@@ -139,6 +139,7 @@ validate-hardware-type-schemas:
 
 unittest: bin
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go test -cover \
+	     github.com/Cray-HPE/cani/internal/inventory \
 	     github.com/Cray-HPE/cani/internal/provider/csm \
 	     github.com/Cray-HPE/cani/internal/provider/csm/ipam \
 	     github.com/Cray-HPE/cani/internal/provider/csm/sls \
