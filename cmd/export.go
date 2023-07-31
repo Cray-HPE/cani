@@ -36,12 +36,15 @@ import (
 )
 
 var (
-	csvHeaders string
+	csvHeaders        string
+	csvComponentTypes string
 )
 
 func init() {
 	ExportCmd.PersistentFlags().StringVar(
 		&csvHeaders, "headers", "Type,Vlan,Role,SubRole,Nid,Alias,Name,ID,Location", "Comma separated list of fields to get")
+	ExportCmd.PersistentFlags().StringVarP(
+		&csvComponentTypes, "type", "t", "Node,Cabinet", "Comma separated list of the types of components to output")
 }
 
 // ExportCmd represents the export command
@@ -65,11 +68,16 @@ func export(cmd *cobra.Command, args []string) error {
 	for i, header := range headers {
 		headers[i] = strings.TrimSpace(header)
 	}
-
 	log.Debug().Msgf("headers: %v", headers)
 
+	types := strings.Split(csvComponentTypes, ",")
+	for i, t := range types {
+		types[i] = strings.TrimSpace(t)
+	}
+	log.Debug().Msgf("types: %v", types)
+
 	w := csv.NewWriter(os.Stdout)
-	err = d.ExportCsv(cmd.Context(), w, headers)
+	err = d.ExportCsv(cmd.Context(), w, headers, types)
 	if err != nil {
 		log.Error().Msgf("export failed: %s", err)
 	}

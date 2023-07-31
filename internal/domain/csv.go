@@ -54,7 +54,7 @@ var (
 		"nid":            "Nid"}
 )
 
-func (d *Domain) ExportCsv(ctx context.Context, writer *csv.Writer, headers []string) error {
+func (d *Domain) ExportCsv(ctx context.Context, writer *csv.Writer, headers []string, types []string) error {
 	// Get the entire inventory
 	inv, err := d.datastore.List()
 	if err != nil {
@@ -80,11 +80,19 @@ func (d *Domain) ExportCsv(ctx context.Context, writer *csv.Writer, headers []st
 		return errors.Join(fmt.Errorf("invalid headers %v, allowed headers: %v", headers, csvAllowedHeaders), err)
 	}
 
+	typeSet := make(map[string]struct{})
+	for _, t := range types {
+		typeSet[strings.ToLower(t)] = struct{}{}
+	}
+
 	// Write the first csv row (i.e. the headers)
 	writer.Write(normalizedHeaders)
 
 	for _, uuid := range keys {
 		hw := inv.Hardware[uuid]
+		if _, ok := typeSet[strings.ToLower(string(hw.Type))]; !ok {
+			continue
+		}
 		row, err := d.externalInventoryProvider.GetFields(&hw, normalizedHeaders)
 		if err != nil {
 			return errors.Join(fmt.Errorf("unexpected error getting fields, %v, from hardware %v", normalizedHeaders, hw.ID), err)
