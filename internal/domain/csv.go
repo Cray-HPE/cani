@@ -69,8 +69,21 @@ func (d *Domain) ExportCsv(ctx context.Context, writer *csv.Writer, headers []st
 		hwi := inv.Hardware[keys[i]]
 		hwj := inv.Hardware[keys[j]]
 		if hwi.Type == hwj.Type {
-			// todo sort by location parts
-			return hwi.LocationPath.String() < hwj.LocationPath.String()
+			lenj := len(hwj.LocationPath)
+			for i, loci := range hwi.LocationPath {
+				if i >= lenj {
+					return false
+				}
+
+				locj := hwj.LocationPath[i]
+				if loci.Ordinal == locj.Ordinal {
+					continue // go to the next location
+				}
+				return loci.Ordinal < locj.Ordinal
+			}
+			// This case should not be hit
+			// It means that the hardware type and location path are the same.
+			return false
 		}
 		return hwi.Type < hwj.Type
 	})
