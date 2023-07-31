@@ -137,7 +137,7 @@ func (csm *CSM) validateInternalNode(allHardware map[uuid.UUID]inventory.Hardwar
 		}
 		log.Debug().Msgf("Validating %s: %v", cHardware.ID, cHardware)
 
-		metadata, err := GetProviderMetadataT[NodeMetadata](cHardware)
+		metadata, err := DecodeProviderMetadata(cHardware)
 		if err != nil {
 			return errors.Join(
 				fmt.Errorf("failed to get provider metadata from hardware (%s)", cHardware.ID),
@@ -146,9 +146,9 @@ func (csm *CSM) validateInternalNode(allHardware map[uuid.UUID]inventory.Hardwar
 		}
 
 		// There is no metadata for this node
-		if metadata == nil {
+		if metadata.Node == nil {
 			log.Debug().Msgf("No metadata found for %s", cHardware.ID)
-			metadata = &NodeMetadata{}
+			metadata.Node = &NodeMetadata{}
 		}
 
 		//
@@ -161,46 +161,46 @@ func (csm *CSM) validateInternalNode(allHardware map[uuid.UUID]inventory.Hardwar
 		validationResult := results[cHardware.ID]
 
 		// Verify all specified Roles are valid
-		if metadata.Role != nil {
-			if !validRoles[*metadata.Role] {
+		if metadata.Node.Role != nil {
+			if !validRoles[*metadata.Node.Role] {
 				validationResult.Errors = append(validationResult.Errors,
-					fmt.Sprintf("Specified role (%s) is invalid, choose from: %s", *metadata.Role, strings.Join(csm.ValidRoles, ", ")),
+					fmt.Sprintf("Specified role (%s) is invalid, choose from: %s", *metadata.Node.Role, strings.Join(csm.ValidRoles, ", ")),
 				)
 			}
 		}
 
 		// Verify all specified SubRoles are valid
-		if metadata.SubRole != nil {
-			if !validSubRoles[*metadata.SubRole] {
+		if metadata.Node.SubRole != nil {
+			if !validSubRoles[*metadata.Node.SubRole] {
 				validationResult.Errors = append(validationResult.Errors,
-					fmt.Sprintf("Specified sub-role (%s) is invalid, choose from: %s", *metadata.SubRole, strings.Join(csm.ValidSubRoles, ", ")),
+					fmt.Sprintf("Specified sub-role (%s) is invalid, choose from: %s", *metadata.Node.SubRole, strings.Join(csm.ValidSubRoles, ", ")),
 				)
 			}
 		}
 
 		// Verify NID is valid
-		if metadata.Nid != nil {
-			nodeNIDLookup[*metadata.Nid] = append(nodeNIDLookup[*metadata.Nid], cHardware.ID)
-			if *metadata.Nid <= 0 {
+		if metadata.Node.Nid != nil {
+			nodeNIDLookup[*metadata.Node.Nid] = append(nodeNIDLookup[*metadata.Node.Nid], cHardware.ID)
+			if *metadata.Node.Nid <= 0 {
 				validationResult.Errors = append(validationResult.Errors,
-					fmt.Sprintf("Specified NID (%d) invalid, needs to be positive integer", *metadata.Nid),
+					fmt.Sprintf("Specified NID (%d) invalid, needs to be positive integer", *metadata.Node.Nid),
 				)
 			}
 		}
 
 		// Verify Alias is valid
-		if metadata.Alias != nil {
-			for _, alias := range metadata.Alias {
+		if metadata.Node.Alias != nil {
+			for _, alias := range metadata.Node.Alias {
 				nodeAliasLookup[alias] = append(nodeAliasLookup[alias], cHardware.ID)
 
-				if metadata.Alias != nil && len(alias) == 0 {
+				if metadata.Node.Alias != nil && len(alias) == 0 {
 					validationResult.Errors = append(validationResult.Errors, "Specified Alias is empty")
 				}
 
 				// TODO a regex here might be better
 				if strings.Contains(alias, " ") {
 					validationResult.Errors = append(validationResult.Errors,
-						fmt.Sprintf("Specified alias (%d) is invalid, alias contains spaces", *metadata.Nid),
+						fmt.Sprintf("Specified alias (%d) is invalid, alias contains spaces", *metadata.Node.Nid),
 					)
 				}
 			}
@@ -217,13 +217,13 @@ func (csm *CSM) validateInternalNode(allHardware map[uuid.UUID]inventory.Hardwar
 			// - Alias
 			// - NID
 			// - Role
-			if metadata.Role == nil {
+			if metadata.Node.Role == nil {
 				validationResult.Errors = append(validationResult.Errors, "Missing required information: Role is not set")
 			}
-			if metadata.Nid == nil {
+			if metadata.Node.Nid == nil {
 				validationResult.Errors = append(validationResult.Errors, "Missing required information: NID is not set")
 			}
-			if metadata.Alias == nil {
+			if metadata.Node.Alias == nil {
 				validationResult.Errors = append(validationResult.Errors, "Missing required information: Alias is not set")
 			}
 
@@ -277,7 +277,7 @@ func (csm *CSM) validateInternalCabinet(allHardware map[uuid.UUID]inventory.Hard
 
 		log.Debug().Msgf("Validating %s: %v", cHardware.ID, cHardware)
 
-		metadata, err := GetProviderMetadataT[CabinetMetadata](cHardware)
+		metadata, err := DecodeProviderMetadata(cHardware)
 		if err != nil {
 			return errors.Join(
 				fmt.Errorf("failed to get provider metadata from hardware (%s)", cHardware.ID),
@@ -286,22 +286,22 @@ func (csm *CSM) validateInternalCabinet(allHardware map[uuid.UUID]inventory.Hard
 		}
 
 		// There is no metadata for this cabinet
-		if metadata == nil {
+		if metadata.Cabinet == nil {
 			log.Debug().Msgf("No metadata found for %s", cHardware.ID)
-			metadata = &CabinetMetadata{}
+			metadata.Cabinet = &CabinetMetadata{}
 		}
 
 		validationResult := results[cHardware.ID]
 
-		if metadata.HMNVlan != nil {
+		if metadata.Cabinet.HMNVlan != nil {
 			// Verify the vlan is within the allowed range
-			if !(0 <= *metadata.HMNVlan && *metadata.HMNVlan <= 4094) {
+			if !(0 <= *metadata.Cabinet.HMNVlan && *metadata.Cabinet.HMNVlan <= 4094) {
 				validationResult.Errors = append(validationResult.Errors,
-					fmt.Sprintf("Specified HMN Vlan (%d) is invalid, must be in range: 0-4094", *metadata.HMNVlan),
+					fmt.Sprintf("Specified HMN Vlan (%d) is invalid, must be in range: 0-4094", *metadata.Cabinet.HMNVlan),
 				)
 			}
 
-			cabinetVLANLookup[*metadata.HMNVlan] = append(cabinetVLANLookup[*metadata.HMNVlan], cHardware.ID)
+			cabinetVLANLookup[*metadata.Cabinet.HMNVlan] = append(cabinetVLANLookup[*metadata.Cabinet.HMNVlan], cHardware.ID)
 		}
 
 		if enableRequiredDataChecks {
@@ -325,7 +325,7 @@ func (csm *CSM) validateInternalCabinet(allHardware map[uuid.UUID]inventory.Hard
 			}
 
 			if cecManagedCabinet {
-				if metadata.HMNVlan == nil {
+				if metadata.Cabinet.HMNVlan == nil {
 					validationResult.Errors = append(validationResult.Errors, "Missing required information: HMN Vlan is not set")
 				}
 			}

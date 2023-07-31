@@ -52,8 +52,7 @@ var (
 func (csm *CSM) GetFields(hw *inventory.Hardware, fieldNames []string) (values []string, err error) {
 	values = make([]string, len(fieldNames))
 
-	rawCsmProps := hw.ProviderProperties["csm"]
-	csmProps, ok := rawCsmProps.(map[string]interface{})
+	csmProps, ok := hw.ProviderMetadata["csm"]
 	if !ok {
 		csmProps = make(map[string]interface{})
 	}
@@ -92,36 +91,36 @@ func (csm *CSM) GetFields(hw *inventory.Hardware, fieldNames []string) (values [
 }
 
 func (csm *CSM) SetFields(hw *inventory.Hardware, values map[string]string) (result provider.SetFieldsResult, err error) {
-	csmHardware, err := ToCsmHardware(hw)
+	csmMetadata, err := DecodeProviderMetadata(*hw)
 	if err != nil {
 		return result, err
 	}
 
-	if csmHardware.CabinetMetadata == nil && csmHardware.NodeMetadata == nil {
+	if csmMetadata.Cabinet == nil && csmMetadata.Node == nil {
 		log.Debug().Msgf("Skipping %v of the type %v. It does not have writable properties", hw.ID, hw.Type)
 		return
 	}
 
-	if csmHardware.NodeMetadata != nil {
+	if csmMetadata.Node != nil {
 		for key, value := range values {
 			switch key {
 			case "Role":
-				modified := setRole(value, csmHardware.NodeMetadata)
+				modified := setRole(value, csmMetadata.Node)
 				if modified {
 					result.ModifiedFields = append(result.ModifiedFields, "Role")
 				}
 			case "SubRole":
-				modified := setSubRole(value, csmHardware.NodeMetadata)
+				modified := setSubRole(value, csmMetadata.Node)
 				if modified {
 					result.ModifiedFields = append(result.ModifiedFields, "SubRole")
 				}
 			case "Alias":
-				modified := setAlias(value, csmHardware.NodeMetadata)
+				modified := setAlias(value, csmMetadata.Node)
 				if modified {
 					result.ModifiedFields = append(result.ModifiedFields, "Alias")
 				}
 			case "Nid":
-				modified, err := setNid(value, csmHardware.NodeMetadata)
+				modified, err := setNid(value, csmMetadata.Node)
 				if err != nil {
 					return result, err
 				}
@@ -130,11 +129,11 @@ func (csm *CSM) SetFields(hw *inventory.Hardware, values map[string]string) (res
 				}
 			}
 		}
-	} else if csmHardware.CabinetMetadata != nil {
+	} else if csmMetadata.Cabinet != nil {
 		for key, value := range values {
 			switch key {
 			case "Vlan":
-				modified, err := setVlan(value, csmHardware.CabinetMetadata)
+				modified, err := setVlan(value, csmMetadata.Cabinet)
 				if err != nil {
 					return result, err
 				}

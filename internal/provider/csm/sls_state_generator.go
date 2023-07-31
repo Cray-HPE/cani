@@ -378,7 +378,7 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 		// Not represented in SLS
 		return sls_client.Hardware{}, nil
 	case hardwaretypes.Node:
-		metadata, err := GetProviderMetadataT[NodeMetadata](cHardware)
+		metadata, err := DecodeProviderMetadata(cHardware)
 		if err != nil {
 			return sls_client.Hardware{}, errors.Join(
 				fmt.Errorf("failed to get provider metadata from hardware (%s)", cHardware.ID),
@@ -393,7 +393,7 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 		nodeExtraProperties.CaniLastModified = time.Now().UTC().String()
 
 		// Logical metadata
-		if metadata != nil {
+		if metadata.Node != nil {
 
 			// In order to properly populate SLS several bits of information are required.
 			// This information should have been collected when hardware was added to the inventory
@@ -401,17 +401,17 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 			// - SubRole
 			// - NID
 			// - Alias/Common Name
-			if metadata.Role != nil {
-				nodeExtraProperties.Role = *metadata.Role
+			if metadata.Node.Role != nil {
+				nodeExtraProperties.Role = *metadata.Node.Role
 			}
-			if metadata.SubRole != nil {
-				nodeExtraProperties.Role = *metadata.SubRole
+			if metadata.Node.SubRole != nil {
+				nodeExtraProperties.Role = *metadata.Node.SubRole
 			}
-			if metadata.Nid != nil {
-				nodeExtraProperties.NID = int32(*metadata.Nid)
+			if metadata.Node.Nid != nil {
+				nodeExtraProperties.NID = int32(*metadata.Node.Nid)
 			}
-			if metadata.Alias != nil {
-				nodeExtraProperties.Aliases = metadata.Alias
+			if metadata.Node.Alias != nil {
+				nodeExtraProperties.Aliases = metadata.Node.Alias
 			}
 
 			log.Info().Any("nodeEp", nodeExtraProperties).Msgf("Generated Extra Properties for %s", xname.String())

@@ -284,10 +284,14 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 				return errors.Join(fmt.Errorf("failed to query datastore for %s", locationPath), err)
 			}
 
-			cCabinet.ProviderProperties = map[string]interface{}{
-				"csm": cabinetMetadata,
+			// Encode cabinet metadata
+			metadataRaw, err := EncodeProviderMetadata(Metadata{Cabinet: &cabinetMetadata})
+			if err != nil {
+				return fmt.Errorf("failed to encode provider metadata for hardware (%s)", cCabinet.ID)
 			}
+			cCabinet.SetProviderMetadata(inventory.CSMProvider, metadataRaw)
 
+			// Push cabinet in datastore.
 			if err := tempDatastore.Update(&cCabinet); err != nil {
 				return fmt.Errorf("failed to update hardware (%s) in memory datastore", cCabinet.ID)
 			}
@@ -644,11 +648,12 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			return errors.Join(fmt.Errorf("failed to query datastore for %s", nodeLocationPath), err)
 		}
 
-		// Initialize the properties map if not done already
-		if cNode.ProviderProperties == nil {
-			cNode.ProviderProperties = map[string]interface{}{}
+		// Set the node metadata
+		metadataRaw, err := EncodeProviderMetadata(Metadata{Node: &nodeMetadata})
+		if err != nil {
+			return fmt.Errorf("failed to encode provider metadata for hardware (%s)", cNode.ID)
 		}
-		cNode.ProviderProperties["csm"] = nodeMetadata
+		cNode.SetProviderMetadata(inventory.CSMProvider, metadataRaw)
 
 		// Push updates into the datastore
 		if err := tempDatastore.Update(&cNode); err != nil {

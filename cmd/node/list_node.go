@@ -39,7 +39,6 @@ import (
 	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
-	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cobra"
 )
 
@@ -126,15 +125,25 @@ func listNode(cmd *cobra.Command, args []string) error {
 			return filtered[keys[i]].LocationPath.String() < filtered[keys[j]].LocationPath.String()
 		})
 
-		properties := csm.NodeMetadata{}
 		for _, hw := range keys {
-			if _, exists := filtered[hw].ProviderProperties[string(inventory.CSMProvider)]; exists {
-				if err := mapstructure.Decode(filtered[hw].ProviderProperties["csm"], &properties); err != nil {
+			// Start with an empty Node metadata struct, just in case if this node doesn't have any
+			// metadata set
+			var nodeMetadata csm.NodeMetadata
+
+			// If metadata exists decode it
+			if _, exists := filtered[hw].ProviderMetadata[inventory.CSMProvider]; exists {
+				csmMetadata, err := csm.DecodeProviderMetadata(filtered[hw])
+				if err != nil {
 					return err
 				}
+
+				if csmMetadata.Node != nil {
+					nodeMetadata = *csmMetadata.Node
+				}
 			}
+
 			// convert properties to strings and set nil values for easy printing
-			pp := properties.Pretty()
+			pp := nodeMetadata.Pretty()
 
 			fmt.Fprintf(w, "%s\t%s\t%v\t%v\t%v\t%v\t%v\n",
 				filtered[hw].ID.String(),
