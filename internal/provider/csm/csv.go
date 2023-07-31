@@ -38,7 +38,7 @@ import (
 func (csm *CSM) GetFields(hw *inventory.Hardware, fieldNames []string) (values []string, err error) {
 	values = make([]string, len(fieldNames))
 
-	csmProps, ok := hw.ProviderMetadata["csm"]
+	csmProps, ok := hw.ProviderMetadata[inventory.CSMProvider]
 	if !ok {
 		csmProps = make(map[string]interface{})
 	}
