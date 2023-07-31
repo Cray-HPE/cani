@@ -38,9 +38,18 @@ import (
 func (csm *CSM) GetFields(hw *inventory.Hardware, fieldNames []string) (values []string, err error) {
 	values = make([]string, len(fieldNames))
 
-	csmProps, ok := hw.ProviderMetadata[inventory.CSMProvider]
-	if !ok {
-		csmProps = make(map[string]interface{})
+	nodeProps := make(map[string]interface{})
+	cabinetProps := make(map[string]interface{})
+	if csmProps, ok := hw.ProviderMetadata[inventory.CSMProvider]; ok {
+		nodePropsRaw, ok := csmProps["Node"]
+		if ok {
+			nodeProps = nodePropsRaw.(map[string]interface{})
+		}
+
+		cabinetPropsRaw, ok := csmProps["Cabinet"]
+		if ok {
+			cabinetProps = cabinetPropsRaw.(map[string]interface{})
+		}
 	}
 
 	for i, name := range fieldNames {
@@ -58,15 +67,15 @@ func (csm *CSM) GetFields(hw *inventory.Hardware, fieldNames []string) (values [
 		case "Status":
 			values[i] = fmt.Sprintf("%v", hw.Status)
 		case "Vlan":
-			values[i] = toString(csmProps["HMNVlan"])
+			values[i] = toString(cabinetProps["HMNVlan"])
 		case "Role":
-			values[i] = toString(csmProps["Role"])
+			values[i] = toString(nodeProps["Role"])
 		case "SubRole":
-			values[i] = toString(csmProps["SubRole"])
+			values[i] = toString(nodeProps["SubRole"])
 		case "Alias":
-			values[i] = getStringFromArray(csmProps["Alias"], 0)
+			values[i] = getStringFromArray(nodeProps["Alias"], 0)
 		case "Nid":
-			values[i] = toString(csmProps["Nid"])
+			values[i] = toString(nodeProps["Nid"])
 		default:
 			// This case should never be hit.
 			// The call to normalize should return an error for unknown headers
@@ -117,6 +126,13 @@ func (csm *CSM) SetFields(hw *inventory.Hardware, values map[string]string) (res
 				}
 			}
 		}
+		if len(result.ModifiedFields) > 0 {
+			metadataRaw, err := EncodeProviderMetadata(Metadata{Node: csmMetadata.Node})
+			if err != nil {
+				return result, err
+			}
+			hw.SetProviderMetadata(inventory.CSMProvider, metadataRaw)
+		}
 	} else if csmMetadata.Cabinet != nil {
 		for key, value := range values {
 			switch key {
@@ -129,6 +145,13 @@ func (csm *CSM) SetFields(hw *inventory.Hardware, values map[string]string) (res
 					result.ModifiedFields = append(result.ModifiedFields, "Vlan")
 				}
 			}
+		}
+		if len(result.ModifiedFields) > 0 {
+			metadataRaw, err := EncodeProviderMetadata(Metadata{Cabinet: csmMetadata.Cabinet})
+			if err != nil {
+				return result, err
+			}
+			hw.SetProviderMetadata(inventory.CSMProvider, metadataRaw)
 		}
 	}
 
