@@ -61,16 +61,16 @@ func updateNode(cmd *cobra.Command, args []string) error {
 	// unset options if nil is passed in.
 	nodeMeta := map[string]interface{}{}
 	if cmd.Flags().Changed("role") {
-		nodeMeta[csm.ProviderPropertyRole] = role
+		nodeMeta[csm.ProviderMetadataRole] = role
 	}
 	if cmd.Flags().Changed("subrole") {
-		nodeMeta[csm.ProviderPropertySubRole] = subrole
+		nodeMeta[csm.ProviderMetadataSubRole] = subrole
 	}
 	if cmd.Flags().Changed("alias") {
-		nodeMeta[csm.ProviderPropertyAlias] = alias
+		nodeMeta[csm.ProviderMetadataAlias] = alias
 	}
 	if cmd.Flags().Changed("alias") {
-		nodeMeta[csm.ProviderPropertyNID] = nid
+		nodeMeta[csm.ProviderMetadataNID] = nid
 	}
 
 	// Remove the node from the inventory using domain methods

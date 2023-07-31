@@ -39,11 +39,11 @@ import (
 )
 
 const (
-	ProviderPropertyVlanId  = "VlanID"
-	ProviderPropertyRole    = "Role"
-	ProviderPropertySubRole = "SubRole"
-	ProviderPropertyAlias   = "Alias"
-	ProviderPropertyNID     = "NID"
+	ProviderMetadataVlanId  = "VlanID"
+	ProviderMetadataRole    = "Role"
+	ProviderMetadataSubRole = "SubRole"
+	ProviderMetadataAlias   = "Alias"
+	ProviderMetadataNID     = "NID"
 )
 
 // NOTE: When adding new Metadata structure make sure to add them to the MetadataStructTagSuite test suite
@@ -137,7 +137,7 @@ func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperti
 
 		// Make changes to the node metadata
 		// The keys of rawProperties need to match what is defined in ./cmd/cabinet/add_cabinet.go
-		if vlanIDRaw, exists := rawProperties[ProviderPropertyVlanId]; exists {
+		if vlanIDRaw, exists := rawProperties[ProviderMetadataVlanId]; exists {
 			// Check if the VLAN exceeds the valid range for the hardware
 			max, err := DetermineEndingVlanFromSlug(cHardware.DeviceTypeSlug, *csm.hardwareLibrary)
 			if err != nil {
@@ -161,28 +161,28 @@ func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperti
 
 		// Make changes to the node metadata
 		// The keys of rawProperties need to match what is defined in ./cmd/node/update_node.go
-		if roleRaw, exists := rawProperties[ProviderPropertyRole]; exists {
+		if roleRaw, exists := rawProperties[ProviderMetadataRole]; exists {
 			if roleRaw == nil {
 				metadata.Node.Role = nil
 			} else {
 				metadata.Node.Role = pointers.StringPtr(roleRaw.(string))
 			}
 		}
-		if subroleRaw, exists := rawProperties[ProviderPropertySubRole]; exists {
+		if subroleRaw, exists := rawProperties[ProviderMetadataSubRole]; exists {
 			if subroleRaw == nil {
 				metadata.Node.SubRole = nil
 			} else {
 				metadata.Node.SubRole = pointers.StringPtr(subroleRaw.(string))
 			}
 		}
-		if nidRaw, exists := rawProperties[ProviderPropertyNID]; exists {
+		if nidRaw, exists := rawProperties[ProviderMetadataNID]; exists {
 			if nidRaw == nil {
 				metadata.Node.Nid = nil
 			} else {
 				metadata.Node.Nid = pointers.IntPtr(nidRaw.(int))
 			}
 		}
-		if aliasRaw, exists := rawProperties[ProviderPropertyAlias]; exists {
+		if aliasRaw, exists := rawProperties[ProviderMetadataAlias]; exists {
 			if aliasRaw == nil {
 				metadata.Node.Alias = nil
 			} else {
@@ -286,7 +286,7 @@ func (csm *CSM) RecommendCabinet(inv inventory.Inventory, deviceTypeSlug string)
 	// set the provider metadata
 	recommended.ProviderMetadata = map[string]interface{}{
 		// there are no vlans yet, and presumably no cabinets, so set it to 1
-		ProviderPropertyVlanId: chosenVlan,
+		ProviderMetadataVlanId: chosenVlan,
 	}
 
 	// return the recommendations

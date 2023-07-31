@@ -146,7 +146,7 @@ func (suite *BuildHardwareMetadataTestSuite) SetupSuite() {
 
 func (suite *BuildHardwareMetadataTestSuite) TestCabinet() {
 	rawProperties := map[string]interface{}{
-		ProviderPropertyVlanId: 1234,
+		ProviderMetadataVlanId: 1234,
 	}
 
 	hardware := inventory.Hardware{
