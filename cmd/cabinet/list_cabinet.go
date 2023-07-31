@@ -38,6 +38,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+	"github.com/Cray-HPE/cani/pkg/pointers"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
@@ -144,7 +145,7 @@ func listCabinet(cmd *cobra.Command, args []string) error {
 			fmt.Fprintf(w, "%s\t%s\t%v\t%s\n",
 				filtered[hw].ID.String(),
 				filtered[hw].DeviceTypeSlug,
-				*cabinetMetadata.HMNVlan,
+				pointers.IntPtrToStr(cabinetMetadata.HMNVlan),
 				filtered[hw].LocationPath.String())
 		}
 
