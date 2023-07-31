@@ -97,13 +97,14 @@ func (d *Domain) ExportCsv(ctx context.Context, writer *csv.Writer, headers []st
 	for _, t := range types {
 		typeSet[strings.ToLower(t)] = struct{}{}
 	}
+	allTypes := len(types) == 0
 
 	// Write the first csv row (i.e. the headers)
 	writer.Write(normalizedHeaders)
 
 	for _, uuid := range keys {
 		hw := inv.Hardware[uuid]
-		if _, ok := typeSet[strings.ToLower(string(hw.Type))]; !ok {
+		if _, ok := typeSet[strings.ToLower(string(hw.Type))]; !allTypes && !ok {
 			continue
 		}
 		row, err := d.externalInventoryProvider.GetFields(&hw, normalizedHeaders)
