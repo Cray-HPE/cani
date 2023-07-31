@@ -42,6 +42,7 @@ import (
 var (
 	csvAllowedHeaders = map[string]string{
 		"id":             "ID",
+		"location":       "Location",
 		"name":           "Name",
 		"type":           "Type",
 		"devicetypeslug": "DeviceTypeSlug",
@@ -53,7 +54,7 @@ var (
 		"nid":            "Nid"}
 )
 
-func (d *Domain) ExportCsv(ctx context.Context, writer *csv.Writer, headers []string) error {
+func (d *Domain) ExportCsv(ctx context.Context, writer *csv.Writer, headers []string, types []string) error {
 	// Get the entire inventory
 	inv, err := d.datastore.List()
 	if err != nil {
@@ -65,9 +66,26 @@ func (d *Domain) ExportCsv(ctx context.Context, writer *csv.Writer, headers []st
 		keys = append(keys, key)
 	}
 	sort.Slice(keys, func(i, j int) bool {
-		ki := fmt.Sprintf("%v", keys[i])
-		kj := fmt.Sprintf("%v", keys[j])
-		return ki < kj
+		hwi := inv.Hardware[keys[i]]
+		hwj := inv.Hardware[keys[j]]
+		if hwi.Type == hwj.Type {
+			lenj := len(hwj.LocationPath)
+			for i, loci := range hwi.LocationPath {
+				if i >= lenj {
+					return false
+				}
+
+				locj := hwj.LocationPath[i]
+				if loci.Ordinal == locj.Ordinal {
+					continue // go to the next location
+				}
+				return loci.Ordinal < locj.Ordinal
+			}
+			// This case should not be hit
+			// It means that the hardware type and location path are the same.
+			return false
+		}
+		return hwi.Type < hwj.Type
 	})
 
 	normalizedHeaders, err := toNormalizedHeaders(headers)
@@ -75,11 +93,20 @@ func (d *Domain) ExportCsv(ctx context.Context, writer *csv.Writer, headers []st
 		return errors.Join(fmt.Errorf("invalid headers %v, allowed headers: %v", headers, csvAllowedHeaders), err)
 	}
 
+	typeSet := make(map[string]struct{})
+	for _, t := range types {
+		typeSet[strings.ToLower(t)] = struct{}{}
+	}
+	allTypes := len(types) == 0
+
 	// Write the first csv row (i.e. the headers)
 	writer.Write(normalizedHeaders)
 
 	for _, uuid := range keys {
 		hw := inv.Hardware[uuid]
+		if _, ok := typeSet[strings.ToLower(string(hw.Type))]; !allTypes && !ok {
+			continue
+		}
 		row, err := d.externalInventoryProvider.GetFields(&hw, normalizedHeaders)
 		if err != nil {
 			return errors.Join(fmt.Errorf("unexpected error getting fields, %v, from hardware %v", normalizedHeaders, hw.ID), err)
