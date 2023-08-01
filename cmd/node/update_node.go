@@ -32,6 +32,7 @@ import (
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -60,16 +61,16 @@ func updateNode(cmd *cobra.Command, args []string) error {
 	// unset options if nil is passed in.
 	nodeMeta := map[string]interface{}{}
 	if cmd.Flags().Changed("role") {
-		nodeMeta["role"] = role
+		nodeMeta[csm.ProviderMetadataRole] = role
 	}
 	if cmd.Flags().Changed("subrole") {
-		nodeMeta["subrole"] = subrole
+		nodeMeta[csm.ProviderMetadataSubRole] = subrole
 	}
 	if cmd.Flags().Changed("alias") {
-		nodeMeta["alias"] = alias
+		nodeMeta[csm.ProviderMetadataAlias] = alias
 	}
 	if cmd.Flags().Changed("alias") {
-		nodeMeta["nid"] = nid
+		nodeMeta[csm.ProviderMetadataNID] = nid
 	}
 
 	// Remove the node from the inventory using domain methods

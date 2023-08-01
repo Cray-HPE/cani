@@ -41,6 +41,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/provider/csm/sls"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
+	"github.com/Cray-HPE/cani/pkg/pointers"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	"github.com/Cray-HPE/hms-xname/xnames"
 	"github.com/Cray-HPE/hms-xname/xnametypes"
@@ -276,7 +277,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			// Set cabinet metadata
 			cabinetMetadata := CabinetMetadata{}
 			if vlan, exists := cabinetHMNVlans[slsCabinet.Xname]; exists {
-				cabinetMetadata.HMNVlan = IntPtr(vlan)
+				cabinetMetadata.HMNVlan = pointers.IntPtr(vlan)
 			}
 
 			cCabinet, err = tempDatastore.GetAtLocation(locationPath)
@@ -284,10 +285,14 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 				return errors.Join(fmt.Errorf("failed to query datastore for %s", locationPath), err)
 			}
 
-			cCabinet.ProviderProperties = map[string]interface{}{
-				"csm": cabinetMetadata,
+			// Encode cabinet metadata
+			metadataRaw, err := EncodeProviderMetadata(Metadata{Cabinet: &cabinetMetadata})
+			if err != nil {
+				return fmt.Errorf("failed to encode provider metadata for hardware (%s)", cCabinet.ID)
 			}
+			cCabinet.SetProviderMetadata(inventory.CSMProvider, metadataRaw)
 
+			// Push cabinet in datastore.
 			if err := tempDatastore.Update(&cCabinet); err != nil {
 				return fmt.Errorf("failed to update hardware (%s) in memory datastore", cCabinet.ID)
 			}
@@ -590,15 +595,15 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 
 		nodeMetadata := NodeMetadata{}
 		if slsNodeEP.Role != "" {
-			nodeMetadata.Role = StringPtr(slsNodeEP.Role)
+			nodeMetadata.Role = pointers.StringPtr(slsNodeEP.Role)
 		}
 
 		if slsNodeEP.SubRole != "" {
-			nodeMetadata.Role = StringPtr(slsNodeEP.SubRole)
+			nodeMetadata.Role = pointers.StringPtr(slsNodeEP.SubRole)
 		}
 
 		if slsNodeEP.NID != 0 {
-			nodeMetadata.Nid = IntPtr(int(slsNodeEP.NID))
+			nodeMetadata.Nid = pointers.IntPtr(int(slsNodeEP.NID))
 		}
 
 		if len(slsNodeEP.Aliases) != 0 {
@@ -644,11 +649,12 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			return errors.Join(fmt.Errorf("failed to query datastore for %s", nodeLocationPath), err)
 		}
 
-		// Initialize the properties map if not done already
-		if cNode.ProviderProperties == nil {
-			cNode.ProviderProperties = map[string]interface{}{}
+		// Set the node metadata
+		metadataRaw, err := EncodeProviderMetadata(Metadata{Node: &nodeMetadata})
+		if err != nil {
+			return fmt.Errorf("failed to encode provider metadata for hardware (%s)", cNode.ID)
 		}
-		cNode.ProviderProperties["csm"] = nodeMetadata
+		cNode.SetProviderMetadata(inventory.CSMProvider, metadataRaw)
 
 		// Push updates into the datastore
 		if err := tempDatastore.Update(&cNode); err != nil {

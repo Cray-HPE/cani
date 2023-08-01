@@ -67,7 +67,7 @@ func addCabinet(cmd *cobra.Command, args []string) error {
 		log.Info().Msgf("Querying inventory to suggest cabinet number and VLAN ID")
 		// set the vars to the recommendations
 		cabinetNumber = recommendations.LocationOrdinal
-		vlanId = recommendations.ProviderMetadata[csm.ProviderPropertyVlanId].(int)
+		vlanId = recommendations.ProviderMetadata[csm.ProviderMetadataVlanId].(int)
 		log.Debug().Msgf("Provider recommendations: %+v", recommendations)
 		log.Info().Msgf("Suggested cabinet number: %d", cabinetNumber)
 		log.Info().Msgf("Suggested VLAN ID: %d", vlanId)
@@ -97,7 +97,7 @@ func addCabinet(cmd *cobra.Command, args []string) error {
 	// Right now the build metadata function in the CSM provider will
 	// unset options if nil is passed in.
 	cabinetMetadata := map[string]interface{}{
-		csm.ProviderPropertyVlanId: vlanId,
+		csm.ProviderMetadataVlanId: vlanId,
 	}
 
 	// Add the cabinet to the inventory using domain methods

@@ -51,15 +51,18 @@ type InventoryProvider interface {
 	// Reconcile CANI's inventory state with the external inventory state and apply required changes
 	Reconcile(ctx context.Context, datastore inventory.Datastore, dryrun bool) error
 
+	// RecommendCabinet returns recommended settings for adding a cabinet
+	RecommendCabinet(inv inventory.Inventory, deviceTypeSlug string) (HardwareRecommendations, error)
+
+	//
+	// Provider Hardware Metadata
+	//
+
 	// Build metadata, and add ito the hardware object
 	// This function could return the data to put into object
 	BuildHardwareMetadata(hw *inventory.Hardware, rawProperties map[string]interface{}) error
 
-	// RecommendCabinet returns recommended settings for adding a cabinet
-	RecommendCabinet(inv inventory.Inventory, deviceTypeSlug string) (HardwareRecommendations, error)
-
 	GetFields(hw *inventory.Hardware, fieldNames []string) (values []string, err error)
-
 	SetFields(hw *inventory.Hardware, values map[string]string) (result SetFieldsResult, err error)
 }
 

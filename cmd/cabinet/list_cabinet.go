@@ -38,8 +38,8 @@ import (
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+	"github.com/Cray-HPE/cani/pkg/pointers"
 	"github.com/google/uuid"
-	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cobra"
 )
 
@@ -126,17 +126,26 @@ func listCabinet(cmd *cobra.Command, args []string) error {
 			return filtered[keys[i]].LocationPath.String() < filtered[keys[j]].LocationPath.String()
 		})
 
-		properties := csm.CabinetMetadata{}
 		for _, hw := range keys {
-			if _, exists := filtered[hw].ProviderProperties[string(inventory.CSMProvider)]; exists {
-				if err := mapstructure.Decode(filtered[hw].ProviderProperties["csm"], &properties); err != nil {
+			// Start with an empty cabinet metadata struct, just in case if this cabinet doesn't have any
+			// metadata set
+			cabinetMetadata := csm.CabinetMetadata{}
+
+			if _, exists := filtered[hw].ProviderMetadata[inventory.CSMProvider]; exists {
+				csmMetadata, err := csm.DecodeProviderMetadata(filtered[hw])
+				if err != nil {
 					return err
 				}
+
+				if csmMetadata.Cabinet != nil {
+					cabinetMetadata = *csmMetadata.Cabinet
+				}
 			}
+
 			fmt.Fprintf(w, "%s\t%s\t%v\t%s\n",
 				filtered[hw].ID.String(),
 				filtered[hw].DeviceTypeSlug,
-				*properties.HMNVlan,
+				pointers.IntPtrToStr(cabinetMetadata.HMNVlan),
 				filtered[hw].LocationPath.String())
 		}
 

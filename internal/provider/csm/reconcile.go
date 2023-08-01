@@ -471,17 +471,17 @@ func reconcileNetworkChanges(datastore inventory.Datastore, hardwareTypeLibrary 
 
 	// Allocate Node IPs
 	for _, node := range sortByLocationPath(allHardware.FilterHardwareByTypeStatus(inventory.HardwareStatusStaged, hardwaretypes.Node)) {
-		providerProperties, err := GetProviderMetadataT[NodeMetadata](node)
+		providerMetadata, err := DecodeProviderMetadata(node)
 		if err != nil {
 			return nil, errors.Join(fmt.Errorf("failed to get provider properties for node (%s)", node.ID), err)
 		}
 
 		var role, subRole string
-		if providerProperties.Role != nil {
-			role = *providerProperties.Role
+		if providerMetadata.Node.Role != nil {
+			role = *providerMetadata.Node.Role
 		}
-		if providerProperties.SubRole != nil {
-			subRole = *providerProperties.SubRole
+		if providerMetadata.Node.SubRole != nil {
+			subRole = *providerMetadata.Node.SubRole
 		}
 
 		switch role {
@@ -505,17 +505,17 @@ func reconcileNetworkChanges(datastore inventory.Datastore, hardwareTypeLibrary 
 
 	// Deallocate  Node IPs
 	for _, node := range allHardware.FilterHardwareByTypeStatus(inventory.HardwareStatusStaged, hardwaretypes.Node) {
-		providerProperties, err := GetProviderMetadataT[NodeMetadata](node)
+		providerMetadata, err := DecodeProviderMetadata(node)
 		if err != nil {
 			return nil, errors.Join(fmt.Errorf("failed to get provider properties for node (%s)", node.ID), err)
 		}
 
 		var role, subRole string
-		if providerProperties.Role != nil {
-			role = *providerProperties.Role
+		if providerMetadata.Node.Role != nil {
+			role = *providerMetadata.Node.Role
 		}
-		if providerProperties.SubRole != nil {
-			subRole = *providerProperties.SubRole
+		if providerMetadata.Node.SubRole != nil {
+			subRole = *providerMetadata.Node.SubRole
 		}
 
 		switch role {

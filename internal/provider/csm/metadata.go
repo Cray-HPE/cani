@@ -26,26 +26,40 @@
 package csm
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+	"github.com/Cray-HPE/cani/pkg/pointers"
 	"github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog/log"
 )
 
 const (
-	ProviderPropertyVlanId = "vlanID"
+	ProviderMetadataVlanId  = "VlanID"
+	ProviderMetadataRole    = "Role"
+	ProviderMetadataSubRole = "SubRole"
+	ProviderMetadataAlias   = "Alias"
+	ProviderMetadataNID     = "NID"
 )
 
+// NOTE: When adding new Metadata structure make sure to add them to the MetadataStructTagSuite test suite
+// in metadata_test.go
+
+type Metadata struct {
+	Cabinet *CabinetMetadata `json:"Cabinet,omitempty" mapstructure:"Cabinet,omitempty"`
+	Node    *NodeMetadata    `json:"Node,omitempty" mapstructure:"Node,omitempty"`
+}
+
 type NodeMetadata struct {
-	Role                 *string
-	SubRole              *string
-	Nid                  *int
-	Alias                []string
-	AdditionalProperties map[string]interface{}
+	Role                 *string                `json:"Role" mapstructure:"Role"`
+	SubRole              *string                `json:"SubRole" mapstructure:"SubRole"`
+	Nid                  *int                   `json:"Nid" mapstructure:"Nid"`
+	Alias                []string               `json:"Alias" mapstructure:"Alias"`
+	AdditionalProperties map[string]interface{} `json:"AdditionalProperties" mapstructure:"AdditionalProperties"`
 }
 
 type NodeMetadataStrings struct {
@@ -57,96 +71,33 @@ type NodeMetadataStrings struct {
 }
 
 type CabinetMetadata struct {
-	HMNVlan *int
+	HMNVlan *int `json:"HMNVlan" mapstructure:"HMNVlan"`
 }
 
-type CsmHardware struct {
-	Hardware        *inventory.Hardware
-	CabinetMetadata *CabinetMetadata
-	NodeMetadata    *NodeMetadata
-}
-
-// TODO this might need a better home
-func StringPtr(s string) *string {
-	return &s
-}
-func IntPtr(i int) *int {
-	return &i
-}
-
-// Warning: This modifies the provider properties of the passed in hardware object
-func ToCsmHardware(hardware *inventory.Hardware) (csmHardware CsmHardware, err error) {
-	csmHardware = CsmHardware{
-		Hardware: hardware,
-	}
-
-	providerPropertiesRaw, hasCsmProperties := hardware.ProviderProperties["csm"]
-
-	// check if the properties exist, and if they have already been parsed into the CSM struct
-	if hasCsmProperties {
-		switch providerPropertiesRaw.(type) {
-		case NodeMetadata:
-			csmHardware.NodeMetadata = providerPropertiesRaw.(*NodeMetadata)
-			return
-		case CabinetMetadata:
-			csmHardware.CabinetMetadata = providerPropertiesRaw.(*CabinetMetadata)
-			return
-		}
-	}
-
-	// create new CSM struct
-	var properties interface{}
-	switch hardware.Type {
-	case hardwaretypes.Node:
-		csmHardware.NodeMetadata = &NodeMetadata{}
-		properties = csmHardware.NodeMetadata
-	case hardwaretypes.Cabinet:
-		csmHardware.CabinetMetadata = &CabinetMetadata{}
-		properties = csmHardware.CabinetMetadata
-	}
-
-	// parse existing properties into the CSM struct
-	// and set the struct as the properties on the hardware object
-	if properties != nil {
-		if hasCsmProperties {
-			decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-				DecodeHook: mapstructure.StringToIPHookFunc(),
-				Result:     &properties,
-			})
-			if err != nil {
-				return csmHardware, err
-			}
-			err = decoder.Decode(providerPropertiesRaw)
-			if err != nil {
-				return csmHardware, err
-			}
-		} else {
-			hardware.ProviderProperties = make(map[string]interface{})
-		}
-		hardware.ProviderProperties["csm"] = properties
-	}
-
-	return csmHardware, err
-}
-
-func GetProviderMetadata(cHardware inventory.Hardware) (result interface{}, err error) {
-	providerPropertiesRaw, ok := cHardware.ProviderProperties["csm"]
+// DecodeProviderMetadata return a Metadata structure from the given hardwares CSM Provider properties.
+// If the hardware doesn't have any metadata set an empty Metadata struct will be returned.
+func DecodeProviderMetadata(cHardware inventory.Hardware) (result Metadata, err error) {
+	ProviderMetadataRaw, ok := cHardware.ProviderMetadata[inventory.CSMProvider]
 	if !ok {
 		log.Debug().Any("id", cHardware.ID).Msgf("GetProviderMetadata: No CSM provider properties found")
-		return nil, nil // This should be ok, as its possible as not all hardware inventory items may have CSM specific data
+		return Metadata{}, nil // This should be ok, as its possible as not all hardware inventory items may have CSM specific data
 	}
 
-	switch cHardware.Type {
-	case hardwaretypes.Node:
-		result = NodeMetadata{}
-	case hardwaretypes.Cabinet:
-		result = CabinetMetadata{}
-	default:
-		// This may be caused if new metadata structs are added, but not to this switch case
-		return nil, fmt.Errorf("hardware object (%s) has unexpected provider metadata", cHardware.ID)
+	// Decode the Raw extra properties into the Metadata structure
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		DecodeHook: mapstructure.StringToIPHookFunc(),
+		Result:     &result,
+	})
+	if err != nil {
+		return Metadata{}, err
 	}
+	err = decoder.Decode(ProviderMetadataRaw)
 
-	// Decode the Raw extra properties into a give structure
+	return result, err
+}
+
+func EncodeProviderMetadata(metadata Metadata) (result map[string]interface{}, err error) {
+	// Encode the Metadata struct into map[string]interface{}
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.StringToIPHookFunc(),
 		Result:     &result,
@@ -154,115 +105,104 @@ func GetProviderMetadata(cHardware inventory.Hardware) (result interface{}, err 
 	if err != nil {
 		return nil, err
 	}
-	err = decoder.Decode(providerPropertiesRaw)
-
-	return result, err
-}
-
-func GetProviderMetadataT[T any](cHardware inventory.Hardware) (*T, error) {
-	metadataRaw, err := GetProviderMetadata(cHardware)
+	err = decoder.Decode(metadata)
 	if err != nil {
 		return nil, err
 	}
 
-	if metadataRaw == nil {
-		log.Debug().Any("id", cHardware.ID).Msgf("GetProviderMetadataT: No metadata returned from GetProviderMetadata")
-		return nil, nil
-	}
-
-	metadata, ok := metadataRaw.(T)
-	if !ok {
-		var expectedType T
-		return nil, fmt.Errorf("unexpected provider metadata type (%T) expected (%T)", metadataRaw, expectedType)
-	}
-	return &metadata, nil
+	return result, err
 }
 
 func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperties map[string]interface{}) error {
-	if cHardware.ProviderProperties == nil {
-		cHardware.ProviderProperties = map[string]interface{}{}
+	if cHardware == nil {
+		return fmt.Errorf("provided hardware is nil")
+	}
+
+	metadata := Metadata{}
+	if cHardware.ProviderMetadata != nil {
+		var err error
+		metadata, err = DecodeProviderMetadata(*cHardware)
+
+		if err != nil {
+			return errors.Join(fmt.Errorf("failed to decode CSM metadata from hardware (%v)", cHardware.ID), err)
+		}
 	}
 
 	switch cHardware.Type {
 	case hardwaretypes.Cabinet:
-		properties := CabinetMetadata{}
-		if _, exists := cHardware.ProviderProperties["csm"]; exists {
-			// If one exists set it.
-			if err := mapstructure.Decode(cHardware.ProviderProperties["csm"], &properties); err != nil {
-				return err
-			}
+		if metadata.Cabinet == nil {
+			// Create an cabinet metadata object it does not exist
+			metadata.Cabinet = &CabinetMetadata{}
 		}
 
 		// Make changes to the node metadata
 		// The keys of rawProperties need to match what is defined in ./cmd/cabinet/add_cabinet.go
-		if vlanIDRaw, exists := rawProperties[ProviderPropertyVlanId]; exists {
+		if vlanIDRaw, exists := rawProperties[ProviderMetadataVlanId]; exists {
 			// Check if the VLAN exceeds the valid range for the hardware
 			max, err := DetermineEndingVlanFromSlug(cHardware.DeviceTypeSlug, *csm.hardwareLibrary)
 			if err != nil {
 				return err
 			}
-			// if trhe VLAN is greater than the max, fail
+			// if the VLAN is greater than the max, fail
 			if vlanIDRaw.(int) > max {
 				return fmt.Errorf("VLAN exceeds the provider's maximum range (%d).  Please choose a valid VLAN", max)
 			}
 			if vlanIDRaw == nil {
-				properties.HMNVlan = nil
+				metadata.Cabinet.HMNVlan = nil
 			} else {
-				properties.HMNVlan = IntPtr(vlanIDRaw.(int))
+				metadata.Cabinet.HMNVlan = pointers.IntPtr(vlanIDRaw.(int))
 			}
 		}
-
-		cHardware.ProviderProperties["csm"] = properties
-
-		return nil
 	case hardwaretypes.Node:
-		// TODO do something interesting with the raw data, and convert it/validate it
-		properties := NodeMetadata{} // Create an empty one
-		if _, exists := cHardware.ProviderProperties["csm"]; exists {
-			// If one exists set it.
-			if err := mapstructure.Decode(cHardware.ProviderProperties["csm"], &properties); err != nil {
-				return err
-			}
+		if metadata.Node == nil {
+			// Create an cabinet metadata object it does not exist
+			metadata.Node = &NodeMetadata{}
 		}
+
 		// Make changes to the node metadata
 		// The keys of rawProperties need to match what is defined in ./cmd/node/update_node.go
-		if roleRaw, exists := rawProperties["role"]; exists {
+		if roleRaw, exists := rawProperties[ProviderMetadataRole]; exists {
 			if roleRaw == nil {
-				properties.Role = nil
+				metadata.Node.Role = nil
 			} else {
-				properties.Role = StringPtr(roleRaw.(string))
+				metadata.Node.Role = pointers.StringPtr(roleRaw.(string))
 			}
 		}
-		if subroleRaw, exists := rawProperties["subrole"]; exists {
+		if subroleRaw, exists := rawProperties[ProviderMetadataSubRole]; exists {
 			if subroleRaw == nil {
-				properties.SubRole = nil
+				metadata.Node.SubRole = nil
 			} else {
-				properties.SubRole = StringPtr(subroleRaw.(string))
+				metadata.Node.SubRole = pointers.StringPtr(subroleRaw.(string))
 			}
 		}
-		if nidRaw, exists := rawProperties["nid"]; exists {
+		if nidRaw, exists := rawProperties[ProviderMetadataNID]; exists {
 			if nidRaw == nil {
-				properties.Nid = nil
+				metadata.Node.Nid = nil
 			} else {
-				properties.Nid = IntPtr(nidRaw.(int))
+				metadata.Node.Nid = pointers.IntPtr(nidRaw.(int))
 			}
 		}
-		if aliasRaw, exists := rawProperties["alias"]; exists {
+		if aliasRaw, exists := rawProperties[ProviderMetadataAlias]; exists {
 			if aliasRaw == nil {
-				properties.Alias = nil
+				metadata.Node.Alias = nil
 			} else {
-				properties.Alias = []string{aliasRaw.(string)}
+				metadata.Node.Alias = []string{aliasRaw.(string)}
 			}
 		}
 
-		cHardware.ProviderProperties["csm"] = properties
-
-		return nil
 	default:
 		// This hardware type doesn't have metadata for it right now
 		return nil
 	}
 
+	// Set the hardware metadata
+	metadataRaw, err := EncodeProviderMetadata(metadata)
+	if err != nil {
+		return errors.Join(fmt.Errorf("failed to encoder CSM Metadata for hardware (%v)", cHardware.ID), err)
+	}
+
+	cHardware.SetProviderMetadata(inventory.CSMProvider, metadataRaw)
+	return nil
 }
 
 func (csm *CSM) RecommendCabinet(inv inventory.Inventory, deviceTypeSlug string) (recommended provider.HardwareRecommendations, err error) {
@@ -274,25 +214,24 @@ func (csm *CSM) RecommendCabinet(inv inventory.Inventory, deviceTypeSlug string)
 	// loop through the existing inventory to check for vlans
 	log.Debug().Msg("Checking existing hardware to find recommendations")
 	for _, cHardware := range inv.Hardware {
-		if cHardware.ProviderProperties == nil {
-			cHardware.ProviderProperties = map[string]interface{}{}
-		}
-
 		switch cHardware.Type {
 		case hardwaretypes.Cabinet:
 			log.Debug().Msgf("Checking %s (%s)", cHardware.Type, cHardware.ID.String())
-			properties := CabinetMetadata{}
-			if _, exists := cHardware.ProviderProperties[string(inventory.CSMProvider)]; exists {
-				// If one exists set it.
-				log.Debug().Msgf("Decoding csm properties %+v", cHardware.ProviderProperties)
-				if err := mapstructure.Decode(cHardware.ProviderProperties[string(inventory.CSMProvider)], &properties); err != nil {
-					return recommended, err
-				}
+			log.Debug().Msgf("Decoding csm properties %+v", cHardware.ProviderMetadata)
+
+			metadata, err := DecodeProviderMetadata(cHardware)
+			if err != nil {
+				return provider.HardwareRecommendations{}, errors.Join(fmt.Errorf("failed to decode CSM metadata from cabinet (%v)", cHardware.ID), err)
 			}
 
-			if properties.HMNVlan != nil {
+			if metadata.Cabinet == nil {
+				// There is no existing cabinet metadata
+				continue
+			}
+
+			if metadata.Cabinet.HMNVlan != nil {
 				// add it to the slice that tracks existing vlans
-				existingVlans = append(existingVlans, *properties.HMNVlan)
+				existingVlans = append(existingVlans, *metadata.Cabinet.HMNVlan)
 			}
 
 			// add the ordinal to the existing cabinets slice for choosing a new one later
@@ -347,7 +286,7 @@ func (csm *CSM) RecommendCabinet(inv inventory.Inventory, deviceTypeSlug string)
 	// set the provider metadata
 	recommended.ProviderMetadata = map[string]interface{}{
 		// there are no vlans yet, and presumably no cabinets, so set it to 1
-		ProviderPropertyVlanId: chosenVlan,
+		ProviderMetadataVlanId: chosenVlan,
 	}
 
 	// return the recommendations
@@ -377,33 +316,15 @@ func nextAvailableInt(s []int, offset int) int {
 }
 
 func (nm *NodeMetadata) Pretty() (prettyNm NodeMetadataStrings) {
-	var role, subrole, nid string
-	var alias []string
-	if nm.Role == nil {
-		role = ""
-	} else {
-		role = *nm.Role
-	}
-	if nm.SubRole == nil {
-		subrole = ""
-	} else {
-		subrole = *nm.SubRole
-	}
-	if nm.Alias == nil {
-		alias = []string{}
-	} else {
+	alias := []string{}
+	if nm.Alias != nil {
 		alias = nm.Alias
 	}
-	if nm.Nid == nil {
-		nid = ""
-	} else {
-		nid = fmt.Sprint(*nm.Nid)
+
+	return NodeMetadataStrings{
+		Role:    pointers.StrPtrToStr(nm.Role),
+		SubRole: pointers.StrPtrToStr(nm.SubRole),
+		Alias:   alias,
+		Nid:     pointers.IntPtrToStr(nm.Nid),
 	}
-
-	prettyNm.Role = role
-	prettyNm.SubRole = subrole
-	prettyNm.Nid = nid
-	prettyNm.Alias = alias
-
-	return prettyNm
 }

@@ -58,7 +58,7 @@ func (d *Domain) UpdateNode(ctx context.Context, cabinet, chassis, slot, bmc, no
 		return AddHardwareResult{}, err
 	}
 
-	log.Debug().Any("metadata", hw.ProviderProperties).Msg("Provider Properties")
+	log.Debug().Any("metadata", hw.ProviderMetadata).Msg("Provider Properties")
 
 	// Push it back into the data store
 	if err := d.datastore.Update(&hw); err != nil {
