@@ -43,17 +43,39 @@ var (
 
 // ImportCmd represents the import command
 var ImportCmd = &cobra.Command{
-	Use:               "import FILE",
+	Use:               "import [FILE]",
 	Short:             "Import assets into the inventory.",
 	Long:              `Import assets into the inventory.`,
-	Args:              cobra.ExactArgs(1),
 	PersistentPreRunE: DatastoreExists,
 	RunE:              importAssets,
 }
 
+func createCsvReader(filename string) (*csv.Reader, error) {
+	if filename == "-" {
+		return csv.NewReader(os.Stdin), nil
+	} else {
+		f, err := os.Open(filename)
+		if err != nil {
+			return nil, err
+		}
+		return csv.NewReader(f), err
+	}
+}
+
 // import is the main entry point for the update command.
 func importAssets(cmd *cobra.Command, args []string) error {
-	csvFile = args[0]
+	if len(args) == 1 {
+		csvFile = args[0]
+	} else if len(args) == 0 {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeCharDevice) == 0 {
+			csvFile = "-"
+		} else {
+			return errors.New("missing the csv input. This can be either a file or standard input")
+		}
+	} else {
+		return errors.New("missing the csv input. This can be either a file or standard input")
+	}
 
 	// Create a domain object to interact with the datastore
 	d, err := domain.New(Conf.Session.DomainOptions)
@@ -62,13 +84,12 @@ func importAssets(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	f, err := os.Open(csvFile)
+	r, err := createCsvReader(csvFile)
 	if err != nil {
 		log.Error().Msgf("Failed to open the file %s. %s", csvFile, err)
 		return nil
 	}
 
-	r := csv.NewReader(f)
 	result, err := d.ImportCsv(cmd.Context(), r)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		log.Error().Msgf("The changes are invalid.")
