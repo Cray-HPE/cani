@@ -34,22 +34,25 @@ func CompareHardwareByTypeThenLocation(hw1 *Hardware, hw2 *Hardware) bool {
 	return hw1.Type < hw2.Type
 }
 
-// CompareLocationPath returns true if location1 should be before location2 when
-// sorted. This func only compares the location ordinals, and thus it assumes
-// that the locations are for the same type of hardware.
+// CompareLocationPath returns true if location1 should sort before location2
+// otherwise it returns false
 func CompareLocationPath(location1 LocationPath, location2 LocationPath) bool {
 	len2 := len(location2)
 	for i, loc1 := range location1 {
 		if i >= len2 {
-			return false
+			return true
 		}
 
 		loc2 := location2[i]
-		if loc1.Ordinal == loc2.Ordinal {
-			continue // go to the next location
+		if loc1.HardwareType == loc2.HardwareType {
+			if loc1.Ordinal == loc2.Ordinal {
+				continue // go to the next location
+			}
+			return loc1.Ordinal < loc2.Ordinal
+		} else {
+			return loc1.HardwareType < loc2.HardwareType
 		}
-		return loc1.Ordinal < loc2.Ordinal
 	}
-	// This case means that the two locations contain the same list of ordinals
+	// This case means that the two locations are the same
 	return false
 }
