@@ -74,7 +74,7 @@ func importAssets(cmd *cobra.Command, args []string) error {
 			return errors.New("missing the csv input. This can be either a file or standard input")
 		}
 	} else {
-		return errors.New("missing the csv input. This can be either a file or standard input")
+		return errors.New("too many arguments")
 	}
 
 	// Create a domain object to interact with the datastore
