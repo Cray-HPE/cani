@@ -52,7 +52,6 @@ func init() {
 	AlphaCmd.AddCommand(ValidateCmd)
 	AlphaCmd.AddCommand(ExportCmd)
 	AlphaCmd.AddCommand(ImportCmd)
-	RootCmd.AddCommand(VersionCmd)
 
 	// Global root command flags
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", cfgFile, "Path to the configuration file")
@@ -65,11 +64,13 @@ func setupLogging() {
 	// Default level for this example is info, unless debug flag is present
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	// Fancy, human-friendly console logger (but slower)
-	log.Logger = log.Output(zerolog.ConsoleWriter{
-		Out: os.Stderr,
-		// When not in a terminal disable color
-		NoColor: !term.IsTerminal(int(os.Stderr.Fd())),
-	})
+	log.Logger = log.Output(
+		zerolog.ConsoleWriter{
+			Out: os.Stderr,
+			// When not in a terminal disable color
+			NoColor: !term.IsTerminal(int(os.Stderr.Fd())),
+		},
+	)
 	if Debug {
 		// enable debug output globally
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
