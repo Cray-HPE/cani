@@ -28,19 +28,25 @@ It 'start a session'
   BeforeCall use_inactive_session
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
   BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
-  When call bin/cani alpha session --config canitest.yml start csm -S
+  When call bin/cani alpha session --config canitest.yml init csm -S
   The status should equal 0
   The line 1 of stderr should include 'Using simulation mode'
-End
+  The stderr should include 'Validated CANI inventory'
+  The stderr should include 'Validated external inventory provider'
+  # Verify the import logic reached out to SLS
+  The stderr should include 'GET https://localhost:8443/apis/sls/v1/dumpstate'
+  The stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/State/Components'
+  The stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/Inventory/Hardware'
 
-It 'import from SLS'
-  When call bin/cani alpha session --config canitest.yml import
-  The status should equal 0
-  The line 1 of stderr should include 'Session is STOPPED'
-  The line 2 of stderr should include 'Committing changes to session'
-  The line 3 of stderr should include 'GET https://localhost:8443/apis/sls/v1/dumpstate'
-  The line 4 of stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/State/Components'
-  The line 5 of stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/Inventory/Hardware'
+  # Verify the import logic pushed changes into SLS
+  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000'
+  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c1'
+  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c1b0'
+  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c3'
+  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c3b0'
+
+  # Verify the session has started
+  The stderr should include 'Session is now ACTIVE with provider csm and datastore'
 End
 
 It 'add hpe-ex2500-1-liquid-cooled-chassis cabinet'
@@ -71,7 +77,7 @@ It 'add hpe-ex2500-3-liquid-cooled-chassis cabinet'
 End
 
 It 'commit and reconcile'
-  When call bin/cani alpha session --config canitest.yml stop --commit
+  When call bin/cani alpha session --config canitest.yml apply --commit
   The status should equal 0
   The stderr should include 'Hardware added to the system'
   The stderr should include 'x8000            - Type: Cabinet, Class: Hill, Networks: {"cn":{"HMN":{"CIDR":"10.104.4.0/22","Gateway":"10.104.4.1","VLan":3001},"NMN":{"CIDR":"10.100.4.0/22","Gateway":"10.100.4.1","VLan":2001}}}'

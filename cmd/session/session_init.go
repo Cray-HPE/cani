@@ -43,11 +43,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// SessionStartCmd represents the session start command
-var SessionStartCmd = &cobra.Command{
-	Use:                "start",
-	Short:              "Start a session.",
-	Long:               `Start a session.`,
+// SessionInitCmd represents the session init command
+var SessionInitCmd = &cobra.Command{
+	Use:                "init",
+	Short:              "Initialize and start a session. Will perform an import of system's inventory format.",
+	Long:               `Initialize and start a session. Will perform an import of system's inventory format.`,
 	Args:               validProvider,
 	ValidArgs:          validArgs,
 	SilenceUsage:       true, // Errors are more important than the usage
@@ -144,6 +144,11 @@ func startSession(cmd *cobra.Command, args []string) error {
 	} else if err != nil {
 		return errors.Join(err,
 			errors.New("External inventory is unstable.  Fix issues before starting another session."))
+	}
+
+	// Commit the external inventory
+	if err := root.Conf.Session.Domain.Import(cmd.Context()); err != nil {
+		return err
 	}
 
 	// "Activate" the session
