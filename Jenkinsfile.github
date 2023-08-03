@@ -26,10 +26,10 @@
 @Library('csm-shared-library') _
 
 def goImage = 'artifactory.algol60.net/csm-docker/stable/csm-docker-sle-go'
-// Only consider X.Y.Z and X.Y.Z-postN tags as stable.
+// Only consider X.Y.Z and X.Y.Z.postN tags as stable.
 // Never consider X.Y.Z{[a|b|rc} or X.Y.Z.* tags (that are not post-releases) as stable.
 // The ==~ operator performs an exact match.
-def stableToken = ~/v?\d+\.\d+\.\d+-(alpha\d+)?/
+def stableToken = ~/v?\d+\.\d+\.\d+(\.post\d+)?/
 def isStable = (env.TAG_NAME != null & env.TAG_NAME ==~ stableToken) ? true : false
 pipeline {
 
