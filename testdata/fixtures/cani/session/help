@@ -5,10 +5,9 @@ Usage:
   cani alpha session [command]
 
 Available Commands:
-  import      TODO THIS IS JUST A SHIM COMMAND
-  start       Start a session.
+  apply       Apply changes from the session.
+  init        Initialize and start a session. Will perform an import of system's inventory format.
   status      View session status.
-  stop        Stop a session.
   summary     Show the summary of a stopped session
 
 Flags:

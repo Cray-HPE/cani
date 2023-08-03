@@ -39,11 +39,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// SessionStopCmd represents the session stop command
-var SessionStopCmd = &cobra.Command{
-	Use:                "stop",
-	Short:              "Stop a session.",
-	Long:               `Stop a session.`,
+// SessionApplyCmd represents the session apply command
+var SessionApplyCmd = &cobra.Command{
+	Use:                "apply",
+	Short:              "Apply changes from the session.",
+	Long:               `Apply changes from the session.`,
 	SilenceUsage:       true, // Errors are more important than the usage
 	RunE:               stopSession,
 	PersistentPostRunE: writeSession,
