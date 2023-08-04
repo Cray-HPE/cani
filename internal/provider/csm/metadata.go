@@ -78,23 +78,20 @@ type CabinetMetadata struct {
 // If the hardware doesn't have any metadata set an empty Metadata struct will be returned.
 func DecodeProviderMetadata(cHardware inventory.Hardware) (result Metadata, err error) {
 	ProviderMetadataRaw, ok := cHardware.ProviderMetadata[inventory.CSMProvider]
-	if !ok {
-		log.Debug().Any("id", cHardware.ID).Msgf("GetProviderMetadata: No CSM provider properties found")
-		return Metadata{}, nil // This should be ok, as its possible as not all hardware inventory items may have CSM specific data
-	}
+	if ok {
+		// Decode the Raw extra properties into the Metadata structure
+		decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+			DecodeHook: mapstructure.StringToIPHookFunc(),
+			Result:     &result,
+		})
+		if err != nil {
+			return Metadata{}, err
+		}
 
-	// Decode the Raw extra properties into the Metadata structure
-	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		DecodeHook: mapstructure.StringToIPHookFunc(),
-		Result:     &result,
-	})
-	if err != nil {
-		return Metadata{}, err
-	}
-
-	err = decoder.Decode(ProviderMetadataRaw)
-	if err != nil {
-		return result, err
+		err = decoder.Decode(ProviderMetadataRaw)
+		if err != nil {
+			return result, err
+		}
 	}
 
 	// Set initial values if not already present
