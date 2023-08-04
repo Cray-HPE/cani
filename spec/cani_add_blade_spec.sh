@@ -23,7 +23,10 @@
 
 
 Describe 'cani add blade'
- 
+
+# add each blade type as a parameter
+Parameters:value "hpe-crayex-ex235a-compute-blade" "hpe-crayex-ex235n-compute-blade" "hpe-crayex-ex420-compute-blade" "hpe-crayex-ex425-compute-blade"
+
 # help output should succeed and match the fixture
 # a config file should be created if one does not exist
 It '--help'
@@ -61,10 +64,10 @@ It '--config canitest.yml -L'
 End
 
 # Adding a blade should fail if no session is active
-It '--config canitest.yml hpe-crayex-ex235a-compute-blade'
+It '--config canitest.yml hpe-crayex-ex235a-compute-blade --cabinet 3000 --chassis 1 --blade 0'
   BeforeCall use_inactive_session # session is inactive
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
-  When call bin/cani alpha add blade --config canitest.yml hpe-crayex-ex235a-compute-blade
+  When call bin/cani alpha add blade --config canitest.yml hpe-crayex-ex235a-compute-blade --cabinet 3000 --chassis 1 --blade 0
   The status should equal 1
   The line 1 of stderr should equal "Error: No active session.  Run 'session start' to begin"
 End
@@ -72,10 +75,10 @@ End
 # Adding a blade should fail if:
 #   - a session is active
 #   - a datastore does not exist
-It '--config canitest.yml hpe-crayex-ex235n-compute-blade'
+It '--config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 3000 --chassis 1 --blade 0'
   BeforeCall use_active_session # session is active
   BeforeCall remove_datastore # datastore does not exist
-  When call bin/cani alpha add blade --config canitest.yml hpe-crayex-ex235n-compute-blade
+  When call bin/cani alpha add blade --config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 3000 --chassis 1 --blade 0
   The status should equal 1
   The line 1 of stderr should equal "Error: Datastore './canitestdb.json' does not exist.  Run 'session start' to begin"
 End
@@ -116,7 +119,7 @@ It '--config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 3000 --chass
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
   When call bin/cani alpha add blade --config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 3000 --chassis 0
   The status should equal 1
-  The line 1 of stderr should equal 'Error: required flag(s) "blade" not set'
+  The line 1 of stderr should equal 'Error: required flag(s) "blade", not set'
 End
 
 # Adding a blade should fail if:
@@ -188,6 +191,54 @@ It '--config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 3000 --chass
   The line 1 of stderr should equal "Error: NodeBlade number 0 is already in use"
   The line 2 of stderr should equal "please re-run the command with an available NodeBlade number"
   The line 3 of stderr should equal "try 'cani alpha list blade'"
+End
+
+# blade suggestions should fail if there are no empty slots
+It "--config canitest.yml $1 --auto --accept"
+  When call bin/cani alpha add blade --config canitest.yml "$1" --auto --accept
+  The status should equal 1
+  The line 1 of stderr should equal 'Error: no available NodeBlade slots'
+End
+
+End
+
+
+
+Describe 'cani add blade'
+
+Parameters:dynamic
+  # For each cabinet type
+  for cab in "use_valid_datastore_one_ex2000_cabinet" "use_valid_datastore_one_ex2500_1_cabinet" "use_valid_datastore_one_ex2500_2_cabinet" "use_valid_datastore_one_ex2500_3_cabinet" "use_valid_datastore_one_ex3000_cabinet" "use_valid_datastore_one_ex4000_cabinet"; do
+    # add each blade type
+    for bld in "hpe-crayex-ex235a-compute-blade" "hpe-crayex-ex235n-compute-blade" "hpe-crayex-ex420-compute-blade" "hpe-crayex-ex425-compute-blade"; do
+      # ordinals vary depending upon the cabinet
+      if [ "$cab" = "use_valid_datastore_one_ex2000_cabinet" ]; then cabinet=9000;chassis=1;blade=0; fi
+      if [ "$cab" = "use_valid_datastore_one_ex2500_1_cabinet" ]; then cabinet=8000;chassis=0;blade=0; fi
+      if [ "$cab" = "use_valid_datastore_one_ex2500_2_cabinet" ]; then cabinet=8000;chassis=0;blade=0; fi
+      if [ "$cab" = "use_valid_datastore_one_ex2500_3_cabinet" ]; then cabinet=8000;chassis=0;blade=0; fi
+      if [ "$cab" = "use_valid_datastore_one_ex3000_cabinet" ]; then cabinet=1000;chassis=0;blade=0; fi
+      if [ "$cab" = "use_valid_datastore_one_ex4000_cabinet" ]; then cabinet=1000;chassis=0;blade=0; fi
+      # these vars are used in the tests
+      %data "$cab" "$bld" "$cabinet" "$chassis" "$blade"
+    done
+  done
+End
+
+# check auto adding each blade type to each cabinet type using the dynamic matrix above
+It "--config canitest.yml $2 --auto --accept"
+  BeforeCall use_active_session # session is active
+  BeforeCall "$1" # deploy a valid datastore with one cabinet
+  When call bin/cani alpha add blade --config canitest.yml "$2" --auto --accept
+  The status should equal 0
+  The line 1 of stderr should include 'Querying inventory to suggest cabinet, chassis, and blade for this NodeBlade'
+  The line 2 of stderr should include "Suggested Cabinet number: $3"
+  The line 3 of stderr should include "Suggested Chassis number: $4"
+  The line 4 of stderr should include "Suggested NodeBlade number: $5"
+  The line 6 of stderr should include 'NodeBlade was successfully staged to be added to the system'
+  The line 7 of stderr should include 'UUID: '
+  The line 8 of stderr should include "Cabinet: $3"
+  The line 9 of stderr should include "Chassis: $4"
+  The line 10 of stderr should include "Blade: $5"
 End
 
 End
