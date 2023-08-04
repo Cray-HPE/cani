@@ -89,12 +89,7 @@ func (csm *CSM) recommendCabinet(inv inventory.Inventory, deviceTypeSlug string)
 				return provider.HardwareRecommendations{}, errors.Join(fmt.Errorf("failed to decode CSM metadata from cabinet (%v)", cHardware.ID), err)
 			}
 
-			if metadata.Cabinet == nil {
-				// There is no existing cabinet metadata
-				continue
-			}
-
-			if metadata.Cabinet.HMNVlan != nil {
+			if metadata.Cabinet != nil && metadata.Cabinet.HMNVlan != nil {
 				// add it to the slice that tracks existing vlans
 				existingVlans = append(existingVlans, *metadata.Cabinet.HMNVlan)
 			}
