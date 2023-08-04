@@ -91,17 +91,13 @@ func DecodeProviderMetadata(cHardware inventory.Hardware) (result Metadata, err 
 	if err != nil {
 		return Metadata{}, err
 	}
+
 	err = decoder.Decode(ProviderMetadataRaw)
-
-	return result, err
-}
-
-func GetProviderMetadata(cHardware inventory.Hardware) (result Metadata, err error) {
-	result, err = DecodeProviderMetadata(cHardware)
 	if err != nil {
 		return result, err
 	}
 
+	// Set initial values if not already present
 	if result.Cabinet == nil && cHardware.Type == hardwaretypes.Cabinet {
 		result.Cabinet = &CabinetMetadata{}
 	} else if result.Node == nil && cHardware.Type == hardwaretypes.Node {

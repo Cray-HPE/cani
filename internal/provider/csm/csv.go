@@ -88,7 +88,7 @@ func (csm *CSM) GetFields(hw *inventory.Hardware, fieldNames []string) (values [
 }
 
 func (csm *CSM) SetFields(hw *inventory.Hardware, values map[string]string) (result provider.SetFieldsResult, err error) {
-	csmMetadata, err := GetProviderMetadata(*hw)
+	csmMetadata, err := DecodeProviderMetadata(*hw)
 	if err != nil {
 		return result, err
 	}
