@@ -96,6 +96,21 @@ func DecodeProviderMetadata(cHardware inventory.Hardware) (result Metadata, err 
 	return result, err
 }
 
+func GetProviderMetadata(cHardware inventory.Hardware) (result Metadata, err error) {
+	result, err = DecodeProviderMetadata(cHardware)
+	if err != nil {
+		return result, err
+	}
+
+	if result.Cabinet == nil && cHardware.Type == hardwaretypes.Cabinet {
+		result.Cabinet = &CabinetMetadata{}
+	} else if result.Node == nil && cHardware.Type == hardwaretypes.Node {
+		result.Node = &NodeMetadata{}
+	}
+
+	return result, err
+}
+
 func EncodeProviderMetadata(metadata Metadata) (result map[string]interface{}, err error) {
 	// Encode the Metadata struct into map[string]interface{}
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
