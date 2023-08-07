@@ -1,19 +1,21 @@
-## cani alpha session status
+## cani alpha session apply
 
-View session status.
+Apply changes from the session.
 
 ### Synopsis
 
-View session status.
+Apply changes from the session.
 
 ```
-cani alpha session status [flags]
+cani alpha session apply [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for status
+  -c, --commit   Commit changes to session
+  -d, --dryrun   Perform dryrun, and do not make changes to the system
+  -h, --help     help for apply
 ```
 
 ### Options inherited from parent commands

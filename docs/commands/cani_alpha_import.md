@@ -1,19 +1,19 @@
-## cani alpha validate
+## cani alpha import
 
-Validate assets in the inventory.
+Import assets into the inventory.
 
 ### Synopsis
 
-Validate assets in the inventory.
+Import assets into the inventory.
 
 ```
-cani alpha validate [flags]
+cani alpha import [FILE] [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for validate
+  -h, --help   help for import
 ```
 
 ### Options inherited from parent commands
