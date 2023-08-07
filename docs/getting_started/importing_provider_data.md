@@ -4,19 +4,16 @@ A common starting point when working with inventory data is to import it into `c
 
 ## Import From A Provider
 
-In this example, a session is started with the CSM provider.  Data is imported from SLS.  
+In this example, a session is started with the CSM provider, and data is imported from SLS.
 
 > Note: This example uses -k (insecure), which is not recommended, but is available for this alpha release
 
 ```shell
-# example: starting a session 
-cani alpha session start csm \
+# example: starting a session and importing the data
+cani alpha session init csm \
   --csm-keycloak-username username \
   --csm-keycloak-password password \
   --csm-api-host api-gw-service-nmn.local
-
-# importing the data and inject cani metadata, including schema version to the provider
-cani alpha session import
 ```
 
 ### Injected Metadata

@@ -19,7 +19,7 @@ source ./venv/bin/activate
 
 ```shell
 # start a session using the --simulation flag
-rm -rf ~/.cani && go run . alpha session start csm -S -k
+rm -rf ~/.cani && go run . alpha session init csm -S -k
 # sls is pre-populated, but it is often useful to empty it out or populate it with something else
 # wipe out SLS
 echo '{}' > /tmp/sls_empty.json; curl -X POST -F "sls_dump=@/tmp/sls_empty.json" https://localhost:8443/apis/sls/v1/loadstate -ik
