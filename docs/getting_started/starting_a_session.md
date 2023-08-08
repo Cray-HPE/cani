@@ -14,20 +14,20 @@ Starting a simple session might look like this, which authorizes a user over the
 
 ```shell
 # example: starting a session over the CMN
-cani alpha session start csm \
+cani alpha session init csm \
   --csm-keycloak-username username \
   --csm-keycloak-password password \
   --csm-api-host cmn.example.com \
   -k
 ```
 
-Just as common, is running `cani` on an NCN. 
+Just as common, is running `cani` on an NCN.
 
 > Note: since the NCNs have the platform certificates installed, the -k flag is not used
 
 ```shell
 # example: starting a session on an NCN
-cani alpha session start csm \
+cani alpha session init csm \
   --csm-keycloak-username username \
   --csm-keycloak-password password \
   --csm-api-host api-gw-service-nmn.local
