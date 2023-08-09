@@ -476,7 +476,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 		hsmComponent, exists := hsmStateComponentsMap[nodeBladeXname.String()]
 		if !exists {
 			log.Debug().Msgf("%s exists in SLS, but not HSM", nodeBladeXname)
-
+			// This could be caused by the cabinet controller not been discovered yet
 			continue
 		}
 
@@ -496,7 +496,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			nodeEnclosure, exists := hsmHardwareInventoryMap[nodeEnclosureXname.String()]
 			if !exists {
 				log.Warn().Msgf("%s is missing from HSM hardware inventory, possible phantom hardware", nodeEnclosureXname)
-				continue // TODO what should happen here?
+				continue
 			}
 
 			if nodeEnclosure.PopulatedFRU == nil {
@@ -525,7 +525,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 
 	}
 
-	// 3.
+	// 3. Import node data for nodes that are physically present
 	for nodeBladeXname, deviceSlug := range nodeBladeDeviceSlugs {
 		// Check to see if the node blade exists
 
@@ -573,7 +573,108 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 		}
 	}
 
-	// Update node metadata in CANI and SLS
+	// 4. Handle phantom nodes
+	for _, slsNode := range allNodes {
+		nodeXname := xnames.FromStringToStruct[xnames.Node](slsNode.Xname)
+		if nodeXname == nil {
+			return fmt.Errorf("failed to parse node xname (%s)", slsNode.Xname)
+		}
+
+		if hsmComponent, exists := hsmHardwareInventoryMap[nodeXname.String()]; exists && hsmComponent.Status != "Empty" {
+			// HSM knows about the component and its not empty. This can't be a phantom node
+			continue
+		}
+
+		//
+		// This must be a phantom node!
+		//
+
+		nodeBMCXname := nodeXname.Parent()
+		nodeBladeXname := nodeBMCXname.Parent()
+		chassisXname := nodeBladeXname.Parent()
+
+		// Retrieve the chassis
+		chassisLP, err := FromXname(chassisXname)
+		if err != nil {
+			return errors.Join(fmt.Errorf("failed to determine location path for chassis %s", chassisXname), err)
+		}
+		cChassis, err := tempDatastore.GetAtLocation(chassisLP)
+		if errors.Is(err, inventory.ErrHardwareNotFound) {
+			return errors.Join(fmt.Errorf("chassis %v does not exist in temporary datastore", chassisLP), err)
+		} else if err != nil {
+			return errors.Join(fmt.Errorf("failed to retrieve chassis %v from temporary datastore", chassisLP), err)
+		}
+
+		// Retrieve the node blade
+		nodeBladeLP := append(chassisLP, inventory.LocationToken{
+			HardwareType: hardwaretypes.NodeBlade,
+			Ordinal:      nodeBladeXname.ComputeModule,
+		})
+
+		cNodeBlade, err := tempDatastore.GetAtLocation(nodeBladeLP)
+		if errors.Is(err, inventory.ErrHardwareNotFound) {
+			// Create empty node blade in CANI
+			cNodeBlade = inventory.Hardware{
+				Parent:          cChassis.ID,
+				Type:            hardwaretypes.NodeBlade,
+				Status:          inventory.HardwareStatusEmpty,
+				LocationOrdinal: pointers.IntPtr(nodeBladeXname.ComputeModule),
+			}
+
+			if err := tempDatastore.Add(&cNodeBlade); err != nil {
+				return errors.Join(fmt.Errorf("failed to create empty node blade for %v in datastore", nodeBladeXname), err)
+			}
+
+		} else if err != nil {
+			return errors.Join(fmt.Errorf("failed to retrieve node blade %v from temporary datastore", nodeBladeLP), err)
+		}
+
+		// Retrieve the node card
+		nodeCardLP := append(nodeBladeLP, inventory.LocationToken{
+			HardwareType: hardwaretypes.NodeCard,
+			Ordinal:      nodeBMCXname.NodeBMC,
+		})
+
+		cNodeCard, err := tempDatastore.GetAtLocation(nodeCardLP)
+		if errors.Is(err, inventory.ErrHardwareNotFound) {
+			// Create empty node card in CANI
+			cNodeCard = inventory.Hardware{
+				Parent:          cNodeBlade.ID,
+				Type:            hardwaretypes.NodeCard,
+				Status:          inventory.HardwareStatusEmpty,
+				LocationOrdinal: pointers.IntPtr(nodeBMCXname.NodeBMC),
+			}
+			if err := tempDatastore.Add(&cNodeCard); err != nil {
+				return errors.Join(fmt.Errorf("failed to create empty node card for %v in datastore", nodeBladeXname), err)
+			}
+		} else if err != nil {
+			return errors.Join(fmt.Errorf("failed to retrieve node card %v from temporary datastore", nodeBladeLP), err)
+		}
+
+		// Retrieve the node
+		nodeLP := append(nodeCardLP, inventory.LocationToken{
+			HardwareType: hardwaretypes.Node,
+			Ordinal:      nodeXname.Node,
+		})
+
+		cNode, err := tempDatastore.GetAtLocation(nodeLP)
+		if errors.Is(err, inventory.ErrHardwareNotFound) {
+			// Create empty node card in CANI
+			cNode = inventory.Hardware{
+				Parent:          cNodeCard.ID,
+				Type:            hardwaretypes.Node,
+				Status:          inventory.HardwareStatusEmpty,
+				LocationOrdinal: pointers.IntPtr(nodeXname.Node),
+			}
+			if err := tempDatastore.Add(&cNode); err != nil {
+				return errors.Join(fmt.Errorf("failed to create empty node for %v in datastore", nodeXname), err)
+			}
+		} else if err != nil {
+			return errors.Join(fmt.Errorf("failed to retrieve node card %v from temporary datastore", nodeBladeLP), err)
+		}
+	}
+
+	// 5. Update node metadata in CANI and SLS
 	for _, slsNode := range allNodes {
 		nodeXname := xnames.FromString(slsNode.Xname)
 		if nodeXname == nil {
@@ -613,37 +714,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 		cNode, err := tempDatastore.GetAtLocation(nodeLocationPath)
 		if errors.Is(err, inventory.ErrHardwareNotFound) {
 			log.Warn().Msgf("Hardware does not exist (possible phantom hardware): %s", nodeLocationPath)
-			// This is a phantom node, and we need to push this into the inventory to preserve the logical information
-			// of the node
-			// TODO an interesting scenario to test with this would be the an bard peak blade in the location that that SLS assumes to be a windom blade
-
-			// The cabinet and chassis should exist
-			// cChassis, err := tempDatastore.GetAtLocation(nodeLocationPath[0:3])
-			// if errors.Is(err, inventory.ErrHardwareNotFound) {
-			// 	return errors.Join(fmt.Errorf("failed to query datastore for %s", nodeLocationPath), err)
-			// } else if err != nil {
-			// 	return errors.Join(fmt.Errorf("chassis of phantom node (%s) does not exist in datastore", nodeLocationPath), err)
-			// }
-
-			// // The Node Blade may not exist
-			// cNodeBlade, err := tempDatastore.GetAtLocation(nodeLocationPath[0:4])
-			// if errors.Is(err, inventory.ErrHardwareNotFound) {
-			// 	// It doesn't exist, so lets create an empty one
-			// 	cNodeBlade = inventory.Hardware{
-			// 		Parent: cChassis.ID,
-			// 	}
-			// 	tempDatastore.Add()
-			// } else if err != nil {
-			// 	return errors.Join(fmt.Errorf("failed to query datastore for %s", nodeLocationPath), err)
-			// }
-
-			// // The Node Card may not exist
-			// nodeCardExists, err := nodeLocationPath[0:5].Exists(tempDatastore)
-			// if err != nil {
-			// 	return errors.Join(fmt.Errorf("failed to query datastore for %s", nodeLocationPath), err)
-			// }
-
-			// log.Fatal().Msg("Panic!")
+			log.Fatal().Msg("Panic!")
 			continue
 		} else if err != nil {
 			return errors.Join(fmt.Errorf("failed to query datastore for %s", nodeLocationPath), err)
@@ -692,32 +763,11 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 	// TODO
 
 	//
-	// Handle phantom mountain/hill nodes
-	//
-	// TODO this might be better handled in the some code above
-
-	//
 	// Push updates to SLS
 	//
 	if err := sls.HardwareUpdate(csm.slsClient, ctx, slsHardwareToModify, 10); err != nil {
 		return errors.Join(fmt.Errorf("failed to update hardware in SLS"), err)
 	}
-
-	// TODO need a sls.HardwareCreate function
-	// for _, slsHardware := range slsHardwareToAdd {
-	// 	// Perform a POST against SLS
-	//
-	// 	_, r, err := csm.slsClient.HardwareApi.HardwarePost(ctx, sls.NewHardwarePostOpts(
-	// 		slsHardware,
-	// 	))
-	// 	if err != nil {
-	// 		return errors.Join(
-	// 			fmt.Errorf("failed to add hardware (%s) to SLS", slsHardware.Xname),
-	// 			err,
-	// 		)
-	// 	}
-	// 	log.Info().Int("status", r.StatusCode).Msg("Added hardware to SLS")
-	// }
 
 	// Commit changes!
 	if err := datastore.Merge(tempDatastore); err != nil {
