@@ -48,24 +48,26 @@ func DetermineHardwareClass(hardware inventory.Hardware, data inventory.Inventor
 			)
 		}
 
-		deviceType, exists := hardwareTypeLibrary.DeviceTypes[currentHardware.DeviceTypeSlug]
-		if !exists {
-			return "", errors.Join(
-				fmt.Errorf("unable to find device type (%s) for (%s)", currentHardware.DeviceTypeSlug, currentHardwareID),
-			)
-		}
+		if currentHardware.Status != inventory.HardwareStatusEmpty {
+			deviceType, exists := hardwareTypeLibrary.DeviceTypes[currentHardware.DeviceTypeSlug]
+			if !exists {
+				return "", errors.Join(
+					fmt.Errorf("unable to find device type (%s) for (%s)", currentHardware.DeviceTypeSlug, currentHardwareID),
+				)
+			}
 
-		if deviceType.ProviderDefaults != nil && deviceType.ProviderDefaults.CSM != nil && deviceType.ProviderDefaults.CSM.Class != nil {
-			classRaw := *deviceType.ProviderDefaults.CSM.Class
-			switch classRaw {
-			case "River":
-				return sls_client.HardwareClassRiver, nil
-			case "Mountain":
-				return sls_client.HardwareClassMountain, nil
-			case "Hill":
-				return sls_client.HardwareClassHill, nil
-			default:
-				return "", fmt.Errorf("encountered unknown CSM hardware class (%s)", classRaw)
+			if deviceType.ProviderDefaults != nil && deviceType.ProviderDefaults.CSM != nil && deviceType.ProviderDefaults.CSM.Class != nil {
+				classRaw := *deviceType.ProviderDefaults.CSM.Class
+				switch classRaw {
+				case "River":
+					return sls_client.HardwareClassRiver, nil
+				case "Mountain":
+					return sls_client.HardwareClassMountain, nil
+				case "Hill":
+					return sls_client.HardwareClassHill, nil
+				default:
+					return "", fmt.Errorf("encountered unknown CSM hardware class (%s)", classRaw)
+				}
 			}
 		}
 

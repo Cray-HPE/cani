@@ -90,6 +90,7 @@ It 'export after cabinets import'
   The status should equal 0
   The line 1 of stdout should equal "ID,Type,Vlan"
   The output should include "Cabinet,4000"
+  The output should include "Cabinet,3000"
   The output should not include "Node,"
 End
 
