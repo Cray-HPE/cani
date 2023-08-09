@@ -35,9 +35,7 @@ import (
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/cmd/config"
 	"github.com/Cray-HPE/cani/internal/domain"
-	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
-	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/manifoldco/promptui"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -116,15 +114,10 @@ func startSession(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Perform provider plugin specific logic at session start
-	switch root.Conf.Session.DomainOptions.Provider {
-	case string(inventory.CSMProvider):
-		// Need to get the systems Roles/SubRole data from the system
-		// TODO CASMINST-6417
-
-		// For now just use the defaults
-		root.Conf.Session.DomainOptions.CsmOptions.ValidRoles = csm.DefaultValidRoles
-		root.Conf.Session.DomainOptions.CsmOptions.ValidSubRoles = csm.DefaultValidSubRolesRoles
+	err = root.Conf.Session.Domain.SetConfigOptions(cmd.Context(), root.Conf.Session.DomainOptions)
+	if err != nil {
+		return errors.Join(err,
+			errors.New("External inventory is unstable. Unable to get provider specific config options. Fix issues before starting another session."))
 	}
 
 	// Validate the external inventory

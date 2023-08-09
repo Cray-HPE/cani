@@ -53,25 +53,6 @@ type NewOpts struct {
 	ValidSubRoles      []string
 }
 
-var DefaultValidRoles = []string{
-	"Compute",
-	"Service",
-	"System",
-	"Application",
-	"Storage",
-	"Management",
-}
-var DefaultValidSubRolesRoles = []string{
-	"Worker",
-	"Master",
-	"Storage",
-	"UAN",
-	"Gateway",
-	"LNETRouter",
-	"Visualization",
-	"UserDefined",
-}
-
 type CSM struct {
 	// Clients
 	slsClient *sls_client.APIClient

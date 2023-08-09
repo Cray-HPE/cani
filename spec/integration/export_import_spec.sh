@@ -115,7 +115,7 @@ End
 It 'import changes to nodes that already have metadata'
   When call sh -c '\
       bin/cani alpha --config canitest.yml export | \
-      sed "0,/Node,,Compute,,10000,nid10000,,/s//Node,,Compute,UAN,10000,nid10000,,/" | \
+      sed "0,/Node,,Compute,,10000,nid10000,,/s//Node,,Compute,Worker,10000,nid10000,,/" | \
       bin/cani alpha --config canitest.yml import'
   The status should equal 0
   The line 1 of stderr should include 'Success: Wrote 1 records of a total'
@@ -125,7 +125,7 @@ It 'export after node second import'
   When call bin/cani alpha --config canitest.yml export --type NODE,nodeblade --headers 'id,Type,role,subrole,nid,alias'
   The status should equal 0
   The line 1 of stdout should equal "ID,Type,Role,SubRole,Nid,Alias"
-  The output should include "Node,Compute,UAN,10000,nid10000"
+  The output should include "Node,Compute,Worker,10000,nid10000"
   The output should include "Node,Compute,,20000,nid20000"
   The output should not include "Cabinet,"
   The output should include "NodeBlade,"
