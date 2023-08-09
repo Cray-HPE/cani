@@ -29,6 +29,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"sort"
+	"text/tabwriter"
 
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/internal/domain"
@@ -67,13 +70,64 @@ func listChassis(cmd *cobra.Command, args []string) error {
 			filtered[key] = hw
 		}
 	}
-	// Convert the filtered inventory into a formatted JSON string
-	inventoryJSON, err := json.MarshalIndent(filtered, "", "  ")
-	if err != nil {
-		return errors.New(fmt.Sprintf("Error marshaling inventory to JSON: %v", err))
-	}
+	switch format {
+	case "json":
+		// Convert the filtered inventory into a formatted JSON string
+		inventoryJSON, err := json.MarshalIndent(filtered, "", "  ")
+		if err != nil {
+			return errors.New(fmt.Sprintf("Error marshaling inventory to JSON: %v", err))
+		}
 
-	// Print the inventory
-	fmt.Println(string(inventoryJSON))
+		// Print the inventory
+		fmt.Println(string(inventoryJSON))
+	case "pretty":
+
+		minwidth := 0         // minimal cell width including any padding
+		tabwidth := 8         // width of tab characters (equivalent number of spaces)
+		padding := 1          // padding added to a cell before computing its width
+		padchar := byte('\t') // ASCII char used for padding
+
+		w := tabwriter.NewWriter(os.Stdout, minwidth, tabwidth, padding, padchar, tabwriter.AlignRight)
+		defer w.Flush()
+
+		fmt.Fprintf(w, "%s\t%s\t%s\t%v\n",
+			"UUID",
+			"Status",
+			"Type",
+			"Location")
+
+		// make keys slice to sort by values in the map
+		keys := make([]uuid.UUID, 0, len(filtered))
+		for key := range filtered {
+			keys = append(keys, key)
+		}
+
+		// sort by what the user wants
+		sort.Slice(keys, func(i, j int) bool {
+			switch sortBy {
+			case "location":
+				return filtered[keys[i]].LocationPath.String() < filtered[keys[j]].LocationPath.String()
+
+			case "type":
+				return string(filtered[keys[i]].DeviceTypeSlug) < string(filtered[keys[j]].DeviceTypeSlug)
+
+			case "uuid":
+				return filtered[keys[i]].ID.String() < filtered[keys[j]].ID.String()
+
+			}
+
+			// default is sorted by loc
+			return filtered[keys[i]].LocationPath.String() < filtered[keys[j]].LocationPath.String()
+		})
+
+		for _, hw := range keys {
+			fmt.Fprintf(w, "%s\t%s\t%s\t%v\n",
+				filtered[hw].ID.String(),
+				filtered[hw].Status,
+				filtered[hw].DeviceTypeSlug,
+				filtered[hw].LocationPath.String())
+		}
+
+	}
 	return nil
 }

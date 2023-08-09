@@ -92,8 +92,9 @@ func listNode(cmd *cobra.Command, args []string) error {
 		w := tabwriter.NewWriter(os.Stdout, minwidth, tabwidth, padding, padchar, tabwriter.AlignRight)
 		defer w.Flush()
 
-		fmt.Fprintf(w, "%s\t%s\t%v\t%s\t%s\t%s\t%s\n",
+		fmt.Fprintf(w, "%s\t%s\t%s\t%v\t%s\t%s\t%s\t%s\n",
 			"UUID",
+			"Status",
 			"Type",
 			"Role",
 			"SubRole",
@@ -145,8 +146,9 @@ func listNode(cmd *cobra.Command, args []string) error {
 			// convert properties to strings and set nil values for easy printing
 			pp := nodeMetadata.Pretty()
 
-			fmt.Fprintf(w, "%s\t%s\t%v\t%v\t%v\t%v\t%v\n",
+			fmt.Fprintf(w, "%s\t%s\t%s\t%v\t%v\t%v\t%v\t%v\n",
 				filtered[hw].ID.String(),
+				filtered[hw].Status,
 				filtered[hw].DeviceTypeSlug,
 				pp.Role,
 				pp.SubRole,

@@ -32,6 +32,8 @@ import (
 var (
 	hwType      string
 	supportedHw []string
+	format      string
+	sortBy      string
 )
 
 func init() {
@@ -42,5 +44,8 @@ func init() {
 
 	// Add a flag to show supported types
 	AddChassisCmd.Flags().BoolP("list-supported-types", "L", false, "List supported hardware types.")
+
+	ListChassisCmd.Flags().StringVarP(&format, "format", "f", "pretty", "Format output")
+	ListChassisCmd.Flags().StringVarP(&sortBy, "sort", "s", "location", "Sort by a specific key")
 
 }
