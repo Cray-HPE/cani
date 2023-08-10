@@ -29,6 +29,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
@@ -156,6 +157,87 @@ func (csm *CSM) SetFields(hw *inventory.Hardware, values map[string]string) (res
 	}
 
 	return
+}
+
+func (csm *CSM) GetFieldMetadata(configOptions provider.ConfigOptions) ([]provider.FieldMetadata, error) {
+	id := provider.FieldMetadata{
+		Name:         "ID",
+		Types:        "All",
+		IsModifiable: false,
+		Description:  "A UUID",
+	}
+	location := provider.FieldMetadata{
+		Name:         "Location",
+		Types:        "All",
+		IsModifiable: false,
+		Description:  "The location path to the hardware",
+	}
+	name := provider.FieldMetadata{
+		Name:         "Name",
+		Types:        "All",
+		IsModifiable: false,
+	}
+	alias := provider.FieldMetadata{
+		Name:         "Alias",
+		Types:        "Node",
+		IsModifiable: true,
+		Description:  "Any string",
+	}
+	deviceTypeSlug := provider.FieldMetadata{
+		Name:         "DeviceTypeSlug",
+		Types:        "All",
+		IsModifiable: false,
+	}
+	nid := provider.FieldMetadata{
+		Name:         "Nid",
+		Types:        "Node",
+		IsModifiable: true,
+		Description:  "Any unique positive integer",
+	}
+	role := provider.FieldMetadata{
+		Name:         "Role",
+		Types:        "Node",
+		IsModifiable: true,
+		Description:  "Any of these values: " + strings.Join(configOptions.ValidRoles, ", "),
+	}
+	subRole := provider.FieldMetadata{
+		Name:         "SubRole",
+		Types:        "Node",
+		IsModifiable: true,
+		Description:  "Any of these values: " + strings.Join(configOptions.ValidSubRoles, ", "),
+	}
+	status := provider.FieldMetadata{
+		Name:         "Status",
+		Types:        "All",
+		IsModifiable: false,
+	}
+	hardwareType := provider.FieldMetadata{
+		Name:         "Type",
+		Types:        "All",
+		IsModifiable: false,
+		Description:  "The hardware type",
+	}
+	vlan := provider.FieldMetadata{
+		Name:         "Vlan",
+		Types:        "Cabinet",
+		IsModifiable: true,
+		Description:  "Any unique number from 0 to 4094",
+	}
+	metadata := []provider.FieldMetadata{
+		id,
+		location,
+		name,
+		alias,
+		deviceTypeSlug,
+		nid,
+		role,
+		subRole,
+		status,
+		hardwareType,
+		vlan,
+	}
+	return metadata, nil
+
 }
 
 func setVlan(vlanStr string, cabinetMetadata *CabinetMetadata) (bool, error) {
