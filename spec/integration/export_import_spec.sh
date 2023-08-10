@@ -95,7 +95,7 @@ End
 
 It 'import changes to nodes that do not have metadata'
   When call sh -c '\
-      bin/cani alpha --config canitest.yml export | \
+      bin/cani alpha --config canitest.yml export --headers type,vlan,role,subrole,nid,alias,name,id | \
       sed "0,/Node,,,,,,,/s//Node,,Compute,,10000,nid10000,,/" | \
       sed "0,/Node,,,,,,,/s//Node,,Compute,,20000,nid20000,,/" | \
       bin/cani alpha --config canitest.yml import'
@@ -114,7 +114,7 @@ End
 
 It 'import changes to nodes that already have metadata'
   When call sh -c '\
-      bin/cani alpha --config canitest.yml export | \
+      bin/cani alpha --config canitest.yml export --headers type,vlan,role,subrole,nid,alias,name,id | \
       sed "0,/Node,,Compute,,10000,nid10000,,/s//Node,,Compute,Worker,10000,nid10000,,/" | \
       bin/cani alpha --config canitest.yml import'
   The status should equal 0
