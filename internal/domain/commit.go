@@ -42,7 +42,8 @@ func (d *Domain) Commit(ctx context.Context, dryrun bool) (CommitResult, error) 
 	inventoryProvider := d.externalInventoryProvider
 
 	// Perform validation integrity of CANI's inventory data
-	if err := d.datastore.Validate(); err != nil {
+	// TODO handle validation result
+	if _, err := d.datastore.Validate(); err != nil {
 		return CommitResult{}, errors.Join(
 			fmt.Errorf("failed to validate inventory datastore"),
 			err,

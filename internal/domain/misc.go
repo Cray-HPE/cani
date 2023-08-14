@@ -47,23 +47,38 @@ func (d *Domain) List() (inventory.Inventory, error) {
 }
 
 type ValidateResult struct {
-	ProviderValidationErrors map[uuid.UUID]provider.HardwareValidationResult
+	DatastoreValidationErrors map[uuid.UUID]inventory.ValidateResult
+	ProviderValidationErrors  map[uuid.UUID]provider.HardwareValidationResult
 }
 
 func (d *Domain) Validate(ctx context.Context, checkRequiredData bool) (ValidateResult, error) {
 	var result ValidateResult
 
+	// Validate CANI's Inventory
+	if failedValidations, err := d.datastore.Validate(); len(failedValidations) > 0 {
+		result.DatastoreValidationErrors = failedValidations
+	} else if err != nil {
+		return ValidateResult{}, errors.Join(
+			fmt.Errorf("failed to validate datastore inventory"),
+			err,
+		)
+	}
+
 	// Validate the current state of CANI's inventory data against the provider plugin
 	// for provider specific data.
 	if failedValidations, err := d.externalInventoryProvider.ValidateInternal(ctx, d.datastore, checkRequiredData); len(failedValidations) > 0 {
 		result.ProviderValidationErrors = failedValidations
-		return result, provider.ErrDataValidationFailure
 	} else if err != nil {
 		return ValidateResult{}, errors.Join(
 			fmt.Errorf("failed to validate inventory against inventory provider plugin"),
 			err,
 		)
 	}
+
+	if len(result.DatastoreValidationErrors) > 0 || len(result.ProviderValidationErrors) > 0 {
+		return result, provider.ErrDataValidationFailure
+	}
+
 	log.Info().Msg("Validated CANI inventory")
 
 	// Validate external inventory data

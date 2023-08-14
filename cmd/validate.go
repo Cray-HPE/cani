@@ -31,6 +31,7 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -57,10 +58,26 @@ func validateInventory(cmd *cobra.Command, args []string) error {
 		if errors.Is(err, provider.ErrDataValidationFailure) {
 			// TODO the following should probably suggest commands to fix the issue?
 			log.Error().Msgf("Inventory data validation errors encountered")
-			for id, failedValidation := range result.ProviderValidationErrors {
-				log.Error().Msgf("  %s: %s", id, failedValidation.Hardware.LocationPath.String())
-				sort.Strings(failedValidation.Errors)
-				for _, validationError := range failedValidation.Errors {
+
+			// Merge datastore and provider validation errors
+			failedValidations := map[uuid.UUID][]string{}
+			locationPathStrings := map[uuid.UUID]string{}
+			for _, result := range result.DatastoreValidationErrors {
+				failedValidations[result.Hardware.ID] = append(failedValidations[result.Hardware.ID], result.Errors...)
+
+				locationPathStrings[result.Hardware.ID] = result.Hardware.LocationPath.String()
+			}
+			for _, result := range result.ProviderValidationErrors {
+				failedValidations[result.Hardware.ID] = append(failedValidations[result.Hardware.ID], result.Errors...)
+
+				locationPathStrings[result.Hardware.ID] = result.Hardware.LocationPath.String()
+			}
+
+			// Provider validation errors
+			for id, errorStrings := range failedValidations {
+				log.Error().Msgf("  %s: %s", id, locationPathStrings[id])
+				sort.Strings(errorStrings)
+				for _, validationError := range errorStrings {
 					log.Error().Msgf("    - %s", validationError)
 				}
 			}

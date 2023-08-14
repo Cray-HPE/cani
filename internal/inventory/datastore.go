@@ -36,13 +36,14 @@ var ErrHardwareParentNotFound = errors.New("hardware parent not found")
 var ErrHardwareUUIDConflict = errors.New("hardware uuid already exists")
 var ErrHardwareMissingLocationOrdinal = errors.New("hardware missing location ordinal")
 var ErrEmptyLocationPath = errors.New("empty location path provided")
+var ErrDatastoreValidationFailure = errors.New("datastore validation failure")
 
 type Datastore interface {
 	GetSchemaVersion() (SchemaVersion, error)
 	SetInventoryProvider(provider Provider) error
 	InventoryProvider() (Provider, error)
 	Flush() error
-	Validate() error
+	Validate() (map[uuid.UUID]ValidateResult, error)
 
 	// Crud operations
 	Add(hardware *Hardware) error
@@ -65,4 +66,9 @@ type Datastore interface {
 
 	// Merge the contents of the remote datastore (most likely a in-memory one with changes)
 	Merge(Datastore) error
+}
+
+type ValidateResult struct {
+	Hardware Hardware
+	Errors   []string
 }

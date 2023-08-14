@@ -94,22 +94,25 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 		{HardwareType: hardwaretypes.NodeBlade, Ordinal: bladeOrdinal},
 	}
 
-	exists, err = bladePath.Exists(d.datastore)
-	if err != nil {
+	existingBlade, err := d.datastore.GetAtLocation(bladePath)
+	if errors.Is(err, inventory.ErrHardwareNotFound) {
+		// Hardware does not exist, this is fine!
+		log.Debug().Msgf("No %s exists at %s", hardwaretypes.NodeBlade, bladePath)
+	} else if err != nil {
 		return AddHardwareResult{}, errors.Join(
 			fmt.Errorf("unable to check if %s exists at %s", hardwaretypes.NodeBlade, bladePath),
 			err,
 		)
-	}
-
-	// error if it exists because a blade cannot be added if one is already in place
-	if exists {
+	} else if existingBlade.Status != inventory.HardwareStatusEmpty {
 		return AddHardwareResult{},
 			errors.Join(
 				fmt.Errorf("%s number %d is already in use", hardwaretypes.NodeBlade, bladeOrdinal),
 				fmt.Errorf("please re-run the command with an available %s number", hardwaretypes.NodeBlade),
 				fmt.Errorf("try 'cani alpha list blade'"),
 			)
+	} else {
+		// Hardware exists in inventory as empty
+		log.Debug().Msgf("%s exists at %s with status %s", hardwaretypes.NodeBlade, bladePath, existingBlade.Status)
 	}
 
 	// Verify the provided device type slug is a node blade
