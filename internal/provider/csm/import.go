@@ -784,7 +784,7 @@ func (csm *CSM) buildInventoryHardware(deviceTypeSlug string, ordinal int, paren
 
 	// Build up the expected hardware
 	// Generate a hardware build out using the system as a parent
-	hardwareBuildOutItems, err := csm.hardwareLibrary.GetDefaultHardwareBuildOut(deviceTypeSlug, ordinal, parentID)
+	hardwareBuildOutItems, err := inventory.GetDefaultHardwareBuildOut(csm.hardwareLibrary, deviceTypeSlug, ordinal, parentID)
 	if err != nil {
 		return nil, errors.Join(
 			fmt.Errorf("unable to build default hardware build out for %s", deviceTypeSlug),

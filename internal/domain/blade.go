@@ -94,6 +94,7 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 		{HardwareType: hardwaretypes.NodeBlade, Ordinal: bladeOrdinal},
 	}
 
+	var existingHardware []inventory.Hardware
 	existingBlade, err := d.datastore.GetAtLocation(bladePath)
 	if errors.Is(err, inventory.ErrHardwareNotFound) {
 		// Hardware does not exist, this is fine!
@@ -113,6 +114,23 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 	} else {
 		// Hardware exists in inventory as empty
 		log.Debug().Msgf("%s exists at %s with status %s", hardwaretypes.NodeBlade, bladePath, existingBlade.Status)
+
+		// Retrieve the child hardware of this blade
+		existingChildHardware, err := d.datastore.GetDescendents(existingBlade.ID)
+		if err != nil {
+			return AddHardwareResult{}, errors.Join(
+				fmt.Errorf("unable to retrieve descents for %s %s at %v", hardwaretypes.NodeBlade, existingBlade.ID, bladePath),
+				err,
+			)
+		}
+
+		// Build up slice of hardware!
+		existingHardware = append(existingHardware, existingBlade)
+		existingHardware = append(existingHardware, existingChildHardware...)
+
+		// Need a LP to UUID lookup map to specify ID overrides for GetDefaultBuildOut
+
+		//
 	}
 
 	// Verify the provided device type slug is a node blade
@@ -131,7 +149,7 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 	}
 
 	// Generate a hardware build out
-	hardwareBuildOutItems, err := d.hardwareTypeLibrary.GetDefaultHardwareBuildOut(deviceTypeSlug, bladeOrdinal, chassisID)
+	hardwareBuildOutItems, err := inventory.GetDefaultHardwareBuildOut(d.hardwareTypeLibrary, deviceTypeSlug, bladeOrdinal, chassisID)
 	if err != nil {
 		return AddHardwareResult{}, errors.Join(
 			fmt.Errorf("unable to build default hardware build out for %s", deviceTypeSlug),

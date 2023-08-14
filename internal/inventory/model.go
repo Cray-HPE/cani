@@ -117,7 +117,7 @@ func (hardware *Hardware) SetProviderMetadata(provider Provider, metadata map[st
 	hardware.ProviderMetadata[provider] = metadata
 }
 
-func NewHardwareFromBuildOut(hardwareBuildOut hardwaretypes.HardwareBuildOut, status HardwareStatus) Hardware {
+func NewHardwareFromBuildOut(hardwareBuildOut HardwareBuildOut, status HardwareStatus) Hardware {
 	locationOrdinal := hardwareBuildOut.OrdinalPath[len(hardwareBuildOut.OrdinalPath)-1]
 
 	return Hardware{

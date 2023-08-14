@@ -716,6 +716,50 @@ func (dj *DatastoreJSON) getChildren(id uuid.UUID) ([]Hardware, error) {
 	return results, nil
 }
 
+func (dj *DatastoreJSON) GetDescendents(id uuid.UUID) ([]Hardware, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
+
+	results := []Hardware{}
+	callback := func(h Hardware) error {
+		results = append(results, h)
+		return nil
+	}
+
+	if err := dj.traverseByLocation(id, callback); err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func (dj *DatastoreJSON) traverseByLocation(rootID uuid.UUID, callback func(h Hardware) error) error {
+	queue := []uuid.UUID{rootID}
+
+	for len(queue) != 0 {
+		// Pull next ID from the queue
+		hardwareID := queue[0]
+		queue = queue[1:]
+
+		// Retrieve the hardware object
+		hardware, exists := dj.inventory.Hardware[hardwareID]
+		if !exists {
+			// This should not happen
+			return fmt.Errorf("unable to find hardware object with ID (%s)", hardware.ID)
+		}
+
+		// Visit the hardware object
+		if err := callback(hardware); err != nil {
+			return errors.Join(fmt.Errorf("callback failed on hardware object with ID (%s)", hardware.ID), err)
+		}
+
+		// Add the children to the queue
+		queue = append(queue, hardware.Children...)
+	}
+
+	return nil
+}
+
 // logTransaction logs a transaction to logger
 func (dj *DatastoreJSON) logTransaction(operation string, key string, value interface{}, err error) {
 	if dj.dataFilePath == "" {
