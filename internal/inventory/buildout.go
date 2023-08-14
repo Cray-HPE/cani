@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
-	"strings"
 
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
@@ -13,38 +12,30 @@ import (
 )
 
 type HardwareBuildOut struct {
-	ID               uuid.UUID
-	ParentID         uuid.UUID
-	DeviceTypeString string
-	DeviceType       hardwaretypes.DeviceType
-	OrdinalPath      []int
-	HardwareTypePath hardwaretypes.HardwareTypePath
+	ID             uuid.UUID
+	ParentID       uuid.UUID
+	DeviceTypeSlug string
+	DeviceType     hardwaretypes.DeviceType
+	DeviceOrdinal  int
+
+	LocationPath LocationPath
 
 	// TODO perhaps the OrdinalPath and HardwareTypePath should maybe become there down struct and be paired together.
 }
 
 func (hbo *HardwareBuildOut) GetOrdinal() int {
-	return hbo.OrdinalPath[len(hbo.OrdinalPath)-1]
-}
-
-func (hbo *HardwareBuildOut) LocationPathString() string {
-	tokens := []string{}
-
-	for i, token := range hbo.HardwareTypePath {
-		tokens = append(tokens, fmt.Sprintf("%s:%d", token, hbo.OrdinalPath[i]))
-	}
-
-	return strings.Join(tokens, "->")
+	ordinalPath := hbo.LocationPath.GetOrdinalPath()
+	return ordinalPath[len(ordinalPath)-1]
 }
 
 // TODO make this should work the inventory data structure
-func GetDefaultHardwareBuildOut(l *hardwaretypes.Library, deviceTypeString string, deviceOrdinal int, parentID uuid.UUID) (results []HardwareBuildOut, err error) {
+func GetDefaultHardwareBuildOut(l *hardwaretypes.Library, deviceTypeSlug string, deviceOrdinal int, parentID uuid.UUID) (results []HardwareBuildOut, err error) {
 	queue := []HardwareBuildOut{
 		{
-			ID:               uuid.New(),
-			ParentID:         parentID,
-			DeviceTypeString: deviceTypeString,
-			OrdinalPath:      []int{deviceOrdinal},
+			ID:             uuid.New(),
+			ParentID:       parentID,
+			DeviceTypeSlug: deviceTypeSlug,
+			DeviceOrdinal:  deviceOrdinal,
 		},
 	}
 
@@ -52,15 +43,18 @@ func GetDefaultHardwareBuildOut(l *hardwaretypes.Library, deviceTypeString strin
 		current := queue[0]
 		queue = queue[1:]
 
-		log.Debug().Msgf("Visiting: %s", current.DeviceTypeString)
-		currentDeviceType, ok := l.DeviceTypes[current.DeviceTypeString]
+		log.Debug().Msgf("Visiting: %s", current.DeviceTypeSlug)
+		currentDeviceType, ok := l.DeviceTypes[current.DeviceTypeSlug]
 		if !ok {
-			return nil, fmt.Errorf("device type (%v) does not exist", current.DeviceTypeString)
+			return nil, fmt.Errorf("device type (%v) does not exist", current.DeviceTypeSlug)
 		}
 
 		// Retrieve the hardware type at this point in time, so we only lookup in the map once
 		current.DeviceType = currentDeviceType
-		current.HardwareTypePath = append(current.HardwareTypePath, current.DeviceType.HardwareType)
+		current.LocationPath = append(current.LocationPath, LocationToken{
+			HardwareType: current.DeviceType.HardwareType,
+			Ordinal:      current.DeviceOrdinal,
+		})
 
 		for _, deviceBay := range currentDeviceType.DeviceBays {
 			log.Debug().Msgf("  Device bay: %s", deviceBay.Name)
@@ -80,7 +74,7 @@ func GetDefaultHardwareBuildOut(l *hardwaretypes.Library, deviceTypeString strin
 					ordinal, err = strconv.Atoi(match)
 					if err != nil {
 						return nil, errors.Join(
-							fmt.Errorf("unable extract ordinal from device bay name (%s) from device type (%s)", deviceBay.Name, current.DeviceTypeString),
+							fmt.Errorf("unable extract ordinal from device bay name (%s) from device type (%s)", deviceBay.Name, current.DeviceTypeSlug),
 							err,
 						)
 					}
@@ -88,11 +82,11 @@ func GetDefaultHardwareBuildOut(l *hardwaretypes.Library, deviceTypeString strin
 
 				queue = append(queue, HardwareBuildOut{
 					// Hardware type is deferred until when it is processed
-					ID:               uuid.New(),
-					ParentID:         current.ID,
-					DeviceTypeString: deviceBay.Default.Slug,
-					OrdinalPath:      append(current.OrdinalPath, ordinal),
-					HardwareTypePath: current.HardwareTypePath,
+					ID:             uuid.New(),
+					ParentID:       current.ID,
+					DeviceTypeSlug: deviceBay.Default.Slug,
+					DeviceOrdinal:  ordinal,
+					LocationPath:   current.LocationPath,
 				})
 			}
 		}

@@ -794,20 +794,9 @@ func (csm *CSM) buildInventoryHardware(deviceTypeSlug string, ordinal int, paren
 
 	var allHardware []inventory.Hardware
 	for _, hardwareBuildOut := range hardwareBuildOutItems {
-		locationOrdinal := hardwareBuildOut.OrdinalPath[len(hardwareBuildOut.OrdinalPath)-1]
+		hardware := inventory.NewHardwareFromBuildOut(hardwareBuildOut, inventory.HardwareStatusProvisioned)
 
-		allHardware = append(allHardware, inventory.Hardware{
-			ID:             hardwareBuildOut.ID,
-			Parent:         hardwareBuildOut.ParentID,
-			Type:           hardwareBuildOut.DeviceType.HardwareType,
-			DeviceTypeSlug: hardwareBuildOut.DeviceType.Slug,
-			Vendor:         hardwareBuildOut.DeviceType.Manufacturer,
-			Model:          hardwareBuildOut.DeviceType.Model,
-
-			LocationOrdinal: &locationOrdinal,
-
-			Status: inventory.HardwareStatusProvisioned,
-		})
+		allHardware = append(allHardware, hardware)
 
 	}
 

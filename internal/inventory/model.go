@@ -31,6 +31,7 @@ import (
 	"strings"
 
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+	"github.com/Cray-HPE/cani/pkg/pointers"
 	"github.com/google/uuid"
 )
 
@@ -118,8 +119,6 @@ func (hardware *Hardware) SetProviderMetadata(provider Provider, metadata map[st
 }
 
 func NewHardwareFromBuildOut(hardwareBuildOut HardwareBuildOut, status HardwareStatus) Hardware {
-	locationOrdinal := hardwareBuildOut.OrdinalPath[len(hardwareBuildOut.OrdinalPath)-1]
-
 	return Hardware{
 		ID:             hardwareBuildOut.ID,
 		Parent:         hardwareBuildOut.ParentID,
@@ -128,7 +127,7 @@ func NewHardwareFromBuildOut(hardwareBuildOut HardwareBuildOut, status HardwareS
 		Vendor:         hardwareBuildOut.DeviceType.Manufacturer,
 		Model:          hardwareBuildOut.DeviceType.Model,
 
-		LocationOrdinal: &locationOrdinal,
+		LocationOrdinal: pointers.IntPtr(hardwareBuildOut.DeviceOrdinal),
 
 		Status: status,
 	}

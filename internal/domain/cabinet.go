@@ -93,22 +93,7 @@ func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetO
 
 	for _, hardwareBuildOut := range hardwareBuildOutItems {
 		// Generate the CANI hardware inventory version of the hardware build out data
-		// TODO
-
-		locationOrdinal := hardwareBuildOut.OrdinalPath[len(hardwareBuildOut.OrdinalPath)-1]
-
-		hardware := inventory.Hardware{
-			ID:             hardwareBuildOut.ID,
-			Parent:         hardwareBuildOut.ParentID,
-			Type:           hardwareBuildOut.DeviceType.HardwareType,
-			DeviceTypeSlug: hardwareBuildOut.DeviceType.Slug,
-			Vendor:         hardwareBuildOut.DeviceType.Manufacturer,
-			Model:          hardwareBuildOut.DeviceType.Model,
-
-			LocationOrdinal: &locationOrdinal,
-
-			Status: inventory.HardwareStatusStaged,
-		}
+		hardware := inventory.NewHardwareFromBuildOut(hardwareBuildOut, inventory.HardwareStatusStaged)
 
 		// Ask the inventory provider to craft a metadata object for this information
 		if err := d.externalInventoryProvider.BuildHardwareMetadata(&hardware, metadata); err != nil {
@@ -116,7 +101,7 @@ func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetO
 		}
 
 		log.Debug().Any("id", hardware.ID).Msg("Hardware")
-		log.Debug().Str("path", hardwareBuildOut.LocationPathString()).Msg("Hardware Build out")
+		log.Debug().Str("path", hardwareBuildOut.LocationPath.String()).Msg("Hardware Build out")
 
 		// TODO need a check to see if all the needed information exists,
 		// Things like role/subrole/nid/alias could be injected at a later time.
