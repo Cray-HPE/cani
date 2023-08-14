@@ -7,7 +7,7 @@ Flags:
   -a, --all              List all components. This overrides the --type option
       --headers string   Comma separated list of fields to get (default "Type,Vlan,Role,SubRole,Status,Nid,Alias,Name,ID,Location")
   -h, --help             help for export
-  -L, --list-options     List options for the fields
+  -L, --list-fields      List details about the fields in the CSV
   -t, --type string      Comma separated list of the types of components to output (default "Node,Cabinet")
 
 Global Flags:

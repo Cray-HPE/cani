@@ -48,7 +48,7 @@ func init() {
 	ExportCmd.PersistentFlags().StringVarP(
 		&csvComponentTypes, "type", "t", "Node,Cabinet", "Comma separated list of the types of components to output")
 	ExportCmd.PersistentFlags().BoolVarP(&csvAllTypes, "all", "a", false, "List all components. This overrides the --type option")
-	ExportCmd.PersistentFlags().BoolVarP(&csvListOptions, "list-options", "L", false, "List options for the fields")
+	ExportCmd.PersistentFlags().BoolVarP(&csvListOptions, "list-fields", "L", false, "List details about the fields in the CSV")
 }
 
 // ExportCmd represents the export command
