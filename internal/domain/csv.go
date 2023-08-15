@@ -31,8 +31,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"sort"
+	"strconv"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
@@ -54,6 +57,31 @@ var (
 		"alias":          "Alias",
 		"nid":            "Nid"}
 )
+
+func (d *Domain) ListCsvOptions(ctx context.Context, opts *NewOpts) error {
+	configOptions := provider.ConfigOptions{
+		ValidRoles:    opts.CsmOptions.ValidRoles,
+		ValidSubRoles: opts.CsmOptions.ValidSubRoles,
+	}
+	metadata, err := d.externalInventoryProvider.GetFieldMetadata(configOptions)
+	if err != nil {
+		return err
+	}
+
+	minwidth := 0         // minimal cell width including any padding
+	tabwidth := 8         // width of tab characters (equivalent number of spaces)
+	padding := 1          // padding added to a cell before computing its width
+	padchar := byte('\t') // ASCII char used for padding
+
+	w := tabwriter.NewWriter(os.Stdout, minwidth, tabwidth, padding, padchar, tabwriter.AlignRight)
+	defer w.Flush()
+
+	fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", "Name", "Types", "Modifiable", "Description")
+	for _, m := range metadata {
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", m.Name, m.Types, strconv.FormatBool(m.IsModifiable), m.Description)
+	}
+	return nil
+}
 
 func (d *Domain) ExportCsv(ctx context.Context, writer *csv.Writer, headers []string, types []string) error {
 	// Get the entire inventory

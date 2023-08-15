@@ -54,7 +54,7 @@ type InventoryProvider interface {
 	// RecommendCabinet returns recommended settings for adding a cabinet
 	RecommendCabinet(inv inventory.Inventory, deviceTypeSlug string) (HardwareRecommendations, error)
 
-	// Get Config Options are specific to the Provider. For example, supported Roles and SubRoles
+	// Get Config Options that are specific to the Provider. For example, supported Roles and SubRoles
 	ConfigOptions(ctx context.Context) (ConfigOptions, error)
 
 	//
@@ -70,6 +70,9 @@ type InventoryProvider interface {
 
 	// Set fields in the hardware's metadata
 	SetFields(hw *inventory.Hardware, values map[string]string) (result SetFieldsResult, err error)
+
+	// Return metadata about each field
+	GetFieldMetadata(configOptions ConfigOptions) ([]FieldMetadata, error)
 }
 
 type HardwareValidationResult struct {
@@ -95,4 +98,11 @@ type SetFieldsResult struct {
 type ConfigOptions struct {
 	ValidRoles    []string
 	ValidSubRoles []string
+}
+
+type FieldMetadata struct {
+	Name         string
+	Types        string
+	Description  string
+	IsModifiable bool
 }
