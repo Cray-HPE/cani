@@ -43,7 +43,7 @@ func buildCabinet(hardwareTypeLibrary hardwaretypes.Library, datastore inventory
 	}
 
 	// Build cabinet hardware
-	cabinetHardwareBuildOut, err := inventory.GetDefaultHardwareBuildOut(&hardwareTypeLibrary, cabinetDeviceType, cabinetOrdinal, system.ID)
+	cabinetHardwareBuildOut, err := inventory.GenerateDefaultHardwareBuildOut(&hardwareTypeLibrary, cabinetDeviceType, cabinetOrdinal, system)
 	if err != nil {
 		return errors.Join(fmt.Errorf("failed to build cabinet hardware for device type %s with ordinal %d", cabinetDeviceType, cabinetOrdinal), err)
 	}
@@ -73,7 +73,7 @@ func buildCabinet(hardwareTypeLibrary hardwaretypes.Library, datastore inventory
 
 		// Build up hardware for each slot
 		for bladeOrdinal, bladeDeviceType := range slots {
-			cabinetHardwareBuildOut, err := inventory.GetDefaultHardwareBuildOut(&hardwareTypeLibrary, bladeDeviceType, bladeOrdinal, chassis.ID)
+			cabinetHardwareBuildOut, err := inventory.GenerateDefaultHardwareBuildOut(&hardwareTypeLibrary, bladeDeviceType, bladeOrdinal, chassis)
 			if err != nil {
 				return errors.Join(fmt.Errorf("failed to build cabinet hardware for blade type (%s) with ordinal (%d) in chassis (%v)", bladeDeviceType, bladeOrdinal, chassisLocationPath), err)
 			}

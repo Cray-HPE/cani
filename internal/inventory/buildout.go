@@ -20,7 +20,7 @@ type HardwareBuildOut struct {
 
 	LocationPath LocationPath
 
-	// TODO perhaps the OrdinalPath and HardwareTypePath should maybe become there down struct and be paired together.
+	ExistingHardware *Hardware
 }
 
 func (hbo *HardwareBuildOut) GetOrdinal() int {
@@ -28,14 +28,53 @@ func (hbo *HardwareBuildOut) GetOrdinal() int {
 	return ordinalPath[len(ordinalPath)-1]
 }
 
+func GenerateDefaultHardwareBuildOut(l *hardwaretypes.Library, deviceTypeSlug string, deviceOrdinal int, parentHardware Hardware) (results []HardwareBuildOut, err error) {
+	return GenerateHardwareBuildOut(l, GenerateHardwareBuildOutOpts{
+		DeviceTypeSlug: deviceTypeSlug,
+		DeviceOrdinal:  deviceOrdinal,
+		DeviceID:       nil, // Generate one, TODO maybe allocate the UUID here?
+		ParentHardware: parentHardware,
+	})
+}
+
+type GenerateHardwareBuildOutOpts struct {
+	DeviceTypeSlug string
+	DeviceOrdinal  int
+	DeviceID       *uuid.UUID // Optional: If specified use this for the top level hardware object created, otherwise a UUID is generated
+
+	ParentHardware Hardware
+
+	ExistingDescendentHardware []Hardware
+}
+
 // TODO make this should work the inventory data structure
-func GetDefaultHardwareBuildOut(l *hardwaretypes.Library, deviceTypeSlug string, deviceOrdinal int, parentID uuid.UUID) (results []HardwareBuildOut, err error) {
+func GenerateHardwareBuildOut(l *hardwaretypes.Library, opts GenerateHardwareBuildOutOpts) (results []HardwareBuildOut, err error) {
+	//
+	// Build up existing hardware lookup map
+	//
+	existingDescendentHardware := map[string]Hardware{}
+	for _, hardware := range opts.ExistingDescendentHardware {
+		existingDescendentHardware[hardware.LocationPath.String()] = hardware
+	}
+
+	//
+	// Build out hardware
+	//
+	var topLevelHardwareID uuid.UUID
+	if opts.DeviceID != nil {
+		topLevelHardwareID = *opts.DeviceID
+	} else {
+		topLevelHardwareID = uuid.New()
+	}
+
 	queue := []HardwareBuildOut{
 		{
-			ID:             uuid.New(),
-			ParentID:       parentID,
-			DeviceTypeSlug: deviceTypeSlug,
-			DeviceOrdinal:  deviceOrdinal,
+			ID:             topLevelHardwareID,
+			ParentID:       opts.ParentHardware.ID,
+			DeviceTypeSlug: opts.DeviceTypeSlug,
+			DeviceOrdinal:  opts.DeviceOrdinal,
+
+			LocationPath: opts.ParentHardware.LocationPath, // The loop below will add on the require location token for this devices path.
 		},
 	}
 
@@ -55,6 +94,14 @@ func GetDefaultHardwareBuildOut(l *hardwaretypes.Library, deviceTypeSlug string,
 			HardwareType: current.DeviceType.HardwareType,
 			Ordinal:      current.DeviceOrdinal,
 		})
+
+		// Override hardware ID if there is a piece of hardware already exists
+		// This override should be ok to do here, as no child hardware in the queue should have added
+		// yet, as that happens in the loop below.
+		if existingHardware, exists := existingDescendentHardware[current.LocationPath.String()]; exists {
+			current.ID = existingHardware.ID
+			current.ExistingHardware = &existingHardware
+		}
 
 		for _, deviceBay := range currentDeviceType.DeviceBays {
 			log.Debug().Msgf("  Device bay: %s", deviceBay.Name)

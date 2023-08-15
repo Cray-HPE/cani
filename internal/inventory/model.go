@@ -205,6 +205,21 @@ func (lp LocationPath) GetUUID(ds Datastore) (uuid.UUID, error) {
 	}
 }
 
+// Get returns the Hardware at the location path
+func (lp LocationPath) Get(ds Datastore) (Hardware, error) {
+	hw, err := ds.GetAtLocation(lp)
+	if err == nil {
+		// Hardware found
+		return hw, nil
+	} else if errors.Is(err, ErrHardwareNotFound) {
+		// Hardware not found
+		return Hardware{}, ErrHardwareNotFound
+	} else {
+		// Oops something happened
+		return Hardware{}, err
+	}
+}
+
 // GetOrdinalPath returns the ordinal of the location path
 func (lp LocationPath) GetOrdinalPath() []int {
 	result := []int{}

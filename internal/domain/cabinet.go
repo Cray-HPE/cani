@@ -81,7 +81,7 @@ func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetO
 	}
 
 	// Generate a hardware build out using the system as a parent
-	hardwareBuildOutItems, err := inventory.GetDefaultHardwareBuildOut(d.hardwareTypeLibrary, deviceTypeSlug, cabinetOrdinal, system.ID)
+	hardwareBuildOutItems, err := inventory.GenerateDefaultHardwareBuildOut(d.hardwareTypeLibrary, deviceTypeSlug, cabinetOrdinal, system)
 	if err != nil {
 		return AddHardwareResult{}, errors.Join(
 			fmt.Errorf("unable to build default hardware build out for %s", deviceTypeSlug),

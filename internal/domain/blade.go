@@ -143,13 +143,13 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 	}
 
 	// Get the chassis ID, since it is needed as an arg to the hardware buildout so the blade is added to the correct parent device
-	chassisID, err := chassisPath.GetUUID(d.datastore)
+	chassis, err := chassisPath.Get(d.datastore)
 	if err != nil {
 		return AddHardwareResult{}, err
 	}
 
 	// Generate a hardware build out
-	hardwareBuildOutItems, err := inventory.GetDefaultHardwareBuildOut(d.hardwareTypeLibrary, deviceTypeSlug, bladeOrdinal, chassisID)
+	hardwareBuildOutItems, err := inventory.GenerateDefaultHardwareBuildOut(d.hardwareTypeLibrary, deviceTypeSlug, bladeOrdinal, chassis)
 	if err != nil {
 		return AddHardwareResult{}, errors.Join(
 			fmt.Errorf("unable to build default hardware build out for %s", deviceTypeSlug),

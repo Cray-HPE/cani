@@ -45,7 +45,6 @@ import (
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	"github.com/Cray-HPE/hms-xname/xnames"
 	"github.com/Cray-HPE/hms-xname/xnametypes"
-	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 )
 
@@ -261,7 +260,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			}
 
 			// Now its time to build up what the hardware looks like
-			newHardware, err := csm.buildInventoryHardware(deviceTypeSlug, cabinetXname.Cabinet, cSystem.ID, inventory.HardwareStatusProvisioned)
+			newHardware, err := csm.buildInventoryHardware(deviceTypeSlug, cabinetXname.Cabinet, cSystem, inventory.HardwareStatusProvisioned)
 			if err != nil {
 				return errors.Join(fmt.Errorf("failed to build hardware for cabinet (%s)", cabinetXname.String()), err)
 			}
@@ -554,7 +553,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			}
 
 			// Now its time to build up what the hardware looks like
-			newHardware, err := csm.buildInventoryHardware(deviceSlug, nodeBladeXname.ComputeModule, cChassis.ID, inventory.HardwareStatusProvisioned)
+			newHardware, err := csm.buildInventoryHardware(deviceSlug, nodeBladeXname.ComputeModule, cChassis, inventory.HardwareStatusProvisioned)
 			if err != nil {
 				return errors.Join(fmt.Errorf("failed to build hardware for node blade (%s)", nodeBladeXname.String()), err)
 			}
@@ -777,14 +776,14 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 	return datastore.Flush()
 }
 
-func (csm *CSM) buildInventoryHardware(deviceTypeSlug string, ordinal int, parentID uuid.UUID, status inventory.HardwareStatus) ([]inventory.Hardware, error) {
+func (csm *CSM) buildInventoryHardware(deviceTypeSlug string, ordinal int, cParent inventory.Hardware, status inventory.HardwareStatus) ([]inventory.Hardware, error) {
 	if csm.hardwareLibrary == nil {
 		panic("Hardware type library is nil")
 	}
 
 	// Build up the expected hardware
 	// Generate a hardware build out using the system as a parent
-	hardwareBuildOutItems, err := inventory.GetDefaultHardwareBuildOut(csm.hardwareLibrary, deviceTypeSlug, ordinal, parentID)
+	hardwareBuildOutItems, err := inventory.GenerateDefaultHardwareBuildOut(csm.hardwareLibrary, deviceTypeSlug, ordinal, cParent)
 	if err != nil {
 		return nil, errors.Join(
 			fmt.Errorf("unable to build default hardware build out for %s", deviceTypeSlug),
