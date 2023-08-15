@@ -165,11 +165,11 @@ It '--config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 3000 --chass
   BeforeCall use_valid_datastore_one_eia_cabinet # deploy a valid datastore with one cabinet
   When call bin/cani alpha add blade --config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 3000 --chassis 0 --blade 0
   The status should equal 0
-  The line 1 of stderr should include "NodeBlade was successfully staged to be added to the system"
-  The line 2 of stderr should include "UUID: "
-  The line 3 of stderr should include "Cabinet: 3000"
-  The line 4 of stderr should include "Chassis: 0"
-  The line 5 of stderr should include "Blade: 0"
+  The line 2 of stderr should include "NodeBlade was successfully staged to be added to the system"
+  The line 3 of stderr should include "UUID: "
+  The line 4 of stderr should include "Cabinet: 3000"
+  The line 5 of stderr should include "Chassis: 0"
+  The line 6 of stderr should include "Blade: 0"
 End
 
 # (re-run the last command) Adding a blade should fail if:

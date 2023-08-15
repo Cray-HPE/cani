@@ -57,7 +57,7 @@ func GenerateDefaultHardwareBuildOut(l *hardwaretypes.Library, deviceTypeSlug st
 	return GenerateHardwareBuildOut(l, GenerateHardwareBuildOutOpts{
 		DeviceTypeSlug: deviceTypeSlug,
 		DeviceOrdinal:  deviceOrdinal,
-		DeviceID:       nil, // Generate one, TODO maybe allocate the UUID here?
+		DeviceID:       uuid.Nil, // Generate one, TODO maybe allocate the UUID here?
 		ParentHardware: parentHardware,
 	})
 }
@@ -65,7 +65,7 @@ func GenerateDefaultHardwareBuildOut(l *hardwaretypes.Library, deviceTypeSlug st
 type GenerateHardwareBuildOutOpts struct {
 	DeviceTypeSlug string
 	DeviceOrdinal  int
-	DeviceID       *uuid.UUID // Optional: If specified use this for the top level hardware object created, otherwise a UUID is generated
+	DeviceID       uuid.UUID // Optional: If specified use this for the top level hardware object created, otherwise if the UUID is uuid.Nil an UUID is generated if
 
 	ParentHardware Hardware
 
@@ -86,8 +86,8 @@ func GenerateHardwareBuildOut(l *hardwaretypes.Library, opts GenerateHardwareBui
 	// Build out hardware
 	//
 	var topLevelHardwareID uuid.UUID
-	if opts.DeviceID != nil {
-		topLevelHardwareID = *opts.DeviceID
+	if opts.DeviceID != uuid.Nil {
+		topLevelHardwareID = opts.DeviceID
 	} else {
 		topLevelHardwareID = uuid.New()
 	}
