@@ -28,7 +28,7 @@ ssh ncn-m002.us-central1-a.project-id # see also: gcloud ssh --project project-i
 # clone cani repo
 git clone https://github.com/Cray-HPE/cani.git && cd cani
 # start a cani session on vshasta
-go run . alpha session start csm \
+go run . alpha session init csm \
 --csm-keycloak-username vshasta \
 --csm-keycloak-password vshasta \
 --csm-base-auth-url=https://api-gw-service-nmn.local

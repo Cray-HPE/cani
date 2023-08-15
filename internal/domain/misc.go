@@ -75,3 +75,17 @@ func (d *Domain) Validate(ctx context.Context, checkRequiredData bool) (Validate
 	log.Info().Msg("Validated external inventory provider")
 	return result, nil
 }
+
+func (d *Domain) SetConfigOptions(ctx context.Context, domainOptions *NewOpts) error {
+	options, err := d.externalInventoryProvider.ConfigOptions(ctx)
+	if err != nil {
+		return err
+	}
+	switch domainOptions.Provider {
+	case string(inventory.CSMProvider):
+		domainOptions.CsmOptions.ValidRoles = options.ValidRoles
+		domainOptions.CsmOptions.ValidSubRoles = options.ValidSubRoles
+	}
+
+	return nil
+}

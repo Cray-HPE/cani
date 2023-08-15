@@ -1,0 +1,12 @@
+Import assets into the inventory.
+
+Usage:
+  cani alpha import [FILE] [flags]
+
+Flags:
+  -h, --help   help for import
+
+Global Flags:
+      --config string   Path to the configuration file
+  -D, --debug           additional debug output
+  -v, --verbose         additional verbose output
