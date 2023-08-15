@@ -38,14 +38,17 @@ import (
 var (
 	csvHeaders        string
 	csvComponentTypes string
+	csvAllTypes       bool
+	csvListOptions    bool
 )
 
 func init() {
 	ExportCmd.PersistentFlags().StringVar(
-		&csvHeaders, "headers", "Type,Vlan,Role,SubRole,Nid,Alias,Name,ID,Location", "Comma separated list of fields to get")
+		&csvHeaders, "headers", "Type,Vlan,Role,SubRole,Status,Nid,Alias,Name,ID,Location", "Comma separated list of fields to get")
 	ExportCmd.PersistentFlags().StringVarP(
 		&csvComponentTypes, "type", "t", "Node,Cabinet", "Comma separated list of the types of components to output")
-	ExportCmd.PersistentFlags().BoolP("all", "a", false, "List all components. This overrides the --type option")
+	ExportCmd.PersistentFlags().BoolVarP(&csvAllTypes, "all", "a", false, "List all components. This overrides the --type option")
+	ExportCmd.PersistentFlags().BoolVarP(&csvListOptions, "list-fields", "L", false, "List details about the fields in the CSV")
 }
 
 // ExportCmd represents the export command
@@ -65,33 +68,35 @@ func export(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	all, err := cmd.Flags().GetBool("all")
-	if err != nil {
-		return err
-	}
-
-	headers := strings.Split(csvHeaders, ",")
-	for i, header := range headers {
-		headers[i] = strings.TrimSpace(header)
-	}
-	log.Debug().Msgf("headers: %v", headers)
-
-	var types []string
-	if all {
-		// empty list means all types
-		log.Debug().Msgf("types: all")
-	} else {
-		types = strings.Split(csvComponentTypes, ",")
-		for i, t := range types {
-			types[i] = strings.TrimSpace(t)
+	if csvListOptions {
+		err = d.ListCsvOptions(cmd.Context(), Conf.Session.DomainOptions)
+		if err != nil {
+			log.Error().Msgf("failed to list CSV options: %s", err)
 		}
-		log.Debug().Msgf("types: %v", types)
-	}
+	} else {
+		headers := strings.Split(csvHeaders, ",")
+		for i, header := range headers {
+			headers[i] = strings.TrimSpace(header)
+		}
+		log.Debug().Msgf("headers: %v", headers)
 
-	w := csv.NewWriter(os.Stdout)
-	err = d.ExportCsv(cmd.Context(), w, headers, types)
-	if err != nil {
-		log.Error().Msgf("export failed: %s", err)
+		var types []string
+		if csvAllTypes {
+			// empty list means all types
+			log.Debug().Msgf("types: all")
+		} else {
+			types = strings.Split(csvComponentTypes, ",")
+			for i, t := range types {
+				types[i] = strings.TrimSpace(t)
+			}
+			log.Debug().Msgf("types: %v", types)
+		}
+
+		w := csv.NewWriter(os.Stdout)
+		err = d.ExportCsv(cmd.Context(), w, headers, types)
+		if err != nil {
+			log.Error().Msgf("export failed: %s", err)
+		}
 	}
 	return nil
 }
