@@ -226,7 +226,7 @@ func validateNode(results *common.ValidationResults, hardware *sls_client.Hardwa
 
 	subRole, found := common.GetString(props, "SubRole")
 	if found {
-		if contains(subRole, validSubRoles) {
+		if subRole == "" || contains(subRole, validSubRoles) {
 			results.Pass(
 				HardwareNodeCheck,
 				componentId,
