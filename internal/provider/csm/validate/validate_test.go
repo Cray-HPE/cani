@@ -145,6 +145,13 @@ func TestValidateValid(t *testing.T) {
 }
 
 func TestValidateInvalid(t *testing.T) {
+	// Expected validation errors
+	// /Hardware/x3000c0s13b0n0: x3000c0s13b0n0 Node has an invalid Role: BadRole, Valid Roles are: [Service System Application Storage Management Compute]
+	// /Hardware/x3000c0s15b0n0: x3000c0s15b0n0 Node has an invalid SubRole: BadSubRole, Valid SubRoles are: [LNETRouter UserDefined Master Worker Storage Gateway UAN Visualization]
+	// /Hardware/x3000c0s19b2n0: The NID 2 for x3000c0s19b2n0 is not unique. It conflicts with x3000c0s31b0n0.
+	// /Hardware/x3000c0s19b1n0: The NID 1 for x3000c0s19b1n0 is not unique. It conflicts with x3000c0s30b0n0.
+	// /Networks: Required network HMN_MTN is missing.
+	// /Networks: Required network NMN_MTN is missing.
 	datafile := "invalid-mug.json"
 	slsState, rawSLSState := loadTestObjects(t, datafile)
 	configOptions := GetConfigOptions()
@@ -159,7 +166,7 @@ func TestValidateInvalid(t *testing.T) {
 		t.Errorf("There was no error when one was expected. pass: %d, warn: %d, fail: %d", passCount, warnCount, failCount)
 	}
 
-	expectedFailures := 4
+	expectedFailures := 6
 	if failCount != expectedFailures {
 		t.Errorf("Expected %d failures. pass: %d, warn: %d, fail: %d", expectedFailures, passCount, warnCount, failCount)
 	}
