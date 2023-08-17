@@ -144,6 +144,7 @@ unittest: bin
 	     github.com/Cray-HPE/cani/internal/provider/csm/ipam \
 	     github.com/Cray-HPE/cani/internal/provider/csm/sls \
 	     github.com/Cray-HPE/cani/internal/provider/csm/validate \
+	     github.com/Cray-HPE/cani/internal/provider/csm/validate/checks \
 	     github.com/Cray-HPE/cani/internal/provider/csm/validate/common
 
 spec: bin
