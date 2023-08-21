@@ -34,6 +34,7 @@ import (
 	"strings"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/provider/csm/ipam"
 	"github.com/Cray-HPE/cani/internal/provider/csm/sls"
 	"github.com/Cray-HPE/cani/internal/provider/csm/validate"
@@ -55,7 +56,7 @@ import (
 //     2. Validate the changes
 //     3. Display what changed
 //     4. Make changes
-func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore, dryrun bool) (err error) {
+func (csm *CSM) Reconcile(ctx context.Context, configOptions provider.ConfigOptions, datastore inventory.Datastore, dryrun bool) (err error) {
 	// TODO should we have a presentation callback to confirm the removal of hardware?
 
 	log.Info().Msg("Starting CSM reconcile process")
@@ -111,7 +112,7 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore, dr
 		modifiedState.Networks[network.Name] = network
 	}
 
-	_, err = validate.Validate(&modifiedState)
+	_, err = validate.Validate(configOptions, &modifiedState)
 	if err != nil {
 		return fmt.Errorf("Validation failed. %v\n", err)
 	}

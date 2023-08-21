@@ -42,6 +42,7 @@ type Domain struct {
 	hardwareTypeLibrary       *hardwaretypes.Library
 	datastore                 inventory.Datastore
 	externalInventoryProvider provider.InventoryProvider
+	configOptions             provider.ConfigOptions
 }
 
 // NewOpts are the options for creating a new Domain
@@ -95,6 +96,8 @@ func New(opts *NewOpts) (*Domain, error) {
 				err,
 			)
 		}
+		domain.configOptions.ValidRoles = opts.CsmOptions.ValidRoles
+		domain.configOptions.ValidSubRoles = opts.CsmOptions.ValidSubRoles
 	default:
 		return nil, fmt.Errorf("unknown external inventory provider provided (%s)", inventoryProvider)
 	}

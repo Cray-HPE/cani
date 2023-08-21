@@ -41,7 +41,7 @@ import (
 )
 
 // Validate the external services of the inventory provider are correct
-func (csm *CSM) ValidateExternal(ctx context.Context) error {
+func (csm *CSM) ValidateExternal(ctx context.Context, configOptions provider.ConfigOptions) error {
 	// Get the dumpate from SLS
 	slsState, reps, err := csm.slsClient.DumpstateApi.DumpstateGet(context.Background())
 	if err != nil {
@@ -49,7 +49,7 @@ func (csm *CSM) ValidateExternal(ctx context.Context) error {
 	}
 
 	// Validate the dumpstate returned from SLS
-	_, err = validate.ValidateHTTPResponse(&slsState, reps)
+	_, err = validate.ValidateHTTPResponse(configOptions, &slsState, reps)
 	if err != nil {
 		return fmt.Errorf("Validation failed. %v\n", err)
 	}

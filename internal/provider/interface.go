@@ -38,7 +38,7 @@ var ErrDataValidationFailure = fmt.Errorf("data validation failure")
 // TODO Need to think about how internal data structures should be supplied to the Inventory Provider
 type InventoryProvider interface {
 	// Validate the external services of the inventory provider are correct
-	ValidateExternal(ctx context.Context) error
+	ValidateExternal(ctx context.Context, configOptions ConfigOptions) error
 
 	// Validate the representation of the inventory data into the destination inventory system
 	// is consistent. The default set of checks will verify all currently provided data is valid.
@@ -49,7 +49,7 @@ type InventoryProvider interface {
 	Import(ctx context.Context, datastore inventory.Datastore) error
 
 	// Reconcile CANI's inventory state with the external inventory state and apply required changes
-	Reconcile(ctx context.Context, datastore inventory.Datastore, dryrun bool) error
+	Reconcile(ctx context.Context, configOptions ConfigOptions, datastore inventory.Datastore, dryrun bool) error
 
 	// RecommendCabinet returns recommended settings for adding a cabinet
 	RecommendCabinet(inv inventory.Inventory, deviceTypeSlug string) (HardwareRecommendations, error)

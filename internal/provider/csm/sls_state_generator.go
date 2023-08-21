@@ -407,7 +407,7 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 				nodeExtraProperties.Role = *metadata.Node.Role
 			}
 			if metadata.Node.SubRole != nil {
-				nodeExtraProperties.Role = *metadata.Node.SubRole
+				nodeExtraProperties.SubRole = *metadata.Node.SubRole
 			}
 			if metadata.Node.Nid != nil {
 				nodeExtraProperties.NID = int32(*metadata.Node.Nid)

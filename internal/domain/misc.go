@@ -82,7 +82,7 @@ func (d *Domain) Validate(ctx context.Context, checkRequiredData bool) (Validate
 	log.Info().Msg("Validated CANI inventory")
 
 	// Validate external inventory data
-	err := d.externalInventoryProvider.ValidateExternal(ctx)
+	err := d.externalInventoryProvider.ValidateExternal(ctx, d.configOptions)
 	if err != nil {
 		return ValidateResult{}, err
 	}
