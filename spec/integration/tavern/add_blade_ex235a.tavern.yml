@@ -1,0 +1,385 @@
+#
+# MIT License
+#
+# (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+
+---
+
+test_name: get the dumpstate
+
+stages:
+  - name: ensure 200 response from the dumpstate and it has Hardware and Networks keys
+    request:
+      url: https://localhost:8443/apis/sls/v1/dumpstate
+      method: GET
+      verify: false
+    response:
+      status_code: 200
+      verify_response_with:
+        function: tavern.helpers:validate_pykwalify
+        extra_kwargs:
+          schema:
+            type: map
+            required: True
+            mapping:
+              Hardware:
+                mapping:
+                  regex;(^[xsd].+$):
+                    type: map
+                    required: True
+                    mapping:
+                      Parent:
+                        type: str
+                        required: True
+                        pattern: "^[xsd].+"
+                      Children:
+                        type: seq
+                        required: False
+                        matching: all
+                        sequence:
+                          - type: str
+                            pattern: "^[xsd].+"
+                      Xname:
+                        type: str
+                        required: True
+                        pattern: "^[xsd].+"
+                      Type:
+                        type: str
+                        required: True
+                        pattern: "^comptype_.+"
+                      Class:
+                        type: str
+                        required: True
+                        enum:
+                          - "River"
+                          - "Hill"
+                          - "Mountain"
+                      TypeString:
+                        type: str
+                        required: True
+                        #TODO: MgmtHLSwitch not found in this pattern from SLS documentation
+                        #pattern: "^CDU$|^CabinetCDU$|^Cabinet$|^CabinetBMC$|^CabinetPDUController$|^CabinetPDU$|^CabinetPDUNic$|^CabinetPDUOutlet$|^Chassis$|^ChassisBMC$|^CMMRectifier$|^CMMFpga$|^CEC$|^ComputeModule$|^RouterModule$|^NodeBMC$|^NodeBMCNic$|^NodeEnclosure$|^NodePowerConnector$|^Node$|^Processor$|^NodeNIC$|^NodeHsnNIC$|^Memory$|^NodeAccel$|^NodeFpga$|^HSNAsic$|^RouterFpga$|^RouterTORFpga$|^RouterBMC$|^RouterBMCNic$|^HSNBoard$|^HSNLink$|^HSNConnector$|^HSNConnectorPort$|^MgmtSwitch$|^MgmtSwitchConnector$|^SMSBox$|^System$"
+                        pattern: "^CDU$|^CDUMgmtSwitch$|^CabinetCDU$|^Cabinet$|^CabinetBMC$|^CabinetPDUController$|^CabinetPDU$|^CabinetPDUNic$|^CabinetPDUOutlet$|^Chassis$|^ChassisBMC$|^CMMRectifier$|^CMMFpga$|^CEC$|^ComputeModule$|^RouterModule$|^NodeBMC$|^NodeBMCNic$|^NodeEnclosure$|^NodePowerConnector$|^Node$|^Processor$|^NodeNIC$|^NodeHsnNIC$|^Memory$|^NodeAccel$|^NodeFpga$|^HSNAsic$|^RouterFpga$|^RouterTORFpga$|^RouterBMC$|^RouterBMCNic$|^HSNBoard$|^HSNLink$|^HSNConnector$|^HSNConnectorPort$|^MgmtHLSwitch$|^MgmtSwitch$|^MgmtSwitchConnector$|^SMSBox$|^System$"
+                      LastUpdated:
+                        type: int
+                        required: True
+                      LastUpdatedTime:
+                        type: str
+                        required: True
+                        pattern: "[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} [0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}.[0-9]+ \\+[0-9]{{4}} \\+[0-9]{{4}}|[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} [0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}.[0-9]+ \\+[0-9]{{4}} UTC"
+                      ExtraProperties:
+                        type: map
+                        required: False
+                        allowempty: True
+                        mapping:
+                          Aliases:
+                            type: seq
+                            required: False
+                            matching: all
+                            sequence:
+                              - type: str
+                          Brand:
+                            type: str
+                            required: False
+                          IP4addr:
+                            type: str
+                            required: False
+                          Networks:
+                            type: map
+                            required: False
+                            allowempty: True
+                            mapping:
+                              cn:
+                                type: map
+                                required: False
+                                allowempty: True
+                                mapping:
+                                  HMN:
+                                    type: map
+                                    required: False
+                                    mapping:
+                                      CIDR:
+                                        type: str
+                                        required: True
+                                      Gateway:
+                                        type: str
+                                        required: True
+                                      VLan:
+                                        type: int
+                                        required: True
+                          NID:
+                            type: int
+                            required: False
+                          NodeNics:
+                            type: seq
+                            required: False
+                            matching: all
+                            sequence:
+                              - type: str
+                                pattern: "^[xs].+"
+                          Password:
+                            type: str
+                            required: False
+                          Role:
+                            type: str
+                            required: False
+                          SNMPAuthPassword:
+                            type: str
+                            required: False
+                          SNMPAuthProtocol:
+                            type: str
+                            required: False
+                          SNMPPrivPassword:
+                            type: str
+                            required: False
+                          SNMPPrivProtocol:
+                            type: str
+                            required: False
+                          SNMPUsername:
+                            type: str
+                            required: False
+                          SubRole:
+                            type: str
+                            required: False
+                          Username:
+                            type: str
+                            required: False
+                          VendorName:
+                            type: str
+                            required: False
+              Networks:
+                mapping:
+                  regex;(^.+$):
+                    type: map
+                    required: True
+                    mapping:
+                      Name:
+                        type: str
+                      FullName:
+                        type: str
+                      IPRanges:
+                        type: seq
+                        matching: all
+                        sequence:
+                          - type: str
+                            pattern: "[0-9]+.[0-9]+.[0-9]+.[0-9]+/[0-9]+"
+                      Type:
+                        type: str
+                      LastUpdated:
+                        type: int
+                      LastUpdatedTime:
+                        type: str
+                        required: True
+                        pattern: "[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} [0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}.[0-9]+ \\+[0-9]{{4}} \\+[0-9]{{4}}|[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} [0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}.[0-9]+ \\+[0-9]{{4}} UTC"
+                      ExtraProperties:
+                        type: map
+                        required: False
+                        allowempty: True
+                        mapping:
+                          CIDR:
+                            type: str
+                            required: False
+                            pattern: "[0-9]+.[0-9]+.[0-9]+.[0-9]+/[0-9]+"
+                          MTU:
+                            type: int
+                            required: False
+                          MyASN:
+                            type: int
+                            required: False
+                          PeerASN:
+                            type: int
+                            required: False
+                          Subnets:
+                            type: seq
+                            required: False
+                            matching: all
+                            sequence:
+                              - type: map
+                                allowempty: True
+                                mapping:
+                                  CIDR:
+                                    type: str
+                                    required: False
+                                    pattern: "[0-9]+.[0-9]+.[0-9]+.[0-9]+/[0-9]+"
+                                  DHCPEnd:
+                                    type: str
+                                    required: False
+                                    pattern: "[0-9]+.[0-9]+.[0-9]+.[0-9]+"
+                                  DHCPStart:
+                                    type: str
+                                    required: False
+                                    pattern: "[0-9]+.[0-9]+.[0-9]+.[0-9]+"
+                                  FullName:
+                                    type: str
+                                    required: False
+                                  Gateway:
+                                    type: str
+                                    required: False
+                                    pattern: "[0-9]+.[0-9]+.[0-9]+.[0-9]+"
+                                  IPReservations:
+                                    type: seq
+                                    required: False
+                                    matching: all
+                                    sequence:
+                                      - type: map
+                                        mapping:
+                                          Aliases:
+                                            type: seq
+                                            matching: all
+                                            sequence:
+                                              - type: str
+                                          Comment:
+                                            type: str
+                                          IPAddress:
+                                            type: str
+                                            pattern: "[0-9]+.[0-9]+.[0-9]+.[0-9]+"
+                                          Name:
+                                            type: str
+                                  MetalLBPoolName:
+                                    type: str
+                                    required: False
+                                  Name:
+                                    type: str
+                                    required: False
+                                  ReservationEnd:
+                                    type: str
+                                    required: False
+                                  ReservationStart:
+                                    type: str
+                                    required: False
+                                  VlanID:
+                                    type: int
+                                    required: False
+                          SystemDefaultRoute:
+                            type: str
+                            required: False
+                          VlanRange:
+                            type: seq
+                            required: False
+                            matching: all
+                            sequence:
+                              - type: int
+
+---
+test_name: ensure hardware exists and has cani metadata
+
+stages: 
+  - name: ensure x9000 exists and has cani metadata
+    request:
+      url: https://localhost:8443/apis/sls/v1/hardware/x9000
+      method: GET
+      verify: false
+    response:
+      status_code: 200
+      verify_response_with:
+        function: tavern.helpers:validate_pykwalify
+        extra_kwargs:
+          schema:
+            type: map
+            required: True
+            mapping:
+              Parent:
+                type: str
+                required: True
+                pattern: "^s0$"
+              Children:
+                type: seq
+                required: False
+                matching: all
+                sequence:
+                  - type: str
+                    pattern: "^[xs].+"
+              Xname:
+                type: str
+                required: True
+                pattern: "^x9000$"
+              Type:
+                type: str
+                required: True
+                pattern: "^comptype_cabinet$"
+              Class:
+                type: str
+                required: True
+                pattern: "^Hill$"
+              TypeString:
+                type: str
+                required: True
+                pattern: "^Cabinet$"
+              LastUpdated:
+                type: int
+                required: True
+              LastUpdatedTime:
+                type: str
+                required: True
+                pattern: "^[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} [0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}.[0-9]+ \\+[0-9]{{4}} \\+[0-9]{{4}}|[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} [0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}.[0-9]+ \\+[0-9]{{4}} UTC$"
+              ExtraProperties:
+                type: map
+                required: False
+                allowempty: True
+                mapping:
+                  '@cani.id':
+                    type: str
+                    required: True
+                    # pattern: "^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$"
+                  '@cani.lastModified':
+                    type: str
+                    required: True
+                    # pattern: "^[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} [0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}.[0-9]+ \\+[0-9]{{4}} \\+[0-9]{{4}}|[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} [0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}.[0-9]+ \\+[0-9]{{4}} UTC$"
+                  '@cani.slsSchemaVersion':
+                    type: str
+                    required: True
+                    pattern: "^v1alpha1$"
+                  Aliases:
+                    type: seq
+                    required: False
+                    matching: all
+                    sequence:
+                      - type: str
+                  Brand:
+                    type: str
+                    required: False
+                  IP4addr:
+                    type: str
+                    required: False
+                  Networks:
+                    type: map
+                    required: False
+                    allowempty: True
+                    mapping:
+                      cn:
+                        type: map
+                        required: False
+                        allowempty: True
+                        mapping:
+                          HMN:
+                            type: map
+                            required: False
+                            mapping:
+                              CIDR:
+                                type: str
+                                required: True
+                              Gateway:
+                                type: str
+                                required: True
+                              VLan:
+                                type: int
+                                required: True

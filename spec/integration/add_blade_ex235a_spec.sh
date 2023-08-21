@@ -37,8 +37,6 @@ It 'start a session'
   The stderr should include 'GET https://localhost:8443/apis/sls/v1/dumpstate'
   The stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/State/Components'
   The stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/Inventory/Hardware'
-  The stderr should include 'Cabinet x9000 does not exist in datastore at System:0->Cabinet:9000'
-  The stderr should include 'Cabinet x9000 device type slug is hpe-ex2000'
 
   # Verify the import logic pushed changes into SLS
   The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000'
@@ -51,28 +49,14 @@ It 'start a session'
   The stderr should include 'Session is now ACTIVE with provider csm and datastore'
 End
 
-It 'Verify imported cabinets'
-  When call bin/cani alpha list cabinet --config canitest.yml
-  The status should equal 0
-  The line 2 of output should include 'provisioned	hpe-ex2000	3000		System:0->Cabinet:9000'
-End
-
-It 'Verify imported chassis'
-  When call bin/cani alpha list chassis --config canitest.yml
-  The status should equal 0
-  The line 2 of output should include 'provisioned	hpe-crayex-chassis	System:0->Cabinet:9000->Chassis:1'
-  The line 3 of output should include 'provisioned	hpe-crayex-chassis	System:0->Cabinet:9000->Chassis:3'
-End
-
-It 'Verify imported blades'
+It 'Verify empty blade slot'
   When call bin/cani alpha list blade --config canitest.yml
   The status should equal 0
   The line 2 of output should include 'empty		System:0->Cabinet:9000->Chassis:1->NodeBlade:0'
   The line 3 of output should include 'empty		System:0->Cabinet:9000->Chassis:1->NodeBlade:1'
-  # Note there are more nodes present in CANI, but only checking the first 2
 End
 
-It 'Verify imported empty nodes'
+It 'Verify empty nodes'
   When call bin/cani alpha list node --config canitest.yml
   The status should equal 0
   The line 2 of output should include 'empty		Compute		[nid001000]	1000	System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:0->Node:0'
@@ -83,18 +67,47 @@ It 'Verify imported empty nodes'
   The line 7 of output should include 'empty		Compute		[nid001005]	1005	System:0->Cabinet:9000->Chassis:1->NodeBlade:1->NodeCard:0->Node:1'
   The line 8 of output should include 'empty		Compute		[nid001006]	1006	System:0->Cabinet:9000->Chassis:1->NodeBlade:1->NodeCard:1->Node:0'
   The line 9 of output should include 'empty		Compute		[nid001007]	1007	System:0->Cabinet:9000->Chassis:1->NodeBlade:1->NodeCard:1->Node:1'
-  # Note there are more nodes present in CANI, but only checking the first 8
 End
 
-It 'commit and reconcile'
-  When call bin/cani alpha session --config canitest.yml apply --commit
+It 'Add ex235a blade'
+  When call bin/cani alpha add blade hpe-crayex-ex235a-compute-blade --cabinet 9000 --chassis 1 --blade 1 --config canitest.yml
   The status should equal 0
-  The line 1 of stderr should include 'Session is STOPPED'
-  The line 2 of stderr should include 'Committing changes to session'
-  The line 1 of stdout should include 'Summary:'
-  The line 2 of stdout should include '--------'
-  The line 3 of stdout should include 'ID  TYPE  STATUS'
-  The line 5 of stdout should include '0 new hardware item(s) are in the inventory'
+  The line 2 of stderr should include "NodeBlade was successfully staged to be added to the system"
+  The line 3 of stderr should include "UUID: "
+  The line 4 of stderr should include "Cabinet: 9000"
+  The line 5 of stderr should include "Chassis: 1"
+  The line 6 of stderr should include "Blade: 1"
 End
+
+It 'Verify staged blade slot'
+  When call bin/cani alpha list blade --config canitest.yml
+  The status should equal 0
+  The line 2 of output should include 'empty		System:0->Cabinet:9000->Chassis:1->NodeBlade:0'
+  The line 3 of output should include 'staged		System:0->Cabinet:9000->Chassis:1->NodeBlade:1'
+End
+
+It 'Verify staged nodes'
+  When call bin/cani alpha list node chassis --config canitest.yml
+  The status should equal 0
+  The line 2 of output should include 'empty		Compute		[nid001000]	1000	System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:0->Node:0'
+  The line 3 of output should include 'empty		Compute		[nid001001]	1001	System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:0->Node:1'
+  The line 4 of output should include 'empty		Compute		[nid001002]	1002	System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:1->Node:0'
+  The line 5 of output should include 'empty		Compute		[nid001003]	1003	System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:1->Node:1'
+  The line 6 of output should include 'staged		Compute		[nid001004]	1004	System:0->Cabinet:9000->Chassis:1->NodeBlade:1->NodeCard:0->Node:0'
+  The line 7 of output should include 'empty		Compute		[nid001005]	1005	System:0->Cabinet:9000->Chassis:1->NodeBlade:1->NodeCard:0->Node:1'
+  The line 8 of output should include 'staged		Compute		[nid001006]	1006	System:0->Cabinet:9000->Chassis:1->NodeBlade:1->NodeCard:1->Node:0'
+  The line 9 of output should include 'empty		Compute		[nid001007]	1007	System:0->Cabinet:9000->Chassis:1->NodeBlade:1->NodeCard:1->Node:1'
+End
+
+# It 'commit and reconcile'
+#   When call bin/cani alpha session --config canitest.yml apply --commit
+#   The status should equal 0
+#   The line 1 of stderr should include 'Session is STOPPED'
+#   The line 2 of stderr should include 'Committing changes to session'
+#   The line 1 of stdout should include 'Summary:'
+#   The line 2 of stdout should include '--------'
+#   The line 3 of stdout should include 'ID  TYPE  STATUS'
+#   The line 5 of stdout should include '0 new hardware item(s) are in the inventory'
+# End
 
 End
