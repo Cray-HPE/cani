@@ -599,9 +599,9 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 		}
 		cChassis, err := tempDatastore.GetAtLocation(chassisLP)
 		if errors.Is(err, inventory.ErrHardwareNotFound) {
-			return errors.Join(fmt.Errorf("chassis %v does not exist in temporary datastore", chassisLP), err)
+			return errors.Join(fmt.Errorf("%s %v does not exist in temporary datastore", hardwaretypes.Chassis, chassisLP), err)
 		} else if err != nil {
-			return errors.Join(fmt.Errorf("failed to retrieve chassis %v from temporary datastore", chassisLP), err)
+			return errors.Join(fmt.Errorf("failed to retrieve %s %v from temporary datastore", hardwaretypes.Chassis, chassisLP), err)
 		}
 
 		// Retrieve the node blade
@@ -621,11 +621,11 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			}
 
 			if err := tempDatastore.Add(&cNodeBlade); err != nil {
-				return errors.Join(fmt.Errorf("failed to create empty node blade for %v in datastore", nodeBladeXname), err)
+				return errors.Join(fmt.Errorf("failed to create %s for %v in datastore", hardwaretypes.NodeBlade, nodeBladeXname), err)
 			}
 
 		} else if err != nil {
-			return errors.Join(fmt.Errorf("failed to retrieve node blade %v from temporary datastore", nodeBladeLP), err)
+			return errors.Join(fmt.Errorf("failed to retrieve %s %v from temporary datastore", hardwaretypes.NodeBlade, nodeBladeLP), err)
 		}
 
 		// Retrieve the node card
@@ -644,10 +644,10 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 				LocationOrdinal: pointers.IntPtr(nodeBMCXname.NodeBMC),
 			}
 			if err := tempDatastore.Add(&cNodeCard); err != nil {
-				return errors.Join(fmt.Errorf("failed to create empty node card for %v in datastore", nodeBladeXname), err)
+				return errors.Join(fmt.Errorf("failed to create empty %s for %v in datastore", hardwaretypes.NodeCard, nodeBMCXname), err)
 			}
 		} else if err != nil {
-			return errors.Join(fmt.Errorf("failed to retrieve node card %v from temporary datastore", nodeBladeLP), err)
+			return errors.Join(fmt.Errorf("failed to retrieve %s %v from temporary datastore", hardwaretypes.NodeCard, nodeCardLP), err)
 		}
 
 		// Retrieve the node
@@ -666,10 +666,10 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 				LocationOrdinal: pointers.IntPtr(nodeXname.Node),
 			}
 			if err := tempDatastore.Add(&cNode); err != nil {
-				return errors.Join(fmt.Errorf("failed to create empty node for %v in datastore", nodeXname), err)
+				return errors.Join(fmt.Errorf("failed to create empty %s for %v in datastore", hardwaretypes.Node, nodeXname), err)
 			}
 		} else if err != nil {
-			return errors.Join(fmt.Errorf("failed to retrieve node card %v from temporary datastore", nodeBladeLP), err)
+			return errors.Join(fmt.Errorf("failed to retrieve %s %v from temporary datastore", hardwaretypes.Node, nodeLP), err)
 		}
 	}
 

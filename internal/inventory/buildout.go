@@ -99,7 +99,7 @@ func GenerateHardwareBuildOut(l *hardwaretypes.Library, opts GenerateHardwareBui
 			DeviceTypeSlug: opts.DeviceTypeSlug,
 			DeviceOrdinal:  opts.DeviceOrdinal,
 
-			LocationPath: opts.ParentHardware.LocationPath, // The loop below will add on the require location token for this devices path.
+			LocationPath: opts.ParentHardware.LocationPath, // The loop below will add on the required location token for this devices path.
 		},
 	}
 
