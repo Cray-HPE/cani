@@ -69,7 +69,7 @@ type GenerateHardwareBuildOutOpts struct {
 
 	ParentHardware Hardware
 
-	ExistingDescendentHardware []Hardware
+	ExistingDescendantHardware []Hardware
 }
 
 // TODO make this should work the inventory data structure
@@ -78,7 +78,7 @@ func GenerateHardwareBuildOut(l *hardwaretypes.Library, opts GenerateHardwareBui
 	// Build up existing hardware lookup map
 	//
 	existingDescendentHardware := map[string]Hardware{}
-	for _, hardware := range opts.ExistingDescendentHardware {
+	for _, hardware := range opts.ExistingDescendantHardware {
 		existingDescendentHardware[hardware.LocationPath.String()] = hardware
 	}
 

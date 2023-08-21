@@ -98,7 +98,7 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 	// TODO EVERYTHING BELOW IS GENERIC CODE THAT SHOULD BE SHARED
 	//
 
-	var existingDescentHardware []inventory.Hardware
+	var existingDescendantHardware []inventory.Hardware
 	existingBlade, err := d.datastore.GetAtLocation(bladePath)
 	if errors.Is(err, inventory.ErrHardwareNotFound) {
 		// Hardware does not exist, this is fine!
@@ -120,7 +120,7 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 		log.Debug().Msgf("%s exists at %s with status %s", hardwaretypes.NodeBlade, bladePath, existingBlade.Status)
 
 		// Retrieve the child hardware of this blade
-		existingDescentHardware, err = d.datastore.GetDescendents(existingBlade.ID)
+		existingDescendantHardware, err = d.datastore.GetDescendants(existingBlade.ID)
 		if err != nil {
 			return AddHardwareResult{}, errors.Join(
 				fmt.Errorf("unable to retrieve descents for %s %s at %v", hardwaretypes.NodeBlade, existingBlade.ID, bladePath),
@@ -152,7 +152,7 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 
 		ParentHardware: chassis,
 
-		ExistingDescendentHardware: existingDescentHardware,
+		ExistingDescendantHardware: existingDescendantHardware,
 	})
 	if err != nil {
 		return AddHardwareResult{}, errors.Join(

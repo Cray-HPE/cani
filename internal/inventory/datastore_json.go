@@ -716,7 +716,7 @@ func (dj *DatastoreJSON) getChildren(id uuid.UUID) ([]Hardware, error) {
 	return results, nil
 }
 
-func (dj *DatastoreJSON) GetDescendents(id uuid.UUID) ([]Hardware, error) {
+func (dj *DatastoreJSON) GetDescendants(id uuid.UUID) ([]Hardware, error) {
 	dj.inventoryLock.RLock()
 	defer dj.inventoryLock.RUnlock()
 
