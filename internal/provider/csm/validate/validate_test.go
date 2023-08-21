@@ -30,6 +30,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/provider/csm/validate/common"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 )
@@ -40,6 +41,14 @@ func loadTestData(t *testing.T, name string) []byte {
 		t.Fatalf("Failed to load file %s. error: %v", name, err)
 	}
 	return content
+}
+
+func GetConfigOptions() provider.ConfigOptions {
+	return provider.ConfigOptions{
+		ValidRoles:    []string{"Service", "System", "Application", "Storage", "Management", "Compute"},
+		ValidSubRoles: []string{"LNETRouter", "UserDefined", "Master", "Worker", "Storage", "Gateway", "UAN", "Visualization"},
+	}
+
 }
 
 func loadTestObjects(t *testing.T, filename string) (slsState *sls_client.SlsState, rawSLSState RawJson) {
@@ -117,7 +126,8 @@ func TestUnmarshalToSlsState(t *testing.T) {
 func TestValidateValid(t *testing.T) {
 	datafile := "valid-mug.json"
 	slsState, rawSLSState := loadTestObjects(t, datafile)
-	results, err := validate(slsState, rawSLSState)
+	configOptions := GetConfigOptions()
+	results, err := validate(configOptions, slsState, rawSLSState)
 	passCount, warnCount, failCount := resultsCount(results)
 	logResults(t, results)
 	if err != nil {
@@ -135,9 +145,17 @@ func TestValidateValid(t *testing.T) {
 }
 
 func TestValidateInvalid(t *testing.T) {
+	// Expected validation errors
+	// /Hardware/x3000c0s13b0n0: x3000c0s13b0n0 Node has an invalid Role: BadRole, Valid Roles are: [Service System Application Storage Management Compute]
+	// /Hardware/x3000c0s15b0n0: x3000c0s15b0n0 Node has an invalid SubRole: BadSubRole, Valid SubRoles are: [LNETRouter UserDefined Master Worker Storage Gateway UAN Visualization]
+	// /Hardware/x3000c0s19b2n0: The NID 2 for x3000c0s19b2n0 is not unique. It conflicts with x3000c0s31b0n0.
+	// /Hardware/x3000c0s19b1n0: The NID 1 for x3000c0s19b1n0 is not unique. It conflicts with x3000c0s30b0n0.
+	// /Networks: Required network HMN_MTN is missing.
+	// /Networks: Required network NMN_MTN is missing.
 	datafile := "invalid-mug.json"
 	slsState, rawSLSState := loadTestObjects(t, datafile)
-	results, err := validate(slsState, rawSLSState)
+	configOptions := GetConfigOptions()
+	results, err := validate(configOptions, slsState, rawSLSState)
 	passCount, warnCount, failCount := resultsCount(results)
 	logResults(t, results)
 	if err != nil {
@@ -148,7 +166,7 @@ func TestValidateInvalid(t *testing.T) {
 		t.Errorf("There was no error when one was expected. pass: %d, warn: %d, fail: %d", passCount, warnCount, failCount)
 	}
 
-	expectedFailures := 4
+	expectedFailures := 6
 	if failCount != expectedFailures {
 		t.Errorf("Expected %d failures. pass: %d, warn: %d, fail: %d", expectedFailures, passCount, warnCount, failCount)
 	}
@@ -157,7 +175,8 @@ func TestValidateInvalid(t *testing.T) {
 func TestValidateValidUsingOnlySlsState(t *testing.T) {
 	datafile := "valid-mug.json"
 	slsState, _ := loadTestObjects(t, datafile)
-	results, err := Validate(slsState)
+	configOptions := GetConfigOptions()
+	results, err := Validate(configOptions, slsState)
 	passCount, warnCount, failCount := resultsCount(results)
 	logResults(t, results)
 	if err != nil {

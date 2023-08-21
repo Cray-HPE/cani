@@ -33,6 +33,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/provider/csm/validate/checks"
 	"github.com/Cray-HPE/cani/internal/provider/csm/validate/common"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
@@ -87,7 +88,7 @@ func unmarshalToSlsState(bytes []byte) (*sls_client.SlsState, common.ValidationR
 }
 
 // Validate validates the data in the response against the SLS schema.
-func ValidateHTTPResponse(slsState *sls_client.SlsState, response *http.Response) ([]common.ValidationResult, error) {
+func ValidateHTTPResponse(configOptions provider.ConfigOptions, slsState *sls_client.SlsState, response *http.Response) ([]common.ValidationResult, error) {
 	results := make([]common.ValidationResult, 0)
 
 	// Parse HTTP response body to get raw JSON payload
@@ -113,10 +114,10 @@ func ValidateHTTPResponse(slsState *sls_client.SlsState, response *http.Response
 				Description: fmt.Sprintf("SLS failed to parse dumpstate. %s", err)})
 	}
 
-	return validate(slsState, rawJson, results...)
+	return validate(configOptions, slsState, rawJson, results...)
 }
 
-func ValidateString(slsStateBytes []byte) ([]common.ValidationResult, error) {
+func ValidateString(configOptions provider.ConfigOptions, slsStateBytes []byte) ([]common.ValidationResult, error) {
 	results := make([]common.ValidationResult, 0)
 
 	rawJson, result, err := unmarshalToInterface(slsStateBytes)
@@ -131,12 +132,12 @@ func ValidateString(slsStateBytes []byte) ([]common.ValidationResult, error) {
 		return results, err
 	}
 
-	r, err := validate(slsState, rawJson)
+	r, err := validate(configOptions, slsState, rawJson)
 	results = append(results, r...)
 	return results, err
 }
 
-func Validate(slsState *sls_client.SlsState) ([]common.ValidationResult, error) {
+func Validate(configOptions provider.ConfigOptions, slsState *sls_client.SlsState) ([]common.ValidationResult, error) {
 	// If we don't get a raw SLS payload, such as validating an SLS state build inside this tool we need to create the JSON version of the payload
 	rawSLSState, err := json.Marshal(*slsState)
 	if err != nil {
@@ -150,10 +151,10 @@ func Validate(slsState *sls_client.SlsState) ([]common.ValidationResult, error) 
 		return results, err
 	}
 
-	return validate(slsState, rawJson, results...)
+	return validate(configOptions, slsState, rawJson, results...)
 }
 
-func validate(slsState *sls_client.SlsState, rawSLSState RawJson, additionalResults ...common.ValidationResult) ([]common.ValidationResult, error) {
+func validate(configOptions provider.ConfigOptions, slsState *sls_client.SlsState, rawSLSState RawJson, additionalResults ...common.ValidationResult) ([]common.ValidationResult, error) {
 	results := common.NewValidationResults()
 	results.Add(additionalResults...)
 
@@ -165,7 +166,13 @@ func validate(slsState *sls_client.SlsState, rawSLSState RawJson, additionalResu
 	checkers := []common.Checker{
 		checks.NewHardwareCabinetCheck(slsState.Hardware),
 		checks.NewSwitchIpCheck(slsStateExtended),
-		checks.NewHardwareCheck(slsState.Hardware, slsStateExtended.TypeToHardware, slsStateExtended.ParentHasChildren, slsState.Networks),
+		checks.NewHardwareCheck(
+			slsState.Hardware,
+			slsStateExtended.TypeToHardware,
+			slsStateExtended.ParentHasChildren,
+			slsState.Networks,
+			configOptions.ValidRoles,
+			configOptions.ValidSubRoles),
 		checks.NewRequiedNetworkCheck(slsState.Networks),
 		checks.NewNetworkIpRangeCheck(slsStateExtended),
 	}

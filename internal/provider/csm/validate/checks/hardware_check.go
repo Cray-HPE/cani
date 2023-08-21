@@ -58,18 +58,24 @@ type HardwareCheck struct {
 	typeToHardware    map[string][]*sls_client.Hardware
 	parentHasChildren map[string]struct{}
 	networks          map[string]sls_client.Network // only the HMN network is used in the MgmtSwitch and MgmtHLSwitch checks
+	validRoles        []string
+	validSubRoles     []string
 }
 
 func NewHardwareCheck(
 	hardware map[string]sls_client.Hardware,
 	typeToHardware map[string][]*sls_client.Hardware,
 	parentHasChildren map[string]struct{},
-	networks map[string]sls_client.Network) *HardwareCheck {
+	networks map[string]sls_client.Network,
+	validRoles []string,
+	validSubRoles []string) *HardwareCheck {
 	hardwareCheck := HardwareCheck{
 		hardware:          hardware,
 		typeToHardware:    typeToHardware,
 		parentHasChildren: parentHasChildren,
 		networks:          networks,
+		validRoles:        validRoles,
+		validSubRoles:     validSubRoles,
 	}
 	return &hardwareCheck
 }
@@ -88,7 +94,7 @@ func (c *HardwareCheck) Validate(results *common.ValidationResults) {
 
 		switch h.TypeString {
 		case xnametypes.Node:
-			validateNode(results, &h, props)
+			validateNode(results, &h, props, c.validRoles, c.validSubRoles)
 		case xnametypes.MgmtSwitchConnector:
 			validateMgmtSwitchConnector(results, &h, props, c.parentHasChildren, c.hardware)
 		case xnametypes.MgmtSwitch:
@@ -196,15 +202,21 @@ func validateUniqueNid(
 		fmt.Sprintf("The NID %d for %s %s is unique.", nid, hardware.Xname, hardware.TypeString))
 }
 
-func validateNode(results *common.ValidationResults, hardware *sls_client.Hardware, props map[string]interface{}) {
+func validateNode(results *common.ValidationResults, hardware *sls_client.Hardware, props map[string]interface{}, validRoles, validSubRoles []string) {
 	componentId := fmt.Sprintf("/Hardware/%s", hardware.Xname)
 	role, found := common.GetString(props, "Role")
 	if found {
-		// todo validate role
-		results.Pass(
-			HardwareNodeCheck,
-			componentId,
-			fmt.Sprintf("%s %s has a valid Role: %s", hardware.Xname, hardware.TypeString, role))
+		if contains(role, validRoles) {
+			results.Pass(
+				HardwareNodeCheck,
+				componentId,
+				fmt.Sprintf("%s %s has a valid Role: %s", hardware.Xname, hardware.TypeString, role))
+		} else {
+			results.Fail(
+				HardwareNodeCheck,
+				componentId,
+				fmt.Sprintf("%s %s has an invalid Role: %s, Valid Roles are: %v", hardware.Xname, hardware.TypeString, role, validRoles))
+		}
 	} else {
 		results.Fail(
 			HardwareNodeCheck,
@@ -214,11 +226,17 @@ func validateNode(results *common.ValidationResults, hardware *sls_client.Hardwa
 
 	subRole, found := common.GetString(props, "SubRole")
 	if found {
-		// todo validate subRole
-		results.Pass(
-			HardwareNodeCheck,
-			componentId,
-			fmt.Sprintf("%s %s has a valid SubRole: %s", hardware.Xname, hardware.TypeString, subRole))
+		if subRole == "" || contains(subRole, validSubRoles) {
+			results.Pass(
+				HardwareNodeCheck,
+				componentId,
+				fmt.Sprintf("%s %s has a valid SubRole: %s", hardware.Xname, hardware.TypeString, subRole))
+		} else {
+			results.Fail(
+				HardwareNodeCheck,
+				componentId,
+				fmt.Sprintf("%s %s has an invalid SubRole: %s, Valid SubRoles are: %v", hardware.Xname, hardware.TypeString, subRole, validSubRoles))
+		}
 	}
 }
 

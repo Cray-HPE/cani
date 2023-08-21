@@ -63,7 +63,7 @@ func (d *Domain) Commit(ctx context.Context, dryrun bool) (CommitResult, error) 
 	}
 
 	// Validate the current state of the external inventory
-	if err := inventoryProvider.ValidateExternal(ctx); err != nil {
+	if err := inventoryProvider.ValidateExternal(ctx, d.configOptions); err != nil {
 		return CommitResult{}, errors.Join(
 			fmt.Errorf("failed to validate external inventory provider"),
 			err,
@@ -71,6 +71,6 @@ func (d *Domain) Commit(ctx context.Context, dryrun bool) (CommitResult, error) 
 	}
 
 	// Reconcile our inventory with the external inventory system
-	return CommitResult{}, inventoryProvider.Reconcile(ctx, d.datastore, dryrun)
+	return CommitResult{}, inventoryProvider.Reconcile(ctx, d.configOptions, d.datastore, dryrun)
 
 }
