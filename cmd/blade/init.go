@@ -35,6 +35,8 @@ var (
 	chassis   int
 	blade     int
 	recursion bool
+	format    string
+	sortBy    string
 )
 
 func init() {
@@ -59,5 +61,6 @@ func init() {
 	AddBladeCmd.MarkFlagsRequiredTogether("list-supported-types")
 
 	RemoveBladeCmd.Flags().BoolVarP(&recursion, "recursive", "R", false, "Recursively delete child hardware")
-
+	ListBladeCmd.Flags().StringVarP(&format, "format", "f", "pretty", "Format output")
+	ListBladeCmd.Flags().StringVarP(&sortBy, "sort", "s", "location", "Sort by a specific key")
 }

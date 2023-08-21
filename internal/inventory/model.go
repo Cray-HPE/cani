@@ -31,6 +31,7 @@ import (
 	"strings"
 
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+	"github.com/Cray-HPE/cani/pkg/pointers"
 	"github.com/google/uuid"
 )
 
@@ -117,9 +118,7 @@ func (hardware *Hardware) SetProviderMetadata(provider Provider, metadata map[st
 	hardware.ProviderMetadata[provider] = metadata
 }
 
-func NewHardwareFromBuildOut(hardwareBuildOut hardwaretypes.HardwareBuildOut, status HardwareStatus) Hardware {
-	locationOrdinal := hardwareBuildOut.OrdinalPath[len(hardwareBuildOut.OrdinalPath)-1]
-
+func NewHardwareFromBuildOut(hardwareBuildOut HardwareBuildOut, status HardwareStatus) Hardware {
 	return Hardware{
 		ID:             hardwareBuildOut.ID,
 		Parent:         hardwareBuildOut.ParentID,
@@ -128,7 +127,7 @@ func NewHardwareFromBuildOut(hardwareBuildOut hardwaretypes.HardwareBuildOut, st
 		Vendor:         hardwareBuildOut.DeviceType.Manufacturer,
 		Model:          hardwareBuildOut.DeviceType.Model,
 
-		LocationOrdinal: &locationOrdinal,
+		LocationOrdinal: pointers.IntPtr(hardwareBuildOut.DeviceOrdinal),
 
 		Status: status,
 	}
@@ -203,6 +202,21 @@ func (lp LocationPath) GetUUID(ds Datastore) (uuid.UUID, error) {
 	} else {
 		// Oops something happened
 		return uuid.Nil, err
+	}
+}
+
+// Get returns the Hardware at the location path
+func (lp LocationPath) Get(ds Datastore) (Hardware, error) {
+	hw, err := ds.GetAtLocation(lp)
+	if err == nil {
+		// Hardware found
+		return hw, nil
+	} else if errors.Is(err, ErrHardwareNotFound) {
+		// Hardware not found
+		return Hardware{}, ErrHardwareNotFound
+	} else {
+		// Oops something happened
+		return Hardware{}, err
 	}
 }
 

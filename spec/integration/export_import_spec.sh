@@ -45,11 +45,11 @@ End
 It 'add blade --config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 8000 --chassis 0 --blade 0'
   When call bin/cani alpha add blade --config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 8000 --chassis 0 --blade 0
   The status should equal 0
-  The line 1 of stderr should include "NodeBlade was successfully staged to be added to the system"
-  The line 2 of stderr should include "UUID: "
-  The line 3 of stderr should include "Cabinet: 8000"
-  The line 4 of stderr should include "Chassis: 0"
-  The line 5 of stderr should include "Blade: 0"
+  The line 2 of stderr should include "NodeBlade was successfully staged to be added to the system"
+  The line 3 of stderr should include "UUID: "
+  The line 4 of stderr should include "Cabinet: 8000"
+  The line 5 of stderr should include "Chassis: 0"
+  The line 6 of stderr should include "Blade: 0"
 End
 
 
@@ -90,6 +90,7 @@ It 'export after cabinets import'
   The status should equal 0
   The line 1 of stdout should equal "ID,Type,Vlan"
   The output should include "Cabinet,4000"
+  The output should include "Cabinet,3000"
   The output should not include "Node,"
 End
 

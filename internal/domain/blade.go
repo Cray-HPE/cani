@@ -94,22 +94,39 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 		{HardwareType: hardwaretypes.NodeBlade, Ordinal: bladeOrdinal},
 	}
 
-	exists, err = bladePath.Exists(d.datastore)
-	if err != nil {
+	//
+	// TODO EVERYTHING BELOW IS GENERIC CODE THAT SHOULD BE SHARED
+	//
+
+	var existingDescendantHardware []inventory.Hardware
+	existingBlade, err := d.datastore.GetAtLocation(bladePath)
+	if errors.Is(err, inventory.ErrHardwareNotFound) {
+		// Hardware does not exist, this is fine!
+		log.Debug().Msgf("No %s exists at %s", hardwaretypes.NodeBlade, bladePath)
+	} else if err != nil {
 		return AddHardwareResult{}, errors.Join(
 			fmt.Errorf("unable to check if %s exists at %s", hardwaretypes.NodeBlade, bladePath),
 			err,
 		)
-	}
-
-	// error if it exists because a blade cannot be added if one is already in place
-	if exists {
+	} else if existingBlade.Status != inventory.HardwareStatusEmpty {
 		return AddHardwareResult{},
 			errors.Join(
 				fmt.Errorf("%s number %d is already in use", hardwaretypes.NodeBlade, bladeOrdinal),
 				fmt.Errorf("please re-run the command with an available %s number", hardwaretypes.NodeBlade),
 				fmt.Errorf("try 'cani alpha list blade'"),
 			)
+	} else {
+		// Hardware exists in inventory as empty
+		log.Debug().Msgf("%s exists at %s with status %s", hardwaretypes.NodeBlade, bladePath, existingBlade.Status)
+
+		// Retrieve the child hardware of this blade
+		existingDescendantHardware, err = d.datastore.GetDescendants(existingBlade.ID)
+		if err != nil {
+			return AddHardwareResult{}, errors.Join(
+				fmt.Errorf("unable to retrieve descents for %s %s at %v", hardwaretypes.NodeBlade, existingBlade.ID, bladePath),
+				err,
+			)
+		}
 	}
 
 	// Verify the provided device type slug is a node blade
@@ -122,13 +139,21 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 	}
 
 	// Get the chassis ID, since it is needed as an arg to the hardware buildout so the blade is added to the correct parent device
-	chassisID, err := chassisPath.GetUUID(d.datastore)
+	chassis, err := chassisPath.Get(d.datastore)
 	if err != nil {
 		return AddHardwareResult{}, err
 	}
 
 	// Generate a hardware build out
-	hardwareBuildOutItems, err := d.hardwareTypeLibrary.GetDefaultHardwareBuildOut(deviceTypeSlug, bladeOrdinal, chassisID)
+	hardwareBuildOutItems, err := inventory.GenerateHardwareBuildOut(d.hardwareTypeLibrary, inventory.GenerateHardwareBuildOutOpts{
+		DeviceTypeSlug: deviceTypeSlug,
+		DeviceOrdinal:  bladeOrdinal,
+		DeviceID:       existingBlade.ID, // If a existing piece of hardware existed this will be something other than uuid.Nil.
+
+		ParentHardware: chassis,
+
+		ExistingDescendantHardware: existingDescendantHardware,
+	})
 	if err != nil {
 		return AddHardwareResult{}, errors.Join(
 			fmt.Errorf("unable to build default hardware build out for %s", deviceTypeSlug),
@@ -139,36 +164,51 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 	var result AddHardwareResult
 
 	for _, hardwareBuildOut := range hardwareBuildOutItems {
-		// Generate the CANI hardware inventory version of the hardware build out data
-		// TODO
+		var hardware inventory.Hardware
 
-		locationOrdinal := hardwareBuildOut.OrdinalPath[len(hardwareBuildOut.OrdinalPath)-1]
+		if hardwareBuildOut.ExistingHardware == nil {
+			//
+			// New hardware not present in the inventory
+			//
 
-		hardware := inventory.Hardware{
-			ID:             hardwareBuildOut.ID,
-			Parent:         hardwareBuildOut.ParentID,
-			Type:           hardwareBuildOut.DeviceType.HardwareType,
-			DeviceTypeSlug: hardwareBuildOut.DeviceType.Slug,
-			Vendor:         hardwareBuildOut.DeviceType.Manufacturer,
-			Model:          hardwareBuildOut.DeviceType.Model,
+			// Generate the CANI hardware inventory version of the hardware build out data
+			hardware = inventory.NewHardwareFromBuildOut(hardwareBuildOut, inventory.HardwareStatusStaged)
 
-			LocationOrdinal: &locationOrdinal,
+			log.Debug().Any("id", hardware.ID).Msg("Hardware")
+			log.Debug().Str("path", hardwareBuildOut.LocationPath.String()).Msg("Hardware Build out")
 
-			Status: inventory.HardwareStatusStaged,
-		}
+			// TODO need a check to see if all the needed information exists,
+			// Things like role/subrole/nid/alias could be injected at a later time.
+			// Not sure how hard it would be to specify at this point in time.
+			// This command creates the physical information for a node, have another command for the logical part of the data
+			if err := d.datastore.Add(&hardware); err != nil {
+				return AddHardwareResult{}, errors.Join(
+					fmt.Errorf("unable to add hardware to inventory datastore"),
+					err,
+				)
+			}
+		} else {
+			//
+			// Empty hardware is present in the inventory
+			//
 
-		log.Debug().Any("id", hardware.ID).Msg("Hardware")
-		log.Debug().Str("path", hardwareBuildOut.LocationPathString()).Msg("Hardware Build out")
+			hardware = *hardwareBuildOut.ExistingHardware
 
-		// TODO need a check to see if all the needed information exists,
-		// Things like role/subrole/nid/alias could be injected at a later time.
-		// Not sure how hard it would be to specify at this point in time.
-		// This command creates the physical information for a node, have another command for the logical part of the data
-		if err := d.datastore.Add(&hardware); err != nil {
-			return AddHardwareResult{}, errors.Join(
-				fmt.Errorf("unable to add hardware to inventory datastore"),
-				err,
-			)
+			// Set hardware type information from build out
+			hardware.Type = hardwareBuildOut.ExistingHardware.Type
+			hardware.DeviceTypeSlug = hardwareBuildOut.ExistingHardware.DeviceTypeSlug
+			hardware.Vendor = hardwareBuildOut.ExistingHardware.Vendor
+			hardware.Model = hardwareBuildOut.ExistingHardware.Model
+
+			// The hardware is now staged, and not empty
+			hardware.Status = inventory.HardwareStatusStaged
+
+			if err := d.datastore.Update(&hardware); err != nil {
+				return AddHardwareResult{}, errors.Join(
+					fmt.Errorf("unable to add hardware to inventory datastore"),
+					err,
+				)
+			}
 		}
 
 		hardwareLocation, err := d.datastore.GetLocation(hardware)
@@ -184,16 +224,29 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 
 	}
 
+	// Validate the CANI's datastore
+	if failedValidations, err := d.datastore.Validate(); len(failedValidations) > 0 {
+		result.DatastoreValidationErrors = failedValidations
+	} else if err != nil {
+		return AddHardwareResult{}, errors.Join(
+			fmt.Errorf("failed to validate datastore inventory"),
+			err,
+		)
+	}
+
 	// Validate the current state of CANI's inventory data against the provider plugin
 	// for provider specific data.
 	if failedValidations, err := d.externalInventoryProvider.ValidateInternal(ctx, d.datastore, false); len(failedValidations) > 0 {
 		result.ProviderValidationErrors = failedValidations
-		return result, provider.ErrDataValidationFailure
 	} else if err != nil {
 		return AddHardwareResult{}, errors.Join(
 			fmt.Errorf("failed to validate inventory against inventory provider plugin"),
 			err,
 		)
+	}
+
+	if len(result.DatastoreValidationErrors) > 0 || len(result.ProviderValidationErrors) > 0 {
+		return result, provider.ErrDataValidationFailure
 	}
 
 	return result, d.datastore.Flush()

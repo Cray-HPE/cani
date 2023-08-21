@@ -23,29 +23,33 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package chassis
+package uuidutil
 
 import (
-	root "github.com/Cray-HPE/cani/cmd"
+	"sort"
+	"strings"
+
+	"github.com/google/uuid"
 )
 
-var (
-	hwType      string
-	supportedHw []string
-	format      string
-	sortBy      string
-)
+func Join(ids []uuid.UUID, sep string, ignoreIDs ...uuid.UUID) string {
+	// Build up ignore lookup map
+	ignoreMap := map[uuid.UUID]bool{}
+	for _, id := range ignoreIDs {
+		ignoreMap[id] = true
+	}
 
-func init() {
-	// Add variants to root commands
-	root.AddCmd.AddCommand(AddChassisCmd)
-	root.ListCmd.AddCommand(ListChassisCmd)
-	root.RemoveCmd.AddCommand(RemoveChassisCmd)
+	// Build up string versions of the UUIDs
+	idStrs := []string{}
+	for _, id := range ids {
+		if ignoreMap[id] {
+			continue
+		}
 
-	// Add a flag to show supported types
-	AddChassisCmd.Flags().BoolP("list-supported-types", "L", false, "List supported hardware types.")
+		idStrs = append(idStrs, id.String())
+	}
 
-	ListChassisCmd.Flags().StringVarP(&format, "format", "f", "pretty", "Format output")
-	ListChassisCmd.Flags().StringVarP(&sortBy, "sort", "s", "location", "Sort by a specific key")
+	sort.Strings(idStrs)
 
+	return strings.Join(idStrs, sep)
 }

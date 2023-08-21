@@ -97,8 +97,9 @@ func listCabinet(cmd *cobra.Command, args []string) error {
 		w := tabwriter.NewWriter(os.Stdout, minwidth, tabwidth, padding, padchar, tabwriter.AlignRight)
 		defer w.Flush()
 
-		fmt.Fprintf(w, "%s\t%s\t%v\t%s\n",
+		fmt.Fprintf(w, "%s\t%s\t%s\t%v\t%s\n",
 			"UUID",
+			"Status",
 			"Type",
 			"HMN VLAN",
 			"Location")
@@ -142,8 +143,9 @@ func listCabinet(cmd *cobra.Command, args []string) error {
 				}
 			}
 
-			fmt.Fprintf(w, "%s\t%s\t%v\t%s\n",
+			fmt.Fprintf(w, "%s\t%s\t%s\t%v\t%s\n",
 				filtered[hw].ID.String(),
+				filtered[hw].Status,
 				filtered[hw].DeviceTypeSlug,
 				pointers.IntPtrToStr(cabinetMetadata.HMNVlan),
 				filtered[hw].LocationPath.String())

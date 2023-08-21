@@ -45,7 +45,6 @@ import (
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	"github.com/Cray-HPE/hms-xname/xnames"
 	"github.com/Cray-HPE/hms-xname/xnametypes"
-	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 )
 
@@ -261,7 +260,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			}
 
 			// Now its time to build up what the hardware looks like
-			newHardware, err := csm.buildInventoryHardware(deviceTypeSlug, cabinetXname.Cabinet, cSystem.ID, inventory.HardwareStatusProvisioned)
+			newHardware, err := csm.buildInventoryHardware(deviceTypeSlug, cabinetXname.Cabinet, cSystem, inventory.HardwareStatusProvisioned)
 			if err != nil {
 				return errors.Join(fmt.Errorf("failed to build hardware for cabinet (%s)", cabinetXname.String()), err)
 			}
@@ -476,7 +475,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 		hsmComponent, exists := hsmStateComponentsMap[nodeBladeXname.String()]
 		if !exists {
 			log.Debug().Msgf("%s exists in SLS, but not HSM", nodeBladeXname)
-
+			// This could be caused by the cabinet controller not been discovered yet
 			continue
 		}
 
@@ -496,7 +495,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			nodeEnclosure, exists := hsmHardwareInventoryMap[nodeEnclosureXname.String()]
 			if !exists {
 				log.Warn().Msgf("%s is missing from HSM hardware inventory, possible phantom hardware", nodeEnclosureXname)
-				continue // TODO what should happen here?
+				continue
 			}
 
 			if nodeEnclosure.PopulatedFRU == nil {
@@ -525,7 +524,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 
 	}
 
-	// 3.
+	// 3. Import node data for nodes that are physically present
 	for nodeBladeXname, deviceSlug := range nodeBladeDeviceSlugs {
 		// Check to see if the node blade exists
 
@@ -554,7 +553,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			}
 
 			// Now its time to build up what the hardware looks like
-			newHardware, err := csm.buildInventoryHardware(deviceSlug, nodeBladeXname.ComputeModule, cChassis.ID, inventory.HardwareStatusProvisioned)
+			newHardware, err := csm.buildInventoryHardware(deviceSlug, nodeBladeXname.ComputeModule, cChassis, inventory.HardwareStatusProvisioned)
 			if err != nil {
 				return errors.Join(fmt.Errorf("failed to build hardware for node blade (%s)", nodeBladeXname.String()), err)
 			}
@@ -573,7 +572,108 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 		}
 	}
 
-	// Update node metadata in CANI and SLS
+	// 4. Handle phantom nodes
+	for _, slsNode := range allNodes {
+		nodeXname := xnames.FromStringToStruct[xnames.Node](slsNode.Xname)
+		if nodeXname == nil {
+			return fmt.Errorf("failed to parse node xname (%s)", slsNode.Xname)
+		}
+
+		if hsmComponent, exists := hsmHardwareInventoryMap[nodeXname.String()]; exists && hsmComponent.Status != "Empty" {
+			// HSM knows about the component and its not empty. This can't be a phantom node
+			continue
+		}
+
+		//
+		// This must be a phantom node!
+		//
+
+		nodeBMCXname := nodeXname.Parent()
+		nodeBladeXname := nodeBMCXname.Parent()
+		chassisXname := nodeBladeXname.Parent()
+
+		// Retrieve the chassis
+		chassisLP, err := FromXname(chassisXname)
+		if err != nil {
+			return errors.Join(fmt.Errorf("failed to determine location path for chassis %s", chassisXname), err)
+		}
+		cChassis, err := tempDatastore.GetAtLocation(chassisLP)
+		if errors.Is(err, inventory.ErrHardwareNotFound) {
+			return errors.Join(fmt.Errorf("%s %v does not exist in temporary datastore", hardwaretypes.Chassis, chassisLP), err)
+		} else if err != nil {
+			return errors.Join(fmt.Errorf("failed to retrieve %s %v from temporary datastore", hardwaretypes.Chassis, chassisLP), err)
+		}
+
+		// Retrieve the node blade
+		nodeBladeLP := append(chassisLP, inventory.LocationToken{
+			HardwareType: hardwaretypes.NodeBlade,
+			Ordinal:      nodeBladeXname.ComputeModule,
+		})
+
+		cNodeBlade, err := tempDatastore.GetAtLocation(nodeBladeLP)
+		if errors.Is(err, inventory.ErrHardwareNotFound) {
+			// Create empty node blade in CANI
+			cNodeBlade = inventory.Hardware{
+				Parent:          cChassis.ID,
+				Type:            hardwaretypes.NodeBlade,
+				Status:          inventory.HardwareStatusEmpty,
+				LocationOrdinal: pointers.IntPtr(nodeBladeXname.ComputeModule),
+			}
+
+			if err := tempDatastore.Add(&cNodeBlade); err != nil {
+				return errors.Join(fmt.Errorf("failed to create %s for %v in datastore", hardwaretypes.NodeBlade, nodeBladeXname), err)
+			}
+
+		} else if err != nil {
+			return errors.Join(fmt.Errorf("failed to retrieve %s %v from temporary datastore", hardwaretypes.NodeBlade, nodeBladeLP), err)
+		}
+
+		// Retrieve the node card
+		nodeCardLP := append(nodeBladeLP, inventory.LocationToken{
+			HardwareType: hardwaretypes.NodeCard,
+			Ordinal:      nodeBMCXname.NodeBMC,
+		})
+
+		cNodeCard, err := tempDatastore.GetAtLocation(nodeCardLP)
+		if errors.Is(err, inventory.ErrHardwareNotFound) {
+			// Create empty node card in CANI
+			cNodeCard = inventory.Hardware{
+				Parent:          cNodeBlade.ID,
+				Type:            hardwaretypes.NodeCard,
+				Status:          inventory.HardwareStatusEmpty,
+				LocationOrdinal: pointers.IntPtr(nodeBMCXname.NodeBMC),
+			}
+			if err := tempDatastore.Add(&cNodeCard); err != nil {
+				return errors.Join(fmt.Errorf("failed to create empty %s for %v in datastore", hardwaretypes.NodeCard, nodeBMCXname), err)
+			}
+		} else if err != nil {
+			return errors.Join(fmt.Errorf("failed to retrieve %s %v from temporary datastore", hardwaretypes.NodeCard, nodeCardLP), err)
+		}
+
+		// Retrieve the node
+		nodeLP := append(nodeCardLP, inventory.LocationToken{
+			HardwareType: hardwaretypes.Node,
+			Ordinal:      nodeXname.Node,
+		})
+
+		cNode, err := tempDatastore.GetAtLocation(nodeLP)
+		if errors.Is(err, inventory.ErrHardwareNotFound) {
+			// Create empty node card in CANI
+			cNode = inventory.Hardware{
+				Parent:          cNodeCard.ID,
+				Type:            hardwaretypes.Node,
+				Status:          inventory.HardwareStatusEmpty,
+				LocationOrdinal: pointers.IntPtr(nodeXname.Node),
+			}
+			if err := tempDatastore.Add(&cNode); err != nil {
+				return errors.Join(fmt.Errorf("failed to create empty %s for %v in datastore", hardwaretypes.Node, nodeXname), err)
+			}
+		} else if err != nil {
+			return errors.Join(fmt.Errorf("failed to retrieve %s %v from temporary datastore", hardwaretypes.Node, nodeLP), err)
+		}
+	}
+
+	// 5. Update node metadata in CANI and SLS
 	for _, slsNode := range allNodes {
 		nodeXname := xnames.FromString(slsNode.Xname)
 		if nodeXname == nil {
@@ -613,37 +713,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 		cNode, err := tempDatastore.GetAtLocation(nodeLocationPath)
 		if errors.Is(err, inventory.ErrHardwareNotFound) {
 			log.Warn().Msgf("Hardware does not exist (possible phantom hardware): %s", nodeLocationPath)
-			// This is a phantom node, and we need to push this into the inventory to preserve the logical information
-			// of the node
-			// TODO an interesting scenario to test with this would be the an bard peak blade in the location that that SLS assumes to be a windom blade
-
-			// The cabinet and chassis should exist
-			// cChassis, err := tempDatastore.GetAtLocation(nodeLocationPath[0:3])
-			// if errors.Is(err, inventory.ErrHardwareNotFound) {
-			// 	return errors.Join(fmt.Errorf("failed to query datastore for %s", nodeLocationPath), err)
-			// } else if err != nil {
-			// 	return errors.Join(fmt.Errorf("chassis of phantom node (%s) does not exist in datastore", nodeLocationPath), err)
-			// }
-
-			// // The Node Blade may not exist
-			// cNodeBlade, err := tempDatastore.GetAtLocation(nodeLocationPath[0:4])
-			// if errors.Is(err, inventory.ErrHardwareNotFound) {
-			// 	// It doesn't exist, so lets create an empty one
-			// 	cNodeBlade = inventory.Hardware{
-			// 		Parent: cChassis.ID,
-			// 	}
-			// 	tempDatastore.Add()
-			// } else if err != nil {
-			// 	return errors.Join(fmt.Errorf("failed to query datastore for %s", nodeLocationPath), err)
-			// }
-
-			// // The Node Card may not exist
-			// nodeCardExists, err := nodeLocationPath[0:5].Exists(tempDatastore)
-			// if err != nil {
-			// 	return errors.Join(fmt.Errorf("failed to query datastore for %s", nodeLocationPath), err)
-			// }
-
-			// log.Fatal().Msg("Panic!")
+			log.Fatal().Msg("Panic!")
 			continue
 		} else if err != nil {
 			return errors.Join(fmt.Errorf("failed to query datastore for %s", nodeLocationPath), err)
@@ -692,32 +762,11 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 	// TODO
 
 	//
-	// Handle phantom mountain/hill nodes
-	//
-	// TODO this might be better handled in the some code above
-
-	//
 	// Push updates to SLS
 	//
 	if err := sls.HardwareUpdate(csm.slsClient, ctx, slsHardwareToModify, 10); err != nil {
 		return errors.Join(fmt.Errorf("failed to update hardware in SLS"), err)
 	}
-
-	// TODO need a sls.HardwareCreate function
-	// for _, slsHardware := range slsHardwareToAdd {
-	// 	// Perform a POST against SLS
-	//
-	// 	_, r, err := csm.slsClient.HardwareApi.HardwarePost(ctx, sls.NewHardwarePostOpts(
-	// 		slsHardware,
-	// 	))
-	// 	if err != nil {
-	// 		return errors.Join(
-	// 			fmt.Errorf("failed to add hardware (%s) to SLS", slsHardware.Xname),
-	// 			err,
-	// 		)
-	// 	}
-	// 	log.Info().Int("status", r.StatusCode).Msg("Added hardware to SLS")
-	// }
 
 	// Commit changes!
 	if err := datastore.Merge(tempDatastore); err != nil {
@@ -727,14 +776,14 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 	return datastore.Flush()
 }
 
-func (csm *CSM) buildInventoryHardware(deviceTypeSlug string, ordinal int, parentID uuid.UUID, status inventory.HardwareStatus) ([]inventory.Hardware, error) {
+func (csm *CSM) buildInventoryHardware(deviceTypeSlug string, ordinal int, cParent inventory.Hardware, status inventory.HardwareStatus) ([]inventory.Hardware, error) {
 	if csm.hardwareLibrary == nil {
 		panic("Hardware type library is nil")
 	}
 
 	// Build up the expected hardware
 	// Generate a hardware build out using the system as a parent
-	hardwareBuildOutItems, err := csm.hardwareLibrary.GetDefaultHardwareBuildOut(deviceTypeSlug, ordinal, parentID)
+	hardwareBuildOutItems, err := inventory.GenerateDefaultHardwareBuildOut(csm.hardwareLibrary, deviceTypeSlug, ordinal, cParent)
 	if err != nil {
 		return nil, errors.Join(
 			fmt.Errorf("unable to build default hardware build out for %s", deviceTypeSlug),
@@ -744,20 +793,9 @@ func (csm *CSM) buildInventoryHardware(deviceTypeSlug string, ordinal int, paren
 
 	var allHardware []inventory.Hardware
 	for _, hardwareBuildOut := range hardwareBuildOutItems {
-		locationOrdinal := hardwareBuildOut.OrdinalPath[len(hardwareBuildOut.OrdinalPath)-1]
+		hardware := inventory.NewHardwareFromBuildOut(hardwareBuildOut, inventory.HardwareStatusProvisioned)
 
-		allHardware = append(allHardware, inventory.Hardware{
-			ID:             hardwareBuildOut.ID,
-			Parent:         hardwareBuildOut.ParentID,
-			Type:           hardwareBuildOut.DeviceType.HardwareType,
-			DeviceTypeSlug: hardwareBuildOut.DeviceType.Slug,
-			Vendor:         hardwareBuildOut.DeviceType.Manufacturer,
-			Model:          hardwareBuildOut.DeviceType.Model,
-
-			LocationOrdinal: &locationOrdinal,
-
-			Status: inventory.HardwareStatusProvisioned,
-		})
+		allHardware = append(allHardware, hardware)
 
 	}
 

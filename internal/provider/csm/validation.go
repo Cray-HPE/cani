@@ -29,31 +29,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/provider/csm/validate"
+	"github.com/Cray-HPE/cani/internal/util/uuidutil"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 )
-
-func joinUUIDs(ids []uuid.UUID, ignoreID uuid.UUID, sep string) string {
-	idStrs := []string{}
-	for _, id := range ids {
-		if id == ignoreID {
-			continue
-		}
-
-		idStrs = append(idStrs, id.String())
-	}
-
-	sort.Strings(idStrs)
-
-	return strings.Join(idStrs, sep)
-}
 
 // Validate the external services of the inventory provider are correct
 func (csm *CSM) ValidateExternal(ctx context.Context, configOptions provider.ConfigOptions) error {
@@ -243,7 +228,7 @@ func (csm *CSM) validateInternalNode(allHardware map[uuid.UUID]inventory.Hardwar
 			for _, id := range matchingHardware {
 				validationResult := results[id]
 				validationResult.Errors = append(validationResult.Errors,
-					fmt.Sprintf("Specified NID (%d) is not unique, shared by: %s", nid, joinUUIDs(matchingHardware, id, ", ")),
+					fmt.Sprintf("Specified NID (%d) is not unique, shared by: %s", nid, uuidutil.Join(matchingHardware, ", ", id)),
 				)
 				results[id] = validationResult
 			}
@@ -257,7 +242,7 @@ func (csm *CSM) validateInternalNode(allHardware map[uuid.UUID]inventory.Hardwar
 			for _, id := range matchingHardware {
 				validationResult := results[id]
 				validationResult.Errors = append(validationResult.Errors,
-					fmt.Sprintf("Specified alias (%s) is not unique, shared by: %s", alias, joinUUIDs(matchingHardware, id, ", ")),
+					fmt.Sprintf("Specified alias (%s) is not unique, shared by: %s", alias, uuidutil.Join(matchingHardware, ", ", id)),
 				)
 				results[id] = validationResult
 			}
@@ -345,7 +330,7 @@ func (csm *CSM) validateInternalCabinet(allHardware map[uuid.UUID]inventory.Hard
 			for _, id := range matchingHardware {
 				validationResult := results[id]
 				validationResult.Errors = append(validationResult.Errors,
-					fmt.Sprintf("Specified HMN Vlan (%d) is not unique, shared by: %s", nid, joinUUIDs(matchingHardware, id, ", ")),
+					fmt.Sprintf("Specified HMN Vlan (%d) is not unique, shared by: %s", nid, uuidutil.Join(matchingHardware, ", ", id)),
 				)
 				results[id] = validationResult
 			}

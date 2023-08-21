@@ -110,11 +110,13 @@ type HardwareLocationPair struct {
 }
 
 type AddHardwareResult struct {
-	AddedHardware            []HardwareLocationPair
-	ProviderValidationErrors map[uuid.UUID]provider.HardwareValidationResult
+	AddedHardware             []HardwareLocationPair
+	DatastoreValidationErrors map[uuid.UUID]inventory.ValidateResult
+	ProviderValidationErrors  map[uuid.UUID]provider.HardwareValidationResult
 }
 
 type UpdatedHardwareResult struct {
 	// UpdatedHardware          []HardwareLocationPair
-	ProviderValidationErrors map[uuid.UUID]provider.HardwareValidationResult
+	DatastoreValidationErrors map[uuid.UUID]inventory.ValidateResult // TODO
+	ProviderValidationErrors  map[uuid.UUID]provider.HardwareValidationResult
 }

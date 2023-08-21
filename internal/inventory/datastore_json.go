@@ -37,6 +37,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Cray-HPE/cani/internal/util/uuidutil"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -322,11 +323,12 @@ func (dj *DatastoreJSON) calculateDerivedFields() (err error) {
 }
 
 // Validate validates the current inventory
-func (dj *DatastoreJSON) Validate() error {
+func (dj *DatastoreJSON) Validate() (map[uuid.UUID]ValidateResult, error) {
 	dj.inventoryLock.RLock()
 	defer dj.inventoryLock.RUnlock()
 
-	log.Warn().Msg("DatastoreJSON's Validate was called. This is not currently implemented")
+	log.Warn().Msg("DatastoreJSON's Validate was called. This is not fully implemented")
+	validationResults := map[uuid.UUID]ValidateResult{}
 
 	// Verify inventory map key matches hardware UUID
 	// TODO
@@ -337,7 +339,52 @@ func (dj *DatastoreJSON) Validate() error {
 	// TODO think of other checks
 
 	// TODO for right now say everything is ok
-	return nil
+
+	//
+	// Verify all complete location paths are unique.
+	//
+
+	// Build up a lookup map of location paths to hardware UUIDs
+	foundLocationPaths := map[string][]uuid.UUID{}
+	for _, hardware := range dj.inventory.Hardware {
+		if len(hardware.LocationPath) == 0 {
+			continue
+		}
+
+		if hardware.LocationPath[0].HardwareType != hardwaretypes.System {
+			// Skip any piece of hardware that does not begin with System type, as it is not complete
+			continue
+		}
+
+		key := hardware.LocationPath.String()
+		foundLocationPaths[key] = append(foundLocationPaths[key], hardware.ID)
+	}
+
+	// Verify all location paths have only one Hardware object present
+	for _, hardwareIDs := range foundLocationPaths {
+		if len(hardwareIDs) == 1 {
+			continue
+		}
+
+		for _, hardwareID := range hardwareIDs {
+			if _, exists := validationResults[hardwareID]; !exists {
+				validationResults[hardwareID] = ValidateResult{Hardware: dj.inventory.Hardware[hardwareID]}
+			}
+
+			// Add the validation error and push it back into the map
+			validationResult := validationResults[hardwareID]
+			validationResult.Errors = append(validationResult.Errors,
+				fmt.Sprintf("Location path not unique shared by: %s", uuidutil.Join(hardwareIDs, ", ", hardwareID)),
+			)
+			validationResults[hardwareID] = validationResult
+		}
+	}
+
+	if len(validationResults) > 0 {
+		return validationResults, ErrDatastoreValidationFailure
+	}
+
+	return nil, nil
 }
 
 // Add adds a new hardware object to the inventory
@@ -667,6 +714,50 @@ func (dj *DatastoreJSON) getChildren(id uuid.UUID) ([]Hardware, error) {
 	}
 
 	return results, nil
+}
+
+func (dj *DatastoreJSON) GetDescendants(id uuid.UUID) ([]Hardware, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
+
+	results := []Hardware{}
+	callback := func(h Hardware) error {
+		results = append(results, h)
+		return nil
+	}
+
+	if err := dj.traverseByLocation(id, callback); err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func (dj *DatastoreJSON) traverseByLocation(rootID uuid.UUID, callback func(h Hardware) error) error {
+	queue := []uuid.UUID{rootID}
+
+	for len(queue) != 0 {
+		// Pull next ID from the queue
+		hardwareID := queue[0]
+		queue = queue[1:]
+
+		// Retrieve the hardware object
+		hardware, exists := dj.inventory.Hardware[hardwareID]
+		if !exists {
+			// This should not happen
+			return fmt.Errorf("unable to find hardware object with ID (%s)", hardware.ID)
+		}
+
+		// Visit the hardware object
+		if err := callback(hardware); err != nil {
+			return errors.Join(fmt.Errorf("callback failed on hardware object with ID (%s)", hardware.ID), err)
+		}
+
+		// Add the children to the queue
+		queue = append(queue, hardware.Children...)
+	}
+
+	return nil
 }
 
 // logTransaction logs a transaction to logger
