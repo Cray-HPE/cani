@@ -1,4 +1,73 @@
 {
-    "Hardware": {},
-    "Networks": {}
+  "Hardware": {},
+  "Networks": {
+    "HMN": {
+      "Name": "HMN",
+      "FullName": "Hardware Management Network",
+      "IPRanges": [
+          "10.254.0.0/17"
+      ],
+      "Type": "ethernet",
+      "ExtraProperties": {
+          "CIDR": "10.254.0.0/17",
+          "VlanRange": [
+              4
+          ],
+          "MTU": 9000,
+          "Subnets": []
+      }
+    },
+    "HMN_MTN": {
+      "Name": "HMN_MTN",
+      "FullName": "Mountain Compute Hardware Management Network",
+      "IPRanges": [
+        "10.104.0.0/17"
+      ],
+      "Type": "ethernet",
+      "ExtraProperties": {
+        "CIDR": "10.104.0.0/17",
+        "MTU": 9000,
+        "Subnets": [],
+        "VlanRange": [
+          2000,
+          2999
+        ]
+      }
+    },
+    "NMN_MTN":{
+      "Name": "NMN_MTN",
+      "FullName": "Mountain Compute Node Management Network",
+      "IPRanges": [
+        "10.100.0.0/17"
+      ],
+      "Type": "ethernet",
+      "ExtraProperties": {
+        "CIDR": "10.100.0.0/17",
+        "MTU": 9000,
+        "Subnets": [],
+        "VlanRange": [
+          3000,
+          3999
+        ]
+      }
+    },
+    "NMN": {
+      "Name": "NMN",
+      "FullName": "Node Management Network",
+      "IPRanges": [
+          "10.252.0.0/17"
+      ],
+      "Type": "ethernet",
+      "ExtraProperties": {
+          "CIDR": "10.252.0.0/17",
+          "VlanRange": [
+              2
+          ],
+          "MTU": 9000,
+          "PeerASN": 65533,
+          "MyASN": 65531,
+          "Subnets": []
+      }
+    }
+  }
 }

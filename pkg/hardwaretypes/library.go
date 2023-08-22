@@ -35,7 +35,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v3"
@@ -162,76 +161,3 @@ func (l *Library) GetDeviceType(slug string) (DeviceType, error) {
 // func GetDeviceTypeBuildOut(name string) []DeviceBay {
 
 // }
-
-// TODO needs a different name
-type HardwareBuildOut struct {
-	ID               uuid.UUID
-	ParentID         uuid.UUID
-	DeviceTypeString string
-	DeviceType       DeviceType
-	OrdinalPath      []int
-	HardwareTypePath HardwareTypePath
-
-	// TODO perhaps the OrdinalPath and HardwareTypePath should maybe become there down struct and be paired together.
-}
-
-func (hbo *HardwareBuildOut) GetOrdinal() int {
-	return hbo.OrdinalPath[len(hbo.OrdinalPath)-1]
-}
-
-func (hbo *HardwareBuildOut) LocationPathString() string {
-	tokens := []string{}
-
-	for i, token := range hbo.HardwareTypePath {
-		tokens = append(tokens, fmt.Sprintf("%s:%d", token, hbo.OrdinalPath[i]))
-	}
-
-	return strings.Join(tokens, "->")
-}
-
-// TODO make this should work the inventory data structure
-func (l *Library) GetDefaultHardwareBuildOut(deviceTypeString string, deviceOrdinal int, parentID uuid.UUID) (results []HardwareBuildOut, err error) {
-	queue := []HardwareBuildOut{
-		{
-			ID:               uuid.New(),
-			ParentID:         parentID,
-			DeviceTypeString: deviceTypeString,
-			OrdinalPath:      []int{deviceOrdinal},
-		},
-	}
-
-	for len(queue) != 0 {
-		current := queue[0]
-		queue = queue[1:]
-
-		log.Debug().Msgf("Visiting: %s", current.DeviceTypeString)
-		currentDeviceType, ok := l.DeviceTypes[current.DeviceTypeString]
-		if !ok {
-			return nil, fmt.Errorf("device type (%v) does not exist", current.DeviceTypeString)
-		}
-
-		// Retrieve the hardware type at this point in time, so we only lookup in the map once
-		current.DeviceType = currentDeviceType
-		current.HardwareTypePath = append(current.HardwareTypePath, current.DeviceType.HardwareType)
-
-		for _, deviceBay := range currentDeviceType.DeviceBays {
-			log.Debug().Msgf("  Device bay: %s", deviceBay.Name)
-			if deviceBay.Default != nil {
-				log.Debug().Msgf("    Default: %s", deviceBay.Default.Slug)
-
-				queue = append(queue, HardwareBuildOut{
-					// Hardware type is deferred until when it is processed
-					ID:               uuid.New(),
-					ParentID:         current.ID,
-					DeviceTypeString: deviceBay.Default.Slug,
-					OrdinalPath:      append(current.OrdinalPath, deviceBay.Ordinal),
-					HardwareTypePath: current.HardwareTypePath,
-				})
-			}
-		}
-
-		results = append(results, current)
-	}
-
-	return results, nil
-}
