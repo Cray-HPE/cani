@@ -76,6 +76,11 @@ spec_helper_configure() {
     cp "$FIXTURES"/cani/configs/canitest_valid_inactive.yml canitest.yml
   } 
 
+  use_custom_hw_type(){ 
+    #shellcheck disable=SC2317
+    cp "$FIXTURES"/cani/configs/my_custom_hw.yml "$PWD"/hardware-types/my_custom_hw.yml
+  } 
+
   # deploys a datastore with one system only
   use_valid_datastore_system_only(){ 
     #shellcheck disable=SC2317

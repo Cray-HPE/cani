@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+#
 # MIT License
 #
 # (C) Copyright 2023 Hewlett Packard Enterprise Development LP
@@ -20,8 +21,7 @@
 # OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
-
-
+#
 Describe 'cani add cabinet'
 
 # help output should succeed and match the fixture
@@ -443,4 +443,39 @@ It "--config canitest.yml $1 --auto --accept"
   The line 6 of stderr should include " Cabinet Number: $2"
   The line 7 of stderr should include " VLAN ID: $3"
 End
+
+It 'validates a custom hardware type appears in the list of supported hardware'
+  BeforeCall use_active_session
+  BeforeCall use_custom_hw_type
+  BeforeCall use_valid_datastore_system_only
+  When call bin/cani --config canitest.yml alpha add cabinet -L
+  The status should equal 0
+  The line 8 of stderr should equal '- my-custom-cabinet'
+End
+
+It '--config canitest.yml my-custom-cabinet --auto --accept'
+  BeforeCall use_active_session
+  BeforeCall use_custom_hw_type
+  BeforeCall use_valid_datastore_system_only
+  When call bin/cani alpha add cabinet --config canitest.yml my-custom-cabinet --auto --accept
+  The status should equal 0
+  The line 1 of stderr should include " Querying inventory to suggest cabinet number and VLAN ID"
+  The line 2 of stderr should include " Suggested cabinet number: 4321"
+  The line 3 of stderr should include " Suggested VLAN ID: 1111"
+  The line 4 of stderr should include " was successfully staged to be added to the system"
+  The line 5 of stderr should include " UUID: "
+  The line 6 of stderr should include " Cabinet Number: 4321"
+  The line 7 of stderr should include " VLAN ID: 1111"
+End
+
+It 'validate cabinet is added'
+  BeforeCall use_custom_hw_type
+  When call bin/cani alpha list cabinet --config canitest.yml
+  The status should equal 0
+  The line 2 of stdout should include "staged"
+  The line 2 of stdout should include "my-custom-cabinet"
+  The line 2 of stdout should include "1111"
+  The line 2 of stdout should include "System:0->Cabinet:4321"
+End
+
 End
