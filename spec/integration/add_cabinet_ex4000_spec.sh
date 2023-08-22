@@ -28,7 +28,7 @@ It 'start a session'
   BeforeCall use_inactive_session
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
   BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
-  When call bin/cani alpha session --config canitest.yml init csm -S
+  When call bin/cani alpha session --config "$CANI_CONF" init csm -S
   The status should equal 0
   The line 1 of stderr should include 'Using simulation mode'
   The stderr should include 'Validated CANI inventory'
@@ -50,7 +50,7 @@ It 'start a session'
 End
 
 It 'add ex4000 cabinet'
-  When call bin/cani alpha --config canitest.yml add cabinet hpe-ex4000 --auto --accept
+  When call bin/cani alpha --config "$CANI_CONF" add cabinet hpe-ex4000 --auto --accept
   The status should equal 0
   The line 1 of stderr should include 'Querying inventory to suggest cabinet number and VLAN ID'
   The line 2 of stderr should include 'Suggested cabinet number: 1000'
@@ -59,7 +59,7 @@ It 'add ex4000 cabinet'
 End
 
 It 'commit and reconcile'
-  When call bin/cani alpha session --config canitest.yml apply --commit
+  When call bin/cani alpha session --config "$CANI_CONF" apply --commit
   The status should equal 0
   The stderr should include 'Hardware added to the system'
   The stderr should include 'x1000            - Type: Cabinet, Class: Mountain, Networks: {"cn":{"HMN":{"CIDR":"10.104.4.0/22","Gateway":"10.104.4.1","VLan":3001},"NMN":{"CIDR":"10.100.4.0/22","Gateway":"10.100.4.1","VLan":2001}}}'

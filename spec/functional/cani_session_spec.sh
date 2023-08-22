@@ -1,5 +1,6 @@
 #!/usr/bin/env sh
 #
+#
 # MIT License
 #
 # (C) Copyright 2023 Hewlett Packard Enterprise Development LP
@@ -22,11 +23,8 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
+#
 Describe 'cani session'
-
-Path cani-config="canitest.yml"
-Path cani-custom-types="hardware-types"
-Path cani-custom-hw="hardware-types/my_custom_hw.yml"
 
 # help output should succeed and match the fixture
 # a config file should be created if one does not exist
@@ -35,41 +33,40 @@ It '--help'
   When call bin/cani alpha session --help
   The status should equal 0
   The stdout should satisfy fixture 'cani/session/help'
-  AfterCall The path canitest.yml should be exist
-  AfterCall The path canitest.yml should be file
+  AfterCall The path "$CANI_CONF" should be exist
+  AfterCall The path "$CANI_CONF" should be file
 End
 
 # Status should be INACTIVE if active: false
-It '--config canitest.yml status'
+It "--config $CANI_CONF status"
   BeforeCall use_inactive_session # session is inactive
-  When call bin/cani alpha session --config canitest.yml status
+  When call bin/cani alpha session --config "$CANI_CONF" status
   The status should equal 0
-  The line 1 of stderr should include 'See canitest.yml for session details'
+  The line 1 of stderr should include "See $CANI_CONF for session details"
   The line 2 of stderr should include 'Session is INACTIVE'
 End
 
 # Status should be ACTIVE if active: true
-It '--config canitest.yml status'
+It "--config $CANI_CONF status"
   BeforeCall use_active_session # session is active
-  When call bin/cani alpha session --config canitest.yml status
+  When call bin/cani alpha session --config "$CANI_CONF" status
   The status should equal 0
-  The line 1 of stderr should include 'See canitest.yml for session details'
+  The line 1 of stderr should include "See $CANI_CONF for session details"
   The line 2 of stderr should include 'Session is ACTIVE'
 End
 
-
 # Starting a session without passing a provider should fail
-It '--config canitest.yml init'
+It "--config $CANI_CONF init"
   BeforeCall remove_config
-  When call bin/cani alpha session --config canitest.yml init
+  When call bin/cani alpha session --config "$CANI_CONF" init
   The status should equal 1
   The line 1 of stderr should equal 'Error: Need a provider.  Choose from: [csm]'
 End
 
 # Starting a session without passing a provider should fail
-It '--config canitest.yml init fake'
+It "--config $CANI_CONF init fake"
   BeforeCall remove_config
-  When call bin/cani alpha session --config canitest.yml init fake
+  When call bin/cani alpha session --config "$CANI_CONF" init fake
   The status should equal 1
   The line 1 of stderr should equal 'Error: fake is not a valid provider.  Valid providers: [csm]'
 End
@@ -77,12 +74,12 @@ End
 # Starting a session should fail with:
 #  - a valid proivder
 #  - no connection to SLS
-It '(no connection to provider) --config canitest.yml init csm'
+It "(no connection to provider) --config $CANI_CONF init csm"
   BeforeCall remove_config
   BeforeCall remove_datastore
-  When call bin/cani alpha session --config canitest.yml init csm
+  When call bin/cani alpha session --config "$CANI_CONF" init csm
   The status should equal 1
-  The line 1 of stderr should include 'canidb.json does not exist, creating default datastore'
+  The line 1 of stderr should include "$CANI_DS does not exist, creating default datastore"
   The line 2 of stderr should include 'No API Gateway token provided, getting one from provider '
   The line 3 of stderr should include '/keycloak/realms/shasta/protocol/openid-connect/token'
 End
@@ -91,7 +88,7 @@ It 'initialize a session without a config file or datastore'
   BeforeCall remove_config
   BeforeCall remove_datastore
   BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
-  When call bin/cani alpha session --config canitest.yml init csm -S
+  When call bin/cani alpha session --config "$CANI_CONF" init csm -S
   The status should equal 0
   The line 1 of stderr should include 'Using simulation mode'
   The stderr should include 'Validated CANI inventory'
@@ -112,15 +109,15 @@ It 'initialize a session without a config file or datastore'
   The stderr should include 'Session is now ACTIVE with provider csm and datastore'
 
   # The config should get created
-  The path cani-config should be exist
-  The path cani-config should be file
+  The path "$CANI_CONF" should be exist
+  The path "$CANI_CONF" should be file
 End
 
 It 'initialize a session and validate a custom hardware type'
   BeforeCall use_inactive_session
   BeforeCall use_valid_datastore_system_only
   BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
-  When call bin/cani alpha session --config canitest.yml init csm -S
+  When call bin/cani alpha session --config "$CANI_CONF" init csm -S
   The status should equal 0
   The line 1 of stderr should include 'Using simulation mode'
   The stderr should include 'Validated CANI inventory'
@@ -141,12 +138,12 @@ It 'initialize a session and validate a custom hardware type'
   The stderr should include 'Session is now ACTIVE with provider csm and datastore'
 
   # The config should get created
-  The path cani-config should be exist
-  The path cani-config should be file
+  The path "$CANI_CONF" should be exist
+  The path "$CANI_CONF" should be file
 
   # A hardware-types dir should be created
-  The path cani-custom-types should be exist
-  The path cani-custom-types should be directory
+  The path "$CANI_CUSTOM_HW_DIR" should be exist
+  The path "$CANI_CUSTOM_HW_DIR" should be directory
 End
 
 It 'initialize a session and validate a custom hardware type'
@@ -154,7 +151,7 @@ It 'initialize a session and validate a custom hardware type'
   BeforeCall use_custom_hw_type
   BeforeCall use_valid_datastore_system_only
   BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
-  When call bin/cani alpha session --config canitest.yml init csm -S
+  When call bin/cani alpha session --config "$CANI_CONF" init csm -S
   The status should equal 0
   The line 1 of stderr should include 'Using simulation mode'
   The stderr should include 'Validated CANI inventory'
@@ -175,12 +172,12 @@ It 'initialize a session and validate a custom hardware type'
   The stderr should include 'Session is now ACTIVE with provider csm and datastore'
 
   # The config should get created
-  The path cani-config should be exist
-  The path cani-config should be file
+  The path "$CANI_CONF" should be exist
+  The path "$CANI_CONF" should be file
 
   # A hardware-types dir should be created
-  The path cani-custom-types should be exist
-  The path cani-custom-types should be directory
+  The path "$CANI_CUSTOM_HW_DIR" should be exist
+  The path "$CANI_CUSTOM_HW_DIR" should be directory
 End
 
 End

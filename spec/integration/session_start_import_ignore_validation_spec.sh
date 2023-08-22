@@ -28,7 +28,7 @@ It 'attempt to start a session with failures'
   BeforeCall use_inactive_session
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
   BeforeCall "load_sls.sh testdata/fixtures/sls/invalid_hardware_networks.json" # simulator is running, load a specific SLS config
-  When call bin/cani alpha session --config canitest.yml init csm -S
+  When call bin/cani alpha session --config "$CANI_CONF" init csm -S
   The status should not equal 0
   The stderr should include 'External inventory is unstable'
 End
@@ -37,7 +37,7 @@ It 'start a session ignoring validation failures'
   BeforeCall use_inactive_session
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
   BeforeCall "load_sls.sh testdata/fixtures/sls/invalid_hardware_networks.json" # simulator is running, load a specific SLS config
-  When call bin/cani alpha session --config canitest.yml init csm -S --ignore-validation
+  When call bin/cani alpha session --config "$CANI_CONF" init csm -S --ignore-validation
   The status should equal 0
   The line 1 of stderr should include 'Using simulation mode'
   The stderr should include 'Validated CANI inventory'
@@ -64,7 +64,7 @@ It 'start a session ignoring validation failures'
 End
 
 It 'commit and reconcile ignoring validation failures'
-  When call bin/cani alpha session --config canitest.yml apply --commit --ignore-validation
+  When call bin/cani alpha session --config "$CANI_CONF" apply --commit --ignore-validation
   The status should equal 0
   The line 1 of stderr should include 'Session is STOPPED'
   The line 2 of stderr should include 'Committing changes to session'

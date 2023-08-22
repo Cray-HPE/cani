@@ -28,7 +28,7 @@ It 'start a session'
   BeforeCall use_inactive_session
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
   BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
-  When call bin/cani alpha session --config canitest.yml init csm -S
+  When call bin/cani alpha session --config "$CANI_CONF" init csm -S
   The status should equal 0
   The line 1 of stderr should include 'Using simulation mode'
   The stderr should include 'Validated CANI inventory'
@@ -61,7 +61,7 @@ Parameters:dynamic
 End
 
 It 'Add ex2000 cabinet to reach subnet limit'
-  When call bin/cani alpha --config canitest.yml add cabinet hpe-ex2000 --auto --accept
+  When call bin/cani alpha --config "$CANI_CONF" add cabinet hpe-ex2000 --auto --accept
   The status should equal 0
   The line 1 of stderr should include 'Querying inventory to suggest cabinet number and VLAN ID'
   The line 2 of stderr should include "Suggested cabinet number: $1"
@@ -74,7 +74,7 @@ End
 Describe 'EDGE:'
 
 It 'commit and reconcile'
-  When call bin/cani alpha session --config canitest.yml apply --commit
+  When call bin/cani alpha session --config "$CANI_CONF" apply --commit
   The status should equal 1
   The stderr should include 'Error: failed to reconcile network changes'
   The stderr should include 'unable to allocate subnet for cabinet (x9032) in network (HMN_MTN)'

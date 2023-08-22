@@ -40,7 +40,7 @@ do
     # run shellspec to emulate human interation
     if [ "${DEBUG:-false}" = "true" ]; then
       set -x
-      shellspec "${test}" -f tap --no-banner -x
+      shellspec "${test}" -f tap --no-banner -X
       set +x
     else
       set -x
