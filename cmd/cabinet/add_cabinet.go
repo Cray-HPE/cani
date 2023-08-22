@@ -66,7 +66,7 @@ func addCabinet(cmd *cobra.Command, args []string) error {
 		}
 		log.Info().Msgf("Querying inventory to suggest cabinet number and VLAN ID")
 		// set the vars to the recommendations
-		cabinetNumber = recommendations.LocationOrdinal
+		cabinetNumber = recommendations.CabinetOrdinal
 		vlanId = recommendations.ProviderMetadata[csm.ProviderMetadataVlanId].(int)
 		log.Debug().Msgf("Provider recommendations: %+v", recommendations)
 		log.Info().Msgf("Suggested cabinet number: %d", cabinetNumber)

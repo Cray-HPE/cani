@@ -195,10 +195,10 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 			hardware = *hardwareBuildOut.ExistingHardware
 
 			// Set hardware type information from build out
-			hardware.Type = hardwareBuildOut.ExistingHardware.Type
-			hardware.DeviceTypeSlug = hardwareBuildOut.ExistingHardware.DeviceTypeSlug
-			hardware.Vendor = hardwareBuildOut.ExistingHardware.Vendor
-			hardware.Model = hardwareBuildOut.ExistingHardware.Model
+			hardware.DeviceTypeSlug = hardwareBuildOut.DeviceTypeSlug
+			hardware.Type = hardwareBuildOut.DeviceType.HardwareType
+			hardware.Vendor = hardwareBuildOut.DeviceType.Manufacturer
+			hardware.Model = hardwareBuildOut.DeviceType.Model
 
 			// The hardware is now staged, and not empty
 			hardware.Status = inventory.HardwareStatusStaged

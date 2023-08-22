@@ -590,6 +590,9 @@
                 "label": {
                     "type": "string"
                 },
+                "ordinal": {
+                  "type": "integer"
+              },
                 "allowed": {
                     "type": "object",
                     "properties": {
@@ -616,7 +619,7 @@
                     }
                 }
             },
-            "required": ["name"],
+            "required": ["name", "ordinal"],
             "additionalProperties": false
         },
 

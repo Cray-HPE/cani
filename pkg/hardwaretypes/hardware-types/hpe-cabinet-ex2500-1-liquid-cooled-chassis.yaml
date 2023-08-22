@@ -33,12 +33,14 @@ device-bays:
       slug: [hpe-crayex-cabinet-environmental-controller]
     default:
       slug: hpe-crayex-cabinet-environmental-controller
+    ordinal: 0
 
   - name: Chassis 0
     allowed:
       slug: [hpe-crayex-chassis]
     default:
       slug: hpe-crayex-chassis
+    ordinal: 0
 
       # TODO Need to denote that this is a normal EIA chassis/equipment
       # - name: Chassis 4

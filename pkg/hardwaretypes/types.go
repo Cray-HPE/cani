@@ -127,11 +127,13 @@ type DeviceBay struct {
 	Name    string           `yaml:"name"`
 	Allowed *AllowedHardware `yaml:"allowed"`
 	Default *DefaultHardware `yaml:"default"`
+	Ordinal int              `yaml:"ordinal"`
 }
 
 type AllowedHardware struct {
 	HardwareTypes []HardwareType `yaml:"hardware-type"`
 	Slug          []string       `yaml:"slug"`
+	Types         []HardwareType `yaml:"types"`
 }
 
 type DefaultHardware struct {

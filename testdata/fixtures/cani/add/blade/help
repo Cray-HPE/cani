@@ -4,6 +4,7 @@ Usage:
   cani alpha add blade [flags]
 
 Flags:
+  -y, --accept                 Automatically accept recommended values.
       --auto                   Automatically recommend values for parent hardware
       --blade int              Blade (default 1)
       --cabinet int            Parent cabinet (default 1001)

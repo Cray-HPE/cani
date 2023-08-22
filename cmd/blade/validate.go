@@ -72,5 +72,43 @@ func validHardware(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	cabinetSet := cmd.Flags().Changed("cabinet")
+	chassisSet := cmd.Flags().Changed("chassis")
+	bladeSet := cmd.Flags().Changed("blade")
+	autoSet := cmd.Flags().Changed("auto")
+	// if auto is set, the values are recommended and the required flags are bypassed
+	if autoSet {
+		return nil
+	} else {
+		// No flags set
+		if !cabinetSet && !chassisSet && !bladeSet {
+			return errors.New("required flag(s) \"blade\", \"cabinet\", \"chassis\" not set")
+		}
+		// permutations with cabinet set
+		if cabinetSet && !chassisSet && !bladeSet {
+			return errors.New("required flag(s) \"blade\", \"chassis\" not set")
+		}
+		if cabinetSet && chassisSet && !bladeSet {
+			return errors.New("required flag(s) \"blade\", not set")
+		}
+		// permutations with chassis set
+		if !cabinetSet && chassisSet && !bladeSet {
+			return errors.New("required flag(s) \"blade\", \"cabinet\" not set")
+		}
+		if !cabinetSet && chassisSet && bladeSet {
+			return errors.New("required flag(s) \"cabinet\" not set")
+		}
+		// permutations with blade set
+		if !cabinetSet && !chassisSet && bladeSet {
+			return errors.New("required flag(s) \"cabinet\", \"chassis\" not set")
+		}
+		if cabinetSet && !chassisSet && bladeSet {
+			return errors.New("required flag(s) \"chassis\" not set")
+		}
+		if !cabinetSet && chassisSet && bladeSet {
+			return errors.New("required flag(s) \"cabinet\" not set")
+		}
+	}
+
 	return nil
 }

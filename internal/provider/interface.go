@@ -51,8 +51,8 @@ type InventoryProvider interface {
 	// Reconcile CANI's inventory state with the external inventory state and apply required changes
 	Reconcile(ctx context.Context, configOptions ConfigOptions, datastore inventory.Datastore, dryrun bool) error
 
-	// RecommendCabinet returns recommended settings for adding a cabinet
-	RecommendCabinet(inv inventory.Inventory, deviceTypeSlug string) (HardwareRecommendations, error)
+	// RecommendHardware returns recommended settings for adding hardware based on the deviceTypeSlug
+	RecommendHardware(inv inventory.Inventory, deviceTypeSlug string) (HardwareRecommendations, error)
 
 	// Get Config Options that are specific to the Provider. For example, supported Roles and SubRoles
 	ConfigOptions(ctx context.Context) (ConfigOptions, error)
@@ -81,7 +81,9 @@ type HardwareValidationResult struct {
 }
 
 type HardwareRecommendations struct {
-	LocationOrdinal  int
+	CabinetOrdinal   int
+	ChassisOrdinal   int
+	BladeOrdinal     int
 	ProviderMetadata map[string]interface{}
 }
 
