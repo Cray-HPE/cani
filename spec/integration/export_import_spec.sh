@@ -69,18 +69,20 @@ End
 
 It 'import vlan change'
   When call sh -c '\
-      bin/cani alpha --config canitest.yml export | \
-      sed s/Cabinet,3001/Cabinet,4000/ | \
-      bin/cani alpha --config canitest.yml import'
+      bin/cani alpha --config canitest.yml export > canitest_export.csv; \
+      cat canitest_export.csv | \
+        sed s/Cabinet,3001/Cabinet,4000/ | \
+        bin/cani alpha --config canitest.yml import'
   The status should equal 0
   The line 1 of stderr should include 'Success: Wrote 1 records of a total'
 End
 
 It 'import vlan changes again'
   When call sh -c '\
-      bin/cani alpha --config canitest.yml export | \
-      sed s/Cabinet,3001/Cabinet,4000/ | \
-      bin/cani alpha --config canitest.yml import'
+      bin/cani alpha --config canitest.yml export > canitest_export.csv; \
+      cat canitest_export.csv | \
+        sed s/Cabinet,3001/Cabinet,4000/ | \
+        bin/cani alpha --config canitest.yml import'
   The status should equal 0
   The line 1 of stderr should include 'Success: Wrote 0 records of a total'
 End
@@ -96,10 +98,11 @@ End
 
 It 'import changes to nodes that do not have metadata'
   When call sh -c '\
-      bin/cani alpha --config canitest.yml export --headers type,vlan,role,subrole,nid,alias,name,id | \
-      sed "0,/Node,,,,,,,/s//Node,,Compute,,10000,nid10000,,/" | \
-      sed "0,/Node,,,,,,,/s//Node,,Compute,,20000,nid20000,,/" | \
-      bin/cani alpha --config canitest.yml import'
+      bin/cani alpha --config canitest.yml export --headers type,vlan,role,subrole,nid,alias,name,id > canitest_export.csv; \
+      cat canitest_export.csv | \
+        sed "0,/Node,,,,,,,/s//Node,,Compute,,10000,nid10000,,/" | \
+        sed "0,/Node,,,,,,,/s//Node,,Compute,,20000,nid20000,,/" | \
+        bin/cani alpha --config canitest.yml import'
   The status should equal 0
   The line 1 of stderr should include 'Success: Wrote 2 records of a total'
 End
@@ -115,9 +118,10 @@ End
 
 It 'import changes to nodes that already have metadata'
   When call sh -c '\
-      bin/cani alpha --config canitest.yml export --headers type,vlan,role,subrole,nid,alias,name,id | \
-      sed "0,/Node,,Compute,,10000,nid10000,,/s//Node,,Compute,Worker,10000,nid10000,,/" | \
-      bin/cani alpha --config canitest.yml import'
+      bin/cani alpha --config canitest.yml export --headers type,vlan,role,subrole,nid,alias,name,id > canitest_export.csv;
+      cat canitest_export.csv | \
+        sed "0,/Node,,Compute,,10000,nid10000,,/s//Node,,Compute,Worker,10000,nid10000,,/" | \
+        bin/cani alpha --config canitest.yml import'
   The status should equal 0
   The line 1 of stderr should include 'Success: Wrote 1 records of a total'
 End
