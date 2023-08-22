@@ -113,12 +113,11 @@ It 'verify staged nodes'
 End
 
 It 'commit and reconcile'
-  When call bin/cani alpha session --config canitest.yml apply --commit --dryrun
+  When call bin/cani alpha session --config canitest.yml apply --commit
   # committing without node metadata should fail
   The status should equal 0
   The line 1 of stderr should include 'Session is STOPPED'
-  The line 2 of stderr should include 'Performing dryrun no changes will be applied to the system!'
-  The line 3 of stderr should include 'Committing changes to session'
+  The line 2 of stderr should include 'Committing changes to session'
   The stderr should include 'x9000c1s0b0n1    - Type: Node, Class: Hill, Aliases: [nid001001], Role: Compute, NID: 1001'
   The stderr should include 'x9000c1s0b1n0    - Type: Node, Class: Hill, Aliases: [nid001002], Role: Compute, NID: 1002'
   The stdout should include 'Node            (staged)'
