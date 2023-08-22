@@ -100,6 +100,8 @@ func (d *Domain) SetConfigOptions(ctx context.Context, domainOptions *NewOpts) e
 	case string(inventory.CSMProvider):
 		domainOptions.CsmOptions.ValidRoles = options.ValidRoles
 		domainOptions.CsmOptions.ValidSubRoles = options.ValidSubRoles
+		d.configOptions.ValidRoles = options.ValidRoles
+		d.configOptions.ValidSubRoles = options.ValidSubRoles
 	}
 
 	return nil
