@@ -1,0 +1,436 @@
+{
+  "SchemaVersion": "v1alpha1",
+  "Provider": "csm",
+  "Hardware": {
+    "05b4d2c1-2a15-4527-9ff9-315b55fcaba4": {
+      "ID": "05b4d2c1-2a15-4527-9ff9-315b55fcaba4",
+      "Type": "Chassis",
+      "DeviceTypeSlug": "hpe-crayex-chassis",
+      "Vendor": "HPE",
+      "Model": "CrayEX liquid-cooled cabinet chassis",
+      "Status": "staged",
+      "Parent": "30f99fb5-fbff-49df-9e78-134ce7778478",
+      "Children": [
+        "4cd4b532-b18f-4786-8286-c4343e921210"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        }
+      ],
+      "LocationOrdinal": 3
+    },
+    "07853d8f-0e6a-4926-9574-dd317ac8758e": {
+      "ID": "07853d8f-0e6a-4926-9574-dd317ac8758e",
+      "Type": "NodeCard",
+      "DeviceTypeSlug": "hpe-crayex-ex235a-compute-blade-bard-peak-node-card",
+      "Vendor": "HPE",
+      "Model": "EX235A AMD MI200 accelerator blade, Bard Peak Node Card (BPNC)",
+      "Status": "staged",
+      "Parent": "1d87f035-6c89-4670-a86d-61bb09f1928c",
+      "Children": [
+        "77969c13-fd76-4eb2-bf87-f12ef813db3f",
+        "d28c3201-9dfa-4788-852f-86054cd99232"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "1d87f035-6c89-4670-a86d-61bb09f1928c": {
+      "ID": "1d87f035-6c89-4670-a86d-61bb09f1928c",
+      "Type": "NodeBlade",
+      "DeviceTypeSlug": "hpe-crayex-ex235a-compute-blade",
+      "Vendor": "HPE",
+      "Model": "EX235A AMD MI200 accelerator blade (Bard Peak)",
+      "Status": "staged",
+      "Parent": "edb7775e-46d3-4f0f-bbf0-d4b992438e57",
+      "Children": [
+        "07853d8f-0e6a-4926-9574-dd317ac8758e",
+        "89c800f9-bb4b-4950-906d-c66a0476ef47"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "30f99fb5-fbff-49df-9e78-134ce7778478": {
+      "ID": "30f99fb5-fbff-49df-9e78-134ce7778478",
+      "Type": "Cabinet",
+      "DeviceTypeSlug": "hpe-ex2000",
+      "Vendor": "HPE",
+      "Model": "EX2000",
+      "Status": "staged",
+      "ProviderMetadata": {
+        "csm": {
+          "Cabinet": {
+            "HMNVlan": 3000
+          }
+        }
+      },
+      "Parent": "abcdef12-3456-2789-abcd-ef1234567890",
+      "Children": [
+        "05b4d2c1-2a15-4527-9ff9-315b55fcaba4",
+        "50aa9384-55e8-4913-96e9-b71e0d8ad74e",
+        "edb7775e-46d3-4f0f-bbf0-d4b992438e57"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        }
+      ],
+      "LocationOrdinal": 9000
+    },
+    "495d2130-2cbf-4dc6-95f6-e2bde6945d7e": {
+      "ID": "495d2130-2cbf-4dc6-95f6-e2bde6945d7e",
+      "Type": "ChassisManagementModule",
+      "DeviceTypeSlug": "hpe-crayex-chassis-management-module",
+      "Vendor": "HPE",
+      "Model": "CrayEX Chassis Management Module",
+      "Status": "staged",
+      "Parent": "edb7775e-46d3-4f0f-bbf0-d4b992438e57",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "ChassisManagementModule",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "4c4f1867-a742-47fe-b8ed-539cd3ded8e7": {
+      "ID": "4c4f1867-a742-47fe-b8ed-539cd3ded8e7",
+      "Type": "NodeController",
+      "DeviceTypeSlug": "hpe-crayex-ex235a-compute-blade-bard-peak-node-bmc",
+      "Vendor": "HPE",
+      "Model": "EX235A AMD MI200 accelerator blade, Bard Peak Node BMC",
+      "Status": "staged",
+      "Parent": "89c800f9-bb4b-4950-906d-c66a0476ef47",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeController",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "4cd4b532-b18f-4786-8286-c4343e921210": {
+      "ID": "4cd4b532-b18f-4786-8286-c4343e921210",
+      "Type": "ChassisManagementModule",
+      "DeviceTypeSlug": "hpe-crayex-chassis-management-module",
+      "Vendor": "HPE",
+      "Model": "CrayEX Chassis Management Module",
+      "Status": "staged",
+      "Parent": "05b4d2c1-2a15-4527-9ff9-315b55fcaba4",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "ChassisManagementModule",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "50aa9384-55e8-4913-96e9-b71e0d8ad74e": {
+      "ID": "50aa9384-55e8-4913-96e9-b71e0d8ad74e",
+      "Type": "CabinetEnvironmentalController",
+      "DeviceTypeSlug": "hpe-crayex-cabinet-environmental-controller",
+      "Vendor": "HPE",
+      "Model": "CrayEX Cabinet Environmental Controller",
+      "Status": "staged",
+      "Parent": "30f99fb5-fbff-49df-9e78-134ce7778478",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "CabinetEnvironmentalController",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "77969c13-fd76-4eb2-bf87-f12ef813db3f": {
+      "ID": "77969c13-fd76-4eb2-bf87-f12ef813db3f",
+      "Type": "NodeController",
+      "DeviceTypeSlug": "hpe-crayex-ex235a-compute-blade-bard-peak-node-bmc",
+      "Vendor": "HPE",
+      "Model": "EX235A AMD MI200 accelerator blade, Bard Peak Node BMC",
+      "Status": "staged",
+      "Parent": "07853d8f-0e6a-4926-9574-dd317ac8758e",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeController",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "89c800f9-bb4b-4950-906d-c66a0476ef47": {
+      "ID": "89c800f9-bb4b-4950-906d-c66a0476ef47",
+      "Type": "NodeCard",
+      "DeviceTypeSlug": "hpe-crayex-ex235a-compute-blade-bard-peak-node-card",
+      "Vendor": "HPE",
+      "Model": "EX235A AMD MI200 accelerator blade, Bard Peak Node Card (BPNC)",
+      "Status": "staged",
+      "Parent": "1d87f035-6c89-4670-a86d-61bb09f1928c",
+      "Children": [
+        "4c4f1867-a742-47fe-b8ed-539cd3ded8e7",
+        "8ab879e0-f269-4c88-aaf4-4a345985d41e"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "8ab879e0-f269-4c88-aaf4-4a345985d41e": {
+      "ID": "8ab879e0-f269-4c88-aaf4-4a345985d41e",
+      "Type": "Node",
+      "DeviceTypeSlug": "hpe-crayex-ex235a-compute-node",
+      "Vendor": "HPE",
+      "Model": "EX235A AMD MI200 accelerator compute node",
+      "Status": "staged",
+      "Parent": "89c800f9-bb4b-4950-906d-c66a0476ef47",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "abcdef12-3456-2789-abcd-ef1234567890": {
+      "ID": "abcdef12-3456-2789-abcd-ef1234567890",
+      "Type": "System",
+      "Parent": "00000000-0000-0000-0000-000000000000",
+      "Children": [
+        "30f99fb5-fbff-49df-9e78-134ce7778478"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "d28c3201-9dfa-4788-852f-86054cd99232": {
+      "ID": "d28c3201-9dfa-4788-852f-86054cd99232",
+      "Type": "Node",
+      "DeviceTypeSlug": "hpe-crayex-ex235a-compute-node",
+      "Vendor": "HPE",
+      "Model": "EX235A AMD MI200 accelerator compute node",
+      "Status": "staged",
+      "Parent": "07853d8f-0e6a-4926-9574-dd317ac8758e",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "edb7775e-46d3-4f0f-bbf0-d4b992438e57": {
+      "ID": "edb7775e-46d3-4f0f-bbf0-d4b992438e57",
+      "Type": "Chassis",
+      "DeviceTypeSlug": "hpe-crayex-chassis",
+      "Vendor": "HPE",
+      "Model": "CrayEX liquid-cooled cabinet chassis",
+      "Status": "staged",
+      "Parent": "30f99fb5-fbff-49df-9e78-134ce7778478",
+      "Children": [
+        "1d87f035-6c89-4670-a86d-61bb09f1928c",
+        "495d2130-2cbf-4dc6-95f6-e2bde6945d7e"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    }
+  }
+}
