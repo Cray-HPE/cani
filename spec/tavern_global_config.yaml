@@ -1,0 +1,16 @@
+# This file contains the base common configurations for running pytest tavern tests in a production environment.
+# It is statically generated because we anticipate the same settings for all CT test containers that inherit from it.
+name: tavern_global_configuration
+description: common configuration for all tavern invocations
+variables:
+  verify: false
+  bss_base_url: http://localhost:8080/apis/bss
+  capmc_base_url: http://localhost:8080/apis/capmc
+  fas_base_url: http://localhost:8080/apis/fas
+  hbtd_base_url: http://localhost:8080/apis/hbtd
+  hmnfd_base_url: http://localhost:8080/apis/hmnfd
+  hsm_base_url: http://localhost:8080/apis/smd
+  pcs_base_url: http://localhost:8080/apis/power-control
+  reds_base_url: http://localhost:8080/apis/reds
+  scsd_base_url: http://localhost:8443/apis/scsd
+  sls_base_url: http://localhost:8080/apis/sls

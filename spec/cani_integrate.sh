@@ -51,7 +51,10 @@ do
     # run the tavern test to validate cani changed or didn't change the correct things within CSM services
     if [ -f ./spec/integration/tavern/test_"${filename%_spec}".tavern.yml ]; then
       set -x
-      tavern-ci ./spec/integration/tavern/test_"${filename%_spec}".tavern.yml
+      tavern-ci \
+        --tavern-global-cfg=./spec/tavern_global_config.yaml \
+        ./spec/integration/tavern/test_"${filename%_spec}".tavern.yml \
+        -W ignore::DeprecationWarning
       set +x
     fi
   fi 

@@ -29,7 +29,7 @@ test_name: get the dumpstate
 stages:
   - name: ensure 200 response from the dumpstate and it has Hardware and Networks keys
     request:
-      url: https://localhost:8443/apis/sls/v1/dumpstate
+      url: "{sls_base_url}/v1/dumpstate"
       method: GET
       verify: false
     response:
@@ -306,7 +306,7 @@ marks:
 stages: 
   - name: ensure {Xname} exists
     request:
-      url: https://localhost:8443/apis/sls/v1/hardware/{Xname}
+      url: "{sls_base_url}/v1/hardware/{Xname}"
       method: GET
       verify: false
     response:
@@ -339,7 +339,7 @@ marks:
 stages:
   - name: Verify network data for {Xname} exists in SLS Hardware
     request:
-      url: "https://localhost:8443/apis/sls/v1/hardware/{Xname}"
+      url: "{sls_base_url}/v1/hardware/{Xname}"
       method: GET
       verify: false
     response:
@@ -386,7 +386,7 @@ marks:
 stages:
   - name: Verify network data for x9000 in SLS Network HMN_MTN
     request:
-      url: https://localhost:8443/apis/sls/v1/networks/{Network}
+      url: "{sls_base_url}/v1/networks/{Network}"
       method: GET
       verify: false
     response:
