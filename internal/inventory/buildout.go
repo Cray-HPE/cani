@@ -26,10 +26,7 @@
 package inventory
 
 import (
-	"errors"
 	"fmt"
-	"regexp"
-	"strconv"
 
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
@@ -37,14 +34,13 @@ import (
 )
 
 type HardwareBuildOut struct {
-	ID             uuid.UUID
-	ParentID       uuid.UUID
-	DeviceTypeSlug string
-	DeviceType     hardwaretypes.DeviceType
-	DeviceOrdinal  int
-
-	LocationPath LocationPath
-
+	ID               uuid.UUID
+	ParentID         uuid.UUID
+	DeviceTypeSlug   string
+	DeviceType       hardwaretypes.DeviceType
+	DeviceOrdinal    int
+	OrdinalPath      []int
+	LocationPath     LocationPath
 	ExistingHardware *Hardware
 }
 
@@ -133,31 +129,12 @@ func GenerateHardwareBuildOut(l *hardwaretypes.Library, opts GenerateHardwareBui
 			if deviceBay.Default != nil {
 				log.Debug().Msgf("    Default: %s", deviceBay.Default.Slug)
 
-				// Extract the ordinal
-				// This is one way of going about, but it assumes that each name has a number
-				// There are two other ways to consider:
-				// - Embed an actual ordinal number in the yaml files
-				// - Get all of the device base with that type, and then sort them lexicographically. This is how HSM does it, but assumes the names can be sorted in a predictable order
-				r := regexp.MustCompile(`\d+`)
-				match := r.FindString(deviceBay.Name)
-
-				var ordinal int
-				if match != "" {
-					ordinal, err = strconv.Atoi(match)
-					if err != nil {
-						return nil, errors.Join(
-							fmt.Errorf("unable extract ordinal from device bay name (%s) from device type (%s)", deviceBay.Name, current.DeviceTypeSlug),
-							err,
-						)
-					}
-				}
-
 				queue = append(queue, HardwareBuildOut{
 					// Hardware type is deferred until when it is processed
 					ID:             uuid.New(),
 					ParentID:       current.ID,
 					DeviceTypeSlug: deviceBay.Default.Slug,
-					DeviceOrdinal:  ordinal,
+					DeviceOrdinal:  deviceBay.Ordinal,
 					LocationPath:   current.LocationPath,
 				})
 			}
