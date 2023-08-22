@@ -152,57 +152,68 @@ func stripIpInformationFromHardware(extraPropertiesRaw interface{}) interface{} 
 		ep.CaniId = ""
 		ep.CaniSlsSchemaVersion = ""
 		ep.CaniLastModified = ""
+		ep.CaniStatus = nil
 		return ep
 	case sls_client.HardwareExtraPropertiesCabPduNic:
 		ep.CaniId = ""
 		ep.CaniSlsSchemaVersion = ""
 		ep.CaniLastModified = ""
+		ep.CaniStatus = nil
 		return ep
 	case sls_client.HardwareExtraPropertiesCabPduPwrConnector:
 		ep.CaniId = ""
 		ep.CaniSlsSchemaVersion = ""
 		ep.CaniLastModified = ""
+		ep.CaniStatus = nil
 		return ep
 	case sls_client.HardwareExtraPropertiesCabinet:
 		ep.CaniId = ""
 		ep.CaniSlsSchemaVersion = ""
 		ep.CaniLastModified = ""
 		ep.Model = ""
+		ep.CaniStatus = nil
 		return ep
 	case sls_client.HardwareExtraPropertiesCduMgmtSwitch:
 		ep.CaniId = ""
 		ep.CaniSlsSchemaVersion = ""
 		ep.CaniLastModified = ""
+		ep.CaniStatus = nil
 		return ep
 	case sls_client.HardwareExtraPropertiesChassis:
 		ep.CaniId = ""
 		ep.CaniSlsSchemaVersion = ""
 		ep.CaniLastModified = ""
+		ep.CaniStatus = nil
 		return ep
 	case sls_client.HardwareExtraPropertiesChassisBmc:
 		ep.CaniId = ""
 		ep.CaniSlsSchemaVersion = ""
 		ep.CaniLastModified = ""
+		ep.CaniStatus = nil
 		return ep
 	case sls_client.HardwareExtraPropertiesCompmod:
 		ep.CaniId = ""
 		ep.CaniSlsSchemaVersion = ""
 		ep.CaniLastModified = ""
+		ep.CaniStatus = nil
 		return ep
 	case sls_client.HardwareExtraPropertiesCompmodPowerConnector:
 		ep.CaniId = ""
 		ep.CaniSlsSchemaVersion = ""
 		ep.CaniLastModified = ""
+		ep.CaniStatus = nil
 		return ep
 	case sls_client.HardwareExtraPropertiesHsnConnector:
 		ep.CaniId = ""
 		ep.CaniSlsSchemaVersion = ""
 		ep.CaniLastModified = ""
+		ep.CaniStatus = nil
 		return ep
 	case sls_client.HardwareExtraPropertiesMgmtHlSwitch:
 		ep.CaniId = ""
 		ep.CaniSlsSchemaVersion = ""
 		ep.CaniLastModified = ""
+		ep.CaniStatus = nil
 
 		ep.IP4addr = ""
 		ep.IP6addr = ""
@@ -212,6 +223,7 @@ func stripIpInformationFromHardware(extraPropertiesRaw interface{}) interface{} 
 		ep.CaniId = ""
 		ep.CaniSlsSchemaVersion = ""
 		ep.CaniLastModified = ""
+		ep.CaniStatus = nil
 
 		ep.IP4addr = ""
 		ep.IP6addr = ""
@@ -221,6 +233,7 @@ func stripIpInformationFromHardware(extraPropertiesRaw interface{}) interface{} 
 		ep.CaniId = ""
 		ep.CaniSlsSchemaVersion = ""
 		ep.CaniLastModified = ""
+		ep.CaniStatus = nil
 
 		ep.CaniLastModified = ""
 		return ep
@@ -228,41 +241,49 @@ func stripIpInformationFromHardware(extraPropertiesRaw interface{}) interface{} 
 		ep.CaniId = ""
 		ep.CaniSlsSchemaVersion = ""
 		ep.CaniLastModified = ""
+		ep.CaniStatus = nil
 		return ep
 	case sls_client.HardwareExtraPropertiesNode:
 		ep.CaniId = ""
 		ep.CaniSlsSchemaVersion = ""
 		ep.CaniLastModified = ""
+		ep.CaniStatus = nil
 		return ep
 	case sls_client.HardwareExtraPropertiesNodeHsnNic:
 		ep.CaniId = ""
 		ep.CaniSlsSchemaVersion = ""
 		ep.CaniLastModified = ""
+		ep.CaniStatus = nil
 		return ep
 	case sls_client.HardwareExtraPropertiesNodeNic:
 		ep.CaniId = ""
 		ep.CaniSlsSchemaVersion = ""
 		ep.CaniLastModified = ""
+		ep.CaniStatus = nil
 		return ep
 	case sls_client.HardwareExtraPropertiesRtrBmc:
 		ep.CaniId = ""
 		ep.CaniSlsSchemaVersion = ""
 		ep.CaniLastModified = ""
+		ep.CaniStatus = nil
 		return ep
 	case sls_client.HardwareExtraPropertiesRtrBmcNic:
 		ep.CaniId = ""
 		ep.CaniSlsSchemaVersion = ""
 		ep.CaniLastModified = ""
+		ep.CaniStatus = nil
 		return ep
 	case sls_client.HardwareExtraPropertiesRtrmod:
 		ep.CaniId = ""
 		ep.CaniSlsSchemaVersion = ""
 		ep.CaniLastModified = ""
+		ep.CaniStatus = nil
 		return ep
 	case sls_client.HardwareExtraPropertiesSystem:
 		ep.CaniId = ""
 		ep.CaniSlsSchemaVersion = ""
 		ep.CaniLastModified = ""
+		ep.CaniStatus = nil
 		return ep
 	}
 

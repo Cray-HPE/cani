@@ -9,17 +9,18 @@
 package sls_client
 
 type HardwareExtraPropertiesMgmtSwitch struct {
-	CaniId               string   `json:"@cani.id,omitempty" mapstructure:"@cani.id"`
-	CaniLastModified     string   `json:"@cani.lastModified,omitempty" mapstructure:"@cani.lastModified"`
-	CaniSlsSchemaVersion string   `json:"@cani.slsSchemaVersion,omitempty" mapstructure:"@cani.slsSchemaVersion"`
-	IP6addr              string   `json:"IP6addr,omitempty" mapstructure:"IP6addr"`
-	IP4addr              string   `json:"IP4addr,omitempty" mapstructure:"IP4addr"`
-	Brand                string   `json:"Brand,omitempty" mapstructure:"Brand"`
-	Model                string   `json:"Model,omitempty" mapstructure:"Model"`
-	SNMPAuthPassword     string   `json:"SNMPAuthPassword,omitempty" mapstructure:"SNMPAuthPassword"`
-	SNMPAuthProtocol     string   `json:"SNMPAuthProtocol,omitempty" mapstructure:"SNMPAuthProtocol"`
-	SNMPPrivPassword     string   `json:"SNMPPrivPassword,omitempty" mapstructure:"SNMPPrivPassword"`
-	SNMPPrivProtocol     string   `json:"SNMPPrivProtocol,omitempty" mapstructure:"SNMPPrivProtocol"`
-	SNMPUsername         string   `json:"SNMPUsername,omitempty" mapstructure:"SNMPUsername"`
-	Aliases              []string `json:"Aliases,omitempty" mapstructure:"Aliases"`
+	CaniId               string      `json:"@cani.id,omitempty" mapstructure:"@cani.id"`
+	CaniLastModified     string      `json:"@cani.lastModified,omitempty" mapstructure:"@cani.lastModified"`
+	CaniSlsSchemaVersion string      `json:"@cani.slsSchemaVersion,omitempty" mapstructure:"@cani.slsSchemaVersion"`
+	CaniStatus           *CaniStatus `json:"@cani.status,omitempty" mapstructure:"@cani.status"`
+	IP6addr              string      `json:"IP6addr,omitempty" mapstructure:"IP6addr"`
+	IP4addr              string      `json:"IP4addr,omitempty" mapstructure:"IP4addr"`
+	Brand                string      `json:"Brand,omitempty" mapstructure:"Brand"`
+	Model                string      `json:"Model,omitempty" mapstructure:"Model"`
+	SNMPAuthPassword     string      `json:"SNMPAuthPassword,omitempty" mapstructure:"SNMPAuthPassword"`
+	SNMPAuthProtocol     string      `json:"SNMPAuthProtocol,omitempty" mapstructure:"SNMPAuthProtocol"`
+	SNMPPrivPassword     string      `json:"SNMPPrivPassword,omitempty" mapstructure:"SNMPPrivPassword"`
+	SNMPPrivProtocol     string      `json:"SNMPPrivProtocol,omitempty" mapstructure:"SNMPPrivProtocol"`
+	SNMPUsername         string      `json:"SNMPUsername,omitempty" mapstructure:"SNMPUsername"`
+	Aliases              []string    `json:"Aliases,omitempty" mapstructure:"Aliases"`
 }

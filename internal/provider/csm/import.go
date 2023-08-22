@@ -321,6 +321,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			slsCabinetEP.CaniId = cCabinet.ID.String()
 			slsCabinetEP.CaniSlsSchemaVersion = "v1alpha1" // TODO make this a enum
 			slsCabinetEP.CaniLastModified = time.Now().UTC().String()
+			slsCabinetEP.CaniStatus = (*sls_client.CaniStatus)(&cCabinet.Status)
 
 			log.Info().Msgf("SLS extra properties changed for %s", slsCabinet.Xname)
 
@@ -368,6 +369,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			slsEP.CaniId = cHardware.ID.String()
 			slsEP.CaniSlsSchemaVersion = "v1alpha1" // TODO make this a enum
 			slsEP.CaniLastModified = time.Now().UTC().String()
+			slsEP.CaniStatus = (*sls_client.CaniStatus)(&cHardware.Status)
 
 			log.Info().Msgf("SLS extra properties changed for %s", slsHardware.Xname)
 
@@ -415,6 +417,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			slsEP.CaniId = cHardware.ID.String()
 			slsEP.CaniSlsSchemaVersion = "v1alpha1" // TODO make this a enum
 			slsEP.CaniLastModified = time.Now().UTC().String()
+			slsEP.CaniStatus = (*sls_client.CaniStatus)(&cHardware.Status)
 
 			log.Info().Msgf("SLS extra properties changed for %s", slsHardware.Xname)
 
@@ -748,6 +751,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 			slsNodeEP.CaniId = cNode.ID.String()
 			slsNodeEP.CaniSlsSchemaVersion = "v1alpha1" // TODO make this a enum
 			slsNodeEP.CaniLastModified = time.Now().UTC().String()
+			slsNodeEP.CaniStatus = (*sls_client.CaniStatus)(&cNode.Status)
 
 			slsNode.ExtraProperties = slsNodeEP
 			slsHardwareToModify[slsNode.Xname] = slsNode
