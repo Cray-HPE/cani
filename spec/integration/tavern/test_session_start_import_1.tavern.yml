@@ -286,9 +286,10 @@ marks:
       key:
         - Xname
         - Parent
+        - Class
         - CANIState
       vals:
-        - [x9000, s0, provisioned]
+        - [x9000, s0, Hill, provisioned]
 
 stages: 
   - name: ensure {Xname} exists and has cani metadata
@@ -327,7 +328,7 @@ stages:
               Class:
                 type: str
                 required: True
-                pattern: "^Hill$"
+                pattern: "^{Class}$"
               TypeString:
                 type: str
                 required: True
@@ -404,17 +405,18 @@ marks:
       key:
         - Xname
         - Parent
+        - Class
         - TypeString
         - Type
         - CANIState
       vals:
         # Chassis
-        - [x9000c1, x9000, Chassis, comptype_chassis, provisioned]
-        - [x9000c3, x9000, Chassis, comptype_chassis, provisioned]
+        - [x9000c1, x9000, Hill, Chassis, comptype_chassis, provisioned]
+        - [x9000c3, x9000, Hill, Chassis, comptype_chassis, provisioned]
 
         # Chassis BMCs
-        - [x9000c1b0, x9000c1, ChassisBMC, comptype_chassis_bmc, provisioned]
-        - [x9000c3b0, x9000c3, ChassisBMC, comptype_chassis_bmc, provisioned]
+        - [x9000c1b0, x9000c1, Hill, ChassisBMC, comptype_chassis_bmc, provisioned]
+        - [x9000c3b0, x9000c3, Hill, ChassisBMC, comptype_chassis_bmc, provisioned]
 stages: 
   - name: ensure {Xname} exists and has cani metadata
     request:
@@ -452,7 +454,7 @@ stages:
               Class:
                 type: str
                 required: True
-                pattern: "^Hill$"
+                pattern: "^{Class}$"
               TypeString:
                 type: str
                 required: True
