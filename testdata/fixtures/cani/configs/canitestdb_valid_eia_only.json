@@ -2,21 +2,38 @@
   "SchemaVersion": "v1alpha1",
   "Provider": "csm",
   "Hardware": {
-    "0f73e62b-3f93-4021-bc6a-13da77766e9b": {
-      "ID": "0f73e62b-3f93-4021-bc6a-13da77766e9b",
+    "abcdef12-3456-2789-abcd-ef1234567890": {
+      "ID": "abcdef12-3456-2789-abcd-ef1234567890",
+      "Type": "System",
+      "Parent": "00000000-0000-0000-0000-000000000000",
+      "Children": [
+        "cce788c8-bdfd-4d41-a87c-07f2db30cc73"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "cce788c8-bdfd-4d41-a87c-07f2db30cc73": {
+      "ID": "cce788c8-bdfd-4d41-a87c-07f2db30cc73",
       "Type": "Cabinet",
       "DeviceTypeSlug": "hpe-eia-cabinet",
       "Vendor": "HPE",
       "Model": "EX2000",
       "Status": "staged",
-      "ProviderProperties": {
+      "ProviderMetadata": {
         "csm": {
-          "HMNVlan": 1513
+          "Cabinet": {
+            "HMNVlan": 1513
+          }
         }
       },
       "Parent": "abcdef12-3456-2789-abcd-ef1234567890",
       "Children": [
-        "4e14db9a-776c-4003-945d-39dd798a94f4"
+        "d5f6e961-7c9e-480c-be05-2b6adbf147f9"
       ],
       "LocationPath": [
         {
@@ -30,14 +47,14 @@
       ],
       "LocationOrdinal": 3000
     },
-    "4e14db9a-776c-4003-945d-39dd798a94f4": {
-      "ID": "4e14db9a-776c-4003-945d-39dd798a94f4",
+    "d5f6e961-7c9e-480c-be05-2b6adbf147f9": {
+      "ID": "d5f6e961-7c9e-480c-be05-2b6adbf147f9",
       "Type": "Chassis",
       "DeviceTypeSlug": "hpe-eia-chassis",
       "Vendor": "HPE",
       "Model": "Standard/EIA Chassis",
       "Status": "staged",
-      "Parent": "0f73e62b-3f93-4021-bc6a-13da77766e9b",
+      "Parent": "cce788c8-bdfd-4d41-a87c-07f2db30cc73",
       "LocationPath": [
         {
           "HardwareType": "System",
@@ -49,21 +66,6 @@
         },
         {
           "HardwareType": "Chassis",
-          "Ordinal": 0
-        }
-      ],
-      "LocationOrdinal": 0
-    },
-    "abcdef12-3456-2789-abcd-ef1234567890": {
-      "ID": "abcdef12-3456-2789-abcd-ef1234567890",
-      "Type": "System",
-      "Parent": "00000000-0000-0000-0000-000000000000",
-      "Children": [
-        "0f73e62b-3f93-4021-bc6a-13da77766e9b"
-      ],
-      "LocationPath": [
-        {
-          "HardwareType": "System",
           "Ordinal": 0
         }
       ],

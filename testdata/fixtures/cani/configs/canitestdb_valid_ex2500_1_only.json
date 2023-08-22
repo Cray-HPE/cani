@@ -2,14 +2,69 @@
   "SchemaVersion": "v1alpha1",
   "Provider": "csm",
   "Hardware": {
-    "2bba25b4-e1e8-4f1f-b18e-9393c22e4fd3": {
-      "ID": "2bba25b4-e1e8-4f1f-b18e-9393c22e4fd3",
+    "146bfdf5-1046-4bb4-b9b6-4a250adb3fb6": {
+      "ID": "146bfdf5-1046-4bb4-b9b6-4a250adb3fb6",
+      "Type": "Cabinet",
+      "DeviceTypeSlug": "hpe-ex2500-1-liquid-cooled-chassis",
+      "Vendor": "HPE",
+      "Model": "EX2500 1 Liquid Cooled Chassis",
+      "Status": "staged",
+      "ProviderMetadata": {
+        "csm": {
+          "Cabinet": {
+            "HMNVlan": 3000
+          }
+        }
+      },
+      "Parent": "abcdef12-3456-2789-abcd-ef1234567890",
+      "Children": [
+        "40b9549d-6b2a-4b24-9187-08af7abdee66",
+        "b1c54958-d963-4c91-a11b-39f9debc7a1c"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 8000
+        }
+      ],
+      "LocationOrdinal": 8000
+    },
+    "40b9549d-6b2a-4b24-9187-08af7abdee66": {
+      "ID": "40b9549d-6b2a-4b24-9187-08af7abdee66",
+      "Type": "CabinetEnvironmentalController",
+      "DeviceTypeSlug": "hpe-crayex-cabinet-environmental-controller",
+      "Vendor": "HPE",
+      "Model": "CrayEX Cabinet Environmental Controller",
+      "Status": "staged",
+      "Parent": "146bfdf5-1046-4bb4-b9b6-4a250adb3fb6",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 8000
+        },
+        {
+          "HardwareType": "CabinetEnvironmentalController",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "a030263f-922c-40a7-97fe-66ce10676003": {
+      "ID": "a030263f-922c-40a7-97fe-66ce10676003",
       "Type": "ChassisManagementModule",
       "DeviceTypeSlug": "hpe-crayex-chassis-management-module",
       "Vendor": "HPE",
       "Model": "CrayEX Chassis Management Module",
       "Status": "staged",
-      "Parent": "87555805-0e8f-4a06-a599-0875605c8be7",
+      "Parent": "b1c54958-d963-4c91-a11b-39f9debc7a1c",
       "LocationPath": [
         {
           "HardwareType": "System",
@@ -30,45 +85,31 @@
       ],
       "LocationOrdinal": 0
     },
-    "5f91cb3a-e55e-4469-8210-f13546bebb58": {
-      "ID": "5f91cb3a-e55e-4469-8210-f13546bebb58",
-      "Type": "Cabinet",
-      "DeviceTypeSlug": "hpe-ex2500-1-liquid-cooled-chassis",
-      "Vendor": "HPE",
-      "Model": "EX2500 1 Liquid Cooled Chassis",
-      "Status": "staged",
-      "ProviderProperties": {
-        "csm": {
-          "HMNVlan": 3000
-        }
-      },
-      "Parent": "abcdef12-3456-2789-abcd-ef1234567890",
+    "abcdef12-3456-2789-abcd-ef1234567890": {
+      "ID": "abcdef12-3456-2789-abcd-ef1234567890",
+      "Type": "System",
+      "Parent": "00000000-0000-0000-0000-000000000000",
       "Children": [
-        "87555805-0e8f-4a06-a599-0875605c8be7",
-        "c7b476cf-dbc3-44fd-a205-afe7fd37234f"
+        "146bfdf5-1046-4bb4-b9b6-4a250adb3fb6"
       ],
       "LocationPath": [
         {
           "HardwareType": "System",
           "Ordinal": 0
-        },
-        {
-          "HardwareType": "Cabinet",
-          "Ordinal": 8000
         }
       ],
-      "LocationOrdinal": 8000
+      "LocationOrdinal": 0
     },
-    "87555805-0e8f-4a06-a599-0875605c8be7": {
-      "ID": "87555805-0e8f-4a06-a599-0875605c8be7",
+    "b1c54958-d963-4c91-a11b-39f9debc7a1c": {
+      "ID": "b1c54958-d963-4c91-a11b-39f9debc7a1c",
       "Type": "Chassis",
       "DeviceTypeSlug": "hpe-crayex-chassis",
       "Vendor": "HPE",
       "Model": "CrayEX liquid-cooled cabinet chassis",
       "Status": "staged",
-      "Parent": "5f91cb3a-e55e-4469-8210-f13546bebb58",
+      "Parent": "146bfdf5-1046-4bb4-b9b6-4a250adb3fb6",
       "Children": [
-        "2bba25b4-e1e8-4f1f-b18e-9393c22e4fd3"
+        "a030263f-922c-40a7-97fe-66ce10676003"
       ],
       "LocationPath": [
         {
@@ -81,45 +122,6 @@
         },
         {
           "HardwareType": "Chassis",
-          "Ordinal": 0
-        }
-      ],
-      "LocationOrdinal": 0
-    },
-    "abcdef12-3456-2789-abcd-ef1234567890": {
-      "ID": "abcdef12-3456-2789-abcd-ef1234567890",
-      "Type": "System",
-      "Parent": "00000000-0000-0000-0000-000000000000",
-      "Children": [
-        "5f91cb3a-e55e-4469-8210-f13546bebb58"
-      ],
-      "LocationPath": [
-        {
-          "HardwareType": "System",
-          "Ordinal": 0
-        }
-      ],
-      "LocationOrdinal": 0
-    },
-    "c7b476cf-dbc3-44fd-a205-afe7fd37234f": {
-      "ID": "c7b476cf-dbc3-44fd-a205-afe7fd37234f",
-      "Type": "CabinetEnvironmentalController",
-      "DeviceTypeSlug": "hpe-crayex-cabinet-environmental-controller",
-      "Vendor": "HPE",
-      "Model": "CrayEX Cabinet Environmental Controller",
-      "Status": "staged",
-      "Parent": "5f91cb3a-e55e-4469-8210-f13546bebb58",
-      "LocationPath": [
-        {
-          "HardwareType": "System",
-          "Ordinal": 0
-        },
-        {
-          "HardwareType": "Cabinet",
-          "Ordinal": 8000
-        },
-        {
-          "HardwareType": "CabinetEnvironmentalController",
           "Ordinal": 0
         }
       ],
