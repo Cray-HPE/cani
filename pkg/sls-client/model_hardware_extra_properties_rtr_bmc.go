@@ -9,9 +9,10 @@
 package sls_client
 
 type HardwareExtraPropertiesRtrBmc struct {
-	CaniId               string `json:"@cani.id,omitempty" mapstructure:"@cani.id"`
-	CaniLastModified     string `json:"@cani.lastModified,omitempty" mapstructure:"@cani.lastModified"`
-	CaniSlsSchemaVersion string `json:"@cani.slsSchemaVersion,omitempty" mapstructure:"@cani.slsSchemaVersion"`
+	CaniId               string      `json:"@cani.id,omitempty" mapstructure:"@cani.id"`
+	CaniLastModified     string      `json:"@cani.lastModified,omitempty" mapstructure:"@cani.lastModified"`
+	CaniSlsSchemaVersion string      `json:"@cani.slsSchemaVersion,omitempty" mapstructure:"@cani.slsSchemaVersion"`
+	CaniStatus           *CaniStatus `json:"@cani.status,omitempty" mapstructure:"@cani.status"`
 	// The ipv6 address that should be assigned to this BMC, or \"DHCPv6\".  If omitted, \"DHCPv6\" is assumed.
 	IP6addr string `json:"IP6addr" mapstructure:"IP6addr"`
 	// The ipv4 address that should be assigned to this BMC, or \"DHCPv4\".  If omitted, \"DHCPv4\" is assumed.

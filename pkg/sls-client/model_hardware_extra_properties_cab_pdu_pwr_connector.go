@@ -9,8 +9,9 @@
 package sls_client
 
 type HardwareExtraPropertiesCabPduPwrConnector struct {
-	CaniId               string `json:"@cani.id,omitempty" mapstructure:"@cani.id"`
-	CaniLastModified     string `json:"@cani.lastModified,omitempty" mapstructure:"@cani.lastModified"`
-	CaniSlsSchemaVersion string `json:"@cani.slsSchemaVersion,omitempty" mapstructure:"@cani.slsSchemaVersion"`
-	PoweredBy            string `json:"PoweredBy" mapstructure:"PoweredBy"`
+	CaniId               string      `json:"@cani.id,omitempty" mapstructure:"@cani.id"`
+	CaniLastModified     string      `json:"@cani.lastModified,omitempty" mapstructure:"@cani.lastModified"`
+	CaniSlsSchemaVersion string      `json:"@cani.slsSchemaVersion,omitempty" mapstructure:"@cani.slsSchemaVersion"`
+	CaniStatus           *CaniStatus `json:"@cani.status,omitempty" mapstructure:"@cani.status"`
+	PoweredBy            string      `json:"PoweredBy" mapstructure:"PoweredBy"`
 }

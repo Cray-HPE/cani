@@ -1065,6 +1065,8 @@ components:
           type: string
         '@cani.id':
           type: string
+        '@cani.status':
+          $ref: '#/components/schemas/CANIStatus'
     hardware_extra_properties_bmc_nic:
       required:
       - IP4addr
@@ -1079,6 +1081,8 @@ components:
           type: string
         '@cani.slsSchemaVersion':
           type: string
+        '@cani.status':
+          $ref: '#/components/schemas/CANIStatus'
         IP6addr:
           type: string
           description: "The ipv6 address that should be assigned to this BMC, or \"\
@@ -1111,6 +1115,8 @@ components:
           type: string
         '@cani.slsSchemaVersion':
           type: string
+        '@cani.status':
+          $ref: '#/components/schemas/CANIStatus'
         Networks:
           type: array
           description: An array of network names that this NIC is connected to
@@ -1133,6 +1139,8 @@ components:
           type: string
         '@cani.slsSchemaVersion':
           type: string
+        '@cani.status':
+          $ref: '#/components/schemas/CANIStatus'
         PoweredBy:
           $ref: '#/components/schemas/xname'
     hardware_extra_properties_cabinet:
@@ -1144,6 +1152,8 @@ components:
           type: string
         '@cani.slsSchemaVersion':
           type: string
+        '@cani.status':
+          $ref: '#/components/schemas/CANIStatus'
         Model:
           type: string
         Networks:
@@ -1176,6 +1186,8 @@ components:
           type: string
         '@cani.slsSchemaVersion':
           type: string
+        '@cani.status':
+          $ref: '#/components/schemas/CANIStatus'
         Brand:
           type: string
         Model:
@@ -1193,6 +1205,8 @@ components:
           type: string
         '@cani.slsSchemaVersion':
           type: string
+        '@cani.status':
+          $ref: '#/components/schemas/CANIStatus'
     hardware_extra_properties_chassis_bmc:
       type: object
       properties:
@@ -1202,6 +1216,8 @@ components:
           type: string
         '@cani.slsSchemaVersion':
           type: string
+        '@cani.status':
+          $ref: '#/components/schemas/CANIStatus'
         Aliases:
           type: array
           items:
@@ -1217,6 +1233,8 @@ components:
           type: string
         '@cani.slsSchemaVersion':
           type: string
+        '@cani.status':
+          $ref: '#/components/schemas/CANIStatus'
         PowerConnector:
           type: array
           description: "An array of xnames, where each xname has type==*_pwr_connector.\
@@ -1234,6 +1252,8 @@ components:
           type: string
         '@cani.slsSchemaVersion':
           type: string
+        '@cani.status':
+          $ref: '#/components/schemas/CANIStatus'
         PoweredBy:
           $ref: '#/components/schemas/xname'
     hardware_extra_properties_mgmt_hl_switch:
@@ -1245,6 +1265,8 @@ components:
           type: string
         '@cani.slsSchemaVersion':
           type: string
+        '@cani.status':
+          $ref: '#/components/schemas/CANIStatus'
         IP6addr:
           type: string
         IP4addr:
@@ -1278,6 +1300,8 @@ components:
           type: string
         '@cani.slsSchemaVersion':
           type: string
+        '@cani.status':
+          $ref: '#/components/schemas/CANIStatus'
         NodeNics:
           type: array
           description: An array of xnames that this connector is connected to.  All
@@ -1326,6 +1350,8 @@ components:
           type: string
         '@cani.slsSchemaVersion':
           type: string
+        '@cani.status':
+          $ref: '#/components/schemas/CANIStatus'
         NodeNics:
           type: array
           description: An array of xnames that the hardware_mgmt_switch_connector
@@ -1346,6 +1372,8 @@ components:
           type: string
         '@cani.slsSchemaVersion':
           type: string
+        '@cani.status':
+          $ref: '#/components/schemas/CANIStatus'
         IP6addr:
           type: string
           description: "The ipv6 address that should be assigned to this BMC, or \"\
@@ -1378,6 +1406,8 @@ components:
           type: string
         '@cani.slsSchemaVersion':
           type: string
+        '@cani.status':
+          $ref: '#/components/schemas/CANIStatus'
         NID:
           minimum: 0
           type: integer
@@ -1404,6 +1434,8 @@ components:
           type: string
         '@cani.slsSchemaVersion':
           type: string
+        '@cani.status':
+          $ref: '#/components/schemas/CANIStatus'
         Networks:
           type: array
           description: An array of network names that this NIC is connected to
@@ -1427,6 +1459,8 @@ components:
           type: string
         '@cani.slsSchemaVersion':
           type: string
+        '@cani.status':
+          $ref: '#/components/schemas/CANIStatus'
         Networks:
           type: array
           description: An array of network names that this NIC is connected to
@@ -1450,6 +1484,8 @@ components:
           type: string
         '@cani.slsSchemaVersion':
           type: string
+        '@cani.status':
+          $ref: '#/components/schemas/CANIStatus'
         IP6addr:
           type: string
           description: "The ipv6 address that should be assigned to this BMC, or \"\
@@ -1482,6 +1518,8 @@ components:
           type: string
         '@cani.slsSchemaVersion':
           type: string
+        '@cani.status':
+          $ref: '#/components/schemas/CANIStatus'
         Networks:
           type: array
           description: An array of network names that this NIC is connected to
@@ -1504,6 +1542,8 @@ components:
           type: string
         '@cani.slsSchemaVersion':
           type: string
+        '@cani.status':
+          $ref: '#/components/schemas/CANIStatus'
         PowerConnector:
           type: array
           description: "An array of xnames, where each xname has type==*_pwr_connector.\
@@ -1640,6 +1680,13 @@ components:
           example: "Description of HTTP Status code, e.g. 400"
       description: RFC 7807 compliant error payload.  All fields are optional except
         the 'type' field.
+    CANIStatus:
+      type: string
+      enum:
+      - empty
+      - staged
+      - provisioned
+      - decommissioned
     inline_response_200:
       required:
       - DBConnection
