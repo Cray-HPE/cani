@@ -174,7 +174,7 @@ func validate(configOptions provider.ConfigOptions, slsState *sls_client.SlsStat
 			configOptions.ValidRoles,
 			configOptions.ValidSubRoles),
 		checks.NewRequiedNetworkCheck(slsState.Networks),
-		checks.NewNetworkIpRangeCheck(slsStateExtended),
+		checks.NewNetworkIpRangeCheck(slsStateExtended, configOptions.K8sPodsCidr, configOptions.K8sServicesCidr),
 		checks.NewNetworkSubnetCheck(slsStateExtended),
 	}
 

@@ -36,11 +36,15 @@ import (
 
 type NetworkIpRangeCheck struct {
 	slsStateExtended *common.SlsStateExtended
+	k8sPodsCidr      string
+	k8sServicesCidr  string
 }
 
-func NewNetworkIpRangeCheck(slsStateExtended *common.SlsStateExtended) *NetworkIpRangeCheck {
+func NewNetworkIpRangeCheck(slsStateExtended *common.SlsStateExtended, k8sPodsCidr string, k8sServicesCidr string) *NetworkIpRangeCheck {
 	networkIpRangeCheck := NetworkIpRangeCheck{
 		slsStateExtended: slsStateExtended,
+		k8sPodsCidr:      k8sPodsCidr,
+		k8sServicesCidr:  k8sServicesCidr,
 	}
 	return &networkIpRangeCheck
 }
@@ -49,6 +53,9 @@ func (c *NetworkIpRangeCheck) Validate(results *common.ValidationResults) {
 	passFailResults := make(map[string]bool)
 	ipRangeMap := make(map[string]*sls_client.Network)
 	ipRanges := make([]string, 0)
+
+	k8sPodsCidr, _ := parseConfigFileCidr(results, "k8spodscidr", c.k8sPodsCidr)
+	k8sServicesCidr, _ := parseConfigFileCidr(results, "k8sservicescidr", c.k8sServicesCidr)
 
 	for _, network := range c.slsStateExtended.SlsState.Networks {
 		n := network
@@ -59,8 +66,10 @@ func (c *NetworkIpRangeCheck) Validate(results *common.ValidationResults) {
 		}
 	}
 	for i, ipRange1 := range ipRanges {
-		_, net1, _ := net.ParseCIDR(ipRange1)
 		name1 := ipRangeMap[ipRange1].Name
+		_, net1, _ := net.ParseCIDR(ipRange1)
+		checkK8sCidr(results, "cani config file", k8sPodsCidr, "k8spodscidr", net1, name1)
+		checkK8sCidr(results, "cani config file", k8sServicesCidr, "k8sservicescidr", net1, name1)
 		if !net1.IP.IsUnspecified() {
 			for j := i + 1; j < len(ipRanges); j++ {
 				ipRange2 := ipRanges[j]
@@ -70,6 +79,7 @@ func (c *NetworkIpRangeCheck) Validate(results *common.ValidationResults) {
 						common.IPRangeConflictCheck,
 						name1,
 						fmt.Sprintf("%s invalid IP range: %s", name1, ipRange2))
+					passFailResults[ipRange2] = false
 					continue
 				}
 
@@ -87,6 +97,8 @@ func (c *NetworkIpRangeCheck) Validate(results *common.ValidationResults) {
 						common.IPRangeConflictCheck,
 						name2,
 						fmt.Sprintf("%s %s overlaps with %s %s", name2, ipRange2, name1, ipRange1))
+					passFailResults[ipRange1] = false
+					passFailResults[ipRange2] = false
 				}
 			}
 		}
@@ -100,4 +112,32 @@ func (c *NetworkIpRangeCheck) Validate(results *common.ValidationResults) {
 				fmt.Sprintf("IP range for %s %s does not overlap with any other network", name, ipRange))
 		}
 	}
+}
+
+func checkK8sCidr(results *common.ValidationResults, componentId string, k8sCidr *net.IPNet, k8sCidrName string, cidr *net.IPNet, cidrName string) {
+	if k8sCidr == nil || cidr == nil {
+		return
+	}
+	if k8sCidr.IP.IsUnspecified() || cidr.IP.IsUnspecified() {
+		return
+	}
+
+	if k8sCidr.Contains(cidr.IP) || cidr.Contains(k8sCidr.IP) {
+		results.Fail(
+			common.IPRangeConflictWithK8sCheck,
+			componentId,
+			fmt.Sprintf("%s %s overlaps with %s %s", k8sCidrName, k8sCidr.String(), cidrName, cidr.String()))
+	}
+}
+
+func parseConfigFileCidr(results *common.ValidationResults, componentId, cidr string) (*net.IPNet, error) {
+	_, cidrIpNet, err := net.ParseCIDR(cidr)
+	if err != nil {
+		results.Fail(
+			common.IPRangeConflictCheck,
+			componentId,
+			fmt.Sprintf("The configuration file contains an invalid CIDR: %s. %s", cidr, err))
+	}
+
+	return cidrIpNet, err
 }
