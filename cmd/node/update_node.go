@@ -33,6 +33,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/provider/csm"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -74,6 +75,27 @@ func updateNode(cmd *cobra.Command, args []string) error {
 	}
 
 	// Remove the node from the inventory using domain methods
+	if cmd.Flags().Changed("uuid") {
+		// parse the passed in uuid
+		u, err := uuid.Parse(nodeUuid)
+		if err != nil {
+			return err
+		}
+		// get the inventory
+		inv, err := d.List()
+		if err != nil {
+			return err
+		}
+		// if the hardware exists, extract the location ordinals for the user
+		if n, ok := inv.Hardware[u]; ok {
+			cabinet = n.LocationPath.GetOrdinalPath()[1]
+			chassis = n.LocationPath.GetOrdinalPath()[2]
+			blade = n.LocationPath.GetOrdinalPath()[3]
+			nodecard = n.LocationPath.GetOrdinalPath()[4]
+			node = n.LocationPath.GetOrdinalPath()[5]
+		}
+	}
+
 	result, err := d.UpdateNode(cmd.Context(), cabinet, chassis, blade, nodecard, node, nodeMeta)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		// TODO the following should probably suggest commands to fix the issue?
