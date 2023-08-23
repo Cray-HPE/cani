@@ -42,6 +42,8 @@ type NewOpts struct {
 	BaseUrlSLS         string
 	BaseUrlHSM         string
 	SecretName         string
+	K8sPodsCidr        string
+	K8sServicesCidr    string
 	KubeConfig         string
 	ClientID           string `json:"-" yaml:"-"` // omit credentials from cani.yml
 	ClientSecret       string `json:"-" yaml:"-"` // omit credentials from cani.yml

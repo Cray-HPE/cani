@@ -98,8 +98,10 @@ type SetFieldsResult struct {
 }
 
 type ConfigOptions struct {
-	ValidRoles    []string
-	ValidSubRoles []string
+	ValidRoles      []string
+	ValidSubRoles   []string
+	K8sPodsCidr     string
+	K8sServicesCidr string
 }
 
 type FieldMetadata struct {

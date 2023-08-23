@@ -81,6 +81,8 @@ func startSession(cmd *cobra.Command, args []string) error {
 		root.Conf.Session.DomainOptions.CsmOptions.InsecureSkipVerify = true
 	}
 	root.Conf.Session.DomainOptions.CsmOptions.SecretName = secretName
+	root.Conf.Session.DomainOptions.CsmOptions.K8sPodsCidr = k8sPodsCidr
+	root.Conf.Session.DomainOptions.CsmOptions.K8sServicesCidr = k8sServicesCidr
 	root.Conf.Session.DomainOptions.CsmOptions.KubeConfig = kubeconfig
 	root.Conf.Session.DomainOptions.CsmOptions.CaCertPath = caCertPath
 	root.Conf.Session.DomainOptions.CsmOptions.ClientID = clientId

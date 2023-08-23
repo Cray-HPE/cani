@@ -45,8 +45,10 @@ func loadTestData(t *testing.T, name string) []byte {
 
 func GetConfigOptions() provider.ConfigOptions {
 	return provider.ConfigOptions{
-		ValidRoles:    []string{"Service", "System", "Application", "Storage", "Management", "Compute"},
-		ValidSubRoles: []string{"LNETRouter", "UserDefined", "Master", "Worker", "Storage", "Gateway", "UAN", "Visualization"},
+		ValidRoles:      []string{"Service", "System", "Application", "Storage", "Management", "Compute"},
+		ValidSubRoles:   []string{"LNETRouter", "UserDefined", "Master", "Worker", "Storage", "Gateway", "UAN", "Visualization"},
+		K8sPodsCidr:     "10.32.0.0/12",
+		K8sServicesCidr: "10.16.0.0/12",
 	}
 
 }

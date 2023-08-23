@@ -33,11 +33,19 @@ import (
 
 func (csm *CSM) ConfigOptions(ctx context.Context) (provider.ConfigOptions, error) {
 	providerConfig := provider.ConfigOptions{}
+
+	// get valid roles and subroles from hsm
 	values, _, err := csm.hsmClient.ServiceInfoApi.DoValuesGet(ctx)
 	if err != nil {
 		return providerConfig, err
 	}
 	providerConfig.ValidRoles = values.Role
 	providerConfig.ValidSubRoles = values.SubRole
+
+	// todo get these values from bss in the Global bootparameters in
+	// the fields: kubernetes-pods-cidr and kubernetes-services-cidr
+	providerConfig.K8sPodsCidr = "10.32.0.0/12"
+	providerConfig.K8sServicesCidr = "10.16.0.0/12"
+
 	return providerConfig, nil
 }

@@ -39,6 +39,7 @@ var (
 	subrole  string
 	nid      int
 	alias    string
+	nodeUuid string
 	format   string
 	sortBy   string
 )
@@ -71,8 +72,10 @@ func init() {
 	UpdateNodeCmd.Flags().StringVar(&subrole, "subrole", "", "Subrole of the node")
 	UpdateNodeCmd.Flags().IntVar(&nid, "nid", 0, "NID of the node")
 	UpdateNodeCmd.Flags().StringVar(&alias, "alias", "", "Alias of the node")
+	UpdateNodeCmd.Flags().StringVar(&nodeUuid, "uuid", "", "UUID of the node to update")
 
 	UpdateNodeCmd.MarkFlagsRequiredTogether("cabinet", "chassis", "blade", "nodecard", "node")
+	UpdateNodeCmd.MarkFlagsMutuallyExclusive("uuid")
 	ListNodeCmd.Flags().StringVarP(&format, "format", "f", "pretty", "Format output")
 	ListNodeCmd.Flags().StringVarP(&sortBy, "sort", "s", "location", "Sort by a specific key")
 }
