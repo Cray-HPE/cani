@@ -27,6 +27,7 @@
 package checks
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -34,6 +35,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/provider/csm/validate/common"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	"github.com/Cray-HPE/hms-xname/xnametypes"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -51,6 +53,7 @@ const (
 	SwitchIpAddressCheck             common.ValidationCheck = "switch-ip-address"
 	HardwareMgmtHLSwitchCheck        common.ValidationCheck = "hardware-mgmt-hl-switch"
 	HardwareRouterBMC                common.ValidationCheck = "hardware-router-bmc"
+	CabinetNetworkCheck              common.ValidationCheck = "hardware-cabinet-network"
 )
 
 type HardwareCheck struct {
@@ -84,10 +87,11 @@ func (c *HardwareCheck) Validate(results *common.ValidationResults) {
 
 	aliasToHardware := make(map[string]*sls_client.Hardware)
 	nidToHardware := make(map[int64]*sls_client.Hardware)
+	cabinetNetworkChecker := NewHardwareCabinetNetworkSubCheck(c.networks)
 
 	for _, h := range c.hardware {
 		hardware := h
-		props, _ := common.GetMap(h.ExtraProperties)
+		props := getProps(&h)
 
 		validateUniqueAlias(results, aliasToHardware, &hardware, props)
 		validateUniqueNid(results, nidToHardware, &hardware, props)
@@ -103,8 +107,35 @@ func (c *HardwareCheck) Validate(results *common.ValidationResults) {
 			validateMgmtHLSwitch(results, &h, props, c.networks)
 		case xnametypes.RouterBMC:
 			validateRouterBMC(results, &h, props)
+		case xnametypes.Cabinet:
+			cabinetNetworkChecker.Validate(results, &h, props)
 		}
 	}
+}
+
+func getProps(h *sls_client.Hardware) map[string]interface{} {
+	// todo improve this
+	// common.GetMap uses the structs.Map library,
+	// however, this library does not convert the substructs to maps.
+	// something is needed to convert all levels of the data to map[string]interface{}
+	_, ok := h.ExtraProperties.(sls_client.HardwareExtraPropertiesCabinet)
+	if ok {
+		props := make(map[string]interface{})
+		rawProps, err := json.Marshal(h.ExtraProperties)
+		if err != nil {
+			log.Debug().Msgf("Failed to marshal ExtraProperties for hardware: %s %s, struct type: %T, error: %s",
+				h.Xname, h.Type, h.ExtraProperties, err)
+			return props
+		}
+		if err := json.Unmarshal(rawProps, &props); err != nil {
+			log.Debug().Msgf("Failed to unmarshal ExtraProperties for hardware: %s %s, struct type: %T, error: %s",
+				h.Xname, h.Type, h.ExtraProperties, err)
+			return props
+		}
+		return props
+	}
+	props, _ := common.GetMap(h.ExtraProperties)
+	return props
 }
 
 func validateUniqueAlias(
@@ -361,7 +392,6 @@ func validateMgmtSwitchConnector(
 					hardware.Xname, hardware.TypeString, fieldName))
 		}
 	}
-
 }
 
 func validateMgmtSwitch(
