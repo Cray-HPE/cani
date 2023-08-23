@@ -294,6 +294,7 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 		cabinetExtraProperties.CaniId = cHardware.ID.String()
 		cabinetExtraProperties.CaniSlsSchemaVersion = "v1alpha1"
 		cabinetExtraProperties.CaniLastModified = time.Now().UTC().String()
+		cabinetExtraProperties.CaniStatus = (*sls_client.CaniStatus)(&cHardware.Status)
 
 		//
 		// Build cabinet metadata
@@ -359,6 +360,7 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 		chassisExtraProperties.CaniId = cHardware.ID.String()
 		chassisExtraProperties.CaniSlsSchemaVersion = "v1alpha1"
 		chassisExtraProperties.CaniLastModified = time.Now().UTC().String()
+		chassisExtraProperties.CaniStatus = (*sls_client.CaniStatus)(&cHardware.Status)
 
 		extraProperties = chassisExtraProperties
 	case hardwaretypes.ChassisManagementModule:
@@ -368,6 +370,7 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 		cmmExtraProperties.CaniId = cHardware.ID.String()
 		cmmExtraProperties.CaniSlsSchemaVersion = "v1alpha1"
 		cmmExtraProperties.CaniLastModified = time.Now().UTC().String()
+		cmmExtraProperties.CaniStatus = (*sls_client.CaniStatus)(&cHardware.Status)
 
 		extraProperties = cmmExtraProperties
 	case hardwaretypes.NodeBlade:
@@ -393,6 +396,7 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 		nodeExtraProperties.CaniId = cHardware.ID.String()
 		nodeExtraProperties.CaniSlsSchemaVersion = "v1alpha1"
 		nodeExtraProperties.CaniLastModified = time.Now().UTC().String()
+		nodeExtraProperties.CaniStatus = (*sls_client.CaniStatus)(&cHardware.Status)
 
 		// Logical metadata
 		if metadata.Node != nil {
@@ -416,7 +420,7 @@ func BuildSLSHardware(cHardware inventory.Hardware, locationPath inventory.Locat
 				nodeExtraProperties.Aliases = metadata.Node.Alias
 			}
 
-			log.Info().Any("nodeEp", nodeExtraProperties).Msgf("Generated Extra Properties for %s", xname.String())
+			log.Debug().Any("nodeEp", nodeExtraProperties).Msgf("Generated Extra Properties for %s", xname.String())
 		}
 		extraProperties = nodeExtraProperties
 	default:

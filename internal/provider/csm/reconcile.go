@@ -148,11 +148,11 @@ func (csm *CSM) Reconcile(ctx context.Context, configOptions provider.ConfigOpti
 			// Put into transaction log with old and new value
 			// TODO
 
-			// Perform a POST against SLS
-			_, r, err := csm.slsClient.HardwareApi.HardwarePost(ctx, sls.NewHardwarePostOpts(hardware))
+			// Perform a PUT against SLS
+			_, r, err := csm.slsClient.HardwareApi.HardwareXnamePut(ctx, hardware.Xname, sls.NewHardwareXnamePutOpts(hardware))
 			if err != nil {
 				return errors.Join(
-					fmt.Errorf("failed to add hardware (%s) to SLS", hardware.Xname),
+					fmt.Errorf("failed to update hardware (%s) from SLS", hardware.Xname),
 					err,
 				)
 			}
@@ -211,6 +211,35 @@ type HardwareChanges struct {
 
 func reconcileHardwareChanges(hardwareTypeLibrary hardwaretypes.Library, datastore inventory.Datastore, currentSLSState sls_client.SlsState, networkChanges *NetworkChanges) (*HardwareChanges, error) {
 	//
+	// Transition hardware states from staged -> provisioned
+	//
+	stagedHardware, err := datastore.Search(inventory.SearchFilter{
+		Status: []inventory.HardwareStatus{
+			inventory.HardwareStatusStaged,
+		},
+	})
+	if err != nil {
+		return nil, errors.Join(
+			fmt.Errorf("failed to search datastore for staged hardware"),
+			err,
+		)
+	}
+	for _, cHardware := range stagedHardware {
+		cHardware.Status = inventory.HardwareStatusProvisioned
+		stagedHardware[cHardware.ID] = cHardware // Write it back to the map
+		if err := datastore.Update(&cHardware); err != nil {
+			return nil, errors.Join(
+				fmt.Errorf("failed to update staged hardware %s status to staged", cHardware.ID),
+				err,
+			)
+		}
+	}
+
+	//
+	// TODO may need to handle hardware removal in the same way
+	//
+
+	//
 	// Build up the expected SLS state
 	//
 
@@ -261,6 +290,65 @@ func reconcileHardwareChanges(hardwareTypeLibrary hardwaretypes.Library, datasto
 		return nil, err
 	}
 
+	// SLS contains hardware objects for hardware that may or may not exist in reality,
+	// such as phantom nodes. So we need to pull out phantom nodes from identical hardware lookup
+	hardwareAddedMap := sls.HardwareMap(hardwareAdded)
+	identicalHardwareMap := sls.HardwareMap(identicalHardware)
+	for xname, cHardware := range hardwareMapping {
+		if cHardware.Type != hardwaretypes.Node {
+			// Restrict this check to only nodes
+			continue
+		}
+
+		if _, exists := stagedHardware[cHardware.ID]; !exists {
+			// This hardware was not staged
+			continue
+		}
+
+		if _, exists := identicalHardwareMap[xname]; !exists {
+			// This hardware does not exist in the hardware identical hardware for some reason
+			// So this must not be a phantom node
+			continue
+		}
+
+		currentNodeHardware := currentSLSState.Hardware[xname]
+		currentNodeEP, err := sls.DecodeExtraProperties[sls_client.HardwareExtraPropertiesNode](currentNodeHardware)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode SLS hardware extra properties (%s)", currentNodeHardware.Xname)
+		}
+
+		if currentNodeEP.CaniStatus != nil && *currentNodeEP.CaniStatus != sls_client.EMPTY_CaniStatus {
+			// Node is not known in SLS to be empty, skip it
+			continue
+		}
+
+		// This is a phantom node as SLS knows it to be empty
+		log.Debug().Msgf("Found staged phantom %s hardware that exists in SLS. Moving %s from identical hardware map to added hardware map", hardwaretypes.Node, cHardware.ID)
+
+		// Add to hardware added map
+		hardwareAddedMap[xname] = identicalHardwareMap[xname]
+
+		// Remove from identical hardware map
+		delete(identicalHardwareMap, xname)
+	}
+
+	//
+	// TODO may need to handle hardware removal in the same way
+	//
+
+	hardwareAdded = sls.HardwareSlice(hardwareAddedMap)
+	identicalHardware = sls.HardwareSlice(identicalHardwareMap)
+
+	// Some book keeping to keep track of xnames that where sgaged
+	stagedHardwareXnames := map[string]bool{}
+	for xname, cHardware := range hardwareMapping {
+		if _, exists := stagedHardware[cHardware.ID]; !exists {
+			// This hardware was not staged
+			continue
+		}
+		stagedHardwareXnames[xname] = true
+	}
+
 	if err := displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHardware, hardwareWithDifferingValues); err != nil {
 		return nil, err
 	}
@@ -283,7 +371,7 @@ func reconcileHardwareChanges(hardwareTypeLibrary hardwaretypes.Library, datasto
 
 	unexpectedHardwareAdditions := []sls_client.Hardware{}
 	for _, hardware := range hardwareAdded {
-		if hardwareMapping[hardware.Xname].Status != inventory.HardwareStatusStaged {
+		if !stagedHardwareXnames[hardware.Xname] {
 			// This piece of hardware wasn't flagged to be added to the system, but a
 			// the reconcile logic wants to remove it and this is bad
 			unexpectedHardwareAdditions = append(unexpectedHardwareAdditions, hardware)
@@ -294,11 +382,13 @@ func reconcileHardwareChanges(hardwareTypeLibrary hardwaretypes.Library, datasto
 
 	// TODO need a good way to signal in the inventory structure that we need to support
 	// update metadata for a piece of hardware, for now just not handle it
-	// for _, hardware := range hardwareWithDifferingValues {
+	unexpectedHardwareChanges := hardwareWithDifferingValues
+	// for _, hardwarePair := range hardwareWithDifferingValues {
+	// 	unexpectedHardwareChanges = append(unexpectedHardwareChanges, hardwarePair)
 	// }
 
-	if len(unexpectedHardwareRemoval) != 0 || len(unexpectedHardwareAdditions) != 0 {
-		displayUnwantedChanges(unexpectedHardwareRemoval, unexpectedHardwareAdditions)
+	if len(unexpectedHardwareRemoval) != 0 || len(unexpectedHardwareAdditions) != 0 || len(unexpectedHardwareChanges) != 0 {
+		displayUnwantedChanges(unexpectedHardwareRemoval, unexpectedHardwareAdditions, unexpectedHardwareChanges)
 		return nil, fmt.Errorf("detected unexpected hardware changes between current and expected system states")
 	}
 
@@ -653,7 +743,7 @@ func displayHardwareComparisonReport(hardwareRemoved, hardwareAdded, identicalHa
 	return nil
 }
 
-func displayUnwantedChanges(unwantedHardwareRemoved, unwantedHardwareAdded []sls_client.Hardware) error {
+func displayUnwantedChanges(unwantedHardwareRemoved, unwantedHardwareAdded []sls_client.Hardware, unwantedHardwareChanges []sls.HardwarePair) error {
 	if len(unwantedHardwareAdded) != 0 {
 		log.Error().Msgf("")
 		log.Error().Msgf("Unexpected Hardware detected added to the system")
@@ -677,6 +767,32 @@ func displayUnwantedChanges(unwantedHardwareRemoved, unwantedHardwareAdded []sls
 			}
 
 			log.Error().Msgf("  %-16s - %s", hardware.Xname, hardwareRaw)
+		}
+	}
+
+	if len(unwantedHardwareChanges) != 0 {
+		log.Error().Msgf("")
+		log.Error().Msgf("Unexpected Hardware changes with differing class or extra properties")
+		for _, pair := range unwantedHardwareChanges {
+			log.Info().Msgf("  %s", pair.Xname)
+
+			// Expected Hardware json
+			pair.HardwareA.LastUpdated = 0
+			pair.HardwareA.LastUpdatedTime = ""
+			hardwareRaw, err := buildHardwareString(pair.HardwareA)
+			if err != nil {
+				return err
+			}
+			log.Info().Msgf("  - Expected: %-16s", hardwareRaw)
+
+			// Actual Hardware json
+			pair.HardwareB.LastUpdated = 0
+			pair.HardwareB.LastUpdatedTime = ""
+			hardwareRaw, err = buildHardwareString(pair.HardwareB)
+			if err != nil {
+				return err
+			}
+			log.Info().Msgf("  - Actual:   %-16s", hardwareRaw)
 		}
 	}
 

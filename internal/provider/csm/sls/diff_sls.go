@@ -28,7 +28,6 @@ package sls
 import (
 	"fmt"
 	"reflect"
-	"sort"
 
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 )
@@ -59,9 +58,7 @@ func HardwareSubtract(a, b sls_client.SlsState) ([]sls_client.Hardware, error) {
 	}
 
 	// Sort the slice to make it look nice, and have a deterministic order
-	sort.Slice(missingHardware, func(i, j int) bool {
-		return missingHardware[i].Xname < missingHardware[j].Xname
-	})
+	HardwareSort(missingHardware)
 
 	return missingHardware, nil
 }
@@ -134,12 +131,8 @@ func HardwareUnion(a, b sls_client.SlsState) (identicalHardware []sls_client.Har
 	}
 
 	// Sort the slices to make it look nice, and have a deterministic order
-	sort.Slice(identicalHardware, func(i, j int) bool {
-		return identicalHardware[i].Xname < identicalHardware[j].Xname
-	})
-	sort.Slice(differingContents, func(i, j int) bool {
-		return differingContents[i].Xname < differingContents[j].Xname
-	})
+	HardwareSort(identicalHardware)
+	HardwarePairSort(differingContents)
 
 	return
 }

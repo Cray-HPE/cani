@@ -1,0 +1,4716 @@
+{
+  "SchemaVersion": "v1alpha1",
+  "Provider": "csm",
+  "Hardware": {
+    "02476c6e-e36e-4835-bec4-b05f0dbcebf9": {
+      "ID": "02476c6e-e36e-4835-bec4-b05f0dbcebf9",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "dd8991b8-29ea-4582-9eae-75511a3f56ea",
+      "Children": [
+        "bbc97909-59a7-4633-be4f-5ffec37ff322",
+        "ff2e56dd-160f-43f7-a6fe-e99897b7c656"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "063f113c-4325-4f2d-afb8-e7f3520a1f3a": {
+      "ID": "063f113c-4325-4f2d-afb8-e7f3520a1f3a",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001016"
+            ],
+            "Nid": 1016,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "20a6f241-18b4-4f78-b04a-ba4a7abf103d",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 4
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "0b6e6da2-ea41-4e58-99a3-3ae11fde75df": {
+      "ID": "0b6e6da2-ea41-4e58-99a3-3ae11fde75df",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001038"
+            ],
+            "Nid": 1038,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "b59b6f1c-dcb8-421a-9b32-be50ed1b6af2",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "0cd3a2cd-df41-4b14-93ff-528622a5c6b2": {
+      "ID": "0cd3a2cd-df41-4b14-93ff-528622a5c6b2",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "e3a5683a-6f1d-4574-bc6a-36f46fb96633",
+      "Children": [
+        "5b4a0e77-7891-4af4-96bd-80c15ef52566",
+        "6d1180c6-2b58-404f-a8bb-d347931b471e"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 5
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "0dd5a6b0-07e1-49b7-a2fa-739ad3e10c3f": {
+      "ID": "0dd5a6b0-07e1-49b7-a2fa-739ad3e10c3f",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001026"
+            ],
+            "Nid": 1026,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "11994aef-f4f7-40cc-8b9b-dc831cc9e35d",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 6
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "11994aef-f4f7-40cc-8b9b-dc831cc9e35d": {
+      "ID": "11994aef-f4f7-40cc-8b9b-dc831cc9e35d",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "e7dd8b3d-703e-4ae0-86e4-b5e4f8876a94",
+      "Children": [
+        "0dd5a6b0-07e1-49b7-a2fa-739ad3e10c3f",
+        "2ddb71ac-7499-438f-80b0-021169967896"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 6
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "1421e339-2d68-4dde-bd58-b80bd3cf95e1": {
+      "ID": "1421e339-2d68-4dde-bd58-b80bd3cf95e1",
+      "Type": "Cabinet",
+      "DeviceTypeSlug": "hpe-ex2000",
+      "Vendor": "HPE",
+      "Model": "EX2000",
+      "Status": "provisioned",
+      "ProviderMetadata": {
+        "csm": {
+          "Cabinet": {
+            "HMNVlan": 3000
+          }
+        }
+      },
+      "Parent": "abcdef12-3456-2789-abcd-ef1234567890",
+      "Children": [
+        "55e3731c-61ba-4c1d-a77b-4fe945567f74",
+        "861e91f8-779d-4e10-90c5-6f8d8796d437",
+        "fc414860-f333-42c0-b10b-8e40d67cbffb"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        }
+      ],
+      "LocationOrdinal": 9000
+    },
+    "143b1358-da24-4004-86d4-124f6bd35db7": {
+      "ID": "143b1358-da24-4004-86d4-124f6bd35db7",
+      "Type": "Node",
+      "DeviceTypeSlug": "hpe-crayex-ex235n-compute-node",
+      "Vendor": "HPE",
+      "Model": "EX235N AMD NVIDIA accelerator compute node",
+      "Status": "staged",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001001"
+            ],
+            "Nid": 1001,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "2f2c5de6-1119-4e53-9099-fc102b74e527",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "14811394-3900-44bc-b427-f6bcc4efc0a8": {
+      "ID": "14811394-3900-44bc-b427-f6bcc4efc0a8",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001009"
+            ],
+            "Nid": 1009,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "91c946f7-f7a1-42d6-b194-37361719b3ef",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 2
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "1552fa7e-c31a-4194-a793-202f81e3f354": {
+      "ID": "1552fa7e-c31a-4194-a793-202f81e3f354",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "e680a6fb-1ab6-47c6-a70c-32403c061e6d",
+      "Children": [
+        "2e862636-9cc0-4101-aef0-7fd98d561980",
+        "d2ad5799-03bd-42b4-86c1-c789b723bca3"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 2
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "16380cc1-bddb-4eb5-8c2a-47561889bcf5": {
+      "ID": "16380cc1-bddb-4eb5-8c2a-47561889bcf5",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001050"
+            ],
+            "Nid": 1050,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "f66073ac-a726-4179-98c9-76cf97b4326c",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 4
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "16bbd5a5-ac21-4244-9f2c-8fcfcf801ed2": {
+      "ID": "16bbd5a5-ac21-4244-9f2c-8fcfcf801ed2",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001018"
+            ],
+            "Nid": 1018,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "589a4bf4-653d-416a-b440-a145d21277e8",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 4
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "17dae272-0537-4ac3-aa4a-51232bb9a5de": {
+      "ID": "17dae272-0537-4ac3-aa4a-51232bb9a5de",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "ef739730-2950-4e27-b077-fa147e64aa5e",
+      "Children": [
+        "284212b7-bdbc-480c-a091-abf542a9dfb6",
+        "c62de01f-1b5a-4ccc-8166-3fba0f1f653b"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 7
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "1ba602bf-a3ef-439f-af35-5dd4d446537b": {
+      "ID": "1ba602bf-a3ef-439f-af35-5dd4d446537b",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001017"
+            ],
+            "Nid": 1017,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "20a6f241-18b4-4f78-b04a-ba4a7abf103d",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 4
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "1c80276e-1e8c-443f-add9-dccff112641f": {
+      "ID": "1c80276e-1e8c-443f-add9-dccff112641f",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001030"
+            ],
+            "Nid": 1030,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "49697036-49ca-4877-b2f6-4379a8f9a5da",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 7
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "1d7fe99c-2d58-4045-b6de-b8c4d0d77135": {
+      "ID": "1d7fe99c-2d58-4045-b6de-b8c4d0d77135",
+      "Type": "NodeBlade",
+      "Status": "empty",
+      "Parent": "fc414860-f333-42c0-b10b-8e40d67cbffb",
+      "Children": [
+        "7987a840-512a-4b85-a619-9c3e6b985393",
+        "eaaebce2-8f4b-43f8-93ba-e2cf3dbb7653"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 2
+        }
+      ],
+      "LocationOrdinal": 2
+    },
+    "1f9720cc-4c3a-4998-b060-891ccf0e15e5": {
+      "ID": "1f9720cc-4c3a-4998-b060-891ccf0e15e5",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001040"
+            ],
+            "Nid": 1040,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "7987a840-512a-4b85-a619-9c3e6b985393",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 2
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "20a6f241-18b4-4f78-b04a-ba4a7abf103d": {
+      "ID": "20a6f241-18b4-4f78-b04a-ba4a7abf103d",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "ce6f4db9-dc7d-4831-b254-20ebdd13e7bd",
+      "Children": [
+        "063f113c-4325-4f2d-afb8-e7f3520a1f3a",
+        "1ba602bf-a3ef-439f-af35-5dd4d446537b"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 4
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "268fd938-5bce-47a3-a97d-ba6c2bd6e2ac": {
+      "ID": "268fd938-5bce-47a3-a97d-ba6c2bd6e2ac",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001037"
+            ],
+            "Nid": 1037,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "e99445ab-5296-405c-bfe9-5f6039d6f4cf",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "284212b7-bdbc-480c-a091-abf542a9dfb6": {
+      "ID": "284212b7-bdbc-480c-a091-abf542a9dfb6",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001060"
+            ],
+            "Nid": 1060,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "17dae272-0537-4ac3-aa4a-51232bb9a5de",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 7
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "28ff2543-c40c-4ad2-81a0-a674006a9ab5": {
+      "ID": "28ff2543-c40c-4ad2-81a0-a674006a9ab5",
+      "Type": "NodeBlade",
+      "Status": "empty",
+      "Parent": "55e3731c-61ba-4c1d-a77b-4fe945567f74",
+      "Children": [
+        "3741b22c-0af2-4c23-afa1-319abc24eb3c",
+        "c877a7df-96a6-4387-9711-401cdd75f73e"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 3
+        }
+      ],
+      "LocationOrdinal": 3
+    },
+    "2a63282a-1dcf-4c0c-943f-a3fa108b0ebc": {
+      "ID": "2a63282a-1dcf-4c0c-943f-a3fa108b0ebc",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001034"
+            ],
+            "Nid": 1034,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "687e4307-707b-4971-b69a-a9e9080c6988",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "2d763162-785b-40d9-90df-70bfcacc9930": {
+      "ID": "2d763162-785b-40d9-90df-70bfcacc9930",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001022"
+            ],
+            "Nid": 1022,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "2dddfb0c-249b-4207-913d-7369a4645af3",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 5
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "2ddb71ac-7499-438f-80b0-021169967896": {
+      "ID": "2ddb71ac-7499-438f-80b0-021169967896",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001027"
+            ],
+            "Nid": 1027,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "11994aef-f4f7-40cc-8b9b-dc831cc9e35d",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 6
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "2dddfb0c-249b-4207-913d-7369a4645af3": {
+      "ID": "2dddfb0c-249b-4207-913d-7369a4645af3",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "57189209-f74e-45d0-b455-6dda3860ac58",
+      "Children": [
+        "2d763162-785b-40d9-90df-70bfcacc9930",
+        "6b6704f0-4ad7-4646-8d60-896dbb16c910"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 5
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "2ddee1a2-9f8c-4c9e-a22e-3a0c3d050285": {
+      "ID": "2ddee1a2-9f8c-4c9e-a22e-3a0c3d050285",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001047"
+            ],
+            "Nid": 1047,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "65ccfb89-8fc2-43f9-b181-008d72f506df",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "2e862636-9cc0-4101-aef0-7fd98d561980": {
+      "ID": "2e862636-9cc0-4101-aef0-7fd98d561980",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001010"
+            ],
+            "Nid": 1010,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "1552fa7e-c31a-4194-a793-202f81e3f354",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 2
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "2f2c5de6-1119-4e53-9099-fc102b74e527": {
+      "ID": "2f2c5de6-1119-4e53-9099-fc102b74e527",
+      "Type": "NodeCard",
+      "DeviceTypeSlug": "hpe-crayex-ex235n-compute-blade-grizzly-peak-node-card",
+      "Vendor": "HPE",
+      "Model": "EX235N AMD NVIDIA accelerator blade, Grizzly Peak Node Card (GPNC)",
+      "Status": "staged",
+      "Parent": "c70ebc3b-321f-494c-8e6b-7831fb40366c",
+      "Children": [
+        "143b1358-da24-4004-86d4-124f6bd35db7",
+        "5549f82a-307e-430e-b3a1-463a8907597c",
+        "b32f3216-5073-43f9-bb2b-399a3ee5acd2"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "3741b22c-0af2-4c23-afa1-319abc24eb3c": {
+      "ID": "3741b22c-0af2-4c23-afa1-319abc24eb3c",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "28ff2543-c40c-4ad2-81a0-a674006a9ab5",
+      "Children": [
+        "64d04bbe-f560-461b-a319-4b82905dff7a",
+        "e4a44c79-f492-4783-bb3f-6a1fa097d9da"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "38564b84-c9af-49e9-a504-2aedb82101d7": {
+      "ID": "38564b84-c9af-49e9-a504-2aedb82101d7",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001012"
+            ],
+            "Nid": 1012,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "c877a7df-96a6-4387-9711-401cdd75f73e",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "3b40abf3-ea04-4610-aa4f-1ec0f100b671": {
+      "ID": "3b40abf3-ea04-4610-aa4f-1ec0f100b671",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001048"
+            ],
+            "Nid": 1048,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "7b4a3b8e-2cbf-4dad-b3a8-0af51ae4c675",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 4
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "3c15279a-4679-47e4-bc98-cb85d0096708": {
+      "ID": "3c15279a-4679-47e4-bc98-cb85d0096708",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001002"
+            ],
+            "Nid": 1002,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "aace5f86-d935-47bd-97f6-289a82222e07",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "3d740e6b-8d63-4eff-8b08-5f1ea7f8c267": {
+      "ID": "3d740e6b-8d63-4eff-8b08-5f1ea7f8c267",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001046"
+            ],
+            "Nid": 1046,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "65ccfb89-8fc2-43f9-b181-008d72f506df",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "3dffda4d-e1e2-4f96-9e8c-eda7eb57e7e7": {
+      "ID": "3dffda4d-e1e2-4f96-9e8c-eda7eb57e7e7",
+      "Type": "ChassisManagementModule",
+      "DeviceTypeSlug": "hpe-crayex-chassis-management-module",
+      "Vendor": "HPE",
+      "Model": "CrayEX Chassis Management Module",
+      "Status": "provisioned",
+      "Parent": "fc414860-f333-42c0-b10b-8e40d67cbffb",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "ChassisManagementModule",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "4318f216-7a97-47fb-873e-da9ffc0d481d": {
+      "ID": "4318f216-7a97-47fb-873e-da9ffc0d481d",
+      "Type": "NodeBlade",
+      "Status": "empty",
+      "Parent": "55e3731c-61ba-4c1d-a77b-4fe945567f74",
+      "Children": [
+        "49697036-49ca-4877-b2f6-4379a8f9a5da",
+        "b57f29fd-0147-44e2-a37a-4adb8eab8bc9"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 7
+        }
+      ],
+      "LocationOrdinal": 7
+    },
+    "49697036-49ca-4877-b2f6-4379a8f9a5da": {
+      "ID": "49697036-49ca-4877-b2f6-4379a8f9a5da",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "4318f216-7a97-47fb-873e-da9ffc0d481d",
+      "Children": [
+        "1c80276e-1e8c-443f-add9-dccff112641f",
+        "9a2819fd-d942-48ff-9902-745f82cbec04"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 7
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "5115a960-0aff-48f1-aca3-5561defe8d8e": {
+      "ID": "5115a960-0aff-48f1-aca3-5561defe8d8e",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001006"
+            ],
+            "Nid": 1006,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "d0af4a10-caa9-47c5-8f1b-c012e921b48e",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "5549f82a-307e-430e-b3a1-463a8907597c": {
+      "ID": "5549f82a-307e-430e-b3a1-463a8907597c",
+      "Type": "NodeController",
+      "DeviceTypeSlug": "hpe-crayex-ex235n-compute-blade-grizzly-peak-node-bmc",
+      "Vendor": "HPE",
+      "Model": "EX235N AMD NVIDIA accelerator blade, Grizzly Peak Node BMC",
+      "Status": "staged",
+      "Parent": "2f2c5de6-1119-4e53-9099-fc102b74e527",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeController",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "55e3731c-61ba-4c1d-a77b-4fe945567f74": {
+      "ID": "55e3731c-61ba-4c1d-a77b-4fe945567f74",
+      "Type": "Chassis",
+      "DeviceTypeSlug": "hpe-crayex-chassis",
+      "Vendor": "HPE",
+      "Model": "CrayEX liquid-cooled cabinet chassis",
+      "Status": "provisioned",
+      "Parent": "1421e339-2d68-4dde-bd58-b80bd3cf95e1",
+      "Children": [
+        "28ff2543-c40c-4ad2-81a0-a674006a9ab5",
+        "4318f216-7a97-47fb-873e-da9ffc0d481d",
+        "57189209-f74e-45d0-b455-6dda3860ac58",
+        "bea69501-9a98-4a72-b73b-d936412df373",
+        "c70ebc3b-321f-494c-8e6b-7831fb40366c",
+        "ce6f4db9-dc7d-4831-b254-20ebdd13e7bd",
+        "e680a6fb-1ab6-47c6-a70c-32403c061e6d",
+        "e7dd8b3d-703e-4ae0-86e4-b5e4f8876a94",
+        "f2f465d4-2662-4dfc-a1a8-1edee2991746"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "57189209-f74e-45d0-b455-6dda3860ac58": {
+      "ID": "57189209-f74e-45d0-b455-6dda3860ac58",
+      "Type": "NodeBlade",
+      "Status": "empty",
+      "Parent": "55e3731c-61ba-4c1d-a77b-4fe945567f74",
+      "Children": [
+        "2dddfb0c-249b-4207-913d-7369a4645af3",
+        "d7a9d896-94d3-4a48-bd9b-4a906e3392ba"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 5
+        }
+      ],
+      "LocationOrdinal": 5
+    },
+    "57db0fd8-4342-48a3-9dcc-740a255dcb37": {
+      "ID": "57db0fd8-4342-48a3-9dcc-740a255dcb37",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "e3a5683a-6f1d-4574-bc6a-36f46fb96633",
+      "Children": [
+        "97c5d971-83fc-41b2-bae0-60ed3c6b96fd",
+        "99c53bec-2897-4eb2-a8da-e40077acf10b"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 5
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "589a4bf4-653d-416a-b440-a145d21277e8": {
+      "ID": "589a4bf4-653d-416a-b440-a145d21277e8",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "ce6f4db9-dc7d-4831-b254-20ebdd13e7bd",
+      "Children": [
+        "16bbd5a5-ac21-4244-9f2c-8fcfcf801ed2",
+        "a9337a3e-ca52-4ccc-a8d6-d1918b5c61dd"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 4
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "5b4a0e77-7891-4af4-96bd-80c15ef52566": {
+      "ID": "5b4a0e77-7891-4af4-96bd-80c15ef52566",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001055"
+            ],
+            "Nid": 1055,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "0cd3a2cd-df41-4b14-93ff-528622a5c6b2",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 5
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "5fd198c9-e72b-4e03-9e4f-03611e49f5e3": {
+      "ID": "5fd198c9-e72b-4e03-9e4f-03611e49f5e3",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "e9f75505-5c83-473a-a6a4-fa2ea5320caf",
+      "Children": [
+        "ed7397e4-f54e-4ac6-a661-acc5cd083167",
+        "f96c2529-0507-43da-87c1-d83620f6b6f9"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 6
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "5fd618b1-6666-446c-a74b-9078ad0bd407": {
+      "ID": "5fd618b1-6666-446c-a74b-9078ad0bd407",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001035"
+            ],
+            "Nid": 1035,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "687e4307-707b-4971-b69a-a9e9080c6988",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "64d04bbe-f560-461b-a319-4b82905dff7a": {
+      "ID": "64d04bbe-f560-461b-a319-4b82905dff7a",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001014"
+            ],
+            "Nid": 1014,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "3741b22c-0af2-4c23-afa1-319abc24eb3c",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "65ccfb89-8fc2-43f9-b181-008d72f506df": {
+      "ID": "65ccfb89-8fc2-43f9-b181-008d72f506df",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "dd8991b8-29ea-4582-9eae-75511a3f56ea",
+      "Children": [
+        "2ddee1a2-9f8c-4c9e-a22e-3a0c3d050285",
+        "3d740e6b-8d63-4eff-8b08-5f1ea7f8c267"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "687e4307-707b-4971-b69a-a9e9080c6988": {
+      "ID": "687e4307-707b-4971-b69a-a9e9080c6988",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "6f3a96d9-8e7d-4adc-a1c9-c98e04a16222",
+      "Children": [
+        "2a63282a-1dcf-4c0c-943f-a3fa108b0ebc",
+        "5fd618b1-6666-446c-a74b-9078ad0bd407"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "68a6f99b-baf8-4da9-8eb4-df2c0a7a29db": {
+      "ID": "68a6f99b-baf8-4da9-8eb4-df2c0a7a29db",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001004"
+            ],
+            "Nid": 1004,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "6d6e96e1-4fc6-47fa-9b0b-fca0c39f74ce",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "6b6704f0-4ad7-4646-8d60-896dbb16c910": {
+      "ID": "6b6704f0-4ad7-4646-8d60-896dbb16c910",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001023"
+            ],
+            "Nid": 1023,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "2dddfb0c-249b-4207-913d-7369a4645af3",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 5
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "6d1180c6-2b58-404f-a8bb-d347931b471e": {
+      "ID": "6d1180c6-2b58-404f-a8bb-d347931b471e",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001054"
+            ],
+            "Nid": 1054,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "0cd3a2cd-df41-4b14-93ff-528622a5c6b2",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 5
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "6d6e96e1-4fc6-47fa-9b0b-fca0c39f74ce": {
+      "ID": "6d6e96e1-4fc6-47fa-9b0b-fca0c39f74ce",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "f2f465d4-2662-4dfc-a1a8-1edee2991746",
+      "Children": [
+        "68a6f99b-baf8-4da9-8eb4-df2c0a7a29db",
+        "825e024c-1dc0-477a-8a71-3a528eb39636"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "6e425048-5c16-42d1-92a9-815527e90f14": {
+      "ID": "6e425048-5c16-42d1-92a9-815527e90f14",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001062"
+            ],
+            "Nid": 1062,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "937a85f7-32c3-4558-abd7-e8ea3cd77d7d",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 7
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "6f3a96d9-8e7d-4adc-a1c9-c98e04a16222": {
+      "ID": "6f3a96d9-8e7d-4adc-a1c9-c98e04a16222",
+      "Type": "NodeBlade",
+      "Status": "empty",
+      "Parent": "fc414860-f333-42c0-b10b-8e40d67cbffb",
+      "Children": [
+        "687e4307-707b-4971-b69a-a9e9080c6988",
+        "d9b80dbc-4004-447e-b6dc-a70c7e3c4efe"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "71a47119-b969-4f0d-a9f8-88d3689c4b73": {
+      "ID": "71a47119-b969-4f0d-a9f8-88d3689c4b73",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001033"
+            ],
+            "Nid": 1033,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "d9b80dbc-4004-447e-b6dc-a70c7e3c4efe",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "72eea27f-1367-41a9-845a-70f136b36a1a": {
+      "ID": "72eea27f-1367-41a9-845a-70f136b36a1a",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001013"
+            ],
+            "Nid": 1013,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "c877a7df-96a6-4387-9711-401cdd75f73e",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "77d1f2d2-df6e-466b-87c0-92a1e0567248": {
+      "ID": "77d1f2d2-df6e-466b-87c0-92a1e0567248",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001051"
+            ],
+            "Nid": 1051,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "f66073ac-a726-4179-98c9-76cf97b4326c",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 4
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "7987a840-512a-4b85-a619-9c3e6b985393": {
+      "ID": "7987a840-512a-4b85-a619-9c3e6b985393",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "1d7fe99c-2d58-4045-b6de-b8c4d0d77135",
+      "Children": [
+        "1f9720cc-4c3a-4998-b060-891ccf0e15e5",
+        "c5615015-a863-4442-9637-734f11dda70d"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 2
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "79b997a8-d32c-4d32-bd8c-a3723a5db81d": {
+      "ID": "79b997a8-d32c-4d32-bd8c-a3723a5db81d",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001024"
+            ],
+            "Nid": 1024,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "9636a19a-29f4-4305-9fc7-7cf6246f7685",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 6
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "7b4a3b8e-2cbf-4dad-b3a8-0af51ae4c675": {
+      "ID": "7b4a3b8e-2cbf-4dad-b3a8-0af51ae4c675",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "c1c9a5ee-dd92-4f73-aee6-bb8ec721b0b6",
+      "Children": [
+        "3b40abf3-ea04-4610-aa4f-1ec0f100b671",
+        "97503e70-3d3a-4ca6-9626-d601c66bba66"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 4
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "7d9be70d-f139-4d77-ba62-35eefa2c1d3d": {
+      "ID": "7d9be70d-f139-4d77-ba62-35eefa2c1d3d",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "e9f75505-5c83-473a-a6a4-fa2ea5320caf",
+      "Children": [
+        "ccdc25b2-4b3f-4d39-8eb6-a51ba9084146",
+        "d34191f9-13de-42f1-9496-2e7defdc1211"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 6
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "7fd3b115-86db-46ea-8ce5-d35afef113ce": {
+      "ID": "7fd3b115-86db-46ea-8ce5-d35afef113ce",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001007"
+            ],
+            "Nid": 1007,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "d0af4a10-caa9-47c5-8f1b-c012e921b48e",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "81a7cfb3-4f04-4d49-ae7c-e5d339b3bbd2": {
+      "ID": "81a7cfb3-4f04-4d49-ae7c-e5d339b3bbd2",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001008"
+            ],
+            "Nid": 1008,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "91c946f7-f7a1-42d6-b194-37361719b3ef",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 2
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "825e024c-1dc0-477a-8a71-3a528eb39636": {
+      "ID": "825e024c-1dc0-477a-8a71-3a528eb39636",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001005"
+            ],
+            "Nid": 1005,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "6d6e96e1-4fc6-47fa-9b0b-fca0c39f74ce",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "82e5db91-3773-4e3e-bfee-eccce92b62af": {
+      "ID": "82e5db91-3773-4e3e-bfee-eccce92b62af",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001003"
+            ],
+            "Nid": 1003,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "aace5f86-d935-47bd-97f6-289a82222e07",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "861e91f8-779d-4e10-90c5-6f8d8796d437": {
+      "ID": "861e91f8-779d-4e10-90c5-6f8d8796d437",
+      "Type": "CabinetEnvironmentalController",
+      "DeviceTypeSlug": "hpe-crayex-cabinet-environmental-controller",
+      "Vendor": "HPE",
+      "Model": "CrayEX Cabinet Environmental Controller",
+      "Status": "provisioned",
+      "Parent": "1421e339-2d68-4dde-bd58-b80bd3cf95e1",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "CabinetEnvironmentalController",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "86529ac1-493d-4e3c-b71a-3fbc09dbe7d7": {
+      "ID": "86529ac1-493d-4e3c-b71a-3fbc09dbe7d7",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001021"
+            ],
+            "Nid": 1021,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "d7a9d896-94d3-4a48-bd9b-4a906e3392ba",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 5
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "8a7858f9-8718-4c5a-8b22-4ba763eb1f4d": {
+      "ID": "8a7858f9-8718-4c5a-8b22-4ba763eb1f4d",
+      "Type": "NodeBlade",
+      "Status": "empty",
+      "Parent": "fc414860-f333-42c0-b10b-8e40d67cbffb",
+      "Children": [
+        "b59b6f1c-dcb8-421a-9b32-be50ed1b6af2",
+        "e99445ab-5296-405c-bfe9-5f6039d6f4cf"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "91c946f7-f7a1-42d6-b194-37361719b3ef": {
+      "ID": "91c946f7-f7a1-42d6-b194-37361719b3ef",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "e680a6fb-1ab6-47c6-a70c-32403c061e6d",
+      "Children": [
+        "14811394-3900-44bc-b427-f6bcc4efc0a8",
+        "81a7cfb3-4f04-4d49-ae7c-e5d339b3bbd2"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 2
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "937a85f7-32c3-4558-abd7-e8ea3cd77d7d": {
+      "ID": "937a85f7-32c3-4558-abd7-e8ea3cd77d7d",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "ef739730-2950-4e27-b077-fa147e64aa5e",
+      "Children": [
+        "6e425048-5c16-42d1-92a9-815527e90f14",
+        "d38b0585-ca4e-4e8e-af36-f76aad189cc8"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 7
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "94a62eb8-2487-4baf-88a8-e61e2c02b884": {
+      "ID": "94a62eb8-2487-4baf-88a8-e61e2c02b884",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001043"
+            ],
+            "Nid": 1043,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "eaaebce2-8f4b-43f8-93ba-e2cf3dbb7653",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 2
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "9636a19a-29f4-4305-9fc7-7cf6246f7685": {
+      "ID": "9636a19a-29f4-4305-9fc7-7cf6246f7685",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "e7dd8b3d-703e-4ae0-86e4-b5e4f8876a94",
+      "Children": [
+        "79b997a8-d32c-4d32-bd8c-a3723a5db81d",
+        "97ff25de-ea43-4011-a98e-c992cbcc6c7e"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 6
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "97503e70-3d3a-4ca6-9626-d601c66bba66": {
+      "ID": "97503e70-3d3a-4ca6-9626-d601c66bba66",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001049"
+            ],
+            "Nid": 1049,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "7b4a3b8e-2cbf-4dad-b3a8-0af51ae4c675",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 4
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "97c5d971-83fc-41b2-bae0-60ed3c6b96fd": {
+      "ID": "97c5d971-83fc-41b2-bae0-60ed3c6b96fd",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001052"
+            ],
+            "Nid": 1052,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "57db0fd8-4342-48a3-9dcc-740a255dcb37",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 5
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "97ff25de-ea43-4011-a98e-c992cbcc6c7e": {
+      "ID": "97ff25de-ea43-4011-a98e-c992cbcc6c7e",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001025"
+            ],
+            "Nid": 1025,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "9636a19a-29f4-4305-9fc7-7cf6246f7685",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 6
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "99c53bec-2897-4eb2-a8da-e40077acf10b": {
+      "ID": "99c53bec-2897-4eb2-a8da-e40077acf10b",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001053"
+            ],
+            "Nid": 1053,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "57db0fd8-4342-48a3-9dcc-740a255dcb37",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 5
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "9a2819fd-d942-48ff-9902-745f82cbec04": {
+      "ID": "9a2819fd-d942-48ff-9902-745f82cbec04",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001031"
+            ],
+            "Nid": 1031,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "49697036-49ca-4877-b2f6-4379a8f9a5da",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 7
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "a8b0f136-6fb7-4628-91ec-65e467736e2b": {
+      "ID": "a8b0f136-6fb7-4628-91ec-65e467736e2b",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001042"
+            ],
+            "Nid": 1042,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "eaaebce2-8f4b-43f8-93ba-e2cf3dbb7653",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 2
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "a9337a3e-ca52-4ccc-a8d6-d1918b5c61dd": {
+      "ID": "a9337a3e-ca52-4ccc-a8d6-d1918b5c61dd",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001019"
+            ],
+            "Nid": 1019,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "589a4bf4-653d-416a-b440-a145d21277e8",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 4
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "aace5f86-d935-47bd-97f6-289a82222e07": {
+      "ID": "aace5f86-d935-47bd-97f6-289a82222e07",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "c70ebc3b-321f-494c-8e6b-7831fb40366c",
+      "Children": [
+        "3c15279a-4679-47e4-bc98-cb85d0096708",
+        "82e5db91-3773-4e3e-bfee-eccce92b62af"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "abcdef12-3456-2789-abcd-ef1234567890": {
+      "ID": "abcdef12-3456-2789-abcd-ef1234567890",
+      "Type": "System",
+      "Parent": "00000000-0000-0000-0000-000000000000",
+      "Children": [
+        "1421e339-2d68-4dde-bd58-b80bd3cf95e1"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "ac52ba40-331e-48c5-bfe9-6da8273fc3f7": {
+      "ID": "ac52ba40-331e-48c5-bfe9-6da8273fc3f7",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001020"
+            ],
+            "Nid": 1020,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "d7a9d896-94d3-4a48-bd9b-4a906e3392ba",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 5
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "ac679d1a-7fd3-4cb1-80f6-babf0b728cf7": {
+      "ID": "ac679d1a-7fd3-4cb1-80f6-babf0b728cf7",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001036"
+            ],
+            "Nid": 1036,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "e99445ab-5296-405c-bfe9-5f6039d6f4cf",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "afefbfbb-91be-4c71-af66-d8c9b69ad615": {
+      "ID": "afefbfbb-91be-4c71-af66-d8c9b69ad615",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001032"
+            ],
+            "Nid": 1032,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "d9b80dbc-4004-447e-b6dc-a70c7e3c4efe",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "b32f3216-5073-43f9-bb2b-399a3ee5acd2": {
+      "ID": "b32f3216-5073-43f9-bb2b-399a3ee5acd2",
+      "Type": "Node",
+      "DeviceTypeSlug": "hpe-crayex-ex235n-compute-node",
+      "Vendor": "HPE",
+      "Model": "EX235N AMD NVIDIA accelerator compute node",
+      "Status": "staged",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001000"
+            ],
+            "Nid": 1000,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "2f2c5de6-1119-4e53-9099-fc102b74e527",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "b57f29fd-0147-44e2-a37a-4adb8eab8bc9": {
+      "ID": "b57f29fd-0147-44e2-a37a-4adb8eab8bc9",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "4318f216-7a97-47fb-873e-da9ffc0d481d",
+      "Children": [
+        "bd45bb61-bada-4b80-a3d2-a1ead390cdff",
+        "d23da769-0500-4ae2-8b4f-83f95b2c733c"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 7
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "b59b6f1c-dcb8-421a-9b32-be50ed1b6af2": {
+      "ID": "b59b6f1c-dcb8-421a-9b32-be50ed1b6af2",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "8a7858f9-8718-4c5a-8b22-4ba763eb1f4d",
+      "Children": [
+        "0b6e6da2-ea41-4e58-99a3-3ae11fde75df",
+        "d3123fa1-d20b-4c37-b930-8a473b4fba4b"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "bbc97909-59a7-4633-be4f-5ffec37ff322": {
+      "ID": "bbc97909-59a7-4633-be4f-5ffec37ff322",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001044"
+            ],
+            "Nid": 1044,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "02476c6e-e36e-4835-bec4-b05f0dbcebf9",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "bd45bb61-bada-4b80-a3d2-a1ead390cdff": {
+      "ID": "bd45bb61-bada-4b80-a3d2-a1ead390cdff",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001029"
+            ],
+            "Nid": 1029,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "b57f29fd-0147-44e2-a37a-4adb8eab8bc9",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 7
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "bea69501-9a98-4a72-b73b-d936412df373": {
+      "ID": "bea69501-9a98-4a72-b73b-d936412df373",
+      "Type": "ChassisManagementModule",
+      "DeviceTypeSlug": "hpe-crayex-chassis-management-module",
+      "Vendor": "HPE",
+      "Model": "CrayEX Chassis Management Module",
+      "Status": "provisioned",
+      "Parent": "55e3731c-61ba-4c1d-a77b-4fe945567f74",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "ChassisManagementModule",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "c1c9a5ee-dd92-4f73-aee6-bb8ec721b0b6": {
+      "ID": "c1c9a5ee-dd92-4f73-aee6-bb8ec721b0b6",
+      "Type": "NodeBlade",
+      "Status": "empty",
+      "Parent": "fc414860-f333-42c0-b10b-8e40d67cbffb",
+      "Children": [
+        "7b4a3b8e-2cbf-4dad-b3a8-0af51ae4c675",
+        "f66073ac-a726-4179-98c9-76cf97b4326c"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 4
+        }
+      ],
+      "LocationOrdinal": 4
+    },
+    "c5615015-a863-4442-9637-734f11dda70d": {
+      "ID": "c5615015-a863-4442-9637-734f11dda70d",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001041"
+            ],
+            "Nid": 1041,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "7987a840-512a-4b85-a619-9c3e6b985393",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 2
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "c62de01f-1b5a-4ccc-8166-3fba0f1f653b": {
+      "ID": "c62de01f-1b5a-4ccc-8166-3fba0f1f653b",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001061"
+            ],
+            "Nid": 1061,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "17dae272-0537-4ac3-aa4a-51232bb9a5de",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 7
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "c70ebc3b-321f-494c-8e6b-7831fb40366c": {
+      "ID": "c70ebc3b-321f-494c-8e6b-7831fb40366c",
+      "Type": "NodeBlade",
+      "DeviceTypeSlug": "hpe-crayex-ex235n-compute-blade",
+      "Vendor": "HPE",
+      "Model": "EX235N AMD NVIDIA accelerator blade (Grizzly Peak)",
+      "Status": "staged",
+      "Parent": "55e3731c-61ba-4c1d-a77b-4fe945567f74",
+      "Children": [
+        "2f2c5de6-1119-4e53-9099-fc102b74e527",
+        "aace5f86-d935-47bd-97f6-289a82222e07"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "c877a7df-96a6-4387-9711-401cdd75f73e": {
+      "ID": "c877a7df-96a6-4387-9711-401cdd75f73e",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "28ff2543-c40c-4ad2-81a0-a674006a9ab5",
+      "Children": [
+        "38564b84-c9af-49e9-a504-2aedb82101d7",
+        "72eea27f-1367-41a9-845a-70f136b36a1a"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "ccdc25b2-4b3f-4d39-8eb6-a51ba9084146": {
+      "ID": "ccdc25b2-4b3f-4d39-8eb6-a51ba9084146",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001056"
+            ],
+            "Nid": 1056,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "7d9be70d-f139-4d77-ba62-35eefa2c1d3d",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 6
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "ce6f4db9-dc7d-4831-b254-20ebdd13e7bd": {
+      "ID": "ce6f4db9-dc7d-4831-b254-20ebdd13e7bd",
+      "Type": "NodeBlade",
+      "Status": "empty",
+      "Parent": "55e3731c-61ba-4c1d-a77b-4fe945567f74",
+      "Children": [
+        "20a6f241-18b4-4f78-b04a-ba4a7abf103d",
+        "589a4bf4-653d-416a-b440-a145d21277e8"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 4
+        }
+      ],
+      "LocationOrdinal": 4
+    },
+    "d0af4a10-caa9-47c5-8f1b-c012e921b48e": {
+      "ID": "d0af4a10-caa9-47c5-8f1b-c012e921b48e",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "f2f465d4-2662-4dfc-a1a8-1edee2991746",
+      "Children": [
+        "5115a960-0aff-48f1-aca3-5561defe8d8e",
+        "7fd3b115-86db-46ea-8ce5-d35afef113ce"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "d23da769-0500-4ae2-8b4f-83f95b2c733c": {
+      "ID": "d23da769-0500-4ae2-8b4f-83f95b2c733c",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001028"
+            ],
+            "Nid": 1028,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "b57f29fd-0147-44e2-a37a-4adb8eab8bc9",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 7
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "d2ad5799-03bd-42b4-86c1-c789b723bca3": {
+      "ID": "d2ad5799-03bd-42b4-86c1-c789b723bca3",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001011"
+            ],
+            "Nid": 1011,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "1552fa7e-c31a-4194-a793-202f81e3f354",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 2
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "d3123fa1-d20b-4c37-b930-8a473b4fba4b": {
+      "ID": "d3123fa1-d20b-4c37-b930-8a473b4fba4b",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001039"
+            ],
+            "Nid": 1039,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "b59b6f1c-dcb8-421a-9b32-be50ed1b6af2",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "d34191f9-13de-42f1-9496-2e7defdc1211": {
+      "ID": "d34191f9-13de-42f1-9496-2e7defdc1211",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001057"
+            ],
+            "Nid": 1057,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "7d9be70d-f139-4d77-ba62-35eefa2c1d3d",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 6
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "d38b0585-ca4e-4e8e-af36-f76aad189cc8": {
+      "ID": "d38b0585-ca4e-4e8e-af36-f76aad189cc8",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001063"
+            ],
+            "Nid": 1063,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "937a85f7-32c3-4558-abd7-e8ea3cd77d7d",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 7
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "d7a9d896-94d3-4a48-bd9b-4a906e3392ba": {
+      "ID": "d7a9d896-94d3-4a48-bd9b-4a906e3392ba",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "57189209-f74e-45d0-b455-6dda3860ac58",
+      "Children": [
+        "86529ac1-493d-4e3c-b71a-3fbc09dbe7d7",
+        "ac52ba40-331e-48c5-bfe9-6da8273fc3f7"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 5
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "d9b80dbc-4004-447e-b6dc-a70c7e3c4efe": {
+      "ID": "d9b80dbc-4004-447e-b6dc-a70c7e3c4efe",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "6f3a96d9-8e7d-4adc-a1c9-c98e04a16222",
+      "Children": [
+        "71a47119-b969-4f0d-a9f8-88d3689c4b73",
+        "afefbfbb-91be-4c71-af66-d8c9b69ad615"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "dd8991b8-29ea-4582-9eae-75511a3f56ea": {
+      "ID": "dd8991b8-29ea-4582-9eae-75511a3f56ea",
+      "Type": "NodeBlade",
+      "Status": "empty",
+      "Parent": "fc414860-f333-42c0-b10b-8e40d67cbffb",
+      "Children": [
+        "02476c6e-e36e-4835-bec4-b05f0dbcebf9",
+        "65ccfb89-8fc2-43f9-b181-008d72f506df"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 3
+        }
+      ],
+      "LocationOrdinal": 3
+    },
+    "e3a5683a-6f1d-4574-bc6a-36f46fb96633": {
+      "ID": "e3a5683a-6f1d-4574-bc6a-36f46fb96633",
+      "Type": "NodeBlade",
+      "Status": "empty",
+      "Parent": "fc414860-f333-42c0-b10b-8e40d67cbffb",
+      "Children": [
+        "0cd3a2cd-df41-4b14-93ff-528622a5c6b2",
+        "57db0fd8-4342-48a3-9dcc-740a255dcb37"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 5
+        }
+      ],
+      "LocationOrdinal": 5
+    },
+    "e4a44c79-f492-4783-bb3f-6a1fa097d9da": {
+      "ID": "e4a44c79-f492-4783-bb3f-6a1fa097d9da",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001015"
+            ],
+            "Nid": 1015,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "3741b22c-0af2-4c23-afa1-319abc24eb3c",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "e680a6fb-1ab6-47c6-a70c-32403c061e6d": {
+      "ID": "e680a6fb-1ab6-47c6-a70c-32403c061e6d",
+      "Type": "NodeBlade",
+      "Status": "empty",
+      "Parent": "55e3731c-61ba-4c1d-a77b-4fe945567f74",
+      "Children": [
+        "1552fa7e-c31a-4194-a793-202f81e3f354",
+        "91c946f7-f7a1-42d6-b194-37361719b3ef"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 2
+        }
+      ],
+      "LocationOrdinal": 2
+    },
+    "e7dd8b3d-703e-4ae0-86e4-b5e4f8876a94": {
+      "ID": "e7dd8b3d-703e-4ae0-86e4-b5e4f8876a94",
+      "Type": "NodeBlade",
+      "Status": "empty",
+      "Parent": "55e3731c-61ba-4c1d-a77b-4fe945567f74",
+      "Children": [
+        "11994aef-f4f7-40cc-8b9b-dc831cc9e35d",
+        "9636a19a-29f4-4305-9fc7-7cf6246f7685"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 6
+        }
+      ],
+      "LocationOrdinal": 6
+    },
+    "e99445ab-5296-405c-bfe9-5f6039d6f4cf": {
+      "ID": "e99445ab-5296-405c-bfe9-5f6039d6f4cf",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "8a7858f9-8718-4c5a-8b22-4ba763eb1f4d",
+      "Children": [
+        "268fd938-5bce-47a3-a97d-ba6c2bd6e2ac",
+        "ac679d1a-7fd3-4cb1-80f6-babf0b728cf7"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "e9f75505-5c83-473a-a6a4-fa2ea5320caf": {
+      "ID": "e9f75505-5c83-473a-a6a4-fa2ea5320caf",
+      "Type": "NodeBlade",
+      "Status": "empty",
+      "Parent": "fc414860-f333-42c0-b10b-8e40d67cbffb",
+      "Children": [
+        "5fd198c9-e72b-4e03-9e4f-03611e49f5e3",
+        "7d9be70d-f139-4d77-ba62-35eefa2c1d3d"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 6
+        }
+      ],
+      "LocationOrdinal": 6
+    },
+    "eaaebce2-8f4b-43f8-93ba-e2cf3dbb7653": {
+      "ID": "eaaebce2-8f4b-43f8-93ba-e2cf3dbb7653",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "1d7fe99c-2d58-4045-b6de-b8c4d0d77135",
+      "Children": [
+        "94a62eb8-2487-4baf-88a8-e61e2c02b884",
+        "a8b0f136-6fb7-4628-91ec-65e467736e2b"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 2
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "ed7397e4-f54e-4ac6-a661-acc5cd083167": {
+      "ID": "ed7397e4-f54e-4ac6-a661-acc5cd083167",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001058"
+            ],
+            "Nid": 1058,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "5fd198c9-e72b-4e03-9e4f-03611e49f5e3",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 6
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "ef739730-2950-4e27-b077-fa147e64aa5e": {
+      "ID": "ef739730-2950-4e27-b077-fa147e64aa5e",
+      "Type": "NodeBlade",
+      "Status": "empty",
+      "Parent": "fc414860-f333-42c0-b10b-8e40d67cbffb",
+      "Children": [
+        "17dae272-0537-4ac3-aa4a-51232bb9a5de",
+        "937a85f7-32c3-4558-abd7-e8ea3cd77d7d"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 7
+        }
+      ],
+      "LocationOrdinal": 7
+    },
+    "f2f465d4-2662-4dfc-a1a8-1edee2991746": {
+      "ID": "f2f465d4-2662-4dfc-a1a8-1edee2991746",
+      "Type": "NodeBlade",
+      "Status": "empty",
+      "Parent": "55e3731c-61ba-4c1d-a77b-4fe945567f74",
+      "Children": [
+        "6d6e96e1-4fc6-47fa-9b0b-fca0c39f74ce",
+        "d0af4a10-caa9-47c5-8f1b-c012e921b48e"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "f66073ac-a726-4179-98c9-76cf97b4326c": {
+      "ID": "f66073ac-a726-4179-98c9-76cf97b4326c",
+      "Type": "NodeCard",
+      "Status": "empty",
+      "Parent": "c1c9a5ee-dd92-4f73-aee6-bb8ec721b0b6",
+      "Children": [
+        "16380cc1-bddb-4eb5-8c2a-47561889bcf5",
+        "77d1f2d2-df6e-466b-87c0-92a1e0567248"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 4
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "f96c2529-0507-43da-87c1-d83620f6b6f9": {
+      "ID": "f96c2529-0507-43da-87c1-d83620f6b6f9",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001059"
+            ],
+            "Nid": 1059,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "5fd198c9-e72b-4e03-9e4f-03611e49f5e3",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 6
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "fc414860-f333-42c0-b10b-8e40d67cbffb": {
+      "ID": "fc414860-f333-42c0-b10b-8e40d67cbffb",
+      "Type": "Chassis",
+      "DeviceTypeSlug": "hpe-crayex-chassis",
+      "Vendor": "HPE",
+      "Model": "CrayEX liquid-cooled cabinet chassis",
+      "Status": "provisioned",
+      "Parent": "1421e339-2d68-4dde-bd58-b80bd3cf95e1",
+      "Children": [
+        "1d7fe99c-2d58-4045-b6de-b8c4d0d77135",
+        "3dffda4d-e1e2-4f96-9e8c-eda7eb57e7e7",
+        "6f3a96d9-8e7d-4adc-a1c9-c98e04a16222",
+        "8a7858f9-8718-4c5a-8b22-4ba763eb1f4d",
+        "c1c9a5ee-dd92-4f73-aee6-bb8ec721b0b6",
+        "dd8991b8-29ea-4582-9eae-75511a3f56ea",
+        "e3a5683a-6f1d-4574-bc6a-36f46fb96633",
+        "e9f75505-5c83-473a-a6a4-fa2ea5320caf",
+        "ef739730-2950-4e27-b077-fa147e64aa5e"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        }
+      ],
+      "LocationOrdinal": 3
+    },
+    "ff2e56dd-160f-43f7-a6fe-e99897b7c656": {
+      "ID": "ff2e56dd-160f-43f7-a6fe-e99897b7c656",
+      "Type": "Node",
+      "Status": "empty",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "AdditionalProperties": null,
+            "Alias": [
+              "nid001045"
+            ],
+            "Nid": 1045,
+            "Role": "Compute",
+            "SubRole": null
+          }
+        }
+      },
+      "Parent": "02476c6e-e36e-4835-bec4-b05f0dbcebf9",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 9000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 3
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    }
+  }
+}

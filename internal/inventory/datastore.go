@@ -28,6 +28,7 @@ package inventory
 import (
 	"errors"
 
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
 )
 
@@ -37,6 +38,17 @@ var ErrHardwareUUIDConflict = errors.New("hardware uuid already exists")
 var ErrHardwareMissingLocationOrdinal = errors.New("hardware missing location ordinal")
 var ErrEmptyLocationPath = errors.New("empty location path provided")
 var ErrDatastoreValidationFailure = errors.New("datastore validation failure")
+
+// SearchFilter works as follows
+// - Each field is a different category to filter on
+// - When is there a match?
+//   - A hardware object must match one element in a category
+//   - If a category is empty then all hardware objects will match
+//   - A must match across all categories
+type SearchFilter struct {
+	Types  []hardwaretypes.HardwareType
+	Status []HardwareStatus
+}
 
 type Datastore interface {
 	GetSchemaVersion() (SchemaVersion, error)
@@ -61,6 +73,7 @@ type Datastore interface {
 	GetSystem(hardware Hardware) (Hardware, error) // Not yet implemented until multiple systems are supported
 
 	// TODO for search properties
+	Search(filter SearchFilter) (map[uuid.UUID]Hardware, error)
 
 	// Clone creates a in-memory version of the datastore to perform location operations
 	Clone() (Datastore, error)
