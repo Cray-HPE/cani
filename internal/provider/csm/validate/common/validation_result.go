@@ -29,6 +29,7 @@ package common
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 type ValidationResult struct {
@@ -50,8 +51,9 @@ func NewValidationResult(result Result, id ValidationCheck, componentId string, 
 type ValidationCheck string
 
 const (
-	IPRangeConflictCheck ValidationCheck = "ip-range-conflict"
-	SLSSchemaCheck       ValidationCheck = "sls-schema-validation"
+	IPRangeConflictCheck        ValidationCheck = "ip-range-conflict"
+	IPRangeConflictWithK8sCheck ValidationCheck = "ip-range-conflict-with-k8s"
+	SLSSchemaCheck              ValidationCheck = "sls-schema-validation"
 )
 
 type Result string
@@ -78,6 +80,14 @@ func (v *ValidationResults) GetResults() []ValidationResult {
 
 func (v *ValidationResults) ToError() error {
 	return AllError(v.results)
+}
+
+func (v *ValidationResults) ToString() string {
+	r := make([]string, 0, len(v.results))
+	for _, result := range v.results {
+		r = append(r, fmt.Sprintf("%s: %s: %s", result.Result, result.ComponentID, result.Description))
+	}
+	return strings.Join(r, "\n")
 }
 
 func (v *ValidationResults) Add(results ...ValidationResult) {

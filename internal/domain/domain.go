@@ -98,6 +98,8 @@ func New(opts *NewOpts) (*Domain, error) {
 		}
 		domain.configOptions.ValidRoles = opts.CsmOptions.ValidRoles
 		domain.configOptions.ValidSubRoles = opts.CsmOptions.ValidSubRoles
+		domain.configOptions.K8sPodsCidr = opts.CsmOptions.K8sPodsCidr
+		domain.configOptions.K8sServicesCidr = opts.CsmOptions.K8sServicesCidr
 	default:
 		return nil, fmt.Errorf("unknown external inventory provider provided (%s)", inventoryProvider)
 	}

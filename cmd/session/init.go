@@ -30,18 +30,20 @@ import (
 )
 
 var (
-	dryrun        bool
-	commit        bool
-	kubeconfig    string
-	caCertPath    string
-	insecure      bool
-	secretName    string
-	clientId      string
-	clientSecret  string
-	providerHost  string
-	tokenUsername string
-	tokenPassword string
-	useSimulation bool
+	dryrun          bool
+	commit          bool
+	k8sPodsCidr     string
+	k8sServicesCidr string
+	kubeconfig      string
+	caCertPath      string
+	insecure        bool
+	secretName      string
+	clientId        string
+	clientSecret    string
+	providerHost    string
+	tokenUsername   string
+	tokenPassword   string
+	useSimulation   bool
 )
 
 func init() {
@@ -68,6 +70,8 @@ func init() {
 	SessionInitCmd.MarkFlagsRequiredTogether("csm-api-host", "csm-keycloak-username", "csm-keycloak-password")
 	// TODO the API token, do we save ito the file?
 
+	SessionInitCmd.Flags().StringVar(&k8sPodsCidr, "csm-k8s-pods-cidr", "10.32.0.0/12", "(CSM Provider) CIDR used by kubernetes for pods")
+	SessionInitCmd.Flags().StringVar(&k8sServicesCidr, "csm-k8s-services-cidr", "10.16.0.0/12", "(CSM Provider) CIDR used by kubernetes for services")
 	// Less secure auth methods for CSM that follow existing patterns, but to discourage use, mark them hidden
 	SessionInitCmd.Flags().StringVar(&kubeconfig, "csm-kube-config", "", "(CSM Provider) Path to the kube config file") // /etc/kubernetes/admin.conf
 	SessionInitCmd.Flags().MarkHidden("kube-config")
