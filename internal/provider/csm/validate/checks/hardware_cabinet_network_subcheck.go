@@ -115,7 +115,7 @@ func (c *HardwareCabinetNetworkSubCheck) Validate(
 			}
 		}
 		if foundCn {
-			validateCabinetNetwork(results, hardware, c.HmnRvr, hmnRvrId, c.NmnRvr, nmnRvrId, cn)
+			validateCabinetNetwork(results, hardware, Cn, c.HmnRvr, hmnRvrId, c.NmnRvr, nmnRvrId, cn)
 		} else {
 			results.Fail(
 				CabinetNetworkCheck,
@@ -124,7 +124,7 @@ func (c *HardwareCabinetNetworkSubCheck) Validate(
 		}
 		ncn, foundNcn := common.GetMap(networks, Ncn)
 		if foundNcn {
-			validateCabinetNetwork(results, hardware, c.HmnRvr, hmnRvrId, c.NmnRvr, nmnRvrId, ncn)
+			validateCabinetNetwork(results, hardware, Ncn, c.HmnRvr, hmnRvrId, c.NmnRvr, nmnRvrId, ncn)
 		}
 	} else {
 		for n := range networks {
@@ -136,7 +136,7 @@ func (c *HardwareCabinetNetworkSubCheck) Validate(
 			}
 		}
 		if foundCn {
-			validateCabinetNetwork(results, hardware, c.HmnMtn, hmnMtnId, c.NmnMtn, nmnMtnId, cn)
+			validateCabinetNetwork(results, hardware, Cn, c.HmnMtn, hmnMtnId, c.NmnMtn, nmnMtnId, cn)
 		} else {
 			results.Fail(
 				CabinetNetworkCheck,
@@ -162,6 +162,7 @@ func isRiver(hardware *sls_client.Hardware) bool {
 func validateCabinetNetwork(
 	results *common.ValidationResults,
 	hardware *sls_client.Hardware,
+	cabinetNetworkName string, // cn or ncn
 	hmnSubnets map[string]sls_client.NetworkIpv4Subnet,
 	hmnId string,
 	nmnSubnets map[string]sls_client.NetworkIpv4Subnet,
@@ -173,7 +174,7 @@ func validateCabinetNetwork(
 	// HMN
 	hmn, found := common.GetMap(hardwareNetwork, "HMN")
 	if found {
-		validateHardwareSubnetAgainstNetwork(results, hmn, hmnSubnets, componentId, "HMN", hmnId)
+		validateHardwareSubnetAgainstNetwork(results, hmn, hmnSubnets, componentId, cabinetNetworkName, "HMN", hmnId)
 	} else {
 		results.Fail(
 			CabinetNetworkCheck,
@@ -184,7 +185,7 @@ func validateCabinetNetwork(
 	// NMN
 	nmn, found := common.GetMap(hardwareNetwork, "NMN")
 	if found {
-		validateHardwareSubnetAgainstNetwork(results, nmn, nmnSubnets, componentId, "NMN", nmnId)
+		validateHardwareSubnetAgainstNetwork(results, nmn, nmnSubnets, componentId, cabinetNetworkName, "NMN", nmnId)
 	} else {
 		results.Fail(
 			CabinetNetworkCheck,
@@ -219,13 +220,15 @@ func validateHardwareSubnetAgainstNetwork(
 	results *common.ValidationResults,
 	hardwareNetwork map[string]interface{},
 	subnets map[string]sls_client.NetworkIpv4Subnet,
-	hardwareId, networkName, networkId string) {
+	hardwareId, cabinetNetworkName, networkName, networkId string) {
 
+	passed := true
 	cidr, _ := common.GetString(hardwareNetwork, "CIDR")
 	subnet, found := subnets[cidr]
 	if found {
 		gateway, _ := common.GetString(hardwareNetwork, "Gateway")
 		if gateway != subnet.Gateway {
+			passed = false
 			results.Fail(
 				CabinetNetworkCheck,
 				hardwareId,
@@ -235,6 +238,7 @@ func validateHardwareSubnetAgainstNetwork(
 		vlanStr, _ := common.GetString(hardwareNetwork, "VLan")
 		vlan, _ := common.ToInt(vlanStr)
 		if vlan != int64(subnet.VlanID) {
+			passed = false
 			results.Fail(
 				CabinetNetworkCheck,
 				hardwareId,
@@ -243,6 +247,7 @@ func validateHardwareSubnetAgainstNetwork(
 		}
 	} else {
 		if cidr != subnet.CIDR {
+			passed = false
 			results.Fail(
 				CabinetNetworkCheck,
 				hardwareId,
@@ -250,4 +255,11 @@ func validateHardwareSubnetAgainstNetwork(
 		}
 	}
 
+	if passed {
+		results.Pass(
+			CabinetNetworkCheck,
+			hardwareId,
+			fmt.Sprintf("The cabinet network %s with the CIDR %s matched the network %s", cabinetNetworkName, cidr, networkId))
+
+	}
 }
