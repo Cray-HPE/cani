@@ -219,6 +219,7 @@ func validateCabinetNetwork(
 //	  "VLan": 3000
 //	}
 //
+// cabinetNetworkName is one of cn or ncn
 // networkName is one of HMN or NMN
 // networkId is one of /Networks/HMN_MTN, /Networks/NMN_MTN, /Networks/HMN_RVR, or /Networks/NMN_RVR
 func validateHardwareSubnetAgainstNetwork(
