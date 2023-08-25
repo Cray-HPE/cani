@@ -125,6 +125,10 @@ func validateSchema(schema *jsonschema.Schema, rawJson map[string]interface{}, i
 	return append(results, r)
 }
 
+func validateSchemaHardware(schema *jsonschema.Schema, hardware map[string]interface{}) []common.ValidationResult {
+	return validateSchema(schema, hardware, "Hardware", "SLS Hardware is valid json")
+}
+
 func validateSchemaNetworks(schema *jsonschema.Schema, networks map[string]interface{}) []common.ValidationResult {
 	return validateSchema(schema, networks, "Networks", "SLS Networks is valid json")
 }
@@ -133,6 +137,28 @@ func validateSchemaNetworks(schema *jsonschema.Schema, networks map[string]inter
 func validateAgainstSchemas(slsDump RawJson) []common.ValidationResult {
 	results := make([]common.ValidationResult, 0)
 
+	// Hardware
+	hardware, found := common.GetMap(slsDump, "Hardware")
+	if !found {
+		results = append(results,
+			common.ValidationResult{
+				CheckID:     common.SLSSchemaCheck,
+				Result:      common.Fail,
+				ComponentID: "SLS Hardware",
+				Description: "Failed to find Hardware data in SLS dump."})
+		return results
+	}
+
+	hardwareSchema, err := loadSchema("sls_hardware_schema.json")
+	if err != nil {
+		log.Error().Msg(err.Error())
+		return results
+	}
+
+	hardwareResults := validateSchemaHardware(hardwareSchema, hardware)
+	results = append(results, hardwareResults...)
+
+	// Networks
 	networks, found := common.GetMap(slsDump, "Networks")
 	if !found {
 		results = append(results,
@@ -150,7 +176,7 @@ func validateAgainstSchemas(slsDump RawJson) []common.ValidationResult {
 		return results
 	}
 
-	r := validateSchemaNetworks(networksSchema, networks)
-	results = append(results, r...)
+	networkResults := validateSchemaNetworks(networksSchema, networks)
+	results = append(results, networkResults...)
 	return results
 }
