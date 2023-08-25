@@ -120,11 +120,16 @@ func (c *HardwareCabinetNetworkSubCheck) Validate(
 			results.Fail(
 				CabinetNetworkCheck,
 				componentId,
-				fmt.Sprintf("%s %s missing required network %s", hardware.Xname, hardware.TypeString, Cn))
+				fmt.Sprintf("%s %s missing the %s network", hardware.Xname, hardware.TypeString, Cn))
 		}
 		ncn, foundNcn := common.GetMap(networks, Ncn)
 		if foundNcn {
 			validateCabinetNetwork(results, hardware, Ncn, c.HmnRvr, hmnRvrId, c.NmnRvr, nmnRvrId, ncn)
+		} else {
+			results.Fail(
+				CabinetNetworkCheck,
+				componentId,
+				fmt.Sprintf("%s %s missing the %s network", hardware.Xname, hardware.TypeString, Ncn))
 		}
 	} else {
 		for n := range networks {
@@ -179,7 +184,7 @@ func validateCabinetNetwork(
 		results.Fail(
 			CabinetNetworkCheck,
 			componentId,
-			fmt.Sprintf("%s %s is missing the HMN network", hardware.Xname, hardware.TypeString))
+			fmt.Sprintf("%s %s missing the HMN network", hardware.Xname, hardware.TypeString))
 	}
 
 	// NMN
@@ -190,7 +195,7 @@ func validateCabinetNetwork(
 		results.Fail(
 			CabinetNetworkCheck,
 			componentId,
-			fmt.Sprintf("%s %s is missing the NMN network", hardware.Xname, hardware.TypeString))
+			fmt.Sprintf("%s %s missing the NMN network", hardware.Xname, hardware.TypeString))
 	}
 
 	// check for networks other than NMN and HMN
@@ -232,8 +237,8 @@ func validateHardwareSubnetAgainstNetwork(
 			results.Fail(
 				CabinetNetworkCheck,
 				hardwareId,
-				fmt.Sprintf("The cabinet %s Gateway %s for CIDR %s did not match the gateway in %s with the same CIDR",
-					networkName, gateway, cidr, networkId))
+				fmt.Sprintf("The cabinet %s Gateway %s for CIDR %s did not match the gateway %s in %s",
+					networkName, gateway, cidr, subnet.Gateway, networkId))
 		}
 		vlanStr, _ := common.GetString(hardwareNetwork, "VLan")
 		vlan, _ := common.ToInt(vlanStr)
@@ -242,8 +247,8 @@ func validateHardwareSubnetAgainstNetwork(
 			results.Fail(
 				CabinetNetworkCheck,
 				hardwareId,
-				fmt.Sprintf("The cabinet %s vlan %s for CIDR %s did not match the vlan in %s with the same CIDR",
-					networkName, vlanStr, cidr, networkId))
+				fmt.Sprintf("The cabinet %s vlan %s for CIDR %s did not match the vlan %d in %s",
+					networkName, vlanStr, cidr, subnet.VlanID, networkId))
 		}
 	} else {
 		if cidr != subnet.CIDR {

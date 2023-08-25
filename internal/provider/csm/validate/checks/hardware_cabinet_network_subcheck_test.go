@@ -49,22 +49,73 @@ func TestValidate(t *testing.T) {
 		results := common.NewValidationResults()
 		props := getProps(&h)
 		checker.Validate(results, &h, props)
-		passCount, warnCount, failCount := resultsCount(results.GetResults())
-		if failCount != 0 {
-			t.Errorf("Expected %d failures using file, %s, while validating %s %s, pass: %d, warn: %d, fail: %d, results:\n%s",
-				0, file, h.Xname, h.Class, passCount, warnCount, failCount, results.ToString())
-		}
 		if isRiver(&h) {
-			if passCount != 4 {
-				t.Errorf("Expected %d passing results using file, %s, while validating %s %s, pass: %d, warn: %d, fail: %d, results:\n%s",
-					4, file, h.Xname, h.Class, passCount, warnCount, failCount, results.ToString())
-			}
+			reportResults(t, &h, file, results, 4, 0)
 		} else {
-			if passCount != 2 {
-				t.Errorf("Expected %d passing results using file, %s, while validating %s %s, pass: %d, warn: %d, fail: %d, results:\n%s",
-					2, file, h.Xname, h.Class, passCount, warnCount, failCount, results.ToString())
-			}
+			reportResults(t, &h, file, results, 2, 0)
 		}
+	}
+}
+
+func TestValidateWithInvalidData(t *testing.T) {
+	file := "invalid-cabinet-networks.json"
+	data := loadTestData(t, file)
+	slsState, _ := unmarshalToSlsState(t, file, data)
+
+	checker := NewHardwareCabinetNetworkSubCheck(slsState.Networks)
+
+	// Test bad CIDR
+	h := slsState.Hardware["x1000"]
+	if isRiver(&h) {
+		t.Errorf("Failure of test assumption. Expected %s %s to be a Mountain or Hill cabinet", h.Xname, h.Class)
+	}
+	results := common.NewValidationResults()
+	props := getProps(&h)
+	checker.Validate(results, &h, props)
+	reportResults(t, &h, file, results, 1, 1)
+	// expected results ^^^
+	// fail: /Hardware/x1000: The cabinet HMN CIDR 10.104.0.1/22 was not found in /Networks/HMN_MTN
+	// pass: /Hardware/x1000: The cabinet network cn with the CIDR 10.100.0.0/22 matched the network /Networks/NMN_MTN
+
+	// Test bad gateway and vlan
+	h = slsState.Hardware["x3000"]
+	if !isRiver(&h) {
+		t.Errorf("Failure of test assumption. Expected %s %s to be a River cabinet", h.Xname, h.Class)
+	}
+	results = common.NewValidationResults()
+	props = getProps(&h)
+	checker.Validate(results, &h, props)
+	reportResults(t, &h, file, results, 2, 2)
+	// expected results ^^^
+	// pass: /Hardware/x3000: The cabinet network cn with the CIDR 10.107.0.0/22 matched the network /Networks/HMN_RVR
+	// pass: /Hardware/x3000: The cabinet network cn with the CIDR 10.106.0.0/22 matched the network /Networks/NMN_RVR
+	// fail: /Hardware/x3000: The cabinet HMN Gateway 10.107.0.2 for CIDR 10.107.0.0/22 did not match the gateway 10.107.0.1 in /Networks/HMN_RVR
+	// fail: /Hardware/x3000: The cabinet NMN vlan 177 for CIDR 10.106.0.0/22 did not match the vlan 1770 in /Networks/NMN_RVR
+
+	// Test missing networks
+	h = slsState.Hardware["x3001"]
+	if !isRiver(&h) {
+		t.Errorf("Failure of test assumption. Expected %s %s to be a River cabinet", h.Xname, h.Class)
+	}
+	results = common.NewValidationResults()
+	props = getProps(&h)
+	checker.Validate(results, &h, props)
+	reportResults(t, &h, file, results, 1, 2)
+	// expected results ^^^
+	// pass: /Hardware/x3001: The cabinet network cn with the CIDR 10.107.4.0/22 matched the network /Networks/HMN_RVR
+	// fail: /Hardware/x3001: x3001 Cabinet missing the NMN network
+	// fail: /Hardware/x3001: x3001 Cabinet missing the ncn network
+}
+
+func reportResults(t *testing.T, h *sls_client.Hardware, testFile string, results *common.ValidationResults, expectedPass int, expectedFail int) {
+	passCount, warnCount, failCount := resultsCount(results.GetResults())
+	if failCount != expectedFail {
+		t.Errorf("Expected %d failures using file, %s, while validating %s %s, pass: %d, warn: %d, fail: %d, results:\n%s",
+			expectedFail, testFile, h.Xname, h.Class, passCount, warnCount, failCount, results.ToString())
+	}
+	if passCount != expectedPass {
+		t.Errorf("Expected %d passing results using file, %s, while validating %s %s, pass: %d, warn: %d, fail: %d, results:\n%s",
+			expectedPass, testFile, h.Xname, h.Class, passCount, warnCount, failCount, results.ToString())
 	}
 }
 
