@@ -54,13 +54,13 @@ End
 It '--config canitest.yml -L'
   When call bin/cani alpha add cabinet --config canitest.yml -L
   The status should equal 0
-  The line 1 of stderr should equal "- hpe-eia-cabinet"
-  The line 2 of stderr should equal "- hpe-ex2000"
-  The line 3 of stderr should equal "- hpe-ex2500-1-liquid-cooled-chassis"
-  The line 4 of stderr should equal "- hpe-ex2500-2-liquid-cooled-chassis"
-  The line 5 of stderr should equal "- hpe-ex2500-3-liquid-cooled-chassis"
-  The line 6 of stderr should equal "- hpe-ex3000"
-  The line 7 of stderr should equal "- hpe-ex4000"
+  The line 1 of stdout should equal "hpe-eia-cabinet"
+  The line 2 of stdout should equal "hpe-ex2000"
+  The line 3 of stdout should equal "hpe-ex2500-1-liquid-cooled-chassis"
+  The line 4 of stdout should equal "hpe-ex2500-2-liquid-cooled-chassis"
+  The line 5 of stdout should equal "hpe-ex2500-3-liquid-cooled-chassis"
+  The line 6 of stdout should equal "hpe-ex3000"
+  The line 7 of stdout should equal "hpe-ex4000"
 End
 
 # Adding a cabinet should fail if no session is active
@@ -450,7 +450,7 @@ It 'validates a custom hardware type appears in the list of supported hardware'
   BeforeCall use_valid_datastore_system_only
   When call bin/cani --config canitest.yml alpha add cabinet -L
   The status should equal 0
-  The line 8 of stderr should equal '- my-custom-cabinet'
+  The line 8 of stdout should equal 'my-custom-cabinet'
 End
 
 It '--config canitest.yml my-custom-cabinet --auto --accept'

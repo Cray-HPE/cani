@@ -48,11 +48,12 @@ func validHardware(cmd *cobra.Command, args []string) error {
 	hsnSwitchTypes := library.GetDeviceTypesByHardwareType(hardwaretypes.HighSpeedSwitch)
 
 	if cmd.Flags().Changed("list-supported-types") {
+		cmd.SetOut(os.Stdout)
 		for _, hw := range mgmtSwitchTypes {
-			cmd.Printf("- %s\n", hw.Slug)
+			cmd.Printf("%s\n", hw.Slug)
 		}
 		for _, hw := range hsnSwitchTypes {
-			cmd.Printf("- %s\n", hw.Slug)
+			cmd.Printf("%s\n", hw.Slug)
 		}
 		os.Exit(0)
 	}
