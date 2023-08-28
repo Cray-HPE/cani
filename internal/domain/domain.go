@@ -47,10 +47,11 @@ type Domain struct {
 
 // NewOpts are the options for creating a new Domain
 type NewOpts struct {
-	DatastorePath string      `yaml:"datastore_path"`
-	LogFilePath   string      `yaml:"log_file_path"`
-	Provider      string      `yaml:"provider"`
-	CsmOptions    csm.NewOpts `yaml:"csm_options"`
+	DatastorePath          string      `yaml:"datastore_path"`
+	LogFilePath            string      `yaml:"log_file_path"`
+	Provider               string      `yaml:"provider"`
+	CsmOptions             csm.NewOpts `yaml:"csm_options"`
+	CustomHardwareTypesDir string      `yaml:"custom_hardware_types_dir"`
 }
 
 // New returns a new Domain using the provided options
@@ -60,7 +61,7 @@ func New(opts *NewOpts) (*Domain, error) {
 
 	// Load the hardware type library
 	// TODO make this be able to be loaded from a directory
-	domain.hardwareTypeLibrary, err = hardwaretypes.NewEmbeddedLibrary()
+	domain.hardwareTypeLibrary, err = hardwaretypes.NewEmbeddedLibrary(opts.CustomHardwareTypesDir)
 	if err != nil {
 		return nil, errors.Join(
 			fmt.Errorf("failed to load embedded hardware type library"),

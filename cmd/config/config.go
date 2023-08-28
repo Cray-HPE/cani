@@ -26,9 +26,7 @@
 package config
 
 import (
-	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -50,11 +48,11 @@ func InitConfig(cfg string) (err error) {
 	if _, err := os.Stat(configDir); os.IsNotExist(err) {
 		err = os.Mkdir(configDir, 0755)
 		if err != nil {
-			return errors.New(fmt.Sprintf("Error creating config directory: %s", err))
+			return fmt.Errorf("error creating config directory: %s", err)
 		}
 	}
 	tl := filepath.Join(configDir, taxonomy.LogFile)
-
+	customDir := fmt.Sprintf("%s/%s", configDir, "hardware-types")
 	// Write a default config file if it doesn't exist
 	if _, err := os.Stat(cfg); os.IsNotExist(err) {
 		log.Debug().Msg(fmt.Sprintf("%s does not exist, creating default config file", cfg))
@@ -63,9 +61,10 @@ func InitConfig(cfg string) (err error) {
 		conf := &Config{
 			Session: &Session{
 				DomainOptions: &domain.NewOpts{
-					Provider:      "csm",
-					DatastorePath: filepath.Join(configDir, taxonomy.DsFile),
-					LogFilePath:   tl,
+					Provider:               "csm",
+					DatastorePath:          filepath.Join(configDir, taxonomy.DsFile),
+					LogFilePath:            tl,
+					CustomHardwareTypesDir: customDir,
 				},
 			},
 		}
@@ -73,6 +72,12 @@ func InitConfig(cfg string) (err error) {
 		// Create the config file
 		WriteConfig(cfg, conf)
 	}
+
+	err = os.MkdirAll(customDir, 0755)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -90,7 +95,7 @@ func LoadConfig(path string) (c *Config, err error) {
 	defer file.Close()
 
 	// read the file into a byte slice
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +118,7 @@ func WriteConfig(path string, cfg *Config) error {
 	}
 
 	// write the byte slice to a file
-	err = ioutil.WriteFile(path, data, 0644)
+	err = os.WriteFile(path, data, 0644)
 	if err != nil {
 		return err
 	}

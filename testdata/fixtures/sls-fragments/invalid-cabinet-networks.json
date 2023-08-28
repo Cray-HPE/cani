@@ -1,0 +1,356 @@
+{
+  "Hardware": {
+    "x1000": {
+      "Parent": "s0",
+      "Children": [],
+      "Xname": "x1000",
+      "Type": "comptype_cabinet",
+      "Class": "Mountain",
+      "TypeString": "Cabinet",
+      "LastUpdated": 1660929398,
+      "LastUpdatedTime": "2022-08-19 17:16:38.563138 +0000 +0000",
+      "ExtraProperties": {
+        "Networks": {
+          "cn": {
+            "HMN": {
+              "CIDR": "10.104.0.1/22",
+              "Gateway": "10.104.0.1",
+              "VLan": 3000
+            },
+            "NMN": {
+              "CIDR": "10.100.0.0/22",
+              "Gateway": "10.100.0.1",
+              "VLan": 2000
+            }
+          }
+        }
+      }
+    },
+    "x1001": {
+      "Parent": "s0",
+      "Children": [],
+      "Xname": "x1001",
+      "Type": "comptype_cabinet",
+      "Class": "Mountain",
+      "TypeString": "Cabinet",
+      "LastUpdated": 1660929398,
+      "LastUpdatedTime": "2022-08-19 17:16:38.563138 +0000 +0000",
+      "ExtraProperties": {
+        "Networks": {
+          "cn": {
+            "HMN": {
+              "CIDR": "10.104.4.0/22",
+              "Gateway": "10.104.4.1",
+              "VLan": 3001
+            },
+            "NMN": {
+              "CIDR": "10.100.4.0/22",
+              "Gateway": "10.100.4.1",
+              "VLan": 2001
+            }
+          }
+        }
+      }
+    },
+    "x1002": {
+      "Parent": "s0",
+      "Children": [],
+      "Xname": "x1002",
+      "Type": "comptype_cabinet",
+      "Class": "Mountain",
+      "TypeString": "Cabinet",
+      "LastUpdated": 1660929398,
+      "LastUpdatedTime": "2022-08-19 17:16:38.563138 +0000 +0000",
+      "ExtraProperties": {
+        "Networks": {
+          "cn": {
+            "HMN": {
+              "CIDR": "10.104.8.0/22",
+              "Gateway": "10.104.8.1",
+              "VLan": 3002
+            },
+            "NMN": {
+              "CIDR": "10.100.8.0/22",
+              "Gateway": "10.100.8.1",
+              "VLan": 2002
+            }
+          }
+        }
+      }
+    },
+    "x1003": {
+      "Parent": "s0",
+      "Children": [],
+      "Xname": "x1003",
+      "Type": "comptype_cabinet",
+      "Class": "Mountain",
+      "TypeString": "Cabinet",
+      "LastUpdated": 1660929398,
+      "LastUpdatedTime": "2022-08-19 17:16:38.563138 +0000 +0000",
+      "ExtraProperties": {
+        "Networks": {
+          "cn": {
+            "HMN": {
+              "CIDR": "10.104.12.0/22",
+              "Gateway": "10.104.12.1",
+              "VLan": 3003
+            },
+            "NMN": {
+              "CIDR": "10.100.12.0/22",
+              "Gateway": "10.100.12.1",
+              "VLan": 2003
+            }
+          }
+        }
+      }
+    },
+    "x3000": {
+      "Parent": "s0",
+      "Children": [],
+      "Xname": "x3000",
+      "Type": "comptype_cabinet",
+      "Class": "River",
+      "TypeString": "Cabinet",
+      "LastUpdated": 1660929398,
+      "LastUpdatedTime": "2022-08-19 17:16:38.563138 +0000 +0000",
+      "ExtraProperties": {
+        "Networks": {
+          "cn": {
+            "HMN": {
+              "CIDR": "10.107.0.0/22",
+              "Gateway": "10.107.0.1",
+              "VLan": 1513
+            },
+            "NMN": {
+              "CIDR": "10.106.0.0/22",
+              "Gateway": "10.106.0.1",
+              "VLan": 1770
+            }
+          },
+          "ncn": {
+            "HMN": {
+              "CIDR": "10.107.0.0/22",
+              "Gateway": "10.107.0.2",
+              "VLan": 1513
+            },
+            "NMN": {
+              "CIDR": "10.106.0.0/22",
+              "Gateway": "10.106.0.1",
+              "VLan": 177
+            }
+          }
+        }
+      }
+    },
+    "x3001": {
+      "Parent": "s0",
+      "Xname": "x3001",
+      "Type": "comptype_cabinet",
+      "Class": "River",
+      "TypeString": "Cabinet",
+      "LastUpdated": 1660929398,
+      "LastUpdatedTime": "2022-08-19 17:16:38.563138 +0000 +0000",
+      "ExtraProperties": {
+        "Networks": {
+          "cn": {
+            "HMN": {
+              "CIDR": "10.107.4.0/22",
+              "Gateway": "10.107.4.1",
+              "VLan": 1514
+            }
+          }
+        }
+      }
+    }
+  },
+  "Networks": {
+    "HMN_MTN": {
+      "Name": "HMN_MTN",
+      "FullName": "Mountain Compute Hardware Management Network",
+      "IPRanges": [
+        "10.104.0.0/17"
+      ],
+      "Type": "ethernet",
+      "LastUpdated": 1660929398,
+      "LastUpdatedTime": "2022-08-19 17:16:38.649229 +0000 +0000",
+      "ExtraProperties": {
+        "CIDR": "10.104.0.0/17",
+        "MTU": 9000,
+        "Subnets": [
+          {
+            "CIDR": "10.104.0.0/22",
+            "DHCPEnd": "10.104.3.254",
+            "DHCPStart": "10.104.0.10",
+            "FullName": "",
+            "Gateway": "10.104.0.1",
+            "Name": "cabinet_1000",
+            "VlanID": 3000
+          },
+          {
+            "CIDR": "10.104.4.0/22",
+            "DHCPEnd": "10.104.7.254",
+            "DHCPStart": "10.104.4.10",
+            "FullName": "",
+            "Gateway": "10.104.4.1",
+            "Name": "cabinet_1001",
+            "VlanID": 3001
+          },
+          {
+            "CIDR": "10.104.8.0/22",
+            "DHCPEnd": "10.104.11.254",
+            "DHCPStart": "10.104.8.10",
+            "FullName": "",
+            "Gateway": "10.104.8.1",
+            "Name": "cabinet_1002",
+            "VlanID": 3002
+          },
+          {
+            "CIDR": "10.104.12.0/22",
+            "DHCPEnd": "10.104.15.254",
+            "DHCPStart": "10.104.12.10",
+            "FullName": "",
+            "Gateway": "10.104.12.1",
+            "Name": "cabinet_1003",
+            "VlanID": 3003
+          }
+        ],
+        "VlanRange": [
+          4094,
+          0
+        ]
+      }
+    },
+    "HMN_RVR": {
+      "Name": "HMN_RVR",
+      "FullName": "River Compute Hardware Management Network",
+      "IPRanges": [
+        "10.107.0.0/17"
+      ],
+      "Type": "ethernet",
+      "LastUpdated": 1660929398,
+      "LastUpdatedTime": "2022-08-19 17:16:38.649229 +0000 +0000",
+      "ExtraProperties": {
+        "CIDR": "10.107.0.0/17",
+        "MTU": 9000,
+        "Subnets": [
+          {
+            "CIDR": "10.107.0.0/22",
+            "DHCPEnd": "10.107.3.254",
+            "DHCPStart": "10.107.0.10",
+            "FullName": "",
+            "Gateway": "10.107.0.1",
+            "Name": "cabinet_3000",
+            "VlanID": 1513
+          },
+          {
+            "CIDR": "10.107.4.0/22",
+            "DHCPEnd": "10.107.7.254",
+            "DHCPStart": "10.107.4.10",
+            "FullName": "",
+            "Gateway": "10.107.4.1",
+            "Name": "cabinet_3001",
+            "VlanID": 1514
+          }
+        ],
+        "VlanRange": [
+          1513,
+          1514
+        ]
+      }
+    },
+    "NMN_MTN": {
+      "Name": "NMN_MTN",
+      "FullName": "Mountain Compute Node Management Network",
+      "IPRanges": [
+        "10.100.0.0/17"
+      ],
+      "Type": "ethernet",
+      "LastUpdated": 1660929398,
+      "LastUpdatedTime": "2022-08-19 17:16:38.649229 +0000 +0000",
+      "ExtraProperties": {
+        "CIDR": "10.100.0.0/17",
+        "MTU": 9000,
+        "Subnets": [
+          {
+            "CIDR": "10.100.0.0/22",
+            "DHCPEnd": "10.100.3.254",
+            "DHCPStart": "10.100.0.10",
+            "FullName": "",
+            "Gateway": "10.100.0.1",
+            "Name": "cabinet_1000",
+            "VlanID": 2000
+          },
+          {
+            "CIDR": "10.100.4.0/22",
+            "DHCPEnd": "10.100.7.254",
+            "DHCPStart": "10.100.4.10",
+            "FullName": "",
+            "Gateway": "10.100.4.1",
+            "Name": "cabinet_1001",
+            "VlanID": 2001
+          },
+          {
+            "CIDR": "10.100.8.0/22",
+            "DHCPEnd": "10.100.11.254",
+            "DHCPStart": "10.100.8.10",
+            "FullName": "",
+            "Gateway": "10.100.8.1",
+            "Name": "cabinet_1002",
+            "VlanID": 2002
+          },
+          {
+            "CIDR": "10.100.12.0/22",
+            "DHCPEnd": "10.100.15.254",
+            "DHCPStart": "10.100.12.10",
+            "FullName": "",
+            "Gateway": "10.100.12.1",
+            "Name": "cabinet_1003",
+            "VlanID": 2003
+          }
+        ],
+        "VlanRange": [
+          4094,
+          0
+        ]
+      }
+    },
+    "NMN_RVR": {
+      "Name": "NMN_RVR",
+      "FullName": "River Compute Node Management Network",
+      "IPRanges": [
+        "10.106.0.0/17"
+      ],
+      "Type": "ethernet",
+      "LastUpdated": 1660929398,
+      "LastUpdatedTime": "2022-08-19 17:16:38.649229 +0000 +0000",
+      "ExtraProperties": {
+        "CIDR": "10.106.0.0/17",
+        "MTU": 9000,
+        "Subnets": [
+          {
+            "CIDR": "10.106.0.0/22",
+            "DHCPEnd": "10.106.3.254",
+            "DHCPStart": "10.106.0.10",
+            "FullName": "",
+            "Gateway": "10.106.0.1",
+            "Name": "cabinet_3000",
+            "VlanID": 1770
+          },
+          {
+            "CIDR": "10.106.4.0/22",
+            "DHCPEnd": "10.106.7.254",
+            "DHCPStart": "10.106.4.10",
+            "FullName": "",
+            "Gateway": "10.106.4.1",
+            "Name": "cabinet_3001",
+            "VlanID": 1771
+          }
+        ],
+        "VlanRange": [
+          1770,
+          1771
+        ]
+      }
+    }
+  }
+}
