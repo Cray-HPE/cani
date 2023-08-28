@@ -31,13 +31,14 @@ import (
 	"os"
 	"strings"
 
+	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/spf13/cobra"
 )
 
 // validHardware checks that the hardware type is valid by comparing it against the list of hardware types
 func validHardware(cmd *cobra.Command, args []string) error {
-	library, err := hardwaretypes.NewEmbeddedLibrary()
+	library, err := hardwaretypes.NewEmbeddedLibrary(root.Conf.Session.DomainOptions.CustomHardwareTypesDir)
 	if err != nil {
 		return err
 	}

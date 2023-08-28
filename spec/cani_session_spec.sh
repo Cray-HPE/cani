@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+#
 # MIT License
 #
 # (C) Copyright 2023 Hewlett Packard Enterprise Development LP
@@ -20,9 +21,12 @@
 # OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
-
-
+#
 Describe 'cani session'
+
+Path cani-config="canitest.yml"
+Path cani-custom-types="hardware-types"
+Path cani-custom-hw="hardware-types/my_custom_hw.yml"
 
 # help output should succeed and match the fixture
 # a config file should be created if one does not exist
@@ -44,7 +48,6 @@ It '--config canitest.yml status'
   The line 2 of stderr should include 'Session is INACTIVE'
 End
 
-
 # Status should be ACTIVE if active: true
 It '--config canitest.yml status'
   BeforeCall use_active_session # session is active
@@ -56,7 +59,7 @@ End
 
 
 # Starting a session without passing a provider should fail
-It '--config canitest.yml start'
+It '--config canitest.yml init'
   BeforeCall remove_config
   When call bin/cani alpha session --config canitest.yml init
   The status should equal 1
@@ -64,25 +67,120 @@ It '--config canitest.yml start'
 End
 
 # Starting a session without passing a provider should fail
-It '--config canitest.yml start fake'
+It '--config canitest.yml init fake'
   BeforeCall remove_config
   When call bin/cani alpha session --config canitest.yml init fake
   The status should equal 1
   The line 1 of stderr should equal 'Error: fake is not a valid provider.  Valid providers: [csm]'
 End
 
-# TODO: timeout is slow for tests; renable when simulator is hooked up in pipeline
 # Starting a session should fail with:
 #  - a valid proivder
 #  - no connection to SLS
-# It '--config canitest.yml init csm'
-#   BeforeCall remove_config
-#   BeforeCall remove_datastore
-#   When call bin/cani alpha session --config canitest.yml init csm
-#   The status should equal 1
-#   The line 1 of stderr should include 'canidb.json does not exist, creating default datastore'
-#   The line 2 of stderr should include 'No API Gateway token provided, getting one from provider '
-#   The line 3 of stderr should include '/keycloak/realms/shasta/protocol/openid-connect/token'
-# End
+It '(no connection to provider) --config canitest.yml init csm'
+  BeforeCall remove_config
+  BeforeCall remove_datastore
+  When call bin/cani alpha session --config canitest.yml init csm
+  The status should equal 1
+  The line 1 of stderr should include 'canidb.json does not exist, creating default datastore'
+  The line 2 of stderr should include 'No API Gateway token provided, getting one from provider '
+  The line 3 of stderr should include '/keycloak/realms/shasta/protocol/openid-connect/token'
+End
+
+It 'initialize a session without a config file or datastore'
+  BeforeCall remove_config
+  BeforeCall remove_datastore
+  BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
+  When call bin/cani alpha session --config canitest.yml init csm -S
+  The status should equal 0
+  The line 1 of stderr should include 'Using simulation mode'
+  The stderr should include 'Validated CANI inventory'
+  The stderr should include 'Validated external inventory provider'
+  # Verify the import logic reached out to SLS
+  The stderr should include 'GET https://localhost:8443/apis/sls/v1/dumpstate'
+  The stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/State/Components'
+  The stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/Inventory/Hardware'
+
+  # Verify the import logic pushed changes into SLS
+  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000'
+  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c1'
+  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c1b0'
+  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c3'
+  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c3b0'
+
+  # Verify the session has started
+  The stderr should include 'Session is now ACTIVE with provider csm and datastore'
+
+  # The config should get created
+  The path cani-config should be exist
+  The path cani-config should be file
+End
+
+It 'initialize a session and validate a custom hardware type'
+  BeforeCall use_inactive_session
+  BeforeCall use_valid_datastore_system_only
+  BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
+  When call bin/cani alpha session --config canitest.yml init csm -S
+  The status should equal 0
+  The line 1 of stderr should include 'Using simulation mode'
+  The stderr should include 'Validated CANI inventory'
+  The stderr should include 'Validated external inventory provider'
+  # Verify the import logic reached out to SLS
+  The stderr should include 'GET https://localhost:8443/apis/sls/v1/dumpstate'
+  The stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/State/Components'
+  The stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/Inventory/Hardware'
+
+  # Verify the import logic pushed changes into SLS
+  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000'
+  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c1'
+  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c1b0'
+  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c3'
+  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c3b0'
+
+  # Verify the session has started
+  The stderr should include 'Session is now ACTIVE with provider csm and datastore'
+
+  # The config should get created
+  The path cani-config should be exist
+  The path cani-config should be file
+
+  # A hardware-types dir should be created
+  The path cani-custom-types should be exist
+  The path cani-custom-types should be directory
+End
+
+It 'initialize a session and validate a custom hardware type'
+  BeforeCall use_inactive_session
+  BeforeCall use_custom_hw_type
+  BeforeCall use_valid_datastore_system_only
+  BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
+  When call bin/cani alpha session --config canitest.yml init csm -S
+  The status should equal 0
+  The line 1 of stderr should include 'Using simulation mode'
+  The stderr should include 'Validated CANI inventory'
+  The stderr should include 'Validated external inventory provider'
+  # Verify the import logic reached out to SLS
+  The stderr should include 'GET https://localhost:8443/apis/sls/v1/dumpstate'
+  The stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/State/Components'
+  The stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/Inventory/Hardware'
+
+  # Verify the import logic pushed changes into SLS
+  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000'
+  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c1'
+  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c1b0'
+  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c3'
+  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c3b0'
+
+  # Verify the session has started
+  The stderr should include 'Session is now ACTIVE with provider csm and datastore'
+
+  # The config should get created
+  The path cani-config should be exist
+  The path cani-config should be file
+
+  # A hardware-types dir should be created
+  The path cani-custom-types should be exist
+  The path cani-custom-types should be directory
+End
 
 End

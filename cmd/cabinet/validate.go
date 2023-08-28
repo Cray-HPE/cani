@@ -38,7 +38,7 @@ import (
 
 // validHardware checks that the hardware type is valid by comparing it against the list of hardware types
 func validHardware(cmd *cobra.Command, args []string) error {
-	library, err := hardwaretypes.NewEmbeddedLibrary()
+	library, err := hardwaretypes.NewEmbeddedLibrary(root.Conf.Session.DomainOptions.CustomHardwareTypesDir)
 	if err != nil {
 		return err
 	}

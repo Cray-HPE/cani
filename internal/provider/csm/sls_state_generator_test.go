@@ -117,7 +117,7 @@ func (suite *DetermineHardwareClassSuite) getHardwareInCabinet(cabinetOrdinal in
 
 func (suite *DetermineHardwareClassSuite) SetupTest() {
 	var err error
-	suite.hardwareTypeLibrary, err = hardwaretypes.NewEmbeddedLibrary()
+	suite.hardwareTypeLibrary, err = hardwaretypes.NewEmbeddedLibrary("")
 	suite.NoError(err)
 
 	// Generate a inventory of hardware

@@ -135,7 +135,7 @@ type BuildHardwareMetadataTestSuite struct {
 }
 
 func (suite *BuildHardwareMetadataTestSuite) SetupSuite() {
-	hardwareTypeLibrary, err := hardwaretypes.NewEmbeddedLibrary()
+	hardwareTypeLibrary, err := hardwaretypes.NewEmbeddedLibrary("")
 	suite.NoError(err)
 
 	// Stand up a minimal CSM provider to run BuildHardwareMetadata
