@@ -125,10 +125,15 @@ help:
 clean:
 	go clean -i ./...
 	rm -vf \
+	  $(CURDIR)/canidb.json \
+	  $(CURDIR)/canitestdb.json \
+	  $(CURDIR)/canitestdb.log \
+	  $(CURDIR)/canitest.yml \
 	  $(CURDIR)/build/results/coverage/* \
 	  $(CURDIR)/build/results/unittest/*
 	rm -rf \
 	  bin \
+	  $(CURDIR)/hardware-types \
 	  $(BUILD_DIR)
 
 shellspec:

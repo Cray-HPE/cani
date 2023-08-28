@@ -30,6 +30,7 @@ bin/
 !spec/support/bin
 report/
 coverage/
+hardware-types/
 
 # cani
 .cani/
