@@ -90,8 +90,9 @@ func (v *ValidationResults) ToString() string {
 	return strings.Join(r, "\n")
 }
 
-func (v *ValidationResults) Add(results ...ValidationResult) {
+func (v *ValidationResults) Add(results ...ValidationResult) *ValidationResults {
 	v.results = append(v.results, results...)
+	return v
 }
 
 func (v *ValidationResults) Fail(id ValidationCheck, componentId string, description string) {

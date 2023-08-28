@@ -87,6 +87,25 @@ func resultsCount(results []common.ValidationResult) (passCount int, warnCount i
 	return passCount, warnCount, failCount
 }
 
+func TestHardware(t *testing.T) {
+	schemafile := "sls_hardware_schema.json"
+	datafile := "valid-mug.json"
+	hardwareSchema, rawJson := loadSchemaAndRawJson(t, schemafile, datafile)
+
+	hardware, found := common.GetMap(rawJson, "Hardware")
+	if !found {
+		t.Fatalf("Failed to find Hardware field in json data file. file: %s", datafile)
+	}
+
+	results := validateSchemaHardware(hardwareSchema, hardware)
+	logResults(t, results)
+	pass, warn, fail := resultsCount(results)
+	if fail != 0 || warn != 0 {
+		t.Errorf("Schema failures for datafile: %s, schemafile: %s, pass: %d, warn: %d, fail: %d, result:\n%v",
+			datafile, schemafile, pass, warn, fail, common.NewValidationResults().Add(results...).ToString())
+	}
+}
+
 func TestNetworks(t *testing.T) {
 	schemafile := "sls_networks_schema.json"
 	datafile := "invalid-mug.json"
@@ -99,10 +118,10 @@ func TestNetworks(t *testing.T) {
 
 	results := validateSchemaNetworks(networksSchema, networks)
 	logResults(t, results)
-	for _, r := range results {
-		if r.Result != common.Pass {
-			t.Errorf("Non passing result for datafile: %s, schemafile: %s, result: %v", datafile, schemafile, r)
-		}
+	pass, warn, fail := resultsCount(results)
+	if fail != 0 || warn != 0 {
+		t.Errorf("Schema failures for datafile: %s, schemafile: %s, pass: %d, warn: %d, fail: %d, result:\n%v",
+			datafile, schemafile, pass, warn, fail, common.NewValidationResults().Add(results...).ToString())
 	}
 }
 
@@ -120,6 +139,7 @@ func TestNetworksInvalid(t *testing.T) {
 	logResults(t, results)
 	err := common.AllError(results)
 	if err == nil {
-		t.Errorf("Expected failures but there were none datafile: %s, schemafile: %s, results: \n%v", datafile, schemafile, results)
+		t.Errorf("Expected failures but there were none datafile: %s, schemafile: %s, results: \n%v",
+			datafile, schemafile, common.NewValidationResults().Add(results...).ToString())
 	}
 }
