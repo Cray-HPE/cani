@@ -59,7 +59,7 @@ func (c *HardwareChassisBmcCheck) Validate(results *common.ValidationResults) {
 			if !isXnameValid(results, h, xnametypes.Chassis) {
 				continue
 			}
-			bmcXname := h.Xname + "b0"
+			bmcXname := xnames.FromStringToStruct[xnames.Chassis](h.Xname).ChassisBMC(0).String()
 			c.validateChassisBmc(results, h, bmcXname, xnametypes.ChassisBMC)
 		}
 	}
