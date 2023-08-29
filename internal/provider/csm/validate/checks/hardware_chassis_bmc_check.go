@@ -56,32 +56,63 @@ func (c *HardwareChassisBmcCheck) Validate(results *common.ValidationResults) {
 	chassis := c.typeToHardware[xnametypes.Chassis.String()]
 	for _, h := range chassis {
 		if isMountain(h) {
+			if !isXnameValid(results, h, xnametypes.Chassis) {
+				continue
+			}
 			bmcXname := h.Xname + "b0"
-			c.validateChassisBmc(results, h, xnametypes.Chassis, bmcXname, xnametypes.ChassisBMC)
+			c.validateChassisBmc(results, h, bmcXname, xnametypes.ChassisBMC)
 		}
 	}
 
 	chassisBmc := c.typeToHardware[xnametypes.ChassisBMC.String()]
 	for _, h := range chassisBmc {
 		if isMountain(h) {
+			if !isXnameValid(results, h, xnametypes.ChassisBMC) {
+				continue
+			}
 			bmcXname := xnames.FromString(h.Xname)
 			chassisXname := bmcXname.ParentInterface().String()
-			c.validateChassisBmc(results, h, xnametypes.ChassisBMC, chassisXname, xnametypes.Chassis)
+			c.validateChassisBmc(results, h, chassisXname, xnametypes.Chassis)
 		}
 	}
 }
 
-func (c *HardwareChassisBmcCheck) validateChassisBmc(
-	results *common.ValidationResults, fromHardware *sls_client.Hardware, fromType xnametypes.HMSType, toXname string, toType xnametypes.HMSType) {
-	componentId := fmt.Sprintf("/Hardware/%s", fromHardware.Xname)
-	if ftype := xnametypes.GetHMSType(fromHardware.Xname); ftype != fromType {
+func isXnameValid(results *common.ValidationResults, h *sls_client.Hardware, expectedType xnametypes.HMSType) bool {
+	componentId := fmt.Sprintf("/Hardware/%s", h.Xname)
+	if !xnametypes.IsHMSCompIDValid(h.Xname) {
 		results.Fail(
 			chassisBmcCheck,
 			componentId,
-			fmt.Sprintf("The Xname %s is for the type %s but it instead has the TypeString %s",
-				fromHardware.Xname, ftype.String(), fromHardware.TypeString))
-		return
+			fmt.Sprintf("The Xname %s is invalid", h.Xname))
+		return false
 	}
+
+	hardwareType := xnametypes.GetHMSType(h.Xname)
+	if hardwareType != h.TypeString {
+		results.Fail(
+			chassisBmcCheck,
+			componentId,
+			fmt.Sprintf("%s is an xname for the type %s but its TypeString is %s",
+				h.Xname, hardwareType, h.TypeString))
+		return false
+	}
+
+	// this case is not likely to be false, since the hardware is being gotten out of the typeToHardware map
+	if hardwareType != expectedType {
+		results.Fail(
+			chassisBmcCheck,
+			componentId,
+			fmt.Sprintf("%s is an xname for the type %s but type %s is expected",
+				h.Xname, hardwareType, expectedType))
+		return false
+	}
+
+	return true
+}
+
+func (c *HardwareChassisBmcCheck) validateChassisBmc(
+	results *common.ValidationResults, fromHardware *sls_client.Hardware, toXname string, toType xnametypes.HMSType) {
+	componentId := fmt.Sprintf("/Hardware/%s", fromHardware.Xname)
 	toX := xnames.FromString(toXname)
 	toHardware, found := c.hardware[toX.String()]
 	if found {
