@@ -73,6 +73,19 @@ func (i *Inventory) FilterHardwareByType(types ...hardwaretypes.HardwareType) ma
 	return result
 }
 
+func (i *Inventory) FilterHardwareByStatus(wantedStatus ...HardwareStatus) map[uuid.UUID]Hardware {
+	result, _ := i.FilterHardware(func(hardware Hardware) (bool, error) {
+		for _, status := range wantedStatus {
+			if hardware.Status == status {
+				return true, nil
+			}
+		}
+		return false, nil
+	})
+
+	return result
+}
+
 func (i *Inventory) FilterHardwareByTypeStatus(status HardwareStatus, types ...hardwaretypes.HardwareType) map[uuid.UUID]Hardware {
 	result, _ := i.FilterHardware(func(hardware Hardware) (bool, error) {
 		for _, hardwareType := range types {

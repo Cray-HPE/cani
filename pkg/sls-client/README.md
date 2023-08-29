@@ -47,6 +47,7 @@ Class | Method | HTTP request | Description
 
 ## Documentation For Models
 
+ - [CaniStatus](docs/CaniStatus.md)
  - [Hardware](docs/Hardware.md)
  - [HardwareClass](docs/HardwareClass.md)
  - [HardwareExtraProperties](docs/HardwareExtraProperties.md)

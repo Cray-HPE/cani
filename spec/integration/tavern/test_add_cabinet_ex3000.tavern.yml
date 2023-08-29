@@ -29,7 +29,7 @@ test_name: get the dumpstate
 stages:
   - name: ensure 200 response from the dumpstate and it has Hardware and Networks keys
     request:
-      url: https://localhost:8443/apis/sls/v1/dumpstate
+      url: "{sls_base_url}/v1/dumpstate"
       method: GET
       verify: false
     response:
@@ -318,7 +318,7 @@ marks:
 stages: 
   - name: ensure {Xname} exists
     request:
-      url: https://localhost:8443/apis/sls/v1/hardware/{Xname}
+      url: "{sls_base_url}/v1/hardware/{Xname}"
       method: GET
       verify: false
     response:
@@ -329,6 +329,249 @@ stages:
       json:
         Xname: "{Xname}"
         Parent: "{Parent}"
+
+
+---
+test_name: Ensure cabinets exist and have CANI metadata
+marks:
+  - parametrize:
+      key:
+        - Xname
+        - Parent
+        - Class
+        - CANIState
+      vals:
+        # Existing cabinets
+        - [x9000, s0, Hill,     provisioned]
+
+        # New cabinets
+        - [x1000, s0, Mountain, provisioned]
+
+stages: 
+  - name: ensure {Xname} exists and has cani metadata
+    request:
+      url: "{sls_base_url}/v1/hardware/{Xname}"
+      method: GET
+      verify: false
+    response:
+      status_code: 200
+      verify_response_with:
+        function: tavern.helpers:validate_pykwalify
+        extra_kwargs:
+          schema:
+            type: map
+            required: True
+            mapping:
+              Parent:
+                type: str
+                required: True
+                pattern: "^{Parent}$"
+              Children:
+                type: seq
+                required: False
+                matching: all
+                sequence:
+                  - type: str
+                    pattern: "^[xs].+"
+              Xname:
+                type: str
+                required: True
+                pattern: "^{Xname}$"
+              Type:
+                type: str
+                required: True
+                pattern: "^comptype_cabinet$"
+              Class:
+                type: str
+                required: True
+                pattern: "^{Class}$"
+              TypeString:
+                type: str
+                required: True
+                pattern: "^Cabinet$"
+              LastUpdated:
+                type: int
+                required: True
+              LastUpdatedTime:
+                type: str
+                required: True
+                pattern: "^[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} [0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}.[0-9]+ \\+[0-9]{{4}} \\+[0-9]{{4}}|[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} [0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}.[0-9]+ \\+[0-9]{{4}} UTC$"
+              ExtraProperties:
+                type: map
+                required: False
+                allowempty: True
+                mapping:
+                  '@cani.id':
+                    type: str
+                    required: True
+                    # pattern: "^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$"
+                  '@cani.lastModified':
+                    type: str
+                    required: True
+                    # pattern: "^[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} [0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}.[0-9]+ \\+[0-9]{{4}} \\+[0-9]{{4}}|[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} [0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}.[0-9]+ \\+[0-9]{{4}} UTC$"
+                  '@cani.slsSchemaVersion':
+                    type: str
+                    required: True
+                    pattern: "^v1alpha1$"
+                  '@cani.status':
+                    type: str
+                    required: True
+                    enum:
+                      - "{CANIState}"
+                  Aliases:
+                    type: seq
+                    required: False
+                    matching: all
+                    sequence:
+                      - type: str
+                  Brand:
+                    type: str
+                    required: False
+                  IP4addr:
+                    type: str
+                    required: False
+                  Networks:
+                    type: map
+                    required: False
+                    allowempty: True
+                    mapping:
+                      cn:
+                        type: map
+                        required: False
+                        allowempty: True
+                        mapping:
+                          HMN:
+                            type: map
+                            required: False
+                            mapping:
+                              CIDR:
+                                type: str
+                                required: True
+                              Gateway:
+                                type: str
+                                required: True
+                              VLan:
+                                type: int
+                                required: True
+
+---
+test_name: Ensure Chassis and ChassisBMCs and exist and have CANI metadata
+marks:
+  - parametrize:
+      key:
+        - Xname
+        - Parent
+        - Class
+        - TypeString
+        - Type
+        - CANIState
+      vals:
+        #
+        # Existing cabinets
+        #
+
+        # Chassis
+        - [x9000c1, x9000, Hill, Chassis, comptype_chassis, provisioned]
+        - [x9000c3, x9000, Hill, Chassis, comptype_chassis, provisioned]
+
+        # Chassis BMCs
+        - [x9000c1b0, x9000c1, Hill, ChassisBMC, comptype_chassis_bmc, provisioned]
+        - [x9000c3b0, x9000c3, Hill, ChassisBMC, comptype_chassis_bmc, provisioned]
+
+        #
+        # New cabinets
+        #
+
+        # Chassis
+        - [x1000c0, x1000, Mountain, Chassis, comptype_chassis, provisioned]
+        - [x1000c1, x1000, Mountain, Chassis, comptype_chassis, provisioned]
+        - [x1000c2, x1000, Mountain, Chassis, comptype_chassis, provisioned]
+        - [x1000c3, x1000, Mountain, Chassis, comptype_chassis, provisioned]
+        - [x1000c4, x1000, Mountain, Chassis, comptype_chassis, provisioned]
+        - [x1000c5, x1000, Mountain, Chassis, comptype_chassis, provisioned]
+        - [x1000c6, x1000, Mountain, Chassis, comptype_chassis, provisioned]
+        - [x1000c7, x1000, Mountain, Chassis, comptype_chassis, provisioned]
+        
+        # Chassis BMCs
+        - [x1000c0b0, x1000c0, Mountain, ChassisBMC, comptype_chassis_bmc, provisioned]
+        - [x1000c1b0, x1000c1, Mountain, ChassisBMC, comptype_chassis_bmc, provisioned]
+        - [x1000c2b0, x1000c2, Mountain, ChassisBMC, comptype_chassis_bmc, provisioned]
+        - [x1000c3b0, x1000c3, Mountain, ChassisBMC, comptype_chassis_bmc, provisioned]
+        - [x1000c4b0, x1000c4, Mountain, ChassisBMC, comptype_chassis_bmc, provisioned]
+        - [x1000c5b0, x1000c5, Mountain, ChassisBMC, comptype_chassis_bmc, provisioned]
+        - [x1000c6b0, x1000c6, Mountain, ChassisBMC, comptype_chassis_bmc, provisioned]
+        - [x1000c7b0, x1000c7, Mountain, ChassisBMC, comptype_chassis_bmc, provisioned]
+stages: 
+  - name: ensure {Xname} exists and has cani metadata
+    request:
+      url: "{sls_base_url}/v1/hardware/{Xname}"
+      method: GET
+      verify: false
+    response:
+      status_code: 200
+      verify_response_with:
+        function: tavern.helpers:validate_pykwalify
+        extra_kwargs:
+          schema:
+            type: map
+            required: True
+            mapping:
+              Parent:
+                type: str
+                required: True
+                pattern: "^{Parent}$"
+              Children:
+                type: seq
+                required: False
+                matching: all
+                sequence:
+                  - type: str
+                    pattern: "^[xs].+"
+              Xname:
+                type: str
+                required: True
+                pattern: "^{Xname}$"
+              Type:
+                type: str
+                required: True
+                pattern: "^{Type}$"
+              Class:
+                type: str
+                required: True
+                pattern: "^{Class}$"
+              TypeString:
+                type: str
+                required: True
+                pattern: "^{TypeString}$"
+              LastUpdated:
+                type: int
+                required: True
+              LastUpdatedTime:
+                type: str
+                required: True
+                pattern: "^[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} [0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}.[0-9]+ \\+[0-9]{{4}} \\+[0-9]{{4}}|[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} [0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}.[0-9]+ \\+[0-9]{{4}} UTC$"
+              ExtraProperties:
+                type: map
+                required: False
+                allowempty: True
+                mapping:
+                  '@cani.id':
+                    type: str
+                    required: True
+                    # pattern: "^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$"
+                  '@cani.lastModified':
+                    type: str
+                    required: True
+                    # pattern: "^[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} [0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}.[0-9]+ \\+[0-9]{{4}} \\+[0-9]{{4}}|[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} [0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}.[0-9]+ \\+[0-9]{{4}} UTC$"
+                  '@cani.slsSchemaVersion':
+                    type: str
+                    required: True
+                    pattern: "^v1alpha1$"
+                  '@cani.status':
+                    type: str
+                    required: True
+                    enum:
+                      - "{CANIState}"
 
 ---
 test_name: Verify network information in SLS Hardware
@@ -351,7 +594,7 @@ marks:
 stages:
   - name: Verify network data for {Xname} exists in SLS Hardware
     request:
-      url: "https://localhost:8443/apis/sls/v1/hardware/{Xname}"
+      url: "{sls_base_url}/v1/hardware/{Xname}"
       method: GET
       verify: false
     response:
@@ -398,7 +641,7 @@ marks:
 stages:
   - name: Verify network data for x9000 in SLS Network HMN_MTN
     request:
-      url: https://localhost:8443/apis/sls/v1/networks/{Network}
+      url: "{sls_base_url}/v1/networks/{Network}"
       method: GET
       verify: false
     response:

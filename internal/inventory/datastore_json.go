@@ -869,3 +869,33 @@ func (dj *DatastoreJSON) getSystemZero() (Hardware, error) {
 
 	return Hardware{}, ErrHardwareNotFound
 }
+
+func (dj *DatastoreJSON) Search(filter SearchFilter) (map[uuid.UUID]Hardware, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
+
+	// Build up lookup maps based on the filter
+	wantedTypes := map[hardwaretypes.HardwareType]bool{}
+	for _, wantedType := range filter.Types {
+		wantedTypes[wantedType] = true
+	}
+
+	wantedStatus := map[HardwareStatus]bool{}
+	for _, status := range filter.Status {
+		wantedStatus[status] = true
+	}
+
+	return dj.inventory.FilterHardware(func(h Hardware) (bool, error) {
+		matchType := false
+		if len(wantedTypes) == 0 || wantedTypes[h.Type] {
+			matchType = true
+		}
+
+		matchStatus := false
+		if len(wantedStatus) == 0 || wantedStatus[h.Status] {
+			matchStatus = true
+		}
+
+		return matchType && matchStatus, nil
+	})
+}

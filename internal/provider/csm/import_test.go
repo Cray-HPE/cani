@@ -26,6 +26,7 @@
 package csm
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
@@ -356,4 +357,153 @@ func (suite *FromXnameSuite) TestRouterBMCPointer() {
 
 func TestFromXnameSuite(t *testing.T) {
 	suite.Run(t, new(FromXnameSuite))
+}
+
+type IdentifyDeviceSlugTestSuite struct {
+	suite.Suite
+
+	csm *CSM
+}
+
+func (suite *IdentifyDeviceSlugTestSuite) SetupSuite() {
+	hardwareTypeLibrary, err := hardwaretypes.NewEmbeddedLibrary("")
+	suite.NoError(err)
+
+	suite.csm = &CSM{
+		hardwareLibrary: hardwareTypeLibrary,
+	}
+}
+
+func (suite *IdentifyDeviceSlugTestSuite) TestWindom() {
+	var testData = []struct {
+		Manufacturer string
+		Model        string
+		PartNumber   string
+		SKU          string
+	}{
+		{"HPE", "WNC", "101920703.D", ""},
+		{"HPE", "WNC", "101920703.F", ""},
+		{"HPE", "WNC", "101920704.A", ""},
+		{"HPE", "WNC", "101920704.B", ""},
+		{"HPE", "WindomNodeCard", "101920702.C", ""},
+		{"HPE", "WindomNodeCard", "101920703.B", ""},
+		{"HPE", "WindomNodeCard", "101920703.D", ""},
+	}
+
+	for _, test := range testData {
+		msgString := fmt.Sprintf("Failed to identify device slug with values: Manufacturer %s, Model %s, PartNumber %s, SKU %s", test.Manufacturer, test.Model, test.PartNumber, test.SKU)
+
+		deviceSlug, err := suite.csm.identifyDeviceSlug(test.Manufacturer, test.Model, test.PartNumber)
+		suite.NoError(err, msgString)
+
+		suite.Equal("hpe-crayex-ex425-compute-blade", deviceSlug, msgString)
+	}
+}
+
+func (suite *IdentifyDeviceSlugTestSuite) TestCastle() {
+	var testData = []struct {
+		Manufacturer string
+		Model        string
+		PartNumber   string
+		SKU          string
+	}{
+		{"HPE", "CNC", "P40731-002.B", ""},
+		{"HPE", "CNC", "P40731-003.A", ""},
+	}
+
+	for _, test := range testData {
+		msgString := fmt.Sprintf("Failed to identify device slug with values: Manufacturer %s, Model %s, PartNumber %s, SKU %s", test.Manufacturer, test.Model, test.PartNumber, test.SKU)
+
+		deviceSlug, err := suite.csm.identifyDeviceSlug(test.Manufacturer, test.Model, test.PartNumber)
+		suite.NoError(err, msgString)
+
+		suite.Equal("hpe-crayex-ex420-compute-blade", deviceSlug, msgString)
+	}
+}
+
+func (suite *IdentifyDeviceSlugTestSuite) TestGrizzlyPeak() {
+	var testData = []struct {
+		Manufacturer string
+		Model        string
+		PartNumber   string
+		SKU          string
+	}{
+		{"HPE", "GrizzlyPkNodeCard", "102209502.B", ""},
+	}
+
+	for _, test := range testData {
+		msgString := fmt.Sprintf("Failed to identify device slug with values: Manufacturer %s, Model %s, PartNumber %s, SKU %s", test.Manufacturer, test.Model, test.PartNumber, test.SKU)
+
+		deviceSlug, err := suite.csm.identifyDeviceSlug(test.Manufacturer, test.Model, test.PartNumber)
+		suite.NoError(err, msgString)
+
+		suite.Equal("hpe-crayex-ex235n-compute-blade", deviceSlug, msgString)
+	}
+}
+
+func (suite *IdentifyDeviceSlugTestSuite) TestBardPeak() {
+	var testData = []struct {
+		Manufacturer string
+		Model        string
+		PartNumber   string
+		SKU          string
+	}{
+		{"HPE", "BardPeakNC", "P37085-001.A", ""},
+		{"HPE", "BardPeakNC", "P37085-003.A", ""},
+	}
+
+	for _, test := range testData {
+		msgString := fmt.Sprintf("Failed to identify device slug with values: Manufacturer %s, Model %s, PartNumber %s, SKU %s", test.Manufacturer, test.Model, test.PartNumber, test.SKU)
+
+		deviceSlug, err := suite.csm.identifyDeviceSlug(test.Manufacturer, test.Model, test.PartNumber)
+		suite.NoError(err, msgString)
+
+		suite.Equal("hpe-crayex-ex235a-compute-blade", deviceSlug, msgString)
+	}
+}
+
+func (suite *IdentifyDeviceSlugTestSuite) TestAntero() {
+	var testData = []struct {
+		Manufacturer string
+		Model        string
+		PartNumber   string
+		SKU          string
+	}{
+		{"HPE", "HSSMEZZCARD", "P47016-002.1", ""},
+		{"HPE", "HSSMEZZCARD", "P47016-003.A", ""},
+	}
+
+	for _, test := range testData {
+		msgString := fmt.Sprintf("Failed to identify device slug with values: Manufacturer %s, Model %s, PartNumber %s, SKU %s", test.Manufacturer, test.Model, test.PartNumber, test.SKU)
+
+		deviceSlug, err := suite.csm.identifyDeviceSlug(test.Manufacturer, test.Model, test.PartNumber)
+		suite.NoError(err, msgString)
+
+		suite.Equal("hpe-crayex-ex4252-compute-blade", deviceSlug, msgString)
+	}
+}
+
+func (suite *IdentifyDeviceSlugTestSuite) TestBlancaPeak() {
+	var testData = []struct {
+		Manufacturer string
+		Model        string
+		PartNumber   string
+		SKU          string
+	}{
+		{"HPE", "BlancaPeakNC", "P52291-002.B", ""},
+		{"HPE", "BlancaPeakNC", "P52291-003.C", ""},
+	}
+
+	for _, test := range testData {
+		msgString := fmt.Sprintf("Failed to identify device slug with values: Manufacturer %s, Model %s, PartNumber %s, SKU %s", test.Manufacturer, test.Model, test.PartNumber, test.SKU)
+
+		deviceSlug, err := suite.csm.identifyDeviceSlug(test.Manufacturer, test.Model, test.PartNumber)
+		suite.NoError(err, msgString)
+
+		suite.Equal("hpe-crayex-ex254n-compute-blade", deviceSlug, msgString)
+	}
+}
+
+func TestIdentifyDeviceSlugTestSuite(t *testing.T) {
+	suite.Run(t, new(IdentifyDeviceSlugTestSuite))
 }

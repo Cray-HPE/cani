@@ -35,6 +35,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 func init() {
@@ -64,8 +65,11 @@ func setupLogging() {
 	// Default level for this example is info, unless debug flag is present
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	// Fancy, human-friendly console logger (but slower)
-	// TODO Set no-color based off a flag
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	log.Logger = log.Output(zerolog.ConsoleWriter{
+		Out: os.Stderr,
+		// When not in a terminal disable color
+		NoColor: !term.IsTerminal(int(os.Stderr.Fd())),
+	})
 	if Debug {
 		// enable debug output globally
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)

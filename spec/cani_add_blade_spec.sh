@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+#
 # MIT License
 #
 # (C) Copyright 2023 Hewlett Packard Enterprise Development LP
@@ -20,8 +21,7 @@
 # OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
-
-
+#
 Describe 'cani add blade'
 
 # add each blade type as a parameter
@@ -43,7 +43,7 @@ End
 It '--config canitest.yml'
   When call bin/cani alpha add blade --config canitest.yml
   The status should equal 1
-  The line 1 of stderr should include 'Error: No hardware type provided: Choose from: [hpe-crayex-ex235a-compute-blade hpe-crayex-ex235n-compute-blade hpe-crayex-ex420-compute-blade hpe-crayex-ex425-compute-blade]'
+  The line 1 of stderr should include 'Error: No hardware type provided: Choose from: [hpe-crayex-ex235a-compute-blade hpe-crayex-ex235n-compute-blade hpe-crayex-ex254n-compute-blade hpe-crayex-ex420-compute-blade hpe-crayex-ex425-compute-blade hpe-crayex-ex4252-compute-blade]'
 End
 
 # Adding a blade with an invalid hardware type should fail
@@ -59,8 +59,10 @@ It '--config canitest.yml -L'
   The status should equal 0
   The line 1 of stderr should equal "- hpe-crayex-ex235a-compute-blade"
   The line 2 of stderr should equal "- hpe-crayex-ex235n-compute-blade"
-  The line 3 of stderr should equal "- hpe-crayex-ex420-compute-blade"
-  The line 4 of stderr should equal "- hpe-crayex-ex425-compute-blade"
+  The line 3 of stderr should equal "- hpe-crayex-ex254n-compute-blade"
+  The line 4 of stderr should equal "- hpe-crayex-ex420-compute-blade"
+  The line 5 of stderr should equal "- hpe-crayex-ex425-compute-blade"
+  The line 6 of stderr should equal "- hpe-crayex-ex4252-compute-blade"
 End
 
 # Adding a blade should fail if no session is active

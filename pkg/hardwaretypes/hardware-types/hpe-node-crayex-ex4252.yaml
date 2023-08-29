@@ -1,0 +1,105 @@
+#
+# MIT License
+#
+# (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+manufacturer: HPE
+model: EX4252 AMD EPYC compute blade (Antero)
+hardware-type: NodeBlade
+slug: hpe-crayex-ex4252-compute-blade
+device-bays:
+  - name: Node Card 0
+    allowed:
+      slug: [hpe-crayex-ex4252-compute-blade-antero-node-card]
+    default:
+      slug: hpe-crayex-ex4252-compute-blade-antero-node-card
+    ordinal: 0
+identifications:
+  # In CSM we can learn the type of a node blade based off the contents of the NodeEnclosure
+  # EX4252
+  - manufacturer: HPE
+    model: HSSMEZZCARD
+    part-number: P47016-002.1
+  # EX425g2 Older version of antero
+  - manufacturer: HPE
+    model: HSSMEZZCARD
+    part-number: P47016-003.A
+---
+manufacturer: HPE
+model: EX425 AMD EPYC compute Blade, Antero Node Card (WNC)
+hardware-type: NodeCard
+slug: hpe-crayex-ex4252-compute-blade-antero-node-card
+device-bays:
+  - name: BMC
+    allowed:
+      slug: [hpe-crayex-ex4252-compute-blade-antero-node-bmc]
+    default:
+      slug: hpe-crayex-ex4252-compute-blade-antero-node-bmc
+    ordinal: 0
+  - name: Node 0
+    allowed:
+      slug: [hpe-crayex-ex4252-compute-node]
+    default:
+      slug: hpe-crayex-ex4252-compute-node
+    ordinal: 0
+  - name: Node 1
+    allowed:
+      slug: [hpe-crayex-ex4252-compute-node]
+    default:
+      slug: hpe-crayex-ex4252-compute-node
+    ordinal: 1
+  - name: Node 2
+    allowed:
+      slug: [hpe-crayex-ex4252-compute-node]
+    default:
+      slug: hpe-crayex-ex4252-compute-node
+    ordinal: 2
+  - name: Node 3
+    allowed:
+      slug: [hpe-crayex-ex4252-compute-node]
+    default:
+      slug: hpe-crayex-ex4252-compute-node
+    ordinal: 3
+---
+manufacturer: HPE
+model: EX4252 AMD EPYC compute Blade, Antero Node BMC
+hardware-type: NodeController
+slug: hpe-crayex-ex4252-compute-blade-antero-node-bmc
+interfaces:
+  - name: BMC
+    type: 1000base-t
+    mgmt_only: true
+---
+manufacturer: HPE
+model: EX4252 AMD EPYC compute node (Antero)
+hardware-type: Node
+slug: hpe-crayex-ex4252-compute-node
+interfaces:
+  - name: NMN
+    type: 1000base-t
+    # Single Injection or Dual Injection
+    # - name: HSN 0
+    # - name: HSN 1
+
+    # Dual Injection only
+    # - name: HSN 2
+    # - name: HSN 3

@@ -6,6 +6,7 @@ Name | Type | Description | Notes
 **CaniId** | **string** |  | [optional] [default to null]
 **CaniLastModified** | **string** |  | [optional] [default to null]
 **CaniSlsSchemaVersion** | **string** |  | [optional] [default to null]
+**CaniStatus** | [***CaniStatus**](CANIStatus.md) |  | [optional] [default to null]
 **Networks** | **[]string** | An array of network names that this NIC is connected to | [default to null]
 **Peers** | **[]string** | An array of xnames this NIC is connected directly to.  These ideally connector xnames, not switches | [default to null]
 

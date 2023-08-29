@@ -633,6 +633,9 @@
               },
               "model": {
                   "type": "string"
+              },
+              "part-number": {
+                "type": "string"
               }
           },
           "required": [

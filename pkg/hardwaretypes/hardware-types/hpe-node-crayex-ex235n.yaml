@@ -23,7 +23,7 @@
 #
 ---
 manufacturer: HPE
-model: EX235N AMD NVIDIA accelerator blade (Grizzly Peak)
+model: EX235N NVIDIA accelerator blade (Grizzly Peak)
 hardware-type: NodeBlade
 slug: hpe-crayex-ex235n-compute-blade
 device-bays:
@@ -39,7 +39,7 @@ identifications:
     model: GrizzlyPkNodeCard
 ---
 manufacturer: HPE
-model: EX235N AMD NVIDIA accelerator blade, Grizzly Peak Node Card (GPNC)
+model: EX235N NVIDIA accelerator blade, Grizzly Peak Node Card (GPNC)
 hardware-type: NodeCard
 slug: hpe-crayex-ex235n-compute-blade-grizzly-peak-node-card
 device-bays:
@@ -63,7 +63,7 @@ device-bays:
     ordinal: 1
 ---
 manufacturer: HPE
-model: EX235N AMD NVIDIA accelerator blade, Grizzly Peak Node BMC
+model: EX235N NVIDIA accelerator blade, Grizzly Peak Node BMC
 hardware-type: NodeController
 slug: hpe-crayex-ex235n-compute-blade-grizzly-peak-node-bmc
 interfaces:
@@ -72,7 +72,7 @@ interfaces:
     mgmt_only: true
 ---
 manufacturer: HPE
-model: EX235N AMD NVIDIA accelerator compute node
+model: EX235N NVIDIA accelerator compute node
 hardware-type: Node
 slug: hpe-crayex-ex235n-compute-node
 interfaces:

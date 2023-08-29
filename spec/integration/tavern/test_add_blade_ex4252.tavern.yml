@@ -1,0 +1,199 @@
+#
+# MIT License
+#
+# (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+
+---
+test_name: Ensure Phantom nodes exist and have CANI metadata
+marks:
+  - parametrize:
+      key:
+        - Xname
+        - Parent
+        - TypeString
+        - Type
+        - CANIState
+        - Role
+        - NID
+        - Alias
+      vals:
+        # Generated with:
+        # cat testdata/fixtures/sls/valid_hardware_networks.json |
+        #     jq '.Hardware[] | select(.TypeString == "Node") | select(.Class == "Hill") | [.Xname, .Parent, .TypeString, .Type, "empty", .ExtraProperties.Role, .ExtraProperties.NID, .ExtraProperties.Aliases[0]]' -c |
+        #     sort | 
+        #     sed 's/^/        - /'
+        - ["x9000c1s0b0n0","x9000c1s0b0","Node","comptype_node","provisioned","Compute",1000,"nid001000"]
+        - ["x9000c1s0b0n1","x9000c1s0b0","Node","comptype_node","provisioned","Compute",1001,"nid001001"]
+        - ["x9000c1s0b0n2","x9000c1s0b0","Node","comptype_node","provisioned","Compute",2000,"nid002000"]
+        - ["x9000c1s0b0n3","x9000c1s0b0","Node","comptype_node","provisioned","Compute",2001,"nid002001"]
+        - ["x9000c1s0b1n0","x9000c1s0b1","Node","comptype_node","empty","Compute",1002,"nid001002"]
+        - ["x9000c1s0b1n1","x9000c1s0b1","Node","comptype_node","empty","Compute",1003,"nid001003"]
+        - ["x9000c1s1b0n0","x9000c1s1b0","Node","comptype_node","empty","Compute",1004,"nid001004"]
+        - ["x9000c1s1b0n1","x9000c1s1b0","Node","comptype_node","empty","Compute",1005,"nid001005"]
+        - ["x9000c1s1b1n0","x9000c1s1b1","Node","comptype_node","empty","Compute",1006,"nid001006"]
+        - ["x9000c1s1b1n1","x9000c1s1b1","Node","comptype_node","empty","Compute",1007,"nid001007"]
+        - ["x9000c1s2b0n0","x9000c1s2b0","Node","comptype_node","empty","Compute",1008,"nid001008"]
+        - ["x9000c1s2b0n1","x9000c1s2b0","Node","comptype_node","empty","Compute",1009,"nid001009"]
+        - ["x9000c1s2b1n0","x9000c1s2b1","Node","comptype_node","empty","Compute",1010,"nid001010"]
+        - ["x9000c1s2b1n1","x9000c1s2b1","Node","comptype_node","empty","Compute",1011,"nid001011"]
+        - ["x9000c1s3b0n0","x9000c1s3b0","Node","comptype_node","empty","Compute",1012,"nid001012"]
+        - ["x9000c1s3b0n1","x9000c1s3b0","Node","comptype_node","empty","Compute",1013,"nid001013"]
+        - ["x9000c1s3b1n0","x9000c1s3b1","Node","comptype_node","empty","Compute",1014,"nid001014"]
+        - ["x9000c1s3b1n1","x9000c1s3b1","Node","comptype_node","empty","Compute",1015,"nid001015"]
+        - ["x9000c1s4b0n0","x9000c1s4b0","Node","comptype_node","empty","Compute",1016,"nid001016"]
+        - ["x9000c1s4b0n1","x9000c1s4b0","Node","comptype_node","empty","Compute",1017,"nid001017"]
+        - ["x9000c1s4b1n0","x9000c1s4b1","Node","comptype_node","empty","Compute",1018,"nid001018"]
+        - ["x9000c1s4b1n1","x9000c1s4b1","Node","comptype_node","empty","Compute",1019,"nid001019"]
+        - ["x9000c1s5b0n0","x9000c1s5b0","Node","comptype_node","empty","Compute",1020,"nid001020"]
+        - ["x9000c1s5b0n1","x9000c1s5b0","Node","comptype_node","empty","Compute",1021,"nid001021"]
+        - ["x9000c1s5b1n0","x9000c1s5b1","Node","comptype_node","empty","Compute",1022,"nid001022"]
+        - ["x9000c1s5b1n1","x9000c1s5b1","Node","comptype_node","empty","Compute",1023,"nid001023"]
+        - ["x9000c1s6b0n0","x9000c1s6b0","Node","comptype_node","empty","Compute",1024,"nid001024"]
+        - ["x9000c1s6b0n1","x9000c1s6b0","Node","comptype_node","empty","Compute",1025,"nid001025"]
+        - ["x9000c1s6b1n0","x9000c1s6b1","Node","comptype_node","empty","Compute",1026,"nid001026"]
+        - ["x9000c1s6b1n1","x9000c1s6b1","Node","comptype_node","empty","Compute",1027,"nid001027"]
+        - ["x9000c1s7b0n0","x9000c1s7b0","Node","comptype_node","empty","Compute",1028,"nid001028"]
+        - ["x9000c1s7b0n1","x9000c1s7b0","Node","comptype_node","empty","Compute",1029,"nid001029"]
+        - ["x9000c1s7b1n0","x9000c1s7b1","Node","comptype_node","empty","Compute",1030,"nid001030"]
+        - ["x9000c1s7b1n1","x9000c1s7b1","Node","comptype_node","empty","Compute",1031,"nid001031"]
+        - ["x9000c3s0b0n0","x9000c3s0b0","Node","comptype_node","empty","Compute",1032,"nid001032"]
+        - ["x9000c3s0b0n1","x9000c3s0b0","Node","comptype_node","empty","Compute",1033,"nid001033"]
+        - ["x9000c3s0b1n0","x9000c3s0b1","Node","comptype_node","empty","Compute",1034,"nid001034"]
+        - ["x9000c3s0b1n1","x9000c3s0b1","Node","comptype_node","empty","Compute",1035,"nid001035"]
+        - ["x9000c3s1b0n0","x9000c3s1b0","Node","comptype_node","empty","Compute",1036,"nid001036"]
+        - ["x9000c3s1b0n1","x9000c3s1b0","Node","comptype_node","empty","Compute",1037,"nid001037"]
+        - ["x9000c3s1b1n0","x9000c3s1b1","Node","comptype_node","empty","Compute",1038,"nid001038"]
+        - ["x9000c3s1b1n1","x9000c3s1b1","Node","comptype_node","empty","Compute",1039,"nid001039"]
+        - ["x9000c3s2b0n0","x9000c3s2b0","Node","comptype_node","empty","Compute",1040,"nid001040"]
+        - ["x9000c3s2b0n1","x9000c3s2b0","Node","comptype_node","empty","Compute",1041,"nid001041"]
+        - ["x9000c3s2b1n0","x9000c3s2b1","Node","comptype_node","empty","Compute",1042,"nid001042"]
+        - ["x9000c3s2b1n1","x9000c3s2b1","Node","comptype_node","empty","Compute",1043,"nid001043"]
+        - ["x9000c3s3b0n0","x9000c3s3b0","Node","comptype_node","empty","Compute",1044,"nid001044"]
+        - ["x9000c3s3b0n1","x9000c3s3b0","Node","comptype_node","empty","Compute",1045,"nid001045"]
+        - ["x9000c3s3b1n0","x9000c3s3b1","Node","comptype_node","empty","Compute",1046,"nid001046"]
+        - ["x9000c3s3b1n1","x9000c3s3b1","Node","comptype_node","empty","Compute",1047,"nid001047"]
+        - ["x9000c3s4b0n0","x9000c3s4b0","Node","comptype_node","empty","Compute",1048,"nid001048"]
+        - ["x9000c3s4b0n1","x9000c3s4b0","Node","comptype_node","empty","Compute",1049,"nid001049"]
+        - ["x9000c3s4b1n0","x9000c3s4b1","Node","comptype_node","empty","Compute",1050,"nid001050"]
+        - ["x9000c3s4b1n1","x9000c3s4b1","Node","comptype_node","empty","Compute",1051,"nid001051"]
+        - ["x9000c3s5b0n0","x9000c3s5b0","Node","comptype_node","empty","Compute",1052,"nid001052"]
+        - ["x9000c3s5b0n1","x9000c3s5b0","Node","comptype_node","empty","Compute",1053,"nid001053"]
+        - ["x9000c3s5b1n0","x9000c3s5b1","Node","comptype_node","empty","Compute",1054,"nid001054"]
+        - ["x9000c3s5b1n1","x9000c3s5b1","Node","comptype_node","empty","Compute",1055,"nid001055"]
+        - ["x9000c3s6b0n0","x9000c3s6b0","Node","comptype_node","empty","Compute",1056,"nid001056"]
+        - ["x9000c3s6b0n1","x9000c3s6b0","Node","comptype_node","empty","Compute",1057,"nid001057"]
+        - ["x9000c3s6b1n0","x9000c3s6b1","Node","comptype_node","empty","Compute",1058,"nid001058"]
+        - ["x9000c3s6b1n1","x9000c3s6b1","Node","comptype_node","empty","Compute",1059,"nid001059"]
+        - ["x9000c3s7b0n0","x9000c3s7b0","Node","comptype_node","empty","Compute",1060,"nid001060"]
+        - ["x9000c3s7b0n1","x9000c3s7b0","Node","comptype_node","empty","Compute",1061,"nid001061"]
+        - ["x9000c3s7b1n0","x9000c3s7b1","Node","comptype_node","empty","Compute",1062,"nid001062"]
+        - ["x9000c3s7b1n1","x9000c3s7b1","Node","comptype_node","empty","Compute",1063,"nid001063"]
+stages:
+  - name: ensure {Xname} exists and has cani metadata
+    request:
+      url: "{sls_base_url}/v1/hardware/{Xname}"
+      method: GET
+      verify: false
+    response:
+      status_code: 200
+      verify_response_with:
+        function: tavern.helpers:validate_pykwalify
+        extra_kwargs:
+          schema:
+            type: map
+            required: True
+            mapping:
+              Parent:
+                type: str
+                required: True
+                pattern: "^{Parent}$"
+              Children:
+                type: seq
+                required: False
+                matching: all
+                sequence:
+                  - type: str
+                    pattern: "^[xs].+"
+              Xname:
+                type: str
+                required: True
+                pattern: "^{Xname}$"
+              Type:
+                type: str
+                required: True
+                pattern: "^{Type}$"
+              Class:
+                type: str
+                required: True
+                pattern: "^Hill$"
+              TypeString:
+                type: str
+                required: True
+                pattern: "^{TypeString}$"
+              LastUpdated:
+                type: int
+                required: True
+              LastUpdatedTime:
+                type: str
+                required: True
+                pattern: "^[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} [0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}.[0-9]+ \\+[0-9]{{4}} \\+[0-9]{{4}}|[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} [0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}.[0-9]+ \\+[0-9]{{4}} UTC$"
+              ExtraProperties:
+                type: map
+                required: False
+                allowempty: True
+                mapping:
+                  '@cani.id':
+                    type: str
+                    required: True
+                    # pattern: "^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$"
+                  '@cani.lastModified':
+                    type: str
+                    required: True
+                    # pattern: "^[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} [0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}.[0-9]+ \\+[0-9]{{4}} \\+[0-9]{{4}}|[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} [0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}.[0-9]+ \\+[0-9]{{4}} UTC$"
+                  '@cani.slsSchemaVersion':
+                    type: str
+                    required: True
+                    pattern: "^v1alpha1$"
+                  '@cani.status':
+                    type: str
+                    required: True
+                    enum:
+                      - "{CANIState}"
+                  Role:
+                    type: str
+                    required: True
+                    enum:
+                    - '{Role}'
+                  NID:
+                    type: int
+                    required: True
+                    enum:
+                    - !int '{NID}'
+                  Aliases:
+                    type: seq
+                    range:
+                      max: 1
+                      min: 1
+                    sequence:
+                    - type: str
+                      enum:
+                      - "{Alias}" 

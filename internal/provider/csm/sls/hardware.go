@@ -197,6 +197,18 @@ func HardwareUpdate(slsClient *sls_client.APIClient, ctx context.Context, hardwa
 	return nil
 }
 
+func HardwareSort(hardware []sls_client.Hardware) {
+	sort.Slice(hardware, func(i, j int) bool {
+		return hardware[i].Xname < hardware[j].Xname
+	})
+}
+
+func HardwarePairSort(hardware []HardwarePair) {
+	sort.Slice(hardware, func(i, j int) bool {
+		return hardware[i].Xname < hardware[j].Xname
+	})
+}
+
 func HardwareMap(allHardware []sls_client.Hardware) map[string]sls_client.Hardware {
 	result := map[string]sls_client.Hardware{}
 
@@ -214,8 +226,9 @@ func HardwareSlice(allHardware map[string]sls_client.Hardware) []sls_client.Hard
 		result = append(result, hardware)
 	}
 
-	return result
+	HardwareSort(result)
 
+	return result
 }
 
 func HardwarePairMap(allHardware []HardwarePair) map[string]HardwarePair {
@@ -234,6 +247,8 @@ func HardwarePairSlice(allHardware map[string]HardwarePair) []HardwarePair {
 	for _, hardware := range allHardware {
 		result = append(result, hardware)
 	}
+
+	HardwarePairSort(result)
 
 	return result
 
