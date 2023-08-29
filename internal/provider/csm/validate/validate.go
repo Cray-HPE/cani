@@ -173,6 +173,7 @@ func validate(configOptions provider.ConfigOptions, slsState *sls_client.SlsStat
 			slsState.Networks,
 			configOptions.ValidRoles,
 			configOptions.ValidSubRoles),
+		checks.NewHardwareChassisBmcCheck(slsState.Hardware, slsStateExtended.TypeToHardware),
 		checks.NewRequiedNetworkCheck(slsState.Networks),
 		checks.NewNetworkIpRangeCheck(slsStateExtended, configOptions.K8sPodsCidr, configOptions.K8sServicesCidr),
 		checks.NewNetworkSubnetCheck(slsStateExtended),

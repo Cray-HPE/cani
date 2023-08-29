@@ -39,7 +39,7 @@ const (
 	TestDataDir = "../../../../../testdata/fixtures/sls-fragments"
 )
 
-func TestValidate(t *testing.T) {
+func TestValidateCabinetNetwork(t *testing.T) {
 	file := "valid-cabinet.json"
 	data := loadTestData(t, file)
 	slsState, _ := unmarshalToSlsState(t, file, data)

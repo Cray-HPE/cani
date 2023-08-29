@@ -145,10 +145,6 @@ func mapNetworkSubnets(network *sls_client.Network) map[string]sls_client.Networ
 	return m
 }
 
-func isRiver(hardware *sls_client.Hardware) bool {
-	return hardware.Class == "River"
-}
-
 func validateCabinetNetwork(
 	results *common.ValidationResults,
 	hardware *sls_client.Hardware,

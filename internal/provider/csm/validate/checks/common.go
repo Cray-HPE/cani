@@ -26,6 +26,8 @@
 
 package checks
 
+import sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
+
 type CabinetNetworkName string
 
 const (
@@ -75,4 +77,12 @@ const (
 
 func (n CabinetNetworkField) String() string {
 	return string(n)
+}
+
+func isRiver(hardware *sls_client.Hardware) bool {
+	return hardware.Class == "River"
+}
+
+func isMountain(hardware *sls_client.Hardware) bool {
+	return !isRiver(hardware)
 }
