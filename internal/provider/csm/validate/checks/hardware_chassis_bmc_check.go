@@ -97,7 +97,9 @@ func isXnameValid(results *common.ValidationResults, h *sls_client.Hardware, exp
 		return false
 	}
 
-	// this case is not likely to be false, since the hardware is being gotten out of the typeToHardware map
+	// This case is not likely to be hit on a failure,
+	// since the hardware is being gotten out of the typeToHardware map,
+	// and the previous check would have been false if there is a mismatch
 	if hardwareType != expectedType {
 		results.Fail(
 			chassisBmcCheck,
