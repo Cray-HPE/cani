@@ -72,7 +72,7 @@ device-bays:
       slug: [hpe-crayex-ex4252-compute-node]
     default:
       slug: hpe-crayex-ex4252-compute-node
-    ordinal: 1
+    ordinal: 2
   - name: Node 3
     allowed:
       slug: [hpe-crayex-ex4252-compute-node]
