@@ -514,7 +514,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 
 			log.Debug().Msgf("%s has manufacturer %s and model %s", nodeEnclosureXname, nodeEnclosureFru.Manufacturer, nodeEnclosureFru.Model)
 
-			bladeDeviceSlug, err := csm.identifyDeviceSlug(nodeEnclosureFru.Manufacturer, nodeEnclosureFru.Model)
+			bladeDeviceSlug, err := csm.identifyDeviceSlug(nodeEnclosureFru.Manufacturer, nodeEnclosureFru.Model, nodeEnclosureFru.PartNumber)
 			if err != nil {
 				log.Warn().Msgf("%s unable to determine blade device slug from Node Enclosure FRU data: %s", nodeEnclosureXname, err)
 				continue
@@ -948,13 +948,28 @@ func FromXname(xnameRaw xnames.Xname) (inventory.LocationPath, error) {
 	return nil, fmt.Errorf("unable to convert xname type (%s)", xnameRaw.Type())
 }
 
-func (csm *CSM) identifyDeviceSlug(manufacturer, model string) (string, error) {
+func (csm *CSM) identifyDeviceSlug(manufacturer, model, partNumber string) (string, error) {
 	for deviceSlug, deviceType := range csm.hardwareLibrary.DeviceTypes {
 		for _, identification := range deviceType.Identifications {
 			// log.Info().Msgf("Checking %v against [%s, %s]", identification, manufacturer, model)
-			if identification.Manufacturer == manufacturer && identification.Model == model {
-				return deviceSlug, nil
+
+			// Check Manufacturer
+			if identification.Manufacturer != manufacturer {
+				continue
 			}
+
+			// Check Model
+			if identification.Model != model {
+				continue
+			}
+
+			// Check Part Number
+			if identification.PartNumber != nil && *identification.PartNumber != partNumber {
+				continue
+			}
+
+			// Found a match!
+			return deviceSlug, nil
 		}
 	}
 

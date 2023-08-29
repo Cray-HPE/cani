@@ -119,8 +119,9 @@ type DeviceType struct {
 }
 
 type Identification struct {
-	Manufacturer string `yaml:"manufacturer"`
-	Model        string `yaml:"model"`
+	Manufacturer string  `yaml:"manufacturer"`
+	Model        string  `yaml:"model"`
+	PartNumber   *string `yaml:"part-number"`
 }
 
 type DeviceBay struct {
