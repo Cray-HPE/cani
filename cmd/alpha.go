@@ -39,6 +39,9 @@ var AlphaCmd = &cobra.Command{
 
 // runAlpha represents the alpha command for unstable features
 func runAlpha(cmd *cobra.Command, args []string) error {
+	if len(args) == 0 {
+		cmd.Help()
+	}
 
 	return nil
 }
