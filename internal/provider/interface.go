@@ -49,7 +49,7 @@ type InventoryProvider interface {
 	Import(ctx context.Context, datastore inventory.Datastore) error
 
 	// Reconcile CANI's inventory state with the external inventory state and apply required changes
-	Reconcile(ctx context.Context, configOptions ConfigOptions, datastore inventory.Datastore, dryrun bool) error
+	Reconcile(ctx context.Context, configOptions ConfigOptions, datastore inventory.Datastore, dryrun bool, ignoreExternalValidation bool) error
 
 	// RecommendHardware returns recommended settings for adding hardware based on the deviceTypeSlug
 	RecommendHardware(inv inventory.Inventory, deviceTypeSlug string) (HardwareRecommendations, error)

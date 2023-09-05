@@ -56,7 +56,7 @@ import (
 //     2. Validate the changes
 //     3. Display what changed
 //     4. Make changes
-func (csm *CSM) Reconcile(ctx context.Context, configOptions provider.ConfigOptions, datastore inventory.Datastore, dryrun bool) (err error) {
+func (csm *CSM) Reconcile(ctx context.Context, configOptions provider.ConfigOptions, datastore inventory.Datastore, dryrun bool, ignoreExternalValidation bool) (err error) {
 	// TODO should we have a presentation callback to confirm the removal of hardware?
 
 	log.Info().Msg("Starting CSM reconcile process")
@@ -114,7 +114,11 @@ func (csm *CSM) Reconcile(ctx context.Context, configOptions provider.ConfigOpti
 
 	_, err = validate.Validate(configOptions, &modifiedState)
 	if err != nil {
-		return fmt.Errorf("Validation failed. %v\n", err)
+		if ignoreExternalValidation {
+			log.Warn().Msgf("Ignoring these failures: %v\n", err)
+		} else {
+			return fmt.Errorf("Validation failed. %v\n", err)
+		}
 	}
 
 	if !dryrun {
