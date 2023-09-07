@@ -30,23 +30,28 @@ import (
 )
 
 var (
-	dryrun          bool
-	commit          bool
-	k8sPodsCidr     string
-	k8sServicesCidr string
-	kubeconfig      string
-	caCertPath      string
-	insecure        bool
-	secretName      string
-	clientId        string
-	clientSecret    string
-	providerHost    string
-	tokenUsername   string
-	tokenPassword   string
-	useSimulation   bool
+	dryrun                   bool
+	commit                   bool
+	ignoreExternalValidation bool
+	k8sPodsCidr              string
+	k8sServicesCidr          string
+	kubeconfig               string
+	caCertPath               string
+	insecure                 bool
+	secretName               string
+	clientId                 string
+	clientSecret             string
+	providerHost             string
+	tokenUsername            string
+	tokenPassword            string
+	useSimulation            bool
 )
 
 func init() {
+	// temporary varables for shared messages
+	ignoreValidationMessage :=
+		"(CSM Provider) Ignore validation failures. Use this to allow unconventional SLS configurations."
+
 	// Add session commands to root commands
 	root.SessionCmd.AddCommand(SessionInitCmd)
 	root.SessionCmd.AddCommand(SessionApplyCmd)
@@ -83,9 +88,10 @@ func init() {
 	SessionInitCmd.Flags().MarkHidden("csm-client-id")
 	SessionInitCmd.Flags().StringVar(&clientSecret, "csm-client-secret", "", "(CSM Provider) Client Secret")
 	SessionInitCmd.Flags().MarkHidden("csm-client-secret")
+	SessionInitCmd.Flags().BoolVar(&ignoreExternalValidation, "ignore-validation", false, ignoreValidationMessage)
 
 	// Session stop flags
 	SessionApplyCmd.Flags().BoolVarP(&commit, "commit", "c", false, "Commit changes to session")
 	SessionApplyCmd.Flags().BoolVarP(&dryrun, "dryrun", "d", false, "Perform dryrun, and do not make changes to the system")
-
+	SessionApplyCmd.Flags().BoolVar(&ignoreExternalValidation, "ignore-validation", false, ignoreValidationMessage)
 }

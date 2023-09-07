@@ -39,5 +39,8 @@ var SessionCmd = &cobra.Command{
 
 // runSession is the main entrypoint for the cani session command
 func runSession(cmd *cobra.Command, args []string) error {
+	if len(args) == 0 {
+		cmd.Help()
+	}
 	return nil
 }

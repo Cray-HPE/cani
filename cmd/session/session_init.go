@@ -123,7 +123,7 @@ func startSession(cmd *cobra.Command, args []string) error {
 	}
 
 	// Validate the external inventory
-	result, err := root.Conf.Session.Domain.Validate(cmd.Context(), false)
+	result, err := root.Conf.Session.Domain.Validate(cmd.Context(), false, ignoreExternalValidation)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		// TODO the following should probably suggest commands to fix the issue?
 		log.Error().Msgf("Inventory data validation errors encountered")

@@ -32,13 +32,14 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 )
 
 type CommitResult struct {
 	ProviderValidationErrors map[uuid.UUID]provider.HardwareValidationResult
 }
 
-func (d *Domain) Commit(ctx context.Context, dryrun bool) (CommitResult, error) {
+func (d *Domain) Commit(ctx context.Context, dryrun bool, ignoreExternalValidation bool) (CommitResult, error) {
 	inventoryProvider := d.externalInventoryProvider
 
 	// Perform validation integrity of CANI's inventory data
@@ -65,13 +66,15 @@ func (d *Domain) Commit(ctx context.Context, dryrun bool) (CommitResult, error) 
 
 	// Validate the current state of the external inventory
 	if err := inventoryProvider.ValidateExternal(ctx, d.configOptions); err != nil {
-		return CommitResult{}, errors.Join(
-			fmt.Errorf("failed to validate external inventory provider"),
-			err,
-		)
+		if ignoreExternalValidation {
+			log.Warn().Msgf("Ignoring these failures:\n%s", err)
+		} else {
+			return CommitResult{}, errors.Join(
+				fmt.Errorf("failed to validate external inventory provider"),
+				err)
+		}
 	}
 
 	// Reconcile our inventory with the external inventory system
-	return CommitResult{}, inventoryProvider.Reconcile(ctx, d.configOptions, d.datastore, dryrun)
-
+	return CommitResult{}, inventoryProvider.Reconcile(ctx, d.configOptions, d.datastore, dryrun, ignoreExternalValidation)
 }

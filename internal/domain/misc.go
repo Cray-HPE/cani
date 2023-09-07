@@ -51,7 +51,7 @@ type ValidateResult struct {
 	ProviderValidationErrors  map[uuid.UUID]provider.HardwareValidationResult
 }
 
-func (d *Domain) Validate(ctx context.Context, checkRequiredData bool) (ValidateResult, error) {
+func (d *Domain) Validate(ctx context.Context, checkRequiredData bool, ignoreExternalValidation bool) (ValidateResult, error) {
 	var result ValidateResult
 
 	// Validate CANI's Inventory
@@ -84,7 +84,11 @@ func (d *Domain) Validate(ctx context.Context, checkRequiredData bool) (Validate
 	// Validate external inventory data
 	err := d.externalInventoryProvider.ValidateExternal(ctx, d.configOptions)
 	if err != nil {
-		return ValidateResult{}, err
+		if ignoreExternalValidation {
+			log.Warn().Msgf("Ignoring these failures: %s", err)
+		} else {
+			return ValidateResult{}, err
+		}
 	}
 
 	log.Info().Msg("Validated external inventory provider")
