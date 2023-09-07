@@ -70,7 +70,7 @@ nav:
     - Adding Hardware: getting_started/adding_hardware.md
     - Updating Hardware: getting_started/updating_hardware.md
     - Validating: getting_started/validating.md
-    - Stopping A Session: getting_started/stopping_a_session.md
+    - Stopping A Session: getting_started/applying_a_session.md
   - Providers:
     - CSM: providers/csm.md
     - HPCM: providers/hpcm.md
@@ -91,6 +91,9 @@ nav:
     - Versioning: development/versioning.md
   - Troubleshooting:
     - Known Errors: troubleshooting/known_errors.md
+  - Hardware Types Library:
+    - Schema: hardware-types/devicetype.md
+    - Adding Custom Hardware: hardware-types/customizing.md
   # add everything else not included above.  Be careful, this is a catch all
   # currently being used to get all commands/ from auto-generated docs
   - ...

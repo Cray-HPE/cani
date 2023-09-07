@@ -96,7 +96,8 @@ endif
 	generate \
 	generate-go \
 	generate-swagger \
-	license
+	license \
+	venv
 
 all: bin
 
@@ -202,7 +203,20 @@ generate-swagger-hsm-client: bin/swagger-codegen-cli.jar
 	go fmt ./pkg/hsm-client/...
 	goimports -w ./pkg/hsm-client
 
-generate: generate-swagger-sls-client generate-swagger-hsm-client  generate-go 
+venv:
+	virtualenv -p python3 venv
+	source venv/bin/activate
+	pip install -r requirements.txt
+
+generate-hardwaretypes-docs: venv
+	mkdir -p docs/hardware-types
+	generate-schema-doc --config-file docs/generate-schema-doc-config.yml pkg/hardwaretypes/hardware-types/schema/devicetype.json docs/hardware-types/devicetype.md
+	sed -i '' 's/Must be one of:/Must be one of:\n/g' docs/hardware-types/devicetype.md
+
+generate: generate-swagger-sls-client generate-swagger-hsm-client generate-go generate-hardwaretypes-docs
+
+serve: venv
+	mkdocs serve
 
 license:
 	docker run -it --rm -v ${PWD}:/github/workspace artifactory.algol60.net/csm-docker/stable/license-checker .github/workflows/ cmd/ internal pkg/hardwaretypes pkg/xname spec/ --fix

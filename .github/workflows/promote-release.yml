@@ -84,7 +84,11 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install -r requirements.txt
-      
+        
+    - name: generate hardware type docs
+      run: |
+        make generate-hardwaretypes-docs
+
     - name: deploy docs with mike 🚀 and set as latest
       run: |
         mike deploy -F mkdocs.yml -b gh-pages --push --update-aliases ${{ github.ref_name}} latest

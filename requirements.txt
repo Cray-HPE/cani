@@ -1,3 +1,4 @@
+json-schema-for-humans==0.45.1
 mike==1.1.2
 mkdocs==1.4.3
 mkdocs-awesome-pages-plugin==2.9.1
