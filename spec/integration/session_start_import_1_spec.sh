@@ -28,7 +28,7 @@ It 'start a session'
   BeforeCall use_inactive_session
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
   BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
-  When call bin/cani alpha session --config canitest.yml init csm -S
+  When call bin/cani alpha session --config "$CANI_CONF" init csm -S
   The status should equal 0
   The line 1 of stderr should include 'Using simulation mode'
   The stderr should include 'Validated CANI inventory'
@@ -52,7 +52,7 @@ It 'start a session'
 End
 
 It 'commit and reconcile'
-  When call bin/cani alpha session --config canitest.yml apply --commit
+  When call bin/cani alpha session --config "$CANI_CONF" apply --commit
   The status should equal 0
   The line 1 of stderr should include 'Session is STOPPED'
   The line 2 of stderr should include 'Committing changes to session'

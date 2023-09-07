@@ -23,8 +23,8 @@
 #
 session:
     domain_options:
-        datastore_path: ./canitestdb.json
-        log_file_path: ./canitestdb.log
+        datastore_path: /tmp/.cani/canidb.json
+        log_file_path: /tmp/.cani/canidb.log
         provider: csm
         csm_options:
             usesimulation: true
@@ -41,6 +41,8 @@ session:
             validroles:
                 - Storage
                 - Management
+                - Storage
+                - Management
                 - Compute
                 - Service
                 - System
@@ -54,6 +56,6 @@ session:
                 - Master
                 - Worker
                 - Storage
-        custom_hardware_types_dir: ./hardware-types
+        custom_hardware_types_dir: /tmp/.cani/hardware-types
     domain: {}
     active: true

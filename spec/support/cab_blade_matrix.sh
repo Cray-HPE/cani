@@ -22,3 +22,21 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
+
+set -e
+set -u
+
+: "${CANI_CONF:-/tmp/.cani/cani.yml}"
+
+for blade in $(bin/cani --config "$CANI_CONF" alpha add blade -L); do
+  for cabinet in $(bin/cani --config "$CANI_CONF" alpha add cabinet -L); do
+    if [ "$cabinet" = "hpe-eia-cabinet" ];then 
+      continue
+    else 
+      # cab_ordinal=$(echo "$cabinet" | awk '{print $2}')
+      cab_ds_fixture=$(echo "$cabinet" | awk '{print $1}' | tr '-' '_')
+      # these vars are used in the tests
+      echo %data "$cab_ds_fixture" "$blade"
+    fi
+  done
+done

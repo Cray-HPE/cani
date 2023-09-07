@@ -34,9 +34,16 @@ spec_helper_precheck() {
   # Available variables: VERSION, SHELL_TYPE, SHELL_VERSION
   : minimum_version "0.28.1"
 
-  # Fixtures location ./spec/fixtures
+  # Fixtures location ./spec/testdata/fixtures
   setenv FIXTURES="$SHELLSPEC_HELPERDIR/testdata/fixtures"
-  
+  # use /tmp for consistent test dir that doesn't conflict with local dev
+  # also helpful for cani config fixtures if this is a static, abs path
+  setenv CANI_DIR="/tmp/.cani"
+  setenv CANI_CONF="${CANI_DIR:=/tmp/.cani}/cani.yml"
+  setenv CANI_DS="${CANI_DIR:=/tmp/.cani}/canidb.json"
+  setenv CANI_LOG="${CANI_DIR:=/tmp/.cani}/canidb.log"
+  setenv CANI_CUSTOM_HW_DIR="${CANI_DIR:=/tmp/.cani}/hardware-types"
+  setenv CANI_CUSTOM_HW_CONF="${CANI_DIR:=/tmp/.cani}/hardware-types/my_custom_hw.yml"
 }
 
 # This callback function will be invoked after a specfile has been loaded.
@@ -48,94 +55,113 @@ spec_helper_loaded() {
 spec_helper_configure() {
   # Available functions: import, before_each, after_each, before_all, after_all
   : import 'support/custom_matcher'
-
-  # compare value to file content
-  fixture(){
-    #shellcheck disable=SC2317
-    [ "${fixture:?}" = "$( cat "$FIXTURES/$1" )" ]
-  }
-
-  #shellcheck disable=SC2317
-  remove_config(){ rm -f canitest.yml; }
-  #shellcheck disable=SC2317
-  remove_datastore() { rm -f canitestdb.json;rm -f canidb.json; }
-  #shellcheck disable=SC2317
-  remove_log() { rm -f canitestdb.log; }
-
-  # functions to deploy various fixtures with different scenarios
-
-  # deploys a config with session.active = true
-  use_active_session(){
-    #shellcheck disable=SC2317
-    cp "$FIXTURES"/cani/configs/canitest_valid_active.yml canitest.yml 
-  }
-  
-  # deploys a config with session.active = false
-  use_inactive_session(){ 
-    #shellcheck disable=SC2317
-    cp "$FIXTURES"/cani/configs/canitest_valid_inactive.yml canitest.yml
-  } 
-
-  use_custom_hw_type(){ 
-    #shellcheck disable=SC2317
-    cp "$FIXTURES"/cani/configs/my_custom_hw.yml "$PWD"/hardware-types/my_custom_hw.yml
-  } 
-
-  # deploys a datastore with one system only
-  use_valid_datastore_system_only(){ 
-    #shellcheck disable=SC2317
-    cp "$FIXTURES"/cani/configs/canitestdb_valid_system_only.json canitestdb.json
-  }
-  
-  # deploys a datastore with one eia cabinet (and child hardware)
-  use_valid_datastore_one_eia_cabinet(){ 
-    #shellcheck disable=SC2317
-    cp "$FIXTURES"/cani/configs/canitestdb_valid_eia_only.json canitestdb.json 
-  } 
-
-  # deploys a datastore with one ex2000 cabinet (and child hardware)
-  use_valid_datastore_one_ex2000_cabinet(){ 
-    #shellcheck disable=SC2317
-    cp "$FIXTURES"/cani/configs/canitestdb_valid_ex2000_only.json canitestdb.json 
-  } 
-
-  # deploys a datastore with one ex2000 cabinet (and one blade)
-  use_valid_datastore_one_ex2000_one_blade(){ 
-    #shellcheck disable=SC2317
-    cp "$FIXTURES"/cani/configs/canitestdb_valid_ex2000_one_blade.json canitestdb.json 
-  } 
-  # deploys a datastore with one ex2500_1 cabinet (and child hardware)
-  use_valid_datastore_one_ex2500_1_cabinet(){ 
-    #shellcheck disable=SC2317
-    cp "$FIXTURES"/cani/configs/canitestdb_valid_ex2500_1_only.json canitestdb.json 
-  } 
-
-  # deploys a datastore with one ex2500_2 cabinet (and child hardware)
-  use_valid_datastore_one_ex2500_2_cabinet(){ 
-    #shellcheck disable=SC2317
-    cp "$FIXTURES"/cani/configs/canitestdb_valid_ex2500_2_only.json canitestdb.json 
-  } 
-
-  # deploys a datastore with one ex2500_3 cabinet (and child hardware)
-  use_valid_datastore_one_ex2500_3_cabinet(){ 
-    #shellcheck disable=SC2317
-    cp "$FIXTURES"/cani/configs/canitestdb_valid_ex2500_3_only.json canitestdb.json 
-  } 
-
-  # deploys a datastore with one ex3000 cabinet (and child hardware)
-  use_valid_datastore_one_ex3000_cabinet(){ 
-    #shellcheck disable=SC2317
-    cp "$FIXTURES"/cani/configs/canitestdb_valid_ex3000_only.json canitestdb.json 
-  } 
-
-  # deploys a datastore with one ex4000 cabinet (and child hardware)
-  use_valid_datastore_one_ex4000_cabinet(){ 
-    #shellcheck disable=SC2317
-    cp "$FIXTURES"/cani/configs/canitestdb_valid_ex4000_only.json canitestdb.json 
-  } 
-  
-
 }
+
+# compare value to file content
+# https://github.com/shellspec/shellspec/issues/295#issuecomment-1531834218
+fixture(){
+  #shellcheck disable=SC2317
+  [ "${fixture:?}" = "$( cat "$FIXTURES/$1" )" ]
+}
+
+#shellcheck disable=SC2317
+remove_config(){ rm -f "$CANI_CONF"; }
+#shellcheck disable=SC2317
+remove_datastore() { rm -f "$CANI_DS"; }
+#shellcheck disable=SC2317
+remove_log() { rm -f "$CANI_LOG"; }
+
+# functions to deploy various fixtures with different scenarios
+
+# deploys a config with session.active = true
+use_active_session(){
+  #shellcheck disable=SC2317
+  mkdir -p "$(dirname "$CANI_CONF")"
+  cp "$FIXTURES"/cani/configs/canitest_valid_active.yml "$CANI_CONF"
+}
+
+# deploys a config with session.active = false
+use_inactive_session(){ 
+  mkdir -p "$(dirname "$CANI_CONF")"
+  #shellcheck disable=SC2317
+  cp "$FIXTURES"/cani/configs/canitest_valid_inactive.yml "$CANI_CONF"
+} 
+
+use_custom_hw_type(){ 
+  mkdir -p "$(dirname "$CANI_CUSTOM_HW_CONF")"
+  #shellcheck disable=SC2317
+  cp "$FIXTURES"/cani/configs/my_custom_hw.yml "$CANI_CUSTOM_HW_CONF"
+} 
+
+# deploys a datastore with one system only
+use_valid_datastore_system_only(){ 
+  mkdir -p "$(dirname "$CANI_DS")"
+  #shellcheck disable=SC2317
+  cp "$FIXTURES"/cani/configs/canitestdb_valid_system_only.json "$CANI_DS"
+}
+
+# deploys a datastore with one eia cabinet (and child hardware)
+use_valid_datastore_one_hpe_eia_cabinet_cabinet(){ 
+  mkdir -p "$(dirname "$CANI_DS")"
+  #shellcheck disable=SC2317
+  cp "$FIXTURES"/cani/configs/canitestdb_valid_eia_only.json "$CANI_DS"
+} 
+
+# deploys a datastore with one ex2000 cabinet (and child hardware)
+use_valid_datastore_one_hpe_ex2000_cabinet(){ 
+  mkdir -p "$(dirname "$CANI_DS")"
+  #shellcheck disable=SC2317
+  cp "$FIXTURES"/cani/configs/canitestdb_valid_ex2000_only.json "$CANI_DS"
+} 
+
+# deploys a datastore with one ex2000 cabinet (and one blade)
+use_valid_datastore_one_ex2000_one_blade(){ 
+  mkdir -p "$(dirname "$CANI_DS")"
+  #shellcheck disable=SC2317
+  cp "$FIXTURES"/cani/configs/canitestdb_valid_ex2000_one_blade.json "$CANI_DS"
+} 
+
+# deploys a datastore with one hpe_ex2500_1_liquid_cooled_chassis cabinet (and child hardware)
+use_valid_datastore_one_hpe_ex2500_1_liquid_cooled_chassis_cabinet(){ 
+  mkdir -p "$(dirname "$CANI_DS")"
+  #shellcheck disable=SC2317
+  cp "$FIXTURES"/cani/configs/canitestdb_valid_ex2500_1_only.json "$CANI_DS"
+} 
+
+# deploys a datastore with one hpe_ex2500_2_liquid_cooled_chassis cabinet (and child hardware)
+use_valid_datastore_one_hpe_ex2500_2_liquid_cooled_chassis_cabinet(){ 
+  mkdir -p "$(dirname "$CANI_DS")"
+  #shellcheck disable=SC2317
+  cp "$FIXTURES"/cani/configs/canitestdb_valid_ex2500_2_only.json "$CANI_DS"
+} 
+
+# deploys a datastore with one hpe_ex2500_3_liquid_cooled_chassis cabinet (and child hardware)
+use_valid_datastore_one_hpe_ex2500_3_liquid_cooled_chassis_cabinet(){ 
+  mkdir -p "$(dirname "$CANI_DS")"
+  #shellcheck disable=SC2317
+  cp "$FIXTURES"/cani/configs/canitestdb_valid_ex2500_3_only.json "$CANI_DS"
+} 
+
+# deploys a datastore with one hpe_ex3000 cabinet (and child hardware)
+use_valid_datastore_one_hpe_ex3000_cabinet(){ 
+  mkdir -p "$(dirname "$CANI_DS")"
+  #shellcheck disable=SC2317
+  cp "$FIXTURES"/cani/configs/canitestdb_valid_ex3000_only.json "$CANI_DS"
+} 
+
+# deploys a datastore with one hpe_ex4000 cabinet (and child hardware)
+use_valid_datastore_one_hpe_ex4000_cabinet(){ 
+  mkdir -p "$(dirname "$CANI_DS")"
+  #shellcheck disable=SC2317
+  cp "$FIXTURES"/cani/configs/canitestdb_valid_ex4000_only.json "$CANI_DS"
+} 
+
+# deploys a datastore with one hpe_ex4000 cabinet (and child hardware)
+use_valid_datastore_one_my_custom_cabinet_cabinet(){ 
+  mkdir -p "$(dirname "$CANI_DS")"
+  #shellcheck disable=SC2317
+  cp "$FIXTURES"/cani/configs/canitestdb_valid_my_custom_cabinet_only.json "$CANI_DS"
+} 
 
 # Custom matcher used to find a string inside of a text containing ANSI escape codes.
 # https://github.com/shellspec/shellspec/issues/278

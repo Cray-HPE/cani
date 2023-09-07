@@ -22,36 +22,179 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 ---
-manufacturer: HPE
-model: EX2000
+manufacturer: Me
+model: My Custom Cabinet Environmental Controller
+hardware-type: CabinetEnvironmentalController
+slug: my-custom-cabinet-environmental-controller
+interfaces:
+  - name: Ethernet
+    type: 1000base-t
+
+---
+manufacturer: Me
+model: My Custom Chassis Management Module
+hardware-type: ChassisManagementModule
+slug: my-custom-chassis-management-module
+interfaces:
+  - name: Ethernet A
+    type: 10gbase-t
+  - name: Ethernet B
+    type: 10gbase-t
+  - name: Ethernet C
+    type: 10gbase-t
+
+---
+manufacturer: Me
+model: My Custom liquid-cooled cabinet chassis
+hardware-type: Chassis
+slug: my-custom-chassis
+
+device-bays:
+  - name: CMM Bay
+    allowed:
+      types: [CabinetManagementModule]
+    default:
+      slug: my-custom-chassis-management-module
+    ordinal: 0
+
+  - name: Custom Blade Bay 0
+    allowed:
+      types: [NodeBlade]
+    ordinal: 0
+  - name: Custom Blade Bay 1
+    allowed:
+      types: [NodeBlade]
+    ordinal: 1
+  - name: Custom Blade Bay 2
+    allowed:
+      types: [NodeBlade]
+    ordinal: 2
+  - name: Custom Blade Bay 3
+    allowed:
+      types: [NodeBlade]
+    ordinal: 3
+  - name: Custom Blade Bay 4
+    allowed:
+      types: [NodeBlade]
+    ordinal: 4
+  - name: Custom Blade Bay 5
+    allowed:
+      types: [NodeBlade]
+    ordinal: 5
+  - name: Custom Blade Bay 6
+    allowed:
+      types: [NodeBlade]
+    ordinal: 6
+  - name: Custom Blade Bay 7
+    allowed:
+      types: [NodeBlade]
+    ordinal: 7
+
+  - name: Switch/Peripheral Blade Bay 0
+    allowed:
+      types: [HighSpeedSwitchBlade]
+    ordinal: 0
+  - name: Switch/Peripheral Blade Bay 1
+    allowed:
+      types: [HighSpeedSwitchBlade]
+    ordinal: 1
+  - name: Switch/Peripheral Blade Bay 2
+    allowed:
+      types: [HighSpeedSwitchBlade]
+    ordinal: 2
+  - name: Switch/Peripheral Blade Bay 3
+    allowed:
+      types: [HighSpeedSwitchBlade]
+    ordinal: 3
+  - name: Switch/Peripheral Blade Bay 4
+    allowed:
+      types: [HighSpeedSwitchBlade]
+    ordinal: 4
+  - name: Switch/Peripheral Blade Bay 5
+    allowed:
+      types: [HighSpeedSwitchBlade]
+    ordinal: 5
+  - name: Switch/Peripheral Blade Bay 6
+    allowed:
+      types: [HighSpeedSwitchBlade]
+    ordinal: 6
+  - name: Switch/Peripheral Blade Bay 7
+    allowed:
+      types: [HighSpeedSwitchBlade]
+    ordinal: 7
+
+---
+manufacturer: Me
+model: EX4000
 hardware-type: Cabinet
 slug: my-custom-cabinet
 
 device-bays:
+  - name: CEC 0 Bay
+    allowed:
+      slug: [my-custom-cabinet-environmental-controller]
+    default:
+      slug: my-custom-cabinet-environmental-controller
+    ordinal: 0
+  - name: CEC 1 Bay
+    allowed:
+      slug: [my-custom-cabinet-environmental-controller]
+    default:
+      slug: my-custom-cabinet-environmental-controller
+    ordinal: 1
+
   - name: Chassis 0
     allowed:
       slug: [my-custom-chassis]
     default:
       slug: my-custom-chassis
     ordinal: 0
+  - name: Chassis 1
+    allowed:
+      slug: [my-custom-chassis]
+    default:
+      slug: my-custom-chassis
+    ordinal: 1
+  - name: Chassis 2
+    allowed:
+      slug: [my-custom-chassis]
+    default:
+      slug: my-custom-chassis
+    ordinal: 2
+  - name: Chassis 3
+    allowed:
+      slug: [my-custom-chassis]
+    default:
+      slug: my-custom-chassis
+    ordinal: 3
+  - name: Chassis 4
+    allowed:
+      slug: [my-custom-chassis]
+    default:
+      slug: my-custom-chassis
+    ordinal: 4
+  - name: Chassis 5
+    allowed:
+      slug: [my-custom-chassis]
+    default:
+      slug: my-custom-chassis
+    ordinal: 5
+  - name: Chassis 6
+    allowed:
+      slug: [my-custom-chassis]
+    default:
+      slug: my-custom-chassis
+    ordinal: 6
+  - name: Chassis 7
+    allowed:
+      slug: [my-custom-chassis]
+    default:
+      slug: my-custom-chassis
+    ordinal: 7
 
 provider_defaults:
   csm:
-    Class: River
+    Class: Mountain
     Ordinal: 4321
     StartingHmnVlan: 1111
     EndingHmnVlan: 1769
-
----
-manufacturer: HPE
-model: Standard/EIA Chassis
-hardware-type: Chassis
-slug: my-custom-chassis
-
-provider_defaults:
-  csm:
-    Class: River
-    starting_cabinet: 4321
-    StartingHmnVlan: 1111
-    EndingHmnVlan: 1769
-

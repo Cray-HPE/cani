@@ -28,7 +28,7 @@ It 'start a session'
   BeforeCall use_inactive_session
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
   BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
-  When call bin/cani alpha session --config canitest.yml init csm -S
+  When call bin/cani alpha session --config "$CANI_CONF" init csm -S
   The status should equal 0
   The line 1 of stderr should include 'Using simulation mode'
   The stderr should include 'Validated CANI inventory'
@@ -50,14 +50,14 @@ It 'start a session'
 End
 
 It 'verify empty blade slot'
-  When call bin/cani alpha list blade --config canitest.yml
+  When call bin/cani alpha list blade --config "$CANI_CONF"
   The status should equal 0
   The line 2 of output should include 'empty		System:0->Cabinet:9000->Chassis:1->NodeBlade:0'
   The line 3 of output should include 'empty		System:0->Cabinet:9000->Chassis:1->NodeBlade:1'
 End
 
 It 'verify empty nodes'
-  When call bin/cani alpha list node --config canitest.yml
+  When call bin/cani alpha list node --config "$CANI_CONF"
   The status should equal 0
   The line 2 of output should include 'empty		Compute		[nid001000]	1000	System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:0->Node:0'
   The line 3 of output should include 'empty		Compute		[nid001001]	1001	System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:0->Node:1'
@@ -70,7 +70,7 @@ It 'verify empty nodes'
 End
 
 It 'add ex425 blade'
-  When call bin/cani alpha --config canitest.yml add blade hpe-crayex-ex425-compute-blade --auto --accept
+  When call bin/cani alpha --config "$CANI_CONF" add blade hpe-crayex-ex425-compute-blade --auto --accept
   The status should equal 0
   The line 1 of stderr should include 'Querying inventory to suggest cabinet, chassis, and blade for this NodeBlade'
   The line 2 of stderr should include 'Suggested Cabinet number: 9000'
@@ -84,7 +84,7 @@ It 'add ex425 blade'
 End
 
 It 'verify staged blade slot'
-  When call bin/cani alpha list blade --config canitest.yml
+  When call bin/cani alpha list blade --config "$CANI_CONF"
   The status should equal 0
   # four nodes should be added
   The line 2 of stdout should include 'staged'
@@ -93,7 +93,7 @@ It 'verify staged blade slot'
 End
 
 It 'verify staged nodes'
-  When call bin/cani alpha list node --config canitest.yml
+  When call bin/cani alpha list node --config "$CANI_CONF"
   The status should equal 0
   # four nodes should be added
   The line 2 of stdout should include 'staged'
@@ -126,7 +126,7 @@ It 'verify staged nodes'
 End
 
 It 'commit and reconcile'
-  When call bin/cani alpha session --config canitest.yml apply --commit
+  When call bin/cani alpha session --config "$CANI_CONF" apply --commit
   # committing without node metadata should fail
   The status should equal 0
   The line 1 of stderr should include 'Session is STOPPED'

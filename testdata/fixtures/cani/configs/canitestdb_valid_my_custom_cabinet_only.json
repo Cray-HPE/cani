@@ -1,0 +1,75 @@
+{
+  "SchemaVersion": "v1alpha1",
+  "Provider": "csm",
+  "Hardware": {
+    "367b2d27-dad4-4060-aca1-f7fb66876d0f": {
+      "ID": "367b2d27-dad4-4060-aca1-f7fb66876d0f",
+      "Type": "Cabinet",
+      "DeviceTypeSlug": "my-custom-cabinet",
+      "Vendor": "HPE",
+      "Model": "EX2000",
+      "Status": "staged",
+      "ProviderMetadata": {
+        "csm": {
+          "Cabinet": {
+            "HMNVlan": 1111
+          }
+        }
+      },
+      "Parent": "abcdef12-3456-2789-abcd-ef1234567890",
+      "Children": [
+        "919f9ec1-4d1a-46e7-8bf5-4fd6419af653"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 4321
+        }
+      ],
+      "LocationOrdinal": 4321
+    },
+    "919f9ec1-4d1a-46e7-8bf5-4fd6419af653": {
+      "ID": "919f9ec1-4d1a-46e7-8bf5-4fd6419af653",
+      "Type": "Chassis",
+      "DeviceTypeSlug": "my-custom-chassis",
+      "Vendor": "HPE",
+      "Model": "Standard/EIA Chassis",
+      "Status": "staged",
+      "Parent": "367b2d27-dad4-4060-aca1-f7fb66876d0f",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 4321
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "abcdef12-3456-2789-abcd-ef1234567890": {
+      "ID": "abcdef12-3456-2789-abcd-ef1234567890",
+      "Type": "System",
+      "Parent": "00000000-0000-0000-0000-000000000000",
+      "Children": [
+        "367b2d27-dad4-4060-aca1-f7fb66876d0f"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    }
+  }
+}

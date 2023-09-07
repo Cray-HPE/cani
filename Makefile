@@ -148,13 +148,13 @@ unittest: bin
 	     github.com/Cray-HPE/cani/internal/provider/csm/validate/common
 
 spec: bin
-	shellspec --format tap --no-warning-as-failure spec/*_spec.sh
+	./spec/support/bin/cani_integrate.sh functional
 
 integrate: bin
-	./spec/cani_integrate.sh integration
+	./spec/support/bin/cani_integrate.sh integration
 
 edge: bin
-	./spec/cani_integrate.sh edge
+	./spec/support/bin/cani_integrate.sh edge
 
 test: bin validate-hardware-type-schemas unittest spec integrate edge
 

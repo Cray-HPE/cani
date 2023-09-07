@@ -28,13 +28,13 @@ It 'init session'
   BeforeCall use_inactive_session
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
   BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
-  When call bin/cani alpha session --config canitest.yml init csm -S
+  When call bin/cani alpha session --config "$CANI_CONF" init csm -S
   The status should equal 0
   The line 1 of stderr should include 'Using simulation mode'
 End
 
 It 'add cabinet hpe-ex2500-1-liquid-cooled-chassis'
-  When call bin/cani alpha --config canitest.yml add cabinet hpe-ex2500-1-liquid-cooled-chassis --auto --accept
+  When call bin/cani alpha --config "$CANI_CONF" add cabinet hpe-ex2500-1-liquid-cooled-chassis --auto --accept
   The status should equal 0
   The line 1 of stderr should include 'Querying inventory to suggest cabinet number and VLAN ID'
   The line 2 of stderr should include 'Suggested cabinet number: 8000'
@@ -42,8 +42,8 @@ It 'add cabinet hpe-ex2500-1-liquid-cooled-chassis'
   The line 4 of stderr should include 'Cabinet 8000 was successfully staged to be added to the system'
 End
 
-It 'add blade --config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 8000 --chassis 0 --blade 0'
-  When call bin/cani alpha add blade --config canitest.yml hpe-crayex-ex235n-compute-blade --cabinet 8000 --chassis 0 --blade 0
+It 'add blade --config "$CANI_CONF" hpe-crayex-ex235n-compute-blade --cabinet 8000 --chassis 0 --blade 0'
+  When call bin/cani alpha add blade --config "$CANI_CONF" hpe-crayex-ex235n-compute-blade --cabinet 8000 --chassis 0 --blade 0
   The status should equal 0
   The line 2 of stderr should include "NodeBlade was successfully staged to be added to the system"
   The line 3 of stderr should include "UUID: "
@@ -54,7 +54,7 @@ End
 
 
 It 'export'
-  When call bin/cani alpha --config canitest.yml export
+  When call bin/cani alpha --config "$CANI_CONF" export
   The status should equal 0
   The line 1 of stdout should include "ID"
   The output should include "Cabinet,3001"
@@ -62,33 +62,32 @@ It 'export'
 End
 
 It 'export id,role,subrole'
-  When call bin/cani alpha --config canitest.yml export --headers id,role,subrole
+  When call bin/cani alpha --config "$CANI_CONF" export --headers id,role,subrole
   The status should equal 0
   The line 1 of stdout should equal "ID,Role,SubRole"
 End
 
 It 'import vlan change'
   When call sh -c '\
-      bin/cani alpha --config canitest.yml export > canitest_export.csv; \
-      cat canitest_export.csv | \
-        sed s/Cabinet,3001/Cabinet,4000/ | \
-        bin/cani alpha --config canitest.yml import'
+      bin/cani alpha --config "$CANI_CONF" export | \
+      sed s/Cabinet,3001/Cabinet,4000/ | \
+      bin/cani alpha --config "$CANI_CONF" import'
   The status should equal 0
   The line 1 of stderr should include 'Success: Wrote 1 records of a total'
 End
 
 It 'import vlan changes again'
   When call sh -c '\
-      bin/cani alpha --config canitest.yml export > canitest_export.csv; \
+      bin/cani alpha --config "$CANI_CONF" export > canitest_export.csv; \
       cat canitest_export.csv | \
         sed s/Cabinet,3001/Cabinet,4000/ | \
-        bin/cani alpha --config canitest.yml import'
+        bin/cani alpha --config "$CANI_CONF" import'
   The status should equal 0
   The line 1 of stderr should include 'Success: Wrote 0 records of a total'
 End
 
 It 'export after cabinets import'
-  When call bin/cani alpha --config canitest.yml export --type cabinet --headers id,Type,vlan
+  When call bin/cani alpha --config "$CANI_CONF" export --type cabinet --headers id,Type,vlan
   The status should equal 0
   The line 1 of stdout should equal "ID,Type,Vlan"
   The output should include "Cabinet,4000"
@@ -98,17 +97,17 @@ End
 
 It 'import changes to nodes that do not have metadata'
   When call sh -c '\
-      bin/cani alpha --config canitest.yml export --headers type,vlan,role,subrole,nid,alias,name,id > canitest_export.csv; \
+      bin/cani alpha --config "$CANI_CONF" export --headers type,vlan,role,subrole,nid,alias,name,id > canitest_export.csv; \
       cat canitest_export.csv | \
         sed "0,/Node,,,,,,,/s//Node,,Compute,,10000,nid10000,,/" | \
         sed "0,/Node,,,,,,,/s//Node,,Compute,,20000,nid20000,,/" | \
-        bin/cani alpha --config canitest.yml import'
+        bin/cani alpha --config "$CANI_CONF" import'
   The status should equal 0
   The line 1 of stderr should include 'Success: Wrote 2 records of a total'
 End
 
 It 'export after node import'
-  When call bin/cani alpha --config canitest.yml export --type NODE --headers 'id,Type,role,nid,alias'
+  When call bin/cani alpha --config "$CANI_CONF" export --type NODE --headers 'id,Type,role,nid,alias'
   The status should equal 0
   The line 1 of stdout should equal "ID,Type,Role,Nid,Alias"
   The output should include "Node,Compute,10000,nid10000"
@@ -118,16 +117,16 @@ End
 
 It 'import changes to nodes that already have metadata'
   When call sh -c '\
-      bin/cani alpha --config canitest.yml export --headers type,vlan,role,subrole,nid,alias,name,id > canitest_export.csv;
+      bin/cani alpha --config "$CANI_CONF" export --headers type,vlan,role,subrole,nid,alias,name,id > canitest_export.csv;
       cat canitest_export.csv | \
         sed "0,/Node,,Compute,,10000,nid10000,,/s//Node,,Compute,Worker,10000,nid10000,,/" | \
-        bin/cani alpha --config canitest.yml import'
+        bin/cani alpha --config "$CANI_CONF" import'
   The status should equal 0
   The line 1 of stderr should include 'Success: Wrote 1 records of a total'
 End
 
 It 'export after node second import'
-  When call bin/cani alpha --config canitest.yml export --type NODE,nodeblade --headers 'id,Type,role,subrole,nid,alias'
+  When call bin/cani alpha --config "$CANI_CONF" export --type NODE,nodeblade --headers 'id,Type,role,subrole,nid,alias'
   The status should equal 0
   The line 1 of stdout should equal "ID,Type,Role,SubRole,Nid,Alias"
   The output should include "Node,Compute,Worker,10000,nid10000"
@@ -137,7 +136,7 @@ It 'export after node second import'
 End
 
 It 'apply and reconcile session'
-  When call bin/cani alpha session --config canitest.yml apply --commit
+  When call bin/cani alpha session --config "$CANI_CONF" apply --commit
   The status should equal 0
   The line 1 of stderr should include 'Session is STOPPED'
   The line 2 of stderr should include 'Committing changes to session'

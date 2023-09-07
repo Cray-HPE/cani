@@ -46,8 +46,14 @@ func validHardware(cmd *cobra.Command, args []string) error {
 	// Get the list of hardware types that are cabinets
 	deviceTypes := library.GetDeviceTypesByHardwareType(hardwaretypes.Cabinet)
 	if cmd.Flags().Changed("list-supported-types") {
+		cmd.SetOut(os.Stdout)
 		for _, hw := range deviceTypes {
-			cmd.Printf("- %s\n", hw.Slug)
+			// print additional provider defaults
+			if root.Verbose {
+				cmd.Printf("%s %d %d\n", hw.Slug, hw.ProviderDefaults.CSM.Ordinal, hw.ProviderDefaults.CSM.StartingHmnVlan)
+			} else {
+				cmd.Printf("%s\n", hw.Slug)
+			}
 		}
 		os.Exit(0)
 	}

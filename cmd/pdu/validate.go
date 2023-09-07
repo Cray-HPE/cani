@@ -46,8 +46,9 @@ func validHardware(cmd *cobra.Command, args []string) error {
 	// Get the list of hardware types that are pdus
 	deviceTypes := library.GetDeviceTypesByHardwareType(hardwaretypes.CabinetPDU)
 	if cmd.Flags().Changed("list-supported-types") {
+		cmd.SetOut(os.Stdout)
 		for _, hw := range deviceTypes {
-			cmd.Printf("- %s\n", hw.Slug)
+			cmd.Printf("%s\n", hw.Slug)
 		}
 		os.Exit(0)
 	}
