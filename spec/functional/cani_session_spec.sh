@@ -64,9 +64,9 @@ It "--config $CANI_CONF init"
 End
 
 # Starting a session without passing a provider should fail
-It "--config $CANI_CONF init fake"
+It "--config $CANI_CONF init fake -S --csm-api-host localhost:8443"
   BeforeCall remove_config
-  When call bin/cani alpha session --config "$CANI_CONF" init fake
+  When call bin/cani alpha session --config "$CANI_CONF" init fake -S --csm-api-host localhost:8443
   The status should equal 1
   The line 1 of stderr should equal 'Error: fake is not a valid provider.  Valid providers: [csm]'
 End
@@ -74,21 +74,22 @@ End
 # Starting a session should fail with:
 #  - a valid proivder
 #  - no connection to SLS
-It "(no connection to provider) --config $CANI_CONF init csm"
+It "(timeout, no connection to provider) --config $CANI_CONF init csm"
   BeforeCall remove_config
   BeforeCall remove_datastore
   When call bin/cani alpha session --config "$CANI_CONF" init csm
   The status should equal 1
   The line 1 of stderr should include "$CANI_DS does not exist, creating default datastore"
   The line 2 of stderr should include 'No API Gateway token provided, getting one from provider '
-  The line 3 of stderr should include '/keycloak/realms/shasta/protocol/openid-connect/token'
+  The line 3 of stderr should include 'https://api-gw-service.local/keycloak/realms/shasta/protocol/openid-connect/token'
+  The stderr should include 'Failed to get token'
 End
 
 It 'initialize a session without a config file or datastore'
   BeforeCall remove_config
   BeforeCall remove_datastore
   BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
-  When call bin/cani alpha session --config "$CANI_CONF" init csm -S
+  When call bin/cani alpha session --config "$CANI_CONF" init csm -S 
   The status should equal 0
   The line 1 of stderr should include 'Using simulation mode'
   The stderr should include 'Validated CANI inventory'

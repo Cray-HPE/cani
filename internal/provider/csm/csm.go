@@ -75,9 +75,7 @@ func New(opts *NewOpts, hardwareLibrary *hardwaretypes.Library) (*CSM, error) {
 	if opts.UseSimulation {
 		opts.InsecureSkipVerify = true
 
-		if opts.ProviderHost == "" {
-			opts.ProviderHost = "localhost:8443"
-		}
+		opts.ProviderHost = "localhost:8443"
 
 		if opts.BaseUrlSLS == "" {
 			opts.BaseUrlSLS = fmt.Sprintf("https://%s/apis/sls/v1", opts.ProviderHost)
