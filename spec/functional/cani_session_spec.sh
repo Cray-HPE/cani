@@ -181,4 +181,17 @@ It 'initialize a session and validate a custom hardware type'
   The path "$CANI_CUSTOM_HW_DIR" should be directory
 End
 
+It 'initialize a session with a CIDR that overlaps k8s values'
+  BeforeCall use_inactive_session
+  BeforeCall use_valid_datastore_system_only
+  BeforeCall "load_sls.sh testdata/fixtures/sls/invalid_networks_k8s_overlap.json" # simulator is running, load a specific SLS config
+  When call bin/cani alpha session --config "$CANI_CONF" init csm -S 
+  The status should equal 1
+  The line 1 of stderr should include 'Using simulation mode'
+  The stderr should include 'Validated CANI inventory'
+  # A session should not start if the CIDRs overlap that of k8s values set by CSI
+  The stderr should include 'k8spodscidr 10.32.0.0/12 overlaps with BICAN 10.32.0.0/12'
+  The stderr should include 'k8sservicescidr 10.16.0.0/12 overlaps with CAN 10.16.0.0/12'
+End
+
 End
