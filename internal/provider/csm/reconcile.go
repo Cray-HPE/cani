@@ -98,6 +98,11 @@ func (csm *CSM) Reconcile(ctx context.Context, configOptions provider.ConfigOpti
 	if err != nil {
 		return errors.Join(fmt.Errorf("unable to copy SLS state"), err)
 	}
+
+	if modifiedState.Hardware == nil {
+		modifiedState.Hardware = map[string]sls_client.Hardware{}
+	}
+
 	for _, hardware := range hardwareChanges.Removed {
 		delete(modifiedState.Hardware, hardware.Xname)
 	}
