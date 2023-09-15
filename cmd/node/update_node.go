@@ -70,7 +70,7 @@ func updateNode(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("alias") {
 		nodeMeta[csm.ProviderMetadataAlias] = alias
 	}
-	if cmd.Flags().Changed("alias") {
+	if cmd.Flags().Changed("nid") {
 		nodeMeta[csm.ProviderMetadataNID] = nid
 	}
 
