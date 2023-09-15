@@ -41,8 +41,8 @@ It "validate nodes exist"
   The line 3 of stdout should include '8ab879e0-f269-4c88-aaf4-4a345985d41e'
 End
 
-It "update node --config $CANI_CONF --uuid 8ab879e0-f269-4c88-aaf4-4a345985d41e --role Application --subrole Worker"
-  When call bin/cani alpha update node --config "$CANI_CONF" --uuid 8ab879e0-f269-4c88-aaf4-4a345985d41e --role Application --subrole Worker
+It "update node --config $CANI_CONF --uuid 8ab879e0-f269-4c88-aaf4-4a345985d41e --role Application --subrole Worker --nid 1234"
+  When call bin/cani alpha update node --config "$CANI_CONF" --uuid 8ab879e0-f269-4c88-aaf4-4a345985d41e --role Application --subrole Worker --nid 1234
   The status should equal 0
   The line 1 of stderr should include 'Updated node'
 End
@@ -53,6 +53,7 @@ It "validate node is updated"
   The line 3 of stdout should include '8ab879e0-f269-4c88-aaf4-4a345985d41e'
   The line 3 of stdout should include 'Application'
   The line 3 of stdout should include 'Worker'
+  The line 3 of stdout should include '1234'
 End
 
 End
