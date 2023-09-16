@@ -26,7 +26,9 @@
 package cmd
 
 import (
+	"bufio"
 	"encoding/csv"
+	"fmt"
 	"os"
 	"strings"
 
@@ -40,6 +42,8 @@ var (
 	csvComponentTypes string
 	csvAllTypes       bool
 	csvListOptions    bool
+	exportFormat      string
+	validateSls       bool
 )
 
 func init() {
@@ -49,6 +53,8 @@ func init() {
 		&csvComponentTypes, "type", "t", "Node,Cabinet", "Comma separated list of the types of components to output")
 	ExportCmd.PersistentFlags().BoolVarP(&csvAllTypes, "all", "a", false, "List all components. This overrides the --type option")
 	ExportCmd.PersistentFlags().BoolVarP(&csvListOptions, "list-fields", "L", false, "List details about the fields in the CSV")
+	ExportCmd.PersistentFlags().StringVar(&exportFormat, "format", "csv", "Format option: csv or sls-json")
+	ExportCmd.PersistentFlags().BoolVar(&validateSls, "validate", false, "Validate the SLS json. This only applies to the sls-json format.")
 }
 
 // ExportCmd represents the export command
@@ -68,10 +74,21 @@ func export(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	switch exportFormat {
+	case "csv":
+		return exportCsv(cmd, args, d)
+	case "sls-json":
+		return exportSlsJson(cmd, args, d, validateSls)
+	default:
+		return fmt.Errorf("the requested format, %s, is unsupported", exportFormat)
+	}
+}
+
+func exportCsv(cmd *cobra.Command, args []string, d *domain.Domain) error {
 	if csvListOptions {
-		err = d.ListCsvOptions(cmd.Context(), Conf.Session.DomainOptions)
+		err := d.ListCsvOptions(cmd.Context(), Conf.Session.DomainOptions)
 		if err != nil {
-			log.Error().Msgf("failed to list CSV options: %s", err)
+			return err
 		}
 	} else {
 		headers := strings.Split(csvHeaders, ",")
@@ -93,10 +110,27 @@ func export(cmd *cobra.Command, args []string) error {
 		}
 
 		w := csv.NewWriter(os.Stdout)
-		err = d.ExportCsv(cmd.Context(), w, headers, types)
+		err := d.ExportCsv(cmd.Context(), w, headers, types)
 		if err != nil {
-			log.Error().Msgf("export failed: %s", err)
+			return err
 		}
+	}
+	return nil
+}
+
+func exportSlsJson(cmd *cobra.Command, args []string, d *domain.Domain, validate bool) error {
+	cmd.SilenceUsage = true
+
+	if !validate {
+		log.Warn().Msg("The SLS json is not being validated. Use the --validate option to validate it.")
+	}
+
+	f := os.Stdout
+	writer := bufio.NewWriter(f)
+	defer writer.Flush()
+	err := d.ExportSls(cmd.Context(), writer, validate)
+	if err != nil {
+		return err
 	}
 	return nil
 }
