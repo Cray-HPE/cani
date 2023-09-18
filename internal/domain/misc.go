@@ -95,7 +95,7 @@ func (d *Domain) Validate(ctx context.Context, checkRequiredData bool, ignoreExt
 	return result, nil
 }
 
-func (d *Domain) SetConfigOptions(ctx context.Context, domainOptions *NewOpts) error {
+func (d *Domain) SetConfigOptions(ctx context.Context, domainOptions *DomainOpts) error {
 	options, err := d.externalInventoryProvider.ConfigOptions(ctx)
 	if err != nil {
 		return err

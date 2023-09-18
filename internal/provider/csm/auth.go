@@ -39,7 +39,7 @@ import (
 )
 
 // newClient returns a new http client and context
-func (opts *NewOpts) newClient() (httpClient *retryablehttp.Client, ctx context.Context, err error) {
+func (opts *ProviderOpts) newClient() (httpClient *retryablehttp.Client, ctx context.Context, err error) {
 	// use the system certificates if possible
 	certPool, err := x509.SystemCertPool()
 	if err != nil {
@@ -95,7 +95,7 @@ func (opts *NewOpts) newClient() (httpClient *retryablehttp.Client, ctx context.
 }
 
 // getAuthToken retrieves an auth token from the auth server using the provided credentials and certificate
-func (opts *NewOpts) getAuthToken(ctx context.Context) (*oauth2.Token, error) {
+func (opts *ProviderOpts) getAuthToken(ctx context.Context) (*oauth2.Token, error) {
 	// Setup the oauth2 config
 	conf := &oauth2.Config{
 		ClientID: "shasta",
