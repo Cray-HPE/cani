@@ -75,6 +75,10 @@ type InventoryProvider interface {
 	GetFieldMetadata(configOptions ConfigOptions) ([]FieldMetadata, error)
 }
 
+type SlsProvider interface {
+	GetSlsJson(ctx context.Context, configOptions ConfigOptions, datastore inventory.Datastore, skipValidation bool) ([]byte, error)
+}
+
 type HardwareValidationResult struct {
 	Hardware inventory.Hardware
 	Errors   []string

@@ -4,11 +4,13 @@ Usage:
   cani alpha export [flags]
 
 Flags:
-  -a, --all              List all components. This overrides the --type option
-      --headers string   Comma separated list of fields to get (default "Type,Vlan,Role,SubRole,Status,Nid,Alias,Name,ID,Location")
-  -h, --help             help for export
-  -L, --list-fields      List details about the fields in the CSV
-  -t, --type string      Comma separated list of the types of components to output (default "Node,Cabinet")
+  -a, --all                 List all components. This overrides the --type option
+      --format string       Format option: csv or sls-json (default "csv")
+      --headers string      Comma separated list of fields to get (default "Type,Vlan,Role,SubRole,Status,Nid,Alias,Name,ID,Location")
+  -h, --help                help for export
+      --ignore-validation   Skip validating the sls data. This only applies to the sls-json format.
+  -L, --list-fields         List details about the fields in the CSV
+  -t, --type string         Comma separated list of the types of components to output (default "Node,Cabinet")
 
 Global Flags:
       --config string   Path to the configuration file

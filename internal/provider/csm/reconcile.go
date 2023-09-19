@@ -75,49 +75,12 @@ func (csm *CSM) Reconcile(ctx context.Context, configOptions provider.ConfigOpti
 		)
 	}
 
-	//
-	// Reconcile Network changes
-	//
-	networkChanges, err := reconcileNetworkChanges(datastore, *csm.hardwareLibrary, currentSLSState.Networks)
+	modifiedState, hardwareChanges, networkChanges, err := csm.reconcileSlsChanges(currentSLSState, datastore)
 	if err != nil {
-		return errors.Join(fmt.Errorf("failed to reconcile network changes"), err)
+		return err
 	}
 
-	//
-	// Reconcile Hardware changes
-	//
-	hardwareChanges, err := reconcileHardwareChanges(*csm.hardwareLibrary, datastore, currentSLSState, networkChanges)
-	if err != nil {
-		return errors.Join(fmt.Errorf("failed to reconcile hardware changes"), err)
-	}
-
-	//
-	// Simulate and validate SLS actions
-	//
-	modifiedState, err := sls.CopyState(currentSLSState)
-	if err != nil {
-		return errors.Join(fmt.Errorf("unable to copy SLS state"), err)
-	}
-
-	if modifiedState.Hardware == nil {
-		modifiedState.Hardware = map[string]sls_client.Hardware{}
-	}
-
-	for _, hardware := range hardwareChanges.Removed {
-		delete(modifiedState.Hardware, hardware.Xname)
-	}
-	for _, hardware := range hardwareChanges.Added {
-		modifiedState.Hardware[hardware.Xname] = hardware
-	}
-	for _, hardwarePair := range hardwareChanges.Changed {
-		updatedHardware := hardwarePair.HardwareA
-		modifiedState.Hardware[updatedHardware.Xname] = updatedHardware
-	}
-	for _, network := range networkChanges.ModifiedNetworks {
-		modifiedState.Networks[network.Name] = network
-	}
-
-	_, err = validate.Validate(configOptions, &modifiedState)
+	_, err = validate.Validate(configOptions, modifiedState)
 	if err != nil {
 		if ignoreExternalValidation {
 			log.Warn().Msgf("Ignoring these failures: %v\n", err)
@@ -205,6 +168,52 @@ func (csm *CSM) Reconcile(ctx context.Context, configOptions provider.ConfigOpti
 	}
 
 	return nil
+}
+
+func (csm *CSM) reconcileSlsChanges(currentSLSState sls_client.SlsState, datastore inventory.Datastore) (
+	modifiedSlsState *sls_client.SlsState, hardwareChanges *HardwareChanges, networkChanges *NetworkChanges, err error) {
+	//
+	// Reconcile Network changes
+	//
+	networkChanges, err = reconcileNetworkChanges(datastore, *csm.hardwareLibrary, currentSLSState.Networks)
+	if err != nil {
+		return modifiedSlsState, hardwareChanges, networkChanges, errors.Join(fmt.Errorf("failed to reconcile network changes"), err)
+	}
+
+	//
+	// Reconcile Hardware changes
+	//
+	hardwareChanges, err = reconcileHardwareChanges(*csm.hardwareLibrary, datastore, currentSLSState, networkChanges)
+	if err != nil {
+		return modifiedSlsState, hardwareChanges, networkChanges, errors.Join(fmt.Errorf("failed to reconcile hardware changes"), err)
+	}
+
+	//
+	// Simulate and validate SLS actions
+	//
+	modifiedState, err := sls.CopyState(currentSLSState)
+	if err != nil {
+		return modifiedSlsState, hardwareChanges, networkChanges, errors.Join(fmt.Errorf("unable to copy SLS state"), err)
+	}
+
+	if modifiedState.Hardware == nil {
+		modifiedState.Hardware = map[string]sls_client.Hardware{}
+	}
+
+	for _, hardware := range hardwareChanges.Removed {
+		delete(modifiedState.Hardware, hardware.Xname)
+	}
+	for _, hardware := range hardwareChanges.Added {
+		modifiedState.Hardware[hardware.Xname] = hardware
+	}
+	for _, hardwarePair := range hardwareChanges.Changed {
+		updatedHardware := hardwarePair.HardwareA
+		modifiedState.Hardware[updatedHardware.Xname] = updatedHardware
+	}
+	for _, network := range networkChanges.ModifiedNetworks {
+		modifiedState.Networks[network.Name] = network
+	}
+	return &modifiedState, hardwareChanges, networkChanges, nil
 }
 
 //
