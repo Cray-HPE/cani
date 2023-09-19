@@ -105,6 +105,11 @@ func startSession(cmd *cobra.Command, args []string) error {
 			if !overwrite {
 				// User chose not to overwrite the file
 				os.Exit(0)
+			} else {
+				err = os.Remove(ds)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
