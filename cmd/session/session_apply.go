@@ -32,7 +32,6 @@ import (
 	"sort"
 
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/manifoldco/promptui"
 	"github.com/rs/zerolog/log"
@@ -50,13 +49,9 @@ var SessionApplyCmd = &cobra.Command{
 }
 
 // stopSession stops a session if one exists
-func stopSession(cmd *cobra.Command, args []string) error {
+func stopSession(cmd *cobra.Command, args []string) (err error) {
 	ds := root.Conf.Session.DomainOptions.DatastorePath
 	providerName := root.Conf.Session.DomainOptions.Provider
-	d, err := domain.New(root.Conf.Session.DomainOptions)
-	if err != nil {
-		return err
-	}
 
 	if root.Conf.Session.Active {
 		// Check that the datastore exists before proceeding since we cannot continue without it
@@ -84,7 +79,7 @@ func stopSession(cmd *cobra.Command, args []string) error {
 		log.Info().Msgf("Committing changes to session")
 
 		// Commit the external inventory
-		result, err := d.Commit(cmd.Context(), dryrun, ignoreExternalValidation)
+		result, err := root.Domain.Commit(cmd.Context(), dryrun, ignoreExternalValidation)
 		if errors.Is(err, provider.ErrDataValidationFailure) {
 			// TODO the following should probably suggest commands to fix the issue?
 			log.Error().Msgf("Inventory data validation errors encountered")

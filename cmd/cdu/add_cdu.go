@@ -52,7 +52,7 @@ func addCdu(cmd *cobra.Command, args []string) error {
 	log.Info().Msgf("Not yet implemented")
 	// Remove the cdu from the inventory using domain methods
 	// TODO:
-	// err = d.AddCdu()
+	// err = root.Domain.AddCdu()
 	// if err != nil {
 	// 	return err
 	// }

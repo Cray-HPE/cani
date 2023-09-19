@@ -61,7 +61,6 @@ func InitConfig(cfg string) (err error) {
 		conf := &Config{
 			Session: &Session{
 				DomainOptions: &domain.DomainOpts{
-					Provider:               "csm",
 					DatastorePath:          filepath.Join(configDir, taxonomy.DsFile),
 					LogFilePath:            tl,
 					CustomHardwareTypesDir: customDir,

@@ -29,7 +29,6 @@ import (
 	"fmt"
 
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
@@ -52,13 +51,12 @@ func removeBlade(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("Need a UUID to remove: %s", err.Error())
 		}
 
-		d, err := domain.New(root.Conf.Session.DomainOptions)
 		if err != nil {
 			return err
 		}
 
 		// Remove the blade from the inventory
-		err = d.RemoveBlade(u, recursion)
+		err = root.Domain.RemoveBlade(u, recursion)
 		if err != nil {
 			return err
 		}

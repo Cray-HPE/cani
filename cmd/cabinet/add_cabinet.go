@@ -53,14 +53,8 @@ var AddCabinetCmd = &cobra.Command{
 
 // addCabinet adds a cabinet to the inventory
 func addCabinet(cmd *cobra.Command, args []string) error {
-	// Create a domain object to interact with the datastore
-	d, err := domain.New(root.Conf.Session.DomainOptions)
-	if err != nil {
-		return err
-	}
-
 	if auto {
-		recommendations, err := d.Recommend(args[0])
+		recommendations, err := root.Domain.Recommend(args[0])
 		if err != nil {
 			return err
 		}
@@ -101,7 +95,7 @@ func addCabinet(cmd *cobra.Command, args []string) error {
 	}
 
 	// Add the cabinet to the inventory using domain methods
-	result, err := d.AddCabinet(cmd.Context(), args[0], cabinetNumber, cabinetMetadata)
+	result, err := root.Domain.AddCabinet(cmd.Context(), args[0], cabinetNumber, cabinetMetadata)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		// TODO the following should probably suggest commands to fix the issue?
 		log.Error().Msgf("Inventory data validation errors encountered")

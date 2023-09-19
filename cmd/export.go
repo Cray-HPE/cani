@@ -30,7 +30,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -61,15 +60,9 @@ var ExportCmd = &cobra.Command{
 }
 
 // export is the main entry point for the update command.
-func export(cmd *cobra.Command, args []string) error {
-	// Create a domain object to interact with the datastore
-	d, err := domain.New(Conf.Session.DomainOptions)
-	if err != nil {
-		return err
-	}
-
+func export(cmd *cobra.Command, args []string) (err error) {
 	if csvListOptions {
-		err = d.ListCsvOptions(cmd.Context(), Conf.Session.DomainOptions)
+		err = Domain.ListCsvOptions(cmd.Context(), Conf.Session.DomainOptions)
 		if err != nil {
 			log.Error().Msgf("failed to list CSV options: %s", err)
 		}
@@ -93,7 +86,7 @@ func export(cmd *cobra.Command, args []string) error {
 		}
 
 		w := csv.NewWriter(os.Stdout)
-		err = d.ExportCsv(cmd.Context(), w, headers, types)
+		err = Domain.ExportCsv(cmd.Context(), w, headers, types)
 		if err != nil {
 			log.Error().Msgf("export failed: %s", err)
 		}

@@ -59,16 +59,6 @@ func New(opts *DomainOpts) (*Domain, error) {
 	var err error
 	domain := &Domain{}
 
-	// Load the hardware type library
-	// TODO make this be able to be loaded from a directory
-	domain.hardwareTypeLibrary, err = hardwaretypes.NewEmbeddedLibrary(opts.CustomHardwareTypesDir)
-	if err != nil {
-		return nil, errors.Join(
-			fmt.Errorf("failed to load embedded hardware type library"),
-			err,
-		)
-	}
-
 	// Load the datastore
 	domain.datastore, err = inventory.NewDatastoreJSON(opts.DatastorePath, opts.LogFilePath, inventory.Provider(opts.Provider))
 	if err != nil {
@@ -78,32 +68,6 @@ func New(opts *DomainOpts) (*Domain, error) {
 		)
 	}
 
-	// Setup External inventory provider
-	inventoryProvider, err := domain.datastore.InventoryProvider()
-	if err != nil {
-		return nil, errors.Join(
-			fmt.Errorf("failed to retrieve external inventory provider type"),
-			err,
-		)
-	}
-
-	// Determine which external inventory provider to use
-	switch inventoryProvider {
-	case inventory.CSMProvider:
-		domain.externalInventoryProvider, err = csm.New(&opts.CsmOptions, domain.hardwareTypeLibrary)
-		if err != nil {
-			return nil, errors.Join(
-				fmt.Errorf("failed to initialize CSM external inventory provider"),
-				err,
-			)
-		}
-		domain.configOptions.ValidRoles = opts.CsmOptions.ValidRoles
-		domain.configOptions.ValidSubRoles = opts.CsmOptions.ValidSubRoles
-		domain.configOptions.K8sPodsCidr = opts.CsmOptions.K8sPodsCidr
-		domain.configOptions.K8sServicesCidr = opts.CsmOptions.K8sServicesCidr
-	default:
-		return nil, fmt.Errorf("unknown external inventory provider provided (%s)", inventoryProvider)
-	}
 	return domain, nil
 }
 

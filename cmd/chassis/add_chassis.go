@@ -52,7 +52,7 @@ func addChassis(cmd *cobra.Command, args []string) error {
 	log.Info().Msgf("Not yet implemented")
 	// Remove the chassis from the inventory using domain methods
 	// TODO:
-	// err = d.AddChassis()
+	// err = root.Domain.AddChassis()
 	// if err != nil {
 	// 	return err
 	// }

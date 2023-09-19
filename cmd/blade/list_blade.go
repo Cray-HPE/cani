@@ -34,7 +34,6 @@ import (
 	"text/tabwriter"
 
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
@@ -53,14 +52,8 @@ var ListBladeCmd = &cobra.Command{
 
 // listBlade lists blades in the inventory
 func listBlade(cmd *cobra.Command, args []string) error {
-	// Instantiate a new logic object to interact with the datastore
-	d, err := domain.New(root.Conf.Session.DomainOptions)
-	if err != nil {
-		return err
-	}
-
 	// Get the entire inventory
-	inv, err := d.List()
+	inv, err := root.Domain.List()
 	if err != nil {
 		return err
 	}

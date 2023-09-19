@@ -52,7 +52,7 @@ func addPdu(cmd *cobra.Command, args []string) error {
 	log.Info().Msgf("Not yet implemented")
 	// Remove the pdu from the inventory using domain methods
 	// TODO:
-	// err = d.AddPdu()
+	// err = root.Domain.AddPdu()
 	// if err != nil {
 	// 	return err
 	// }

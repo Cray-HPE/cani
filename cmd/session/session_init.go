@@ -34,7 +34,6 @@ import (
 
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/cmd/config"
-	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/manifoldco/promptui"
 	"github.com/rs/zerolog/log"
@@ -58,7 +57,7 @@ var (
 )
 
 // startSession starts a session if one does not exist
-func startSession(cmd *cobra.Command, args []string) error {
+func startSession(cmd *cobra.Command, args []string) (err error) {
 	if useSimulation {
 		log.Warn().Msg("Using simulation mode")
 		root.Conf.Session.DomainOptions.CsmOptions.UseSimulation = true
@@ -110,20 +109,15 @@ func startSession(cmd *cobra.Command, args []string) error {
 	}
 
 	// Create a domain object to interact with the datastore
-	var err error
-	root.Conf.Session.Domain, err = domain.New(root.Conf.Session.DomainOptions)
-	if err != nil {
-		return err
-	}
-
-	err = root.Conf.Session.Domain.SetConfigOptions(cmd.Context(), root.Conf.Session.DomainOptions)
+	root.Conf.Session.DomainOptions.Provider = args[0]
+	err = root.Domain.SetConfigOptions(cmd.Context(), root.Conf.Session.DomainOptions)
 	if err != nil {
 		return errors.Join(err,
 			errors.New("External inventory is unstable. Unable to get provider specific config options. Fix issues before starting another session."))
 	}
 
 	// Validate the external inventory
-	result, err := root.Conf.Session.Domain.Validate(cmd.Context(), false, ignoreExternalValidation)
+	result, err := root.Domain.Validate(cmd.Context(), false, ignoreExternalValidation)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		// TODO the following should probably suggest commands to fix the issue?
 		log.Error().Msgf("Inventory data validation errors encountered")
@@ -142,7 +136,7 @@ func startSession(cmd *cobra.Command, args []string) error {
 	}
 
 	// Commit the external inventory
-	if err := root.Conf.Session.Domain.Import(cmd.Context()); err != nil {
+	if err := root.Domain.Import(cmd.Context()); err != nil {
 		return err
 	}
 

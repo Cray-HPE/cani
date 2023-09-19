@@ -32,6 +32,7 @@ import (
 
 	"github.com/Cray-HPE/cani/cmd/config"
 	"github.com/Cray-HPE/cani/cmd/taxonomy"
+	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -109,6 +110,15 @@ func initConfig() {
 		log.Error().Msg(fmt.Sprintf("Error loading config file: %s", err))
 		os.Exit(1)
 	}
+
+	Domain, err = domain.New(Conf.Session.DomainOptions)
+	if err != nil {
+		log.Info().Msg("kdsjfkjd")
+		log.Info().Msgf("%+v %v", Domain, err)
+		log.Info().Msgf("%+v", Conf.Session.DomainOptions)
+		os.Exit(1)
+	}
+	Conf.Session.Domain = Domain
 }
 
 func loadConfigAndDomainOpts(cmd *cobra.Command, args []string) error {

@@ -54,14 +54,8 @@ var AddBladeCmd = &cobra.Command{
 
 // addBlade adds a blade to the inventory
 func addBlade(cmd *cobra.Command, args []string) error {
-	// Create a domain object to interact with the datastore
-	d, err := domain.New(root.Conf.Session.DomainOptions)
-	if err != nil {
-		return err
-	}
-
 	if auto {
-		recommendations, err := d.Recommend(args[0])
+		recommendations, err := root.Domain.Recommend(args[0])
 		if err != nil {
 			return err
 		}
@@ -95,7 +89,7 @@ func addBlade(cmd *cobra.Command, args []string) error {
 	}
 
 	// Add the blade from the inventory using domain methods
-	result, err := d.AddBlade(cmd.Context(), args[0], cabinet, chassis, blade)
+	result, err := root.Domain.AddBlade(cmd.Context(), args[0], cabinet, chassis, blade)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		// TODO this validation error print logic could be shared
 

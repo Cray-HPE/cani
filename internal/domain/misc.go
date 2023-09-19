@@ -32,6 +32,8 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/Cray-HPE/cani/internal/provider/csm"
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 )
@@ -95,23 +97,63 @@ func (d *Domain) Validate(ctx context.Context, checkRequiredData bool, ignoreExt
 	return result, nil
 }
 
-func (d *Domain) SetConfigOptions(ctx context.Context, domainOptions *DomainOpts) error {
+func (d *Domain) SetConfigOptions(ctx context.Context, opts *DomainOpts) (err error) {
+	log.Info().Msgf("setcon %v", opts.Provider)
+
+	// Load the hardware type library
+	// TODO make this be able to be loaded from a directory
+	d.hardwareTypeLibrary, err = hardwaretypes.NewEmbeddedLibrary(opts.CustomHardwareTypesDir)
+	if err != nil {
+		return errors.Join(
+			fmt.Errorf("failed to load embedded hardware type library"),
+			err,
+		)
+	}
+	d.datastore.SetInventoryProvider(inventory.Provider(opts.Provider))
+
+	// Setup External inventory provider
+	inventoryProvider, err := d.datastore.InventoryProvider()
+	if err != nil {
+		return errors.Join(
+			fmt.Errorf("failed to retrieve external inventory provider type"),
+			err,
+		)
+	}
+
+	// Determine which external inventory provider to use
+	switch inventoryProvider {
+	case inventory.CSMProvider:
+		d.externalInventoryProvider, err = csm.New(&opts.CsmOptions, d.hardwareTypeLibrary)
+		if err != nil {
+			return errors.Join(
+				fmt.Errorf("failed to initialize CSM external inventory provider"),
+				err,
+			)
+		}
+		d.configOptions.ValidRoles = opts.CsmOptions.ValidRoles
+		d.configOptions.ValidSubRoles = opts.CsmOptions.ValidSubRoles
+		d.configOptions.K8sPodsCidr = opts.CsmOptions.K8sPodsCidr
+		d.configOptions.K8sServicesCidr = opts.CsmOptions.K8sServicesCidr
+	default:
+		return fmt.Errorf("unknown external inventory provider provided (%s)", inventoryProvider)
+	}
+
 	options, err := d.externalInventoryProvider.ConfigOptions(ctx)
 	if err != nil {
 		return err
 	}
-	switch domainOptions.Provider {
+	switch opts.Provider {
 	case string(inventory.CSMProvider):
-		domainOptions.CsmOptions.ValidRoles = options.ValidRoles
+		opts.CsmOptions.ValidRoles = options.ValidRoles
 		d.configOptions.ValidRoles = options.ValidRoles
 
-		domainOptions.CsmOptions.ValidSubRoles = options.ValidSubRoles
+		opts.CsmOptions.ValidSubRoles = options.ValidSubRoles
 		d.configOptions.ValidSubRoles = options.ValidSubRoles
 
-		domainOptions.CsmOptions.K8sPodsCidr = options.K8sPodsCidr
+		opts.CsmOptions.K8sPodsCidr = options.K8sPodsCidr
 		d.configOptions.K8sPodsCidr = options.K8sPodsCidr
 
-		domainOptions.CsmOptions.K8sServicesCidr = options.K8sServicesCidr
+		opts.CsmOptions.K8sServicesCidr = options.K8sServicesCidr
 		d.configOptions.K8sServicesCidr = options.K8sServicesCidr
 	}
 

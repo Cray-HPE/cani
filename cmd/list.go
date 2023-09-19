@@ -30,7 +30,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/spf13/cobra"
 )
 
@@ -44,14 +43,8 @@ var ListCmd = &cobra.Command{
 
 // listInventory lists all assets in the inventory
 func listInventory(cmd *cobra.Command, args []string) error {
-	// Create a domain object to interact with the datastore
-	d, err := domain.New(Conf.Session.DomainOptions)
-	if err != nil {
-		return err
-	}
-
 	// Get the entire inventory
-	inv, err := d.List()
+	inv, err := Domain.List()
 	if err != nil {
 		return err
 	}

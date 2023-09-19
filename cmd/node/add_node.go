@@ -52,7 +52,7 @@ func addNode(cmd *cobra.Command, args []string) error {
 	log.Info().Msgf("Not yet implemented")
 	// Remove the node from the inventory using domain methods
 	// TODO:
-	// err = d.AddNode()
+	// err = root.Domain.AddNode()
 	// if err != nil {
 	// 	return err
 	// }

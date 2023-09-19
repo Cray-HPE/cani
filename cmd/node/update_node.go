@@ -30,7 +30,6 @@ import (
 	"sort"
 
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/google/uuid"
@@ -50,12 +49,6 @@ var UpdateNodeCmd = &cobra.Command{
 
 // updateNode updates a node to the inventory
 func updateNode(cmd *cobra.Command, args []string) error {
-	// Create a domain object to interact with the datastore
-	d, err := domain.New(root.Conf.Session.DomainOptions)
-	if err != nil {
-		return err
-	}
-
 	// Push all the CLI flags that were provided into a generic map
 	// TODO Need to figure out how to specify to unset something
 	// Right now the build metadata function in the CSM provider will
@@ -82,7 +75,7 @@ func updateNode(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		// get the inventory
-		inv, err := d.List()
+		inv, err := root.Domain.List()
 		if err != nil {
 			return err
 		}
@@ -96,7 +89,7 @@ func updateNode(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	result, err := d.UpdateNode(cmd.Context(), cabinet, chassis, blade, nodecard, node, nodeMeta)
+	result, err := root.Domain.UpdateNode(cmd.Context(), cabinet, chassis, blade, nodecard, node, nodeMeta)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		// TODO the following should probably suggest commands to fix the issue?
 		log.Error().Msgf("Inventory data validation errors encountered")

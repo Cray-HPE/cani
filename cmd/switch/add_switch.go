@@ -52,7 +52,7 @@ func addSwitch(cmd *cobra.Command, args []string) error {
 	log.Info().Msgf("Not yet implemented")
 	// Remove the switch from the inventory using domain methods
 	// TODO:
-	// err = d.AddSwitch()
+	// err = root.Domain.AddSwitch()
 	// if err != nil {
 	// 	return err
 	// }

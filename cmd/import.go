@@ -31,7 +31,6 @@ import (
 	"os"
 	"sort"
 
-	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -77,20 +76,13 @@ func importAssets(cmd *cobra.Command, args []string) error {
 		return errors.New("too many arguments")
 	}
 
-	// Create a domain object to interact with the datastore
-	d, err := domain.New(Conf.Session.DomainOptions)
-	if err != nil {
-		log.Error().Msgf("Import CSV failed internal error. %s", err)
-		return nil
-	}
-
 	r, err := createCsvReader(csvFile)
 	if err != nil {
 		log.Error().Msgf("Failed to open the file %s. %s", csvFile, err)
 		return nil
 	}
 
-	result, err := d.ImportCsv(cmd.Context(), r)
+	result, err := Domain.ImportCsv(cmd.Context(), r)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		log.Error().Msgf("The changes are invalid.")
 		for id, failedValidation := range result.ValidationResults {
