@@ -76,7 +76,7 @@ type InventoryProvider interface {
 }
 
 type SlsProvider interface {
-	GetSlsJson(ctx context.Context, configOptions ConfigOptions, datastore inventory.Datastore, validate bool) ([]byte, error)
+	GetSlsJson(ctx context.Context, configOptions ConfigOptions, datastore inventory.Datastore, skipValidation bool) ([]byte, error)
 }
 
 type HardwareValidationResult struct {

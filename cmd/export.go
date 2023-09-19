@@ -43,7 +43,7 @@ var (
 	csvAllTypes       bool
 	csvListOptions    bool
 	exportFormat      string
-	validateSls       bool
+	ignoreValidation  bool
 )
 
 func init() {
@@ -54,7 +54,7 @@ func init() {
 	ExportCmd.PersistentFlags().BoolVarP(&csvAllTypes, "all", "a", false, "List all components. This overrides the --type option")
 	ExportCmd.PersistentFlags().BoolVarP(&csvListOptions, "list-fields", "L", false, "List details about the fields in the CSV")
 	ExportCmd.PersistentFlags().StringVar(&exportFormat, "format", "csv", "Format option: csv or sls-json")
-	ExportCmd.PersistentFlags().BoolVar(&validateSls, "validate", false, "Validate the SLS json. This only applies to the sls-json format.")
+	ExportCmd.PersistentFlags().BoolVar(&ignoreValidation, "ignore-validation", false, "Skip validating the sls data. This only applies to the sls-json format.")
 }
 
 // ExportCmd represents the export command
@@ -78,7 +78,7 @@ func export(cmd *cobra.Command, args []string) error {
 	case "csv":
 		return exportCsv(cmd, args, d)
 	case "sls-json":
-		return exportSlsJson(cmd, args, d, validateSls)
+		return exportSlsJson(cmd, args, d, ignoreValidation)
 	default:
 		return fmt.Errorf("the requested format, %s, is unsupported", exportFormat)
 	}
@@ -118,19 +118,21 @@ func exportCsv(cmd *cobra.Command, args []string, d *domain.Domain) error {
 	return nil
 }
 
-func exportSlsJson(cmd *cobra.Command, args []string, d *domain.Domain, validate bool) error {
+func exportSlsJson(cmd *cobra.Command, args []string, d *domain.Domain, ignoreValidation bool) error {
 	cmd.SilenceUsage = true
-
-	if !validate {
-		log.Warn().Msg("The SLS json is not being validated. Use the --validate option to validate it.")
-	}
 
 	f := os.Stdout
 	writer := bufio.NewWriter(f)
 	defer writer.Flush()
-	err := d.ExportSls(cmd.Context(), writer, validate)
+	err := d.ExportSls(cmd.Context(), writer, ignoreValidation)
 	if err != nil {
 		return err
 	}
+	writer.Flush() // explicitly calling Flush here makes sure that any following log messages come after the sls json
+
+	if ignoreValidation {
+		log.Warn().Msg("Validation was not run. The SLS json may not be valid. Remove the --ignore-validate option to validate it.")
+	}
+
 	return nil
 }

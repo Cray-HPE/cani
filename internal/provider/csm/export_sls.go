@@ -36,7 +36,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/provider/csm/validate"
 )
 
-func (csm *CSM) GetSlsJson(ctx context.Context, configOptions provider.ConfigOptions, datastore inventory.Datastore, validateSls bool) ([]byte, error) {
+func (csm *CSM) GetSlsJson(ctx context.Context, configOptions provider.ConfigOptions, datastore inventory.Datastore, skipValidation bool) ([]byte, error) {
 	currentSLSState, _, err := csm.slsClient.DumpstateApi.DumpstateGet(ctx)
 	if err != nil {
 		return nil, errors.Join(
@@ -52,7 +52,7 @@ func (csm *CSM) GetSlsJson(ctx context.Context, configOptions provider.ConfigOpt
 			err)
 	}
 
-	if validateSls {
+	if !skipValidation {
 		_, err = validate.Validate(configOptions, modifiedState)
 		if err != nil {
 			return nil, fmt.Errorf("validation failed %v", err)

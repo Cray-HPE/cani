@@ -43,7 +43,7 @@ It 'add cabinet hpe-ex2500-1-liquid-cooled-chassis'
 End
 
 It 'export sls json'
-  When call bin/cani alpha --config "$CANI_CONF" export --format sls-json --validate
+  When call bin/cani alpha --config "$CANI_CONF" export --format sls-json
   The status should equal 0
   The stderr should include 'GET http'
   The stderr should include 'sls/v1/dumpstate'
@@ -68,16 +68,16 @@ It 'add blade --config "$CANI_CONF" hpe-crayex-ex235n-compute-blade --cabinet 80
   The line 6 of stderr should include "Blade: 0"
 End
 
-It 'export invalid sls data but with valid json'
-  When call sh -c 'bin/cani alpha --config "$CANI_CONF" export --format sls-json | jq'
+It 'export invalid sls data but with ignore-validation option'
+  When call sh -c 'bin/cani alpha --config "$CANI_CONF" export --format sls-json --ignore-validation | jq'
   The status should equal 0
   The stderr should include 'GET http'
   The stderr should include 'sls/v1/dumpstate'
   The output should include '"x8000": {'
 End
 
-It 'export invalid sls data with the validate option'
-  When call bin/cani alpha --config "$CANI_CONF" export --format sls-json --validate
+It 'export invalid sls data and expect validation failure'
+  When call bin/cani alpha --config "$CANI_CONF" export --format sls-json
   The status should equal 1
   The stderr should include 'GET http'
   The stderr should include 'sls/v1/dumpstate'
