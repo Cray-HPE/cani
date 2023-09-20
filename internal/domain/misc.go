@@ -95,23 +95,23 @@ func (d *Domain) Validate(ctx context.Context, checkRequiredData bool, ignoreExt
 	return result, nil
 }
 
-func (d *Domain) SetConfigOptions(ctx context.Context, domainOptions *NewOpts) error {
+func (d *Domain) SetConfigOptions(ctx context.Context, opts *DomainOpts) (err error) {
 	options, err := d.externalInventoryProvider.ConfigOptions(ctx)
 	if err != nil {
 		return err
 	}
-	switch domainOptions.Provider {
+	switch opts.Provider {
 	case string(inventory.CSMProvider):
-		domainOptions.CsmOptions.ValidRoles = options.ValidRoles
+		opts.CsmOptions.ValidRoles = options.ValidRoles
 		d.configOptions.ValidRoles = options.ValidRoles
 
-		domainOptions.CsmOptions.ValidSubRoles = options.ValidSubRoles
+		opts.CsmOptions.ValidSubRoles = options.ValidSubRoles
 		d.configOptions.ValidSubRoles = options.ValidSubRoles
 
-		domainOptions.CsmOptions.K8sPodsCidr = options.K8sPodsCidr
+		opts.CsmOptions.K8sPodsCidr = options.K8sPodsCidr
 		d.configOptions.K8sPodsCidr = options.K8sPodsCidr
 
-		domainOptions.CsmOptions.K8sServicesCidr = options.K8sServicesCidr
+		opts.CsmOptions.K8sServicesCidr = options.K8sServicesCidr
 		d.configOptions.K8sServicesCidr = options.K8sServicesCidr
 	}
 

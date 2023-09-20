@@ -45,17 +45,17 @@ type Domain struct {
 	configOptions             provider.ConfigOptions
 }
 
-// NewOpts are the options for creating a new Domain
-type NewOpts struct {
-	DatastorePath          string      `yaml:"datastore_path"`
-	LogFilePath            string      `yaml:"log_file_path"`
-	Provider               string      `yaml:"provider"`
-	CsmOptions             csm.NewOpts `yaml:"csm_options"`
-	CustomHardwareTypesDir string      `yaml:"custom_hardware_types_dir"`
+// DomainOpts are the options for creating a new Domain
+type DomainOpts struct {
+	DatastorePath          string           `yaml:"datastore_path"`
+	LogFilePath            string           `yaml:"log_file_path"`
+	Provider               string           `yaml:"provider"`
+	CsmOptions             csm.ProviderOpts `yaml:"csm_options"`
+	CustomHardwareTypesDir string           `yaml:"custom_hardware_types_dir"`
 }
 
 // New returns a new Domain using the provided options
-func New(opts *NewOpts) (*Domain, error) {
+func New(opts *DomainOpts) (*Domain, error) {
 	var err error
 	domain := &Domain{}
 

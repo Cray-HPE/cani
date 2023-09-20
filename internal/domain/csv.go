@@ -58,7 +58,7 @@ var (
 		"nid":            "Nid"}
 )
 
-func (d *Domain) ListCsvOptions(ctx context.Context, opts *NewOpts) error {
+func (d *Domain) ListCsvOptions(ctx context.Context, opts *DomainOpts) error {
 	configOptions := provider.ConfigOptions{
 		ValidRoles:    opts.CsmOptions.ValidRoles,
 		ValidSubRoles: opts.CsmOptions.ValidSubRoles,
