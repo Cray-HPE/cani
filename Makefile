@@ -208,9 +208,13 @@ venv:
 	source venv/bin/activate
 	pip install -r requirements.txt
 
+# this has a stupid hack to make the markdown lists show properly by sed'ing the 
+# resultant file.  this hack also needs a short delay for the generated file to 
+# fully appear so it can be hacked
 generate-hardwaretypes-docs:
 	mkdir -p docs/hardware-types
 	generate-schema-doc --config-file docs/generate-schema-doc-config.yml pkg/hardwaretypes/hardware-types/schema/devicetype.json docs/hardware-types/devicetype.md
+	$(shell sleep 5)
 	sed -i '' 's/Must be one of:/Must be one of:\n/g' docs/hardware-types/devicetype.md
 
 generate: generate-swagger-sls-client generate-swagger-hsm-client generate-go generate-hardwaretypes-docs
