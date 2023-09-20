@@ -208,7 +208,7 @@ venv:
 	source venv/bin/activate
 	pip install -r requirements.txt
 
-generate-hardwaretypes-docs: venv
+generate-hardwaretypes-docs:
 	mkdir -p docs/hardware-types
 	generate-schema-doc --config-file docs/generate-schema-doc-config.yml pkg/hardwaretypes/hardware-types/schema/devicetype.json docs/hardware-types/devicetype.md
 	sed -i '' 's/Must be one of:/Must be one of:\n/g' docs/hardware-types/devicetype.md
