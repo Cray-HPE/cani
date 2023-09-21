@@ -23,6 +23,7 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
+
 package cmd
 
 import (
@@ -42,6 +43,7 @@ var RootCmd = &cobra.Command{
 	Long:              taxonomy.LongDescription,
 	PersistentPreRunE: loadConfigAndDomainOpts, // Load the domain options and config file settings
 	RunE:              runRoot,
+	Version:           version(),
 }
 
 var (

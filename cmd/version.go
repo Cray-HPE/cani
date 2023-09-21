@@ -23,33 +23,29 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
+
 package cmd
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
-
-	"github.com/spf13/cobra"
 )
 
 var (
-	version   string
-	buildDate string
-	sha1ver   string
+
+	// BuildDate is the time stamp for the artifact, used when the artifact is built with uncommitted changes.
+	BuildDate = ""
+
+	// GitTreeState indicates if the git tree is clean or dirty; set by the go linker's -X flag at
+	// build time.
+	GitTreeState = ""
+
+	// GitTag is the current version of gru; set by the go linker's -X flag at build time.
+	GitTag = ""
 )
 
-// VersionCmd represents the version command
-var VersionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Show the version of this utility.",
-	Long:  `Show the version of this utility.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		app, err := os.Executable()
-		if err != nil {
-			fmt.Printf("Error: %s", err)
-		}
-		app = filepath.Base(app)
-		fmt.Printf("%s, %s - %s %s \n", app, version, sha1ver, buildDate)
-	},
+func version() string {
+	if GitTreeState != "clean" {
+		return fmt.Sprintf("%s-%s-%s", GitTag, GitTreeState, BuildDate)
+	}
+	return GitTag
 }

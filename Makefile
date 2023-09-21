@@ -34,7 +34,7 @@ export ARCH := $(shell uname -m)
 endif
 
 ifeq ($(VERSION),)
-export VERSION := $(shell git describe --tags | tr -s '-' '~' | tr -d '^v')
+export VERSION := $(shell git describe --tags | tr -s '-' '~' | sed 's/^v//')
 endif
 
 # By default, if these are not set then set them to match the host.
@@ -58,23 +58,24 @@ TAG?=latest
 .GIT_COMMIT_AND_BRANCH=$(.GIT_COMMIT)-$(subst /,-,$(.GIT_BRANCH))
 .GIT_VERSION=$(shell git describe --tags 2>/dev/null || echo "$(.GIT_COMMIT)")
 .BUILDTIME=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
-CHANGELOG_VERSION_ORIG=$(grep -m1 \## CHANGELOG.MD | sed -e "s/\].*\$//" |sed -e "s/^.*\[//")
-CHANGELOG_VERSION=$(shell grep -m1 \ \[[0-9]*.[0-9]*.[0-9]*\] CHANGELOG.MD | sed -e "s/\].*$$//" |sed -e "s/^.*\[//")
+CHANGELOG_VERSION_ORIG=$(grep -m1 \## CHANGELOG.MD | sed -e "s/\].*\$//" | sed -e "s/^.*\[//")
+CHANGELOG_VERSION=$(shell grep -m1 \ \[[0-9]*.[0-9]*.[0-9]*\] CHANGELOG.MD | sed -e "s/\].*$$//" | sed -e "s/^.*\[//")
 BUILD_DIR ?= $(PWD)/dist/rpmbuild
 SPEC_FILE ?= ${NAME}.spec
 SOURCE_NAME ?= ${NAME}-${VERSION}
 SOURCE_PATH := ${BUILD_DIR}/SOURCES/${SOURCE_NAME}.tar.bz2
 TEST_OUTPUT_DIR ?= $(CURDIR)/build/results
 
-# if we're an automated build, use .GIT_COMMIT_AND_BRANCH as-is, else add '-dirty'
-ifneq "$(origin BUILD_NUMBER)" "environment"
-# not a Jenkins build
-	ifneq "$(origin GITHUB_WORKSPACE)" "environment"
-	# not a GitHub build
-	# assume non-pipeline build
-	.GIT_COMMIT_AND_BRANCH := $(.GIT_COMMIT_AND_BRANCH)-dirty
-	endif
+# If there are uncommitted changes, append "-dirty"
+git_dirty := $(shell git status -s)
+go_ldflags := -s -w
+ifeq ($(git_dirty),)
+	go_ldflags += -X github.com/Cray-HPE/${NAME}/cmd.GitTreeState='clean'
+else
+	go_ldflags += -X github.com/Cray-HPE/${NAME}/cmd.GitTreeState='dirty'
 endif
+go_ldflags += -X github.com/Cray-HPE/${NAME}/cmd.GitTag=$(VERSION)
+go_ldflags += -X github.com/Cray-HPE/${NAME}/cmd.BuildDate=${.BUILDTIME}
 
 .PHONY: \
 	bin \
@@ -231,10 +232,7 @@ license:
 
 # Jenkins doesn't have java installed, so the generate target fails to run
 bin:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o bin/${NAME} -ldflags "\
-	-X github.com/Cray-HPE/${NAME}/cmd.version=${.GIT_VERSION} \
-	-X github.com/Cray-HPE/${NAME}/cmd.buildDate=${.BUILDTIME} \
-	-X github.com/Cray-HPE/${NAME}/cmd.sha1ver=${.GIT_COMMIT_AND_BRANCH}"
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o bin/${NAME} -ldflags '$(go_ldflags)'
 
 rpm_prepare:
 	rm -rf $(BUILD_DIR)
