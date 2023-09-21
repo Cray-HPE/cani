@@ -60,7 +60,7 @@ func InitConfig(cfg string) (err error) {
 		// Create a config with default values since one does not exist
 		conf := &Config{
 			Session: &Session{
-				DomainOptions: &domain.NewOpts{
+				DomainOptions: &domain.DomainOpts{
 					Provider:               "csm",
 					DatastorePath:          filepath.Join(configDir, taxonomy.DsFile),
 					LogFilePath:            tl,

@@ -35,7 +35,7 @@ import (
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 )
 
-type NewOpts struct {
+type ProviderOpts struct {
 	UseSimulation      bool
 	InsecureSkipVerify bool
 	APIGatewayToken    string
@@ -67,7 +67,7 @@ type CSM struct {
 	hardwareLibrary *hardwaretypes.Library
 }
 
-func New(opts *NewOpts, hardwareLibrary *hardwaretypes.Library) (*CSM, error) {
+func New(opts *ProviderOpts, hardwareLibrary *hardwaretypes.Library) (*CSM, error) {
 	csm := &CSM{
 		hardwareLibrary: hardwareLibrary,
 	}
