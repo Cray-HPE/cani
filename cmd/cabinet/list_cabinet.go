@@ -34,7 +34,6 @@ import (
 	"text/tabwriter"
 
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
@@ -45,23 +44,18 @@ import (
 
 // ListCabinetCmd represents the cabinet list command
 var ListCabinetCmd = &cobra.Command{
-	Use:   "cabinet",
-	Short: "List cabinets in the inventory.",
-	Long:  `List cabinets in the inventory.`,
-	Args:  cobra.ArbitraryArgs,
-	RunE:  listCabinet,
+	Use:               "cabinet",
+	Short:             "List cabinets in the inventory.",
+	Long:              `List cabinets in the inventory.`,
+	PersistentPreRunE: root.SetupDomain,
+	Args:              cobra.ArbitraryArgs,
+	RunE:              listCabinet,
 }
 
 // listCabinet lists cabinets in the inventory
 func listCabinet(cmd *cobra.Command, args []string) error {
-	// Create a domain object to interact with the datastore
-	d, err := domain.New(root.Conf.Session.DomainOptions)
-	if err != nil {
-		return err
-	}
-
 	// Get the entire inventory
-	inv, err := d.List()
+	inv, err := root.D.List()
 	if err != nil {
 		return err
 	}

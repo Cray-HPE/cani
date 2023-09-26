@@ -41,9 +41,9 @@ End
 It "--config $CANI_CONF status"
   BeforeCall use_inactive_session # session is inactive
   When call bin/cani alpha session --config "$CANI_CONF" status
-  The status should equal 0
-  The line 1 of stderr should include "See $CANI_CONF for session details"
-  The line 2 of stderr should include 'Session is INACTIVE'
+  The status should equal 1
+  The line 1 of stderr should include "Error: no active session"
+  The line 2 of stderr should include "run 'session init' to begin"
 End
 
 # Status should be ACTIVE if active: true
@@ -60,7 +60,7 @@ It "--config $CANI_CONF init"
   BeforeCall remove_config
   When call bin/cani alpha session --config "$CANI_CONF" init
   The status should equal 1
-  The line 1 of stderr should equal 'Error: Need a provider.  Choose from: [csm]'
+  The line 1 of stderr should equal 'Error: need a provider.  Choose from: [cani csm]'
 End
 
 # Starting a session without passing a provider should fail
@@ -68,7 +68,7 @@ It "--config $CANI_CONF init fake -S --csm-api-host localhost:8443"
   BeforeCall remove_config
   When call bin/cani alpha session --config "$CANI_CONF" init fake -S --csm-api-host localhost:8443
   The status should equal 1
-  The line 1 of stderr should equal 'Error: fake is not a valid provider.  Valid providers: [csm]'
+  The line 1 of stderr should equal 'Error: fake is not a valid provider.  Valid providers: [cani csm]'
 End
 
 # Starting a session should fail with:
@@ -91,7 +91,8 @@ It 'initialize a session without a config file or datastore'
   BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
   When call bin/cani alpha session --config "$CANI_CONF" init csm -S 
   The status should equal 0
-  The line 1 of stderr should include 'Using simulation mode'
+  The line 1 of stderr should include 'does not exist, creating default datastore'
+  The line 2 of stderr should include 'Using simulation mode'
   The stderr should include 'Validated CANI inventory'
   The stderr should include 'Validated external inventory provider'
   # Verify the import logic reached out to SLS

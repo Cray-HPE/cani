@@ -32,27 +32,24 @@ import (
 	"strings"
 
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/spf13/cobra"
 )
 
 // validHardware checks that the hardware type is valid by comparing it against the list of hardware types
-func validHardware(cmd *cobra.Command, args []string) error {
-	library, err := hardwaretypes.NewEmbeddedLibrary(root.Conf.Session.DomainOptions.CustomHardwareTypesDir)
+func validHardware(cmd *cobra.Command, args []string) (err error) {
+	// the PersistentPreRunE from the root command does not work here
+	// so it is explicitly called
+	err = root.SetupDomain(cmd, args)
 	if err != nil {
-		return err
+		os.Exit(1)
 	}
-
-	// Get the list of hardware types that are switches
-	mgmtSwitchTypes := library.GetDeviceTypesByHardwareType(hardwaretypes.ManagementSwitch)
-	hsnSwitchTypes := library.GetDeviceTypesByHardwareType(hardwaretypes.HighSpeedSwitch)
 
 	if cmd.Flags().Changed("list-supported-types") {
 		cmd.SetOut(os.Stdout)
-		for _, hw := range mgmtSwitchTypes {
+		for _, hw := range root.MgmtSwitchTypes {
 			cmd.Printf("%s\n", hw.Slug)
 		}
-		for _, hw := range hsnSwitchTypes {
+		for _, hw := range root.HsnSwitchTypes {
 			cmd.Printf("%s\n", hw.Slug)
 		}
 		os.Exit(0)
@@ -60,10 +57,10 @@ func validHardware(cmd *cobra.Command, args []string) error {
 
 	if len(args) == 0 {
 		types := []string{}
-		for _, hw := range mgmtSwitchTypes {
+		for _, hw := range root.MgmtSwitchTypes {
 			types = append(types, hw.Slug)
 		}
-		for _, hw := range hsnSwitchTypes {
+		for _, hw := range root.HsnSwitchTypes {
 			types = append(types, hw.Slug)
 		}
 		return fmt.Errorf("No hardware type provided: Choose from: %s", strings.Join(types, "\", \""))
@@ -72,13 +69,13 @@ func validHardware(cmd *cobra.Command, args []string) error {
 	// Check that each arg is a valid switch type
 	for _, arg := range args {
 		matchFound := false
-		for _, device := range mgmtSwitchTypes {
+		for _, device := range root.MgmtSwitchTypes {
 			if arg == device.Slug {
 				matchFound = true
 				break
 			}
 		}
-		for _, device := range hsnSwitchTypes {
+		for _, device := range root.HsnSwitchTypes {
 			if arg == device.Slug {
 				matchFound = true
 				break

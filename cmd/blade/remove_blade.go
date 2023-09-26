@@ -29,18 +29,18 @@ import (
 	"fmt"
 
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
 // RemoveBladeCmd represents the blade remove command
 var RemoveBladeCmd = &cobra.Command{
-	Use:   "blade",
-	Short: "Remove blades from the inventory.",
-	Long:  `Remove blades from the inventory.`,
-	Args:  cobra.ArbitraryArgs,
-	RunE:  removeBlade,
+	Use:               "blade",
+	Short:             "Remove blades from the inventory.",
+	Long:              `Remove blades from the inventory.`,
+	PersistentPreRunE: root.SetupDomain,
+	Args:              cobra.ArbitraryArgs,
+	RunE:              removeBlade,
 }
 
 // removeBlade removes a blade from the inventory.
@@ -52,13 +52,8 @@ func removeBlade(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("Need a UUID to remove: %s", err.Error())
 		}
 
-		d, err := domain.New(root.Conf.Session.DomainOptions)
-		if err != nil {
-			return err
-		}
-
 		// Remove the blade from the inventory
-		err = d.RemoveBlade(u, recursion)
+		err = root.D.RemoveBlade(u, recursion)
 		if err != nil {
 			return err
 		}

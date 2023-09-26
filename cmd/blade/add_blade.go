@@ -43,25 +43,18 @@ import (
 
 // AddBladeCmd represents the blade add command
 var AddBladeCmd = &cobra.Command{
-	Use:               "blade",
-	Short:             "Add blades to the inventory.",
-	Long:              `Add blades to the inventory.`,
-	PersistentPreRunE: root.DatastoreExists, // A session must be active to write to a datastore
-	SilenceUsage:      true,                 // Errors are more important than the usage
-	Args:              validHardware,        // Hardware can only be valid if defined in the hardware library
-	RunE:              addBlade,             // Add a blade when this sub-command is called
+	Use:          "blade",
+	Short:        "Add blades to the inventory.",
+	Long:         `Add blades to the inventory.`,
+	SilenceUsage: true,          // Errors are more important than the usage
+	Args:         validHardware, // Hardware can only be valid if defined in the hardware library
+	RunE:         addBlade,      // Add a blade when this sub-command is called
 }
 
 // addBlade adds a blade to the inventory
-func addBlade(cmd *cobra.Command, args []string) error {
-	// Create a domain object to interact with the datastore
-	d, err := domain.New(root.Conf.Session.DomainOptions)
-	if err != nil {
-		return err
-	}
-
+func addBlade(cmd *cobra.Command, args []string) (err error) {
 	if auto {
-		recommendations, err := d.Recommend(args[0])
+		recommendations, err := root.D.Recommend(args[0])
 		if err != nil {
 			return err
 		}
@@ -95,7 +88,7 @@ func addBlade(cmd *cobra.Command, args []string) error {
 	}
 
 	// Add the blade from the inventory using domain methods
-	result, err := d.AddBlade(cmd.Context(), args[0], cabinet, chassis, blade)
+	result, err := root.D.AddBlade(cmd.Context(), args[0], cabinet, chassis, blade)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		// TODO this validation error print logic could be shared
 
@@ -147,7 +140,7 @@ func addBlade(cmd *cobra.Command, args []string) error {
 				result.Location)
 			// Add the node to the map
 			newNodes = append(newNodes, result)
-			if root.Conf.Session.DomainOptions.Provider == string(inventory.CSMProvider) {
+			if root.D.Provider == string(inventory.CSMProvider) {
 				log.Info().Str("status", "SUCCESS").Msgf("%s was successfully staged to be added to the system", hardwaretypes.NodeBlade)
 				log.Info().Msgf("UUID: %s", result.Hardware.ID)
 				log.Info().Msgf("Cabinet: %d", cabinet)

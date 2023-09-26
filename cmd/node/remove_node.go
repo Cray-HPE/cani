@@ -26,17 +26,19 @@
 package node
 
 import (
+	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
 // RemoveNodeCmd represents the node remove command
 var RemoveNodeCmd = &cobra.Command{
-	Use:   "node",
-	Short: "Remove nodes from the inventory.",
-	Long:  `Remove nodes from the inventory.`,
-	Args:  cobra.ArbitraryArgs,
-	RunE:  removeNode,
+	Use:               "node",
+	Short:             "Remove nodes from the inventory.",
+	Long:              `Remove nodes from the inventory.`,
+	PersistentPreRunE: root.SetupDomain,
+	Args:              cobra.ArbitraryArgs,
+	RunE:              removeNode,
 }
 
 // removeNode removes a node from the inventory.

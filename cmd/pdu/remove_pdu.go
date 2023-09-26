@@ -26,17 +26,19 @@
 package pdu
 
 import (
+	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
 // RemovePduCmd represents the pdu remove command
 var RemovePduCmd = &cobra.Command{
-	Use:   "pdu",
-	Short: "Remove pdus from the inventory.",
-	Long:  `Remove pdus from the inventory.`,
-	Args:  cobra.ArbitraryArgs,
-	RunE:  removePdu,
+	Use:               "pdu",
+	Short:             "Remove pdus from the inventory.",
+	Long:              `Remove pdus from the inventory.`,
+	PersistentPreRunE: root.SetupDomain,
+	Args:              cobra.ArbitraryArgs,
+	RunE:              removePdu,
 }
 
 // removePdu removes a pdu from the inventory.

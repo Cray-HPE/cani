@@ -34,7 +34,6 @@ import (
 	"text/tabwriter"
 
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
@@ -43,23 +42,18 @@ import (
 
 // ListChassisCmd represents the chassis list command
 var ListChassisCmd = &cobra.Command{
-	Use:   "chassis",
-	Short: "List chassis in the inventory.",
-	Long:  `List chassis in the inventory.`,
-	Args:  cobra.ArbitraryArgs,
-	RunE:  listChassis,
+	Use:               "chassis",
+	Short:             "List chassis in the inventory.",
+	Long:              `List chassis in the inventory.`,
+	PersistentPreRunE: root.SetupDomain,
+	Args:              cobra.ArbitraryArgs,
+	RunE:              listChassis,
 }
 
 // listChassis lists chassis in the inventory
 func listChassis(cmd *cobra.Command, args []string) error {
-	// Create a domain object to interact with the datastore
-	d, err := domain.New(root.Conf.Session.DomainOptions)
-	if err != nil {
-		return err
-	}
-
 	// Get the entire inventory
-	inv, err := d.List()
+	inv, err := root.D.List()
 	if err != nil {
 		return err
 	}

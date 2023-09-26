@@ -27,7 +27,7 @@ package pdu
 
 import (
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/internal/domain"
+
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -37,25 +37,13 @@ var AddPduCmd = &cobra.Command{
 	Use:               "pdu",
 	Short:             "Add pdus to the inventory.",
 	Long:              `Add pdus to the inventory.`,
-	PersistentPreRunE: root.DatastoreExists, // A session must be active to write to a datastore
-	Args:              validHardware,        // Hardware can only be valid if defined in the hardware library
-	RunE:              addPdu,               // Add a pdu when this sub-command is called
+	PersistentPreRunE: root.SetupDomain,
+	Args:              validHardware, // Hardware can only be valid if defined in the hardware library
+	RunE:              addPdu,        // Add a pdu when this sub-command is called
 }
 
 // addPdu adds a pdu to the inventory
 func addPdu(cmd *cobra.Command, args []string) error {
-	// Create a domain object to interact with the datastore
-	_, err := domain.New(root.Conf.Session.DomainOptions)
-	if err != nil {
-		return err
-	}
 	log.Info().Msgf("Not yet implemented")
-	// Remove the pdu from the inventory using domain methods
-	// TODO:
-	// err = d.AddPdu()
-	// if err != nil {
-	// 	return err
-	// }
-	// log.Info().Msgf("Added pdu %s", args[0])
 	return nil
 }

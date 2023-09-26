@@ -36,22 +36,23 @@ import (
 
 // SessionStatusCmd represents the session status command
 var SessionStatusCmd = &cobra.Command{
-	Use:          "status",
-	Short:        "View session status.",
-	Long:         `View session status.`,
-	SilenceUsage: true, // Errors are more important than the usage
-	RunE:         showSession,
+	Use:               "status",
+	Short:             "View session status.",
+	Long:              `View session status.`,
+	PersistentPreRunE: root.SetupDomain,
+	SilenceUsage:      true, // Errors are more important than the usage
+	RunE:              showSession,
 }
 
 // showSession shows the status of the session
 func showSession(cmd *cobra.Command, args []string) error {
-	ds := root.Conf.Session.DomainOptions.DatastorePath
-	provider := root.Conf.Session.DomainOptions.Provider
+	ds := root.D.DatastorePath
+	provider := root.D.Provider
 	conf := root.RootCmd.Flag("config").Value.String()
 
 	// If the session is active, check that the datastore exists
 	log.Info().Msgf("See %s for session details", conf)
-	if root.Conf.Session.Active {
+	if root.D.Active {
 		_, err := os.Stat(ds)
 		if err != nil {
 			return fmt.Errorf("Session is ACTIVE with provider '%s' but datastore '%s' does not exist", provider, ds)

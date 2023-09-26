@@ -27,15 +27,24 @@ package session
 
 import (
 	"fmt"
+	"os"
 
 	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/Cray-HPE/cani/cmd/taxonomy"
 	"github.com/spf13/cobra"
 )
 
 // validProvider checks that the provider is valid and that at least one argument is provided
-func validProvider(cmd *cobra.Command, args []string) error {
+func validProvider(cmd *cobra.Command, args []string) (err error) {
+	// the PersistentPreRunE from the root command does not work here
+	// so it is explicitly called
+	err = root.SetupDomain(cmd, args)
+	if err != nil {
+		os.Exit(1)
+	}
+
 	if len(args) < 1 {
-		return fmt.Errorf("Need a provider.  Choose from: %+v", validArgs)
+		return fmt.Errorf("need a provider.  Choose from: %+v", taxonomy.SupportedProviders)
 	}
 
 	// This helper function checks if a provider is valid.
@@ -49,20 +58,19 @@ func validProvider(cmd *cobra.Command, args []string) error {
 	}
 
 	// Check the session provider.
-	sessionProvider := root.Conf.Session.DomainOptions.Provider
-	if sessionProvider == "" {
+	if args[0] == "" {
 		// Check that at least one argument is provided.
 		if len(args) < 1 {
-			return fmt.Errorf("Need a provider.  Choose from: %+v", validArgs)
+			return fmt.Errorf("Need a provider.  Choose from: %+v", taxonomy.SupportedProviders)
 		}
-	} else if !isValidProvider(sessionProvider) {
-		return fmt.Errorf("%s is not a valid provider.  Valid providers: %+v", sessionProvider, validArgs)
+	} else if !isValidProvider(args[0]) {
+		return fmt.Errorf("%s is not a valid provider.  Valid providers: %+v", args[0], taxonomy.SupportedProviders)
 	}
 
 	// Check all argument providers.
 	for _, arg := range args {
 		if !isValidProvider(arg) {
-			return fmt.Errorf("%s is not a valid provider.  Valid providers: %+v", arg, validArgs)
+			return fmt.Errorf("%s is not a valid provider.  Valid providers: %+v", arg, taxonomy.SupportedProviders)
 		}
 	}
 

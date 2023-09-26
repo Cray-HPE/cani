@@ -26,17 +26,19 @@
 package sw
 
 import (
+	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
 // RemoveSwitchCmd represents the switch remove command
 var RemoveSwitchCmd = &cobra.Command{
-	Use:   "switch",
-	Short: "Remove switches from the inventory.",
-	Long:  `Remove switches from the inventory.`,
-	Args:  cobra.ArbitraryArgs,
-	RunE:  removeSwitch,
+	Use:               "switch",
+	Short:             "Remove switches from the inventory.",
+	Long:              `Remove switches from the inventory.`,
+	PersistentPreRunE: root.SetupDomain,
+	Args:              cobra.ArbitraryArgs,
+	RunE:              removeSwitch,
 }
 
 // removeSwitch removes a switch from the inventory.

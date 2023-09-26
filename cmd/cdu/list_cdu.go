@@ -31,7 +31,6 @@ import (
 	"fmt"
 
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
@@ -40,23 +39,18 @@ import (
 
 // ListCduCmd represents the cdu list command
 var ListCduCmd = &cobra.Command{
-	Use:   "cdu",
-	Short: "List cdus in the inventory.",
-	Long:  `List cdus in the inventory.`,
-	Args:  cobra.ArbitraryArgs,
-	RunE:  listCdu,
+	Use:               "cdu",
+	Short:             "List cdus in the inventory.",
+	Long:              `List cdus in the inventory.`,
+	PersistentPreRunE: root.SetupDomain,
+	Args:              cobra.ArbitraryArgs,
+	RunE:              listCdu,
 }
 
 // listCdu lists cdus in the inventory
 func listCdu(cmd *cobra.Command, args []string) error {
-	// Create a domain object to interact with the datastore
-	d, err := domain.New(root.Conf.Session.DomainOptions)
-	if err != nil {
-		return err
-	}
-
 	// Get the entire inventory
-	inv, err := d.List()
+	inv, err := root.D.List()
 	if err != nil {
 		return err
 	}

@@ -31,6 +31,7 @@ import (
 
 const (
 	App              = "cani"
+	CSM              = "csm"
 	DsFile           = App + "db.json"
 	LogFile          = App + "db.log"
 	CfgFile          = App + ".yml"
@@ -41,6 +42,7 @@ const (
 )
 
 var (
-	DsPath  = filepath.Join(CfgDir, DsFile)
-	CfgPath = filepath.Join(CfgDir, CfgFile)
+	DsPath             = filepath.Join(CfgDir, DsFile)
+	CfgPath            = filepath.Join(CfgDir, CfgFile)
+	SupportedProviders = []string{App, CSM}
 )

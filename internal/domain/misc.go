@@ -82,7 +82,7 @@ func (d *Domain) Validate(ctx context.Context, checkRequiredData bool, ignoreExt
 	log.Info().Msg("Validated CANI inventory")
 
 	// Validate external inventory data
-	err := d.externalInventoryProvider.ValidateExternal(ctx, d.configOptions)
+	err := d.externalInventoryProvider.ValidateExternal(ctx)
 	if err != nil {
 		if ignoreExternalValidation {
 			log.Warn().Msgf("Ignoring these failures: %s", err)
@@ -93,27 +93,4 @@ func (d *Domain) Validate(ctx context.Context, checkRequiredData bool, ignoreExt
 
 	log.Info().Msg("Validated external inventory provider")
 	return result, nil
-}
-
-func (d *Domain) SetConfigOptions(ctx context.Context, opts *DomainOpts) (err error) {
-	options, err := d.externalInventoryProvider.ConfigOptions(ctx)
-	if err != nil {
-		return err
-	}
-	switch opts.Provider {
-	case string(inventory.CSMProvider):
-		opts.CsmOptions.ValidRoles = options.ValidRoles
-		d.configOptions.ValidRoles = options.ValidRoles
-
-		opts.CsmOptions.ValidSubRoles = options.ValidSubRoles
-		d.configOptions.ValidSubRoles = options.ValidSubRoles
-
-		opts.CsmOptions.K8sPodsCidr = options.K8sPodsCidr
-		d.configOptions.K8sPodsCidr = options.K8sPodsCidr
-
-		opts.CsmOptions.K8sServicesCidr = options.K8sServicesCidr
-		d.configOptions.K8sServicesCidr = options.K8sServicesCidr
-	}
-
-	return nil
 }

@@ -63,9 +63,9 @@ func (d *Domain) Commit(ctx context.Context, dryrun bool, ignoreExternalValidati
 			err,
 		)
 	}
-
+	// FIXME: No sls client here
 	// Validate the current state of the external inventory
-	if err := inventoryProvider.ValidateExternal(ctx, d.configOptions); err != nil {
+	if err := inventoryProvider.ValidateExternal(ctx); err != nil {
 		if ignoreExternalValidation {
 			log.Warn().Msgf("Ignoring these failures:\n%s", err)
 		} else {
@@ -76,5 +76,5 @@ func (d *Domain) Commit(ctx context.Context, dryrun bool, ignoreExternalValidati
 	}
 
 	// Reconcile our inventory with the external inventory system
-	return CommitResult{}, inventoryProvider.Reconcile(ctx, d.configOptions, d.datastore, dryrun, ignoreExternalValidation)
+	return CommitResult{}, inventoryProvider.Reconcile(ctx, d.datastore, dryrun, ignoreExternalValidation)
 }

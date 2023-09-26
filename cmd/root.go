@@ -29,21 +29,23 @@ package cmd
 import (
 	"os"
 
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
 	"github.com/Cray-HPE/cani/cmd/config"
 	"github.com/Cray-HPE/cani/cmd/taxonomy"
 	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 )
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:               taxonomy.App,
-	Short:             taxonomy.ShortDescription,
-	Long:              taxonomy.LongDescription,
-	PersistentPreRunE: loadConfigAndDomainOpts, // Load the domain options and config file settings
-	RunE:              runRoot,
-	Version:           version(),
+	Use:                taxonomy.App,
+	Short:              taxonomy.ShortDescription,
+	Long:               taxonomy.LongDescription,
+	RunE:               runRoot,
+	Version:            version(),
+	PersistentPostRunE: WriteSession,
 }
 
 var (
@@ -53,12 +55,14 @@ var (
 	Debug bool
 	// Verbose is a global flag that enables verbose logging
 	Verbose bool
-	// Simulation is a global flag that enables simulation mode
-	Simulation bool
-	// Conf is the global configuration read from cani.yml (or from --config)
+	// This is the active domain being used
+	D *domain.Domain
+	// Conf is everything in the config file (all sessions for all providers)
 	Conf *config.Config
-	// Domain is the global domain object, which is used to interact with the datastore
-	Domain *domain.Domain
+	// Hardware library should also be accessible globally
+	HwLibrary *hardwaretypes.Library
+	// List of hardware types that are blades
+	CabinetTypes, BladeTypes, NodeTypes, MgmtSwitchTypes, HsnSwitchTypes []hardwaretypes.DeviceType
 )
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -76,5 +80,19 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		cmd.Help()
 	}
 
+	return nil
+}
+
+// WriteSession writes the session configuration back to the config file
+func WriteSession(cmd *cobra.Command, args []string) error {
+	if cmd.Name() == "init" || cmd.Name() == "apply" {
+		// Write the configuration back to the file
+		cfgFile := cmd.Root().PersistentFlags().Lookup("config").Value.String()
+		log.Debug().Msgf("Writing session to config %s", cfgFile)
+		err := config.WriteConfig(cfgFile, Conf)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }

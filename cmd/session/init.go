@@ -58,8 +58,7 @@ func init() {
 	root.SessionCmd.AddCommand(SessionStatusCmd)
 	root.SessionCmd.AddCommand(SessionSummaryCmd)
 
-	// Session start flags
-	// TODO need a quick simulation environment flag
+	// Session init flags
 	SessionInitCmd.Flags().String("csm-url-sls", "", "(CSM Provider) Base URL for the System Layout Service (SLS)")
 	SessionInitCmd.Flags().String("csm-url-hsm", "", "(CSM Provider) Base URL for the Hardware State Manager (HSM)")
 	SessionInitCmd.Flags().BoolVarP(&insecure, "csm-insecure-https", "k", false, "(CSM Provider) Allow insecure connections when using HTTPS to CSM services")

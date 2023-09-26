@@ -26,17 +26,19 @@
 package cdu
 
 import (
+	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
 // RemoveCduCmd represents the cdu remove command
 var RemoveCduCmd = &cobra.Command{
-	Use:   "cdu",
-	Short: "Remove cdus from the inventory.",
-	Long:  `Remove cdus from the inventory.`,
-	Args:  cobra.ArbitraryArgs,
-	RunE:  removeCdu,
+	Use:               "cdu",
+	Short:             "Remove cdus from the inventory.",
+	Long:              `Remove cdus from the inventory.`,
+	PersistentPreRunE: root.SetupDomain,
+	Args:              cobra.ArbitraryArgs,
+	RunE:              removeCdu,
 }
 
 // removeCdu removes a cdu from the inventory.

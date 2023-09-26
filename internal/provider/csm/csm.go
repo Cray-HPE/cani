@@ -26,101 +26,30 @@
 package csm
 
 import (
-	"fmt"
-
-	"github.com/Cray-HPE/cani/cmd/taxonomy"
+	"github.com/Cray-HPE/cani/internal/provider/csm/validate"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+	"github.com/spf13/cobra"
 
 	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 )
 
-type ProviderOpts struct {
-	UseSimulation      bool
-	InsecureSkipVerify bool
-	APIGatewayToken    string
-	BaseUrlSLS         string
-	BaseUrlHSM         string
-	SecretName         string
-	K8sPodsCidr        string
-	K8sServicesCidr    string
-	KubeConfig         string
-	ClientID           string `json:"-" yaml:"-"` // omit credentials from cani.yml
-	ClientSecret       string `json:"-" yaml:"-"` // omit credentials from cani.yml
-	ProviderHost       string
-	TokenUsername      string `json:"-" yaml:"-"` // omit credentials from cani.yml
-	TokenPassword      string `json:"-" yaml:"-"` // omit credentials from cani.yml
-	CaCertPath         string
-	ValidRoles         []string
-	ValidSubRoles      []string
-}
-
 type CSM struct {
 	// Clients
-	slsClient *sls_client.APIClient
-	hsmClient *hsm_client.APIClient
-
-	// System Configuration data
-	ValidRoles    []string
-	ValidSubRoles []string
-
+	slsClient       *sls_client.APIClient
+	hsmClient       *hsm_client.APIClient
 	hardwareLibrary *hardwaretypes.Library
+	TBV             *validate.ToBeValidated
+	Options         *CsmOpts
 }
 
-func New(opts *ProviderOpts, hardwareLibrary *hardwaretypes.Library) (*CSM, error) {
-	csm := &CSM{
+func New(cmd *cobra.Command, args []string, hardwareLibrary *hardwaretypes.Library) (csm *CSM, err error) {
+	csm = &CSM{
 		hardwareLibrary: hardwareLibrary,
+		// slsClient:       &sls_client.APIClient{},
+		// hsmClient:       &hsm_client.APIClient{},
+		// TBV:             &validate.ToBeValidated{},
+		Options: &CsmOpts{},
 	}
-
-	if opts.UseSimulation {
-		opts.InsecureSkipVerify = true
-
-		opts.ProviderHost = "localhost:8443"
-
-		if opts.BaseUrlSLS == "" {
-			opts.BaseUrlSLS = fmt.Sprintf("https://%s/apis/sls/v1", opts.ProviderHost)
-		}
-		if opts.BaseUrlHSM == "" {
-			opts.BaseUrlHSM = fmt.Sprintf("https://%s/apis/smd/hsm/v2", opts.ProviderHost)
-		}
-	}
-
-	// Setup HTTP client and context using csm options
-	httpClient, _, err := opts.newClient()
-	if err != nil {
-		return nil, err
-	}
-
-	slsClientConfiguration := &sls_client.Configuration{
-		BasePath:   opts.BaseUrlSLS,
-		HTTPClient: httpClient.StandardClient(),
-		UserAgent:  taxonomy.App,
-		DefaultHeader: map[string]string{
-			"Content-Type": "application/json",
-		},
-	}
-
-	hsmClientConfiguration := &hsm_client.Configuration{
-		BasePath:   opts.BaseUrlHSM,
-		HTTPClient: httpClient.StandardClient(),
-		UserAgent:  taxonomy.App,
-		DefaultHeader: map[string]string{
-			"Content-Type": "application/json",
-		},
-	}
-
-	if opts.APIGatewayToken != "" {
-		// Set the token for use in the clients
-		slsClientConfiguration.DefaultHeader["Authorization"] = fmt.Sprintf("Bearer %s", opts.APIGatewayToken)
-		hsmClientConfiguration.DefaultHeader["Authorization"] = fmt.Sprintf("Bearer %s", opts.APIGatewayToken)
-	}
-
-	// Set the clients
-	csm.slsClient = sls_client.NewAPIClient(slsClientConfiguration)
-	csm.hsmClient = hsm_client.NewAPIClient(hsmClientConfiguration)
-
-	// Load system specific config data
-	csm.ValidRoles = opts.ValidRoles
-	csm.ValidSubRoles = opts.ValidSubRoles
 	return csm, nil
 }

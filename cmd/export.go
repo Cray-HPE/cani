@@ -59,26 +59,24 @@ func init() {
 
 // ExportCmd represents the export command
 var ExportCmd = &cobra.Command{
-	Use:               "export",
-	Short:             "Export assets from the inventory.",
-	Long:              `Export assets from the inventory.`,
-	PersistentPreRunE: DatastoreExists,
-	RunE:              export,
+	Use:   "export",
+	Short: "Export assets from the inventory.",
+	Long:  `Export assets from the inventory.`,
+	RunE:  export,
 }
 
 // export is the main entry point for the update command.
-func export(cmd *cobra.Command, args []string) error {
-	// Create a domain object to interact with the datastore
-	d, err := domain.New(Conf.Session.DomainOptions)
+func export(cmd *cobra.Command, args []string) (err error) {
+	err = SetupDomain(cmd, args)
 	if err != nil {
 		return err
 	}
 
 	switch exportFormat {
 	case "csv":
-		return exportCsv(cmd, args, d)
+		return exportCsv(cmd, args, D)
 	case "sls-json":
-		return exportSlsJson(cmd, args, d, ignoreValidation)
+		return exportJson(cmd, args, D, ignoreValidation)
 	default:
 		return fmt.Errorf("the requested format, %s, is unsupported", exportFormat)
 	}
@@ -86,7 +84,7 @@ func export(cmd *cobra.Command, args []string) error {
 
 func exportCsv(cmd *cobra.Command, args []string, d *domain.Domain) error {
 	if csvListOptions {
-		err := d.ListCsvOptions(cmd.Context(), Conf.Session.DomainOptions)
+		err := d.ListCsvOptions(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -118,13 +116,13 @@ func exportCsv(cmd *cobra.Command, args []string, d *domain.Domain) error {
 	return nil
 }
 
-func exportSlsJson(cmd *cobra.Command, args []string, d *domain.Domain, ignoreValidation bool) error {
+func exportJson(cmd *cobra.Command, args []string, d *domain.Domain, ignoreValidation bool) error {
 	cmd.SilenceUsage = true
 
 	f := os.Stdout
 	writer := bufio.NewWriter(f)
 	defer writer.Flush()
-	err := d.ExportSls(cmd.Context(), writer, ignoreValidation)
+	err := d.ExportJson(cmd.Context(), writer, ignoreValidation)
 	if err != nil {
 		return err
 	}

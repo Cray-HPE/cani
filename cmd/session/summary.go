@@ -31,7 +31,6 @@ import (
 	"text/tabwriter"
 
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/fatih/color"
@@ -41,22 +40,17 @@ import (
 
 // SessionSummaryCmd represents the session stop command
 var SessionSummaryCmd = &cobra.Command{
-	Use:          "summary",
-	Short:        "Show the summary of a stopped session",
-	Long:         `Show the summary of a stopped session`,
-	SilenceUsage: true, // Errors are more important than the usage
-	RunE:         showSummary,
+	Use:               "summary",
+	Short:             "Show the summary of a stopped session",
+	Long:              `Show the summary of a stopped session`,
+	PersistentPreRunE: root.SetupDomain,
+	SilenceUsage:      true, // Errors are more important than the usage
+	RunE:              showSummary,
 }
 
 func showSummary(cmd *cobra.Command, args []string) error {
-	// Instanstiate the domain
-	d, err := domain.New(root.Conf.Session.DomainOptions)
-	if err != nil {
-		return err
-	}
-
 	// Get the entire inventory
-	inv, err := d.List()
+	inv, err := root.D.List()
 	if err != nil {
 		return err
 	}

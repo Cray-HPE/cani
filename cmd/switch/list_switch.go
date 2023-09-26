@@ -31,7 +31,6 @@ import (
 	"fmt"
 
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
@@ -40,23 +39,18 @@ import (
 
 // ListSwitchCmd represents the switch list command
 var ListSwitchCmd = &cobra.Command{
-	Use:   "switch",
-	Short: "List switches in the inventory.",
-	Long:  `List switches in the inventory.`,
-	Args:  cobra.ArbitraryArgs,
-	RunE:  listSwitch,
+	Use:               "switch",
+	Short:             "List switches in the inventory.",
+	Long:              `List switches in the inventory.`,
+	PersistentPreRunE: root.SetupDomain,
+	Args:              cobra.ArbitraryArgs,
+	RunE:              listSwitch,
 }
 
 // listSwitch lists switches in the inventory
 func listSwitch(cmd *cobra.Command, args []string) error {
-	// Create a domain object to interact with the datastore
-	d, err := domain.New(root.Conf.Session.DomainOptions)
-	if err != nil {
-		return err
-	}
-
 	// Get the entire inventory
-	inv, err := d.List()
+	inv, err := root.D.List()
 	if err != nil {
 		return err
 	}

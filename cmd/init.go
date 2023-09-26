@@ -111,19 +111,3 @@ func initConfig() {
 		os.Exit(1)
 	}
 }
-
-func loadConfigAndDomainOpts(cmd *cobra.Command, args []string) error {
-	var err error
-	// writeSession writes the session configuration back to the config file
-	cfgFile = cmd.Root().PersistentFlags().Lookup("config").Value.String()
-	Conf, err = config.LoadConfig(cfgFile)
-	if err != nil {
-		return err
-	}
-	if Debug {
-		log.Debug().Msgf("Loaded config file %s", cfgFile)
-		log.Debug().Msgf("Session: %+v", Conf.Session.Active)
-	}
-
-	return nil
-}

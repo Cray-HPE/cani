@@ -30,28 +30,22 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/spf13/cobra"
 )
 
 // listCmd represents the switch list command
 var ListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List assets in the inventory.",
-	Long:  `List assets in the inventory.`,
-	RunE:  listInventory,
+	Use:               "list",
+	Short:             "List assets in the inventory.",
+	Long:              `List assets in the inventory.`,
+	PersistentPreRunE: SetupDomain,
+	RunE:              listInventory,
 }
 
 // listInventory lists all assets in the inventory
 func listInventory(cmd *cobra.Command, args []string) error {
-	// Create a domain object to interact with the datastore
-	d, err := domain.New(Conf.Session.DomainOptions)
-	if err != nil {
-		return err
-	}
-
 	// Get the entire inventory
-	inv, err := d.List()
+	inv, err := D.List()
 	if err != nil {
 		return err
 	}

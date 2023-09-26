@@ -42,25 +42,18 @@ import (
 
 // AddCabinetCmd represents the cabinet add command
 var AddCabinetCmd = &cobra.Command{
-	Use:               "cabinet",
-	Short:             "Add cabinets to the inventory.",
-	Long:              `Add cabinets to the inventory.`,
-	PersistentPreRunE: validFlagCombos, // Also ensures a session is active
-	Args:              validHardware,   // Hardware can only be valid if defined in the hardware library
-	SilenceUsage:      true,            // Errors are more important than the usage
-	RunE:              addCabinet,      // Add a cabinet when this sub-command is called
+	Use:          "cabinet",
+	Short:        "Add cabinets to the inventory.",
+	Long:         `Add cabinets to the inventory.`,
+	Args:         validHardware, // Hardware can only be valid if defined in the hardware library
+	SilenceUsage: true,          // Errors are more important than the usage
+	RunE:         addCabinet,    // Add a cabinet when this sub-command is called
 }
 
 // addCabinet adds a cabinet to the inventory
-func addCabinet(cmd *cobra.Command, args []string) error {
-	// Create a domain object to interact with the datastore
-	d, err := domain.New(root.Conf.Session.DomainOptions)
-	if err != nil {
-		return err
-	}
-
+func addCabinet(cmd *cobra.Command, args []string) (err error) {
 	if auto {
-		recommendations, err := d.Recommend(args[0])
+		recommendations, err := root.D.Recommend(args[0])
 		if err != nil {
 			return err
 		}
@@ -101,7 +94,7 @@ func addCabinet(cmd *cobra.Command, args []string) error {
 	}
 
 	// Add the cabinet to the inventory using domain methods
-	result, err := d.AddCabinet(cmd.Context(), args[0], cabinetNumber, cabinetMetadata)
+	result, err := root.D.AddCabinet(cmd.Context(), args[0], cabinetNumber, cabinetMetadata)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		// TODO the following should probably suggest commands to fix the issue?
 		log.Error().Msgf("Inventory data validation errors encountered")

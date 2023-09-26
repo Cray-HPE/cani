@@ -32,22 +32,21 @@ import (
 	"strings"
 
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/spf13/cobra"
 )
 
 // validHardware checks that the hardware type is valid by comparing it against the list of hardware types
-func validHardware(cmd *cobra.Command, args []string) error {
-	library, err := hardwaretypes.NewEmbeddedLibrary(root.Conf.Session.DomainOptions.CustomHardwareTypesDir)
+func validHardware(cmd *cobra.Command, args []string) (err error) {
+	// the PersistentPreRunE from the root command does not work here
+	// so it is explicitly called
+	err = root.SetupDomain(cmd, args)
 	if err != nil {
-		return err
+		os.Exit(1)
 	}
 
-	// Get the list of hardware types that are cabinets
-	deviceTypes := library.GetDeviceTypesByHardwareType(hardwaretypes.Cabinet)
 	if cmd.Flags().Changed("list-supported-types") {
 		cmd.SetOut(os.Stdout)
-		for _, hw := range deviceTypes {
+		for _, hw := range root.CabinetTypes {
 			// print additional provider defaults
 			if root.Verbose {
 				cmd.Printf("%s %d %d\n", hw.Slug, hw.ProviderDefaults.CSM.Ordinal, hw.ProviderDefaults.CSM.StartingHmnVlan)
@@ -60,7 +59,7 @@ func validHardware(cmd *cobra.Command, args []string) error {
 
 	if len(args) == 0 {
 		types := []string{}
-		for _, hw := range deviceTypes {
+		for _, hw := range root.CabinetTypes {
 			types = append(types, hw.Slug)
 		}
 		return fmt.Errorf("No hardware type provided: Choose from: %s", strings.Join(types, "\", \""))
@@ -69,7 +68,7 @@ func validHardware(cmd *cobra.Command, args []string) error {
 	// Check that each arg is a valid cabinet type
 	for _, arg := range args {
 		matchFound := false
-		for _, device := range deviceTypes {
+		for _, device := range root.CabinetTypes {
 			if arg == device.Slug {
 				matchFound = true
 				break
@@ -80,17 +79,20 @@ func validHardware(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	err = validFlagCombos(cmd, args)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // validFlagCombos has additional flag logic to account for overiding required flags with the --auto flag
 func validFlagCombos(cmd *cobra.Command, args []string) error {
-	// ensure the session is up and the datastore exists
-	err := root.DatastoreExists(cmd, args)
+	err := root.SetupDomain(cmd, args)
 	if err != nil {
 		return err
 	}
-
 	cabinetSet := cmd.Flags().Changed("cabinet")
 	vlanIdSet := cmd.Flags().Changed("vlan-id")
 	autoSet := cmd.Flags().Changed("auto")

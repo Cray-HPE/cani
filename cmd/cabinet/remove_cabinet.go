@@ -26,17 +26,19 @@
 package cabinet
 
 import (
+	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
 // RemoveCabinetCmd represents the cabinet remove command
 var RemoveCabinetCmd = &cobra.Command{
-	Use:   "cabinet",
-	Short: "Remove cabinets from the inventory.",
-	Long:  `Remove cabinets from the inventory.`,
-	Args:  cobra.ArbitraryArgs,
-	RunE:  removeCabinet,
+	Use:               "cabinet",
+	Short:             "Remove cabinets from the inventory.",
+	Long:              `Remove cabinets from the inventory.`,
+	PersistentPreRunE: root.SetupDomain,
+	Args:              cobra.ArbitraryArgs,
+	RunE:              removeCabinet,
 }
 
 // removeCabinet removes a cabinet from the inventory.

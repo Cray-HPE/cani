@@ -26,17 +26,19 @@
 package chassis
 
 import (
+	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
 // RemoveChassisCmd represents the chassis remove command
 var RemoveChassisCmd = &cobra.Command{
-	Use:   "chassis",
-	Short: "Remove chassis from the inventory.",
-	Long:  `Remove chassis from the inventory.`,
-	Args:  cobra.ArbitraryArgs,
-	RunE:  removeChassis,
+	Use:               "chassis",
+	Short:             "Remove chassis from the inventory.",
+	Long:              `Remove chassis from the inventory.`,
+	PersistentPreRunE: root.SetupDomain,
+	Args:              cobra.ArbitraryArgs,
+	RunE:              removeChassis,
 }
 
 // removeChassis removes a chassis from the inventory.

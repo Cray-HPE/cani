@@ -29,11 +29,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
-	"strings"
 
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/cmd/config"
+	"github.com/Cray-HPE/cani/cmd/taxonomy"
 	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/manifoldco/promptui"
@@ -43,58 +44,50 @@ import (
 
 // SessionInitCmd represents the session init command
 var SessionInitCmd = &cobra.Command{
-	Use:                "init",
-	Short:              "Initialize and start a session. Will perform an import of system's inventory format.",
-	Long:               `Initialize and start a session. Will perform an import of system's inventory format.`,
-	Args:               validProvider,
-	ValidArgs:          validArgs,
-	SilenceUsage:       true, // Errors are more important than the usage
-	RunE:               startSession,
-	PersistentPostRunE: writeSession,
+	Use:          "init",
+	Short:        "Initialize and start a session. Will perform an import of system's inventory format.",
+	Long:         `Initialize and start a session. Will perform an import of system's inventory format.`,
+	Args:         validProvider,
+	ValidArgs:    taxonomy.SupportedProviders,
+	SilenceUsage: true, // Errors are more important than the usage
+	RunE:         startSession,
 }
 
-var (
-	validArgs = []string{"csm"}
-)
-
 // startSession starts a session if one does not exist
-func startSession(cmd *cobra.Command, args []string) error {
-	if useSimulation {
-		log.Warn().Msg("Using simulation mode")
-		root.Conf.Session.DomainOptions.CsmOptions.UseSimulation = true
-	} else {
-		slsUrl, _ := cmd.Flags().GetString("csm-url-sls")
-		if slsUrl != "" {
-			root.Conf.Session.DomainOptions.CsmOptions.BaseUrlSLS = slsUrl
-		} else {
-			root.Conf.Session.DomainOptions.CsmOptions.BaseUrlSLS = fmt.Sprintf("https://%s/apis/sls/v1", providerHost)
-		}
-		hsmUrl, _ := cmd.Flags().GetString("csm-url-hsm")
-		if hsmUrl != "" {
-			root.Conf.Session.DomainOptions.CsmOptions.BaseUrlHSM = hsmUrl
-		} else {
-			root.Conf.Session.DomainOptions.CsmOptions.BaseUrlHSM = fmt.Sprintf("https://%s/apis/smd/hsm/v2", providerHost)
-		}
-		root.Conf.Session.DomainOptions.CsmOptions.InsecureSkipVerify, _ = cmd.Flags().GetBool("csm-insecure-https")
+func startSession(cmd *cobra.Command, args []string) (err error) {
+	// Create a domain object to interact with the datastore and the provider
+	root.D, err = domain.New(cmd, args)
+	if err != nil {
+		return errors.Join(err,
+			errors.New("external inventory is unstable"),
+			errors.New("unable to get provider specific config options"),
+			errors.New("fix issues before starting another session"))
 	}
-	if insecure {
-		root.Conf.Session.DomainOptions.CsmOptions.InsecureSkipVerify = true
+
+	// Set the paths needed for starting a session
+	root.D.CustomHardwareTypesDir = config.CustomDir
+	root.D.DatastorePath = filepath.Join(config.ConfigDir, taxonomy.DsFile)
+	root.D.LogFilePath = filepath.Join(config.ConfigDir, taxonomy.LogFile)
+
+	// Setup the domain now that the minimum required options are set
+	// This allows the provider to define their own logic and keeps it out
+	// of the 'cmd' package
+	err = root.D.SetupDomain(cmd, args)
+	if err != nil {
+		return err
 	}
-	root.Conf.Session.DomainOptions.CsmOptions.SecretName = secretName
-	root.Conf.Session.DomainOptions.CsmOptions.K8sPodsCidr = k8sPodsCidr
-	root.Conf.Session.DomainOptions.CsmOptions.K8sServicesCidr = k8sServicesCidr
-	root.Conf.Session.DomainOptions.CsmOptions.KubeConfig = kubeconfig
-	root.Conf.Session.DomainOptions.CsmOptions.CaCertPath = caCertPath
-	root.Conf.Session.DomainOptions.CsmOptions.ClientID = clientId
-	root.Conf.Session.DomainOptions.CsmOptions.ClientSecret = clientSecret
-	root.Conf.Session.DomainOptions.CsmOptions.ProviderHost = strings.TrimRight(providerHost, "/") // Remove trailing slash if present
-	root.Conf.Session.DomainOptions.CsmOptions.TokenUsername = tokenUsername
-	root.Conf.Session.DomainOptions.CsmOptions.TokenPassword = tokenPassword
+
+	// Create a config object that will be written to the config file
+	root.Conf = &config.Config{
+		Session: &config.Session{
+			Domains: map[string]*domain.Domain{},
+		},
+	}
 
 	// If a session is already active, there is nothing to do but the user may want to overwrite the existing session
-	if root.Conf.Session.Active {
+	if root.D.Active {
 		log.Info().Msgf("Session is already ACTIVE.")
-		ds := root.Conf.Session.DomainOptions.DatastorePath
+		ds := root.D.DatastorePath
 		// Check if the json file exists
 		if _, err := os.Stat(ds); err == nil {
 			// If the json file exists, prompt user for overwrite
@@ -114,21 +107,8 @@ func startSession(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Create a domain object to interact with the datastore
-	var err error
-	root.Conf.Session.Domain, err = domain.New(root.Conf.Session.DomainOptions)
-	if err != nil {
-		return err
-	}
-
-	err = root.Conf.Session.Domain.SetConfigOptions(cmd.Context(), root.Conf.Session.DomainOptions)
-	if err != nil {
-		return errors.Join(err,
-			errors.New("External inventory is unstable. Unable to get provider specific config options. Fix issues before starting another session."))
-	}
-
-	// Validate the external inventory
-	result, err := root.Conf.Session.Domain.Validate(cmd.Context(), false, ignoreExternalValidation)
+	// Validate the external inventory before attempting an import
+	result, err := root.D.Validate(cmd.Context(), false, ignoreExternalValidation)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		// TODO the following should probably suggest commands to fix the issue?
 		log.Error().Msgf("Inventory data validation errors encountered")
@@ -139,35 +119,31 @@ func startSession(cmd *cobra.Command, args []string) error {
 				log.Error().Msgf("    - %s", validationError)
 			}
 		}
-
 		return err
 	} else if err != nil {
 		return errors.Join(err,
-			errors.New("External inventory is unstable.  Fix issues before starting another session."))
+			errors.New("external inventory is unstable"),
+			errors.New("fix issues before starting another session"))
 	}
 
-	// Commit the external inventory
-	if err := root.Conf.Session.Domain.Import(cmd.Context()); err != nil {
+	// Import the external inventory
+	if err := root.D.Import(cmd.Context()); err != nil {
 		return err
 	}
 
 	// "Activate" the session
-	root.Conf.Session.Active = true
+	root.D.Active = true
 
-	ds := root.Conf.Session.DomainOptions.DatastorePath
-	provider := root.Conf.Session.DomainOptions.Provider
-	log.Info().Msgf("Session is now ACTIVE with provider %s and datastore %s", provider, ds)
-	return nil
-}
+	// add this provider to the config with the assembled domain object
+	root.Conf.Session.Domains[args[0]] = root.D
 
-// writeSession writes the session configuration back to the config file
-func writeSession(cmd *cobra.Command, args []string) error {
-	// Write the configuration back to the file
-	cfgFile := cmd.Root().PersistentFlags().Lookup("config").Value.String()
-	err := config.WriteConfig(cfgFile, root.Conf)
+	// write the config to the file
+	err = root.WriteSession(cmd, args)
 	if err != nil {
 		return err
 	}
+
+	log.Info().Msgf("Session is now ACTIVE with provider %s and datastore %s", root.D.Provider, root.D.DatastorePath)
 	return nil
 }
 

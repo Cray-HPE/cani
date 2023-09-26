@@ -31,30 +31,34 @@ import (
 	"os"
 
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/spf13/cobra"
 )
 
 // validHardware checks that the hardware type is valid by comparing it against the list of hardware types
-func validHardware(cmd *cobra.Command, args []string) error {
-	library, err := hardwaretypes.NewEmbeddedLibrary(root.Conf.Session.DomainOptions.CustomHardwareTypesDir)
+func validHardware(cmd *cobra.Command, args []string) (err error) {
+	// the PersistentPreRunE from the root command does not work here
+	// so it is explicitly called
+	err = root.SetupDomain(cmd, args)
 	if err != nil {
-		return err
+		os.Exit(1)
 	}
 
-	// Get the list of hardware types that are blades
-	deviceTypes := library.GetDeviceTypesByHardwareType(hardwaretypes.NodeBlade)
 	if cmd.Flags().Changed("list-supported-types") {
 		cmd.SetOut(os.Stdout)
-		for _, hw := range deviceTypes {
-			cmd.Printf("%s\n", hw.Slug)
+		for _, hw := range root.BladeTypes {
+			// print additional provider defaults
+			if root.Verbose {
+				cmd.Printf("%s %d %d\n", hw.Slug, hw.ProviderDefaults.CSM.Ordinal, hw.ProviderDefaults.CSM.StartingHmnVlan)
+			} else {
+				cmd.Printf("%s\n", hw.Slug)
+			}
 		}
 		os.Exit(0)
 	}
 
 	if len(args) == 0 {
 		bladeTypes := []string{}
-		for _, hw := range deviceTypes {
+		for _, hw := range root.BladeTypes {
 			bladeTypes = append(bladeTypes, hw.Slug)
 		}
 		return fmt.Errorf("No hardware type provided: Choose from: %s", bladeTypes)
@@ -63,7 +67,7 @@ func validHardware(cmd *cobra.Command, args []string) error {
 	// Check that each arg is a valid blade type
 	for _, arg := range args {
 		matchFound := false
-		for _, device := range deviceTypes {
+		for _, device := range root.BladeTypes {
 			if arg == device.Slug {
 				matchFound = true
 				break

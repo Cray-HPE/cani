@@ -159,7 +159,7 @@ func (csm *CSM) SetFields(hw *inventory.Hardware, values map[string]string) (res
 	return
 }
 
-func (csm *CSM) GetFieldMetadata(configOptions provider.ConfigOptions) ([]provider.FieldMetadata, error) {
+func (csm *CSM) GetFieldMetadata() ([]provider.FieldMetadata, error) {
 	id := provider.FieldMetadata{
 		Name:         "ID",
 		Types:        "All",
@@ -198,13 +198,13 @@ func (csm *CSM) GetFieldMetadata(configOptions provider.ConfigOptions) ([]provid
 		Name:         "Role",
 		Types:        "Node",
 		IsModifiable: true,
-		Description:  "Any of these values: " + strings.Join(configOptions.ValidRoles, ", "),
+		Description:  "Any of these values: " + strings.Join(csm.Options.ValidRoles, ", "),
 	}
 	subRole := provider.FieldMetadata{
 		Name:         "SubRole",
 		Types:        "Node",
 		IsModifiable: true,
-		Description:  "Any of these values: " + strings.Join(configOptions.ValidSubRoles, ", "),
+		Description:  "Any of these values: " + strings.Join(csm.Options.ValidSubRoles, ", "),
 	}
 	status := provider.FieldMetadata{
 		Name:         "Status",
