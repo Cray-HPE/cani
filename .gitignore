@@ -40,3 +40,7 @@ canitest.yml
 canitestdb.json
 canitestdb.log
 canitest_export.csv
+
+# support repos
+hms-simulation-environment/
+shellspec/
