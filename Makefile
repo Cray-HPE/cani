@@ -139,6 +139,21 @@ shellspec:
 validate-hardware-type-schemas:
 	go run ./pkg/hardwaretypes/validate pkg/hardwaretypes/hardware-types/schema  pkg/hardwaretypes/hardware-types/
 
+sim-setup:
+	@if ! [ -d hms-simulation-environment ]; then \
+	git clone https://github.com/Cray-HPE/hms-simulation-environment.git; \
+	spec/support/bin/setup_simulator.sh ./hms-simulation-environment ../testdata/fixtures/sls/no_hardware.json; \
+	fi
+
+load-sls:
+	spec/support/bin/setup_simulator.sh ./hms-simulation-environment ../testdata/fixtures/sls/no_hardware.json
+
+spec-setup:
+	@if ! [ -d ./shellspec ]; then \
+	git clone https://github.com/shellspec/shellspec.git; \
+	ln -s "$(shell pwd)"/shellspec/shellspec /usr/local/bin/; \
+	fi
+
 unittest: bin
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go test -cover \
 	     github.com/Cray-HPE/cani/internal/inventory \
@@ -149,7 +164,7 @@ unittest: bin
 	     github.com/Cray-HPE/cani/internal/provider/csm/validate/checks \
 	     github.com/Cray-HPE/cani/internal/provider/csm/validate/common
 
-spec: bin
+functional: bin
 	./spec/support/bin/cani_integrate.sh functional
 
 integrate: bin
@@ -158,7 +173,7 @@ integrate: bin
 edge: bin
 	./spec/support/bin/cani_integrate.sh edge
 
-test: bin validate-hardware-type-schemas unittest spec integrate edge
+test: bin validate-hardware-type-schemas unittest functional integrate edge
 
 tools:
 	go install golang.org/x/lint/golint@latest

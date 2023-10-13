@@ -80,7 +80,7 @@ jobs:
         continue-on-error: false
         shell: bash
         run: |
-          spec/support/bin/setup_simulator.sh ./hms-simulation-environment ../testdata/fixtures/sls/no_hardware.json
+          make load-sls
 
       - name: Run shellspec
         shell: bash
