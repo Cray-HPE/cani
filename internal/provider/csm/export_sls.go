@@ -33,7 +33,6 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
-	"github.com/Cray-HPE/cani/internal/provider/csm/validate"
 )
 
 func (csm *CSM) GetSlsJson(ctx context.Context, configOptions provider.ConfigOptions, datastore inventory.Datastore, skipValidation bool) ([]byte, error) {
@@ -53,7 +52,7 @@ func (csm *CSM) GetSlsJson(ctx context.Context, configOptions provider.ConfigOpt
 	}
 
 	if !skipValidation {
-		_, err = validate.Validate(configOptions, modifiedState)
+		_, err = csm.TBV.Validate(configOptions, modifiedState)
 		if err != nil {
 			return nil, fmt.Errorf("validation failed %v", err)
 		}

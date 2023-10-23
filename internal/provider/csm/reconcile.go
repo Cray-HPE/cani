@@ -37,7 +37,6 @@ import (
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/provider/csm/ipam"
 	"github.com/Cray-HPE/cani/internal/provider/csm/sls"
-	"github.com/Cray-HPE/cani/internal/provider/csm/validate"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	"github.com/Cray-HPE/hms-xname/xnames"
@@ -80,7 +79,7 @@ func (csm *CSM) Reconcile(ctx context.Context, configOptions provider.ConfigOpti
 		return err
 	}
 
-	_, err = validate.Validate(configOptions, modifiedState)
+	_, err = csm.TBV.Validate(configOptions, modifiedState)
 	if err != nil {
 		if ignoreExternalValidation {
 			log.Warn().Msgf("Ignoring these failures: %v\n", err)

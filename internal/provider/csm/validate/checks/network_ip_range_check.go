@@ -68,8 +68,8 @@ func (c *NetworkIpRangeCheck) Validate(results *common.ValidationResults) {
 	for i, ipRange1 := range ipRanges {
 		name1 := ipRangeMap[ipRange1].Name
 		_, net1, _ := net.ParseCIDR(ipRange1)
-		checkK8sCidr(results, "cani config file", k8sPodsCidr, "k8spodscidr", net1, name1)
-		checkK8sCidr(results, "cani config file", k8sServicesCidr, "k8sservicescidr", net1, name1)
+		checkK8sCidr(results, "CSM", k8sPodsCidr, "k8spodscidr", net1, name1)
+		checkK8sCidr(results, "CSM", k8sServicesCidr, "k8sservicescidr", net1, name1)
 		if !net1.IP.IsUnspecified() {
 			for j := i + 1; j < len(ipRanges); j++ {
 				ipRange2 := ipRanges[j]

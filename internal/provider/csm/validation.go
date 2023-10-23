@@ -33,7 +33,6 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
-	"github.com/Cray-HPE/cani/internal/provider/csm/validate"
 	"github.com/Cray-HPE/cani/internal/util/uuidutil"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
@@ -49,7 +48,7 @@ func (csm *CSM) ValidateExternal(ctx context.Context, configOptions provider.Con
 	}
 
 	// Validate the dumpstate returned from SLS
-	_, err = validate.ValidateHTTPResponse(configOptions, &slsState, reps)
+	_, err = csm.TBV.ValidateHTTPResponse(configOptions, &slsState, reps)
 	if err != nil {
 		return fmt.Errorf("Validation failed. %v\n", err)
 	}

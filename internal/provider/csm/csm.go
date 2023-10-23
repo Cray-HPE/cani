@@ -29,6 +29,7 @@ import (
 	"fmt"
 
 	"github.com/Cray-HPE/cani/cmd/taxonomy"
+	"github.com/Cray-HPE/cani/internal/provider/csm/validate"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 
 	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
@@ -65,6 +66,7 @@ type CSM struct {
 	ValidSubRoles []string
 
 	hardwareLibrary *hardwaretypes.Library
+	TBV             *validate.ToBeValidated
 }
 
 func New(opts *ProviderOpts, hardwareLibrary *hardwaretypes.Library) (*CSM, error) {

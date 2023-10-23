@@ -29,6 +29,7 @@ import (
 	"context"
 
 	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/Cray-HPE/cani/internal/provider/csm/validate"
 )
 
 func (csm *CSM) ConfigOptions(ctx context.Context) (provider.ConfigOptions, error) {
@@ -46,6 +47,14 @@ func (csm *CSM) ConfigOptions(ctx context.Context) (provider.ConfigOptions, erro
 	// the fields: kubernetes-pods-cidr and kubernetes-services-cidr
 	providerConfig.K8sPodsCidr = "10.32.0.0/12"
 	providerConfig.K8sServicesCidr = "10.16.0.0/12"
+
+	tbv := &validate.ToBeValidated{}
+	tbv.K8sPodsCidr = providerConfig.K8sPodsCidr
+	tbv.K8sServicesCidr = providerConfig.K8sServicesCidr
+	tbv.ValidRoles = providerConfig.ValidRoles
+	tbv.ValidSubRoles = providerConfig.ValidSubRoles
+
+	csm.TBV = tbv
 
 	return providerConfig, nil
 }

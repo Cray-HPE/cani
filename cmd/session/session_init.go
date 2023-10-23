@@ -123,6 +123,7 @@ func startSession(cmd *cobra.Command, args []string) error {
 
 	err = root.Conf.Session.Domain.SetConfigOptions(cmd.Context(), root.Conf.Session.DomainOptions)
 	if err != nil {
+		fmt.Printf("%+v\n", root.Conf.Session.Domain)
 		return errors.Join(err,
 			errors.New("External inventory is unstable. Unable to get provider specific config options. Fix issues before starting another session."))
 	}
