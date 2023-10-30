@@ -53,32 +53,25 @@ func init() {
 		&csvComponentTypes, "type", "t", "Node,Cabinet", "Comma separated list of the types of components to output")
 	ExportCmd.PersistentFlags().BoolVarP(&csvAllTypes, "all", "a", false, "List all components. This overrides the --type option")
 	ExportCmd.PersistentFlags().BoolVarP(&csvListOptions, "list-fields", "L", false, "List details about the fields in the CSV")
-	ExportCmd.PersistentFlags().StringVar(&exportFormat, "format", "csv", "Format option: csv or sls-json")
+	ExportCmd.PersistentFlags().StringVar(&exportFormat, "format", "csv", "Format option: [csv, sls-json]")
 	ExportCmd.PersistentFlags().BoolVar(&ignoreValidation, "ignore-validation", false, "Skip validating the sls data. This only applies to the sls-json format.")
 }
 
 // ExportCmd represents the export command
 var ExportCmd = &cobra.Command{
-	Use:               "export",
-	Short:             "Export assets from the inventory.",
-	Long:              `Export assets from the inventory.`,
-	PersistentPreRunE: DatastoreExists,
-	RunE:              export,
+	Use:   "export",
+	Short: "Export assets from the inventory.",
+	Long:  `Export assets from the inventory.`,
+	RunE:  export,
 }
 
 // export is the main entry point for the update command.
-func export(cmd *cobra.Command, args []string) error {
-	// Create a domain object to interact with the datastore
-	d, err := domain.New(Conf.Session.DomainOptions)
-	if err != nil {
-		return err
-	}
-
+func export(cmd *cobra.Command, args []string) (err error) {
 	switch exportFormat {
 	case "csv":
-		return exportCsv(cmd, args, d)
+		return exportCsv(cmd, args, D)
 	case "sls-json":
-		return exportSlsJson(cmd, args, d, ignoreValidation)
+		return exportJson(cmd, args, D, ignoreValidation)
 	default:
 		return fmt.Errorf("the requested format, %s, is unsupported", exportFormat)
 	}
@@ -86,7 +79,7 @@ func export(cmd *cobra.Command, args []string) error {
 
 func exportCsv(cmd *cobra.Command, args []string, d *domain.Domain) error {
 	if csvListOptions {
-		err := d.ListCsvOptions(cmd.Context(), Conf.Session.DomainOptions)
+		err := d.ListCsvOptions(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -118,13 +111,13 @@ func exportCsv(cmd *cobra.Command, args []string, d *domain.Domain) error {
 	return nil
 }
 
-func exportSlsJson(cmd *cobra.Command, args []string, d *domain.Domain, ignoreValidation bool) error {
+func exportJson(cmd *cobra.Command, args []string, d *domain.Domain, ignoreValidation bool) error {
 	cmd.SilenceUsage = true
 
 	f := os.Stdout
 	writer := bufio.NewWriter(f)
 	defer writer.Flush()
-	err := d.ExportSls(cmd.Context(), writer, ignoreValidation)
+	err := d.ExportJson(cmd.Context(), writer, ignoreValidation)
 	if err != nil {
 		return err
 	}

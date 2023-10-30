@@ -41,39 +41,45 @@ type Config struct {
 	Session *Session `yaml:"session"`
 }
 
+var ConfigDir, CustomDir, Tl string
+
 // InitConfig creates a default config file if one does not exist
 func InitConfig(cfg string) (err error) {
 	// Create the directory if it doesn't exist
-	configDir := filepath.Dir(cfg)
-	if _, err := os.Stat(configDir); os.IsNotExist(err) {
-		err = os.Mkdir(configDir, 0755)
+	ConfigDir = filepath.Dir(cfg)
+	if _, err := os.Stat(ConfigDir); os.IsNotExist(err) {
+		err = os.Mkdir(ConfigDir, 0755)
 		if err != nil {
 			return fmt.Errorf("error creating config directory: %s", err)
 		}
 	}
-	tl := filepath.Join(configDir, taxonomy.LogFile)
-	customDir := fmt.Sprintf("%s/%s", configDir, "hardware-types")
+	Tl = filepath.Join(ConfigDir, taxonomy.LogFile)
+	CustomDir = fmt.Sprintf("%s/%s", ConfigDir, "hardware-types")
 	// Write a default config file if it doesn't exist
 	if _, err := os.Stat(cfg); os.IsNotExist(err) {
 		log.Debug().Msg(fmt.Sprintf("%s does not exist, creating default config file", cfg))
 
-		// Create a config with default values since one does not exist
+		// Create a config with a blank object
 		conf := &Config{
 			Session: &Session{
-				DomainOptions: &domain.DomainOpts{
-					Provider:               "csm",
-					DatastorePath:          filepath.Join(configDir, taxonomy.DsFile),
-					LogFilePath:            tl,
-					CustomHardwareTypesDir: customDir,
-				},
+				Domains: map[string]*domain.Domain{},
 			},
 		}
-
+		// Add the supported providers to the config as a starting default
+		for _, p := range taxonomy.SupportedProviders {
+			conf.Session.Domains[p] = &domain.Domain{
+				// DatastorePath:          filepath.Join(ConfigDir, taxonomy.DsFile),
+				LogFilePath:            Tl,
+				CustomHardwareTypesDir: CustomDir,
+				Provider:               p,
+				Active:                 false,
+			}
+		}
 		// Create the config file
 		WriteConfig(cfg, conf)
 	}
 
-	err = os.MkdirAll(customDir, 0755)
+	err = os.MkdirAll(CustomDir, 0755)
 	if err != nil {
 		return err
 	}

@@ -29,12 +29,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	vendor string
-	name   string
-	u      string
-)
-
 // AddCmd represents the switch add command
 var AddCmd = &cobra.Command{
 	Use:   "add",

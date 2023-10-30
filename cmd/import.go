@@ -31,7 +31,6 @@ import (
 	"os"
 	"sort"
 
-	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -43,11 +42,10 @@ var (
 
 // ImportCmd represents the import command
 var ImportCmd = &cobra.Command{
-	Use:               "import [FILE]",
-	Short:             "Import assets into the inventory.",
-	Long:              `Import assets into the inventory.`,
-	PersistentPreRunE: DatastoreExists,
-	RunE:              importAssets,
+	Use:   "import [FILE]",
+	Short: "Import assets into the inventory.",
+	Long:  `Import assets into the inventory.`,
+	RunE:  importAssets,
 }
 
 func createCsvReader(filename string) (*csv.Reader, error) {
@@ -63,7 +61,7 @@ func createCsvReader(filename string) (*csv.Reader, error) {
 }
 
 // import is the main entry point for the update command.
-func importAssets(cmd *cobra.Command, args []string) error {
+func importAssets(cmd *cobra.Command, args []string) (err error) {
 	if len(args) == 1 {
 		csvFile = args[0]
 	} else if len(args) == 0 {
@@ -77,20 +75,13 @@ func importAssets(cmd *cobra.Command, args []string) error {
 		return errors.New("too many arguments")
 	}
 
-	// Create a domain object to interact with the datastore
-	d, err := domain.New(Conf.Session.DomainOptions)
-	if err != nil {
-		log.Error().Msgf("Import CSV failed internal error. %s", err)
-		return nil
-	}
-
 	r, err := createCsvReader(csvFile)
 	if err != nil {
 		log.Error().Msgf("Failed to open the file %s. %s", csvFile, err)
 		return nil
 	}
 
-	result, err := d.ImportCsv(cmd.Context(), r)
+	result, err := D.ImportCsv(cmd.Context(), r)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		log.Error().Msgf("The changes are invalid.")
 		for id, failedValidation := range result.ValidationResults {

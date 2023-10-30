@@ -32,7 +32,6 @@ import (
 	"sort"
 
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/manifoldco/promptui"
 	"github.com/rs/zerolog/log"
@@ -41,32 +40,23 @@ import (
 
 // SessionApplyCmd represents the session apply command
 var SessionApplyCmd = &cobra.Command{
-	Use:                "apply",
-	Short:              "Apply changes from the session.",
-	Long:               `Apply changes from the session.`,
-	SilenceUsage:       true, // Errors are more important than the usage
-	RunE:               stopSession,
-	PersistentPostRunE: writeSession,
+	Use:   "apply",
+	Short: "Apply changes from the session.",
+	Long:  `Apply changes from the session.`,
+	RunE:  stopSession,
 }
 
 // stopSession stops a session if one exists
-func stopSession(cmd *cobra.Command, args []string) error {
-	ds := root.Conf.Session.DomainOptions.DatastorePath
-	providerName := root.Conf.Session.DomainOptions.Provider
-	d, err := domain.New(root.Conf.Session.DomainOptions)
-	if err != nil {
-		return err
-	}
-
-	if root.Conf.Session.Active {
+func stopSession(cmd *cobra.Command, args []string) (err error) {
+	if root.D.Active {
 		// Check that the datastore exists before proceeding since we cannot continue without it
-		_, err := os.Stat(ds)
+		_, err = os.Stat(root.D.DatastorePath)
 		if err != nil {
-			return fmt.Errorf("Session is STOPPED with provider '%s' but datastore '%s' does not exist", providerName, ds)
+			return fmt.Errorf("Session is STOPPED with provider '%s' but datastore '%s' does not exist", root.D.Provider, root.D.DatastorePath)
 		}
 		log.Info().Msgf("Session is STOPPED")
 	} else {
-		log.Info().Msgf("Session with provider '%s' and datastore '%s' is already STOPPED", providerName, ds)
+		log.Info().Msgf("Session with provider '%s' and datastore '%s' is already STOPPED", root.D.Provider, root.D.DatastorePath)
 	}
 
 	if dryrun {
@@ -75,7 +65,7 @@ func stopSession(cmd *cobra.Command, args []string) error {
 
 	if !commit {
 		// Prompt user to commit changes if the commit flag is not set
-		commit, err = promptForCommit(ds)
+		commit, err = promptForCommit(root.D.DatastorePath)
 		if err != nil {
 			return err
 		}
@@ -84,7 +74,7 @@ func stopSession(cmd *cobra.Command, args []string) error {
 		log.Info().Msgf("Committing changes to session")
 
 		// Commit the external inventory
-		result, err := d.Commit(cmd.Context(), dryrun, ignoreExternalValidation)
+		result, err := root.D.Commit(cmd.Context(), dryrun, ignoreExternalValidation)
 		if errors.Is(err, provider.ErrDataValidationFailure) {
 			// TODO the following should probably suggest commands to fix the issue?
 			log.Error().Msgf("Inventory data validation errors encountered")
@@ -103,12 +93,17 @@ func stopSession(cmd *cobra.Command, args []string) error {
 	}
 
 	// "Deactivate" the session if the function has made it this far
-	root.Conf.Session.Active = false
+	root.D.Active = false
 
-	if err := SessionSummaryCmd.RunE(cmd, []string{}); err != nil {
+	if err := showSummary(cmd, args); err != nil {
 		return err
 	}
 
+	// write the config to the file
+	err = root.WriteSession(cmd, args)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

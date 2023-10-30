@@ -27,20 +27,29 @@ package taxonomy
 
 import (
 	"path/filepath"
+	"sort"
 )
 
 const (
 	App              = "cani"
+	CSM              = "csm"
 	DsFile           = App + "db.json"
+	DsFileCSM        = App + "db.json"
 	LogFile          = App + "db.log"
 	CfgFile          = App + ".yml"
 	CfgDir           = "." + App
-	SessionExt       = ".session"
 	ShortDescription = "From subfloor to top-of-rack, manage your HPC cluster's inventory!"
 	LongDescription  = `From subfloor to top-of-rack, manage your HPC cluster's inventory!`
+	InitShort        = `Initialize a session and import from the chosen provider.`
+	InitLong         = `Initialize a session. This will perform an import using provider-defined logic.`
 )
 
 var (
-	DsPath  = filepath.Join(CfgDir, DsFile)
-	CfgPath = filepath.Join(CfgDir, CfgFile)
+	DsPath             = filepath.Join(CfgDir, DsFile)
+	CfgPath            = filepath.Join(CfgDir, CfgFile)
+	SupportedProviders = []string{CSM}
 )
+
+func init() {
+	sort.Strings(SupportedProviders)
+}
