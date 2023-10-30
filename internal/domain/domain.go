@@ -28,12 +28,16 @@ package domain
 import (
 	"errors"
 	"fmt"
+	"os"
 
+	"github.com/Cray-HPE/cani/cmd/taxonomy"
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
 // Domain is the logic that drives the application
@@ -42,69 +46,99 @@ type Domain struct {
 	hardwareTypeLibrary       *hardwaretypes.Library
 	datastore                 inventory.Datastore
 	externalInventoryProvider provider.InventoryProvider
-	configOptions             provider.ConfigOptions
+	Active                    bool        `yaml:"active"`
+	DatastorePath             string      `yaml:"datastore_path"`
+	LogFilePath               string      `yaml:"log_file_path"`
+	CustomHardwareTypesDir    string      `yaml:"custom_hardware_types_dir"`
+	Provider                  string      `yaml:"provider"`
+	Options                   interface{} `yaml:"options"`
 }
 
-// DomainOpts are the options for creating a new Domain
-type DomainOpts struct {
-	DatastorePath          string           `yaml:"datastore_path"`
-	LogFilePath            string           `yaml:"log_file_path"`
-	Provider               string           `yaml:"provider"`
-	CsmOptions             csm.ProviderOpts `yaml:"csm_options"`
-	CustomHardwareTypesDir string           `yaml:"custom_hardware_types_dir"`
+// SessionInitCmd is used by the cmd package, but the provider sets all the command options/flags/etc.
+var SessionInitCmd *cobra.Command
+
+// New returns a new Domain
+func New(cmd *cobra.Command, args []string) (d *Domain, err error) {
+	d = &Domain{}
+	d.Provider = args[0]
+	return d, nil
 }
 
-// New returns a new Domain using the provided options
-func New(opts *DomainOpts) (*Domain, error) {
-	var err error
-	domain := &Domain{}
+// SetupDomain sets the provider options for the domain
+func (d *Domain) SetupDomain(cmd *cobra.Command, args []string) (err error) {
+	// The domain needs a minimum of three things to start:
+	//   1. a datastore to save the inventory to
+	//   2. a hardware type library to know compatible hardware
+	//   3. a provider interface object
 
-	// Load the hardware type library
-	// TODO make this be able to be loaded from a directory
-	domain.hardwareTypeLibrary, err = hardwaretypes.NewEmbeddedLibrary(opts.CustomHardwareTypesDir)
+	// active sessions should have a datastore
+	if _, err := os.Stat(d.DatastorePath); os.IsNotExist(err) {
+		if d.Active {
+			return fmt.Errorf("Datastore '%s' does not exist.  Run 'session init' to begin", d.DatastorePath)
+		}
+	}
+
+	log.Debug().Msgf("Setting up datastore interface: %s", d.DatastorePath)
+	// Load the datastore.  Different providers have different storage needs
+	switch d.Provider {
+	case taxonomy.CSM:
+		d.datastore, err = inventory.NewDatastoreJSONCSM(d.DatastorePath, d.LogFilePath, inventory.Provider(d.Provider))
+	default:
+		log.Warn().Msgf("using default provider datastore")
+		d.datastore, err = inventory.NewDatastoreJSON(d.DatastorePath, d.LogFilePath, inventory.Provider(d.Provider))
+	}
 	if err != nil {
-		return nil, errors.Join(
+		return errors.Join(
+			fmt.Errorf("failed to load %s inventory datastore from source", taxonomy.App),
+			err,
+		)
+	}
+
+	log.Debug().Msgf("loading embedded and custom hardwaretypes: %s", d.CustomHardwareTypesDir)
+	// Load the hardware type library.  Supported hardware is embedded
+	// this also loads any custom-deinfed hardware at the given path
+	d.hardwareTypeLibrary, err = hardwaretypes.NewEmbeddedLibrary(d.CustomHardwareTypesDir)
+	if err != nil {
+		return errors.Join(
 			fmt.Errorf("failed to load embedded hardware type library"),
 			err,
 		)
 	}
 
-	// Load the datastore
-	domain.datastore, err = inventory.NewDatastoreJSON(opts.DatastorePath, opts.LogFilePath, inventory.Provider(opts.Provider))
-	if err != nil {
-		return nil, errors.Join(
-			fmt.Errorf("failed to load inventory datastore from file"),
-			err,
-		)
-	}
-
-	// Setup External inventory provider
-	inventoryProvider, err := domain.datastore.InventoryProvider()
-	if err != nil {
-		return nil, errors.Join(
-			fmt.Errorf("failed to retrieve external inventory provider type"),
-			err,
-		)
-	}
-
-	// Determine which external inventory provider to use
-	switch inventoryProvider {
-	case inventory.CSMProvider:
-		domain.externalInventoryProvider, err = csm.New(&opts.CsmOptions, domain.hardwareTypeLibrary)
+	log.Debug().Msgf("getting plugin settings for provider %s", d.Provider)
+	// Instantiate the provider interface object
+	switch d.Provider {
+	case taxonomy.CSM:
+		// Create a new provider object
+		d.externalInventoryProvider, err = csm.New(cmd, args, d.hardwareTypeLibrary, d.Options)
 		if err != nil {
-			return nil, errors.Join(
+			return errors.Join(
 				fmt.Errorf("failed to initialize CSM external inventory provider"),
 				err,
 			)
 		}
-		domain.configOptions.ValidRoles = opts.CsmOptions.ValidRoles
-		domain.configOptions.ValidSubRoles = opts.CsmOptions.ValidSubRoles
-		domain.configOptions.K8sPodsCidr = opts.CsmOptions.K8sPodsCidr
-		domain.configOptions.K8sServicesCidr = opts.CsmOptions.K8sServicesCidr
+
+		if cmd.Name() == "init" {
+			err := d.externalInventoryProvider.SetProviderOptions(cmd, args)
+			if err != nil {
+				return err
+			}
+		}
+		log.Debug().Msgf("setting provider-specific options %+v", d.Options)
+		if d.Options == nil {
+			opts, err := d.externalInventoryProvider.GetProviderOptions()
+			if err != nil {
+				return err
+			}
+
+			d.Options = opts.(interface{})
+		}
+		// }
 	default:
-		return nil, fmt.Errorf("unknown external inventory provider provided (%s)", inventoryProvider)
+		return fmt.Errorf("unknown external inventory provider provided (%s)", d.Provider)
 	}
-	return domain, nil
+
+	return nil
 }
 
 type HardwareLocationPair struct {
