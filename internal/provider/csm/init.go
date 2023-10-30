@@ -25,41 +25,17 @@
  */
 package csm
 
-import (
-	"context"
-	"encoding/json"
-	"errors"
-	"fmt"
-
-	"github.com/Cray-HPE/cani/internal/inventory"
+var (
+	k8sPodsCidr     string
+	k8sServicesCidr string
+	kubeconfig      string
+	caCertPath      string
+	insecure        bool
+	secretName      string
+	clientId        string
+	clientSecret    string
+	providerHost    string
+	tokenUsername   string
+	tokenPassword   string
+	useSimulation   bool
 )
-
-func (csm *CSM) ExportJson(ctx context.Context, datastore inventory.Datastore, skipValidation bool) ([]byte, error) {
-	currentSLSState, _, err := csm.slsClient.DumpstateApi.DumpstateGet(ctx)
-	if err != nil {
-		return nil, errors.Join(
-			fmt.Errorf("failed to get the current SLS state"),
-			err,
-		)
-	}
-
-	modifiedState, _, _, err := csm.reconcileSlsChanges(currentSLSState, datastore)
-	if err != nil {
-		return nil, errors.Join(
-			fmt.Errorf("failed to reconcile requested SLS changes with current SLS state"),
-			err)
-	}
-
-	if !skipValidation {
-		_, err = csm.TBV.Validate(modifiedState)
-		if err != nil {
-			return nil, fmt.Errorf("validation failed %v", err)
-		}
-	}
-
-	j, err := json.MarshalIndent(modifiedState, "", "  ")
-	if err != nil {
-		return nil, err
-	}
-	return j, nil
-}

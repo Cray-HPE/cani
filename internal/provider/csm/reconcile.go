@@ -34,10 +34,8 @@ import (
 	"strings"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
-	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/provider/csm/ipam"
 	"github.com/Cray-HPE/cani/internal/provider/csm/sls"
-	"github.com/Cray-HPE/cani/internal/provider/csm/validate"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 	"github.com/Cray-HPE/hms-xname/xnames"
@@ -56,7 +54,7 @@ import (
 //     2. Validate the changes
 //     3. Display what changed
 //     4. Make changes
-func (csm *CSM) Reconcile(ctx context.Context, configOptions provider.ConfigOptions, datastore inventory.Datastore, dryrun bool, ignoreExternalValidation bool) (err error) {
+func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore, dryrun bool, ignoreExternalValidation bool) (err error) {
 	// TODO should we have a presentation callback to confirm the removal of hardware?
 
 	log.Info().Msg("Starting CSM reconcile process")
@@ -80,7 +78,7 @@ func (csm *CSM) Reconcile(ctx context.Context, configOptions provider.ConfigOpti
 		return err
 	}
 
-	_, err = validate.Validate(configOptions, modifiedState)
+	_, err = csm.TBV.Validate(modifiedState)
 	if err != nil {
 		if ignoreExternalValidation {
 			log.Warn().Msgf("Ignoring these failures: %v\n", err)
