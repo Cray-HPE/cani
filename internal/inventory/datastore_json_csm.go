@@ -29,9 +29,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -43,15 +44,15 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type DatastoreJSON struct {
+type DatastoreJSONCSM struct {
 	inventoryLock sync.RWMutex
 	inventory     *Inventory
 	dataFilePath  string
 	logFilePath   string
 }
 
-func NewDatastoreJSON(dataFilePath string, logfilepath string, provider Provider) (Datastore, error) {
-	datastore := &DatastoreJSON{
+func NewDatastoreJSONCSM(dataFilePath string, logfilepath string, provider Provider) (Datastore, error) {
+	datastore := &DatastoreJSONCSM{
 		dataFilePath: dataFilePath,
 		logFilePath:  logfilepath,
 	}
@@ -71,6 +72,8 @@ func NewDatastoreJSON(dataFilePath string, logfilepath string, provider Provider
 
 		// Generate a UUID for a new top-level "System" object
 		system := uuid.New()
+		// A system ordinal is required for the top-level system object and is arbitrarily set to 0
+		ordinal := 0
 		// Create a config with default values since one does not exist
 		datastore.inventory = &Inventory{
 			SchemaVersion: SchemaVersionV1Alpha1,
@@ -78,8 +81,10 @@ func NewDatastoreJSON(dataFilePath string, logfilepath string, provider Provider
 			Hardware: map[uuid.UUID]Hardware{
 				// NOTE: At present, we only allow ONE system in the inventory, but leaving the door open for multiple systems
 				system: {
-					Type: hardwaretypes.System, // The top-level object is a hardwaretypes.System
-					ID:   system,               // ID is the same as the key for the top-level system object to prevent a uuid.Nil
+					Type:            hardwaretypes.System, // The top-level object is a hardwaretypes.System
+					ID:              system,               // ID is the same as the key for the top-level system object to prevent a uuid.Nil
+					Parent:          uuid.Nil,             // Parent should be nil to prevent illegitimate children
+					LocationOrdinal: &ordinal,
 				},
 			},
 		}
@@ -97,7 +102,7 @@ func NewDatastoreJSON(dataFilePath string, logfilepath string, provider Provider
 		}
 		defer file.Close()
 
-		inventoryRaw, err := io.ReadAll(file)
+		inventoryRaw, err := ioutil.ReadAll(file)
 		if err != nil {
 			return nil, err
 		}
@@ -107,6 +112,18 @@ func NewDatastoreJSON(dataFilePath string, logfilepath string, provider Provider
 		}
 	}
 
+	// When loading the JSON inventory ideally we should recompute the derived fields, as
+	// we don't know the if the inventory structure was left in an inconsistent state, and might
+	// cause issues when operating with inconsistent cached data.
+	// 1. An external actor could have manually modified the inventory structure
+	// 2. CANI could have crashed or left the datastore in an inconsistent state.
+	if err := datastore.calculateDerivedFields(); err != nil {
+		return nil, errors.Join(
+			fmt.Errorf("failed to calculate inventory derived fields"),
+			err,
+		)
+	}
+
 	if err := datastore.Flush(); err != nil {
 		return nil, err
 	}
@@ -114,11 +131,13 @@ func NewDatastoreJSON(dataFilePath string, logfilepath string, provider Provider
 	return datastore, nil
 }
 
-func NewDatastoreJSONInMemory(provider Provider) (*DatastoreJSON, error) {
-	datastore := &DatastoreJSON{}
+func NewDatastoreInMemoryCSM(provider Provider) (*DatastoreJSONCSM, error) {
+	datastore := &DatastoreJSONCSM{}
 
 	// Generate a UUID for a new top-level "System" object
 	system := uuid.New()
+	// A system ordinal is required for the top-level system object and is arbitrarily set to 0
+	ordinal := 0
 	// Create a config with default values since one does not exist
 	datastore.inventory = &Inventory{
 		SchemaVersion: SchemaVersionV1Alpha1,
@@ -126,8 +145,10 @@ func NewDatastoreJSONInMemory(provider Provider) (*DatastoreJSON, error) {
 		Hardware: map[uuid.UUID]Hardware{
 			// NOTE: At present, we only allow ONE system in the inventory, but leaving the door open for multiple systems
 			system: {
-				Type: hardwaretypes.System, // The top-level object is a hardwaretypes.System
-				ID:   system,               // ID is the same as the key for the top-level system object to prevent a uuid.Nil
+				Type:            hardwaretypes.System, // The top-level object is a hardwaretypes.System
+				ID:              system,               // ID is the same as the key for the top-level system object to prevent a uuid.Nil
+				Parent:          uuid.Nil,             // Parent should be nil to prevent illegitimate children
+				LocationOrdinal: &ordinal,
 			},
 		},
 	}
@@ -135,49 +156,49 @@ func NewDatastoreJSONInMemory(provider Provider) (*DatastoreJSON, error) {
 	return datastore, nil
 }
 
-func (ds *DatastoreJSON) GetSchemaVersion() (SchemaVersion, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
+func (dj *DatastoreJSONCSM) GetSchemaVersion() (SchemaVersion, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
 
-	return ds.inventory.SchemaVersion, nil
+	return dj.inventory.SchemaVersion, nil
 }
 
 // SetExternalInventoryProvider sets the external inventory provider
-func (ds *DatastoreJSON) SetInventoryProvider(provider Provider) error {
-	ds.inventoryLock.Lock()
-	defer ds.inventoryLock.Unlock()
+func (dj *DatastoreJSONCSM) SetInventoryProvider(provider Provider) error {
+	dj.inventoryLock.Lock()
+	defer dj.inventoryLock.Unlock()
 
-	ds.inventory.Provider = provider
+	dj.inventory.Provider = provider
 
 	return nil
 }
 
 // GetExternalInventoryProvider gets the external inventory provider
-func (ds *DatastoreJSON) InventoryProvider() (Provider, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
+func (dj *DatastoreJSONCSM) InventoryProvider() (Provider, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
 
-	return ds.inventory.Provider, nil
+	return dj.inventory.Provider, nil
 }
 
 // Flush writes the current inventory to the datastore
-func (ds *DatastoreJSON) Flush() error {
-	if ds.dataFilePath == "" {
+func (dj *DatastoreJSONCSM) Flush() error {
+	if dj.dataFilePath == "" {
 		// If running in in-memory mode there is nothing to flush
 		return nil
 	}
 
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
 
-	// convert the Inventory struct to a yaml-formatted byte slice.
-	data, err := json.MarshalIndent(ds.inventory, "", "  ")
+	// convert the Inventory struct to a JSON-formatted byte slice.
+	data, err := json.MarshalIndent(dj.inventory, "", "  ")
 	if err != nil {
 		return err
 	}
 
 	// write the byte slice to a file
-	err = os.WriteFile(ds.dataFilePath, data, 0644)
+	err = ioutil.WriteFile(dj.dataFilePath, data, 0644)
 	if err != nil {
 		return err
 	}
@@ -185,18 +206,18 @@ func (ds *DatastoreJSON) Flush() error {
 	return nil
 }
 
-func (ds *DatastoreJSON) Clone() (Datastore, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
+func (dj *DatastoreJSONCSM) Clone() (Datastore, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
 
-	result, err := NewDatastoreJSONInMemory(ds.inventory.Provider)
+	result, err := NewDatastoreInMemoryCSM(dj.inventory.Provider)
 	if err != nil {
 		return nil, errors.Join(fmt.Errorf("failed to create in memory datastore"), err)
 	}
 
 	// Deep copy the hardware information into the datastore
 	// TODO this is a hack
-	raw, err := json.Marshal(ds.inventory.Hardware)
+	raw, err := json.Marshal(dj.inventory.Hardware)
 	if err != nil {
 		return nil, err
 	}
@@ -205,44 +226,108 @@ func (ds *DatastoreJSON) Clone() (Datastore, error) {
 		return nil, err
 	}
 
+	if err := result.calculateDerivedFields(); err != nil {
+		return nil, err
+	}
+
 	return result, nil
 }
 
-func (ds *DatastoreJSON) Merge(other Datastore) error {
-	ds.inventoryLock.Lock()
-	defer ds.inventoryLock.Unlock()
+func (dj *DatastoreJSONCSM) Merge(otherDJ Datastore) error {
+	dj.inventoryLock.Lock()
+	defer dj.inventoryLock.Unlock()
 
-	otherAllHardware, err := other.List()
+	otherAllHardware, err := otherDJ.List()
 	if err != nil {
 		return errors.Join(fmt.Errorf("failed to retrieve inventory from other datastore"), err)
 	}
 
 	// Identify hardware to remove
 	hardwareToDelete := []uuid.UUID{}
-	for id := range ds.inventory.Hardware {
+	for id := range dj.inventory.Hardware {
 		if _, exists := otherAllHardware.Hardware[id]; !exists {
 			hardwareToDelete = append(hardwareToDelete, id)
 		}
 	}
 	// Remove deleted hardware
 	for _, id := range hardwareToDelete {
-		delete(ds.inventory.Hardware, id)
+		delete(dj.inventory.Hardware, id)
 	}
 
 	// Update or add hardware
 	for id, otherHardware := range otherAllHardware.Hardware {
-		ds.inventory.Hardware[id] = otherHardware
+		dj.inventory.Hardware[id] = otherHardware
+	}
+
+	return nil
+}
+
+func (dj *DatastoreJSONCSM) calculateDerivedFields() (err error) {
+	//
+	// Update location path
+	//
+	for _, hardware := range dj.inventory.Hardware {
+
+		// GetLocation relies on the Parent UUID field, so it should be safe to compute based off it
+		hardware.LocationPath, err = dj.getLocation(hardware)
+		if err != nil {
+			return fmt.Errorf("failed to calculate location path of (%s)", hardware.ID)
+		}
+
+		// Push the updated hardware object back into the map
+		dj.inventory.Hardware[hardware.ID] = hardware
+	}
+
+	//
+	// Update children book keeping
+	//
+
+	// Clear out old children data
+	for _, hardware := range dj.inventory.Hardware {
+		hardware.Children = nil
+
+		// Push the updated hardware object back into the map
+		dj.inventory.Hardware[hardware.ID] = hardware
+	}
+
+	// Build up the children data
+	for _, hardware := range dj.inventory.Hardware {
+
+		if hardware.Parent != uuid.Nil {
+			parent, ok := dj.inventory.Hardware[hardware.Parent]
+			if !ok {
+				// This should not happen
+				return fmt.Errorf("unable to find parent hardware object with ID (%s) of (%s)", hardware.Parent, hardware.ID)
+			}
+
+			// Add this hardware object as a child of the parent
+			parent.Children = append(parent.Children, hardware.ID)
+
+			// Push the updated parent back into the map
+			dj.inventory.Hardware[parent.ID] = parent
+
+		}
+	}
+
+	// Sort the children data so we have deterministic results
+	for _, hardware := range dj.inventory.Hardware {
+		sort.Slice(hardware.Children, func(i, j int) bool {
+			return hardware.Children[i].ID() < hardware.Children[j].ID()
+		})
+
+		// Push the updated hardware back into the map
+		dj.inventory.Hardware[hardware.ID] = hardware
 	}
 
 	return nil
 }
 
 // Validate validates the current inventory
-func (ds *DatastoreJSON) Validate() (map[uuid.UUID]ValidateResult, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
+func (dj *DatastoreJSONCSM) Validate() (map[uuid.UUID]ValidateResult, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
 
-	log.Warn().Msg("DatastoreJSON's Validate was called. This is not fully implemented")
+	log.Warn().Msg("DatastoreJSONCSM's Validate was called. This is not fully implemented")
 	validationResults := map[uuid.UUID]ValidateResult{}
 
 	// Verify inventory map key matches hardware UUID
@@ -261,7 +346,7 @@ func (ds *DatastoreJSON) Validate() (map[uuid.UUID]ValidateResult, error) {
 
 	// Build up a lookup map of location paths to hardware UUIDs
 	foundLocationPaths := map[string][]uuid.UUID{}
-	for _, hardware := range ds.inventory.Hardware {
+	for _, hardware := range dj.inventory.Hardware {
 		if len(hardware.LocationPath) == 0 {
 			continue
 		}
@@ -283,7 +368,7 @@ func (ds *DatastoreJSON) Validate() (map[uuid.UUID]ValidateResult, error) {
 
 		for _, hardwareID := range hardwareIDs {
 			if _, exists := validationResults[hardwareID]; !exists {
-				validationResults[hardwareID] = ValidateResult{Hardware: ds.inventory.Hardware[hardwareID]}
+				validationResults[hardwareID] = ValidateResult{Hardware: dj.inventory.Hardware[hardwareID]}
 			}
 
 			// Add the validation error and push it back into the map
@@ -303,9 +388,9 @@ func (ds *DatastoreJSON) Validate() (map[uuid.UUID]ValidateResult, error) {
 }
 
 // Add adds a new hardware object to the inventory
-func (ds *DatastoreJSON) Add(hardware *Hardware) error {
-	ds.inventoryLock.Lock()
-	defer ds.inventoryLock.Unlock()
+func (dj *DatastoreJSONCSM) Add(hardware *Hardware) error {
+	dj.inventoryLock.Lock()
+	defer dj.inventoryLock.Unlock()
 
 	// Check to see if the hardware object has a UUID, if not create one
 	if hardware.ID == uuid.Nil {
@@ -313,68 +398,95 @@ func (ds *DatastoreJSON) Add(hardware *Hardware) error {
 	}
 
 	// Check to see if this UUID is unique
-	if _, exists := ds.inventory.Hardware[hardware.ID]; exists {
+	if _, exists := dj.inventory.Hardware[hardware.ID]; exists {
 		return ErrHardwareUUIDConflict
 	}
 
 	// Check to see if parent UUID exists
 	if hardware.Parent != uuid.Nil {
-		if _, exists := ds.inventory.Hardware[hardware.Parent]; !exists {
+		if _, exists := dj.inventory.Hardware[hardware.Parent]; !exists {
 			return ErrHardwareParentNotFound
 		}
 	}
 
 	// Add it to the inventory map
-	if ds.inventory.Hardware == nil {
+	if dj.inventory.Hardware == nil {
 		log.Warn().Msg("Initializing inventory map")
-		ds.inventory.Hardware = map[uuid.UUID]Hardware{}
+		dj.inventory.Hardware = map[uuid.UUID]Hardware{}
 	}
-	ds.inventory.Hardware[hardware.ID] = *hardware
+	dj.inventory.Hardware[hardware.ID] = *hardware
+
+	dj.logTransaction("ADD", hardware.ID.String(), nil, nil)
+
+	// Update derived fields
+	if err := dj.calculateDerivedFields(); err != nil {
+		return errors.Join(
+			fmt.Errorf("failed to calculate inventory derived fields"),
+			err,
+		)
+	}
 
 	return nil
 }
 
 // Get returns a hardware object from the inventory
-func (ds *DatastoreJSON) Get(id uuid.UUID) (Hardware, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
+func (dj *DatastoreJSONCSM) Get(id uuid.UUID) (Hardware, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
 
-	if hardware, exists := ds.inventory.Hardware[id]; exists {
+	if hardware, exists := dj.inventory.Hardware[id]; exists {
 		return hardware, nil
 	}
 
-	ds.logTransaction("GET", id.String(), nil, nil)
+	dj.logTransaction("GET", id.String(), nil, nil)
 
 	return Hardware{}, ErrHardwareNotFound
 }
 
 // Update updates a hardware object in the inventory
-func (ds *DatastoreJSON) Update(hardware *Hardware) error {
-	ds.inventoryLock.Lock()
-	defer ds.inventoryLock.Unlock()
+func (dj *DatastoreJSONCSM) Update(hardware *Hardware) error {
+	dj.inventoryLock.Lock()
+	defer dj.inventoryLock.Unlock()
+
+	// Check to see if this UUID exists
+	oldHardware, exists := dj.inventory.Hardware[hardware.ID]
+	if !exists {
+		return ErrHardwareNotFound
+	}
 
 	// Check to see if parent UUID exists
 	if hardware.Parent != uuid.Nil {
-		if _, exists := ds.inventory.Hardware[hardware.Parent]; !exists {
+		if _, exists := dj.inventory.Hardware[hardware.Parent]; !exists {
 			return ErrHardwareParentNotFound
 		}
 	}
 
 	// Add it to the inventory map
-	ds.inventory.Hardware[hardware.ID] = *hardware
+	dj.inventory.Hardware[hardware.ID] = *hardware
 
-	ds.logTransaction("UPDATE", hardware.ID.String(), nil, nil)
+	dj.logTransaction("UPDATE", hardware.ID.String(), nil, nil)
+
+	// Update derived fields if the parent ID is different than the old value
+	if oldHardware.Parent != hardware.Parent {
+		log.Debug().Msgf("Detected parent ID change for (%s) from (%s) to (%s)", hardware.ID, oldHardware.Parent, hardware.ID)
+		if err := dj.calculateDerivedFields(); err != nil {
+			return errors.Join(
+				fmt.Errorf("failed to calculate inventory derived fields"),
+				err,
+			)
+		}
+	}
 
 	return nil
 }
 
 // Remove removes a hardware object from the inventory
-func (ds *DatastoreJSON) Remove(id uuid.UUID, recursion bool) error {
-	ds.inventoryLock.Lock()
-	defer ds.inventoryLock.Unlock()
+func (dj *DatastoreJSONCSM) Remove(id uuid.UUID, recursion bool) error {
+	dj.inventoryLock.Lock()
+	defer dj.inventoryLock.Unlock()
 
 	// Check to see if this UUID exists
-	if _, exists := ds.inventory.Hardware[id]; !exists {
+	if _, exists := dj.inventory.Hardware[id]; !exists {
 		return ErrHardwareNotFound
 	}
 
@@ -382,7 +494,7 @@ func (ds *DatastoreJSON) Remove(id uuid.UUID, recursion bool) error {
 	// as you should not be able to remove a piece of hardware without either
 	// delinking it or removing its children
 	// FIXME: https://github.com/Cray-HPE/cani/pull/28#discussion_r1199347499
-	if children, err := ds.getChildren(id); err != nil {
+	if children, err := dj.getChildren(id); err != nil {
 		return err
 	} else if len(children) != 0 {
 		childrenIDs := []string{}
@@ -392,7 +504,7 @@ func (ds *DatastoreJSON) Remove(id uuid.UUID, recursion bool) error {
 		// If recursion is true, remove the children as well
 		if recursion {
 			for _, child := range children {
-				delete(ds.inventory.Hardware, child.ID)
+				delete(dj.inventory.Hardware, child.ID)
 			}
 		} else {
 			return fmt.Errorf("unable to remove (%s) as it is the parent of [%s]", id.String(), strings.Join(childrenIDs, ","))
@@ -400,41 +512,50 @@ func (ds *DatastoreJSON) Remove(id uuid.UUID, recursion bool) error {
 	}
 
 	// Remove the hardware!
-	delete(ds.inventory.Hardware, id)
+	delete(dj.inventory.Hardware, id)
 
-	ds.logTransaction("REMOVE", id.String(), nil, nil)
+	dj.logTransaction("REMOVE", id.String(), nil, nil)
+
+	// Update all derived fields, as we allow for recursive removal and trying to keep this logic simple for now
+	// If this is too much of a performance penalty we can make this more smart
+	if err := dj.calculateDerivedFields(); err != nil {
+		return errors.Join(
+			fmt.Errorf("failed to calculate inventory derived fields"),
+			err,
+		)
+	}
 
 	return nil
 }
 
 // List returns the entire inventory
-func (ds *DatastoreJSON) List() (Inventory, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
+func (dj *DatastoreJSONCSM) List() (Inventory, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
 
-	return *ds.inventory, nil
+	return *dj.inventory, nil
 }
 
 // GetLocation will follow the parent links up to the root node, which is signaled when a NIL parent UUID is found
 // This will either return a partial location path, or a full path up to a cabinet or CDU
 // TODO THIS NEEDS UNIT TESTS
-func (ds *DatastoreJSON) GetLocation(hardware Hardware) (LocationPath, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
+func (dj *DatastoreJSONCSM) GetLocation(hardware Hardware) (LocationPath, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
 
-	return ds.getLocation(hardware)
+	return dj.getLocation(hardware)
 }
 
 // getLocation is just like GetLocation except it doesn't attempt to acquire the inventory RWMutex, so it can be
-// composed into other DatastoreJSON functions that make changes to the inventory structure.
-func (ds *DatastoreJSON) getLocation(hardware Hardware) (LocationPath, error) {
+// composed into other DatastoreJSONCSM functions that make changes to the inventory structure.
+func (dj *DatastoreJSONCSM) getLocation(hardware Hardware) (LocationPath, error) {
 
 	locationPath := LocationPath{}
 
 	// Follow the parent links up to the root node
 	currentHardwareID := hardware.ID
 	for currentHardwareID != uuid.Nil {
-		currentHardware, exists := ds.inventory.Hardware[currentHardwareID]
+		currentHardware, exists := dj.inventory.Hardware[currentHardwareID]
 		if !exists {
 			return nil, errors.Join(
 				fmt.Errorf("unable to find ancestor (%s) of (%s)", currentHardwareID, hardware.ID),
@@ -480,9 +601,9 @@ func (ds *DatastoreJSON) getLocation(hardware Hardware) (LocationPath, error) {
 
 // GetAtLocation returns the hardware at the given location
 // TODO THIS NEEDS UNIT TESTS
-func (ds *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
+func (dj *DatastoreJSONCSM) GetAtLocation(path LocationPath) (Hardware, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
 
 	if len(path) == 0 {
 		return Hardware{}, ErrEmptyLocationPath
@@ -492,7 +613,7 @@ func (ds *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 	//
 	// Traverse the tree to see if the hardware exists at the given location
 	//
-	currentHardware, err := ds.getSystemZero()
+	currentHardware, err := dj.getSystemZero()
 	if err != nil {
 		return Hardware{}, err
 	}
@@ -516,7 +637,7 @@ func (ds *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 		for _, childID := range currentHardware.Children {
 			log.Trace().Msgf("GetAtLocation: Visiting Child (%s)", childID)
 			// Get the hardware
-			childHardware, ok := ds.inventory.Hardware[childID]
+			childHardware, ok := dj.inventory.Hardware[childID]
 			if !ok {
 				// This should not happen
 				return Hardware{}, errors.Join(
@@ -564,17 +685,17 @@ func (ds *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
 }
 
 // GetChildren returns the children of a given hardware object
-func (ds *DatastoreJSON) GetChildren(id uuid.UUID) ([]Hardware, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
+func (dj *DatastoreJSONCSM) GetChildren(id uuid.UUID) ([]Hardware, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
 
-	return ds.getChildren(id)
+	return dj.getChildren(id)
 }
 
 // getChildren returns the children of a given hardware object
 // This function depends on the cached/derived children data
-func (ds *DatastoreJSON) getChildren(id uuid.UUID) ([]Hardware, error) {
-	hardware, exists := ds.inventory.Hardware[id]
+func (dj *DatastoreJSONCSM) getChildren(id uuid.UUID) ([]Hardware, error) {
+	hardware, exists := dj.inventory.Hardware[id]
 	if !exists {
 		return nil, ErrHardwareNotFound
 	}
@@ -583,7 +704,7 @@ func (ds *DatastoreJSON) getChildren(id uuid.UUID) ([]Hardware, error) {
 	// book keeping to keep track of child hardware
 	var results []Hardware
 	for _, childID := range hardware.Children {
-		childHardware, exists := ds.inventory.Hardware[childID]
+		childHardware, exists := dj.inventory.Hardware[childID]
 		if !exists {
 			// This should not happen
 			return nil, fmt.Errorf("unable to find child hardware object with ID (%s) of (%s)", childHardware.ID, hardware.ID)
@@ -595,9 +716,9 @@ func (ds *DatastoreJSON) getChildren(id uuid.UUID) ([]Hardware, error) {
 	return results, nil
 }
 
-func (ds *DatastoreJSON) GetDescendants(id uuid.UUID) ([]Hardware, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
+func (dj *DatastoreJSONCSM) GetDescendants(id uuid.UUID) ([]Hardware, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
 
 	results := []Hardware{}
 	callback := func(h Hardware) error {
@@ -605,14 +726,14 @@ func (ds *DatastoreJSON) GetDescendants(id uuid.UUID) ([]Hardware, error) {
 		return nil
 	}
 
-	if err := ds.traverseByLocation(id, callback); err != nil {
+	if err := dj.traverseByLocation(id, callback); err != nil {
 		return nil, err
 	}
 
 	return results, nil
 }
 
-func (ds *DatastoreJSON) traverseByLocation(rootID uuid.UUID, callback func(h Hardware) error) error {
+func (dj *DatastoreJSONCSM) traverseByLocation(rootID uuid.UUID, callback func(h Hardware) error) error {
 	queue := []uuid.UUID{rootID}
 
 	for len(queue) != 0 {
@@ -621,7 +742,7 @@ func (ds *DatastoreJSON) traverseByLocation(rootID uuid.UUID, callback func(h Ha
 		queue = queue[1:]
 
 		// Retrieve the hardware object
-		hardware, exists := ds.inventory.Hardware[hardwareID]
+		hardware, exists := dj.inventory.Hardware[hardwareID]
 		if !exists {
 			// This should not happen
 			return fmt.Errorf("unable to find hardware object with ID (%s)", hardware.ID)
@@ -640,14 +761,14 @@ func (ds *DatastoreJSON) traverseByLocation(rootID uuid.UUID, callback func(h Ha
 }
 
 // logTransaction logs a transaction to logger
-func (ds *DatastoreJSON) logTransaction(operation string, key string, value interface{}, err error) {
-	if ds.dataFilePath == "" {
+func (dj *DatastoreJSONCSM) logTransaction(operation string, key string, value interface{}, err error) {
+	if dj.dataFilePath == "" {
 		// If running in in-memory mode there is currently no place to log
 		return
 	}
 
 	tl, err = os.OpenFile(
-		ds.logFilePath,
+		dj.logFilePath,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY,
 		0664,
 	)
@@ -686,21 +807,21 @@ func (ds *DatastoreJSON) logTransaction(operation string, key string, value inte
 }
 
 // GetSystem returns the system that the given hardware object is a part of
-func (ds *DatastoreJSON) GetSystem(hardware Hardware) (Hardware, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
+func (dj *DatastoreJSONCSM) GetSystem(hardware Hardware) (Hardware, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
 
 	return Hardware{}, errors.New("not yet implemented")
-	return ds.getSystem(hardware)
+	return dj.getSystem(hardware)
 }
 
 // getSystem will follow the parent links up to the root node and errors if not found
 // this is not in use until multiple systems are implemented
-func (ds *DatastoreJSON) getSystem(hardware Hardware) (Hardware, error) {
+func (dj *DatastoreJSONCSM) getSystem(hardware Hardware) (Hardware, error) {
 	// Follow the parent links up to the root node
 	currentHardwareID := hardware.ID
 	for currentHardwareID != uuid.Nil {
-		currentHardware, exists := ds.inventory.Hardware[currentHardwareID]
+		currentHardware, exists := dj.inventory.Hardware[currentHardwareID]
 		if !exists {
 			return Hardware{}, errors.Join(
 				fmt.Errorf("unable to find ancestor (%s) of (%s)", currentHardwareID, hardware.ID),
@@ -720,19 +841,19 @@ func (ds *DatastoreJSON) getSystem(hardware Hardware) (Hardware, error) {
 }
 
 // GetSystemZero assumes one system exists and returns it
-func (ds *DatastoreJSON) GetSystemZero() (Hardware, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
+func (dj *DatastoreJSONCSM) GetSystemZero() (Hardware, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
 
-	return ds.getSystemZero()
+	return dj.getSystemZero()
 }
 
 // getSystem finds the System type in the inventory and returns it
 // it does not currently detect multiple systems and may grab the wrong one if multiple exist
-func (ds *DatastoreJSON) getSystemZero() (Hardware, error) {
+func (dj *DatastoreJSONCSM) getSystemZero() (Hardware, error) {
 	// Assume one system
-	for _, hw := range ds.inventory.Hardware {
-		system, exists := ds.inventory.Hardware[hw.ID]
+	for _, hw := range dj.inventory.Hardware {
+		system, exists := dj.inventory.Hardware[hw.ID]
 		if !exists {
 			return Hardware{}, errors.Join(
 				fmt.Errorf("unable to find %s (%s)", hardwaretypes.System, hw.ID),
@@ -749,9 +870,9 @@ func (ds *DatastoreJSON) getSystemZero() (Hardware, error) {
 	return Hardware{}, ErrHardwareNotFound
 }
 
-func (ds *DatastoreJSON) Search(filter SearchFilter) (map[uuid.UUID]Hardware, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
+func (dj *DatastoreJSONCSM) Search(filter SearchFilter) (map[uuid.UUID]Hardware, error) {
+	dj.inventoryLock.RLock()
+	defer dj.inventoryLock.RUnlock()
 
 	// Build up lookup maps based on the filter
 	wantedTypes := map[hardwaretypes.HardwareType]bool{}
@@ -764,7 +885,7 @@ func (ds *DatastoreJSON) Search(filter SearchFilter) (map[uuid.UUID]Hardware, er
 		wantedStatus[status] = true
 	}
 
-	return ds.inventory.FilterHardware(func(h Hardware) (bool, error) {
+	return dj.inventory.FilterHardware(func(h Hardware) (bool, error) {
 		matchType := false
 		if len(wantedTypes) == 0 || wantedTypes[h.Type] {
 			matchType = true
