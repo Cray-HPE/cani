@@ -31,32 +31,29 @@ import (
 	"text/tabwriter"
 
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/fatih/color"
-	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
 // SessionSummaryCmd represents the session stop command
 var SessionSummaryCmd = &cobra.Command{
-	Use:          "summary",
-	Short:        "Show the summary of a stopped session",
-	Long:         `Show the summary of a stopped session`,
-	SilenceUsage: true, // Errors are more important than the usage
-	RunE:         showSummary,
+	Use:   "summary",
+	Short: "Show the summary of a stopped session",
+	Long:  `Show the summary of a stopped session`,
+	RunE:  showSummary,
 }
 
 func showSummary(cmd *cobra.Command, args []string) error {
-	// Instanstiate the domain
-	d, err := domain.New(root.Conf.Session.DomainOptions)
+	// resetup the domain to get fresh info
+	err := root.D.SetupDomain(cmd, args)
 	if err != nil {
 		return err
 	}
 
 	// Get the entire inventory
-	inv, err := d.List()
+	inv, err := root.D.List()
 	if err != nil {
 		return err
 	}
@@ -67,7 +64,7 @@ func showSummary(cmd *cobra.Command, args []string) error {
 	tw := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(tw, "ID\tTYPE\tSTATUS")
 
-	staged := make(map[uuid.UUID]inventory.Hardware, 0)
+	staged := inv.FilterHardwareByStatus(inventory.HardwareStatusStaged)
 
 	// Create the colors you want to use
 	black := color.New(color.FgBlack).FprintfFunc()
@@ -80,7 +77,7 @@ func showSummary(cmd *cobra.Command, args []string) error {
 
 	const format = "%s\t%s\t(%s)\n"
 	// for each new hardware, print some details
-	for i, hw := range inv.Hardware {
+	for i, hw := range staged {
 		// Only show staged hardware
 		// TODO: Better logic as staged hardware could have been added in a different session
 		if hw.Status == inventory.HardwareStatusStaged {

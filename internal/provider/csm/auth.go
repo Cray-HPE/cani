@@ -30,8 +30,8 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog/log"
@@ -39,7 +39,7 @@ import (
 )
 
 // newClient returns a new http client and context
-func (opts *ProviderOpts) newClient() (httpClient *retryablehttp.Client, ctx context.Context, err error) {
+func (csm *CSM) newClient() (httpClient *retryablehttp.Client, ctx context.Context, err error) {
 	// use the system certificates if possible
 	certPool, err := x509.SystemCertPool()
 	if err != nil {
@@ -47,10 +47,10 @@ func (opts *ProviderOpts) newClient() (httpClient *retryablehttp.Client, ctx con
 	}
 
 	// optionally, use a custom cert
-	if opts.CaCertPath != "" {
+	if csm.Options.CaCertPath != "" {
 		var cert []byte
-		if opts.CaCertPath != "" {
-			cert, err = ioutil.ReadFile(opts.CaCertPath)
+		if csm.Options.CaCertPath != "" {
+			cert, err = os.ReadFile(csm.Options.CaCertPath)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -65,7 +65,7 @@ func (opts *ProviderOpts) newClient() (httpClient *retryablehttp.Client, ctx con
 	// use the certificates in the http client
 	tlsConfig := &tls.Config{
 		RootCAs:            certPool,
-		InsecureSkipVerify: opts.InsecureSkipVerify,
+		InsecureSkipVerify: csm.Options.InsecureSkipVerify,
 	}
 
 	// use TLS config in transport
@@ -81,32 +81,32 @@ func (opts *ProviderOpts) newClient() (httpClient *retryablehttp.Client, ctx con
 	ctx = context.Background()
 	ctx = context.WithValue(ctx, oauth2.HTTPClient, httpClient.StandardClient())
 
-	if opts.APIGatewayToken == "" && !opts.UseSimulation {
-		log.Info().Msgf("No API Gateway token provided, getting one from provider %s", opts.ProviderHost)
+	if csm.Options.APIGatewayToken == "" && !csm.Options.UseSimulation {
+		log.Info().Msgf("No API Gateway token provided, getting one from provider %s", csm.Options.ProviderHost)
 		// Get the auth token from keycloak
-		token, err := opts.getAuthToken(ctx)
+		token, err := csm.getAuthToken(ctx)
 		if err != nil {
 			return nil, nil, err
 		}
-		opts.APIGatewayToken = token.AccessToken
+		csm.Options.APIGatewayToken = token.AccessToken
 	}
 
 	return httpClient, ctx, nil
 }
 
 // getAuthToken retrieves an auth token from the auth server using the provided credentials and certificate
-func (opts *ProviderOpts) getAuthToken(ctx context.Context) (*oauth2.Token, error) {
+func (csm *CSM) getAuthToken(ctx context.Context) (*oauth2.Token, error) {
 	// Setup the oauth2 config
 	conf := &oauth2.Config{
 		ClientID: "shasta",
 		Endpoint: oauth2.Endpoint{
-			TokenURL: fmt.Sprintf("https://%s/keycloak/realms/shasta/protocol/openid-connect/token", opts.ProviderHost),
+			TokenURL: fmt.Sprintf("https://%s/keycloak/realms/shasta/protocol/openid-connect/token", csm.Options.ProviderHost),
 		},
 		Scopes: []string{"openid"},
 	}
 
 	// Get the token
-	token, err := conf.PasswordCredentialsToken(ctx, opts.TokenUsername, string(opts.TokenPassword))
+	token, err := conf.PasswordCredentialsToken(ctx, csm.Options.TokenUsername, string(csm.Options.TokenPassword))
 	if err != nil {
 		log.Error().Msgf("Failed to get token.  Check if the token host is reachable and the credentials are correct. %s", err)
 		return nil, err

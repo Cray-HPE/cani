@@ -58,7 +58,7 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 	if !exists {
 		return AddHardwareResult{}, errors.Join(
 			fmt.Errorf("unable to find %s at %s", hardwaretypes.Cabinet, cabinetPath),
-			fmt.Errorf("try 'go run main.go alpha list cabinet'"),
+			fmt.Errorf("try 'list cabinet'"),
 		)
 	}
 
@@ -174,7 +174,6 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 			// Generate the CANI hardware inventory version of the hardware build out data
 			hardware = inventory.NewHardwareFromBuildOut(hardwareBuildOut, inventory.HardwareStatusStaged)
 
-			log.Debug().Any("id", hardware.ID).Msg("Hardware")
 			log.Debug().Str("path", hardwareBuildOut.LocationPath.String()).Msg("Hardware Build out")
 
 			// TODO need a check to see if all the needed information exists,

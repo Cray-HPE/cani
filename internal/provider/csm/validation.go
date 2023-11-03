@@ -33,7 +33,6 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
-	"github.com/Cray-HPE/cani/internal/provider/csm/validate"
 	"github.com/Cray-HPE/cani/internal/util/uuidutil"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
@@ -41,7 +40,8 @@ import (
 )
 
 // Validate the external services of the inventory provider are correct
-func (csm *CSM) ValidateExternal(ctx context.Context, configOptions provider.ConfigOptions) error {
+func (csm *CSM) ValidateExternal(ctx context.Context) error {
+
 	// Get the dumpate from SLS
 	slsState, reps, err := csm.slsClient.DumpstateApi.DumpstateGet(context.Background())
 	if err != nil {
@@ -49,7 +49,7 @@ func (csm *CSM) ValidateExternal(ctx context.Context, configOptions provider.Con
 	}
 
 	// Validate the dumpstate returned from SLS
-	_, err = validate.ValidateHTTPResponse(configOptions, &slsState, reps)
+	_, err = csm.TBV.ValidateHTTPResponse(&slsState, reps)
 	if err != nil {
 		return fmt.Errorf("Validation failed. %v\n", err)
 	}
@@ -105,11 +105,11 @@ func (csm *CSM) ValidateInternal(ctx context.Context, datastore inventory.Datast
 
 func (csm *CSM) validateInternalNode(allHardware map[uuid.UUID]inventory.Hardware, enableRequiredDataChecks bool, results map[uuid.UUID]provider.HardwareValidationResult) error {
 	validRoles := map[string]bool{}
-	for _, role := range csm.ValidRoles {
+	for _, role := range csm.Options.ValidRoles {
 		validRoles[role] = true
 	}
 	validSubRoles := map[string]bool{}
-	for _, subRole := range csm.ValidSubRoles {
+	for _, subRole := range csm.Options.ValidSubRoles {
 		validSubRoles[subRole] = true
 	}
 
@@ -149,7 +149,7 @@ func (csm *CSM) validateInternalNode(allHardware map[uuid.UUID]inventory.Hardwar
 		if metadata.Node.Role != nil {
 			if !validRoles[*metadata.Node.Role] {
 				validationResult.Errors = append(validationResult.Errors,
-					fmt.Sprintf("Specified role (%s) is invalid, choose from: %s", *metadata.Node.Role, strings.Join(csm.ValidRoles, ", ")),
+					fmt.Sprintf("Specified role (%s) is invalid, choose from: %s", *metadata.Node.Role, strings.Join(csm.Options.ValidRoles, ", ")),
 				)
 			}
 		}
@@ -158,7 +158,7 @@ func (csm *CSM) validateInternalNode(allHardware map[uuid.UUID]inventory.Hardwar
 		if metadata.Node.SubRole != nil {
 			if !validSubRoles[*metadata.Node.SubRole] {
 				validationResult.Errors = append(validationResult.Errors,
-					fmt.Sprintf("Specified sub-role (%s) is invalid, choose from: %s", *metadata.Node.SubRole, strings.Join(csm.ValidSubRoles, ", ")),
+					fmt.Sprintf("Specified sub-role (%s) is invalid, choose from: %s", *metadata.Node.SubRole, strings.Join(csm.Options.ValidSubRoles, ", ")),
 				)
 			}
 		}

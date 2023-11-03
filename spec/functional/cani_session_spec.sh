@@ -42,8 +42,8 @@ It "--config $CANI_CONF status"
   BeforeCall use_inactive_session # session is inactive
   When call bin/cani alpha session --config "$CANI_CONF" status
   The status should equal 0
-  The line 1 of stderr should include "See $CANI_CONF for session details"
-  The line 2 of stderr should include 'Session is INACTIVE'
+  The line 1 of stderr should include "No active session"
+  The line 2 of stderr should include "Session is INACTIVE for"
 End
 
 # Status should be ACTIVE if active: true
@@ -51,8 +51,8 @@ It "--config $CANI_CONF status"
   BeforeCall use_active_session # session is active
   When call bin/cani alpha session --config "$CANI_CONF" status
   The status should equal 0
-  The line 1 of stderr should include "See $CANI_CONF for session details"
-  The line 2 of stderr should include 'Session is ACTIVE'
+  The stderr should include 'Session is ACTIVE for'
+  The stderr should include "See $CANI_CONF for session details"
 End
 
 # Starting a session without passing a provider should fail
@@ -91,7 +91,7 @@ It 'initialize a session without a config file or datastore'
   BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
   When call bin/cani alpha session --config "$CANI_CONF" init csm -S 
   The status should equal 0
-  The line 1 of stderr should include 'Using simulation mode'
+  The stderr should include 'Using simulation mode'
   The stderr should include 'Validated CANI inventory'
   The stderr should include 'Validated external inventory provider'
   # Verify the import logic reached out to SLS

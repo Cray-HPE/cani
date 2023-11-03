@@ -31,6 +31,7 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/google/uuid"
+	"github.com/spf13/cobra"
 )
 
 var ErrDataValidationFailure = fmt.Errorf("data validation failure")
@@ -38,7 +39,7 @@ var ErrDataValidationFailure = fmt.Errorf("data validation failure")
 // TODO Need to think about how internal data structures should be supplied to the Inventory Provider
 type InventoryProvider interface {
 	// Validate the external services of the inventory provider are correct
-	ValidateExternal(ctx context.Context, configOptions ConfigOptions) error
+	ValidateExternal(ctx context.Context) error
 
 	// Validate the representation of the inventory data into the destination inventory system
 	// is consistent. The default set of checks will verify all currently provided data is valid.
@@ -48,14 +49,24 @@ type InventoryProvider interface {
 	// Import external inventory data into CANI's inventory format
 	Import(ctx context.Context, datastore inventory.Datastore) error
 
+	ExportJson(ctx context.Context, datastore inventory.Datastore, skipValidation bool) ([]byte, error)
+
 	// Reconcile CANI's inventory state with the external inventory state and apply required changes
-	Reconcile(ctx context.Context, configOptions ConfigOptions, datastore inventory.Datastore, dryrun bool, ignoreExternalValidation bool) error
+	Reconcile(ctx context.Context, datastore inventory.Datastore, dryrun bool, ignoreExternalValidation bool) error
 
 	// RecommendHardware returns recommended settings for adding hardware based on the deviceTypeSlug
 	RecommendHardware(inv inventory.Inventory, deviceTypeSlug string) (HardwareRecommendations, error)
 
-	// Get Config Options that are specific to the Provider. For example, supported Roles and SubRoles
-	ConfigOptions(ctx context.Context) (ConfigOptions, error)
+	// SetProviderOptions are specific to the Provider. For example, supported Roles and SubRoles
+	SetProviderOptions(cmd *cobra.Command, args []string) error
+
+	// SetProviderOptionsInterface passes the options down to the provider as an interface
+	// It must be type-asserted at that layer and then set
+	SetProviderOptionsInterface(interface{}) error
+
+	// GetProviderOptions gets the options from the provider as an interface
+	// It must be type-asserted and then set at the domain layer
+	GetProviderOptions() (interface{}, error)
 
 	//
 	// Provider Hardware Metadata
@@ -72,12 +83,12 @@ type InventoryProvider interface {
 	SetFields(hw *inventory.Hardware, values map[string]string) (result SetFieldsResult, err error)
 
 	// Return metadata about each field
-	GetFieldMetadata(configOptions ConfigOptions) ([]FieldMetadata, error)
+	GetFieldMetadata() ([]FieldMetadata, error)
 }
 
-type SlsProvider interface {
-	GetSlsJson(ctx context.Context, configOptions ConfigOptions, datastore inventory.Datastore, skipValidation bool) ([]byte, error)
-}
+// type SlsProvider interface {
+// 	GetSlsJson(ctx context.Context, datastore inventory.Datastore, skipValidation bool) ([]byte, error)
+// }
 
 type HardwareValidationResult struct {
 	Hardware inventory.Hardware
@@ -99,13 +110,6 @@ type CsvImportResult struct {
 
 type SetFieldsResult struct {
 	ModifiedFields []string
-}
-
-type ConfigOptions struct {
-	ValidRoles      []string
-	ValidSubRoles   []string
-	K8sPodsCidr     string
-	K8sServicesCidr string
 }
 
 type FieldMetadata struct {

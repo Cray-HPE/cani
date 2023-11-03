@@ -24,31 +24,3 @@
  *
  */
 package cmd
-
-import (
-	"fmt"
-	"os"
-
-	"github.com/spf13/cobra"
-)
-
-// DatastoreExists checks that the datastore exists
-func DatastoreExists(cmd *cobra.Command, args []string) error {
-	// Check that at least one argument is provided
-	if !Conf.Session.Active {
-		return fmt.Errorf("No active session.  Run 'session start' to begin")
-	}
-
-	// Check that at least one argument is provided
-	if Conf.Session.DomainOptions.DatastorePath == "" {
-		return fmt.Errorf("Need a datastore path.  Run 'session start' to begin")
-	}
-
-	// if datastore does not exist
-	if _, err := os.Stat(Conf.Session.DomainOptions.DatastorePath); os.IsNotExist(err) {
-		ds := Conf.Session.DomainOptions.DatastorePath
-		return fmt.Errorf("Datastore '%s' does not exist.  Run 'session start' to begin", ds)
-	}
-
-	return nil
-}

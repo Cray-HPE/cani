@@ -24,31 +24,3 @@
  *
  */
 package domain
-
-import (
-	"context"
-	"fmt"
-	"io"
-
-	"github.com/Cray-HPE/cani/internal/provider"
-)
-
-// The functions in this file are optional and are not expected to implemented for every provider.
-// TODO Refactor this if/when the design is changed to better handle provider specific features
-
-func (d *Domain) ExportSls(ctx context.Context, writer io.Writer, skipValidation bool) error {
-	switch d.externalInventoryProvider.(type) {
-	case provider.SlsProvider:
-		provider := d.externalInventoryProvider.(provider.SlsProvider)
-		slsJson, err := provider.GetSlsJson(ctx, d.configOptions, d.datastore, skipValidation)
-		if err != nil {
-			return err
-		}
-		writer.Write(slsJson)
-		writer.Write([]byte("\n"))
-	default:
-		return fmt.Errorf("export sls is not supported by the selected provider")
-	}
-
-	return nil
-}

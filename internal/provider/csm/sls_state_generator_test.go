@@ -121,7 +121,7 @@ func (suite *DetermineHardwareClassSuite) SetupTest() {
 	suite.NoError(err)
 
 	// Generate a inventory of hardware
-	suite.datastore, err = inventory.NewDatastoreInMemory(inventory.CSMProvider)
+	suite.datastore, err = inventory.NewDatastoreInMemoryCSM(inventory.CSMProvider)
 	suite.NoError(err)
 
 	// Build up the different versions of the supported Mountain cabinets

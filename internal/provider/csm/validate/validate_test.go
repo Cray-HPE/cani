@@ -30,7 +30,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/provider/csm/validate/common"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 )
@@ -43,14 +42,13 @@ func loadTestData(t *testing.T, name string) []byte {
 	return content
 }
 
-func GetConfigOptions() provider.ConfigOptions {
-	return provider.ConfigOptions{
+func GetConfigOptions() ToBeValidated {
+	return ToBeValidated{
 		ValidRoles:      []string{"Service", "System", "Application", "Storage", "Management", "Compute"},
 		ValidSubRoles:   []string{"LNETRouter", "UserDefined", "Master", "Worker", "Storage", "Gateway", "UAN", "Visualization"},
 		K8sPodsCidr:     "10.32.0.0/12",
 		K8sServicesCidr: "10.16.0.0/12",
 	}
-
 }
 
 func loadTestObjects(t *testing.T, filename string) (slsState *sls_client.SlsState, rawSLSState RawJson) {
@@ -129,7 +127,7 @@ func TestValidateValid(t *testing.T) {
 	datafile := "valid-mug.json"
 	slsState, rawSLSState := loadTestObjects(t, datafile)
 	configOptions := GetConfigOptions()
-	results, err := validate(configOptions, slsState, rawSLSState)
+	results, err := configOptions.validate(slsState, rawSLSState)
 	passCount, warnCount, failCount := resultsCount(results)
 	logResults(t, results)
 	if err != nil {
@@ -157,7 +155,7 @@ func TestValidateInvalid(t *testing.T) {
 	datafile := "invalid-mug.json"
 	slsState, rawSLSState := loadTestObjects(t, datafile)
 	configOptions := GetConfigOptions()
-	results, err := validate(configOptions, slsState, rawSLSState)
+	results, err := configOptions.validate(slsState, rawSLSState)
 	passCount, warnCount, failCount := resultsCount(results)
 	logResults(t, results)
 	if err != nil {
@@ -178,7 +176,7 @@ func TestValidateValidUsingOnlySlsState(t *testing.T) {
 	datafile := "valid-mug.json"
 	slsState, _ := loadTestObjects(t, datafile)
 	configOptions := GetConfigOptions()
-	results, err := Validate(configOptions, slsState)
+	results, err := configOptions.Validate(slsState)
 	passCount, warnCount, failCount := resultsCount(results)
 	logResults(t, results)
 	if err != nil {

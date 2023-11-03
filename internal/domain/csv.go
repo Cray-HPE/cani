@@ -58,12 +58,8 @@ var (
 		"nid":            "Nid"}
 )
 
-func (d *Domain) ListCsvOptions(ctx context.Context, opts *DomainOpts) error {
-	configOptions := provider.ConfigOptions{
-		ValidRoles:    opts.CsmOptions.ValidRoles,
-		ValidSubRoles: opts.CsmOptions.ValidSubRoles,
-	}
-	metadata, err := d.externalInventoryProvider.GetFieldMetadata(configOptions)
+func (d *Domain) ListCsvOptions(ctx context.Context) error {
+	metadata, err := d.externalInventoryProvider.GetFieldMetadata()
 	if err != nil {
 		return err
 	}
@@ -130,6 +126,17 @@ func (d *Domain) ExportCsv(ctx context.Context, writer *csv.Writer, headers []st
 		}
 		writer.Flush()
 	}
+	return nil
+}
+
+func (d *Domain) ExportJson(ctx context.Context, writer io.Writer, skipValidation bool) error {
+	exportedJson, err := d.externalInventoryProvider.ExportJson(ctx, d.datastore, skipValidation)
+	if err != nil {
+		return err
+	}
+	writer.Write(exportedJson)
+	writer.Write([]byte("\n"))
+
 	return nil
 }
 

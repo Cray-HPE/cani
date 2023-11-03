@@ -1,0 +1,328 @@
+{
+  "SchemaVersion": "v1alpha1",
+  "Provider": "csm",
+  "Hardware": {
+    "abcdef12-3456-2789-abcd-ef1234567890": {
+      "ID": "abcdef12-3456-2789-abcd-ef1234567890",
+      "Type": "System",
+      "Parent": "00000000-0000-0000-0000-000000000000",
+      "Children": [
+        "cce788c8-bdfd-4d41-a87c-07f2db30cc73"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "346611c3-264b-4c51-85d1-e4d59d9d4cbf": {
+      "ID": "346611c3-264b-4c51-85d1-e4d59d9d4cbf",
+      "Type": "Node",
+      "DeviceTypeSlug": "hpe-crayex-ex4252-compute-node",
+      "Vendor": "HPE",
+      "Model": "EX4252 AMD EPYC compute node (Antero)",
+      "Status": "staged",
+      "Parent": "e6fba06f-2080-4769-a5e9-74e1462bdc00",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 3000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "5c1a295e-7eac-4f1a-9e6e-a567b06eb324": {
+      "ID": "5c1a295e-7eac-4f1a-9e6e-a567b06eb324",
+      "Type": "NodeController",
+      "DeviceTypeSlug": "hpe-crayex-ex4252-compute-blade-antero-node-bmc",
+      "Vendor": "HPE",
+      "Model": "EX4252 AMD EPYC compute Blade, Antero Node BMC",
+      "Status": "staged",
+      "Parent": "e6fba06f-2080-4769-a5e9-74e1462bdc00",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 3000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeController",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "62a0efab-1fd7-4dc9-a385-81b51f7e3817": {
+      "ID": "62a0efab-1fd7-4dc9-a385-81b51f7e3817",
+      "Type": "Node",
+      "DeviceTypeSlug": "hpe-crayex-ex4252-compute-node",
+      "Vendor": "HPE",
+      "Model": "EX4252 AMD EPYC compute node (Antero)",
+      "Status": "staged",
+      "Parent": "e6fba06f-2080-4769-a5e9-74e1462bdc00",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 3000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 2
+        }
+      ],
+      "LocationOrdinal": 2
+    },
+    "6459710d-7604-4de3-b2de-bf4c4b9fd232": {
+      "ID": "6459710d-7604-4de3-b2de-bf4c4b9fd232",
+      "Type": "Node",
+      "DeviceTypeSlug": "hpe-crayex-ex4252-compute-node",
+      "Vendor": "HPE",
+      "Model": "EX4252 AMD EPYC compute node (Antero)",
+      "Status": "staged",
+      "Parent": "e6fba06f-2080-4769-a5e9-74e1462bdc00",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 3000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 3
+        }
+      ],
+      "LocationOrdinal": 3
+    },
+    "acdbfad7-9d89-494e-bb30-80ad6633f61a": {
+      "ID": "acdbfad7-9d89-494e-bb30-80ad6633f61a",
+      "Type": "NodeBlade",
+      "DeviceTypeSlug": "hpe-crayex-ex4252-compute-blade",
+      "Vendor": "HPE",
+      "Model": "EX4252 AMD EPYC compute blade (Antero)",
+      "Status": "staged",
+      "Parent": "d5f6e961-7c9e-480c-be05-2b6adbf147f9",
+      "Children": [
+        "e6fba06f-2080-4769-a5e9-74e1462bdc00"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 3000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "c6dcc691-4b38-4cec-9d40-c00fd8adb5d5": {
+      "ID": "c6dcc691-4b38-4cec-9d40-c00fd8adb5d5",
+      "Type": "Node",
+      "DeviceTypeSlug": "hpe-crayex-ex4252-compute-node",
+      "Vendor": "HPE",
+      "Model": "EX4252 AMD EPYC compute node (Antero)",
+      "Status": "staged",
+      "Parent": "e6fba06f-2080-4769-a5e9-74e1462bdc00",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 3000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "cce788c8-bdfd-4d41-a87c-07f2db30cc73": {
+      "ID": "cce788c8-bdfd-4d41-a87c-07f2db30cc73",
+      "Type": "Cabinet",
+      "DeviceTypeSlug": "hpe-eia-cabinet",
+      "Vendor": "HPE",
+      "Model": "EX2000",
+      "Status": "staged",
+      "ProviderMetadata": {
+        "csm": {
+          "Cabinet": {
+            "HMNVlan": 1513
+          }
+        }
+      },
+      "Parent": "abcdef12-3456-2789-abcd-ef1234567890",
+      "Children": [
+        "d5f6e961-7c9e-480c-be05-2b6adbf147f9"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 3000
+        }
+      ],
+      "LocationOrdinal": 3000
+    },
+    "d5f6e961-7c9e-480c-be05-2b6adbf147f9": {
+      "ID": "d5f6e961-7c9e-480c-be05-2b6adbf147f9",
+      "Type": "Chassis",
+      "DeviceTypeSlug": "hpe-eia-chassis",
+      "Vendor": "HPE",
+      "Model": "Standard/EIA Chassis",
+      "Status": "staged",
+      "Parent": "cce788c8-bdfd-4d41-a87c-07f2db30cc73",
+      "Children": [
+        "acdbfad7-9d89-494e-bb30-80ad6633f61a"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 3000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "e6fba06f-2080-4769-a5e9-74e1462bdc00": {
+      "ID": "e6fba06f-2080-4769-a5e9-74e1462bdc00",
+      "Type": "NodeCard",
+      "DeviceTypeSlug": "hpe-crayex-ex4252-compute-blade-antero-node-card",
+      "Vendor": "HPE",
+      "Model": "EX425 AMD EPYC compute Blade, Antero Node Card (WNC)",
+      "Status": "staged",
+      "Parent": "acdbfad7-9d89-494e-bb30-80ad6633f61a",
+      "Children": [
+        "346611c3-264b-4c51-85d1-e4d59d9d4cbf",
+        "5c1a295e-7eac-4f1a-9e6e-a567b06eb324",
+        "62a0efab-1fd7-4dc9-a385-81b51f7e3817",
+        "6459710d-7604-4de3-b2de-bf4c4b9fd232",
+        "c6dcc691-4b38-4cec-9d40-c00fd8adb5d5"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 3000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeCard",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    }
+  }
+}

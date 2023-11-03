@@ -27,7 +27,8 @@ Describe 'cani add blade'
 # help output should succeed and match the fixture
 # a config file should be created if one does not exist
 It '--help'
-  BeforeCall remove_config # Remove the config to start fresh
+  BeforeCall use_active_session # session is active
+  BeforeCall use_valid_datastore_system_only # deploy a valid datastore
   When call bin/cani alpha add blade --help --config "$CANI_CONF"
   The status should equal 0
   The stdout should satisfy fixture 'cani/add/blade/help'
@@ -69,11 +70,13 @@ Describe 'cani add blade (each blade type)'
 
 # add each blade type as a parameter, determined dynamically from the current build's output of supported hardware
 Parameters:dynamic
-  for blade in $(bin/cani --config "$CANI_CONF" alpha add blade -L); do
+  mkdir -p "$CANI_DIR"
+  cp "$SHELLSPEC_HELPERDIR/testdata/fixtures/cani/configs/canitest_valid_active.yml" "$CANI_CONF"
+  cp "$FIXTURES"/cani/configs/canitestdb_valid_system_only.json "$CANI_DS"
+  for blade in $(bin/cani --config "$SHELLSPEC_HELPERDIR/testdata/fixtures/cani/configs/canitest_valid_active.yml" alpha add blade -L); do
     %data "$blade"
   done
 End
-
 
 # Adding a blade should fail if no session is active
 It "--config $CANI_CONF $1 --cabinet 3000 --chassis 1 --blade 0 (no session)"
@@ -81,7 +84,7 @@ It "--config $CANI_CONF $1 --cabinet 3000 --chassis 1 --blade 0 (no session)"
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
   When call bin/cani alpha add blade --config "$CANI_CONF" "$1" --cabinet 3000 --chassis 1 --blade 0
   The status should equal 1
-  The line 1 of stderr should equal "Error: No active session.  Run 'session start' to begin"
+  The line 1 of stderr should include "No active session."
 End
 
 # Adding a blade should fail if:
@@ -92,7 +95,7 @@ It "--config $CANI_CONF $1 --cabinet 3000 --chassis 1 --blade 0 (active session,
   BeforeCall remove_datastore # datastore does not exist
   When call bin/cani alpha add blade --config "$CANI_CONF" "$1" --cabinet 3000 --chassis 1 --blade 0
   The status should equal 1
-  The line 1 of stderr should equal "Error: Datastore '$CANI_DS' does not exist.  Run 'session start' to begin"
+  The line 1 of stderr should include "Datastore '$CANI_DS' does not exist.  Run 'session init' to begin"
 End
 
 # Adding a blade should fail if:
@@ -147,7 +150,7 @@ It "--config $CANI_CONF $1 --cabinet 3000 --chassis 1 --blade 0 (active session,
   When call bin/cani alpha add blade --config "$CANI_CONF" "$1" --cabinet 3000 --chassis 1 --blade 0
   The status should equal 1
   The line 1 of stderr should equal 'Error: unable to find Cabinet at System:0->Cabinet:3000'
-  The line 2 of stderr should equal "try 'go run main.go alpha list cabinet'"
+  The line 2 of stderr should equal "try 'list cabinet'"
 End
 
 # Adding a blade should fail if:
@@ -177,7 +180,7 @@ End
 #   - the chassis exists
 It "--config $CANI_CONF $1 --cabinet 3000 --chassis 0 --blade 0 (happy path)"
   BeforeCall use_active_session # session is active
-  BeforeCall use_valid_datastore_one_hpe_eia_cabinet_cabinet # deploy a valid datastore with one cabinet
+  BeforeCall use_valid_datastore_one_hpe_eia_cabinet_cabinet # deploy a valid datastore with one cabinet and one blade
   When call bin/cani alpha add blade --config "$CANI_CONF" "$1" --cabinet 3000 --chassis 0 --blade 0
   The status should equal 0
   The line 2 of stderr should include "NodeBlade was successfully staged to be added to the system"
@@ -198,6 +201,7 @@ End
 #   - the blade already exists
 It "--config $CANI_CONF $1 --cabinet 3000 --chassis 0 --blade 0 (active session, datastore, all flags, existing hardware)"
   BeforeCall use_active_session # session is active
+  BeforeCall use_valid_datastore_one_hpe_eia_cabinet_cabinet_one_blade
   When call bin/cani alpha add blade --config "$CANI_CONF" "$1" --cabinet 3000 --chassis 0 --blade 0
   The status should equal 1
   The line 1 of stderr should equal "Error: NodeBlade number 0 is already in use"
