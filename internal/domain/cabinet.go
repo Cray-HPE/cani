@@ -26,7 +26,6 @@
 package domain
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
@@ -35,15 +34,16 @@ import (
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
 // AddCabinet adds a cabinet to the inventory
-func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetOrdinal int, metadata map[string]interface{}) (AddHardwareResult, error) {
+func (d *Domain) AddCabinet(cmd *cobra.Command, args []string, recommendations provider.HardwareRecommendations) (AddHardwareResult, error) {
 	// Validate provided cabinet exists
 	// Craft the path to the cabinet
 	cabinetLocationPath := inventory.LocationPath{
 		{HardwareType: hardwaretypes.System, Ordinal: 0},
-		{HardwareType: hardwaretypes.Cabinet, Ordinal: cabinetOrdinal},
+		{HardwareType: hardwaretypes.Cabinet, Ordinal: recommendations.CabinetOrdinal},
 	}
 
 	// Check if the cabinet already exists
@@ -58,7 +58,7 @@ func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetO
 	if exists {
 		return AddHardwareResult{},
 			errors.Join(
-				fmt.Errorf("%s number %d is already in use", hardwaretypes.Cabinet, cabinetOrdinal),
+				fmt.Errorf("%s number %d is already in use", hardwaretypes.Cabinet, recommendations.CabinetOrdinal),
 				fmt.Errorf("please re-run the command with an available %s number", hardwaretypes.Cabinet),
 			)
 	}
@@ -71,6 +71,7 @@ func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetO
 		)
 	}
 
+	deviceTypeSlug := args[0]
 	// Verify the provided device type slug is a cabinet
 	deviceType, err := d.hardwareTypeLibrary.GetDeviceType(deviceTypeSlug)
 	if err != nil {
@@ -81,7 +82,7 @@ func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetO
 	}
 
 	// Generate a hardware build out using the system as a parent
-	hardwareBuildOutItems, err := inventory.GenerateDefaultHardwareBuildOut(d.hardwareTypeLibrary, deviceTypeSlug, cabinetOrdinal, system)
+	hardwareBuildOutItems, err := inventory.GenerateDefaultHardwareBuildOut(d.hardwareTypeLibrary, deviceTypeSlug, recommendations.CabinetOrdinal, system)
 	if err != nil {
 		return AddHardwareResult{}, errors.Join(
 			fmt.Errorf("unable to build default hardware build out for %s", deviceTypeSlug),
@@ -96,17 +97,14 @@ func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetO
 		hardware := inventory.NewHardwareFromBuildOut(hardwareBuildOut, inventory.HardwareStatusStaged)
 
 		// Ask the inventory provider to craft a metadata object for this information
-		if err := d.externalInventoryProvider.BuildHardwareMetadata(&hardware, metadata); err != nil {
+		if err := d.externalInventoryProvider.BuildHardwareMetadata(&hardware, cmd, args, recommendations); err != nil {
 			return AddHardwareResult{}, err
 		}
 
 		log.Debug().Any("id", hardware.ID).Msg("Hardware")
 		log.Debug().Str("path", hardwareBuildOut.LocationPath.String()).Msg("Hardware Build out")
 
-		// TODO need a check to see if all the needed information exists,
-		// Things like role/subrole/nid/alias could be injected at a later time.
-		// Not sure how hard it would be to specify at this point in time.
-		// This command creates the physical information for a node, have another command for the logical part of the data
+		// Metadata is now set by the BuildHardwareMetadata so it can be added to the datastore
 		if err := d.datastore.Add(&hardware); err != nil {
 			return AddHardwareResult{}, errors.Join(
 				fmt.Errorf("unable to add hardware to inventory datastore"),
@@ -129,7 +127,7 @@ func (d *Domain) AddCabinet(ctx context.Context, deviceTypeSlug string, cabinetO
 
 	// Validate the current state of CANI's inventory data against the provider plugin
 	// for provider specific data.
-	if failedValidations, err := d.externalInventoryProvider.ValidateInternal(ctx, d.datastore, false); len(failedValidations) > 0 {
+	if failedValidations, err := d.externalInventoryProvider.ValidateInternal(cmd.Context(), d.datastore, false); len(failedValidations) > 0 {
 		result.ProviderValidationErrors = failedValidations
 		return result, provider.ErrDataValidationFailure
 	} else if err != nil {
@@ -154,14 +152,14 @@ func (d *Domain) RemoveCabinet(u uuid.UUID, recursion bool) error {
 	return d.datastore.Flush()
 }
 
-func (d *Domain) Recommend(deviceTypeSlug string) (recommendations provider.HardwareRecommendations, err error) {
+func (d *Domain) Recommend(cmd *cobra.Command, args []string, auto bool) (recommendations provider.HardwareRecommendations, err error) {
 	// Get the existing inventory
 	inv, err := d.List()
 	if err != nil {
 		return recommendations, err
 	}
 	// Get recommendations from the CSM provider for the cabinet
-	recommendations, err = d.externalInventoryProvider.RecommendHardware(inv, deviceTypeSlug)
+	recommendations, err = d.externalInventoryProvider.RecommendHardware(inv, cmd, args, auto)
 	if err != nil {
 		return recommendations, err
 	}

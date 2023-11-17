@@ -134,7 +134,8 @@ func (csm *CSM) SetFields(hw *inventory.Hardware, values map[string]string) (res
 			}
 			hw.SetProviderMetadata(inventory.CSMProvider, metadataRaw)
 		}
-	} else if csmMetadata.Cabinet != nil {
+	}
+	if csmMetadata.Cabinet != nil {
 		for key, value := range values {
 			switch key {
 			case "Vlan":

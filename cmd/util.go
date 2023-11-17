@@ -69,7 +69,14 @@ func MergeProviderCommand(bootstrapCmd *cobra.Command, providerCmd *cobra.Comman
 				case "add":
 					providerCmd, err = csm.NewAddCabinetCommand()
 				}
+			case "node":
+				// check for add/update variants
+				switch bootstrapCmd.Parent().Name() {
+				case "update":
+					providerCmd, err = csm.NewUpdateNodeCommand()
+				}
 			}
+
 		default:
 			log.Debug().Msgf("skipping provider: %s", provider)
 		}
@@ -103,6 +110,12 @@ func MergeProviderCommand(bootstrapCmd *cobra.Command, providerCmd *cobra.Comman
 				switch bootstrapCmd.Parent().Name() {
 				case "add":
 					err = csm.UpdateAddCabinetCommand(bootstrapCmd)
+				}
+			case "node":
+				// check for add/update variants
+				switch bootstrapCmd.Parent().Name() {
+				case "update":
+					err = csm.UpdateUpdateNodeCommand(bootstrapCmd)
 				}
 			}
 		default:

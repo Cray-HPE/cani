@@ -53,7 +53,7 @@ var AddBladeCmd = &cobra.Command{
 // addBlade adds a blade to the inventory
 func addBlade(cmd *cobra.Command, args []string) (err error) {
 	if auto {
-		recommendations, err := root.D.Recommend(args[0])
+		recommendations, err := root.D.Recommend(cmd, args, auto)
 		if err != nil {
 			return err
 		}

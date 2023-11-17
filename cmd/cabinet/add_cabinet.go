@@ -31,9 +31,7 @@ import (
 	"sort"
 
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/provider"
-	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/Cray-HPE/cani/internal/tui"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/rs/zerolog/log"
@@ -51,51 +49,36 @@ var AddCabinetCmd = &cobra.Command{
 
 // addCabinet adds a cabinet to the inventory
 func addCabinet(cmd *cobra.Command, args []string) (err error) {
+	var recommendations = provider.HardwareRecommendations{}
+	recommendations, err = root.D.Recommend(cmd, args, auto)
+	if err != nil {
+		return err
+	}
+
 	if auto {
-		recommendations, err := root.D.Recommend(args[0])
-		if err != nil {
-			return err
-		}
+		// get hardware recommendations from the provider
 		log.Info().Msgf("Querying inventory to suggest cabinet number and VLAN ID")
-		// set the vars to the recommendations
-		cabinetNumber = recommendations.CabinetOrdinal
-		vlanId = recommendations.ProviderMetadata[csm.ProviderMetadataVlanId].(int)
-		log.Debug().Msgf("Provider recommendations: %+v", recommendations)
-		log.Info().Msgf("Suggested cabinet number: %d", cabinetNumber)
-		log.Info().Msgf("Suggested VLAN ID: %d", vlanId)
-		if accept {
-			auto = true
-		} else {
-			// Prompt the user to confirm the suggestions
-			auto, err = tui.CustomConfirmation(
-				fmt.Sprintf("Would you like to accept the recommendations and add the %s", hardwaretypes.Cabinet))
+		// Prompt the user to confirm the suggestions
+		if !accept {
+			accept, err = tui.CustomConfirmation(fmt.Sprintf("Would you like to accept the recommendations and add the %s", hardwaretypes.Cabinet))
 			if err != nil {
 				return err
 			}
 		}
 
 		// If the user chose not to accept the suggestions, exit
-		if !auto {
+		if !accept {
 			log.Warn().Msgf("Aborted %s add", hardwaretypes.Cabinet)
-			fmt.Printf("\nAuto-generated values can be overridden by re-running the command with explicit values:\n")
-			fmt.Printf("\n\t%s %s %s %s --vlan-id %d --cabinet %d\n\n", cmd.Root().Name(), cmd.Parent().Name(), cmd.Name(), args[0], vlanId, cabinetNumber)
-
 			return nil
 		}
-	}
 
-	// Push all the CLI flags that were provided into a generic map
-	// TODO Need to figure out how to specify to unset something
-	// Right now the build metadata function in the CSM provider will
-	// unset options if nil is passed in.
-	cabinetMetadata := map[string]interface{}{
-		csm.ProviderMetadataVlanId: vlanId,
+		// log the provider recommendations to the screen
+		recommendations.Print()
 	}
 
 	// Add the cabinet to the inventory using domain methods
-	result, err := root.D.AddCabinet(cmd.Context(), args[0], cabinetNumber, cabinetMetadata)
+	result, err := root.D.AddCabinet(cmd, args, recommendations)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
-		// TODO the following should probably suggest commands to fix the issue?
 		log.Error().Msgf("Inventory data validation errors encountered")
 		for id, failedValidation := range result.ProviderValidationErrors {
 			log.Error().Msgf("  %s: %s", id, failedValidation.Hardware.LocationPath.String())
@@ -110,20 +93,14 @@ func addCabinet(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	log.Info().Str("status", "SUCCESS").Msgf("%s %d was successfully staged to be added to the system", hardwaretypes.Cabinet, cabinetNumber)
-
-	// Use a map to track already added nodes.
-	newNodes := []domain.HardwareLocationPair{}
-
 	for _, result := range result.AddedHardware {
-		// If the type is a Node
 		if result.Hardware.Type == hardwaretypes.Cabinet {
 			log.Debug().Msgf("%s added at %s with parent %s (%s)", result.Hardware.Type, result.Location.String(), hardwaretypes.System, result.Hardware.Parent)
+			log.Info().Str("status", "SUCCESS").Msgf("%s %d was successfully staged to be added to the system", hardwaretypes.Cabinet, recommendations.CabinetOrdinal)
 			log.Info().Msgf("UUID: %s", result.Hardware.ID)
-			log.Info().Msgf("Cabinet Number: %d", cabinetNumber)
-			log.Info().Msgf("VLAN ID: %d", vlanId)
-			// Add the node to the map
-			newNodes = append(newNodes, result)
+			log.Info().Msgf("Cabinet Number: %d", *result.Hardware.LocationOrdinal)
+			// FIXME: make generic summary print function
+			log.Info().Msgf("VLAN ID: %d", result.Hardware.ProviderMetadata["csm"]["Cabinet"].(map[string]interface{})["HMNVlan"])
 		}
 	}
 

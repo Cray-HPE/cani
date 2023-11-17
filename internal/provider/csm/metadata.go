@@ -26,17 +26,19 @@
 package csm
 
 import (
-	"errors"
 	"fmt"
 
+	"github.com/Cray-HPE/cani/cmd/taxonomy"
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/Cray-HPE/cani/pkg/pointers"
 	"github.com/mitchellh/mapstructure"
+	"github.com/spf13/cobra"
 )
 
 const (
-	ProviderMetadataVlanId  = "VlanID"
+	ProviderMetadataVlanId  = "HMNVlan"
 	ProviderMetadataRole    = "Role"
 	ProviderMetadataSubRole = "SubRole"
 	ProviderMetadataAlias   = "Alias"
@@ -118,95 +120,111 @@ func EncodeProviderMetadata(metadata Metadata) (result map[string]interface{}, e
 	return result, err
 }
 
-func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, rawProperties map[string]interface{}) error {
+func (csm *CSM) NewHardwareMetadata(hw *inventory.Hardware, cmd *cobra.Command, args []string) (err error) {
+	md, err := DecodeProviderMetadata(*hw)
+	if err != nil {
+		return err
+	}
+	// Get the flags and set the metdata accordingly
+	role, _ := cmd.Flags().GetString("role")
+	if cmd.Flags().Changed("role") {
+		md.Node.Role = &role
+	}
+	subrole, _ := cmd.Flags().GetString("subrole")
+	if cmd.Flags().Changed("subrole") {
+		md.Node.SubRole = &subrole
+	}
+	nid, _ := cmd.Flags().GetInt("nid")
+	if cmd.Flags().Changed("nid") {
+		md.Node.Nid = &nid
+	}
+	alias, _ := cmd.Flags().GetStringSlice("alias")
+	if cmd.Flags().Changed("alias") {
+		md.Node.Alias = alias
+	}
+
+	metadata, err := EncodeProviderMetadata(md)
+	if err != nil {
+		return err
+	}
+
+	hw.SetProviderMetadata(inventory.CSMProvider, metadata)
+
+	return nil
+}
+
+func (csm *CSM) BuildHardwareMetadata(cHardware *inventory.Hardware, cmd *cobra.Command, args []string, recommendations provider.HardwareRecommendations) error {
 	if cHardware == nil {
 		return fmt.Errorf("provided hardware is nil")
 	}
 
-	metadata := Metadata{}
-	if cHardware.ProviderMetadata != nil {
-		var err error
-		metadata, err = DecodeProviderMetadata(*cHardware)
-
-		if err != nil {
-			return errors.Join(fmt.Errorf("failed to decode CSM metadata from hardware (%v)", cHardware.ID), err)
-		}
+	var metadata = map[string]interface{}{
+		// string(hardwaretypes.Cabinet): map[string]interface{}{},
+		// string(hardwaretypes.Node):    map[string]interface{}{},
 	}
-
 	switch cHardware.Type {
 	case hardwaretypes.Cabinet:
-		if metadata.Cabinet == nil {
-			// Create an cabinet metadata object it does not exist
-			metadata.Cabinet = &CabinetMetadata{}
+		var vlan int
+		// if the flag is set, get the vlan there
+		if cmd.Flags().Changed("vlan-id") {
+			vlan, _ = cmd.Flags().GetInt("vlan-id")
+			// otherwise, get it from the recommendations
+		} else {
+			val, exists := recommendations.ProviderMetadata[ProviderMetadataVlanId]
+			if exists {
+				vlan = val.(int)
+			}
 		}
 
-		// Make changes to the node metadata
-		// The keys of rawProperties need to match what is defined in ./cmd/cabinet/add_cabinet.go
-		if vlanIDRaw, exists := rawProperties[ProviderMetadataVlanId]; exists {
-			// Check if the VLAN exceeds the valid range for the hardware
-			max, err := DetermineEndingVlanFromSlug(cHardware.DeviceTypeSlug, *csm.hardwareLibrary)
-			if err != nil {
-				return err
-			}
-			// if the VLAN is greater than the max, fail
-			if vlanIDRaw.(int) > max {
-				return fmt.Errorf("VLAN exceeds the provider's maximum range (%d).  Please choose a valid VLAN", max)
-			}
-			if vlanIDRaw == nil {
-				metadata.Cabinet.HMNVlan = nil
-			} else {
-				metadata.Cabinet.HMNVlan = pointers.IntPtr(vlanIDRaw.(int))
-			}
+		// check for the vlan limit
+		max, err := DetermineEndingVlanFromSlug(cHardware.DeviceTypeSlug, *csm.hardwareLibrary)
+		if err != nil {
+			return err
 		}
+
+		// if the VLAN is greater than the max, fail
+		if vlan > max {
+			return fmt.Errorf("VLAN exceeds the provider's maximum range (%d).  Please choose a valid VLAN", max)
+		}
+
+		metadata[string(hardwaretypes.Cabinet)] = recommendations.ProviderMetadata
+
+		if cHardware.ProviderMetadata == nil {
+			cHardware.ProviderMetadata = map[inventory.Provider]inventory.ProviderMetadataRaw{}
+		}
+		if cHardware.ProviderMetadata[taxonomy.CSM] == nil {
+			cHardware.ProviderMetadata[taxonomy.CSM] = map[string]interface{}{}
+		}
+		// set the metadata
+		cHardware.ProviderMetadata[taxonomy.CSM] = metadata
+
 	case hardwaretypes.Node:
-		if metadata.Node == nil {
-			// Create an cabinet metadata object it does not exist
-			metadata.Node = &NodeMetadata{}
-		}
+		role, _ := cmd.Flags().GetString("role")
+		subrole, _ := cmd.Flags().GetString("subrole")
+		nid, _ := cmd.Flags().GetInt("nid")
+		alias, _ := cmd.Flags().GetStringSlice("alias")
 
-		// Make changes to the node metadata
-		// The keys of rawProperties need to match what is defined in ./cmd/node/update_node.go
-		if roleRaw, exists := rawProperties[ProviderMetadataRole]; exists {
-			if roleRaw == nil {
-				metadata.Node.Role = nil
-			} else {
-				metadata.Node.Role = pointers.StringPtr(roleRaw.(string))
-			}
+		md := map[string]interface{}{}
+		if role != "" {
+			md["role"] = role
 		}
-		if subroleRaw, exists := rawProperties[ProviderMetadataSubRole]; exists {
-			if subroleRaw == nil {
-				metadata.Node.SubRole = nil
-			} else {
-				metadata.Node.SubRole = pointers.StringPtr(subroleRaw.(string))
-			}
+		if subrole != "" {
+			md["subrole"] = subrole
 		}
-		if nidRaw, exists := rawProperties[ProviderMetadataNID]; exists {
-			if nidRaw == nil {
-				metadata.Node.Nid = nil
-			} else {
-				metadata.Node.Nid = pointers.IntPtr(nidRaw.(int))
-			}
+		if cmd.Flags().Changed("nid") {
+			md["nid"] = nid
 		}
-		if aliasRaw, exists := rawProperties[ProviderMetadataAlias]; exists {
-			if aliasRaw == nil {
-				metadata.Node.Alias = nil
-			} else {
-				metadata.Node.Alias = []string{aliasRaw.(string)}
-			}
+		if alias != nil {
+			md["alias"] = alias
 		}
+		metadata[string(hardwaretypes.Node)] = md
 
 	default:
 		// This hardware type doesn't have metadata for it right now
 		return nil
 	}
 
-	// Set the hardware metadata
-	metadataRaw, err := EncodeProviderMetadata(metadata)
-	if err != nil {
-		return errors.Join(fmt.Errorf("failed to encoder CSM Metadata for hardware (%v)", cHardware.ID), err)
-	}
-
-	cHardware.SetProviderMetadata(inventory.CSMProvider, metadataRaw)
+	cHardware.SetProviderMetadata(inventory.CSMProvider, metadata)
 	return nil
 }
 

@@ -35,7 +35,6 @@ import (
 
 var (
 	cabinetNumber         int
-	vlanId                int
 	auto                  bool
 	accept                bool
 	format                string
@@ -44,6 +43,8 @@ var (
 )
 
 func init() {
+	var err error
+
 	// Add variants to root commands
 	root.AddCmd.AddCommand(AddCabinetCmd)
 	root.ListCmd.AddCommand(ListCabinetCmd)
@@ -54,10 +55,6 @@ func init() {
 
 	// Cabinets
 	AddCabinetCmd.Flags().IntVar(&cabinetNumber, "cabinet", 1001, "Cabinet number.")
-	// AddCabinetCmd.MarkFlagRequired("cabinet")
-	AddCabinetCmd.Flags().IntVar(&vlanId, "vlan-id", -1, "Vlan ID for the cabinet.")
-	// AddCabinetCmd.MarkFlagRequired("vlan-id")
-	AddCabinetCmd.MarkFlagsRequiredTogether("cabinet", "vlan-id")
 	AddCabinetCmd.Flags().BoolVar(&auto, "auto", false, "Automatically recommend and assign required flags.")
 	AddCabinetCmd.MarkFlagsMutuallyExclusive("auto")
 	AddCabinetCmd.Flags().BoolVarP(&accept, "accept", "y", false, "Automatically accept recommended values.")
@@ -67,7 +64,7 @@ func init() {
 
 	// Merge CANI's command with the provider-specified command
 	// this allows for CANI's operations to remain consistent, while adding provider config on top
-	err := root.MergeProviderCommand(AddCabinetCmd, ProviderAddCabinetCmd)
+	err = root.MergeProviderCommand(AddCabinetCmd, ProviderAddCabinetCmd)
 	if err != nil {
 		log.Error().Msgf("%+v", err)
 		os.Exit(1)
