@@ -43,40 +43,22 @@ import (
 	"github.com/spf13/pflag"
 )
 
-// getProviderFlags creates a new init command
+// mergeProviderFlags creates a new init command
 // Initilizing a session is where all the information needed to interact with the inventory system(s) is gathered
 // Plugin authors can call this to create their own flags based on their custom business logic
 // A few common flags are set here, but the rest is up to the plugin author
-func getProviderFlags(cmd *cobra.Command, args []string) (err error) {
+func mergeProviderFlags(bootstrapCmd *cobra.Command, providerCmd *cobra.Command) (err error) {
 	providerFlagset := &pflag.FlagSet{}
 
 	// get the appropriate flagset from the provider's crafted command
-	providerFlagset = csmInitCmd.Flags()
+	providerFlagset = providerCmd.Flags()
 
 	if err != nil {
 		return err
 	}
 
 	// add the provider flags to the command
-	cmd.Flags().AddFlagSet(providerFlagset)
-
-	return nil
-}
-
-func runProviderCmd(cmd *cobra.Command, args []string) (err error) {
-	log.Debug().Msgf("running init with provider-defined command")
-	providerName := args[0]
-	switch providerName {
-	case taxonomy.CSM:
-		cmd = csmInitCmd
-	default:
-		log.Debug().Msgf("skipping provider: %s", providerName)
-	}
-
-	err = initSessionWithProviderCmd(cmd, args)
-	if err != nil {
-		return err
-	}
+	bootstrapCmd.Flags().AddFlagSet(providerFlagset)
 
 	return nil
 }

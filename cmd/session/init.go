@@ -42,6 +42,7 @@ var (
 	ignoreValidationMessage  = "Ignore validation failures. Use this to allow unconventional configurations."
 	csmInitCmd               = &cobra.Command{}
 
+	ProviderCmd = &cobra.Command{}
 	// BootstapCmd is used to start a session with a specific provider and allows the provider to define
 	// how the real init command is defined using their custom business logic
 	BootstrapCmd = &cobra.Command{
@@ -50,7 +51,7 @@ var (
 		Long:      taxonomy.InitLong,
 		ValidArgs: taxonomy.SupportedProviders, // supported providers are defined in the taxonomy
 		Args:      validProvider,               // validate the arg with more contextual help dialogs
-		RunE:      runProviderCmd,
+		RunE:      initSessionWithProviderCmd,
 	}
 )
 
@@ -63,6 +64,7 @@ func init() {
 		case taxonomy.CSM:
 			csmInitCmd, err = csm.NewSessionInitCommand()
 			csmInitCmd.Use = "init"
+			ProviderCmd = csmInitCmd
 		default:
 			log.Debug().Msgf("skipping provider: %s", provider)
 		}
@@ -75,6 +77,14 @@ func init() {
 	// Define the bare minimum needed to determine who the provider for the session will be
 	BootstrapCmd.Flags().BoolVar(&ignoreExternalValidation, "ignore-validation", false, ignoreValidationMessage)
 
+	// all flags should be set in init().  you can set flags after the fact, but it is much easier to work with everything up front
+	// this will set existing variables for each provider
+	err = mergeProviderFlags(BootstrapCmd, ProviderCmd)
+	if err != nil {
+		log.Error().Msgf("unable to get flags from provider: %v", err)
+		os.Exit(1)
+	}
+
 	// Add session commands to root commands
 	root.SessionCmd.AddCommand(BootstrapCmd)
 	BootstrapCmd.AddCommand(csmInitCmd)
@@ -86,12 +96,4 @@ func init() {
 	SessionApplyCmd.Flags().BoolVarP(&commit, "commit", "c", false, "Commit changes to session")
 	SessionApplyCmd.Flags().BoolVarP(&dryrun, "dryrun", "d", false, "Perform dryrun, and do not make changes to the system")
 	SessionApplyCmd.Flags().BoolVar(&ignoreExternalValidation, "ignore-validation", false, ignoreValidationMessage)
-
-	// all flags should be set in init().  you can set flags after the fact, but it is much easier to work with everything up front
-	// this will set existing variables for each provider
-	err = getProviderFlags(BootstrapCmd, []string{})
-	if err != nil {
-		log.Error().Msgf("unable to get flags from provider: %v", err)
-		os.Exit(1)
-	}
 }
