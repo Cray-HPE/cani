@@ -49,46 +49,6 @@ type CSM struct {
 	Options         *CsmOpts
 }
 
-func NewSessionInitCommand() (cmd *cobra.Command, err error) {
-	// cmd represents the session init command
-	cmd = &cobra.Command{}
-	cmd.Long = `Query SLS and HSM.  Validate the data against a schema before allowing an import into CANI.`
-	// ValidArgs:    DO NOT CONFIGURE.  This is set by cani's cmd pkg
-	// Args:         DO NOT CONFIGURE.  This is set by cani's cmd pkg
-	// RunE:         DO NOT CONFIGURE.  This is set by cani's cmd pkg
-	// Session init flags
-	cmd.Flags().String("csm-url-sls", "", "(CSM Provider) Base URL for the System Layout Service (SLS)")
-	cmd.Flags().String("csm-url-hsm", "", "(CSM Provider) Base URL for the Hardware State Manager (HSM)")
-	cmd.Flags().BoolVarP(&insecure, "csm-insecure-https", "k", false, "(CSM Provider) Allow insecure connections when using HTTPS to CSM services")
-	cmd.Flags().BoolVarP(&useSimulation, "csm-simulator", "S", false, "(CSM Provider) Use simulation environment URLs")
-
-	// These three pieces are needed for the CSM provider to get a token
-	cmd.Flags().StringVar(&providerHost, "csm-api-host", "api-gw-service.local", "(CSM Provider) Host or FQDN for authentation and APIs")
-	// cmd.MarkFlagRequired("csm-api-host")
-	cmd.Flags().StringVar(&tokenUsername, "csm-keycloak-username", "", "(CSM Provider) Keycloak username")
-	// cmd.MarkFlagRequired("csm-keycloak-username")
-	cmd.Flags().StringVar(&tokenPassword, "csm-keycloak-password", "", "(CSM Provider) Keycloak password")
-	// cmd.MarkFlagRequired("csm-keycloak-password")
-	cmd.MarkFlagsRequiredTogether("csm-api-host", "csm-keycloak-username", "csm-keycloak-password")
-	// TODO the API token, do we save ito the file?
-
-	cmd.Flags().StringVar(&k8sPodsCidr, "csm-k8s-pods-cidr", "10.32.0.0/12", "(CSM Provider) CIDR used by kubernetes for pods")
-	cmd.Flags().StringVar(&k8sServicesCidr, "csm-k8s-services-cidr", "10.16.0.0/12", "(CSM Provider) CIDR used by kubernetes for services")
-	// Less secure auth methods for CSM that follow existing patterns, but to discourage use, mark them hidden
-	cmd.Flags().StringVar(&kubeconfig, "csm-kube-config", "", "(CSM Provider) Path to the kube config file") // /etc/kubernetes/admin.conf
-	cmd.Flags().MarkHidden("kube-config")
-	cmd.Flags().StringVar(&caCertPath, "csm-ca-cert", "", "Path to the CA certificate file") // /etc/pki/trust/anchors/platform-ca-certs.crt"
-	cmd.Flags().MarkHidden("csm-ca-cert")
-	cmd.Flags().StringVar(&secretName, "csm-secret-name", "admin-client-auth", "(CSM Provider) secret name")
-	cmd.Flags().MarkHidden("csm-secret-name")
-	cmd.Flags().StringVar(&clientId, "csm-client-id", "", "(CSM Provider) Client ID")
-	cmd.Flags().MarkHidden("csm-client-id")
-	cmd.Flags().StringVar(&clientSecret, "csm-client-secret", "", "(CSM Provider) Client Secret")
-	cmd.Flags().MarkHidden("csm-client-secret")
-
-	return cmd, nil
-}
-
 // Need to load from existing if not init
 func New(cmd *cobra.Command, args []string, hwlib *hardwaretypes.Library, opts interface{}) (csm *CSM, err error) {
 	// create a starting object
