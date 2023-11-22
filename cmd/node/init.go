@@ -26,22 +26,27 @@
 package node
 
 import (
+	"os"
+
 	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
 var (
-	cabinet  int
-	chassis  int
-	blade    int
-	nodecard int
-	node     int
-	role     string
-	subrole  string
-	nid      int
-	alias    string
-	nodeUuid string
-	format   string
-	sortBy   string
+	cabinet               int
+	chassis               int
+	blade                 int
+	nodecard              int
+	node                  int
+	role                  string
+	subrole               string
+	nid                   int
+	alias                 string
+	nodeUuid              string
+	format                string
+	sortBy                string
+	ProviderUpdateNodeCmd = &cobra.Command{}
 )
 
 func init() {
@@ -78,4 +83,12 @@ func init() {
 	UpdateNodeCmd.MarkFlagsMutuallyExclusive("uuid")
 	ListNodeCmd.Flags().StringVarP(&format, "format", "f", "pretty", "Format output")
 	ListNodeCmd.Flags().StringVarP(&sortBy, "sort", "s", "location", "Sort by a specific key")
+
+	// Merge CANI's command with the provider-specified command
+	// this allows for CANI's operations to remain consistent, while adding provider config on top
+	err := root.MergeProviderCommand(UpdateNodeCmd, ProviderUpdateNodeCmd)
+	if err != nil {
+		log.Error().Msgf("%+v", err)
+		os.Exit(1)
+	}
 }

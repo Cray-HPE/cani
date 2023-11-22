@@ -24,3 +24,94 @@
  *
  */
 package cmd
+
+import (
+	"os"
+
+	"github.com/Cray-HPE/cani/cmd/taxonomy"
+	"github.com/Cray-HPE/cani/internal/provider/csm"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+)
+
+// MergeProviderFlags creates a new init command
+// Initilizing a session is where all the information needed to interact with the inventory system(s) is gathered
+// Plugin authors can call this to create their own flags based on their custom business logic
+// A few common flags are set here, but the rest is up to the plugin author
+func mergeProviderFlags(bootstrapCmd *cobra.Command, providerCmd *cobra.Command) (err error) {
+	providerFlagset := &pflag.FlagSet{}
+
+	// get the appropriate flagset from the provider's crafted command
+	providerFlagset = providerCmd.Flags()
+
+	if err != nil {
+		return err
+	}
+
+	// add the provider flags to the command
+	bootstrapCmd.Flags().AddFlagSet(providerFlagset)
+
+	return nil
+}
+
+func MergeProviderCommand(bootstrapCmd *cobra.Command, providerCmd *cobra.Command) (err error) {
+	// each provider can craft their own commands
+	// since this runs during init(), the domain object is not yet set up, switch statements are used to call the necessary functions
+	for _, provider := range taxonomy.SupportedProviders {
+		switch provider {
+		case taxonomy.CSM:
+			// first, choose the right command
+			switch bootstrapCmd.Name() {
+			case "cabinet":
+				// check for add/update variants
+				switch bootstrapCmd.Parent().Name() {
+				case "add":
+					providerCmd, err = csm.NewAddCabinetCommand()
+				}
+			}
+		default:
+			log.Debug().Msgf("skipping provider: %s", provider)
+		}
+		if err != nil {
+			log.Error().Msgf("unable to get cmd from provider: %v", err)
+			os.Exit(1)
+		}
+		// the provider command should be the same as the bootstrap command, allowing it to override the bootstrap cmd
+		providerCmd.Use = bootstrapCmd.Name()
+	}
+
+	// all flags should be set in init().
+	// You can set flags after the fact, but it is much easier to work with everything up front
+	// this will set existing variables for each provider
+	err = mergeProviderFlags(bootstrapCmd, providerCmd)
+	if err != nil {
+		log.Error().Msgf("unable to get flags from provider: %v", err)
+		os.Exit(1)
+	}
+
+	// Now the provider command has CANI's settings and those set by the provider
+	// It may seem redundant to run this again, but in order to do things like MarkFlagsRequiredTogether(),
+	// it is necessary to have all of the flags available during init, which is what the MergeProviderFlags will do
+	for _, provider := range taxonomy.SupportedProviders {
+		switch provider {
+		case taxonomy.CSM:
+			// first, choose the right command
+			switch bootstrapCmd.Name() {
+			case "cabinet":
+				// check for add/update variants
+				switch bootstrapCmd.Parent().Name() {
+				case "add":
+					err = csm.UpdateAddCabinetCommand(bootstrapCmd)
+				}
+			}
+		default:
+			log.Debug().Msgf("skipping provider: %s", provider)
+		}
+		if err != nil {
+			log.Error().Msgf("unable to update cmd from provider: %v", err)
+			os.Exit(1)
+		}
+	}
+	return nil
+}

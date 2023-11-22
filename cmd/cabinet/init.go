@@ -26,16 +26,21 @@
 package cabinet
 
 import (
+	"os"
+
 	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
 var (
-	cabinetNumber int
-	vlanId        int
-	auto          bool
-	accept        bool
-	format        string
-	sortBy        string
+	cabinetNumber         int
+	vlanId                int
+	auto                  bool
+	accept                bool
+	format                string
+	sortBy                string
+	ProviderAddCabinetCmd = &cobra.Command{}
 )
 
 func init() {
@@ -59,4 +64,12 @@ func init() {
 
 	ListCabinetCmd.Flags().StringVarP(&format, "format", "f", "pretty", "Format out output")
 	ListCabinetCmd.Flags().StringVarP(&sortBy, "sort", "s", "location", "Sort by a specific key")
+
+	// Merge CANI's command with the provider-specified command
+	// this allows for CANI's operations to remain consistent, while adding provider config on top
+	err := root.MergeProviderCommand(AddCabinetCmd, ProviderAddCabinetCmd)
+	if err != nil {
+		log.Error().Msgf("%+v", err)
+		os.Exit(1)
+	}
 }
