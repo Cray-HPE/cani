@@ -31,6 +31,7 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -55,7 +56,7 @@ type InventoryProvider interface {
 	Reconcile(ctx context.Context, datastore inventory.Datastore, dryrun bool, ignoreExternalValidation bool) error
 
 	// RecommendHardware returns recommended settings for adding hardware based on the deviceTypeSlug
-	RecommendHardware(inv inventory.Inventory, deviceTypeSlug string) (HardwareRecommendations, error)
+	RecommendHardware(inv inventory.Inventory, cmd *cobra.Command, args []string, auto bool) (recommended HardwareRecommendations, err error)
 
 	// SetProviderOptions are specific to the Provider. For example, supported Roles and SubRoles
 	SetProviderOptions(cmd *cobra.Command, args []string) error
@@ -74,7 +75,8 @@ type InventoryProvider interface {
 
 	// Build metadata, and add ito the hardware object
 	// This function could return the data to put into object
-	BuildHardwareMetadata(hw *inventory.Hardware, rawProperties map[string]interface{}) error
+	BuildHardwareMetadata(hw *inventory.Hardware, cmd *cobra.Command, args []string, recommendations HardwareRecommendations) error
+	NewHardwareMetadata(hw *inventory.Hardware, cmd *cobra.Command, args []string) error
 
 	// Return values for the given fields from the hardware's metadata
 	GetFields(hw *inventory.Hardware, fieldNames []string) (values []string, err error)
@@ -85,10 +87,6 @@ type InventoryProvider interface {
 	// Return metadata about each field
 	GetFieldMetadata() ([]FieldMetadata, error)
 }
-
-// type SlsProvider interface {
-// 	GetSlsJson(ctx context.Context, datastore inventory.Datastore, skipValidation bool) ([]byte, error)
-// }
 
 type HardwareValidationResult struct {
 	Hardware inventory.Hardware
@@ -117,4 +115,9 @@ type FieldMetadata struct {
 	Types        string
 	Description  string
 	IsModifiable bool
+}
+
+func (r HardwareRecommendations) Print() {
+	log.Info().Msgf("Suggested cabinet number: %d", r.CabinetOrdinal)
+	log.Info().Msgf("Suggested VLAN ID: %d", r.ProviderMetadata["HMNVlan"])
 }

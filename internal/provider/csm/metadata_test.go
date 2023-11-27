@@ -32,9 +32,11 @@ import (
 	"testing"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/Cray-HPE/cani/pkg/pointers"
 	"github.com/google/uuid"
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -145,9 +147,13 @@ func (suite *BuildHardwareMetadataTestSuite) SetupSuite() {
 }
 
 func (suite *BuildHardwareMetadataTestSuite) TestCabinet() {
-	rawProperties := map[string]interface{}{
-		ProviderMetadataVlanId: 1234,
+	recommendations := provider.HardwareRecommendations{
+		ProviderMetadata: map[string]interface{}{
+			ProviderMetadataVlanId: 1234,
+		},
 	}
+	cmd := &cobra.Command{}
+	args := []string{}
 
 	hardware := inventory.Hardware{
 		ID:             uuid.New(),
@@ -158,7 +164,7 @@ func (suite *BuildHardwareMetadataTestSuite) TestCabinet() {
 		Status:         inventory.HardwareStatusStaged,
 	}
 
-	err := suite.csm.BuildHardwareMetadata(&hardware, rawProperties)
+	err := suite.csm.BuildHardwareMetadata(&hardware, cmd, args, recommendations)
 	suite.NoError(err)
 
 	suite.NotNil(hardware.ProviderMetadata)

@@ -31,7 +31,6 @@ import (
 
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/internal/provider"
-	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -47,24 +46,6 @@ var UpdateNodeCmd = &cobra.Command{
 
 // updateNode updates a node to the inventory
 func updateNode(cmd *cobra.Command, args []string) (err error) {
-	// Push all the CLI flags that were provided into a generic map
-	// TODO Need to figure out how to specify to unset something
-	// Right now the build metadata function in the CSM provider will
-	// unset options if nil is passed in.
-	nodeMeta := map[string]interface{}{}
-	if cmd.Flags().Changed("role") {
-		nodeMeta[csm.ProviderMetadataRole] = role
-	}
-	if cmd.Flags().Changed("subrole") {
-		nodeMeta[csm.ProviderMetadataSubRole] = subrole
-	}
-	if cmd.Flags().Changed("alias") {
-		nodeMeta[csm.ProviderMetadataAlias] = alias
-	}
-	if cmd.Flags().Changed("nid") {
-		nodeMeta[csm.ProviderMetadataNID] = nid
-	}
-
 	// Remove the node from the inventory using domain methods
 	if cmd.Flags().Changed("uuid") {
 		// parse the passed in uuid
@@ -87,7 +68,7 @@ func updateNode(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 
-	result, err := root.D.UpdateNode(cmd.Context(), cabinet, chassis, blade, nodecard, node, nodeMeta)
+	result, err := root.D.UpdateNode(cmd, args, cabinet, chassis, blade, nodecard, node)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		// TODO the following should probably suggest commands to fix the issue?
 		log.Error().Msgf("Inventory data validation errors encountered")

@@ -26,7 +26,6 @@
 package domain
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
@@ -34,9 +33,10 @@ import (
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
-func (d *Domain) UpdateNode(ctx context.Context, cabinet, chassis, slot, bmc, node int, metadata map[string]interface{}) (AddHardwareResult, error) {
+func (d *Domain) UpdateNode(cmd *cobra.Command, args []string, cabinet, chassis, slot, bmc, node int) (AddHardwareResult, error) {
 	// Get the node object from the datastore
 	locationPath := inventory.LocationPath{
 		{HardwareType: hardwaretypes.System, Ordinal: 0},
@@ -54,11 +54,10 @@ func (d *Domain) UpdateNode(ctx context.Context, cabinet, chassis, slot, bmc, no
 	log.Debug().Msgf("Found node at: %s with ID (%s)", locationPath, hw.ID)
 
 	// Ask the inventory provider to craft a metadata object for this information
-	if err := d.externalInventoryProvider.BuildHardwareMetadata(&hw, metadata); err != nil {
+	err = d.externalInventoryProvider.NewHardwareMetadata(&hw, cmd, args)
+	if err != nil {
 		return AddHardwareResult{}, err
 	}
-
-	log.Debug().Any("metadata", hw.ProviderMetadata).Msg("Provider Properties")
 
 	// Push it back into the data store
 	if err := d.datastore.Update(&hw); err != nil {
@@ -68,7 +67,7 @@ func (d *Domain) UpdateNode(ctx context.Context, cabinet, chassis, slot, bmc, no
 	// Validate the current state of CANI's inventory data against the provider plugin
 	// for provider specific data.
 	var result AddHardwareResult
-	if failedValidations, err := d.externalInventoryProvider.ValidateInternal(ctx, d.datastore, false); len(failedValidations) > 0 {
+	if failedValidations, err := d.externalInventoryProvider.ValidateInternal(cmd.Context(), d.datastore, false); len(failedValidations) > 0 {
 		result.ProviderValidationErrors = failedValidations
 		return result, provider.ErrDataValidationFailure
 	} else if err != nil {
