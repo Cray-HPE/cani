@@ -86,6 +86,10 @@ type InventoryProvider interface {
 
 	// Return metadata about each field
 	GetFieldMetadata() ([]FieldMetadata, error)
+
+	// Workflows
+	ListCabinetMetadataColumns() (columns []string)
+	ListCabinetMetadataRow(inventory.Hardware) (values []string, err error)
 }
 
 type HardwareValidationResult struct {
