@@ -31,14 +31,14 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 	"text/tabwriter"
 
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/internal/inventory"
-	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
-	"github.com/Cray-HPE/cani/pkg/pointers"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -90,12 +90,26 @@ func listCabinet(cmd *cobra.Command, args []string) error {
 		w := tabwriter.NewWriter(os.Stdout, minwidth, tabwidth, padding, padchar, tabwriter.AlignRight)
 		defer w.Flush()
 
-		fmt.Fprintf(w, "%s\t%s\t%s\t%v\t%s\n",
+		// set the CANI columns
+		caniColumns := []string{
 			"UUID",
 			"Status",
 			"Type",
-			"HMN VLAN",
-			"Location")
+			"Location",
+		}
+		// Get columns set by the provider
+		providerColumns := root.D.ListCabinetMetadataColumns()
+
+		// combine CANI and provider columns
+		columns := []string{}
+		for _, col := range [][]string{caniColumns, providerColumns} {
+			columns = append(columns, col...)
+		}
+
+		fmt.Fprint(
+			w,
+			fmt.Sprintf("%v%s", strings.Join(columns, "\t"), "\n"),
+		)
 
 		// make keys slice to sort by values in the map
 		keys := make([]uuid.UUID, 0, len(filtered))
@@ -120,28 +134,36 @@ func listCabinet(cmd *cobra.Command, args []string) error {
 			return filtered[keys[i]].LocationPath.String() < filtered[keys[j]].LocationPath.String()
 		})
 
-		for _, hw := range keys {
-			// Start with an empty cabinet metadata struct, just in case if this cabinet doesn't have any
-			// metadata set
-			cabinetMetadata := csm.CabinetMetadata{}
-
-			if _, exists := filtered[hw].ProviderMetadata[inventory.CSMProvider]; exists {
-				csmMetadata, err := csm.DecodeProviderMetadata(filtered[hw])
-				if err != nil {
-					return err
-				}
-
-				if csmMetadata.Cabinet != nil {
-					cabinetMetadata = *csmMetadata.Cabinet
-				}
+		for _, u := range keys {
+			hw, exists := filtered[u]
+			if !exists {
+				return err
+			}
+			// get the provider-specific fields
+			providerValues, err := root.D.ListCabinetMetadataRow(hw)
+			if err != nil {
+				return err
 			}
 
-			fmt.Fprintf(w, "%s\t%s\t%s\t%v\t%s\n",
-				filtered[hw].ID.String(),
-				filtered[hw].Status,
-				filtered[hw].DeviceTypeSlug,
-				pointers.IntPtrToStr(cabinetMetadata.HMNVlan),
-				filtered[hw].LocationPath.String())
+			// Set the fields CANI uses
+			fields := []string{"%s", "%s", "%s"}
+			// append any provider-specified ones, using a %+v to display them to avoid any typing issues at the cost of something ugly printing
+			for _, n := range providerColumns {
+				log.Debug().Msgf("Using provider-defined column: %+v", n)
+				fields = append(fields, "%+v")
+			}
+			// print the table with CANI and provider columns/rows
+			fmt.Fprint(
+				w,
+				fmt.Sprintf(strings.Join(fields, "\t"),
+					filtered[u].ID.String(),
+					filtered[u].Status,
+					filtered[u].DeviceTypeSlug,
+					filtered[u].LocationPath.String()),
+				"\t",
+				fmt.Sprintf(strings.Join(providerValues, "\t")),
+				"\n",
+			)
 		}
 
 	}

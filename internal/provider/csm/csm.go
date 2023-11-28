@@ -27,9 +27,11 @@ package csm
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/Cray-HPE/cani/cmd/taxonomy"
+	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider/csm/validate"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/rs/zerolog/log"
@@ -197,4 +199,20 @@ func (csm *CSM) setupClients() (err error) {
 	csm.hsmClient = hsm_client.NewAPIClient(hsmClientConfiguration)
 
 	return nil
+}
+
+// ListCabinetMetadataColumns returns a slice of strings, which are columns names of CSM-specific metadata to be shown when listing cabinets
+func (csm *CSM) ListCabinetMetadataColumns() (columns []string) {
+	return []string{"HMN VLAN"}
+}
+
+// ListCabinetMetadataRow returns a slice of strings, which are values from the hardware that correlate to the columns they will be shown in
+func (csm *CSM) ListCabinetMetadataRow(hw inventory.Hardware) (values []string, err error) {
+	md, err := DecodeProviderMetadata(hw)
+	if err != nil {
+		return values, err
+	}
+	vlan := strconv.Itoa(*md.Cabinet.HMNVlan)
+	values = append(values, vlan)
+	return values, nil
 }
