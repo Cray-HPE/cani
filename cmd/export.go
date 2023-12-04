@@ -117,7 +117,7 @@ func exportJson(cmd *cobra.Command, args []string, d *domain.Domain, ignoreValid
 	f := os.Stdout
 	writer := bufio.NewWriter(f)
 	defer writer.Flush()
-	err := d.ExportJson(cmd.Context(), writer, ignoreValidation)
+	err := d.ExportJson(cmd, args, writer, ignoreValidation)
 	if err != nil {
 		return err
 	}

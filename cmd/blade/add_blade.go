@@ -87,7 +87,7 @@ func addBlade(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	// Add the blade from the inventory using domain methods
-	result, err := root.D.AddBlade(cmd.Context(), args[0], cabinet, chassis, blade)
+	result, err := root.D.AddBlade(cmd, args, cabinet, chassis, blade)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		// TODO this validation error print logic could be shared
 

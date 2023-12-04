@@ -41,6 +41,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -129,8 +130,8 @@ func (d *Domain) ExportCsv(ctx context.Context, writer *csv.Writer, headers []st
 	return nil
 }
 
-func (d *Domain) ExportJson(ctx context.Context, writer io.Writer, skipValidation bool) error {
-	exportedJson, err := d.externalInventoryProvider.ExportJson(ctx, d.datastore, skipValidation)
+func (d *Domain) ExportJson(cmd *cobra.Command, args []string, writer io.Writer, skipValidation bool) error {
+	exportedJson, err := d.externalInventoryProvider.Export(cmd, args, d.datastore, skipValidation)
 	if err != nil {
 		return err
 	}
@@ -140,7 +141,7 @@ func (d *Domain) ExportJson(ctx context.Context, writer io.Writer, skipValidatio
 	return nil
 }
 
-func (d *Domain) ImportCsv(ctx context.Context, reader *csv.Reader) (result provider.CsvImportResult, err error) {
+func (d *Domain) ImportCsv(cmd *cobra.Command, args []string, reader *csv.Reader) (result provider.CsvImportResult, err error) {
 	tempDatastore, err := d.datastore.Clone()
 	if err != nil {
 		return result, err
@@ -207,7 +208,7 @@ func (d *Domain) ImportCsv(ctx context.Context, reader *csv.Reader) (result prov
 	}
 
 	if result.Modified > 0 {
-		results, err := d.externalInventoryProvider.ValidateInternal(ctx, tempDatastore, false)
+		results, err := d.externalInventoryProvider.ValidateInternal(cmd, args, tempDatastore, false)
 		if err != nil {
 			result.ValidationResults = results
 			return result, err

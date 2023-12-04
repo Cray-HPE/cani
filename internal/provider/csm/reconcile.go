@@ -26,7 +26,6 @@
 package csm
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -42,6 +41,7 @@ import (
 	"github.com/Cray-HPE/hms-xname/xnametypes"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
 // Reconcile CANI's inventory state with the external inventory state and apply required changes
@@ -54,7 +54,7 @@ import (
 //     2. Validate the changes
 //     3. Display what changed
 //     4. Make changes
-func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore, dryrun bool, ignoreExternalValidation bool) (err error) {
+func (csm *CSM) Reconcile(cmd *cobra.Command, args []string, datastore inventory.Datastore, dryrun bool, ignoreExternalValidation bool) (err error) {
 	// TODO should we have a presentation callback to confirm the removal of hardware?
 
 	log.Info().Msg("Starting CSM reconcile process")
@@ -65,7 +65,7 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore, dr
 	//
 	// Retrieve the current SLS state
 	//
-	currentSLSState, _, err := csm.slsClient.DumpstateApi.DumpstateGet(ctx)
+	currentSLSState, _, err := csm.slsClient.DumpstateApi.DumpstateGet(cmd.Context())
 	if err != nil {
 		return errors.Join(
 			fmt.Errorf("failed to perform SLS dumpstate"),
@@ -102,7 +102,7 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore, dr
 			// TODO
 
 			// Perform a DELETE against SLS
-			r, err := csm.slsClient.HardwareApi.HardwareXnameDelete(ctx, hardware.Xname)
+			r, err := csm.slsClient.HardwareApi.HardwareXnameDelete(cmd.Context(), hardware.Xname)
 			if err != nil {
 				return errors.Join(
 					fmt.Errorf("failed to delete hardware (%s) from SLS", hardware.Xname),
@@ -119,7 +119,7 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore, dr
 			// TODO
 
 			// Perform a PUT against SLS
-			_, r, err := csm.slsClient.HardwareApi.HardwareXnamePut(ctx, hardware.Xname, sls.NewHardwareXnamePutOpts(hardware))
+			_, r, err := csm.slsClient.HardwareApi.HardwareXnamePut(cmd.Context(), hardware.Xname, sls.NewHardwareXnamePutOpts(hardware))
 			if err != nil {
 				return errors.Join(
 					fmt.Errorf("failed to update hardware (%s) from SLS", hardware.Xname),
@@ -137,7 +137,7 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore, dr
 			// TODO
 
 			// Perform a PUT against SLS
-			_, r, err := csm.slsClient.HardwareApi.HardwareXnamePut(ctx, updatedHardware.Xname, sls.NewHardwareXnamePutOpts(updatedHardware))
+			_, r, err := csm.slsClient.HardwareApi.HardwareXnamePut(cmd.Context(), updatedHardware.Xname, sls.NewHardwareXnamePutOpts(updatedHardware))
 			if err != nil {
 				return errors.Join(
 					fmt.Errorf("failed to update hardware (%s) from SLS", updatedHardware.Xname),
@@ -152,7 +152,7 @@ func (csm *CSM) Reconcile(ctx context.Context, datastore inventory.Datastore, dr
 			log.Info().Msgf("Updating SLS network %s", network.Name)
 
 			// Perform a PUT against SLS
-			_, r, err := csm.slsClient.NetworkApi.NetworksNetworkPut(ctx, network.Name, sls.NewNetworkApiNetworksNetworkPutOpts(network))
+			_, r, err := csm.slsClient.NetworkApi.NetworksNetworkPut(cmd.Context(), network.Name, sls.NewNetworkApiNetworksNetworkPutOpts(network))
 			if err != nil {
 				return errors.Join(
 					fmt.Errorf("failed to update hardware (%s) from SLS", network.Name),

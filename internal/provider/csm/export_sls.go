@@ -26,16 +26,16 @@
 package csm
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/spf13/cobra"
 )
 
-func (csm *CSM) ExportJson(ctx context.Context, datastore inventory.Datastore, skipValidation bool) ([]byte, error) {
-	currentSLSState, _, err := csm.slsClient.DumpstateApi.DumpstateGet(ctx)
+func (csm *CSM) Export(cmd *cobra.Command, args []string, datastore inventory.Datastore, skipValidation bool) ([]byte, error) {
+	currentSLSState, _, err := csm.slsClient.DumpstateApi.DumpstateGet(cmd.Context())
 	if err != nil {
 		return nil, errors.Join(
 			fmt.Errorf("failed to get the current SLS state"),

@@ -26,7 +26,6 @@
 package domain
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
@@ -35,10 +34,13 @@ import (
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
 // AddBlade adds a blade to the inventory by crafting location paths from the given ordinals and generating a hardware buildout
-func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrdinal, chassisOrdinal, bladeOrdinal int) (AddHardwareResult, error) {
+func (d *Domain) AddBlade(cmd *cobra.Command, args []string, cabinetOrdinal, chassisOrdinal, bladeOrdinal int) (AddHardwareResult, error) {
+	deviceTypeSlug := args[0]
+
 	// Check if the cabinet exists
 	cabinetPath := inventory.LocationPath{
 		{HardwareType: hardwaretypes.System, Ordinal: 0},
@@ -235,7 +237,7 @@ func (d *Domain) AddBlade(ctx context.Context, deviceTypeSlug string, cabinetOrd
 
 	// Validate the current state of CANI's inventory data against the provider plugin
 	// for provider specific data.
-	if failedValidations, err := d.externalInventoryProvider.ValidateInternal(ctx, d.datastore, false); len(failedValidations) > 0 {
+	if failedValidations, err := d.externalInventoryProvider.ValidateInternal(cmd, args, d.datastore, false); len(failedValidations) > 0 {
 		result.ProviderValidationErrors = failedValidations
 	} else if err != nil {
 		return AddHardwareResult{}, errors.Join(
