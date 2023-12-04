@@ -116,7 +116,7 @@ func initSessionWithProviderCmd(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	// Validate the external inventory before attempting an import
-	result, err := root.D.Validate(cmd.Context(), false, ignoreExternalValidation)
+	result, err := root.D.Validate(cmd, args, false, ignoreExternalValidation)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		// TODO the following should probably suggest commands to fix the issue?
 		log.Error().Msgf("Inventory data validation errors encountered")

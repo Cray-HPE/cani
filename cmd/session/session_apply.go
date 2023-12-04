@@ -74,7 +74,7 @@ func stopSession(cmd *cobra.Command, args []string) (err error) {
 		log.Info().Msgf("Committing changes to session")
 
 		// Commit the external inventory
-		result, err := root.D.Commit(cmd.Context(), dryrun, ignoreExternalValidation)
+		result, err := root.D.Commit(cmd, args, dryrun, ignoreExternalValidation)
 		if errors.Is(err, provider.ErrDataValidationFailure) {
 			// TODO the following should probably suggest commands to fix the issue?
 			log.Error().Msgf("Inventory data validation errors encountered")

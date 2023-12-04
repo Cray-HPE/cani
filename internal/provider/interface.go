@@ -40,7 +40,7 @@ var ErrDataValidationFailure = fmt.Errorf("data validation failure")
 // TODO Need to think about how internal data structures should be supplied to the Inventory Provider
 type InventoryProvider interface {
 	// Validate the external services of the inventory provider are correct
-	ValidateExternal(ctx context.Context) error
+	ValidateExternal(cmd *cobra.Command, args []string) error
 
 	// Validate the representation of the inventory data into the destination inventory system
 	// is consistent. The default set of checks will verify all currently provided data is valid.
