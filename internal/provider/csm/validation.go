@@ -37,13 +37,14 @@ import (
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
 // Validate the external services of the inventory provider are correct
-func (csm *CSM) ValidateExternal(ctx context.Context) error {
+func (csm *CSM) ValidateExternal(cmd *cobra.Command, args []string) error {
 
 	// Get the dumpate from SLS
-	slsState, reps, err := csm.slsClient.DumpstateApi.DumpstateGet(context.Background())
+	slsState, reps, err := csm.slsClient.DumpstateApi.DumpstateGet(cmd.Context())
 	if err != nil {
 		return fmt.Errorf("SLS dumpstate failed. %v\n", err)
 	}

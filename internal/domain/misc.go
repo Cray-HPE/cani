@@ -26,7 +26,6 @@
 package domain
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
@@ -34,6 +33,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
 // List returns the inventory
@@ -51,7 +51,7 @@ type ValidateResult struct {
 	ProviderValidationErrors  map[uuid.UUID]provider.HardwareValidationResult
 }
 
-func (d *Domain) Validate(ctx context.Context, checkRequiredData bool, ignoreExternalValidation bool) (ValidateResult, error) {
+func (d *Domain) Validate(cmd *cobra.Command, args []string, checkRequiredData bool, ignoreExternalValidation bool) (ValidateResult, error) {
 	var result ValidateResult
 
 	// Validate CANI's Inventory
@@ -66,7 +66,7 @@ func (d *Domain) Validate(ctx context.Context, checkRequiredData bool, ignoreExt
 
 	// Validate the current state of CANI's inventory data against the provider plugin
 	// for provider specific data.
-	if failedValidations, err := d.externalInventoryProvider.ValidateInternal(ctx, d.datastore, checkRequiredData); len(failedValidations) > 0 {
+	if failedValidations, err := d.externalInventoryProvider.ValidateInternal(cmd.Context(), d.datastore, checkRequiredData); len(failedValidations) > 0 {
 		result.ProviderValidationErrors = failedValidations
 	} else if err != nil {
 		return ValidateResult{}, errors.Join(
@@ -82,7 +82,7 @@ func (d *Domain) Validate(ctx context.Context, checkRequiredData bool, ignoreExt
 	log.Info().Msg("Validated CANI inventory")
 
 	// Validate external inventory data
-	err := d.externalInventoryProvider.ValidateExternal(ctx)
+	err := d.externalInventoryProvider.ValidateExternal(cmd, args)
 	if err != nil {
 		if ignoreExternalValidation {
 			log.Warn().Msgf("Ignoring these failures: %s", err)
