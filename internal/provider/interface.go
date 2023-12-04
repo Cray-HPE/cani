@@ -26,7 +26,6 @@
 package provider
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
@@ -45,15 +44,15 @@ type InventoryProvider interface {
 	// Validate the representation of the inventory data into the destination inventory system
 	// is consistent. The default set of checks will verify all currently provided data is valid.
 	// If enableRequiredDataChecks is set to true, additional checks focusing on missing data will be ran.
-	ValidateInternal(ctx context.Context, datastore inventory.Datastore, enableRequiredDataChecks bool) (map[uuid.UUID]HardwareValidationResult, error)
+	ValidateInternal(cmd *cobra.Command, args []string, datastore inventory.Datastore, enableRequiredDataChecks bool) (map[uuid.UUID]HardwareValidationResult, error)
 
 	// Import external inventory data into CANI's inventory format
-	Import(ctx context.Context, datastore inventory.Datastore) error
+	Import(cmd *cobra.Command, args []string, datastore inventory.Datastore) error
 
-	ExportJson(ctx context.Context, datastore inventory.Datastore, skipValidation bool) ([]byte, error)
+	Export(cmd *cobra.Command, args []string, datastore inventory.Datastore, skipValidation bool) ([]byte, error)
 
 	// Reconcile CANI's inventory state with the external inventory state and apply required changes
-	Reconcile(ctx context.Context, datastore inventory.Datastore, dryrun bool, ignoreExternalValidation bool) error
+	Reconcile(cmd *cobra.Command, args []string, datastore inventory.Datastore, dryrun bool, ignoreExternalValidation bool) error
 
 	// RecommendHardware returns recommended settings for adding hardware based on the deviceTypeSlug
 	RecommendHardware(inv inventory.Inventory, cmd *cobra.Command, args []string, auto bool) (recommended HardwareRecommendations, err error)

@@ -26,7 +26,6 @@
 package csm
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -60,7 +59,7 @@ func (csm *CSM) ValidateExternal(cmd *cobra.Command, args []string) error {
 // Validate the representation of the inventory data into the destination inventory system
 // is consistent. The default set of checks will verify all currently provided data is valid.
 // If enableRequiredDataChecks is set to true, additional checks focusing on missing data will be ran.
-func (csm *CSM) ValidateInternal(ctx context.Context, datastore inventory.Datastore, enableRequiredDataChecks bool) (map[uuid.UUID]provider.HardwareValidationResult, error) {
+func (csm *CSM) ValidateInternal(cmd *cobra.Command, args []string, datastore inventory.Datastore, enableRequiredDataChecks bool) (map[uuid.UUID]provider.HardwareValidationResult, error) {
 	log.Debug().Msg("Validating datastore contents against the CSM Provider")
 
 	allHardware, err := datastore.List()

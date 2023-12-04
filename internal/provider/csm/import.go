@@ -26,7 +26,6 @@
 package csm
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -46,6 +45,7 @@ import (
 	"github.com/Cray-HPE/hms-xname/xnames"
 	"github.com/Cray-HPE/hms-xname/xnametypes"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
 //
@@ -71,7 +71,7 @@ func loadJSON(path string, dest interface{}) error {
 	return json.Unmarshal(raw, dest)
 }
 
-func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error {
+func (csm *CSM) Import(cmd *cobra.Command, args []string, datastore inventory.Datastore) error {
 	// Check the schema version defined in the datastore
 	datastoreSchema, err := datastore.GetSchemaVersion()
 	if err != nil {
@@ -82,17 +82,17 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 	//
 	// Retrieve current state from the system
 	//
-	slsDumpstate, _, err := csm.slsClient.DumpstateApi.DumpstateGet(ctx)
+	slsDumpstate, _, err := csm.slsClient.DumpstateApi.DumpstateGet(cmd.Context())
 	if err != nil {
 		return errors.Join(fmt.Errorf("failed to perform SLS dumpstate"), err)
 	}
 
-	hsmStateComponents, _, err := csm.hsmClient.ComponentApi.DoComponentsGet(ctx, nil)
+	hsmStateComponents, _, err := csm.hsmClient.ComponentApi.DoComponentsGet(cmd.Context(), nil)
 	if err != nil {
 		return errors.Join(fmt.Errorf("failed to retrieve HSM State Components"), err)
 	}
 
-	hsmHardwareInventory, _, err := csm.hsmClient.HWInventoryByLocationApi.DoHWInvByLocationGetAll(ctx, nil)
+	hsmHardwareInventory, _, err := csm.hsmClient.HWInventoryByLocationApi.DoHWInvByLocationGetAll(cmd.Context(), nil)
 	if err != nil {
 		return errors.Join(fmt.Errorf("failed to retrieve HSM State Components"), err)
 	}
@@ -768,7 +768,7 @@ func (csm *CSM) Import(ctx context.Context, datastore inventory.Datastore) error
 	//
 	// Push updates to SLS
 	//
-	if err := sls.HardwareUpdate(csm.slsClient, ctx, slsHardwareToModify, 10); err != nil {
+	if err := sls.HardwareUpdate(csm.slsClient, cmd.Context(), slsHardwareToModify, 10); err != nil {
 		return errors.Join(fmt.Errorf("failed to update hardware in SLS"), err)
 	}
 

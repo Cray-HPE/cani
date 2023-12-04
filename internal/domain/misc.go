@@ -66,7 +66,7 @@ func (d *Domain) Validate(cmd *cobra.Command, args []string, checkRequiredData b
 
 	// Validate the current state of CANI's inventory data against the provider plugin
 	// for provider specific data.
-	if failedValidations, err := d.externalInventoryProvider.ValidateInternal(cmd.Context(), d.datastore, checkRequiredData); len(failedValidations) > 0 {
+	if failedValidations, err := d.externalInventoryProvider.ValidateInternal(cmd, args, d.datastore, checkRequiredData); len(failedValidations) > 0 {
 		result.ProviderValidationErrors = failedValidations
 	} else if err != nil {
 		return ValidateResult{}, errors.Join(

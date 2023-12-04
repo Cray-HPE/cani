@@ -127,7 +127,7 @@ func (d *Domain) AddCabinet(cmd *cobra.Command, args []string, recommendations p
 
 	// Validate the current state of CANI's inventory data against the provider plugin
 	// for provider specific data.
-	if failedValidations, err := d.externalInventoryProvider.ValidateInternal(cmd.Context(), d.datastore, false); len(failedValidations) > 0 {
+	if failedValidations, err := d.externalInventoryProvider.ValidateInternal(cmd, args, d.datastore, false); len(failedValidations) > 0 {
 		result.ProviderValidationErrors = failedValidations
 		return result, provider.ErrDataValidationFailure
 	} else if err != nil {

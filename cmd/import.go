@@ -81,7 +81,7 @@ func importAssets(cmd *cobra.Command, args []string) (err error) {
 		return nil
 	}
 
-	result, err := D.ImportCsv(cmd.Context(), r)
+	result, err := D.ImportCsv(cmd, args, r)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		log.Error().Msgf("The changes are invalid.")
 		for id, failedValidation := range result.ValidationResults {

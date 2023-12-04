@@ -135,7 +135,7 @@ func initSessionWithProviderCmd(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	// Import the external inventory
-	if err := root.D.Import(cmd.Context()); err != nil {
+	if err := root.D.Import(cmd, args); err != nil {
 		return err
 	}
 
