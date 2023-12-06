@@ -75,6 +75,10 @@ func MergeProviderCommand(bootstrapCmd *cobra.Command, providerCmd *cobra.Comman
 				case "update":
 					providerCmd, err = csm.NewUpdateNodeCommand()
 				}
+			case "export":
+				providerCmd, err = csm.NewExportCommand()
+			case "import":
+				providerCmd, err = csm.NewImportCommand()
 			}
 
 		default:

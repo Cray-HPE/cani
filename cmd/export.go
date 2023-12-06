@@ -44,6 +44,7 @@ var (
 	csvListOptions    bool
 	exportFormat      string
 	ignoreValidation  bool
+	ProviderExportCmd = &cobra.Command{}
 )
 
 func init() {

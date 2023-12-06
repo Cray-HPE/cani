@@ -115,3 +115,19 @@ func UpdateUpdateNodeCommand(caniCmd *cobra.Command) error {
 
 	return nil
 }
+
+func NewExportCommand() (cmd *cobra.Command, err error) {
+	// cmd represents the session init command
+	cmd = &cobra.Command{}
+	// cmd.Flags().Int("fish", -1, "a fish.")
+
+	return cmd, nil
+}
+
+func NewImportCommand() (cmd *cobra.Command, err error) {
+	// cmd represents the session init command
+	cmd = &cobra.Command{}
+	// cmd.Flags().Int("rabbit", -1, "a fish.")
+
+	return cmd, nil
+}

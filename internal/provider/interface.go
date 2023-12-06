@@ -47,8 +47,12 @@ type InventoryProvider interface {
 	ValidateInternal(cmd *cobra.Command, args []string, datastore inventory.Datastore, enableRequiredDataChecks bool) (map[uuid.UUID]HardwareValidationResult, error)
 
 	// Import external inventory data into CANI's inventory format
+	ImportInit(cmd *cobra.Command, args []string, datastore inventory.Datastore) error
+
+	// Import external inventory data after initialization
 	Import(cmd *cobra.Command, args []string, datastore inventory.Datastore) error
 
+	// Export inventory in various formats
 	Export(cmd *cobra.Command, args []string, datastore inventory.Datastore, skipValidation bool) ([]byte, error)
 
 	// Reconcile CANI's inventory state with the external inventory state and apply required changes

@@ -37,7 +37,8 @@ import (
 )
 
 var (
-	csvFile string
+	csvFile           string
+	ProviderImportCmd = &cobra.Command{}
 )
 
 // ImportCmd represents the import command

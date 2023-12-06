@@ -52,8 +52,20 @@ func init() {
 	AlphaCmd.AddCommand(SessionCmd)
 	AlphaCmd.AddCommand(UpdateCmd)
 	AlphaCmd.AddCommand(ValidateCmd)
+
 	AlphaCmd.AddCommand(ExportCmd)
+	err := MergeProviderCommand(ExportCmd, ProviderExportCmd)
+	if err != nil {
+		log.Error().Msgf("%+v", err)
+		os.Exit(1)
+	}
+
 	AlphaCmd.AddCommand(ImportCmd)
+	err = MergeProviderCommand(ImportCmd, ProviderImportCmd)
+	if err != nil {
+		log.Error().Msgf("%+v", err)
+		os.Exit(1)
+	}
 
 	// Global root command flags
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", cfgFile, "Path to the configuration file")
