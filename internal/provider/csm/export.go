@@ -39,7 +39,6 @@ import (
 	"text/tabwriter"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
-	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -204,89 +203,6 @@ func (csm *CSM) ExportJson2(cmd *cobra.Command, args []string, datastore invento
 	writer.Write([]byte("\n"))
 
 	return nil
-}
-
-func (csm *CSM) ImportCsv(cmd *cobra.Command, args []string, datastore inventory.Datastore, reader *csv.Reader) (result provider.CsvImportResult, err error) {
-	tempDatastore, err := datastore.Clone()
-	if err != nil {
-		return result, err
-	}
-
-	headers, err := getNextRow(reader)
-	if err == io.EOF {
-		return result, fmt.Errorf("the CSV file is empty")
-	}
-	if err != nil {
-		return result, err
-	}
-
-	foundIDHeader := false
-	for _, header := range headers {
-		if header == "ID" {
-			foundIDHeader = true
-		}
-	}
-	if !foundIDHeader {
-		return result, fmt.Errorf("ID column is missing")
-	}
-
-	for {
-		row, err := getNextRowAsMap(reader, headers)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return result, err
-		}
-
-		result.Total++
-
-		idStr, ok := row["ID"]
-		if !ok {
-			return result, fmt.Errorf("missing ID for row %d", result.Total+1)
-		}
-
-		id, err := uuid.Parse(idStr)
-		if err != nil {
-			return result, errors.Join(fmt.Errorf("failed to parse %v as a UUID", idStr), err)
-		}
-
-		hw, err := tempDatastore.Get(id)
-		if err != nil {
-			return result, errors.Join(fmt.Errorf("could not find hardware with the UUID %v. This call can only be used to update existing hardware", id), err)
-		}
-
-		setResult, err := csm.SetFields(&hw, row)
-		if err != nil {
-			return result,
-				errors.Join(fmt.Errorf("unexpected error setting fields, %v, from hardware %v", row, hw.ID), err)
-		}
-
-		if len(setResult.ModifiedFields) > 0 {
-			log.Debug().Msgf("Updated %v modifying the fields: %v", id, setResult.ModifiedFields)
-			err = tempDatastore.Update(&hw)
-			if err != nil {
-				return result, errors.Join(fmt.Errorf("failed to write to the database the hardware %v", id), err)
-			}
-			result.Modified++
-		}
-	}
-
-	if result.Modified > 0 {
-		results, err := csm.ValidateInternal(cmd, args, tempDatastore, false)
-		if err != nil {
-			result.ValidationResults = results
-			return result, err
-		}
-
-		if err := datastore.Merge(tempDatastore); err != nil {
-			return result, errors.Join(fmt.Errorf("failed to merge temporary datastore with actual datastore"), err)
-		}
-		if err := datastore.Flush(); err != nil {
-			return result, errors.Join(fmt.Errorf("failed to write datastore to disk"), err)
-		}
-	}
-	return result, nil
 }
 
 func getNextRow(reader *csv.Reader) ([]string, error) {
