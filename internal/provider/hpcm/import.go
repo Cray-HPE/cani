@@ -33,7 +33,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/inventory"
 )
 
-func (hpcm *Hpcm) Import(ctx context.Context, datastore inventory.Datastore) error {
+func (hpcm *Hpcm) ImportInit(ctx context.Context, datastore inventory.Datastore) error {
 	// Clone the datastore during import
 	tempDatastore, err := datastore.Clone()
 	if err != nil {
