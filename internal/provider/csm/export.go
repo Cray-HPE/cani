@@ -31,7 +31,6 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"sort"
 	"strconv"
@@ -72,7 +71,7 @@ func (csm *CSM) Export(cmd *cobra.Command, args []string, datastore inventory.Da
 
 func (csm *CSM) exportCsv(cmd *cobra.Command, args []string, datastore inventory.Datastore) error {
 	if csvListOptions {
-		err := csm.ListCsvOptions(cmd.Context())
+		err := csm.listCsvOptions(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -96,7 +95,7 @@ func (csm *CSM) exportCsv(cmd *cobra.Command, args []string, datastore inventory
 		}
 
 		w := csv.NewWriter(os.Stdout)
-		err := csm.ExportCsv(cmd.Context(), datastore, w, headers, types)
+		err := csm.exportCsvInternal(cmd.Context(), datastore, w, headers, types)
 		if err != nil {
 			return err
 		}
@@ -110,10 +109,14 @@ func (csm *CSM) exportJson(cmd *cobra.Command, args []string, datastore inventor
 	f := os.Stdout
 	writer := bufio.NewWriter(f)
 	defer writer.Flush()
-	err := csm.ExportJson2(cmd, args, datastore, writer, ignoreValidation)
+
+	exportedJson, err := csm.exportSlsJson(cmd, args, datastore, ignoreValidation)
 	if err != nil {
 		return err
 	}
+	writer.Write(exportedJson)
+	writer.Write([]byte("\n"))
+
 	writer.Flush() // explicitly calling Flush here makes sure that any following log messages come after the sls json
 
 	if ignoreValidation {
@@ -123,7 +126,7 @@ func (csm *CSM) exportJson(cmd *cobra.Command, args []string, datastore inventor
 	return nil
 }
 
-func (csm *CSM) ListCsvOptions(ctx context.Context) error {
+func (csm *CSM) listCsvOptions(ctx context.Context) error {
 	metadata, err := csm.GetFieldMetadata()
 	if err != nil {
 		return err
@@ -144,7 +147,7 @@ func (csm *CSM) ListCsvOptions(ctx context.Context) error {
 	return nil
 }
 
-func (csm *CSM) ExportCsv(ctx context.Context, datastore inventory.Datastore, writer *csv.Writer, headers []string, types []string) error {
+func (csm *CSM) exportCsvInternal(ctx context.Context, datastore inventory.Datastore, writer *csv.Writer, headers []string, types []string) error {
 	// Get the entire inventory
 	inv, err := datastore.List()
 	if err != nil {
@@ -191,17 +194,6 @@ func (csm *CSM) ExportCsv(ctx context.Context, datastore inventory.Datastore, wr
 		}
 		writer.Flush()
 	}
-	return nil
-}
-
-func (csm *CSM) ExportJson2(cmd *cobra.Command, args []string, datastore inventory.Datastore, writer io.Writer, skipValidation bool) error {
-	exportedJson, err := csm.ExportJson(cmd, args, datastore, skipValidation)
-	if err != nil {
-		return err
-	}
-	writer.Write(exportedJson)
-	writer.Write([]byte("\n"))
-
 	return nil
 }
 

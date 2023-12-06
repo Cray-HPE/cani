@@ -60,7 +60,7 @@ func (csm *CSM) Import(cmd *cobra.Command, args []string, datastore inventory.Da
 		return nil
 	}
 
-	result, err := csm.ImportCsv(cmd, args, datastore, r)
+	result, err := csm.importCsv(cmd, args, datastore, r)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		log.Error().Msgf("The changes are invalid.")
 		for id, failedValidation := range result.ValidationResults {
@@ -91,7 +91,7 @@ func createCsvReader(filename string) (*csv.Reader, error) {
 	}
 }
 
-func (csm *CSM) ImportCsv(cmd *cobra.Command, args []string, datastore inventory.Datastore, reader *csv.Reader) (result provider.CsvImportResult, err error) {
+func (csm *CSM) importCsv(cmd *cobra.Command, args []string, datastore inventory.Datastore, reader *csv.Reader) (result provider.CsvImportResult, err error) {
 	tempDatastore, err := datastore.Clone()
 	if err != nil {
 		return result, err

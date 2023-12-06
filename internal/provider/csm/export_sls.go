@@ -34,7 +34,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func (csm *CSM) ExportJson(cmd *cobra.Command, args []string, datastore inventory.Datastore, skipValidation bool) ([]byte, error) {
+func (csm *CSM) exportSlsJson(cmd *cobra.Command, args []string, datastore inventory.Datastore, skipValidation bool) ([]byte, error) {
 	currentSLSState, _, err := csm.slsClient.DumpstateApi.DumpstateGet(cmd.Context())
 	if err != nil {
 		return nil, errors.Join(
