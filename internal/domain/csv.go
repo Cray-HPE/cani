@@ -131,7 +131,7 @@ func (d *Domain) ExportCsv(ctx context.Context, writer *csv.Writer, headers []st
 }
 
 func (d *Domain) ExportJson(cmd *cobra.Command, args []string, writer io.Writer, skipValidation bool) error {
-	exportedJson, err := d.externalInventoryProvider.Export(cmd, args, d.datastore, skipValidation)
+	exportedJson, err := d.externalInventoryProvider.ExportJson(cmd, args, d.datastore, skipValidation)
 	if err != nil {
 		return err
 	}

@@ -23,43 +23,10 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package csm
+package domain
 
-import (
-	"encoding/json"
-	"errors"
-	"fmt"
+import "github.com/spf13/cobra"
 
-	"github.com/Cray-HPE/cani/internal/inventory"
-	"github.com/spf13/cobra"
-)
-
-func (csm *CSM) ExportJson(cmd *cobra.Command, args []string, datastore inventory.Datastore, skipValidation bool) ([]byte, error) {
-	currentSLSState, _, err := csm.slsClient.DumpstateApi.DumpstateGet(cmd.Context())
-	if err != nil {
-		return nil, errors.Join(
-			fmt.Errorf("failed to get the current SLS state"),
-			err,
-		)
-	}
-
-	modifiedState, _, _, err := csm.reconcileSlsChanges(currentSLSState, datastore)
-	if err != nil {
-		return nil, errors.Join(
-			fmt.Errorf("failed to reconcile requested SLS changes with current SLS state"),
-			err)
-	}
-
-	if !skipValidation {
-		_, err = csm.TBV.Validate(modifiedState)
-		if err != nil {
-			return nil, fmt.Errorf("validation failed %v", err)
-		}
-	}
-
-	j, err := json.MarshalIndent(modifiedState, "", "  ")
-	if err != nil {
-		return nil, err
-	}
-	return j, nil
+func (d *Domain) Export(cmd *cobra.Command, args []string) error {
+	return d.externalInventoryProvider.Export(cmd, args, d.datastore)
 }
