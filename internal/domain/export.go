@@ -23,24 +23,10 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package cmd
+package domain
 
-import (
-	"github.com/spf13/cobra"
-)
+import "github.com/spf13/cobra"
 
-var (
-	ProviderImportCmd = &cobra.Command{}
-)
-
-// ImportCmd represents the import command
-var ImportCmd = &cobra.Command{
-	Use:   "import [FILE]",
-	Short: "Import assets into the inventory.",
-	Long:  `Import assets into the inventory.`,
-	RunE:  importCmd,
-}
-
-func importCmd(cmd *cobra.Command, args []string) (err error) {
-	return D.Import(cmd, args)
+func (d *Domain) Export(cmd *cobra.Command, args []string) error {
+	return d.externalInventoryProvider.Export(cmd, args, d.datastore)
 }

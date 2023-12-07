@@ -41,6 +41,17 @@ var (
 	tokenPassword   string
 	useSimulation   bool
 	vlanId          int
+
+	// import properties
+	csvFile string
+
+	// export arguments
+	csvHeaders        string
+	csvComponentTypes string
+	csvAllTypes       bool
+	csvListOptions    bool
+	exportFormat      string
+	ignoreValidation  bool
 )
 
 func NewSessionInitCommand() (cmd *cobra.Command, err error) {
@@ -100,7 +111,7 @@ func UpdateAddCabinetCommand(caniCmd *cobra.Command) error {
 }
 
 func NewUpdateNodeCommand() (cmd *cobra.Command, err error) {
-	// cmd represents the session init command
+	// cmd represents for cani alpha update node
 	cmd = &cobra.Command{}
 	cmd.Flags().String("role", "", "Role of the node")
 	cmd.Flags().String("subrole", "", "Subrole of the node")
@@ -114,4 +125,26 @@ func NewUpdateNodeCommand() (cmd *cobra.Command, err error) {
 func UpdateUpdateNodeCommand(caniCmd *cobra.Command) error {
 
 	return nil
+}
+
+func NewExportCommand() (cmd *cobra.Command, err error) {
+	// cmd represents cani alpha export
+	cmd = &cobra.Command{}
+	cmd.Flags().StringVar(
+		&csvHeaders, "headers", "Type,Vlan,Role,SubRole,Status,Nid,Alias,Name,ID,Location", "Comma separated list of fields to get")
+	cmd.Flags().StringVarP(
+		&csvComponentTypes, "type", "t", "Node,Cabinet", "Comma separated list of the types of components to output")
+	cmd.Flags().BoolVarP(&csvAllTypes, "all", "a", false, "List all components. This overrides the --type option")
+	cmd.Flags().BoolVarP(&csvListOptions, "list-fields", "L", false, "List details about the fields in the CSV")
+	cmd.Flags().StringVar(&exportFormat, "format", "csv", "Format option: [csv, sls-json]")
+	cmd.Flags().BoolVar(&ignoreValidation, "ignore-validation", false, "Skip validating the sls data. This only applies to the sls-json format.")
+
+	return cmd, nil
+}
+
+func NewImportCommand() (cmd *cobra.Command, err error) {
+	// cmd represents cani alpha import
+	cmd = &cobra.Command{}
+
+	return cmd, nil
 }
