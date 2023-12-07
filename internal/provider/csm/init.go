@@ -111,7 +111,7 @@ func UpdateAddCabinetCommand(caniCmd *cobra.Command) error {
 }
 
 func NewUpdateNodeCommand() (cmd *cobra.Command, err error) {
-	// cmd represents the session init command
+	// cmd represents for cani alpha update node
 	cmd = &cobra.Command{}
 	cmd.Flags().String("role", "", "Role of the node")
 	cmd.Flags().String("subrole", "", "Subrole of the node")
@@ -128,9 +128,8 @@ func UpdateUpdateNodeCommand(caniCmd *cobra.Command) error {
 }
 
 func NewExportCommand() (cmd *cobra.Command, err error) {
-	// cmd represents the session init command
+	// cmd represents cani alpha export
 	cmd = &cobra.Command{}
-	// cmd.Flags().Int("fish", -1, "a fish.")
 	cmd.Flags().StringVar(
 		&csvHeaders, "headers", "Type,Vlan,Role,SubRole,Status,Nid,Alias,Name,ID,Location", "Comma separated list of fields to get")
 	cmd.Flags().StringVarP(
@@ -144,9 +143,8 @@ func NewExportCommand() (cmd *cobra.Command, err error) {
 }
 
 func NewImportCommand() (cmd *cobra.Command, err error) {
-	// cmd represents the session init command
+	// cmd represents cani alpha import
 	cmd = &cobra.Command{}
-	// cmd.Flags().Int("rabbit", -1, "a fish.")
 
 	return cmd, nil
 }
