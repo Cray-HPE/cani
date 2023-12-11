@@ -28,6 +28,7 @@ package canu
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 )
 
 type Paddle struct {
@@ -92,4 +93,18 @@ func (ccj *Paddle) UnmarshalJSON(b []byte) error {
 	}
 	*ccj = Paddle(plain)
 	return nil
+}
+
+func LoadPaddle(path string) (ccj *Paddle, err error) {
+	p, err := os.ReadFile(path)
+	if err != nil {
+		return ccj, err
+	}
+
+	err = json.Unmarshal(p, &ccj)
+	if err != nil {
+		return ccj, err
+	}
+
+	return ccj, nil
 }
