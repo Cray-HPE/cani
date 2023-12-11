@@ -24,7 +24,7 @@
 session:
     domains:
         csm:
-            active: false
+            active: true
             datastore_path: /tmp/.cani/canidb.json
             log_file_path: /tmp/.cani/canidb.log
             custom_hardware_types_dir: /tmp/.cani/hardware-types
@@ -32,7 +32,7 @@ session:
             options:
                 usesimulation: true
                 insecureskipverify: true
-                apigatewaytoken: ""
+                apigatewaytoken: migrated
                 baseurlsls: https://localhost:8443/apis/sls/v1
                 baseurlhsm: https://localhost:8443/apis/smd/hsm/v2
                 secretname: admin-client-auth

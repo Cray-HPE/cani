@@ -40,6 +40,7 @@ spec_helper_precheck() {
   # also helpful for cani config fixtures if this is a static, abs path
   setenv CANI_DIR="/tmp/.cani"
   setenv CANI_CONF="${CANI_DIR:=/tmp/.cani}/cani.yml"
+  setenv CANI_CONF_SINGLE="${CANI_DIR:=/tmp/.cani}/cani.yml.single"
   setenv CANI_DS="${CANI_DIR:=/tmp/.cani}/canidb.json"
   setenv CANI_LOG="${CANI_DIR:=/tmp/.cani}/canidb.log"
   setenv CANI_CUSTOM_HW_DIR="${CANI_DIR:=/tmp/.cani}/hardware-types"
@@ -86,6 +87,13 @@ use_inactive_session(){
   #shellcheck disable=SC2317
   cp "$FIXTURES"/cani/configs/canitest_valid_inactive.yml "$CANI_CONF"
 } 
+
+# deploys an older single-provider config
+use_single_provider_session(){
+  #shellcheck disable=SC2317
+  mkdir -p "$(dirname "$CANI_CONF")"
+  cp "$FIXTURES"/cani/configs/valid_single_provider_deprecated.yml "$CANI_CONF"
+}
 
 use_custom_hw_type(){ 
   mkdir -p "$(dirname "$CANI_CUSTOM_HW_CONF")"

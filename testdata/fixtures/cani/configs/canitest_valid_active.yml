@@ -30,25 +30,25 @@ session:
             custom_hardware_types_dir: /tmp/.cani/hardware-types
             provider: csm
             options:
-                use_simulation: true
-                insecure_skip_verify: true
-                api_gateway_token: ""
-                base_url_sls: https://localhost:8443/apis/sls/v1
-                base_url_hsm: https://localhost:8443/apis/smd/hsm/v2
-                secret_name: admin-client-auth
-                k8s_pods_cidr: 10.32.0.0/12
-                k8s_services_cidr: 10.16.0.0/12
+                usesimulation: true
+                insecureskipverify: true
+                apigatewaytoken: ""
+                baseurlsls: https://localhost:8443/apis/sls/v1
+                baseurlhsm: https://localhost:8443/apis/smd/hsm/v2
+                secretname: admin-client-auth
+                k8spodscidr: 10.32.0.0/12
+                k8sservicescidr: 10.16.0.0/12
                 kubeconfig: ""
-                provider_host: localhost:8443
-                ca_cert_path: ""
-                valid_roles:
+                providerhost: localhost:8443
+                cacertpath: ""
+                validroles:
                     - Management
                     - Compute
                     - Service
                     - System
                     - Application
                     - Storage
-                valid_sub_roles:
+                validsubroles:
                     - Storage
                     - UAN
                     - Gateway
