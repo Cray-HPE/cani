@@ -52,6 +52,12 @@ var (
 	csvListOptions    bool
 	exportFormat      string
 	ignoreValidation  bool
+
+	// add blade
+	role    string
+	subrole string
+	nid     int
+	alias   string
 )
 
 func NewSessionInitCommand() (cmd *cobra.Command, err error) {
@@ -108,6 +114,17 @@ func UpdateAddCabinetCommand(caniCmd *cobra.Command) error {
 	caniCmd.MarkFlagsRequiredTogether("cabinet", "vlan-id")
 	caniCmd.MarkFlagsMutuallyExclusive("auto")
 	return nil
+}
+
+func NewAddNodeCommand() (cmd *cobra.Command, err error) {
+	// cmd represents for cani alpha add node
+	cmd = &cobra.Command{}
+	cmd.Flags().StringVar(&role, "role", "", "Role of the node")
+	cmd.Flags().StringVar(&subrole, "subrole", "", "Subrole of the node")
+	cmd.Flags().IntVar(&nid, "nid", 0, "NID of the node")
+	cmd.Flags().StringVar(&alias, "alias", "", "Alias of the node")
+
+	return cmd, nil
 }
 
 func NewUpdateNodeCommand() (cmd *cobra.Command, err error) {
