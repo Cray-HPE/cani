@@ -76,7 +76,10 @@ func InitConfig(cfg string) (err error) {
 			}
 		}
 		// Create the config file
-		WriteConfig(cfg, conf)
+		err = WriteConfig(cfg, conf)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = os.MkdirAll(CustomDir, 0755)
@@ -110,6 +113,16 @@ func LoadConfig(path string) (c *Config, err error) {
 	err = yaml.Unmarshal(data, &c)
 	if err != nil {
 		return nil, err
+	}
+
+	// if the domains are nil, assume migration from single-provider config
+	// create a new config, which will map the old style config to the new
+	if c.Session.Domains == nil {
+		log.Info().Msgf("Translating single-provider config to multi-provider")
+		c, err = migrateConfig(path, data)
+		if err != nil {
+			return c, err
+		}
 	}
 
 	return c, nil

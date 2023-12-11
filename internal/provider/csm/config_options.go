@@ -40,23 +40,23 @@ import (
 )
 
 type CsmOpts struct {
-	UseSimulation      bool     `json:"UseSimulation" yaml:"use_simulation"`
-	InsecureSkipVerify bool     `json:"InsecureSkipVerify" yaml:"insecure_skip_verify"`
-	APIGatewayToken    string   `json:"APIGatewayToken" yaml:"api_gateway_token"`
-	BaseUrlSLS         string   `json:"BaseUrlSLS" yaml:"base_url_sls"`
-	BaseUrlHSM         string   `json:"BaseUrlHSM" yaml:"base_url_hsm"`
-	SecretName         string   `json:"SecretName" yaml:"secret_name"`
-	K8sPodsCidr        string   `json:"K8sPodsCidr" yaml:"k8s_pods_cidr"`
-	K8sServicesCidr    string   `json:"K8sServicesCidr" yaml:"k8s_services_cidr"`
-	KubeConfig         string   `json:"KubeConfig" yaml:"kubeconfig"`
-	ClientID           string   `json:"-" yaml:"-"` // omit credentials from cani.yml
-	ClientSecret       string   `json:"-" yaml:"-"` // omit credentials from cani.yml
-	ProviderHost       string   `json:"ProviderHost" yaml:"provider_host"`
-	TokenUsername      string   `json:"-" yaml:"-"` // omit credentials from cani.yml
-	TokenPassword      string   `json:"-" yaml:"-"` // omit credentials from cani.yml
-	CaCertPath         string   `json:"CaCertPath" yaml:"ca_cert_path"`
-	ValidRoles         []string `json:"ValidRoles" yaml:"valid_roles"`
-	ValidSubRoles      []string `json:"ValidSubRoles" yaml:"valid_sub_roles"`
+	UseSimulation      bool
+	InsecureSkipVerify bool
+	APIGatewayToken    string
+	BaseUrlSLS         string
+	BaseUrlHSM         string
+	SecretName         string
+	K8sPodsCidr        string
+	K8sServicesCidr    string
+	KubeConfig         string
+	ClientID           string `json:"-" yaml:"-"` // omit credentials from cani.yml
+	ClientSecret       string `json:"-" yaml:"-"` // omit credentials from cani.yml
+	ProviderHost       string
+	TokenUsername      string `json:"-" yaml:"-"` // omit credentials from cani.yml
+	TokenPassword      string `json:"-" yaml:"-"` // omit credentials from cani.yml
+	CaCertPath         string
+	ValidRoles         []string
+	ValidSubRoles      []string
 }
 
 func (csm *CSM) SetProviderOptions(cmd *cobra.Command, args []string) error {
