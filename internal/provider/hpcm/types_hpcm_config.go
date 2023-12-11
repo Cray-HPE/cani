@@ -440,43 +440,19 @@ func importCfgDiscoverSection(cfg *ini.File) (map[string]Discover, error) {
 						case "alias_groups":
 							// TODO:
 						case "cmcinventory_managed":
-							boolVal, err := ParseBool(sv)
-							if err != nil {
-								return discover, err
-							}
-							d.CmcInventoryManaged = boolVal
+							d.CmcInventoryManaged = ParseBool(sk, sv)
 						case "conserver_logging":
-							boolVal, err := ParseBool(sv)
-							if err != nil {
-								return discover, err
-							}
-							d.ConserverLogging = boolVal
+							d.ConserverLogging = ParseBool(sk, sv)
 						case "conserver_ondemand":
-							boolVal, err := ParseBool(sv)
-							if err != nil {
-								return discover, err
-							}
-							d.ConserverOnDemand = boolVal
+							d.ConserverOnDemand = ParseBool(sk, sv)
 						case "dhcp_bootfile":
 							d.DhcpBootfile = sv
 						case "disk_bootloader":
-							boolVal, err := ParseBool(sv)
-							if err != nil {
-								return discover, err
-							}
-							d.DiskBootloader = boolVal
+							d.DiskBootloader = ParseBool(sk, sv)
 						case "predictable_net_names":
-							boolVal, err := ParseBool(sv)
-							if err != nil {
-								return discover, err
-							}
-							d.PredicatableNetNames = boolVal
+							d.PredicatableNetNames = ParseBool(sk, sv)
 						case "redundant_mgmt_network":
-							boolVal, err := ParseBool(sv)
-							if err != nil {
-								return discover, err
-							}
-							d.RedundantMgmtNetwork = boolVal
+							d.RedundantMgmtNetwork = ParseBool(sk, sv)
 						case "su_leader":
 							for _, i := range strings.Split(sv, ",") {
 								ip := net.ParseIP(i)
@@ -485,17 +461,9 @@ func importCfgDiscoverSection(cfg *ini.File) (map[string]Discover, error) {
 								}
 							}
 						case "switch_mgmt_network":
-							boolVal, err := ParseBool(sv)
-							if err != nil {
-								return discover, err
-							}
-							d.SwitchMgmtNetwork = boolVal
+							d.SwitchMgmtNetwork = ParseBool(sk, sv)
 						case "tpm_boot":
-							boolVal, err := ParseBool(sv)
-							if err != nil {
-								return discover, err
-							}
-							d.TpmBoot = boolVal
+							d.TpmBoot = ParseBool(sk, sv)
 						case "console_device":
 							d.ConsoleDevice = sv
 						case "architecture":
@@ -547,11 +515,7 @@ func importCfgDiscoverSection(cfg *ini.File) (map[string]Discover, error) {
 						case "admin_house_interface":
 							d.AdminHouseInterface = sv
 						case "extra_routes":
-							boolVal, err := ParseBool(sv)
-							if err != nil {
-								return discover, err
-							}
-							d.ExtraRoutes = boolVal
+							d.ExtraRoutes = ParseBool(sk, sv)
 						case "mgmt_bmc_net_if":
 							// TODO:
 						case "mgmt_bmc_net_if_ip":
@@ -612,57 +576,29 @@ func importCfgTemplatesSection(cfg *ini.File) (map[string]Template, error) {
 						case "mgmt_net_name":
 							t.MgmtNetName = sv
 						case "redundant_mgmt_network":
-							boolVal, err := ParseBool(sv)
-							if err != nil {
-								return templates, err
-							}
-							t.RedundantMgmtNetwork = boolVal
+							t.RedundantMgmtNetwork = ParseBool(sk, sv)
 						case "switch_mgmt_network":
-							boolVal, err := ParseBool(sv)
-							if err != nil {
-								return templates, err
-							}
-							t.SwitchMgmtNetwork = boolVal
+							t.SwitchMgmtNetwork = ParseBool(sk, sv)
 						case "dhcp_bootfile":
 							t.DhcpBootfile = sv
 						case "force_disk":
 							t.ForceDisk = sv
 						case "conserver_logging":
-							boolVal, err := ParseBool(sv)
-							if err != nil {
-								return templates, err
-							}
-							t.ConserverLogging = boolVal
+							t.ConserverLogging = ParseBool(sk, sv)
 						case "conserver_ondemand":
-							boolVal, err := ParseBool(sv)
-							if err != nil {
-								return templates, err
-							}
-							t.ConserverOnDemand = boolVal
+							t.ConserverOnDemand = ParseBool(sk, sv)
 						case "rootfs":
 							t.RootFs = sv
 						case "console_device":
 							t.ConsoleDevice = sv
 						case "tpm_boot":
-							boolVal, err := ParseBool(sv)
-							if err != nil {
-								return templates, err
-							}
-							t.TpmBoot = boolVal
+							t.TpmBoot = ParseBool(sk, sv)
 						case "mgmt_net_bonding_master":
 							t.MgmtNetBondingMaster = sv
 						case "disk_bootloader":
-							boolVal, err := ParseBool(sv)
-							if err != nil {
-								return templates, err
-							}
-							t.DiskBootloader = boolVal
+							t.DiskBootloader = ParseBool(sk, sv)
 						case "predictable_net_names":
-							boolVal, err := ParseBool(sv)
-							if err != nil {
-								return templates, err
-							}
-							t.PredicatableNetNames = boolVal
+							t.PredicatableNetNames = ParseBool(sk, sv)
 						case "mgmtsw":
 							t.MgmtSw = sv
 						case "transport":
@@ -731,11 +667,7 @@ func importCfgTemplatesSection(cfg *ini.File) (map[string]Template, error) {
 						case "mgmtsw_isls":
 							t.MgmtswIsls = sv
 						case "destroy_disk_label":
-							boolVal, err := ParseBool(sv)
-							if err != nil {
-								return templates, err
-							}
-							t.DestroyDiskLabel = boolVal
+							t.DestroyDiskLabel = ParseBool(sk, sv)
 						case "md_metadata":
 							t.MdMetadata = sv
 						default:
@@ -875,31 +807,15 @@ func importCfgAttributesSection(cfg *ini.File) (Attributes, error) {
 					}
 					o.CmmsPerRack = n
 				case "conserver_logging":
-					boolVal, err := ParseBool(v)
-					if err != nil {
-						return o, err
-					}
-					o.ConserverLogging = boolVal
+					o.ConserverLogging = ParseBool(k, v)
 				case "conserver_ondemand":
-					boolVal, err := ParseBool(v)
-					if err != nil {
-						return o, err
-					}
-					o.ConserverOnDemand = boolVal
+					o.ConserverOnDemand = ParseBool(k, v)
 				case "copy_admin_ssh_config":
-					boolVal, err := ParseBool(v)
-					if err != nil {
-						return o, err
-					}
-					o.CopyAdminSshConfig = boolVal
+					o.CopyAdminSshConfig = ParseBool(k, v)
 				case "dhcp_bootfile":
 					o.DhcpBootfile = v
 				case "discover_skip_switchconfig":
-					boolVal, err := ParseBool(v)
-					if err != nil {
-						return o, err
-					}
-					o.DiscoverSkipSwitchconfig = boolVal
+					o.DiscoverSkipSwitchconfig = ParseBool(k, v)
 				case "domain_search_path":
 					for _, sd := range strings.Split(v, ",") {
 						if !ContainS(o.DomainSearchPath, sd) {
@@ -921,11 +837,7 @@ func importCfgAttributesSection(cfg *ini.File) (Attributes, error) {
 					}
 					o.MacRackIrus = n
 				case "mcell_network":
-					boolVal, err := ParseBool(v)
-					if err != nil {
-						return o, err
-					}
-					o.McellNetwork = boolVal
+					o.McellNetwork = ParseBool(k, v)
 				case "mcell_vlan":
 					n, err := strconv.Atoi(v)
 					if err != nil {
@@ -961,11 +873,7 @@ func importCfgAttributesSection(cfg *ini.File) (Attributes, error) {
 					}
 					o.MgmtVlanStart = n
 				case "predictable_net_names":
-					boolVal, err := ParseBool(v)
-					if err != nil {
-						return o, err
-					}
-					o.PredicatableNetNames = boolVal
+					o.PredicatableNetNames = ParseBool(k, v)
 				case "rack_start_number":
 					n, err := strconv.Atoi(v)
 					if err != nil {
@@ -985,17 +893,9 @@ func importCfgAttributesSection(cfg *ini.File) (Attributes, error) {
 					}
 					o.RackVlanStart = n
 				case "redundant_mgmt_network":
-					boolVal, err := ParseBool(v)
-					if err != nil {
-						return o, err
-					}
-					o.RedundantMgmtNetwork = boolVal
+					o.RedundantMgmtNetwork = ParseBool(k, v)
 				case "switch_mgmt_network":
-					boolVal, err := ParseBool(v)
-					if err != nil {
-						return o, err
-					}
-					o.SwitchMgmtNetwork = boolVal
+					o.SwitchMgmtNetwork = ParseBool(k, v)
 				case "udpcast_max_bitrate":
 					o.UdpcastMaxBitrate = v
 				case "udpcast_max_wait":
@@ -1025,23 +925,11 @@ func importCfgAttributesSection(cfg *ini.File) (Attributes, error) {
 					}
 					o.UdpcastRexmitHelloInterval = n
 				case "monitoring_kafka_elk_alerta_enabled":
-					boolVal, err := ParseBool(v)
-					if err != nil {
-						return o, err
-					}
-					o.MonitoringKafkaElkAlertEnabled = boolVal
+					o.MonitoringKafkaElkAlertEnabled = ParseBool(k, v)
 				case "monitoring_native_enabled":
-					boolVal, err := ParseBool(v)
-					if err != nil {
-						return o, err
-					}
-					o.MonitoringNativeEnabled = boolVal
+					o.MonitoringNativeEnabled = ParseBool(k, v)
 				case "conserver_timestamp":
-					boolVal, err := ParseBool(v)
-					if err != nil {
-						return o, err
-					}
-					o.ConserverTimestamp = boolVal
+					o.ConserverTimestamp = ParseBool(k, v)
 				case "dhcpd_max_lease_time":
 					n, err := strconv.Atoi(v)
 					if err != nil {
@@ -1055,23 +943,11 @@ func importCfgAttributesSection(cfg *ini.File) (Attributes, error) {
 					}
 					o.DhcpdDeafultLeaseTime = n
 				case "my_sql_replication":
-					boolVal, err := ParseBool(v)
-					if err != nil {
-						return o, err
-					}
-					o.MySqlReplication = boolVal
+					o.MySqlReplication = ParseBool(k, v)
 				case "monitoring_ganglia_enabled":
-					boolVal, err := ParseBool(v)
-					if err != nil {
-						return o, err
-					}
-					o.MonitoringGangliaEnabled = boolVal
+					o.MonitoringGangliaEnabled = ParseBool(k, v)
 				case "monitoring_nagios_enabled":
-					boolVal, err := ParseBool(v)
-					if err != nil {
-						return o, err
-					}
-					o.MonitoringNagiosEnabled = boolVal
+					o.MonitoringNagiosEnabled = ParseBool(k, v)
 				case "mgmt_net_alias_selection":
 					o.MgmtNetAliasSelection = v
 				default:
@@ -1163,14 +1039,15 @@ func ParseKV(kvStr string) map[string]string {
 }
 
 // ParseBool returns a bool based off of several different possible strings
-func ParseBool(str string) (bool, error) {
-	switch str {
+func ParseBool(key, val string) bool {
+	log.Debug().Msgf("Parsing bool from key: %s val: %s")
+	switch val {
 	case "1", "t", "T", "true", "TRUE", "True", "Yes", "yes", "y":
-		return true, nil
+		return true
 	case "0", "f", "F", "false", "FALSE", "False", "No", "no", "n":
-		return false, nil
+		return false
 	}
-	return false, nil
+	return false
 }
 
 // ContainS checks if a slice already contains a string
