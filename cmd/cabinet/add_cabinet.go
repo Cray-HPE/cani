@@ -97,10 +97,7 @@ func addCabinet(cmd *cobra.Command, args []string) (err error) {
 		if result.Hardware.Type == hardwaretypes.Cabinet {
 			log.Debug().Msgf("%s added at %s with parent %s (%s)", result.Hardware.Type, result.Location.String(), hardwaretypes.System, result.Hardware.Parent)
 			log.Info().Str("status", "SUCCESS").Msgf("%s %d was successfully staged to be added to the system", hardwaretypes.Cabinet, recommendations.CabinetOrdinal)
-			log.Info().Msgf("UUID: %s", result.Hardware.ID)
-			log.Info().Msgf("Cabinet Number: %d", *result.Hardware.LocationOrdinal)
-			// FIXME: make generic summary print function
-			log.Info().Msgf("VLAN ID: %d", result.Hardware.ProviderMetadata["csm"]["Cabinet"].(map[string]interface{})["HMNVlan"])
+			root.D.PrintHardware(&result.Hardware)
 		}
 	}
 

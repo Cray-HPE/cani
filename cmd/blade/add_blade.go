@@ -31,8 +31,6 @@ import (
 	"sort"
 
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/internal/domain"
-	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/tui"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
@@ -121,9 +119,6 @@ func addBlade(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	// Use a map to track already added nodes.
-	newNodes := []domain.HardwareLocationPair{}
-
 	for _, result := range result.AddedHardware {
 		// If the type is a Node
 		if result.Hardware.Type == hardwaretypes.NodeBlade {
@@ -137,15 +132,9 @@ func addBlade(cmd *cobra.Command, args []string) (err error) {
 				hardwaretypes.Node,
 				result.Hardware.ID.String(),
 				result.Location)
-			// Add the node to the map
-			newNodes = append(newNodes, result)
-			if root.D.Provider == string(inventory.CSMProvider) {
-				log.Info().Str("status", "SUCCESS").Msgf("%s was successfully staged to be added to the system", hardwaretypes.NodeBlade)
-				log.Info().Msgf("UUID: %s", result.Hardware.ID)
-				log.Info().Msgf("Cabinet: %d", cabinet)
-				log.Info().Msgf("Chassis: %d", chassis)
-				log.Info().Msgf("Blade: %d", blade)
-			}
+
+			log.Info().Str("status", "SUCCESS").Msgf("%s was successfully staged to be added to the system", hardwaretypes.NodeBlade)
+			root.D.PrintHardware(&result.Hardware)
 		}
 	}
 

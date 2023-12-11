@@ -190,6 +190,16 @@ func (lp LocationPath) String() string {
 	return strings.Join(tokens, "->")
 }
 
+func (lp LocationPath) GetOrdinal(hardwareType hardwaretypes.HardwareType) (ordinal int, found bool) {
+	for _, token := range lp {
+		if token.HardwareType == hardwareType {
+			return token.Ordinal, true
+		}
+	}
+
+	return -1, false
+}
+
 // GetHardwareTypePath returns the hardware type path of the location path
 func (lp LocationPath) GetHardwareTypePath() hardwaretypes.HardwareTypePath {
 	result := hardwaretypes.HardwareTypePath{}

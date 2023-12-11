@@ -95,6 +95,9 @@ type InventoryProvider interface {
 	// Workflows
 	ListCabinetMetadataColumns() (columns []string)
 	ListCabinetMetadataRow(inventory.Hardware) (values []string, err error)
+
+	// Print
+	PrintHardware(hw *inventory.Hardware)
 }
 
 type HardwareValidationResult struct {
