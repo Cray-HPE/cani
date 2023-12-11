@@ -217,10 +217,12 @@ func (d *Domain) AddBlade(cmd *cobra.Command, args []string, cabinetOrdinal, cha
 			panic(err)
 		}
 
-		result.AddedHardware = append(result.AddedHardware, HardwareLocationPair{
+		pair := HardwareLocationPair{
 			Hardware: hardware,
 			Location: hardwareLocation,
-		})
+		}
+		pair.Hardware.LocationPath = hardwareLocation
+		result.AddedHardware = append(result.AddedHardware, pair)
 		log.Debug().Str("path", hardwareLocation.String()).Msg("Datastore")
 
 	}

@@ -72,6 +72,8 @@ func MergeProviderCommand(bootstrapCmd *cobra.Command, providerCmd *cobra.Comman
 			case "node":
 				// check for add/update variants
 				switch bootstrapCmd.Parent().Name() {
+				case "add":
+					providerCmd, err = csm.NewAddNodeCommand()
 				case "update":
 					providerCmd, err = csm.NewUpdateNodeCommand()
 				}

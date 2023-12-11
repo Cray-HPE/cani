@@ -39,13 +39,10 @@ var (
 	blade                 int
 	nodecard              int
 	node                  int
-	role                  string
-	subrole               string
-	nid                   int
-	alias                 string
 	nodeUuid              string
 	format                string
 	sortBy                string
+	ProviderAddNodeCmd    = &cobra.Command{}
 	ProviderUpdateNodeCmd = &cobra.Command{}
 )
 
@@ -60,11 +57,13 @@ func init() {
 	// Add a flag to show supported types
 	AddNodeCmd.Flags().BoolP("list-supported-types", "L", false, "List supported hardware types.")
 
-	// TODO remove more cray-sauce
-	AddNodeCmd.Flags().StringVar(&role, "role", "", "Role of the node")
-	AddNodeCmd.Flags().StringVar(&subrole, "subrole", "", "Subrole of the node")
-	AddNodeCmd.Flags().IntVar(&nid, "nid", 0, "NID of the node")
-	AddNodeCmd.Flags().StringVar(&alias, "alias", "", "Alias of the node")
+	// Merge CANI's command with the provider-specified command
+	// this allows for CANI's operations to remain consistent, while adding provider config on top
+	err = root.MergeProviderCommand(AddNodeCmd, ProviderAddNodeCmd)
+	if err != nil {
+		log.Error().Msgf("%+v", err)
+		os.Exit(1)
+	}
 
 	// Blades have several parents, so we need to add flags for each
 	UpdateNodeCmd.Flags().IntVar(&cabinet, "cabinet", 1001, "Parent cabinet")
