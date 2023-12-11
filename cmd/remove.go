@@ -39,5 +39,8 @@ var RemoveCmd = &cobra.Command{
 
 // remove is the main entry point for the switch command.
 func remove(cmd *cobra.Command, args []string) error {
+	if len(args) == 0 {
+		cmd.Help()
+	}
 	return nil
 }

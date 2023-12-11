@@ -39,5 +39,8 @@ var AddCmd = &cobra.Command{
 
 // add is the main entry point for the add command.
 func add(cmd *cobra.Command, args []string) error {
+	if len(args) == 0 {
+		cmd.Help()
+	}
 	return nil
 }
