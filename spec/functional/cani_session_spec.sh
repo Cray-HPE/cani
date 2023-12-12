@@ -1,6 +1,5 @@
 #!/usr/bin/env sh
 #
-#
 # MIT License
 #
 # (C) Copyright 2023 Hewlett Packard Enterprise Development LP
@@ -23,7 +22,6 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
-#
 Describe 'cani session'
 
 # help output should succeed and match the fixture
@@ -42,8 +40,8 @@ It "--config $CANI_CONF status"
   BeforeCall use_inactive_session # session is inactive
   When call bin/cani alpha session --config "$CANI_CONF" status
   The status should equal 0
-  The line 1 of stderr should include "See $CANI_CONF for session details"
-  The line 2 of stderr should include 'Session is INACTIVE'
+  The line 1 of stderr should include "No active session"
+  The line 2 of stderr should include "Session is INACTIVE for"
 End
 
 # Status should be ACTIVE if active: true
@@ -51,8 +49,8 @@ It "--config $CANI_CONF status"
   BeforeCall use_active_session # session is active
   When call bin/cani alpha session --config "$CANI_CONF" status
   The status should equal 0
-  The line 1 of stderr should include "See $CANI_CONF for session details"
-  The line 2 of stderr should include 'Session is ACTIVE'
+  The stderr should include 'Session is ACTIVE for'
+  The stderr should include "See $CANI_CONF for session details"
 End
 
 # Starting a session without passing a provider should fail
@@ -91,7 +89,7 @@ It 'initialize a session without a config file or datastore'
   BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
   When call bin/cani alpha session --config "$CANI_CONF" init csm -S 
   The status should equal 0
-  The line 1 of stderr should include 'Using simulation mode'
+  The stderr should include 'Using simulation mode'
   The stderr should include 'Validated CANI inventory'
   The stderr should include 'Validated external inventory provider'
   # Verify the import logic reached out to SLS
@@ -194,4 +192,37 @@ It 'initialize a session with a CIDR that overlaps k8s values'
   The stderr should include 'k8sservicescidr 10.16.0.0/12 overlaps with CAN 10.16.0.0/12'
 End
 
+# running any command with an older-style config should update the config file to the new format
+It 'add a cabinet with a single-provider config'
+  BeforeCall use_single_provider_session
+  BeforeCall use_valid_datastore_system_only
+  BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
+  When call bin/cani --config "$CANI_CONF" alpha add cabinet hpe-ex4000 --auto --accept
+  The status should equal 0
+  The stderr should include 'Translating single-provider config to multi-provider'
+
+  # The config should get created
+  The path "$CANI_CONF" should be exist
+  The path "$CANI_CONF" should be file
+  # the single-provider config should be renamed
+  The path "$CANI_CONF_SINGLE" should be exist
+  The path "$CANI_CONF_SINGLE" should be file
+End
+
+End
+
+# the single-provider fixture has one key with a user-defined value
+# this key should be migrated to the new format, as opposed to creating new default values
+Describe 'migrated config should retain user-defined values'
+  cat_config(){
+    cat "$CANI_CONF" >&2
+  }
+
+  It 'check if a key matches the expected value'
+    When call cat_config
+    The status should equal 0
+    # the deprecated fixture contains a value of 'migrated'
+    # check to see if it now exists in the converted config file
+    The stderr should include 'migrated'
+  End
 End

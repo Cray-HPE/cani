@@ -26,30 +26,30 @@
 package csm
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
-	"github.com/Cray-HPE/cani/internal/provider/csm/validate"
 	"github.com/Cray-HPE/cani/internal/util/uuidutil"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
 // Validate the external services of the inventory provider are correct
-func (csm *CSM) ValidateExternal(ctx context.Context, configOptions provider.ConfigOptions) error {
+func (csm *CSM) ValidateExternal(cmd *cobra.Command, args []string) error {
+
 	// Get the dumpate from SLS
-	slsState, reps, err := csm.slsClient.DumpstateApi.DumpstateGet(context.Background())
+	slsState, reps, err := csm.slsClient.DumpstateApi.DumpstateGet(cmd.Context())
 	if err != nil {
 		return fmt.Errorf("SLS dumpstate failed. %v\n", err)
 	}
 
 	// Validate the dumpstate returned from SLS
-	_, err = validate.ValidateHTTPResponse(configOptions, &slsState, reps)
+	_, err = csm.TBV.ValidateHTTPResponse(&slsState, reps)
 	if err != nil {
 		return fmt.Errorf("Validation failed. %v\n", err)
 	}
@@ -59,7 +59,7 @@ func (csm *CSM) ValidateExternal(ctx context.Context, configOptions provider.Con
 // Validate the representation of the inventory data into the destination inventory system
 // is consistent. The default set of checks will verify all currently provided data is valid.
 // If enableRequiredDataChecks is set to true, additional checks focusing on missing data will be ran.
-func (csm *CSM) ValidateInternal(ctx context.Context, datastore inventory.Datastore, enableRequiredDataChecks bool) (map[uuid.UUID]provider.HardwareValidationResult, error) {
+func (csm *CSM) ValidateInternal(cmd *cobra.Command, args []string, datastore inventory.Datastore, enableRequiredDataChecks bool) (map[uuid.UUID]provider.HardwareValidationResult, error) {
 	log.Debug().Msg("Validating datastore contents against the CSM Provider")
 
 	allHardware, err := datastore.List()
@@ -105,11 +105,11 @@ func (csm *CSM) ValidateInternal(ctx context.Context, datastore inventory.Datast
 
 func (csm *CSM) validateInternalNode(allHardware map[uuid.UUID]inventory.Hardware, enableRequiredDataChecks bool, results map[uuid.UUID]provider.HardwareValidationResult) error {
 	validRoles := map[string]bool{}
-	for _, role := range csm.ValidRoles {
+	for _, role := range csm.Options.ValidRoles {
 		validRoles[role] = true
 	}
 	validSubRoles := map[string]bool{}
-	for _, subRole := range csm.ValidSubRoles {
+	for _, subRole := range csm.Options.ValidSubRoles {
 		validSubRoles[subRole] = true
 	}
 
@@ -149,7 +149,7 @@ func (csm *CSM) validateInternalNode(allHardware map[uuid.UUID]inventory.Hardwar
 		if metadata.Node.Role != nil {
 			if !validRoles[*metadata.Node.Role] {
 				validationResult.Errors = append(validationResult.Errors,
-					fmt.Sprintf("Specified role (%s) is invalid, choose from: %s", *metadata.Node.Role, strings.Join(csm.ValidRoles, ", ")),
+					fmt.Sprintf("Specified role (%s) is invalid, choose from: %s", *metadata.Node.Role, strings.Join(csm.Options.ValidRoles, ", ")),
 				)
 			}
 		}
@@ -158,7 +158,7 @@ func (csm *CSM) validateInternalNode(allHardware map[uuid.UUID]inventory.Hardwar
 		if metadata.Node.SubRole != nil {
 			if !validSubRoles[*metadata.Node.SubRole] {
 				validationResult.Errors = append(validationResult.Errors,
-					fmt.Sprintf("Specified sub-role (%s) is invalid, choose from: %s", *metadata.Node.SubRole, strings.Join(csm.ValidSubRoles, ", ")),
+					fmt.Sprintf("Specified sub-role (%s) is invalid, choose from: %s", *metadata.Node.SubRole, strings.Join(csm.Options.ValidSubRoles, ", ")),
 				)
 			}
 		}

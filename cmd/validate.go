@@ -29,7 +29,6 @@ import (
 	"errors"
 	"sort"
 
-	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
@@ -38,23 +37,18 @@ import (
 
 // ValidateCmd represents the validate command
 var ValidateCmd = &cobra.Command{
-	Use:          "validate",
-	Short:        "Validate assets in the inventory.",
-	Long:         `Validate assets in the inventory.`,
-	SilenceUsage: true, // Errors are more important than the usage
-	RunE:         validateInventory,
+	Use:   "validate",
+	Short: "Validate assets in the inventory.",
+	Long:  `Validate assets in the inventory.`,
+	RunE:  validateInventory,
 }
 
 func validateInventory(cmd *cobra.Command, args []string) error {
 	log.Warn().Msg("This may fail in the HMS Simulator without Network information.")
-	if Conf.Session.Active {
-		// Create a domain object to interact with the datastore
-		d, err := domain.New(Conf.Session.DomainOptions)
-		if err != nil {
-			return err
-		}
+	if D.Active {
+
 		// Validate the external inventory
-		result, err := d.Validate(cmd.Context(), true, false)
+		result, err := D.Validate(cmd, args, true, false)
 		if errors.Is(err, provider.ErrDataValidationFailure) {
 			// TODO the following should probably suggest commands to fix the issue?
 			log.Error().Msgf("Inventory data validation errors encountered")

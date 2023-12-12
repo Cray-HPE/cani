@@ -26,18 +26,16 @@
 package csm
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
-	"github.com/Cray-HPE/cani/internal/provider"
-	"github.com/Cray-HPE/cani/internal/provider/csm/validate"
+	"github.com/spf13/cobra"
 )
 
-func (csm *CSM) GetSlsJson(ctx context.Context, configOptions provider.ConfigOptions, datastore inventory.Datastore, skipValidation bool) ([]byte, error) {
-	currentSLSState, _, err := csm.slsClient.DumpstateApi.DumpstateGet(ctx)
+func (csm *CSM) exportSlsJson(cmd *cobra.Command, args []string, datastore inventory.Datastore, skipValidation bool) ([]byte, error) {
+	currentSLSState, _, err := csm.slsClient.DumpstateApi.DumpstateGet(cmd.Context())
 	if err != nil {
 		return nil, errors.Join(
 			fmt.Errorf("failed to get the current SLS state"),
@@ -53,7 +51,7 @@ func (csm *CSM) GetSlsJson(ctx context.Context, configOptions provider.ConfigOpt
 	}
 
 	if !skipValidation {
-		_, err = validate.Validate(configOptions, modifiedState)
+		_, err = csm.TBV.Validate(modifiedState)
 		if err != nil {
 			return nil, fmt.Errorf("validation failed %v", err)
 		}

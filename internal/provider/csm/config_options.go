@@ -26,26 +26,153 @@
 package csm
 
 import (
-	"context"
+	"fmt"
+	"strings"
 
-	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/Cray-HPE/cani/cmd/taxonomy"
+	"github.com/Cray-HPE/cani/internal/provider/csm/validate"
+	"github.com/mitchellh/mapstructure"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
+
+	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
+	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 )
 
-func (csm *CSM) ConfigOptions(ctx context.Context) (provider.ConfigOptions, error) {
-	providerConfig := provider.ConfigOptions{}
+type CsmOpts struct {
+	UseSimulation      bool
+	InsecureSkipVerify bool
+	APIGatewayToken    string
+	BaseUrlSLS         string
+	BaseUrlHSM         string
+	SecretName         string
+	K8sPodsCidr        string
+	K8sServicesCidr    string
+	KubeConfig         string
+	ClientID           string `json:"-" yaml:"-"` // omit credentials from cani.yml
+	ClientSecret       string `json:"-" yaml:"-"` // omit credentials from cani.yml
+	ProviderHost       string
+	TokenUsername      string `json:"-" yaml:"-"` // omit credentials from cani.yml
+	TokenPassword      string `json:"-" yaml:"-"` // omit credentials from cani.yml
+	CaCertPath         string
+	ValidRoles         []string
+	ValidSubRoles      []string
+}
 
-	// get valid roles and subroles from hsm
-	values, _, err := csm.hsmClient.ServiceInfoApi.DoValuesGet(ctx)
-	if err != nil {
-		return providerConfig, err
+func (csm *CSM) SetProviderOptions(cmd *cobra.Command, args []string) error {
+	useSimulation := cmd.Flags().Changed("csm-simulator")
+	slsUrl, _ := cmd.Flags().GetString("csm-url-sls")
+	hsmUrl, _ := cmd.Flags().GetString("csm-url-hsm")
+	insecure := cmd.Flags().Changed("csm-insecure-https")
+	providerHost, _ := cmd.Flags().GetString("csm-api-host")
+	tokenUsername, _ := cmd.Flags().GetString("csm-keycloak-username")
+	tokenPassword, _ := cmd.Flags().GetString("csm-keycloak-password")
+	k8sPodsCidr, _ := cmd.Flags().GetString("csm-k8s-pods-cidr")
+	k8sServicesCidr, _ := cmd.Flags().GetString("csm-k8s-services-cidr")
+	kubeconfig, _ := cmd.Flags().GetString("csm-kube-config")
+	caCertPath, _ := cmd.Flags().GetString("csm-ca-cert")
+	secretName, _ := cmd.Flags().GetString("csm-secret-name")
+	clientId, _ := cmd.Flags().GetString("csm-client-id")
+	clientSecret, _ := cmd.Flags().GetString("csm-client-secret")
+
+	if useSimulation {
+		log.Warn().Msg("Using simulation mode")
+		csm.Options.UseSimulation = useSimulation
+		insecure = true
+		if !cmd.Flags().Changed("csm-api-host") {
+			providerHost = "localhost:8443"
+		}
 	}
-	providerConfig.ValidRoles = values.Role
-	providerConfig.ValidSubRoles = values.SubRole
-
+	if insecure {
+		csm.Options.InsecureSkipVerify = true
+	}
+	if slsUrl != "" {
+		csm.Options.BaseUrlSLS = slsUrl
+	} else {
+		csm.Options.BaseUrlSLS = fmt.Sprintf("https://%s/apis/sls/v1", providerHost)
+	}
+	if hsmUrl != "" {
+		csm.Options.BaseUrlHSM = hsmUrl
+	} else {
+		csm.Options.BaseUrlHSM = fmt.Sprintf("https://%s/apis/smd/hsm/v2", providerHost)
+	}
+	csm.Options.InsecureSkipVerify = insecure
+	csm.Options.SecretName = secretName
 	// todo get these values from bss in the Global bootparameters in
 	// the fields: kubernetes-pods-cidr and kubernetes-services-cidr
-	providerConfig.K8sPodsCidr = "10.32.0.0/12"
-	providerConfig.K8sServicesCidr = "10.16.0.0/12"
+	csm.Options.K8sPodsCidr = k8sPodsCidr
+	csm.Options.K8sServicesCidr = k8sServicesCidr
+	csm.Options.KubeConfig = kubeconfig
+	csm.Options.CaCertPath = caCertPath
+	csm.Options.ClientID = clientId
+	csm.Options.ClientSecret = clientSecret
+	csm.Options.ProviderHost = strings.TrimRight(providerHost, "/") // Remove trailing slash if present
+	csm.Options.TokenUsername = tokenUsername
+	csm.Options.TokenPassword = tokenPassword
 
-	return providerConfig, nil
+	// Setup HTTP client and context using csm options
+	httpClient, _, err := csm.newClient()
+	if err != nil {
+		return err
+	}
+
+	slsClientConfiguration := &sls_client.Configuration{
+		BasePath:   csm.Options.BaseUrlSLS,
+		HTTPClient: httpClient.StandardClient(),
+		UserAgent:  taxonomy.App,
+		DefaultHeader: map[string]string{
+			"Content-Type": "application/json",
+		},
+	}
+
+	hsmClientConfiguration := &hsm_client.Configuration{
+		BasePath:   csm.Options.BaseUrlHSM,
+		HTTPClient: httpClient.StandardClient(),
+		UserAgent:  taxonomy.App,
+		DefaultHeader: map[string]string{
+			"Content-Type": "application/json",
+		},
+	}
+
+	if csm.Options.APIGatewayToken != "" {
+		// Set the token for use in the clients
+		slsClientConfiguration.DefaultHeader["Authorization"] = fmt.Sprintf("Bearer %s", csm.Options.APIGatewayToken)
+		hsmClientConfiguration.DefaultHeader["Authorization"] = fmt.Sprintf("Bearer %s", csm.Options.APIGatewayToken)
+	}
+
+	// Set the clients
+	csm.slsClient = sls_client.NewAPIClient(slsClientConfiguration)
+	csm.hsmClient = hsm_client.NewAPIClient(hsmClientConfiguration)
+
+	// get valid roles and subroles from hsm
+	hsmValues, _, err := csm.hsmClient.ServiceInfoApi.DoValuesGet(cmd.Context())
+	if err != nil {
+		return err
+	}
+	csm.Options.ValidRoles = hsmValues.Role
+	csm.Options.ValidSubRoles = hsmValues.SubRole
+
+	tbv := &validate.ToBeValidated{}
+	tbv.K8sPodsCidr = csm.Options.K8sPodsCidr
+	tbv.K8sServicesCidr = csm.Options.K8sServicesCidr
+	tbv.ValidRoles = csm.Options.ValidRoles
+	tbv.ValidSubRoles = csm.Options.ValidSubRoles
+	csm.TBV = tbv
+
+	return nil
+}
+
+func (csm *CSM) GetProviderOptions() (interface{}, error) {
+	if csm.Options == nil {
+		return nil, fmt.Errorf("options from CSM are nil")
+	}
+	return csm.Options, nil
+}
+
+func (csm *CSM) SetProviderOptionsInterface(opts interface{}) error {
+	err := mapstructure.Decode(opts, &csm.Options)
+	if err != nil {
+		return err
+	}
+	return nil
 }

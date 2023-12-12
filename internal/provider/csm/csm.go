@@ -27,72 +27,151 @@ package csm
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/Cray-HPE/cani/cmd/taxonomy"
+	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider/csm/validate"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 
 	hsm_client "github.com/Cray-HPE/cani/pkg/hsm-client"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 )
 
-type ProviderOpts struct {
-	UseSimulation      bool
-	InsecureSkipVerify bool
-	APIGatewayToken    string
-	BaseUrlSLS         string
-	BaseUrlHSM         string
-	SecretName         string
-	K8sPodsCidr        string
-	K8sServicesCidr    string
-	KubeConfig         string
-	ClientID           string `json:"-" yaml:"-"` // omit credentials from cani.yml
-	ClientSecret       string `json:"-" yaml:"-"` // omit credentials from cani.yml
-	ProviderHost       string
-	TokenUsername      string `json:"-" yaml:"-"` // omit credentials from cani.yml
-	TokenPassword      string `json:"-" yaml:"-"` // omit credentials from cani.yml
-	CaCertPath         string
-	ValidRoles         []string
-	ValidSubRoles      []string
-}
-
 type CSM struct {
 	// Clients
-	slsClient *sls_client.APIClient
-	hsmClient *hsm_client.APIClient
-
-	// System Configuration data
-	ValidRoles    []string
-	ValidSubRoles []string
-
+	slsClient       *sls_client.APIClient
+	hsmClient       *hsm_client.APIClient
 	hardwareLibrary *hardwaretypes.Library
+	TBV             *validate.ToBeValidated
+	Options         *CsmOpts
 }
 
-func New(opts *ProviderOpts, hardwareLibrary *hardwaretypes.Library) (*CSM, error) {
-	csm := &CSM{
-		hardwareLibrary: hardwareLibrary,
+// Need to load from existing if not init
+func New(cmd *cobra.Command, args []string, hwlib *hardwaretypes.Library, opts interface{}) (csm *CSM, err error) {
+	// create a starting object
+	csm = &CSM{
+		slsClient:       &sls_client.APIClient{},
+		hsmClient:       &hsm_client.APIClient{},
+		TBV:             &validate.ToBeValidated{},
+		hardwareLibrary: hwlib,
+		Options:         &CsmOpts{},
 	}
 
-	if opts.UseSimulation {
-		opts.InsecureSkipVerify = true
+	if cmd.Name() == "init" {
+		useSimulation := cmd.Flags().Changed("csm-simulator")
+		slsUrl, _ := cmd.Flags().GetString("csm-url-sls")
+		hsmUrl, _ := cmd.Flags().GetString("csm-url-hsm")
+		insecure := cmd.Flags().Changed("csm-insecure-https")
+		providerHost, _ := cmd.Flags().GetString("csm-api-host")
+		tokenUsername, _ := cmd.Flags().GetString("csm-keycloak-username")
+		tokenPassword, _ := cmd.Flags().GetString("csm-keycloak-password")
+		k8sPodsCidr, _ := cmd.Flags().GetString("csm-k8s-pods-cidr")
+		k8sServicesCidr, _ := cmd.Flags().GetString("csm-k8s-services-cidr")
+		kubeconfig, _ := cmd.Flags().GetString("csm-kube-config")
+		caCertPath, _ := cmd.Flags().GetString("csm-ca-cert")
+		secretName, _ := cmd.Flags().GetString("csm-secret-name")
+		clientId, _ := cmd.Flags().GetString("csm-client-id")
+		clientSecret, _ := cmd.Flags().GetString("csm-client-secret")
 
-		opts.ProviderHost = "localhost:8443"
+		if useSimulation {
+			log.Warn().Msg("Using simulation mode")
+			csm.Options.UseSimulation = useSimulation
+			insecure = true
+			if !cmd.Flags().Changed("csm-api-host") {
+				providerHost = "localhost:8443"
+			}
+		}
+		if insecure {
+			csm.Options.InsecureSkipVerify = true
+		}
+		if slsUrl != "" {
+			csm.Options.BaseUrlSLS = slsUrl
+		} else {
+			csm.Options.BaseUrlSLS = fmt.Sprintf("https://%s/apis/sls/v1", providerHost)
+		}
+		if hsmUrl != "" {
+			csm.Options.BaseUrlHSM = hsmUrl
+		} else {
+			csm.Options.BaseUrlHSM = fmt.Sprintf("https://%s/apis/smd/hsm/v2", providerHost)
+		}
+		csm.Options.InsecureSkipVerify = insecure
+		csm.Options.SecretName = secretName
+		// todo get these values from bss in the Global bootparameters in
+		// the fields: kubernetes-pods-cidr and kubernetes-services-cidr
+		csm.Options.K8sPodsCidr = k8sPodsCidr
+		csm.Options.K8sServicesCidr = k8sServicesCidr
+		csm.Options.KubeConfig = kubeconfig
+		csm.Options.CaCertPath = caCertPath
+		csm.Options.ClientID = clientId
+		csm.Options.ClientSecret = clientSecret
+		csm.Options.ProviderHost = strings.TrimRight(providerHost, "/") // Remove trailing slash if present
+		csm.Options.TokenUsername = tokenUsername
+		csm.Options.TokenPassword = tokenPassword
 
-		if opts.BaseUrlSLS == "" {
-			opts.BaseUrlSLS = fmt.Sprintf("https://%s/apis/sls/v1", opts.ProviderHost)
+		err := csm.setupClients()
+		if err != nil {
+			return csm, err
 		}
-		if opts.BaseUrlHSM == "" {
-			opts.BaseUrlHSM = fmt.Sprintf("https://%s/apis/smd/hsm/v2", opts.ProviderHost)
+
+		// get valid roles and subroles from hsm
+		hsmValues, _, err := csm.hsmClient.ServiceInfoApi.DoValuesGet(cmd.Context())
+		if err != nil {
+			return csm, nil
 		}
+
+		// Load system specific config data
+		csm.Options.ValidRoles = hsmValues.Role
+		csm.Options.ValidSubRoles = hsmValues.SubRole
+
+		csm.TBV.ValidRoles = csm.Options.ValidRoles
+		csm.TBV.ValidSubRoles = csm.Options.ValidSubRoles
+		csm.TBV.K8sPodsCidr, _ = cmd.Flags().GetString("csm-k8s-pods-cidr")
+		csm.TBV.K8sServicesCidr, _ = cmd.Flags().GetString("csm-k8s-services-cidr")
+		return csm, nil
+	} else {
+		// use the existing options if a new session is not being initialized
+		// unmarshal to a CsmOpts object
+		optsMarshaled, _ := yaml.Marshal(opts)
+		csmOpts := CsmOpts{}
+		err = yaml.Unmarshal(optsMarshaled, &csmOpts)
+		if err != nil {
+			return csm, err
+		}
+
+		// set the options to the object
+		csm.Options = &csmOpts
+
+		// if not init, just setup the clients
+		err = csm.setupClients()
+		if err != nil {
+			return csm, err
+		}
+
+		csm.TBV.ValidRoles = csmOpts.ValidRoles
+		csm.TBV.ValidSubRoles = csmOpts.ValidSubRoles
+		csm.TBV.K8sPodsCidr = csmOpts.K8sPodsCidr
+		csm.TBV.K8sServicesCidr = csmOpts.K8sServicesCidr
+
+		return csm, nil
 	}
 
+	// return csm, nil
+}
+
+func (csm *CSM) setupClients() (err error) {
 	// Setup HTTP client and context using csm options
-	httpClient, _, err := opts.newClient()
+	httpClient, _, err := csm.newClient()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	slsClientConfiguration := &sls_client.Configuration{
-		BasePath:   opts.BaseUrlSLS,
+		BasePath:   csm.Options.BaseUrlSLS,
 		HTTPClient: httpClient.StandardClient(),
 		UserAgent:  taxonomy.App,
 		DefaultHeader: map[string]string{
@@ -101,7 +180,7 @@ func New(opts *ProviderOpts, hardwareLibrary *hardwaretypes.Library) (*CSM, erro
 	}
 
 	hsmClientConfiguration := &hsm_client.Configuration{
-		BasePath:   opts.BaseUrlHSM,
+		BasePath:   csm.Options.BaseUrlHSM,
 		HTTPClient: httpClient.StandardClient(),
 		UserAgent:  taxonomy.App,
 		DefaultHeader: map[string]string{
@@ -109,18 +188,31 @@ func New(opts *ProviderOpts, hardwareLibrary *hardwaretypes.Library) (*CSM, erro
 		},
 	}
 
-	if opts.APIGatewayToken != "" {
+	if csm.Options.APIGatewayToken != "" {
 		// Set the token for use in the clients
-		slsClientConfiguration.DefaultHeader["Authorization"] = fmt.Sprintf("Bearer %s", opts.APIGatewayToken)
-		hsmClientConfiguration.DefaultHeader["Authorization"] = fmt.Sprintf("Bearer %s", opts.APIGatewayToken)
+		slsClientConfiguration.DefaultHeader["Authorization"] = fmt.Sprintf("Bearer %s", csm.Options.APIGatewayToken)
+		hsmClientConfiguration.DefaultHeader["Authorization"] = fmt.Sprintf("Bearer %s", csm.Options.APIGatewayToken)
 	}
 
 	// Set the clients
 	csm.slsClient = sls_client.NewAPIClient(slsClientConfiguration)
 	csm.hsmClient = hsm_client.NewAPIClient(hsmClientConfiguration)
 
-	// Load system specific config data
-	csm.ValidRoles = opts.ValidRoles
-	csm.ValidSubRoles = opts.ValidSubRoles
-	return csm, nil
+	return nil
+}
+
+// ListCabinetMetadataColumns returns a slice of strings, which are columns names of CSM-specific metadata to be shown when listing cabinets
+func (csm *CSM) ListCabinetMetadataColumns() (columns []string) {
+	return []string{"HMN VLAN"}
+}
+
+// ListCabinetMetadataRow returns a slice of strings, which are values from the hardware that correlate to the columns they will be shown in
+func (csm *CSM) ListCabinetMetadataRow(hw inventory.Hardware) (values []string, err error) {
+	md, err := DecodeProviderMetadata(hw)
+	if err != nil {
+		return values, err
+	}
+	vlan := strconv.Itoa(*md.Cabinet.HMNVlan)
+	values = append(values, vlan)
+	return values, nil
 }

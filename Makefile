@@ -219,6 +219,13 @@ generate-swagger-hsm-client: bin/swagger-codegen-cli.jar
 	go fmt ./pkg/hsm-client/...
 	goimports -w ./pkg/hsm-client
 
+# Generate clients from the following swagger files:
+# HPCM: ./pkg/hpcm-client/openapi.yaml
+generate-swagger-hpcm-client: bin/swagger-codegen-cli.jar
+	java -jar bin/swagger-codegen-cli.jar generate -i ./pkg/hpcm-client/openapi.yml -l go -o ./pkg/hpcm-client/ -DpackageName=hpcm_client
+	go fmt ./pkg/hpcm-client/...
+	goimports -w ./pkg/hpcm-client
+	
 venv:
 	virtualenv -p python3 venv
 	source venv/bin/activate

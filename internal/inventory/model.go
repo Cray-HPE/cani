@@ -102,7 +102,7 @@ func (i *Inventory) FilterHardwareByTypeStatus(status HardwareStatus, types ...h
 // Hardware is the smallest unit of inventory
 // It has all the potential fields that hardware can have
 type Hardware struct {
-	ID               uuid.UUID
+	ID               uuid.UUID                        `json:"ID" yaml:"ID" default:"" usage:"Unique Identifier"`
 	Name             string                           `json:"Name,omitempty" yaml:"Name,omitempty" default:"" usage:"Friendly name"`
 	Type             hardwaretypes.HardwareType       `json:"Type,omitempty" yaml:"Type,omitempty" default:"" usage:"Type"`
 	DeviceTypeSlug   string                           `json:"DeviceTypeSlug,omitempty" yaml:"DeviceTypeSlug,omitempty" default:"" usage:"Hardware Type Library Device slug"`
@@ -112,13 +112,10 @@ type Hardware struct {
 	Status           HardwareStatus                   `json:"Status,omitempty" yaml:"Status,omitempty" default:"Staged" usage:"Hardware can be [staged, provisioned, decomissioned]"`
 	Properties       map[string]interface{}           `json:"Properties,omitempty" yaml:"Properties,omitempty" default:"" usage:"Properties"`
 	ProviderMetadata map[Provider]ProviderMetadataRaw `json:"ProviderMetadata,omitempty" yaml:"ProviderMetadata,omitempty" default:"" usage:"ProviderMetadata"`
-
-	Parent uuid.UUID `json:"Parent,omitempty" yaml:"Parent,omitempty" default:"00000000-0000-0000-0000-000000000000" usage:"Parent hardware"`
-	// The following are derived from Parent
-	Children     []uuid.UUID  `json:"Children,omitempty" yaml:"Children,omitempty"`
-	LocationPath LocationPath `json:"LocationPath,omitempty" yaml:"LocationPath,omitempty"`
-
-	LocationOrdinal *int
+	Parent           uuid.UUID                        `json:"Parent,omitempty" yaml:"Parent,omitempty" default:"00000000-0000-0000-0000-000000000000" usage:"Parent hardware"`
+	Children         []uuid.UUID                      `json:"Children,omitempty" yaml:"Children,omitempty"`         // derived from Parent
+	LocationPath     LocationPath                     `json:"LocationPath,omitempty" yaml:"LocationPath,omitempty"` // derived from Parent
+	LocationOrdinal  *int                             `json:"LocationOrdinal,omitempty" yaml:"LocationOrdinal,omitempty" default:"" usage:"LocationOrdinal"`
 }
 
 func (hardware *Hardware) SetProviderMetadata(provider Provider, metadata map[string]interface{}) {
@@ -191,6 +188,16 @@ func (lp LocationPath) String() string {
 	}
 
 	return strings.Join(tokens, "->")
+}
+
+func (lp LocationPath) GetOrdinal(hardwareType hardwaretypes.HardwareType) (ordinal int, found bool) {
+	for _, token := range lp {
+		if token.HardwareType == hardwareType {
+			return token.Ordinal, true
+		}
+	}
+
+	return -1, false
 }
 
 // GetHardwareTypePath returns the hardware type path of the location path

@@ -40,6 +40,7 @@ spec_helper_precheck() {
   # also helpful for cani config fixtures if this is a static, abs path
   setenv CANI_DIR="/tmp/.cani"
   setenv CANI_CONF="${CANI_DIR:=/tmp/.cani}/cani.yml"
+  setenv CANI_CONF_SINGLE="${CANI_DIR:=/tmp/.cani}/cani.yml.single"
   setenv CANI_DS="${CANI_DIR:=/tmp/.cani}/canidb.json"
   setenv CANI_LOG="${CANI_DIR:=/tmp/.cani}/canidb.log"
   setenv CANI_CUSTOM_HW_DIR="${CANI_DIR:=/tmp/.cani}/hardware-types"
@@ -87,6 +88,13 @@ use_inactive_session(){
   cp "$FIXTURES"/cani/configs/canitest_valid_inactive.yml "$CANI_CONF"
 } 
 
+# deploys an older single-provider config
+use_single_provider_session(){
+  #shellcheck disable=SC2317
+  mkdir -p "$(dirname "$CANI_CONF")"
+  cp "$FIXTURES"/cani/configs/valid_single_provider_deprecated.yml "$CANI_CONF"
+}
+
 use_custom_hw_type(){ 
   mkdir -p "$(dirname "$CANI_CUSTOM_HW_CONF")"
   #shellcheck disable=SC2317
@@ -106,6 +114,14 @@ use_valid_datastore_one_hpe_eia_cabinet_cabinet(){
   #shellcheck disable=SC2317
   cp "$FIXTURES"/cani/configs/canitestdb_valid_eia_only.json "$CANI_DS"
 } 
+
+# deploys a datastore with one eia cabinet (and child hardware) and one blade
+use_valid_datastore_one_hpe_eia_cabinet_cabinet_one_blade(){ 
+  mkdir -p "$(dirname "$CANI_DS")"
+  #shellcheck disable=SC2317
+  cp "$FIXTURES"/cani/configs/canitestdb_valid_eia_only_one_blade.json "$CANI_DS"
+} 
+
 
 # deploys a datastore with one ex2000 cabinet (and child hardware)
 use_valid_datastore_one_hpe_ex2000_cabinet(){ 

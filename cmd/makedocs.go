@@ -35,12 +35,11 @@ import (
 
 // MakeDocsCmd represents the makedocs command
 var MakeDocsCmd = &cobra.Command{
-	Use:          "makedocs",
-	Short:        "Generate markdown docs to ./docs/",
-	Long:         `Generate markdown docs to ./docs/`,
-	Args:         cobra.NoArgs,
-	SilenceUsage: true, // Errors are more important than the usage
-	RunE:         makeDocs,
+	Use:   "makedocs",
+	Short: "Generate markdown docs to ./docs/",
+	Long:  `Generate markdown docs to ./docs/`,
+	Args:  cobra.NoArgs,
+	RunE:  makeDocs,
 }
 
 // makeDocs generates mardown docs for all cobra commands

@@ -26,11 +26,12 @@
 package provider
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
 var ErrDataValidationFailure = fmt.Errorf("data validation failure")
@@ -38,24 +39,40 @@ var ErrDataValidationFailure = fmt.Errorf("data validation failure")
 // TODO Need to think about how internal data structures should be supplied to the Inventory Provider
 type InventoryProvider interface {
 	// Validate the external services of the inventory provider are correct
-	ValidateExternal(ctx context.Context, configOptions ConfigOptions) error
+	ValidateExternal(cmd *cobra.Command, args []string) error
 
 	// Validate the representation of the inventory data into the destination inventory system
 	// is consistent. The default set of checks will verify all currently provided data is valid.
 	// If enableRequiredDataChecks is set to true, additional checks focusing on missing data will be ran.
-	ValidateInternal(ctx context.Context, datastore inventory.Datastore, enableRequiredDataChecks bool) (map[uuid.UUID]HardwareValidationResult, error)
+	ValidateInternal(cmd *cobra.Command, args []string, datastore inventory.Datastore, enableRequiredDataChecks bool) (map[uuid.UUID]HardwareValidationResult, error)
 
 	// Import external inventory data into CANI's inventory format
-	Import(ctx context.Context, datastore inventory.Datastore) error
+	// This initializes the data and replaces the existing data
+	ImportInit(cmd *cobra.Command, args []string, datastore inventory.Datastore) error
+
+	// Import external inventory data after initialization
+	// This import should merge the imported data with the existing data
+	Import(cmd *cobra.Command, args []string, datastore inventory.Datastore) error
+
+	// Export inventory in various formats
+	Export(cmd *cobra.Command, args []string, datastore inventory.Datastore) error
 
 	// Reconcile CANI's inventory state with the external inventory state and apply required changes
-	Reconcile(ctx context.Context, configOptions ConfigOptions, datastore inventory.Datastore, dryrun bool, ignoreExternalValidation bool) error
+	Reconcile(cmd *cobra.Command, args []string, datastore inventory.Datastore, dryrun bool, ignoreExternalValidation bool) error
 
 	// RecommendHardware returns recommended settings for adding hardware based on the deviceTypeSlug
-	RecommendHardware(inv inventory.Inventory, deviceTypeSlug string) (HardwareRecommendations, error)
+	RecommendHardware(inv inventory.Inventory, cmd *cobra.Command, args []string, auto bool) (recommended HardwareRecommendations, err error)
 
-	// Get Config Options that are specific to the Provider. For example, supported Roles and SubRoles
-	ConfigOptions(ctx context.Context) (ConfigOptions, error)
+	// SetProviderOptions are specific to the Provider. For example, supported Roles and SubRoles
+	SetProviderOptions(cmd *cobra.Command, args []string) error
+
+	// SetProviderOptionsInterface passes the options down to the provider as an interface
+	// It must be type-asserted at that layer and then set
+	SetProviderOptionsInterface(interface{}) error
+
+	// GetProviderOptions gets the options from the provider as an interface
+	// It must be type-asserted and then set at the domain layer
+	GetProviderOptions() (interface{}, error)
 
 	//
 	// Provider Hardware Metadata
@@ -63,7 +80,8 @@ type InventoryProvider interface {
 
 	// Build metadata, and add ito the hardware object
 	// This function could return the data to put into object
-	BuildHardwareMetadata(hw *inventory.Hardware, rawProperties map[string]interface{}) error
+	BuildHardwareMetadata(hw *inventory.Hardware, cmd *cobra.Command, args []string, recommendations HardwareRecommendations) error
+	NewHardwareMetadata(hw *inventory.Hardware, cmd *cobra.Command, args []string) error
 
 	// Return values for the given fields from the hardware's metadata
 	GetFields(hw *inventory.Hardware, fieldNames []string) (values []string, err error)
@@ -72,11 +90,14 @@ type InventoryProvider interface {
 	SetFields(hw *inventory.Hardware, values map[string]string) (result SetFieldsResult, err error)
 
 	// Return metadata about each field
-	GetFieldMetadata(configOptions ConfigOptions) ([]FieldMetadata, error)
-}
+	GetFieldMetadata() ([]FieldMetadata, error)
 
-type SlsProvider interface {
-	GetSlsJson(ctx context.Context, configOptions ConfigOptions, datastore inventory.Datastore, skipValidation bool) ([]byte, error)
+	// Workflows
+	ListCabinetMetadataColumns() (columns []string)
+	ListCabinetMetadataRow(inventory.Hardware) (values []string, err error)
+
+	// Print
+	PrintHardware(hw *inventory.Hardware)
 }
 
 type HardwareValidationResult struct {
@@ -101,16 +122,14 @@ type SetFieldsResult struct {
 	ModifiedFields []string
 }
 
-type ConfigOptions struct {
-	ValidRoles      []string
-	ValidSubRoles   []string
-	K8sPodsCidr     string
-	K8sServicesCidr string
-}
-
 type FieldMetadata struct {
 	Name         string
 	Types        string
 	Description  string
 	IsModifiable bool
+}
+
+func (r HardwareRecommendations) Print() {
+	log.Info().Msgf("Suggested cabinet number: %d", r.CabinetOrdinal)
+	log.Info().Msgf("Suggested VLAN ID: %d", r.ProviderMetadata["HMNVlan"])
 }

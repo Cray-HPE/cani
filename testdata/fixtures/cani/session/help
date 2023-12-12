@@ -6,7 +6,7 @@ Usage:
 
 Available Commands:
   apply       Apply changes from the session.
-  init        Initialize and start a session. Will perform an import of system's inventory format.
+  init        Initialize a session and import from the chosen provider.
   status      View session status.
   summary     Show the summary of a stopped session
 

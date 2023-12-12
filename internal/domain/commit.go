@@ -26,22 +26,21 @@
 package domain
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
 type CommitResult struct {
 	ProviderValidationErrors map[uuid.UUID]provider.HardwareValidationResult
 }
 
-func (d *Domain) Commit(ctx context.Context, dryrun bool, ignoreExternalValidation bool) (CommitResult, error) {
+func (d *Domain) Commit(cmd *cobra.Command, args []string, dryrun bool, ignoreExternalValidation bool) (CommitResult, error) {
 	inventoryProvider := d.externalInventoryProvider
-
 	// Perform validation integrity of CANI's inventory data
 	// TODO handle validation result
 	if _, err := d.datastore.Validate(); err != nil {
@@ -53,7 +52,7 @@ func (d *Domain) Commit(ctx context.Context, dryrun bool, ignoreExternalValidati
 
 	// Validate the current state of CANI's inventory data against the provider plugin
 	// for provider specific data
-	if failedValidations, err := inventoryProvider.ValidateInternal(ctx, d.datastore, true); len(failedValidations) > 0 {
+	if failedValidations, err := inventoryProvider.ValidateInternal(cmd, args, d.datastore, true); len(failedValidations) > 0 {
 		return CommitResult{
 			ProviderValidationErrors: failedValidations,
 		}, err
@@ -65,7 +64,7 @@ func (d *Domain) Commit(ctx context.Context, dryrun bool, ignoreExternalValidati
 	}
 
 	// Validate the current state of the external inventory
-	if err := inventoryProvider.ValidateExternal(ctx, d.configOptions); err != nil {
+	if err := inventoryProvider.ValidateExternal(cmd, args); err != nil {
 		if ignoreExternalValidation {
 			log.Warn().Msgf("Ignoring these failures:\n%s", err)
 		} else {
@@ -76,5 +75,5 @@ func (d *Domain) Commit(ctx context.Context, dryrun bool, ignoreExternalValidati
 	}
 
 	// Reconcile our inventory with the external inventory system
-	return CommitResult{}, inventoryProvider.Reconcile(ctx, d.configOptions, d.datastore, dryrun, ignoreExternalValidation)
+	return CommitResult{}, inventoryProvider.Reconcile(cmd, args, d.datastore, dryrun, ignoreExternalValidation)
 }

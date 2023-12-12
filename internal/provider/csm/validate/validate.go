@@ -33,7 +33,6 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/provider/csm/validate/checks"
 	"github.com/Cray-HPE/cani/internal/provider/csm/validate/common"
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
@@ -43,6 +42,13 @@ var (
 	//go:embed schemas/*
 	schemas embed.FS
 )
+
+type ToBeValidated struct {
+	ValidRoles      []string
+	ValidSubRoles   []string
+	K8sPodsCidr     string
+	K8sServicesCidr string
+}
 
 type RawJson interface{}
 
@@ -88,7 +94,7 @@ func unmarshalToSlsState(bytes []byte) (*sls_client.SlsState, common.ValidationR
 }
 
 // Validate validates the data in the response against the SLS schema.
-func ValidateHTTPResponse(configOptions provider.ConfigOptions, slsState *sls_client.SlsState, response *http.Response) ([]common.ValidationResult, error) {
+func (tbv *ToBeValidated) ValidateHTTPResponse(slsState *sls_client.SlsState, response *http.Response) ([]common.ValidationResult, error) {
 	results := make([]common.ValidationResult, 0)
 
 	// Parse HTTP response body to get raw JSON payload
@@ -114,10 +120,10 @@ func ValidateHTTPResponse(configOptions provider.ConfigOptions, slsState *sls_cl
 				Description: fmt.Sprintf("SLS failed to parse dumpstate. %s", err)})
 	}
 
-	return validate(configOptions, slsState, rawJson, results...)
+	return tbv.validate(slsState, rawJson, results...)
 }
 
-func ValidateString(configOptions provider.ConfigOptions, slsStateBytes []byte) ([]common.ValidationResult, error) {
+func (tbv *ToBeValidated) ValidateString(slsStateBytes []byte) ([]common.ValidationResult, error) {
 	results := make([]common.ValidationResult, 0)
 
 	rawJson, result, err := unmarshalToInterface(slsStateBytes)
@@ -132,12 +138,12 @@ func ValidateString(configOptions provider.ConfigOptions, slsStateBytes []byte) 
 		return results, err
 	}
 
-	r, err := validate(configOptions, slsState, rawJson)
+	r, err := tbv.validate(slsState, rawJson)
 	results = append(results, r...)
 	return results, err
 }
 
-func Validate(configOptions provider.ConfigOptions, slsState *sls_client.SlsState) ([]common.ValidationResult, error) {
+func (tbv *ToBeValidated) Validate(slsState *sls_client.SlsState) ([]common.ValidationResult, error) {
 	// If we don't get a raw SLS payload, such as validating an SLS state build inside this tool we need to create the JSON version of the payload
 	rawSLSState, err := json.Marshal(*slsState)
 	if err != nil {
@@ -151,10 +157,10 @@ func Validate(configOptions provider.ConfigOptions, slsState *sls_client.SlsStat
 		return results, err
 	}
 
-	return validate(configOptions, slsState, rawJson, results...)
+	return tbv.validate(slsState, rawJson, results...)
 }
 
-func validate(configOptions provider.ConfigOptions, slsState *sls_client.SlsState, rawSLSState RawJson, additionalResults ...common.ValidationResult) ([]common.ValidationResult, error) {
+func (tbv *ToBeValidated) validate(slsState *sls_client.SlsState, rawSLSState RawJson, additionalResults ...common.ValidationResult) ([]common.ValidationResult, error) {
 	results := common.NewValidationResults()
 	results.Add(additionalResults...)
 
@@ -171,11 +177,11 @@ func validate(configOptions provider.ConfigOptions, slsState *sls_client.SlsStat
 			slsStateExtended.TypeToHardware,
 			slsStateExtended.ParentHasChildren,
 			slsState.Networks,
-			configOptions.ValidRoles,
-			configOptions.ValidSubRoles),
+			tbv.ValidRoles,
+			tbv.ValidSubRoles),
 		checks.NewHardwareChassisBmcCheck(slsState.Hardware, slsStateExtended.TypeToHardware),
 		checks.NewRequiedNetworkCheck(slsState.Networks),
-		checks.NewNetworkIpRangeCheck(slsStateExtended, configOptions.K8sPodsCidr, configOptions.K8sServicesCidr),
+		checks.NewNetworkIpRangeCheck(slsStateExtended, tbv.K8sPodsCidr, tbv.K8sServicesCidr),
 		checks.NewNetworkSubnetCheck(slsStateExtended),
 	}
 

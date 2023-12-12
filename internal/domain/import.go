@@ -25,10 +25,12 @@
  */
 package domain
 
-import (
-	"context"
-)
+import "github.com/spf13/cobra"
 
-func (d *Domain) Import(ctx context.Context) error {
-	return d.externalInventoryProvider.Import(ctx, d.datastore)
+func (d *Domain) ImportInit(cmd *cobra.Command, args []string) error {
+	return d.externalInventoryProvider.ImportInit(cmd, args, d.datastore)
+}
+
+func (d *Domain) Import(cmd *cobra.Command, args []string) error {
+	return d.externalInventoryProvider.Import(cmd, args, d.datastore)
 }

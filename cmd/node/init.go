@@ -26,25 +26,28 @@
 package node
 
 import (
+	"os"
+
 	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
 var (
-	cabinet  int
-	chassis  int
-	blade    int
-	nodecard int
-	node     int
-	role     string
-	subrole  string
-	nid      int
-	alias    string
-	nodeUuid string
-	format   string
-	sortBy   string
+	cabinet               int
+	chassis               int
+	blade                 int
+	nodecard              int
+	node                  int
+	nodeUuid              string
+	format                string
+	sortBy                string
+	ProviderAddNodeCmd    = &cobra.Command{}
+	ProviderUpdateNodeCmd = &cobra.Command{}
 )
 
 func init() {
+	var err error
 	// Add variants to root commands
 	root.AddCmd.AddCommand(AddNodeCmd)
 	root.ListCmd.AddCommand(ListNodeCmd)
@@ -54,10 +57,13 @@ func init() {
 	// Add a flag to show supported types
 	AddNodeCmd.Flags().BoolP("list-supported-types", "L", false, "List supported hardware types.")
 
-	AddNodeCmd.Flags().StringVar(&role, "role", "", "Role of the node")
-	AddNodeCmd.Flags().StringVar(&subrole, "subrole", "", "Subrole of the node")
-	AddNodeCmd.Flags().IntVar(&nid, "nid", 0, "NID of the node")
-	AddNodeCmd.Flags().StringVar(&alias, "alias", "", "Alias of the node")
+	// Merge CANI's command with the provider-specified command
+	// this allows for CANI's operations to remain consistent, while adding provider config on top
+	err = root.MergeProviderCommand(AddNodeCmd, ProviderAddNodeCmd)
+	if err != nil {
+		log.Error().Msgf("%+v", err)
+		os.Exit(1)
+	}
 
 	// Blades have several parents, so we need to add flags for each
 	UpdateNodeCmd.Flags().IntVar(&cabinet, "cabinet", 1001, "Parent cabinet")
@@ -65,17 +71,18 @@ func init() {
 	UpdateNodeCmd.Flags().IntVar(&blade, "blade", 1, "Parent blade")
 	UpdateNodeCmd.Flags().IntVar(&nodecard, "nodecard", 1, "Parent node card")
 	UpdateNodeCmd.Flags().IntVar(&node, "node", 1, "Node to update")
-
-	// CSM specific options
-	// TODO a thought, it might be neat if the options that CANI shows changes based on the active provider
-	UpdateNodeCmd.Flags().StringVar(&role, "role", "", "Role of the node")
-	UpdateNodeCmd.Flags().StringVar(&subrole, "subrole", "", "Subrole of the node")
-	UpdateNodeCmd.Flags().IntVar(&nid, "nid", 0, "NID of the node")
-	UpdateNodeCmd.Flags().StringVar(&alias, "alias", "", "Alias of the node")
 	UpdateNodeCmd.Flags().StringVar(&nodeUuid, "uuid", "", "UUID of the node to update")
 
 	UpdateNodeCmd.MarkFlagsRequiredTogether("cabinet", "chassis", "blade", "nodecard", "node")
 	UpdateNodeCmd.MarkFlagsMutuallyExclusive("uuid")
 	ListNodeCmd.Flags().StringVarP(&format, "format", "f", "pretty", "Format output")
 	ListNodeCmd.Flags().StringVarP(&sortBy, "sort", "s", "location", "Sort by a specific key")
+
+	// Merge CANI's command with the provider-specified command
+	// this allows for CANI's operations to remain consistent, while adding provider config on top
+	err = root.MergeProviderCommand(UpdateNodeCmd, ProviderUpdateNodeCmd)
+	if err != nil {
+		log.Error().Msgf("%+v", err)
+		os.Exit(1)
+	}
 }

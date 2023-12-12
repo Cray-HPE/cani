@@ -36,29 +36,28 @@ import (
 
 // SessionStatusCmd represents the session status command
 var SessionStatusCmd = &cobra.Command{
-	Use:          "status",
-	Short:        "View session status.",
-	Long:         `View session status.`,
-	SilenceUsage: true, // Errors are more important than the usage
-	RunE:         showSession,
+	Use:   "status",
+	Short: "View session status.",
+	Long:  `View session status.`,
+	RunE:  showSession,
 }
 
 // showSession shows the status of the session
 func showSession(cmd *cobra.Command, args []string) error {
-	ds := root.Conf.Session.DomainOptions.DatastorePath
-	provider := root.Conf.Session.DomainOptions.Provider
-	conf := root.RootCmd.Flag("config").Value.String()
-
-	// If the session is active, check that the datastore exists
-	log.Info().Msgf("See %s for session details", conf)
-	if root.Conf.Session.Active {
-		_, err := os.Stat(ds)
-		if err != nil {
-			return fmt.Errorf("Session is ACTIVE with provider '%s' but datastore '%s' does not exist", provider, ds)
+	for p, d := range root.Conf.Session.Domains {
+		if d.Active {
+			ds := d.DatastorePath
+			conf := root.RootCmd.PersistentFlags().Lookup("config").Value.String()
+			// If the session is active, check that the datastore exists
+			_, err := os.Stat(ds)
+			if err != nil {
+				return fmt.Errorf("Session is ACTIVE with provider '%s' but datastore '%s' does not exist", p, ds)
+			}
+			log.Info().Msgf("Session is ACTIVE for %s", p)
+			log.Info().Msgf("See %s for session details", conf)
+		} else {
+			log.Info().Msgf("Session is INACTIVE for %s", p)
 		}
-		log.Info().Msgf("Session is ACTIVE")
-	} else {
-		log.Info().Msgf("Session is INACTIVE")
 	}
 
 	return nil

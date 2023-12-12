@@ -35,9 +35,14 @@ import (
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
-func (csm *CSM) RecommendHardware(inv inventory.Inventory, deviceTypeSlug string) (recommended provider.HardwareRecommendations, err error) {
+func (csm *CSM) RecommendHardware(inv inventory.Inventory, cmd *cobra.Command, args []string, auto bool) (recommended provider.HardwareRecommendations, err error) {
+	var deviceTypeSlug string
+	if cmd.Parent().Name() == "add" {
+		deviceTypeSlug = args[0]
+	}
 	// loop through the existing inventory to check for vlans
 	log.Debug().Msg("Checking existing hardware to find recommendations")
 	deviceType, exists := csm.hardwareLibrary.DeviceTypes[deviceTypeSlug]
@@ -48,9 +53,13 @@ func (csm *CSM) RecommendHardware(inv inventory.Inventory, deviceTypeSlug string
 
 	switch deviceType.HardwareType {
 	case hardwaretypes.Cabinet:
-		r, err := csm.recommendCabinet(inv, deviceTypeSlug)
+		r, err := csm.recommendCabinet(inv, cmd, args, auto)
 		if err != nil {
 			return recommended, err
+		}
+		if !auto {
+			r.CabinetOrdinal, _ = cmd.Flags().GetInt("cabinet")
+			r.ProviderMetadata["HMNVlan"], _ = cmd.Flags().GetInt("vlan-id")
 		}
 		recommended = r
 
@@ -62,6 +71,12 @@ func (csm *CSM) RecommendHardware(inv inventory.Inventory, deviceTypeSlug string
 		}
 		recommended = r
 
+	case hardwaretypes.Node:
+		r, err := csm.recommendNode(inv, cmd, args, auto)
+		if err != nil {
+			return recommended, err
+		}
+		recommended = r
 	default:
 		// This function only handles cabinets and blades
 	}
@@ -70,7 +85,12 @@ func (csm *CSM) RecommendHardware(inv inventory.Inventory, deviceTypeSlug string
 	return recommended, nil
 }
 
-func (csm *CSM) recommendCabinet(inv inventory.Inventory, deviceTypeSlug string) (recommended provider.HardwareRecommendations, err error) {
+func (csm *CSM) recommendNode(inv inventory.Inventory, cmd *cobra.Command, args []string, auto bool) (recommended provider.HardwareRecommendations, err error) {
+	return recommended, nil
+}
+
+func (csm *CSM) recommendCabinet(inv inventory.Inventory, cmd *cobra.Command, args []string, auto bool) (recommended provider.HardwareRecommendations, err error) {
+	deviceTypeSlug := args[0]
 	// slice to track existing vlans
 	var existingVlans = []int{}
 	// slice to track existing cabinets

@@ -1,14 +1,27 @@
 <p align="center">
-  <img src="https://user-images.githubusercontent.com/3843505/235496554-806630e3-a818-4e04-8d46-6a024994d08f.png"" width="150" height="150" alt="cani">
+  <img src="docs/custom_theme/img/hpe_pri_wht_rev_rgb.png"" width="150" height="63" alt="HPE Logo">
   <br>
-  <strong>cani: Cani's Automated Nomicon Inventory</strong>
+  <strong>Continuous And Never-ending Inventory</strong>
 </p>
 
-> Can I manage an inventory of an entire datacenter? From subfloor to top-of-rack, **yes** you can.
+# Use Cases
 
-# `cani` Converges Disparate Hardware Inventory Systems
+- Migrating from one inventory system to another
+- Validating exisiting inventory data
+- Exporting to another inventory format
+- Serving as a front-end for the UX, while the backend is replaced with something new
+- Use as a new self-contained inventory system
 
-You can inventory hardware with this utility.  The tool itself generates a portable inventory format that can serve as the source of truth itself.  It can also be used to transition from one inventory system to another, using `cani`'s portable format as an intermediate inventory.
+# Add/Remove/Update Hardware Example
+
+```shell
+cani session init csm # start a session with a specific provider by importing data and converting it to CANI format
+cani add cabinet hpe-ex4000 --auto --accept # add hardware (child hardware is added automatically: chassis, controllers, etc.)
+cani add blade hpe-crayex-ex4252-compute-blade --auto --accept # add a blade to the cabinet (and any nodes that hardware contains)
+cani update node --uuid abcdef12-3456-2789-abcd-ef1234567890 --role Management --subrole Worker --nid 4 # update hardware metadata
+cani export --format hpcm # export to another inventory format (can also commit and init a new session with a different provider)
+cani session apply --commit # apply changes, retaining the CANI format, and optionally posting data to the provider
+```
 
 ## Portable Inventory Format
 
@@ -31,6 +44,7 @@ You can inventory hardware with this utility.  The tool itself generates a porta
 }
 ```
 
-## External Inventory Providers
+## Currently Supported Providers
 
-`cani` has built-in support for CSM and can communicate with SLS and HSM.  Support for other inventory providers is still under development.
+- CSM
+- HPCM (WIP)

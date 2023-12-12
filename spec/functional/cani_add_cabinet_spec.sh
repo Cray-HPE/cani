@@ -38,6 +38,7 @@ End
 # Adding a cabinet withot a hardware type should fail
 # it should list the available hardware types
 It "--config $CANI_CONF"
+  BeforeCall use_active_session # session is active
   When call bin/cani alpha add cabinet --config "$CANI_CONF"
   The status should equal 1
   The line 1 of stderr should include 'Error: No hardware type provided: Choose from: hpe-eia-cabinet", "hpe-ex2000", "hpe-ex2500-1-liquid-cooled-chassis", "hpe-ex2500-2-liquid-cooled-chassis", "hpe-ex2500-3-liquid-cooled-chassis", "hpe-ex3000", "hpe-ex4000'
@@ -69,7 +70,7 @@ It "--config $CANI_CONF hpe-ex2000"
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
   When call bin/cani alpha add cabinet --config "$CANI_CONF" hpe-ex2000
   The status should equal 1
-  The line 1 of stderr should equal "Error: No active session.  Run 'session start' to begin"
+  The line 1 of stderr should include "No active session."
 End
 
 # Adding a cabinet should fail if:
@@ -80,7 +81,7 @@ It "--config $CANI_CONF hpe-ex2000"
   BeforeCall remove_datastore # datastore does not exist
   When call bin/cani alpha add cabinet --config "$CANI_CONF" hpe-ex2000
   The status should equal 1
-  The line 1 of stderr should equal "Error: Datastore '$CANI_DS' does not exist.  Run 'session start' to begin"
+  The line 1 of stderr should include "Datastore '$CANI_DS' does not exist.  Run 'session init' to begin"
 End
 
 # Adding a cabinet should fail if:

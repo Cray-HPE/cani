@@ -23,14 +23,14 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package domain
+package csm
 
 import (
+	"bufio"
 	"context"
 	"encoding/csv"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"sort"
 	"strconv"
@@ -38,9 +38,9 @@ import (
 	"text/tabwriter"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
-	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -58,12 +58,76 @@ var (
 		"nid":            "Nid"}
 )
 
-func (d *Domain) ListCsvOptions(ctx context.Context, opts *DomainOpts) error {
-	configOptions := provider.ConfigOptions{
-		ValidRoles:    opts.CsmOptions.ValidRoles,
-		ValidSubRoles: opts.CsmOptions.ValidSubRoles,
+func (csm *CSM) Export(cmd *cobra.Command, args []string, datastore inventory.Datastore) error {
+	switch exportFormat {
+	case "csv":
+		return csm.exportCsv(cmd, args, datastore)
+	case "sls-json":
+		return csm.exportJson(cmd, args, datastore, ignoreValidation)
+	default:
+		return fmt.Errorf("the requested format, %s, is unsupported", exportFormat)
 	}
-	metadata, err := d.externalInventoryProvider.GetFieldMetadata(configOptions)
+}
+
+func (csm *CSM) exportCsv(cmd *cobra.Command, args []string, datastore inventory.Datastore) error {
+	if csvListOptions {
+		err := csm.listCsvOptions(cmd.Context())
+		if err != nil {
+			return err
+		}
+	} else {
+		headers := strings.Split(csvHeaders, ",")
+		for i, header := range headers {
+			headers[i] = strings.TrimSpace(header)
+		}
+		log.Debug().Msgf("headers: %v", headers)
+
+		var types []string
+		if csvAllTypes {
+			// empty list means all types
+			log.Debug().Msgf("types: all")
+		} else {
+			types = strings.Split(csvComponentTypes, ",")
+			for i, t := range types {
+				types[i] = strings.TrimSpace(t)
+			}
+			log.Debug().Msgf("types: %v", types)
+		}
+
+		w := csv.NewWriter(os.Stdout)
+		err := csm.exportCsvInternal(cmd.Context(), datastore, w, headers, types)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (csm *CSM) exportJson(cmd *cobra.Command, args []string, datastore inventory.Datastore, ignoreValidation bool) error {
+	cmd.SilenceUsage = true
+
+	f := os.Stdout
+	writer := bufio.NewWriter(f)
+	defer writer.Flush()
+
+	exportedJson, err := csm.exportSlsJson(cmd, args, datastore, ignoreValidation)
+	if err != nil {
+		return err
+	}
+	writer.Write(exportedJson)
+	writer.Write([]byte("\n"))
+
+	writer.Flush() // explicitly calling Flush here makes sure that any following log messages come after the sls json
+
+	if ignoreValidation {
+		log.Warn().Msg("Validation was not run. The SLS json may not be valid. Remove the --ignore-validate option to validate it.")
+	}
+
+	return nil
+}
+
+func (csm *CSM) listCsvOptions(ctx context.Context) error {
+	metadata, err := csm.GetFieldMetadata()
 	if err != nil {
 		return err
 	}
@@ -83,9 +147,9 @@ func (d *Domain) ListCsvOptions(ctx context.Context, opts *DomainOpts) error {
 	return nil
 }
 
-func (d *Domain) ExportCsv(ctx context.Context, writer *csv.Writer, headers []string, types []string) error {
+func (csm *CSM) exportCsvInternal(ctx context.Context, datastore inventory.Datastore, writer *csv.Writer, headers []string, types []string) error {
 	// Get the entire inventory
-	inv, err := d.datastore.List()
+	inv, err := datastore.List()
 	if err != nil {
 		return errors.Join(fmt.Errorf("failed to read the hardware from the database"), err)
 	}
@@ -119,7 +183,7 @@ func (d *Domain) ExportCsv(ctx context.Context, writer *csv.Writer, headers []st
 		if _, ok := typeSet[strings.ToLower(string(hw.Type))]; !allTypes && !ok {
 			continue
 		}
-		row, err := d.externalInventoryProvider.GetFields(&hw, normalizedHeaders)
+		row, err := csm.GetFields(&hw, normalizedHeaders)
 		if err != nil {
 			return errors.Join(fmt.Errorf("unexpected error getting fields, %v, from hardware %v", normalizedHeaders, hw.ID), err)
 		}
@@ -131,89 +195,6 @@ func (d *Domain) ExportCsv(ctx context.Context, writer *csv.Writer, headers []st
 		writer.Flush()
 	}
 	return nil
-}
-
-func (d *Domain) ImportCsv(ctx context.Context, reader *csv.Reader) (result provider.CsvImportResult, err error) {
-	tempDatastore, err := d.datastore.Clone()
-	if err != nil {
-		return result, err
-	}
-
-	headers, err := getNextRow(reader)
-	if err == io.EOF {
-		return result, fmt.Errorf("the CSV file is empty")
-	}
-	if err != nil {
-		return result, err
-	}
-
-	foundIDHeader := false
-	for _, header := range headers {
-		if header == "ID" {
-			foundIDHeader = true
-		}
-	}
-	if !foundIDHeader {
-		return result, fmt.Errorf("ID column is missing")
-	}
-
-	for {
-		row, err := getNextRowAsMap(reader, headers)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return result, err
-		}
-
-		result.Total++
-
-		idStr, ok := row["ID"]
-		if !ok {
-			return result, fmt.Errorf("missing ID for row %d", result.Total+1)
-		}
-
-		id, err := uuid.Parse(idStr)
-		if err != nil {
-			return result, errors.Join(fmt.Errorf("failed to parse %v as a UUID", idStr), err)
-		}
-
-		hw, err := tempDatastore.Get(id)
-		if err != nil {
-			return result, errors.Join(fmt.Errorf("could not find hardware with the UUID %v. This call can only be used to update existing hardware", id), err)
-		}
-
-		setResult, err := d.externalInventoryProvider.SetFields(&hw, row)
-		if err != nil {
-			return result,
-				errors.Join(fmt.Errorf("unexpected error setting fields, %v, from hardware %v", row, hw.ID), err)
-		}
-
-		if len(setResult.ModifiedFields) > 0 {
-			log.Debug().Msgf("Updated %v modifying the fields: %v", id, setResult.ModifiedFields)
-			err = tempDatastore.Update(&hw)
-			if err != nil {
-				return result, errors.Join(fmt.Errorf("failed to write to the database the hardware %v", id), err)
-			}
-			result.Modified++
-		}
-	}
-
-	if result.Modified > 0 {
-		results, err := d.externalInventoryProvider.ValidateInternal(ctx, tempDatastore, false)
-		if err != nil {
-			result.ValidationResults = results
-			return result, err
-		}
-
-		if err := d.datastore.Merge(tempDatastore); err != nil {
-			return result, errors.Join(fmt.Errorf("failed to merge temporary datastore with actual datastore"), err)
-		}
-		if err := d.datastore.Flush(); err != nil {
-			return result, errors.Join(fmt.Errorf("failed to write datastore to disk"), err)
-		}
-	}
-	return result, nil
 }
 
 func getNextRow(reader *csv.Reader) ([]string, error) {

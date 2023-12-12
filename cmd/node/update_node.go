@@ -30,9 +30,7 @@ import (
 	"sort"
 
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/Cray-HPE/cani/internal/provider"
-	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -40,40 +38,14 @@ import (
 
 // UpdateNodeCmd represents the node update command
 var UpdateNodeCmd = &cobra.Command{
-	Use:               "node",
-	Short:             "Update nodes in the inventory.",
-	Long:              `Update nodes in the inventory.`,
-	PersistentPreRunE: root.DatastoreExists, // A session must be active to write to a datastore
-	SilenceUsage:      true,                 // Errors are more important than the usage
-	RunE:              updateNode,           // Update a node when this sub-command is called
+	Use:   "node",
+	Short: "Update nodes in the inventory.",
+	Long:  `Update nodes in the inventory.`,
+	RunE:  updateNode, // Update a node when this sub-command is called
 }
 
 // updateNode updates a node to the inventory
-func updateNode(cmd *cobra.Command, args []string) error {
-	// Create a domain object to interact with the datastore
-	d, err := domain.New(root.Conf.Session.DomainOptions)
-	if err != nil {
-		return err
-	}
-
-	// Push all the CLI flags that were provided into a generic map
-	// TODO Need to figure out how to specify to unset something
-	// Right now the build metadata function in the CSM provider will
-	// unset options if nil is passed in.
-	nodeMeta := map[string]interface{}{}
-	if cmd.Flags().Changed("role") {
-		nodeMeta[csm.ProviderMetadataRole] = role
-	}
-	if cmd.Flags().Changed("subrole") {
-		nodeMeta[csm.ProviderMetadataSubRole] = subrole
-	}
-	if cmd.Flags().Changed("alias") {
-		nodeMeta[csm.ProviderMetadataAlias] = alias
-	}
-	if cmd.Flags().Changed("nid") {
-		nodeMeta[csm.ProviderMetadataNID] = nid
-	}
-
+func updateNode(cmd *cobra.Command, args []string) (err error) {
 	// Remove the node from the inventory using domain methods
 	if cmd.Flags().Changed("uuid") {
 		// parse the passed in uuid
@@ -82,7 +54,7 @@ func updateNode(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		// get the inventory
-		inv, err := d.List()
+		inv, err := root.D.List()
 		if err != nil {
 			return err
 		}
@@ -96,7 +68,7 @@ func updateNode(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	result, err := d.UpdateNode(cmd.Context(), cabinet, chassis, blade, nodecard, node, nodeMeta)
+	result, err := root.D.UpdateNode(cmd, args, cabinet, chassis, blade, nodecard, node)
 	if errors.Is(err, provider.ErrDataValidationFailure) {
 		// TODO the following should probably suggest commands to fix the issue?
 		log.Error().Msgf("Inventory data validation errors encountered")
@@ -114,7 +86,6 @@ func updateNode(cmd *cobra.Command, args []string) error {
 	}
 
 	// TODO need a better identify, perhaps its UUID, or its location path?
-	// log.Info().Msgf("Updated node %s", args[0])
 	log.Info().Msgf("Updated node")
 	return nil
 }

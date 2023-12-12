@@ -22,40 +22,38 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 session:
-    domain_options:
-        datastore_path: /tmp/.cani/canidb.json
-        log_file_path: /tmp/.cani/canidb.log
-        provider: csm
-        csm_options:
-            usesimulation: true
-            insecureskipverify: true
-            apigatewaytoken: ""
-            baseurlsls: https://localhost:8443/apis/sls/v1
-            baseurlhsm: https://localhost:8443/apis/smd/hsm/v2
-            secretname: admin-client-auth
-            k8spodscidr: 10.32.0.0/12
-            k8sservicescidr: 10.16.0.0/12
-            kubeconfig: ""
-            providerhost: localhost:8443
-            cacertpath: ""
-            validroles:
-                - Storage
-                - Management
-                - Storage
-                - Management
-                - Compute
-                - Service
-                - System
-                - Application
-            validsubroles:
-                - UAN
-                - Gateway
-                - LNETRouter
-                - Visualization
-                - UserDefined
-                - Master
-                - Worker
-                - Storage
-        custom_hardware_types_dir: /tmp/.cani/hardware-types
-    domain: {}
-    active: false
+    domains:
+        csm:
+            active: false
+            datastore_path: /tmp/.cani/canidb.json
+            log_file_path: /tmp/.cani/canidb.log
+            custom_hardware_types_dir: /tmp/.cani/hardware-types
+            provider: csm
+            options:
+                usesimulation: true
+                insecureskipverify: true
+                apigatewaytoken: ""
+                baseurlsls: https://localhost:8443/apis/sls/v1
+                baseurlhsm: https://localhost:8443/apis/smd/hsm/v2
+                secretname: admin-client-auth
+                k8spodscidr: 10.32.0.0/12
+                k8sservicescidr: 10.16.0.0/12
+                kubeconfig: ""
+                providerhost: localhost:8443
+                cacertpath: ""
+                validroles:
+                    - Management
+                    - Compute
+                    - Service
+                    - System
+                    - Application
+                    - Storage
+                validsubroles:
+                    - Storage
+                    - UAN
+                    - Gateway
+                    - LNETRouter
+                    - Visualization
+                    - UserDefined
+                    - Master
+                    - Worker
