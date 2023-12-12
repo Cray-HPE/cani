@@ -1,6 +1,5 @@
 #!/usr/bin/env sh
 #
-#
 # MIT License
 #
 # (C) Copyright 2023 Hewlett Packard Enterprise Development LP
@@ -22,7 +21,6 @@
 # OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
-#
 #
 Describe 'cani session'
 
@@ -194,4 +192,37 @@ It 'initialize a session with a CIDR that overlaps k8s values'
   The stderr should include 'k8sservicescidr 10.16.0.0/12 overlaps with CAN 10.16.0.0/12'
 End
 
+# running any command with an older-style config should update the config file to the new format
+It 'add a cabinet with a single-provider config'
+  BeforeCall use_single_provider_session
+  BeforeCall use_valid_datastore_system_only
+  BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
+  When call bin/cani --config "$CANI_CONF" alpha add cabinet hpe-ex4000 --auto --accept
+  The status should equal 0
+  The stderr should include 'Translating single-provider config to multi-provider'
+
+  # The config should get created
+  The path "$CANI_CONF" should be exist
+  The path "$CANI_CONF" should be file
+  # the single-provider config should be renamed
+  The path "$CANI_CONF_SINGLE" should be exist
+  The path "$CANI_CONF_SINGLE" should be file
+End
+
+End
+
+# the single-provider fixture has one key with a user-defined value
+# this key should be migrated to the new format, as opposed to creating new default values
+Describe 'migrated config should retain user-defined values'
+  cat_config(){
+    cat "$CANI_CONF" >&2
+  }
+
+  It 'check if a key matches the expected value'
+    When call cat_config
+    The status should equal 0
+    # the deprecated fixture contains a value of 'migrated'
+    # check to see if it now exists in the converted config file
+    The stderr should include 'migrated'
+  End
 End
