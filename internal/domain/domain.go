@@ -128,6 +128,7 @@ func (d *Domain) SetupDomain(cmd *cobra.Command, args []string, configDomains ma
 	if err != nil {
 		return errors.Join(
 			fmt.Errorf("failed to initialize CSM external inventory provider"),
+			fmt.Errorf("failed to initialize CSM external inventory provider"),
 			err,
 		)
 	}

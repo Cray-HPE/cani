@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -23,37 +23,38 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package domain
+package hpengi
 
 import (
-	"fmt"
-
-	"github.com/Cray-HPE/cani/internal/provider/csm"
-	"github.com/Cray-HPE/cani/internal/provider/hpcm"
-	"github.com/Cray-HPE/cani/internal/provider/hpengi"
+	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/internal/domain.init")
-}
-
-// NewProviderCmd returns the appropriate command to the cmd layer
-func NewProviderCmd(caniCmd *cobra.Command, p string) (providerCmd *cobra.Command, err error) {
-	providerCmd = &cobra.Command{}
-	switch p {
-	case "csm":
-		providerCmd, err = csm.NewProviderCmd(caniCmd)
-	case "hpcm":
-		providerCmd, err = hpcm.NewProviderCmd(caniCmd)
-	case "hpengi":
-		providerCmd, err = hpengi.NewProviderCmd(caniCmd)
-	default:
-		err = fmt.Errorf("no command matched for provider %s", p)
-	}
+// ValidateInternal validates the representation of the CANI inventory data into
+// the provider's inventory system is consistent. The default set of checks will
+// verify all currently provided data is valid. If enableRequiredDataChecks is
+// set to true, additional checks focusing on missing data will be ran.
+func (hpengi *Hpengi) ValidateInternal(cmd *cobra.Command, args []string, datastore inventory.Datastore, enableRequiredDataChecks bool) (map[uuid.UUID]provider.HardwareValidationResult, error) {
+	log.Warn().Msgf("ValidateInternal partially implemented")
+	// Get all hardware
+	inv, err := datastore.List()
 	if err != nil {
-		return providerCmd, nil
+		return nil, err
 	}
-	return providerCmd, nil
+
+	// Build up the validation results map
+	results := map[uuid.UUID]provider.HardwareValidationResult{}
+	for _, hw := range inv.Hardware {
+		results[hw.ID] = provider.HardwareValidationResult{
+			Hardware: hw,
+		}
+	}
+
+	// Do some sort of checks
+
+	// otherwise, return an empty object because nothing is wrong
+	return map[uuid.UUID]provider.HardwareValidationResult{}, nil
 }

@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -23,37 +23,42 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package domain
+package hpengi
 
 import (
-	"fmt"
-
-	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/Cray-HPE/cani/internal/provider/hpcm"
-	"github.com/Cray-HPE/cani/internal/provider/hpengi"
-	"github.com/rs/zerolog/log"
+	"github.com/Cray-HPE/cani/pkg/canu"
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+	sls "github.com/Cray-HPE/hms-sls/v2/pkg/sls-common"
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/internal/domain.init")
+type Hpengi struct {
+	hardwareLibrary *hardwaretypes.Library
+	Options         *HpengiOpts
+	Cid             Cid             `json:"CID"`
+	CmConfig        hpcm.HpcmConfig `json:"CmConfig"`
+	Paddle          *canu.Paddle    `json:"Paddle"`
+	SlsInput        sls.SLSState    `json:"SlsInputFile"`
 }
 
-// NewProviderCmd returns the appropriate command to the cmd layer
-func NewProviderCmd(caniCmd *cobra.Command, p string) (providerCmd *cobra.Command, err error) {
-	providerCmd = &cobra.Command{}
-	switch p {
-	case "csm":
-		providerCmd, err = csm.NewProviderCmd(caniCmd)
-	case "hpcm":
-		providerCmd, err = hpcm.NewProviderCmd(caniCmd)
-	case "hpengi":
-		providerCmd, err = hpengi.NewProviderCmd(caniCmd)
-	default:
-		err = fmt.Errorf("no command matched for provider %s", p)
+type HpengiOpts struct {
+}
+
+// New returns a new Hpengi object, which represents the Hpengi inventory
+// When initializing a new sesssion with 'init,' this function is called.
+// ValidateInternal is then called to ensure CANI's inventory structure is ok
+// ValidateExternal is then called to ensure the provider inventory is ok
+// Import is the last to be called and if successful, a session is activated
+func New(cmd *cobra.Command, args []string, hardwareLibrary *hardwaretypes.Library, opts interface{}) (hpengi *Hpengi, err error) {
+	hpengi = &Hpengi{
+		hardwareLibrary: hardwareLibrary,
+		Options:         &HpengiOpts{},
 	}
-	if err != nil {
-		return providerCmd, nil
-	}
-	return providerCmd, nil
+
+	return hpengi, nil
+}
+
+func (f Hpengi) Slug() string {
+	return "hpengi"
 }

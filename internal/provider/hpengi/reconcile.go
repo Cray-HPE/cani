@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -23,37 +23,16 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package domain
+package hpengi
 
 import (
-	"fmt"
-
-	"github.com/Cray-HPE/cani/internal/provider/csm"
-	"github.com/Cray-HPE/cani/internal/provider/hpcm"
-	"github.com/Cray-HPE/cani/internal/provider/hpengi"
+	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/internal/domain.init")
-}
-
-// NewProviderCmd returns the appropriate command to the cmd layer
-func NewProviderCmd(caniCmd *cobra.Command, p string) (providerCmd *cobra.Command, err error) {
-	providerCmd = &cobra.Command{}
-	switch p {
-	case "csm":
-		providerCmd, err = csm.NewProviderCmd(caniCmd)
-	case "hpcm":
-		providerCmd, err = hpcm.NewProviderCmd(caniCmd)
-	case "hpengi":
-		providerCmd, err = hpengi.NewProviderCmd(caniCmd)
-	default:
-		err = fmt.Errorf("no command matched for provider %s", p)
-	}
-	if err != nil {
-		return providerCmd, nil
-	}
-	return providerCmd, nil
+// Reconcile reconciles CANI's inventory state with the external inventory state and applies required changes
+func (hpengi *Hpengi) Reconcile(cmd *cobra.Command, args []string, datastore inventory.Datastore, dryrun bool, ignoreExternalValidation bool) error {
+	log.Warn().Msgf("Reconcile not yet implemented")
+	return nil
 }

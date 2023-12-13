@@ -261,13 +261,11 @@ func hpcmTypeToCaniHardwareType(hpcmType string) (t hardwaretypes.HardwareType, 
 		t = hardwaretypes.Chassis
 	case "cmc":
 		t = hardwaretypes.ChassisManagementModule
-	case "compute":
-		t = hardwaretypes.Node
 	case "cooldev":
 		t = hardwaretypes.CoolingDistributionUnit
 	case "ib_switch":
 		t = hardwaretypes.HighSpeedSwitch
-	case "leader", "leader_alias", "ice_compute":
+	case "compute", "leader", "leader_alias", "ice_compute":
 		t = hardwaretypes.Node
 	case "leaf", "spine", "mgmt_switch":
 		t = hardwaretypes.ManagementSwitch
