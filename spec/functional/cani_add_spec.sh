@@ -30,4 +30,12 @@ It '--help'
   The stdout should satisfy fixture 'cani/add/help'
 End
 
+It 'no args'
+  BeforeCall remove_config
+  When call bin/cani alpha add
+  The status should equal 0
+  The stdout should satisfy fixture 'cani/add/help'
+  The stderr should include 'No active session.'
+End
+
 End
