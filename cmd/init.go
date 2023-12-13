@@ -174,7 +174,7 @@ func setupDomain(cmd *cobra.Command, args []string) (err error) {
 
 		log.Debug().Msgf("Active provider is: %s", activeDomain.Provider)
 		D = activeDomain
-		err = D.SetupDomain(cmd, args)
+		err = D.SetupDomain(cmd, args, Conf.Session.Domains)
 		if err != nil {
 			return err
 		}

@@ -86,7 +86,7 @@ func initSessionWithProviderCmd(cmd *cobra.Command, args []string) (err error) {
 	// Setup the domain now that the minimum required options are set
 	// This allows the provider to define their own logic and keeps it out
 	// of the 'cmd' package
-	err = root.D.SetupDomain(cmd, args)
+	err = root.D.SetupDomain(cmd, args, root.Conf.Session.Domains)
 	if err != nil {
 		return err
 	}
@@ -98,10 +98,15 @@ func initSessionWithProviderCmd(cmd *cobra.Command, args []string) (err error) {
 		ds := root.D.DatastorePath
 		// Check if the json file exists
 		if _, err := os.Stat(ds); err == nil {
-			// If the json file exists, prompt user for overwrite
-			overwrite, err := promptForOverwrite(ds)
-			if err != nil {
-				return err
+			overwrite := false
+			if forceInit {
+				overwrite = true
+			} else {
+				// If the json file exists, prompt user for overwrite
+				overwrite, err = promptForOverwrite(ds)
+				if err != nil {
+					return err
+				}
 			}
 			if !overwrite {
 				// User chose not to overwrite the file

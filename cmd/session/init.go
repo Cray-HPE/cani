@@ -40,6 +40,7 @@ var (
 	commit                   bool
 	ignoreExternalValidation bool
 	ignoreValidationMessage  = "Ignore validation failures. Use this to allow unconventional configurations."
+	forceInit                bool
 
 	ProviderCmd = &cobra.Command{}
 	// BootstapCmd is used to start a session with a specific provider and allows the provider to define
@@ -74,6 +75,7 @@ func init() {
 
 	// Define the bare minimum needed to determine who the provider for the session will be
 	BootstrapCmd.Flags().BoolVar(&ignoreExternalValidation, "ignore-validation", false, ignoreValidationMessage)
+	BootstrapCmd.Flags().BoolVarP(&forceInit, "force", "f", false, "Overwrite the existing session with a new session")
 
 	// all flags should be set in init().  you can set flags after the fact, but it is much easier to work with everything up front
 	// this will set existing variables for each provider
