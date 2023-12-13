@@ -66,10 +66,6 @@ type InventoryProvider interface {
 	// SetProviderOptions are specific to the Provider. For example, supported Roles and SubRoles
 	SetProviderOptions(cmd *cobra.Command, args []string) error
 
-	// SetProviderOptionsInterface passes the options down to the provider as an interface
-	// It must be type-asserted at that layer and then set
-	SetProviderOptionsInterface(interface{}) error
-
 	// GetProviderOptions gets the options from the provider as an interface
 	// It must be type-asserted and then set at the domain layer
 	GetProviderOptions() (interface{}, error)

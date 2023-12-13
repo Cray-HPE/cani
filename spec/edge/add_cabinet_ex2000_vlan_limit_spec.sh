@@ -63,7 +63,7 @@ End
 It 'Add ex2000 cabinet to reach the vlan limit'
   When call bin/cani alpha --config "$CANI_CONF" add cabinet hpe-ex2000 --auto --accept
   The status should equal 0
-  The line 1 of stderr should include 'Querying inventory to suggest cabinet number and VLAN ID'
+  The line 1 of stderr should include 'Querying inventory to suggest Cabinet'
   The line 2 of stderr should include "Suggested cabinet number: $1"
   The line 3 of stderr should include "Suggested VLAN ID: $2"
   The line 4 of stderr should include "Cabinet $1 was successfully staged to be added to the system"
@@ -76,7 +76,7 @@ Describe 'EDGE:'
 It 'Add ex2000 cabinet to exceed the vlan limit'
   When call bin/cani alpha --config "$CANI_CONF" add cabinet hpe-ex2000 --auto --accept
   The status should equal 1
-  The line 1 of stderr should include 'Querying inventory to suggest cabinet number and VLAN ID'
+  The line 1 of stderr should include 'Querying inventory to suggest Cabinet'
   The line 2 of stderr should include "Suggested cabinet number: 10000"
   The line 3 of stderr should include "Suggested VLAN ID: 4000"
   The line 4 of stderr should equal "Error: VLAN exceeds the provider's maximum range (3999).  Please choose a valid VLAN"

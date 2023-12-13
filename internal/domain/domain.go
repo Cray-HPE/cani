@@ -109,33 +109,34 @@ func (d *Domain) SetupDomain(cmd *cobra.Command, args []string) (err error) {
 	// Instantiate the provider interface object
 	switch d.Provider {
 	case taxonomy.CSM:
-		// Create a new provider object
 		d.externalInventoryProvider, err = csm.New(cmd, args, d.hardwareTypeLibrary, d.Options)
-		if err != nil {
-			return errors.Join(
-				fmt.Errorf("failed to initialize CSM external inventory provider"),
-				err,
-			)
-		}
 
-		if cmd.Name() == "init" {
-			err := d.externalInventoryProvider.SetProviderOptions(cmd, args)
-			if err != nil {
-				return err
-			}
-		}
-		log.Debug().Msgf("setting provider-specific options %+v", d.Options)
-		if d.Options == nil {
-			opts, err := d.externalInventoryProvider.GetProviderOptions()
-			if err != nil {
-				return err
-			}
-
-			d.Options = opts.(interface{})
-		}
-		// }
 	default:
 		return fmt.Errorf("unknown external inventory provider provided (%s)", d.Provider)
+	}
+
+	if err != nil {
+		return errors.Join(
+			fmt.Errorf("failed to initialize %s external inventory provider", d.Provider),
+			err,
+		)
+	}
+
+	if cmd.Name() == "init" {
+		err := d.externalInventoryProvider.SetProviderOptions(cmd, args)
+		if err != nil {
+			return err
+		}
+	}
+
+	log.Debug().Msgf("setting provider-specific options %+v", d.Options)
+	if d.Options == nil {
+		opts, err := d.externalInventoryProvider.GetProviderOptions()
+		if err != nil {
+			return err
+		}
+
+		d.Options = opts
 	}
 
 	return nil

@@ -40,7 +40,6 @@ var (
 	commit                   bool
 	ignoreExternalValidation bool
 	ignoreValidationMessage  = "Ignore validation failures. Use this to allow unconventional configurations."
-	csmInitCmd               = &cobra.Command{}
 
 	ProviderCmd = &cobra.Command{}
 	// BootstapCmd is used to start a session with a specific provider and allows the provider to define
@@ -62,9 +61,7 @@ func init() {
 	for _, provider := range taxonomy.SupportedProviders {
 		switch provider {
 		case taxonomy.CSM:
-			csmInitCmd, err = csm.NewSessionInitCommand()
-			csmInitCmd.Use = "init"
-			ProviderCmd = csmInitCmd
+			ProviderCmd, err = csm.NewSessionInitCommand()
 		default:
 			log.Debug().Msgf("skipping provider: %s", provider)
 		}
@@ -72,6 +69,7 @@ func init() {
 			log.Error().Msgf("unable to get cmd from provider: %v", err)
 			os.Exit(1)
 		}
+		ProviderCmd.Use = "init"
 	}
 
 	// Define the bare minimum needed to determine who the provider for the session will be
@@ -87,7 +85,7 @@ func init() {
 
 	// Add session commands to root commands
 	root.SessionCmd.AddCommand(BootstrapCmd)
-	BootstrapCmd.AddCommand(csmInitCmd)
+	BootstrapCmd.AddCommand(ProviderCmd)
 	root.SessionCmd.AddCommand(SessionApplyCmd)
 	root.SessionCmd.AddCommand(SessionStatusCmd)
 	root.SessionCmd.AddCommand(SessionSummaryCmd)
