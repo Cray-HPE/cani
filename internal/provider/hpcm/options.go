@@ -35,10 +35,6 @@ func (hpcm *Hpcm) SetProviderOptions(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func (hpcm *Hpcm) SetProviderOptionsInterface(cmd *cobra.Command, args []string) error {
-	return nil
-}
-
 func (hpcm *Hpcm) GetProviderOptions() (interface{}, error) {
 	return nil, nil
 }

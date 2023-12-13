@@ -31,7 +31,6 @@ import (
 
 	"github.com/Cray-HPE/cani/cmd/taxonomy"
 	"github.com/Cray-HPE/cani/internal/provider/csm/validate"
-	"github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
@@ -167,12 +166,4 @@ func (csm *CSM) GetProviderOptions() (interface{}, error) {
 		return nil, fmt.Errorf("options from CSM are nil")
 	}
 	return csm.Options, nil
-}
-
-func (csm *CSM) SetProviderOptionsInterface(opts interface{}) error {
-	err := mapstructure.Decode(opts, &csm.Options)
-	if err != nil {
-		return err
-	}
-	return nil
 }
