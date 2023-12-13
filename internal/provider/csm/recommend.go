@@ -40,7 +40,7 @@ import (
 
 func (csm *CSM) RecommendHardware(inv inventory.Inventory, cmd *cobra.Command, args []string, auto bool) (recommended provider.HardwareRecommendations, err error) {
 	var deviceTypeSlug string
-	if cmd.Parent().Name() == "add" {
+	if cmd.Parent().Parent().Name() == "add" {
 		deviceTypeSlug = args[0]
 	}
 	// loop through the existing inventory to check for vlans

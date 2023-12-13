@@ -27,9 +27,20 @@ package domain
 
 import (
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
+
+// PrintRecommendations implements the InventoryProvider interface
+// it prints the hardware to stdout based on the command
+func (d *Domain) PrintRecommendations(cmd *cobra.Command, args []string, recommendations provider.HardwareRecommendations) error {
+	err := d.externalInventoryProvider.PrintRecommendations(cmd, args, recommendations)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 func (d *Domain) PrintHardware(cmd *cobra.Command, args []string, filtered map[uuid.UUID]inventory.Hardware) error {
 	err := d.externalInventoryProvider.PrintHardware(cmd, args, filtered)

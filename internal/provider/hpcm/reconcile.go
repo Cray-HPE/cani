@@ -32,6 +32,6 @@ import (
 )
 
 func (hpcm *Hpcm) Reconcile(cmd *cobra.Command, args []string, datastore inventory.Datastore, dryrun bool, ignoreExternalValidation bool) error {
-	log.Warn().Msgf("not yet implemented")
+	log.Warn().Msgf("Reconcile not yet implemented")
 	return nil
 }

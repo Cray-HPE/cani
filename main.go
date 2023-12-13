@@ -25,18 +25,16 @@ package main
 
 import (
 	"github.com/Cray-HPE/cani/cmd"
-	_ "github.com/Cray-HPE/cani/cmd/blade"
-	_ "github.com/Cray-HPE/cani/cmd/cabinet"
-	_ "github.com/Cray-HPE/cani/cmd/cdu"
-	_ "github.com/Cray-HPE/cani/cmd/chassis"
-	_ "github.com/Cray-HPE/cani/cmd/config"
-	_ "github.com/Cray-HPE/cani/cmd/node"
-	_ "github.com/Cray-HPE/cani/cmd/pdu"
-	_ "github.com/Cray-HPE/cani/cmd/session"
-	_ "github.com/Cray-HPE/cani/cmd/switch"
-	_ "github.com/Cray-HPE/cani/cmd/taxonomy"
+	_ "github.com/Cray-HPE/cani/internal/initmanager"
+
+	"github.com/rs/zerolog/log"
 )
 
+func init() {
+	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/main.init")
+}
+
 func main() {
+	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/main.main")
 	cmd.Execute()
 }

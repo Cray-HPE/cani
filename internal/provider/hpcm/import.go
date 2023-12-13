@@ -30,6 +30,7 @@ import (
 	"fmt"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -70,10 +71,28 @@ func (hpcm *Hpcm) ImportInit(cmd *cobra.Command, args []string, datastore invent
 		return err
 	}
 
+	for _, node := range hpcm.Nodes {
+		log.Info().Msgf("Importing %+v", node.Name)
+		hw := &inventory.Hardware{}
+		hw.Name = node.Name
+		hw.Model = node.Type_
+		hw.Type = hardwaretypes.Node
+		hw.Architecture = node.Platform.Architecture
+		err = tempDatastore.Add(hw)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = datastore.Merge(tempDatastore)
+	if err != nil {
+		return err
+	}
+
 	return datastore.Flush()
 }
 
 func (hpcm *Hpcm) Import(cmd *cobra.Command, args []string, datastore inventory.Datastore) error {
-	log.Warn().Msgf("not yet implemented")
+	log.Warn().Msgf("Import not yet implemented")
 	return nil
 }

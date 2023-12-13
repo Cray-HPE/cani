@@ -26,8 +26,6 @@
 package hpcm
 
 import (
-	"os"
-
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -39,26 +37,11 @@ func New(cmd *cobra.Command, args []string, hardwareLibrary *hardwaretypes.Libra
 		Options:         &HpcmOpts{},
 	}
 
-	if cmd.Name() == "init" {
-		useSimulation := cmd.Flags().Changed("use-simulator")
-		baseCmdbUrl, _ := cmd.Flags().GetString("cmdb-url")
-		insecure := cmd.Flags().Changed("insecure")
-		host, _ := cmd.Flags().GetString("host")
-		cacert, _ := cmd.Flags().GetString("cacert")
-		token, _ := cmd.Flags().GetString("token")
-		if useSimulation {
-			hpcm.Options.Simulation = true
-			insecure = true
-			token = os.Getenv("token")
+	if cmd.Parent().Name() == "init" {
+		err = hpcm.SetProviderOptions(cmd, args)
+		if err != nil {
+			return hpcm, err
 		}
-		if insecure {
-			hpcm.Options.InsecureSkipVerify = true
-		}
-		hpcm.Options.CmdbHost = host
-		hpcm.Options.CmdbUrlBase = baseCmdbUrl
-		hpcm.Options.CaCert = cacert
-		hpcm.Options.Token = token
-		// cmd flags here
 	} else {
 		// use the existing options if a new session is not being initialized
 		optsMarshaled, err := yaml.Marshal(opts)
@@ -75,4 +58,8 @@ func New(cmd *cobra.Command, args []string, hardwareLibrary *hardwaretypes.Libra
 	}
 
 	return hpcm, nil
+}
+
+func (hpcm *Hpcm) Slug() string {
+	return "hpcm"
 }

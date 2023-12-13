@@ -29,6 +29,7 @@ import (
 	"os"
 
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -36,8 +37,6 @@ var (
 	logger zerolog.Logger
 )
 
-func init() {
-	// Default level for this example is info, unless debug flag is present
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+func Init() {
+	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/internal/inventory.init")
 }

@@ -35,9 +35,10 @@ var (
 
 // ImportCmd represents the import command
 var ImportCmd = &cobra.Command{
-	Use:   "import [FILE]",
+	Use:   "import PROVIDER [FILE]",
 	Short: "Import assets into the inventory.",
 	Long:  `Import assets into the inventory.`,
+	Args:  cobra.ExactArgs(1),
 	RunE:  importCmd,
 }
 

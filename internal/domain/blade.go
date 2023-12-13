@@ -176,7 +176,7 @@ func (d *Domain) AddBlade(cmd *cobra.Command, args []string, cabinetOrdinal, cha
 			// Generate the CANI hardware inventory version of the hardware build out data
 			hardware = inventory.NewHardwareFromBuildOut(hardwareBuildOut, inventory.HardwareStatusStaged)
 
-			log.Debug().Str("path", hardwareBuildOut.LocationPath.String()).Msg("Hardware Build out")
+			log.Trace().Str("path", hardwareBuildOut.LocationPath.String()).Msg("Hardware Build out")
 
 			// TODO need a check to see if all the needed information exists,
 			// Things like role/subrole/nid/alias could be injected at a later time.
@@ -223,7 +223,7 @@ func (d *Domain) AddBlade(cmd *cobra.Command, args []string, cabinetOrdinal, cha
 		}
 		pair.Hardware.LocationPath = hardwareLocation
 		result.AddedHardware = append(result.AddedHardware, pair)
-		log.Debug().Str("path", hardwareLocation.String()).Msg("Datastore")
+		log.Trace().Str("path", hardwareLocation.String()).Msg("Datastore")
 
 	}
 

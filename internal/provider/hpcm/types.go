@@ -28,10 +28,12 @@ package hpcm
 import (
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	hpcm_client "github.com/Cray-HPE/cani/pkg/hpcm-client"
+	"github.com/hashicorp/go-retryablehttp"
 )
 
 type Hpcm struct {
 	hardwareLibrary *hardwaretypes.Library
+	client          retryablehttp.Client
 	Options         *HpcmOpts
 	Nodes           []hpcm_client.Node
 	MgmtCards       []hpcm_client.ManagementCard

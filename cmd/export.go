@@ -35,9 +35,10 @@ var (
 
 // ExportCmd represents the export command
 var ExportCmd = &cobra.Command{
-	Use:   "export",
+	Use:   "export PROVIDER",
 	Short: "Export assets from the inventory.",
 	Long:  `Export assets from the inventory.`,
+	Args:  cobra.ExactArgs(1),
 	RunE:  export,
 }
 

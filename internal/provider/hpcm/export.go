@@ -32,6 +32,6 @@ import (
 )
 
 func (hpcm *Hpcm) Export(*cobra.Command, []string, inventory.Datastore) error {
-	log.Warn().Msgf("not yet implemented")
+	log.Warn().Msgf("Export not yet implemented")
 	return nil
 }

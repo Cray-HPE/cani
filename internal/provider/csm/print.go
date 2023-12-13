@@ -35,16 +35,26 @@ import (
 	"text/tabwriter"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
+// PrintRecommendations implements the InventoryProvider interface
+// it prints the hardware to stdout based on the command
+func (csm *CSM) PrintRecommendations(cmd *cobra.Command, args []string, recommendations provider.HardwareRecommendations) error {
+	log.Info().Msgf("Suggested cabinet number: %d", recommendations.CabinetOrdinal)
+	log.Info().Msgf("Suggested VLAN ID: %d", recommendations.ProviderMetadata["HMNVlan"])
+
+	return nil
+}
+
 // PrintHardware implements the InventoryProvider interface
 // it prints the hardware to stdout based on the command
 func (csm *CSM) PrintHardware(cmd *cobra.Command, args []string, filtered map[uuid.UUID]inventory.Hardware) (err error) {
-	switch cmd.Parent().Name() {
+	switch cmd.Parent().Parent().Name() {
 	case "add":
 		err = csm.printHardwareForAddCommand(cmd, args, filtered)
 	case "list":
@@ -54,7 +64,7 @@ func (csm *CSM) PrintHardware(cmd *cobra.Command, args []string, filtered map[uu
 	case "remove":
 		err = csm.printHardwareForRemoveCommand(cmd, args, filtered)
 	default:
-		log.Warn().Msgf("No print function for command %+v", cmd.Name())
+		log.Warn().Msgf("No print function for command '%s %s %s'", cmd.Name(), cmd.Parent().Name(), cmd.Parent().Parent().Name())
 	}
 	if err != nil {
 		return err
@@ -107,6 +117,7 @@ func (csm *CSM) printHardwareForRemoveCommand(cmd *cobra.Command, args []string,
 
 // printForAddCabinetCommand prints the hardware for the add cabinet command
 func printForAddCabinetCommand(cmd *cobra.Command, args []string, hw inventory.Hardware) error {
+	log.Info().Str("status", "SUCCESS").Msgf("%s was successfully %s to be added to the system", hardwaretypes.Cabinet, hw.Status)
 	log.Info().Msgf("UUID: %s", hw.ID)
 	log.Info().Msgf("Cabinet Number: %d", *hw.LocationOrdinal)
 	log.Info().Msgf("VLAN ID: %d", hw.ProviderMetadata["csm"]["Cabinet"].(map[string]interface{})["HMNVlan"])
@@ -177,7 +188,7 @@ func printForListCommand(cmd *cobra.Command, args []string, filtered map[uuid.UU
 // prettyPrintForListCommand prints the hardware for the list command
 // in a pretty, human-readable format and based on the type of hardware
 func prettyPrintForListCommand(cmd *cobra.Command, args []string, filtered map[uuid.UUID]inventory.Hardware) (err error) {
-	switch cmd.Name() {
+	switch cmd.Parent().Name() {
 	case "cabinet":
 		err = prettyPrintForListCabinet(cmd, args, filtered)
 	case "chassis":

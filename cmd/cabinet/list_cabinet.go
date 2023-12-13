@@ -35,10 +35,10 @@ import (
 
 // ListCabinetCmd represents the cabinet list command
 var ListCabinetCmd = &cobra.Command{
-	Use:   "cabinet",
+	Use:   "cabinet PROVIDER",
 	Short: "List cabinets in the inventory.",
 	Long:  `List cabinets in the inventory.`,
-	Args:  cobra.ArbitraryArgs,
+	Args:  cobra.ExactArgs(1),
 	RunE:  listCabinet,
 }
 

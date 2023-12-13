@@ -1,0 +1,145 @@
+---
+# docker compose -f hms-simulation-environment/docker-compose.hpcm.yml up -d
+# docker compose -f hms-simulation-environment/docker-compose.cani.yml down --remove-orphans
+# export token=$(docker exec hpcm-cmdb-1 cat /opt/clmgr/etc/.cli_token)
+version: '3.7'
+
+networks:
+  cani:
+
+services:
+  #
+  # HPCM
+  #
+  cmdb:
+    hostname: cmdb
+    image: arti.hpc.amslabs.hpecorp.net/hpcm-cmdb/cmdb-rockylinux92:latest
+    environment:
+      - HOSTNAME=cmdb
+    # volumes:
+      #  - ./fixtures/hpcm/somefixture.sqlite3:/opt/clmgr/database/db/cmu.sqlite3
+    ports:
+      # default of 8080 clashes with nginx ingress in hms simulator
+      - "127.0.0.1:8888:8080"
+    networks:
+      - cani
+
+  # #
+  # # SLS
+  # #
+  # cray-sls-postgres:
+  #   hostname: sls-postgres
+  #   image: artifactory.algol60.net/docker.io/library/postgres:11-alpine
+  #   environment:
+  #     - POSTGRES_USER=slsuser
+  #     - POSTGRES_DB=sls
+  #     - POSTGRES_HOST_AUTH_METHOD=trust
+  #   ports:
+  #     - "54321:5432"
+  #   networks:
+  #     - cani
+  # cray-sls-init:
+  #   image: artifactory.algol60.net/csm-docker/stable/cray-sls:2.0.0
+  #   command: ["sls-init"]
+  #   environment:
+  #     - POSTGRES_HOST=sls-postgres
+  #     - DBOPTS=sslmode=disable
+  #     - DBUSER=slsuser
+  #   depends_on:
+  #     - cray-sls-postgres
+  #   networks:
+  #     - cani
+  # cray-sls:
+  #   image: artifactory.algol60.net/csm-docker/stable/cray-sls:2.0.0
+  #   environment:
+  #     - POSTGRES_HOST=cray-sls-postgres
+  #     - DBOPTS=sslmode=disable
+  #     - DBUSER=slsuser
+  #     - CRAY_VAULT_AUTH_PATH=auth/token/create
+  #     - CRAY_VAULT_ROLE_FILE=configs/namespace
+  #     - CRAY_VAULT_JWT_FILE=configs/token
+  #     - VAULT_ADDR=http://vault:8200
+  #     - VAULT_TOKEN=hms
+  #     - VAULT_KEYPATH=secret/hms-creds
+  #   ports:
+  #     - "8376:8376"
+  #   depends_on:
+  #     - cray-sls-postgres
+  #     - cray-sls-init
+  #   networks:
+  #     - cani
+ 
+  # #
+  # # HSM
+  # #
+  # cray-smd-postgres:
+  #   hostname: hmsds-postgres
+  #   image: artifactory.algol60.net/docker.io/library/postgres:11-alpine
+  #   environment:
+  #     - POSTGRES_PASSWORD=hmsdsuser
+  #     - POSTGRES_USER=hmsdsuser
+  #     - POSTGRES_DB=hmsds
+  #   ports:
+  #     - "54322:5432"
+  #   networks:
+  #     - cani
+  # cray-smd-init:
+  #   image: artifactory.algol60.net/csm-docker/stable/cray-smd:2.2.0
+  #   environment:
+  #     - SMD_DBHOST=cray-smd-postgres
+  #     - SMD_DBPORT=5432
+  #   depends_on:
+  #     - cray-smd-postgres
+  #   networks:
+  #     - cani
+  #   command: /entrypoint.sh smd-init
+  # cray-smd:
+  #   image: artifactory.algol60.net/csm-docker/stable/cray-smd:2.2.0
+  #   environment:
+  #     - POSTGRES_HOST=cray-smd-postgres
+  #     - SMD_DBHOST=cray-smd-postgres
+  #     - POSTGRES_PORT=5432
+  #     - RF_MSG_HOST=cray-shared-kafka:9092:cray-dmtf-resource-event
+  #     - CRAY_VAULT_AUTH_PATH=auth/token/create
+  #     - CRAY_VAULT_ROLE_FILE=configs/namespace
+  #     - CRAY_VAULT_JWT_FILE=configs/token
+  #     - VAULT_ADDR=http://vault:8200
+  #     - VAULT_TOKEN=hms
+  #     - VAULT_KEYPATH=secret/hms-creds
+  #     - SMD_WVAULT=true
+  #     - SMD_RVAULT=true
+  #     - SMD_SLS_HOST=http://cray-sls:8376/v1
+  #     - SMD_HBTD_HOST=http://cray-hbtd:28500/hmi/v1
+  #   hostname: cray-smd
+  #   depends_on:
+  #     - cray-smd-init
+  #   ports:
+  #     - "27779:27779"
+  #   networks:
+  #     - cani
+  #   volumes:
+  #     - ./configs/hms_config:/hms_config
+
+  # # Nginx is being used as a standin for the Istio Ingress API gateway we use on
+  # # real systems.
+  # api-gateway:
+  #   image: nginx:alpine
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8080:80"
+  #     - "8443:443"
+  #   volumes:
+  #     - ./configs/nginx/conf.d:/etc/nginx/conf.d
+  #     - ./configs/nginx/certs:/etc/nginx/certs
+  #   networks:
+  #     cani:
+  #       aliases:
+  #         - api-gateway-hmn
+  #         - cray-capmc
+  #         - cray-hms-hmcollector-ingress
+  #         - cray-power-control
+  #         - cray-reds
+  #         - cray-meds
+  #         - cray-bss
+  #         - cray-fas
+  #         - cray-hbtd

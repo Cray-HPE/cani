@@ -35,10 +35,10 @@ import (
 
 // ListBladeCmd represents the blade list command
 var ListBladeCmd = &cobra.Command{
-	Use:   "blade",
+	Use:   "blade PROVIDER",
 	Short: "List blades in the inventory.",
 	Long:  `List blades in the inventory.`,
-	Args:  cobra.ArbitraryArgs,
+	Args:  cobra.ExactArgs(1),
 	RunE:  listBlade,
 }
 

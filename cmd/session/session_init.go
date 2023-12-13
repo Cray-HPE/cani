@@ -49,15 +49,19 @@ func initSessionWithProviderCmd(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	root.D.Provider = cmd.Use
+	root.D.Provider = cmd.Name()
 
 	// Set the datastore
 	log.Debug().Msgf("checking provider %s", root.D.Provider)
 	switch root.D.Provider {
 	case taxonomy.CSM:
 		root.D.DatastorePath = filepath.Join(config.ConfigDir, taxonomy.DsFileCSM)
-	default:
+	case taxonomy.Hpengi:
 		root.D.DatastorePath = filepath.Join(config.ConfigDir, taxonomy.DsFile)
+	case taxonomy.HPCM:
+		root.D.DatastorePath = filepath.Join(config.ConfigDir, taxonomy.DsFile)
+	default:
+		err = fmt.Errorf("not a valid provider: %s", root.D.Provider)
 	}
 	// Set the paths needed for starting a session
 	root.D.CustomHardwareTypesDir = config.CustomDir

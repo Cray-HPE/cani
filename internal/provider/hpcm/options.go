@@ -26,6 +26,9 @@
 package hpcm
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/rs/zerolog/log"
@@ -33,16 +36,40 @@ import (
 )
 
 func (hpcm *Hpcm) SetProviderOptions(cmd *cobra.Command, args []string) error {
-	log.Warn().Msgf("not yet implemented")
+	useSimulation := cmd.Flags().Changed("use-simulator")
+	baseCmdbUrl, _ := cmd.Flags().GetString("cmdb-url")
+	insecure := cmd.Flags().Changed("insecure")
+	host, _ := cmd.Flags().GetString("host")
+	cacert, _ := cmd.Flags().GetString("cacert")
+	token, _ := cmd.Flags().GetString("token")
+	if useSimulation {
+		// if a custom host is not requested, use the simulated address
+		if !cmd.Flags().Changed("host") {
+			host = "localhost:8888"
+		}
+		hpcm.Options.Simulation = true
+		insecure = true
+		token = os.Getenv("token")
+	}
+	if insecure {
+		hpcm.Options.InsecureSkipVerify = true
+	}
+	hpcm.Options.CmdbHost = host
+	hpcm.Options.CmdbUrlBase = baseCmdbUrl
+	hpcm.Options.CaCert = cacert
+	hpcm.Options.Token = token
+
 	return nil
 }
 
 func (hpcm *Hpcm) GetProviderOptions() (interface{}, error) {
-	log.Warn().Msgf("not yet implemented")
-	return nil, nil
+	if hpcm.Options == nil {
+		return nil, fmt.Errorf("options are nil")
+	}
+	return hpcm.Options, nil
 }
 
 func (hpcm *Hpcm) SetFields(hw *inventory.Hardware, values map[string]string) (result provider.SetFieldsResult, err error) {
-	log.Warn().Msgf("not yet implemented")
+	log.Warn().Msgf("SetFields not yet implemented")
 	return provider.SetFieldsResult{}, nil
 }

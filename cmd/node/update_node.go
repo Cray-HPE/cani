@@ -38,9 +38,10 @@ import (
 
 // UpdateNodeCmd represents the node update command
 var UpdateNodeCmd = &cobra.Command{
-	Use:   "node",
+	Use:   "node PROVIDER",
 	Short: "Update nodes in the inventory.",
 	Long:  `Update nodes in the inventory.`,
+	Args:  cobra.ExactArgs(1),
 	RunE:  updateNode, // Update a node when this sub-command is called
 }
 

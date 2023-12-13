@@ -26,13 +26,10 @@
 package node
 
 import (
-	"os"
-
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/rs/zerolog"
+	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 )
 
 var (
@@ -49,15 +46,9 @@ var (
 	ProviderUpdateNodeCmd = &cobra.Command{}
 )
 
-func init() {
-	log.Logger = log.Output(
-		zerolog.ConsoleWriter{
-			Out: os.Stderr,
-			// When not in a terminal disable color
-			NoColor: !term.IsTerminal(int(os.Stderr.Fd())),
-		},
-	)
-	var err error
+func Init() {
+	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/cmd/node.init")
+
 	// Add variants to root commands
 	root.AddCmd.AddCommand(AddNodeCmd)
 	root.ListCmd.AddCommand(ListNodeCmd)
@@ -66,14 +57,6 @@ func init() {
 
 	// Add a flag to show supported types
 	AddNodeCmd.Flags().BoolP("list-supported-types", "L", false, "List supported hardware types.")
-
-	// Merge CANI's command with the provider-specified command
-	// this allows for CANI's operations to remain consistent, while adding provider config on top
-	err = root.MergeProviderCommand(AddNodeCmd)
-	if err != nil {
-		log.Error().Msgf("%+v", err)
-		os.Exit(1)
-	}
 
 	// Blades have several parents, so we need to add flags for each
 	UpdateNodeCmd.Flags().IntVar(&cabinet, "cabinet", 1001, "Parent cabinet")
@@ -88,16 +71,10 @@ func init() {
 	ListNodeCmd.Flags().StringVarP(&format, "format", "f", "pretty", "Format output")
 	ListNodeCmd.Flags().StringVarP(&sortBy, "sort", "s", "location", "Sort by a specific key")
 
-	// Merge CANI's command with the provider-specified command
-	// this allows for CANI's operations to remain consistent, while adding provider config on top
-	err = root.MergeProviderCommand(UpdateNodeCmd)
-	if err != nil {
-		log.Error().Msgf("%+v", err)
-		os.Exit(1)
-	}
-	err = root.MergeProviderCommand(ListNodeCmd)
-	if err != nil {
-		log.Error().Msgf("%+v", err)
-		os.Exit(1)
+	// Register all provider commands during init()
+	for _, p := range domain.GetProviders() {
+		root.RegisterProviderCommand(p, AddNodeCmd, addNode)
+		root.RegisterProviderCommand(p, ListNodeCmd, listNode)
+		root.RegisterProviderCommand(p, UpdateNodeCmd, listNode)
 	}
 }

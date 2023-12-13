@@ -120,7 +120,7 @@ func (csm *CSM) validateInternalNode(allHardware map[uuid.UUID]inventory.Hardwar
 		if cHardware.Type != hardwaretypes.Node {
 			continue
 		}
-		log.Debug().Msgf("Validating %s: %v", cHardware.ID, cHardware)
+		log.Trace().Msgf("Validating %s: %v", cHardware.ID, cHardware)
 
 		metadata, err := DecodeProviderMetadata(cHardware)
 		if err != nil {
@@ -260,7 +260,7 @@ func (csm *CSM) validateInternalCabinet(allHardware map[uuid.UUID]inventory.Hard
 			continue
 		}
 
-		log.Debug().Msgf("Validating %s: %v", cHardware.ID, cHardware)
+		log.Trace().Msgf("Validating %s: %v", cHardware.ID, cHardware)
 
 		metadata, err := DecodeProviderMetadata(cHardware)
 		if err != nil {

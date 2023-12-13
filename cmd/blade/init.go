@@ -27,6 +27,8 @@ package blade
 
 import (
 	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -40,7 +42,8 @@ var (
 	sortBy    string
 )
 
-func init() {
+func Init() {
+	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/cmd/blade.init")
 	// Add blade variants to root commands
 	root.AddCmd.AddCommand(AddBladeCmd)
 	root.ListCmd.AddCommand(ListBladeCmd)
@@ -63,4 +66,10 @@ func init() {
 	RemoveBladeCmd.Flags().BoolVarP(&recursion, "recursive", "R", false, "Recursively delete child hardware")
 	ListBladeCmd.Flags().StringVarP(&format, "format", "f", "pretty", "Format output")
 	ListBladeCmd.Flags().StringVarP(&sortBy, "sort", "s", "location", "Sort by a specific key")
+
+	// Register all provider commands during init()
+	for _, p := range domain.GetProviders() {
+		root.RegisterProviderCommand(p, AddBladeCmd, addBlade)
+		root.RegisterProviderCommand(p, ListBladeCmd, listBlade)
+	}
 }

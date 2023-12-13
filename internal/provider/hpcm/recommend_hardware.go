@@ -33,6 +33,6 @@ import (
 )
 
 func (hpcm *Hpcm) RecommendHardware(inv inventory.Inventory, cmd *cobra.Command, args []string, auto bool) (recommended provider.HardwareRecommendations, err error) {
-	log.Warn().Msgf("not yet implemented")
+	log.Warn().Msgf("RecommendHardware not yet implemented")
 	return recommended, nil
 }

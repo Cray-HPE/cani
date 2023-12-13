@@ -31,13 +31,11 @@ import (
 	"os"
 
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
 // validHardware checks that the hardware type is valid by comparing it against the list of hardware types
 func validHardware(cmd *cobra.Command, args []string) (err error) {
-	log.Debug().Msgf("Validating hardware %+v", root.D)
 	if cmd.Flags().Changed("list-supported-types") {
 		cmd.SetOut(os.Stdout)
 		for _, hw := range root.BladeTypes {

@@ -27,6 +27,7 @@ package pdu
 
 import (
 	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -34,7 +35,8 @@ var (
 	supportedHw []string
 )
 
-func init() {
+func Init() {
+	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/cmd/pdu.init")
 	// Add variants to root commands
 	root.AddCmd.AddCommand(AddPduCmd)
 	root.ListCmd.AddCommand(ListPduCmd)

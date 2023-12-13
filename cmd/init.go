@@ -40,7 +40,14 @@ import (
 	"golang.org/x/term"
 )
 
-func init() {
+var (
+	ActiveDomain = &domain.Domain{}
+)
+
+// Init() is called during init() in internal/initmanager for multi-provider support
+func Init() {
+	setupLogging()
+	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/cmd.init")
 	// Create or load a yaml config and the database
 	cobra.OnInitialize(setupLogging, initConfig)
 
@@ -55,23 +62,38 @@ func init() {
 	AlphaCmd.AddCommand(ValidateCmd)
 
 	AlphaCmd.AddCommand(ExportCmd)
-	err := MergeProviderCommand(ExportCmd)
-	if err != nil {
-		log.Error().Msgf("%+v", err)
-		os.Exit(1)
-	}
-
 	AlphaCmd.AddCommand(ImportCmd)
-	err = MergeProviderCommand(ImportCmd)
-	if err != nil {
-		log.Error().Msgf("%+v", err)
-		os.Exit(1)
-	}
 
 	// Global root command flags
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", cfgFile, "Path to the configuration file")
 	RootCmd.PersistentFlags().BoolVarP(&Debug, "debug", "D", false, "additional debug output")
 	RootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "additional verbose output")
+
+	// Register all provider commands during init()
+	for _, p := range domain.GetProviders() {
+		RegisterProviderCommand(p, ExportCmd, export)
+		RegisterProviderCommand(p, ImportCmd, importCmd)
+	}
+}
+
+func GetActiveDomain() (err error) {
+	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/cmd.InitGetActiveDomain")
+	// Get the active domain, needed for selecting provider commands early during init
+	ActiveDomain, err = Conf.ActiveProvider()
+	if err != nil {
+		return err
+	}
+
+	// once loaded, we can determine early on if there is an active provider
+	// and set the appropriate commands to use
+	if ActiveDomain != nil {
+		if ActiveDomain.Active {
+			log.Debug().Msgf("Active domain provider: %+v", ActiveDomain.Provider)
+		} else {
+			log.Debug().Msgf("No active domain")
+		}
+	}
+	return nil
 }
 
 // setupLogging sets up the global logger
@@ -94,6 +116,10 @@ func setupLogging() {
 		if Verbose {
 			log.Logger = log.With().Caller().Logger()
 		}
+	}
+	if Verbose || os.Getenv("CANI_DEBUG") != "" {
+		zerolog.SetGlobalLevel(zerolog.TraceLevel)
+		log.Logger = log.With().Caller().Logger()
 	}
 }
 
@@ -145,6 +171,7 @@ func setupDomain(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 
+	// FIXME: Duplicated by config.ActiveProvider
 	if cmd.Parent().Name() != "init" {
 		// Error if no sessions are active
 		if len(activeProviders) == 0 {
@@ -152,7 +179,7 @@ func setupDomain(cmd *cobra.Command, args []string) (err error) {
 			// so SetupDomain is called manually
 			// The timing of events works out such that simply returning the error
 			// will exit without the message
-			if cmd.Name() == "status" {
+			if cmd.Parent().Name() == "status" {
 				log.Info().Msgf("No active session.")
 				return nil
 			} else {

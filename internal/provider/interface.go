@@ -34,6 +34,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func Init() {
+	log.Info().Msgf("%+v", "github.com/Cray-HPE/cani/internal/provider.init")
+}
+
 var ErrDataValidationFailure = fmt.Errorf("data validation failure")
 
 // TODO Need to think about how internal data structures should be supplied to the Inventory Provider
@@ -90,6 +94,7 @@ type InventoryProvider interface {
 
 	// Print
 	PrintHardware(cmd *cobra.Command, args []string, filtered map[uuid.UUID]inventory.Hardware) error
+	PrintRecommendations(cmd *cobra.Command, args []string, recommendations HardwareRecommendations) error
 
 	// Provider's name
 	Slug() string

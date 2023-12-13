@@ -148,7 +148,7 @@ It "--config $CANI_CONF hpe-ex2000 --cabinet 1234 --vlan-id 1234"
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
   When call bin/cani alpha add cabinet csm --config "$CANI_CONF" hpe-ex2000 --cabinet 1234 --vlan-id 1234
   The status should equal 0
-  The line 1 of stderr should include "Cabinet 1234 was successfully staged to be added to the system"
+  The line 1 of stderr should include "Cabinet was successfully staged to be added to the system"
   The line 2 of stderr should include "UUID: "
   The line 3 of stderr should include "Cabinet Number: 1234"
   The line 4 of stderr should include "VLAN ID: 1234"

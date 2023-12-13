@@ -33,21 +33,21 @@ import (
 )
 
 func (hpcm *Hpcm) BuildHardwareMetadata(hw *inventory.Hardware, cmd *cobra.Command, args []string, recommendations provider.HardwareRecommendations) error {
-	log.Warn().Msgf("not yet implemented")
+	log.Warn().Msgf("BuildHardwareMetadata not yet implemented")
 	return nil
 }
 
 func (hpcm *Hpcm) NewHardwareMetadata(hw *inventory.Hardware, cmd *cobra.Command, args []string) error {
-	log.Warn().Msgf("not yet implemented")
+	log.Warn().Msgf("NewHardwareMetadata not yet implemented")
 	return nil
 }
 
 func (hpcm *Hpcm) GetFieldMetadata() ([]provider.FieldMetadata, error) {
-	log.Warn().Msgf("not yet implemented")
+	log.Warn().Msgf("GetFieldMetadata not yet implemented")
 	return []provider.FieldMetadata{}, nil
 }
 
 func (hpcm *Hpcm) GetFields(hw *inventory.Hardware, fieldNames []string) (values []string, err error) {
-	log.Warn().Msgf("not yet implemented")
+	log.Warn().Msgf("GetFields not yet implemented")
 	return []string{}, nil
 }

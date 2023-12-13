@@ -34,6 +34,8 @@ import (
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/provider/csm"
+	"github.com/Cray-HPE/cani/internal/provider/hpcm"
+	"github.com/Cray-HPE/cani/internal/provider/hpengi"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
@@ -60,6 +62,7 @@ var SessionInitCmd *cobra.Command
 // New returns a new Domain
 func New(cmd *cobra.Command, args []string) (d *Domain, err error) {
 	d = &Domain{}
+	d.Provider = cmd.Use
 	return d, nil
 }
 
@@ -73,7 +76,7 @@ func (d *Domain) SetupDomain(cmd *cobra.Command, args []string, configDomains ma
 	for _, sessionDomain := range configDomains {
 		if sessionDomain.Active {
 			d.Active = true
-			log.Debug().Msgf("Setting top level Domain to Active=true")
+			log.Trace().Msgf("Setting top level Domain to Active=true")
 		}
 	}
 
@@ -84,14 +87,17 @@ func (d *Domain) SetupDomain(cmd *cobra.Command, args []string, configDomains ma
 		}
 	}
 
-	log.Debug().Msgf("Setting up datastore interface: %s", d.DatastorePath)
+	log.Trace().Msgf("Setting up datastore interface: %s", d.DatastorePath)
 	// Load the datastore.  Different providers have different storage needs
 	switch d.Provider {
 	case taxonomy.CSM:
 		d.datastore, err = inventory.NewDatastoreJSONCSM(d.DatastorePath, d.LogFilePath, inventory.Provider(d.Provider))
-	default:
-		log.Warn().Msgf("using default provider datastore")
+	case taxonomy.Hpengi:
 		d.datastore, err = inventory.NewDatastoreJSON(d.DatastorePath, d.LogFilePath, inventory.Provider(d.Provider))
+	case taxonomy.HPCM:
+		d.datastore, err = inventory.NewDatastoreJSON(d.DatastorePath, d.LogFilePath, inventory.Provider(d.Provider))
+	default:
+		return fmt.Errorf("invalid provider: %s", d.Provider)
 	}
 	if err != nil {
 		return errors.Join(
@@ -100,7 +106,7 @@ func (d *Domain) SetupDomain(cmd *cobra.Command, args []string, configDomains ma
 		)
 	}
 
-	log.Debug().Msgf("loading embedded and custom hardwaretypes: %s", d.CustomHardwareTypesDir)
+	log.Trace().Msgf("loading embedded and custom hardwaretypes: %s", d.CustomHardwareTypesDir)
 	// Load the hardware type library.  Supported hardware is embedded
 	// this also loads any custom-deinfed hardware at the given path
 	d.hardwareTypeLibrary, err = hardwaretypes.NewEmbeddedLibrary(d.CustomHardwareTypesDir)
@@ -111,24 +117,27 @@ func (d *Domain) SetupDomain(cmd *cobra.Command, args []string, configDomains ma
 		)
 	}
 
-	log.Debug().Msgf("getting plugin settings for provider %s", d.Provider)
+	log.Trace().Msgf("getting plugin settings for provider %s", d.Provider)
 	// Instantiate the provider interface object
 	switch d.Provider {
 	case taxonomy.CSM:
 		d.externalInventoryProvider, err = csm.New(cmd, args, d.hardwareTypeLibrary, d.Options)
-
+	case taxonomy.Hpengi:
+		d.externalInventoryProvider, err = hpengi.New(cmd, args, d.hardwareTypeLibrary, d.Options)
+	case taxonomy.HPCM:
+		d.externalInventoryProvider, err = hpcm.New(cmd, args, d.hardwareTypeLibrary, d.Options)
 	default:
 		return fmt.Errorf("unknown external inventory provider provided (%s)", d.Provider)
 	}
 
 	if err != nil {
 		return errors.Join(
-			fmt.Errorf("failed to initialize %s external inventory provider", d.Provider),
+			fmt.Errorf("failed to initialize CSM external inventory provider"),
 			err,
 		)
 	}
 
-	if cmd.Name() == "init" {
+	if cmd.Parent().Name() == "init" {
 		err := d.externalInventoryProvider.SetProviderOptions(cmd, args)
 		if err != nil {
 			return err
@@ -167,6 +176,12 @@ type UpdatedHardwareResult struct {
 func GetProviders() []provider.InventoryProvider {
 	supportedProviders := []provider.InventoryProvider{
 		&csm.CSM{},
+		&hpengi.Hpengi{},
+		&hpcm.Hpcm{},
 	}
 	return supportedProviders
+}
+
+func (d *Domain) Slug() string {
+	return d.externalInventoryProvider.Slug()
 }

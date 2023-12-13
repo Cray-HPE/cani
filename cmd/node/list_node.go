@@ -35,10 +35,10 @@ import (
 
 // ListNodeCmd represents the node list command
 var ListNodeCmd = &cobra.Command{
-	Use:   "node",
+	Use:   "node PROVIDER",
 	Short: "List nodes in the inventory.",
 	Long:  `List nodes in the inventory.`,
-	Args:  cobra.ArbitraryArgs,
+	Args:  cobra.ExactArgs(1),
 	RunE:  listNode,
 }
 

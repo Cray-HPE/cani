@@ -28,11 +28,15 @@ package taxonomy
 import (
 	"path/filepath"
 	"sort"
+
+	"github.com/rs/zerolog/log"
 )
 
 const (
 	App              = "cani"
 	CSM              = "csm"
+	Hpengi           = "hpengi"
+	HPCM             = "hpcm"
 	DsFile           = App + "db.json"
 	DsFileCSM        = App + "db.json"
 	LogFile          = App + "db.log"
@@ -47,9 +51,10 @@ const (
 var (
 	DsPath             = filepath.Join(CfgDir, DsFile)
 	CfgPath            = filepath.Join(CfgDir, CfgFile)
-	SupportedProviders = []string{CSM}
+	SupportedProviders = []string{CSM, Hpengi, HPCM}
 )
 
-func init() {
+func Init() {
+	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/cmd/taxonomy.init")
 	sort.Strings(SupportedProviders)
 }

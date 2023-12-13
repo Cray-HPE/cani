@@ -34,6 +34,6 @@ import (
 )
 
 func (hpcm *Hpcm) ValidateInternal(cmd *cobra.Command, args []string, datastore inventory.Datastore, enableRequiredDataChecks bool) (map[uuid.UUID]provider.HardwareValidationResult, error) {
-	log.Warn().Msgf("not yet implemented")
+	log.Warn().Msgf("ValidateInternal not yet implemented")
 	return map[uuid.UUID]provider.HardwareValidationResult{}, nil
 }
