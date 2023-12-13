@@ -27,6 +27,7 @@ package chassis
 
 import (
 	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -36,7 +37,8 @@ var (
 	sortBy      string
 )
 
-func init() {
+func Init() {
+	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/cmd/chassis.init")
 	// Add variants to root commands
 	root.AddCmd.AddCommand(AddChassisCmd)
 	root.ListCmd.AddCommand(ListChassisCmd)

@@ -28,6 +28,8 @@ package taxonomy
 import (
 	"path/filepath"
 	"sort"
+
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -50,6 +52,7 @@ var (
 	SupportedProviders = []string{CSM}
 )
 
-func init() {
+func Init() {
+	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/cmd/taxonomy.init")
 	sort.Strings(SupportedProviders)
 }

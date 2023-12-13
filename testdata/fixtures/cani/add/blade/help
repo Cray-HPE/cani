@@ -6,8 +6,6 @@ Usage:
 
 Available Commands:
   csm         Add blades to the inventory.
-  hpcm        Add blades to the inventory.
-  hpengi      Add blades to the inventory.
 
 Flags:
   -y, --accept                 Automatically accept recommended values.

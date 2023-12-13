@@ -6,8 +6,6 @@ Usage:
 
 Available Commands:
   csm         Add nodes to the inventory.
-  hpcm        Add nodes to the inventory.
-  hpengi      Add nodes to the inventory.
 
 Flags:
   -h, --help                   help for node

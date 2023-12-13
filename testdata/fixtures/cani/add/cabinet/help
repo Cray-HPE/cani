@@ -6,8 +6,6 @@ Usage:
 
 Available Commands:
   csm         Add cabinets to the inventory.
-  hpcm        Add cabinets to the inventory.
-  hpengi      Add cabinets to the inventory.
 
 Flags:
   -y, --accept                 Automatically accept recommended values.

@@ -23,25 +23,32 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package node
+package utils
 
-import (
-	"github.com/rs/zerolog/log"
-	"github.com/spf13/cobra"
-)
+import "github.com/spf13/cobra"
 
-// AddNodeCmd represents the node add command
-var AddNodeCmd = &cobra.Command{
-	Use:     "node PROVIDER",
-	Short:   "Add nodes to the inventory.",
-	Long:    `Add nodes to the inventory.`,
-	Args:    cobra.ExactArgs(1),
-	PreRunE: validHardware, // Hardware can only be valid if defined in the hardware library
-	RunE:    addNode,       // Add a node when this sub-command is called
-}
+func CloneCommand(cmd *cobra.Command) (newCmd *cobra.Command) {
+	if cmd == nil {
+		return nil
+	}
 
-// addNode adds a node to the inventory
-func addNode(cmd *cobra.Command, args []string) error {
-	log.Info().Msgf("Not yet implemented")
-	return nil
+	// copy certain fields, omitting some currently not in use by cani
+	newCmd = &cobra.Command{
+		Use:       cmd.Use,
+		Short:     cmd.Short,
+		Long:      cmd.Long,
+		RunE:      cmd.RunE,
+		PreRunE:   cmd.PreRunE,
+		ValidArgs: cmd.ValidArgs,
+	}
+
+	// copy flags to the new command
+	newCmd.Flags().AddFlagSet(cmd.Flags())
+
+	// copy any subcommands recursively to the new command
+	for _, subCmd := range cmd.Commands() {
+		newCmd.AddCommand(CloneCommand(subCmd))
+	}
+
+	return newCmd
 }

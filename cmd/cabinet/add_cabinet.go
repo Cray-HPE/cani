@@ -42,11 +42,12 @@ import (
 
 // AddCabinetCmd represents the cabinet add command
 var AddCabinetCmd = &cobra.Command{
-	Use:     "cabinet",
+	Use:     "cabinet PROVIDER",
 	Short:   "Add cabinets to the inventory.",
 	Long:    `Add cabinets to the inventory.`,
 	PreRunE: validHardware, // Hardware can only be valid if defined in the hardware library
-	RunE:    addCabinet,    // Add a cabinet when this sub-command is called
+	Args:    cobra.ExactArgs(1),
+	RunE:    addCabinet,
 }
 
 // addCabinet adds a cabinet to the inventory
@@ -75,7 +76,7 @@ func addCabinet(cmd *cobra.Command, args []string) (err error) {
 		}
 
 		// log the provider recommendations to the screen
-		recommendations.Print()
+		root.D.PrintRecommendations(cmd, args, recommendations)
 	}
 
 	// Add the cabinet to the inventory using domain methods
@@ -98,8 +99,6 @@ func addCabinet(cmd *cobra.Command, args []string) (err error) {
 	var filtered = make(map[uuid.UUID]inventory.Hardware, 0)
 	for _, result := range result.AddedHardware {
 		if result.Hardware.Type == hardwaretypes.Cabinet {
-			log.Debug().Msgf("%s added at %s with parent %s (%s)", result.Hardware.Type, result.Location.String(), hardwaretypes.System, result.Hardware.Parent)
-			log.Info().Str("status", "SUCCESS").Msgf("%s %d was successfully staged to be added to the system", hardwaretypes.Cabinet, recommendations.CabinetOrdinal)
 			filtered[result.Hardware.ID] = result.Hardware
 		}
 	}

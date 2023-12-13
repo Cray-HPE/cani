@@ -88,24 +88,24 @@ func NewEmbeddedLibrary(customDir string) (*Library, error) {
 
 	// Load the embedded hardware type embedded files
 	basePath := "hardware-types"
-	log.Debug().Msgf("Looking for built-in hardware-types")
+	log.Trace().Msgf("Looking for built-in hardware-types")
 	defaultFiles, err := defaultHardwareTypesFS.ReadDir(basePath)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Debug().Msgf("Looking for custom hardware-types in %s", customDir)
+	log.Trace().Msgf("Looking for custom hardware-types in %s", customDir)
 	// append user-defined hardware-type files to the default embedded ones
 	customFiles, err := os.ReadDir(customDir)
 	if err != nil {
 		// it is ok if no custom files exist
-		log.Debug().Msgf("No custom hardware-types defined in %s", customDir)
+		log.Trace().Msgf("No custom hardware-types defined in %s", customDir)
 	}
 
 	// Parse hardware type files
 	for _, file := range defaultFiles {
 		filePath := path.Join(basePath, file.Name())
-		log.Debug().Msgf("Parsing built-in hardware-type: %s", filePath)
+		log.Trace().Msgf("Parsing built-in hardware-type: %s", filePath)
 
 		fileRaw, err := defaultHardwareTypesFS.ReadFile(filePath)
 		if err != nil {
@@ -118,7 +118,7 @@ func NewEmbeddedLibrary(customDir string) (*Library, error) {
 		}
 
 		for _, deviceType := range fileDeviceTypes {
-			log.Debug().Msgf("Registering device type: %s", deviceType.Slug)
+			log.Trace().Msgf("Registering device type: %s", deviceType.Slug)
 			if err := library.RegisterDeviceType(deviceType); err != nil {
 				return nil, errors.Join(
 					fmt.Errorf("failed to register device type '%s'", deviceType.Slug),
@@ -132,7 +132,7 @@ func NewEmbeddedLibrary(customDir string) (*Library, error) {
 	if len(customFiles) != 0 {
 		for _, file := range customFiles {
 			filePath := filepath.Join(customDir, file.Name())
-			log.Debug().Msgf("Parsing custom hardware-type: %v", filePath)
+			log.Trace().Msgf("Parsing custom hardware-type: %v", filePath)
 
 			fileRaw, err := os.ReadFile(filePath)
 			if err != nil {
@@ -145,7 +145,7 @@ func NewEmbeddedLibrary(customDir string) (*Library, error) {
 			}
 
 			for _, deviceType := range fileDeviceTypes {
-				log.Debug().Msgf("Registering device type: %s", deviceType.Slug)
+				log.Trace().Msgf("Registering device type: %s", deviceType.Slug)
 				if err := library.RegisterDeviceType(deviceType); err != nil {
 					return nil, errors.Join(
 						fmt.Errorf("failed to register device type '%s'", deviceType.Slug),

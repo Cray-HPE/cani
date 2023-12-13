@@ -26,7 +26,12 @@
 package blade
 
 import (
+	"os"
+
 	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/Cray-HPE/cani/internal/domain"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -40,7 +45,8 @@ var (
 	sortBy    string
 )
 
-func init() {
+func Init() {
+	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/cmd/blade.init")
 	// Add blade variants to root commands
 	root.AddCmd.AddCommand(AddBladeCmd)
 	root.ListCmd.AddCommand(ListBladeCmd)
@@ -63,4 +69,15 @@ func init() {
 	RemoveBladeCmd.Flags().BoolVarP(&recursion, "recursive", "R", false, "Recursively delete child hardware")
 	ListBladeCmd.Flags().StringVarP(&format, "format", "f", "pretty", "Format output")
 	ListBladeCmd.Flags().StringVarP(&sortBy, "sort", "s", "location", "Sort by a specific key")
+
+	// Register all provider commands during init()
+	for _, p := range domain.GetProviders() {
+		for _, c := range []*cobra.Command{AddBladeCmd, ListBladeCmd} {
+			err := root.RegisterProviderCommand(p, c)
+			if err != nil {
+				log.Error().Msgf("Unable to get command '%s %s' from provider %s ", c.Parent().Name(), c.Name(), p.Slug())
+				os.Exit(1)
+			}
+		}
+	}
 }

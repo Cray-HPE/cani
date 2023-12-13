@@ -34,7 +34,6 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/rs/zerolog/log"
@@ -130,15 +129,13 @@ func generateStub(method reflect.Method, pkg string) string {
 		returns = append(returns, returnType.String())
 	}
 
-	recieverVar, _ := utf8.DecodeRuneInString(pkg)
-	firstLetter := strings.ToLower(string((recieverVar)))
+	// recieverVar, _ := utf8.DecodeRuneInString(pkg)
+	// firstLetter := strings.ToLower(string((recieverVar)))
 
 	// Construct the function signature
-	signature := fmt.Sprintf("// %s implements the %s method of the InventoryProvider interface\nfunc (%s %s) %s(%s)",
+	signature := fmt.Sprintf("// %s implements the %s method of the InventoryProvider interface\nfunc %s(%s)",
 		method.Name,
 		method.Name,
-		firstLetter,
-		strings.Title(pkg),
 		method.Name,
 		strings.Join(params, ", "))
 
@@ -146,14 +143,40 @@ func generateStub(method reflect.Method, pkg string) string {
 		signature += " (" + strings.Join(returns, ", ") + ")"
 	}
 
+	returnsModified := []string{}
+	// stupid, but works for immediate need
+	for _, r := range returns {
+		switch r {
+		case "error":
+			returnsModified = append(returnsModified, `nil`)
+		case "string":
+			returnsModified = append(returnsModified, `""`)
+		case "[]string":
+			returnsModified = append(returnsModified, `[]string{}`)
+		case "*cobra.Command":
+			returnsModified = append(returnsModified, `&cobra.Command{}`)
+		case "interface":
+			returnsModified = append(returnsModified, `map[string]interface{}{}`)
+		case "interface{}":
+			returnsModified = append(returnsModified, `interface{}{}sdf`)
+		case "map[uuid.UUID]provider.HardwareValidationResult":
+			returnsModified = append(returnsModified, `map[uuid.UUID]provider.HardwareValidationResult{}`)
+		case "[]provider.FieldMetadata":
+			returnsModified = append(returnsModified, `[]provider.FieldMetadata{}`)
+		case "provider.HardwareRecommendations":
+			returnsModified = append(returnsModified, `provider.HardwareRecommendations{}`)
+		case "provider.SetFieldsResult":
+			returnsModified = append(returnsModified, `provider.SetFieldsResult{}`)
+		default:
+			returnsModified = append(returnsModified, r)
+		}
+	}
 	// Add a basic function body
 	body := fmt.Sprintf(`{
-// TODO: Implement
-log.Info().Msgf("not yet implemented")
+log.Info().Msgf("%s not yet implemented")
 
 return %s
-}`,
-		strings.Join(returns, ", "))
+}`, method.Name, strings.Join(returnsModified, ", "))
 
 	return signature + " " + body
 }
@@ -194,6 +217,56 @@ func formatGoFile(filePath string) error {
 
 // initStub creates a file with the init command
 func initStub(dir, pkg string) error {
+	newProviderCmd := `
+	// NewProviderCmd returns the appropriate command to the cmd layer
+	func NewProviderCmd(caniCmd *cobra.Command) (providerCmd *cobra.Command, err error) {
+		// first, choose the right command
+		switch caniCmd.Name() {
+		case "init":
+			providerCmd, err = NewSessionInitCommand(caniCmd)
+		case "cabinet":
+			switch caniCmd.Parent().Name() {
+			case "add":
+				providerCmd, err = NewAddCabinetCommand(caniCmd)
+			case "update":
+				providerCmd, err = NewUpdateCabinetCommand(caniCmd)
+			case "list":
+				providerCmd, err = NewListCabinetCommand(caniCmd)
+			}
+		case "blade":
+			switch caniCmd.Parent().Name() {
+			case "add":
+				providerCmd, err = NewAddBladeCommand(caniCmd)
+			case "update":
+				providerCmd, err = NewUpdateBladeCommand(caniCmd)
+			case "list":
+				providerCmd, err = NewListBladeCommand(caniCmd)
+			}
+		case "node":
+			// check for add/update variants
+			switch caniCmd.Parent().Name() {
+			case "add":
+				providerCmd, err = NewAddNodeCommand(caniCmd)
+			case "update":
+				providerCmd, err = NewUpdateNodeCommand(caniCmd)
+			case "list":
+				providerCmd, err = NewListNodeCommand(caniCmd)
+			}
+		case "export":
+			providerCmd, err = NewExportCommand(caniCmd)
+		case "import":
+			providerCmd, err = NewImportCommand(caniCmd)
+		default:
+			err = fmt.Errorf("Command not implemented by provider: %s %s", caniCmd.Parent().Name(), caniCmd.Name())
+		}
+		if err != nil {
+			return providerCmd, err
+		}
+	
+		return providerCmd, nil
+	}
+`
+
 	iStub := filepath.Join(dir, "init.go")
 	log.Info().Msgf("Generating %+v", iStub)
 	f, err := os.Create(iStub)
@@ -206,8 +279,13 @@ func initStub(dir, pkg string) error {
 	providerCommands := reflect.TypeOf((*provider.ProviderCommands)(nil)).Elem()
 	content := []string{}
 	for i := 0; i < providerCommands.NumMethod(); i++ {
+		fileContent := ""
 		method := providerCommands.Method(i)
-		fileContent := generateStub(method, pkg)
+		if method.Name != "NewProviderCmd" {
+			fileContent = generateStub(method, pkg)
+		} else {
+			fileContent = newProviderCmd
+		}
 		if err != nil {
 			return err
 		}
@@ -215,7 +293,9 @@ func initStub(dir, pkg string) error {
 	}
 
 	// this is what gets written
-	payload := fmt.Sprintf("package %s\n\n%s",
+	payload := fmt.Sprintf(`package %s
+
+%s`,
 		strings.ToLower(pkg),
 		strings.Join(content, "\n"))
 

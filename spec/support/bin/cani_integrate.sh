@@ -22,7 +22,7 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
-# set -e
+set -e
 set -u
 
 # SIM_REPO="${1:-../hms-simulation-environment}"
