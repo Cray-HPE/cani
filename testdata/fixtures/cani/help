@@ -4,10 +4,10 @@ Usage:
   cani [command]
 
 Available Commands:
-  alpha       Run commands that are considered unstable.
-  completion  Generate the autocompletion script for the specified shell
-  help        Help about any command
-  makedocs    Generate markdown docs to ./docs/
+  alpha        Run commands that are considered unstable.
+  completion   Generate the autocompletion script for the specified shell
+  help         Help about any command
+  makedocs     Generate markdown docs to ./docs/
 
 Flags:
       --config string   Path to the configuration file
