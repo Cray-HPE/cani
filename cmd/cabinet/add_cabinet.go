@@ -57,7 +57,7 @@ func addCabinet(cmd *cobra.Command, args []string) (err error) {
 
 	if auto {
 		// get hardware recommendations from the provider
-		log.Info().Msgf("Querying inventory to suggest cabinet number and VLAN ID")
+		log.Info().Msgf("Querying inventory to suggest %s", hardwaretypes.Cabinet)
 		// Prompt the user to confirm the suggestions
 		if !accept {
 			accept, err = tui.CustomConfirmation(fmt.Sprintf("Would you like to accept the recommendations and add the %s", hardwaretypes.Cabinet))

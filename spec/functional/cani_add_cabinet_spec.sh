@@ -218,7 +218,7 @@ It "--config $CANI_CONF hpe-ex2000 --auto --accept"
   BeforeCall use_active_session # session is active
   When call bin/cani alpha add cabinet --config "$CANI_CONF" hpe-ex2000 --auto --accept 
   The status should equal 0
-  The line 1 of stderr should include " Querying inventory to suggest cabinet number and VLAN ID"
+  The line 1 of stderr should include " Querying inventory to suggest Cabinet"
   The line 2 of stderr should include " Suggested cabinet number: "
   The line 3 of stderr should include " Suggested VLAN ID: "
   The line 4 of stderr should include " was successfully staged to be added to the system"
@@ -252,7 +252,7 @@ End
 
 It "--config $CANI_CONF $1 --auto --accept"
   When call bin/cani alpha add cabinet --config "$CANI_CONF" "$1" --auto --accept
-  The line 1 of stderr should include " Querying inventory to suggest cabinet number and VLAN ID"
+  The line 1 of stderr should include " Querying inventory to suggest Cabinet"
   The line 2 of stderr should include " Suggested cabinet number: "
   The line 3 of stderr should include " Suggested VLAN ID: "
   The line 4 of stderr should include " was successfully staged to be added to the system"
@@ -344,7 +344,7 @@ End
 # setup a bunch of cabinets with incongruent cabinet numbers
 It "--config $CANI_CONF $1 --auto --accept"
   When call bin/cani alpha add cabinet --config "$CANI_CONF" "$1" --auto --accept
-  The line 1 of stderr should include " Querying inventory to suggest cabinet number and VLAN ID"
+  The line 1 of stderr should include " Querying inventory to suggest Cabinet"
   The line 2 of stderr should include " Suggested cabinet number: "
   The line 3 of stderr should include " Suggested VLAN ID: "
   The line 4 of stderr should include " was successfully staged to be added to the system"
@@ -436,7 +436,7 @@ End
 # setup a bunch of cabinets with incongruent cabinet numbers
 It "--config $CANI_CONF $1 --auto --accept"
   When call bin/cani alpha add cabinet --config "$CANI_CONF" "$1" --auto --accept
-  The line 1 of stderr should include " Querying inventory to suggest cabinet number and VLAN ID"
+  The line 1 of stderr should include " Querying inventory to suggest Cabinet"
   The line 2 of stderr should include " Suggested cabinet number: "
   The line 3 of stderr should include " Suggested VLAN ID: "
   The line 4 of stderr should include " was successfully staged to be added to the system"
@@ -460,7 +460,7 @@ It "--config $CANI_CONF my-custom-cabinet --auto --accept"
   BeforeCall use_valid_datastore_system_only
   When call bin/cani alpha add cabinet --config "$CANI_CONF" my-custom-cabinet --auto --accept
   The status should equal 0
-  The line 1 of stderr should include " Querying inventory to suggest cabinet number and VLAN ID"
+  The line 1 of stderr should include " Querying inventory to suggest Cabinet"
   The line 2 of stderr should include " Suggested cabinet number: 4321"
   The line 3 of stderr should include " Suggested VLAN ID: 1111"
   The line 4 of stderr should include " was successfully staged to be added to the system"

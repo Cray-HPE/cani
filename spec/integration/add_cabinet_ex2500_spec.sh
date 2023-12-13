@@ -52,7 +52,7 @@ End
 It 'add hpe-ex2500-1-liquid-cooled-chassis cabinet'
   When call bin/cani alpha --config "$CANI_CONF" add cabinet hpe-ex2500-1-liquid-cooled-chassis --auto --accept
   The status should equal 0
-  The line 1 of stderr should include 'Querying inventory to suggest cabinet number and VLAN ID'
+  The line 1 of stderr should include 'Querying inventory to suggest Cabinet'
   The line 2 of stderr should include 'Suggested cabinet number: 8000'
   The line 3 of stderr should include 'Suggested VLAN ID: 3001'
   The line 4 of stderr should include 'Cabinet 8000 was successfully staged to be added to the system'
@@ -61,7 +61,7 @@ End
 It 'add hpe-ex2500-2-liquid-cooled-chassis cabinet'
   When call bin/cani alpha --config "$CANI_CONF" add cabinet hpe-ex2500-2-liquid-cooled-chassis --auto --accept
   The status should equal 0
-  The line 1 of stderr should include 'Querying inventory to suggest cabinet number and VLAN ID'
+  The line 1 of stderr should include 'Querying inventory to suggest Cabinet'
   The line 2 of stderr should include 'Suggested cabinet number: 8001'
   The line 3 of stderr should include 'Suggested VLAN ID: 3002'
   The line 4 of stderr should include 'Cabinet 8001 was successfully staged to be added to the system'
@@ -70,7 +70,7 @@ End
 It 'add hpe-ex2500-3-liquid-cooled-chassis cabinet'
   When call bin/cani alpha --config "$CANI_CONF" add cabinet hpe-ex2500-3-liquid-cooled-chassis --auto --accept
   The status should equal 0
-  The line 1 of stderr should include 'Querying inventory to suggest cabinet number and VLAN ID'
+  The line 1 of stderr should include 'Querying inventory to suggest Cabinet'
   The line 2 of stderr should include 'Suggested cabinet number: 8002'
   The line 3 of stderr should include 'Suggested VLAN ID: 3003'
   The line 4 of stderr should include 'Cabinet 8002 was successfully staged to be added to the system'
