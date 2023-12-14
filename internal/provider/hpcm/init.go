@@ -29,11 +29,59 @@ import "github.com/spf13/cobra"
 
 func NewSessionInitCommand() (cmd *cobra.Command, err error) {
 	cmd = &cobra.Command{}
+	cmd.Short = `HPCM`
+	cmd.Long = `HPCM`
 
+	// Session init flags
+	cmd.Flags().BoolP("use-simulator", "S", false, "Use simulation environtment settings")
+	cmd.Flags().String("cmdb-url", "cmu/v1", "Base URL for the CMDB")
+	cmd.Flags().BoolP("insecure", "k", false, "Allow insecure connections when using HTTPS")
+	cmd.Flags().String("host", "localhost:8080", "Host or FQDN for APIs")
+	cmd.Flags().String("cacert", "", "Path to the CA certificate file")
+	cmd.Flags().String("token", "", "API token")
 	return cmd, nil
 }
 
 func NewAddCabinetCommand() (cmd *cobra.Command, err error) {
+	cmd = &cobra.Command{}
+
+	return cmd, nil
+}
+
+func UpdateAddCabinetCommand(caniCmd *cobra.Command) error {
+	return nil
+}
+
+func NewAddNodeCommand() (cmd *cobra.Command, err error) {
+	// cmd represents for cani alpha add node
+	cmd = &cobra.Command{}
+
+	return cmd, nil
+}
+
+func NewUpdateNodeCommand() (cmd *cobra.Command, err error) {
+	// cmd represents for cani alpha update node
+	cmd = &cobra.Command{}
+
+	return cmd, nil
+}
+
+// UpdateUpdateNodeCommand
+func UpdateUpdateNodeCommand(caniCmd *cobra.Command) error {
+
+	return nil
+}
+
+func NewExportCommand() (cmd *cobra.Command, err error) {
+	// cmd represents cani alpha export
+	cmd = &cobra.Command{}
+	cmd.Flags().Bool("hpcm", false, "Export inventory to HPCM format.")
+
+	return cmd, nil
+}
+
+func NewImportCommand() (cmd *cobra.Command, err error) {
+	// cmd represents cani alpha import
 	cmd = &cobra.Command{}
 
 	return cmd, nil

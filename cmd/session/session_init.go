@@ -75,6 +75,8 @@ func initSessionWithProviderCmd(cmd *cobra.Command, args []string) (err error) {
 	switch root.D.Provider {
 	case taxonomy.CSM:
 		root.D.DatastorePath = filepath.Join(config.ConfigDir, taxonomy.DsFileCSM)
+	case taxonomy.HPCM:
+		root.D.DatastorePath = filepath.Join(config.ConfigDir, taxonomy.DsFile)
 	default:
 		root.D.DatastorePath = filepath.Join(config.ConfigDir, taxonomy.DsFile)
 	}

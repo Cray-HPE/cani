@@ -26,14 +26,15 @@
 package hpcm
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
-func (hpcm *Hpcm) ImportInit(ctx context.Context, datastore inventory.Datastore) error {
+func (hpcm *Hpcm) ImportInit(cmd *cobra.Command, args []string, datastore inventory.Datastore) error {
 	// Clone the datastore during import
 	tempDatastore, err := datastore.Clone()
 	if err != nil {
@@ -70,4 +71,9 @@ func (hpcm *Hpcm) ImportInit(ctx context.Context, datastore inventory.Datastore)
 	}
 
 	return datastore.Flush()
+}
+
+func (hpcm *Hpcm) Import(cmd *cobra.Command, args []string, datastore inventory.Datastore) error {
+	log.Warn().Msgf("not yet implemented")
+	return nil
 }

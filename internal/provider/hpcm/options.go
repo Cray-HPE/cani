@@ -28,17 +28,21 @@ package hpcm
 import (
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
 func (hpcm *Hpcm) SetProviderOptions(cmd *cobra.Command, args []string) error {
+	log.Warn().Msgf("not yet implemented")
 	return nil
 }
 
 func (hpcm *Hpcm) GetProviderOptions() (interface{}, error) {
+	log.Warn().Msgf("not yet implemented")
 	return nil, nil
 }
 
 func (hpcm *Hpcm) SetFields(hw *inventory.Hardware, values map[string]string) (result provider.SetFieldsResult, err error) {
+	log.Warn().Msgf("not yet implemented")
 	return provider.SetFieldsResult{}, nil
 }
