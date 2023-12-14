@@ -22,19 +22,19 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
-Describe 'cani add'
+Describe 'cani update'
 
 It '--help'
-  When call bin/cani alpha add --help
+  When call bin/cani alpha update --help
   The status should equal 0
-  The stdout should satisfy fixture 'cani/add/help'
+  The stdout should satisfy fixture 'cani/update/help'
 End
 
 It 'no args'
   BeforeCall remove_config
-  When call bin/cani alpha add
+  When call bin/cani alpha update
   The status should equal 0
-  The stdout should satisfy fixture 'cani/add/help'
+  The stdout should satisfy fixture 'cani/update/help'
   The stderr should include 'No active session.'
 End
 

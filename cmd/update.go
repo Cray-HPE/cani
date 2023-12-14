@@ -39,5 +39,8 @@ var UpdateCmd = &cobra.Command{
 
 // updateMeta is the main entry point for the update command.
 func updateMeta(cmd *cobra.Command, args []string) error {
+	if len(args) == 0 {
+		cmd.Help()
+	}
 	return nil
 }

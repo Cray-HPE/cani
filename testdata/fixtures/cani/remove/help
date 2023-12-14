@@ -1,0 +1,24 @@
+Remove assets from the inventory.
+
+Usage:
+  cani alpha remove [flags]
+  cani alpha remove [command]
+
+Available Commands:
+  blade       Remove blades from the inventory.
+  cabinet     Remove cabinets from the inventory.
+  cdu         Remove cdus from the inventory.
+  chassis     Remove chassis from the inventory.
+  node        Remove nodes from the inventory.
+  pdu         Remove pdus from the inventory.
+  switch      Remove switches from the inventory.
+
+Flags:
+  -h, --help   help for remove
+
+Global Flags:
+      --config string   Path to the configuration file
+  -D, --debug           additional debug output
+  -v, --verbose         additional verbose output
+
+Use "cani alpha remove [command] --help" for more information about a command.
