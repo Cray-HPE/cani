@@ -46,6 +46,7 @@ func init() {
 
 	RootCmd.AddCommand(AlphaCmd)
 	RootCmd.AddCommand(MakeDocsCmd)
+	RootCmd.AddCommand(MakeProviderCmd)
 	AlphaCmd.AddCommand(AddCmd)
 	AlphaCmd.AddCommand(ListCmd)
 	AlphaCmd.AddCommand(RemoveCmd)
