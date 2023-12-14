@@ -87,7 +87,7 @@ It 'initialize a session without a config file or datastore'
   BeforeCall remove_config
   BeforeCall remove_datastore
   BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
-  When call bin/cani alpha session --config "$CANI_CONF" init csm -S 
+  When call bin/cani alpha session --config "$CANI_CONF" init csm -S
   The status should equal 0
   The stderr should include 'Using simulation mode'
   The stderr should include 'Validated CANI inventory'
@@ -183,7 +183,7 @@ It 'initialize a session with a CIDR that overlaps k8s values'
   BeforeCall use_inactive_session
   BeforeCall use_valid_datastore_system_only
   BeforeCall "load_sls.sh testdata/fixtures/sls/invalid_networks_k8s_overlap.json" # simulator is running, load a specific SLS config
-  When call bin/cani alpha session --config "$CANI_CONF" init csm -S 
+  When call bin/cani alpha session --config "$CANI_CONF" init csm -S
   The status should equal 1
   The line 1 of stderr should include 'Using simulation mode'
   The stderr should include 'Validated CANI inventory'
@@ -192,37 +192,127 @@ It 'initialize a session with a CIDR that overlaps k8s values'
   The stderr should include 'k8sservicescidr 10.16.0.0/12 overlaps with CAN 10.16.0.0/12'
 End
 
-# running any command with an older-style config should update the config file to the new format
-It 'add a cabinet with a single-provider config'
-  BeforeCall use_single_provider_session
-  BeforeCall use_valid_datastore_system_only
-  BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
-  When call bin/cani --config "$CANI_CONF" alpha add cabinet hpe-ex4000 --auto --accept
-  The status should equal 0
-  The stderr should include 'Translating single-provider config to multi-provider'
-
-  # The config should get created
-  The path "$CANI_CONF" should be exist
-  The path "$CANI_CONF" should be file
-  # the single-provider config should be renamed
-  The path "$CANI_CONF_SINGLE" should be exist
-  The path "$CANI_CONF_SINGLE" should be file
-End
-
 End
 
 # the single-provider fixture has one key with a user-defined value
 # this key should be migrated to the new format, as opposed to creating new default values
-Describe 'migrated config should retain user-defined values'
+Describe 'session migration:'
   cat_config(){
     cat "$CANI_CONF" >&2
   }
 
-  It 'check if a key matches the expected value'
+  # running any command with an older-style config should update the config file to the new format
+  # 'migrated config validates group validates the results from this test
+  It 'add a cabinet with a single-provider config'
+    BeforeCall use_single_provider_session
+    BeforeCall use_valid_datastore_system_only
+    BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
+    When call bin/cani --config "$CANI_CONF" alpha add cabinet hpe-ex4000 --auto --accept
+    The status should equal 0
+    The stderr should include 'Translating single-provider config to multi-provider'
+
+    # The config should get created
+    The path "$CANI_CONF" should be exist
+    The path "$CANI_CONF" should be file
+    # the single-provider config should be renamed
+    The path "$CANI_CONF_SINGLE" should be exist
+    The path "$CANI_CONF_SINGLE" should be file
+  End
+
+
+  It 'check config for migrated field'
     When call cat_config
     The status should equal 0
     # the deprecated fixture contains a value of 'migrated'
     # check to see if it now exists in the converted config file
     The stderr should include 'migrated'
   End
+End
+
+Describe 'recreate session:'
+
+  # setup the initial state with an active session
+  It 'setup for test by initializing the session'
+    BeforeCall remove_config
+    BeforeCall remove_datastore
+    BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
+
+    # Create the initial session
+    When call bin/cani alpha session --config "$CANI_CONF" init csm -S
+    The status should equal 0
+    The stderr should include 'Using simulation mode'
+    The stderr should include 'Validated CANI inventory'
+    The stderr should include 'Validated external inventory provider'
+    # Verify the import logic reached out to SLS
+    The stderr should include 'GET https://localhost:8443/apis/sls/v1/dumpstate'
+    The stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/State/Components'
+    The stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/Inventory/Hardware'
+
+    # Verify the import logic pushed changes into SLS
+    The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000'
+    The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c1'
+    The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c1b0'
+    The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c3'
+    The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c3b0'
+
+    # Verify the session has started
+    The stderr should include 'Session is now ACTIVE with provider csm and datastore'
+
+    # The config should get created
+    The path "$CANI_CONF" should be exist
+    The path "$CANI_CONF" should be file
+  End
+
+  It 'session init with N answer'
+    When call sh -c '\
+        echo "N" | \
+        bin/cani alpha session --config "$CANI_CONF" init csm -S '
+    The status should equal 0
+    The stdout should include 'Keep session active but overwrite the datastore'
+    The stderr should include 'Using simulation mode'
+    The stderr should not include 'Session is now ACTIVE with provider csm and datastore'
+
+    # The config should still exist
+    The path "$CANI_CONF" should be exist
+    The path "$CANI_CONF" should be file
+  End
+
+  It 'session init with Y answer'
+    When call sh -c '\
+        echo "Y" | \
+        bin/cani alpha session --config "$CANI_CONF" init csm -S '
+    The status should equal 0
+    The stdout should include 'Keep session active but overwrite the datastore'
+    The stderr should include 'Using simulation mode'
+    The stderr should include 'Session is now ACTIVE with provider csm and datastore'
+
+    # The config should still exist
+    The path "$CANI_CONF" should be exist
+    The path "$CANI_CONF" should be file
+  End
+
+  It 'session init with force option'
+    When call bin/cani alpha session --config "$CANI_CONF" init csm -S --force
+    The status should equal 0
+    The stdout should not include 'Keep session active but overwrite the datastore'
+    The stderr should include 'Using simulation mode'
+    The stderr should include 'Session is now ACTIVE with provider csm and datastore'
+
+    # The config should still exist
+    The path "$CANI_CONF" should be exist
+    The path "$CANI_CONF" should be file
+  End
+
+  It 'session init with f option'
+    When call bin/cani alpha session --config "$CANI_CONF" init csm -S -f
+    The status should equal 0
+    The stdout should not include 'Keep session active but overwrite the datastore'
+    The stderr should include 'Using simulation mode'
+    The stderr should include 'Session is now ACTIVE with provider csm and datastore'
+
+    # The config should still exist
+    The path "$CANI_CONF" should be exist
+    The path "$CANI_CONF" should be file
+  End
+
 End

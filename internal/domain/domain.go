@@ -65,11 +65,18 @@ func New(cmd *cobra.Command, args []string) (d *Domain, err error) {
 }
 
 // SetupDomain sets the provider options for the domain
-func (d *Domain) SetupDomain(cmd *cobra.Command, args []string) (err error) {
+func (d *Domain) SetupDomain(cmd *cobra.Command, args []string, configDomains map[string]*Domain) (err error) {
 	// The domain needs a minimum of three things to start:
 	//   1. a datastore to save the inventory to
 	//   2. a hardware type library to know compatible hardware
 	//   3. a provider interface object
+
+	for _, sessionDomain := range configDomains {
+		if sessionDomain.Active {
+			d.Active = true
+			log.Debug().Msgf("Setting top level Domain to Active=true")
+		}
+	}
 
 	// active sessions should have a datastore
 	if _, err := os.Stat(d.DatastorePath); os.IsNotExist(err) {

@@ -47,7 +47,7 @@ var SessionSummaryCmd = &cobra.Command{
 
 func showSummary(cmd *cobra.Command, args []string) error {
 	// resetup the domain to get fresh info
-	err := root.D.SetupDomain(cmd, args)
+	err := root.D.SetupDomain(cmd, args, root.Conf.Session.Domains)
 	if err != nil {
 		return err
 	}
