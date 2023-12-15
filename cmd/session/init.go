@@ -31,7 +31,6 @@ import (
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/cmd/taxonomy"
 	"github.com/Cray-HPE/cani/internal/provider/csm"
-	"github.com/Cray-HPE/cani/internal/provider/hpcm"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -64,8 +63,6 @@ func init() {
 		switch provider {
 		case taxonomy.CSM:
 			ProviderCmd, err = csm.NewSessionInitCommand()
-		case taxonomy.HPCM:
-			ProviderCmd, err = hpcm.NewSessionInitCommand()
 		default:
 			log.Debug().Msgf("skipping provider: %s", provider)
 		}
