@@ -88,12 +88,8 @@ type InventoryProvider interface {
 	// Return metadata about each field
 	GetFieldMetadata() ([]FieldMetadata, error)
 
-	// Workflows
-	ListCabinetMetadataColumns() (columns []string)
-	ListCabinetMetadataRow(inventory.Hardware) (values []string, err error)
-
 	// Print
-	PrintHardware(hw *inventory.Hardware)
+	PrintHardware(cmd *cobra.Command, args []string, filtered map[uuid.UUID]inventory.Hardware) error
 }
 
 type HardwareValidationResult struct {

@@ -31,6 +31,7 @@ import (
 	"sort"
 
 	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/tui"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
@@ -119,6 +120,7 @@ func addBlade(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
+	var filtered = make(map[uuid.UUID]inventory.Hardware, 0)
 	for _, result := range result.AddedHardware {
 		// If the type is a Node
 		if result.Hardware.Type == hardwaretypes.NodeBlade {
@@ -134,9 +136,10 @@ func addBlade(cmd *cobra.Command, args []string) (err error) {
 				result.Location)
 
 			log.Info().Str("status", "SUCCESS").Msgf("%s was successfully staged to be added to the system", hardwaretypes.NodeBlade)
-			root.D.PrintHardware(&result.Hardware)
+			filtered[result.Hardware.ID] = result.Hardware
 		}
 	}
+	root.D.PrintHardware(cmd, args, filtered)
 
 	return nil
 }

@@ -136,7 +136,6 @@ func (d *Domain) SetupDomain(cmd *cobra.Command, args []string, configDomains ma
 		}
 	}
 
-	log.Debug().Msgf("setting provider-specific options %+v", d.Options)
 	if d.Options == nil {
 		opts, err := d.externalInventoryProvider.GetProviderOptions()
 		if err != nil {

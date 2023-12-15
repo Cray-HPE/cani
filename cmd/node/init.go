@@ -43,6 +43,7 @@ var (
 	format                string
 	sortBy                string
 	ProviderAddNodeCmd    = &cobra.Command{}
+	ProviderListNodeCmd   = &cobra.Command{}
 	ProviderUpdateNodeCmd = &cobra.Command{}
 )
 
@@ -81,6 +82,11 @@ func init() {
 	// Merge CANI's command with the provider-specified command
 	// this allows for CANI's operations to remain consistent, while adding provider config on top
 	err = root.MergeProviderCommand(UpdateNodeCmd, ProviderUpdateNodeCmd)
+	if err != nil {
+		log.Error().Msgf("%+v", err)
+		os.Exit(1)
+	}
+	err = root.MergeProviderCommand(ListNodeCmd, ProviderListNodeCmd)
 	if err != nil {
 		log.Error().Msgf("%+v", err)
 		os.Exit(1)

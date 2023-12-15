@@ -28,8 +28,9 @@ package hpcm
 import (
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
-func (hpcm *Hpcm) PrintHardware(hw *inventory.Hardware) {
+func (hpcm *Hpcm) PrintHardware(cmd *cobra.Command, args []string, hw *inventory.Hardware) {
 	log.Warn().Msgf("not yet implemented")
 }

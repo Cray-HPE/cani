@@ -201,13 +201,13 @@ func (csm *CSM) setupClients() (err error) {
 	return nil
 }
 
-// ListCabinetMetadataColumns returns a slice of strings, which are columns names of CSM-specific metadata to be shown when listing cabinets
-func (csm *CSM) ListCabinetMetadataColumns() (columns []string) {
+// listCabinetMetadataColumns returns a slice of strings, which are columns names of CSM-specific metadata to be shown when listing cabinets
+func listCabinetMetadataColumns() (columns []string) {
 	return []string{"HMN VLAN"}
 }
 
-// ListCabinetMetadataRow returns a slice of strings, which are values from the hardware that correlate to the columns they will be shown in
-func (csm *CSM) ListCabinetMetadataRow(hw inventory.Hardware) (values []string, err error) {
+// listCabinetMetadataRow returns a slice of strings, which are values from the hardware that correlate to the columns they will be shown in
+func listCabinetMetadataRow(hw inventory.Hardware) (values []string, err error) {
 	md, err := DecodeProviderMetadata(hw)
 	if err != nil {
 		return values, err
