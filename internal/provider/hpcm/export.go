@@ -27,9 +27,11 @@ package hpcm
 
 import (
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
-func (hpcm *Hpcm) Export(cmd *cobra.Command, args []string, datastore inventory.Datastore, skipValidation bool) ([]byte, error) {
-	return []byte{}, nil
+func (hpcm *Hpcm) Export(*cobra.Command, []string, inventory.Datastore) error {
+	log.Warn().Msgf("not yet implemented")
+	return nil
 }

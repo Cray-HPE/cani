@@ -27,12 +27,22 @@ package hpcm
 
 import (
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+	hpcm_client "github.com/Cray-HPE/cani/pkg/hpcm-client"
 )
 
 type Hpcm struct {
 	hardwareLibrary *hardwaretypes.Library
 	Options         *HpcmOpts
+	Nodes           []hpcm_client.Node
+	MgmtCards       []hpcm_client.ManagementCard
 }
 
 type HpcmOpts struct {
+	Simulation         bool
+	InsecureSkipVerify bool
+	CmdbHost           string
+	CmdbUrlBase        string
+	Token              string
+	Insecure           bool
+	CaCert             string
 }

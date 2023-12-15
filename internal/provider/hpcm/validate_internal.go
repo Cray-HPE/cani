@@ -29,9 +29,11 @@ import (
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
 func (hpcm *Hpcm) ValidateInternal(cmd *cobra.Command, args []string, datastore inventory.Datastore, enableRequiredDataChecks bool) (map[uuid.UUID]provider.HardwareValidationResult, error) {
+	log.Warn().Msgf("not yet implemented")
 	return map[uuid.UUID]provider.HardwareValidationResult{}, nil
 }

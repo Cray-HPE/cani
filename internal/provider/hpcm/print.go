@@ -27,12 +27,9 @@ package hpcm
 
 import (
 	"github.com/Cray-HPE/cani/internal/inventory"
-	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/rs/zerolog/log"
-	"github.com/spf13/cobra"
 )
 
-func (hpcm *Hpcm) RecommendHardware(inv inventory.Inventory, cmd *cobra.Command, args []string, auto bool) (recommended provider.HardwareRecommendations, err error) {
+func (hpcm *Hpcm) PrintHardware(hw *inventory.Hardware) {
 	log.Warn().Msgf("not yet implemented")
-	return recommended, nil
 }

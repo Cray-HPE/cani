@@ -27,9 +27,11 @@ package hpcm
 
 import (
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
 func (hpcm *Hpcm) Reconcile(cmd *cobra.Command, args []string, datastore inventory.Datastore, dryrun bool, ignoreExternalValidation bool) error {
+	log.Warn().Msgf("not yet implemented")
 	return nil
 }
