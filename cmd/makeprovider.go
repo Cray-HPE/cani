@@ -28,16 +28,15 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 
-	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
-	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -59,147 +58,184 @@ var (
 
 // makeProvider generates go files that conform to the interface constraint for a provider
 func makeProvider(cmd *cobra.Command, args []string) error {
-	provider := args[0]
+	pkg := args[0]
 	dir := args[1]
 
-	// make a path with the dir and the provider name
-	pdir := filepath.Join(dir, provider)
-	err := os.MkdirAll(pdir, fs.FileMode(0755))
+	pdir := filepath.Join(dir, pkg)
+	err := os.MkdirAll(pdir, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	// generate the stubs
-	err = generateStubs(pdir)
-	if err != nil {
-		return err
-	}
-	return nil
-}
+	// Use reflection to analyze the methods of the InventoryProvider interface
+	inventoryProviderType := reflect.TypeOf((*provider.InventoryProvider)(nil)).Elem()
 
-// generateStubs generates code to statisfy the interface constraints
-func generateStubs(dir string) (err error) {
-	// get the absolute path
-	path, err := filepath.Abs(dir)
-	if err != nil {
-		return err
-	}
-
-	// the package name is the provider name, which is the dir where it will end up
-	pkgname := filepath.Base(path)
-
-	//  create a go file with the provider name for the provider struct
-	err = pkgStub(dir, pkgname)
-	if err != nil {
-		return err
-	}
-
-	//  create a go file for init()
-	err = initStub(dir, pkgname)
-	if err != nil {
-		return err
-	}
-
-	// make a fake type that fulfills the interface
-	s := Stub{}
-	t := reflect.TypeOf(&s).Elem()
-	for i := 0; i < t.NumMethod(); i++ {
-		method := t.Method(i)
-
-		// convert to a useful filename
-		ml := toSnakeCase(method.Name)
-		fname := fmt.Sprintf("%s%s", ml, ".go")
-		filename := filepath.Join(path, fname)
-
-		log.Info().Msgf("Generating stubs: %+v", filename)
-
-		// make the file
-		f, err := os.Create(filename)
+	// for each method, generate a file
+	for i := 0; i < inventoryProviderType.NumMethod(); i++ {
+		method := inventoryProviderType.Method(i)
+		fileContent := generateStub(method, pkg)
 		if err != nil {
 			return err
 		}
-		defer f.Close()
 
-		// write a file with the package name
-		payload := fmt.Sprintf(`package %s
-`, pkgname)
-		if _, err := io.WriteString(f, payload); err != nil {
+		// prepend the package name
+		fileContent = fmt.Sprintf("package %s\n%s", strings.ToLower(pkg), fileContent)
+
+		// convert to a useful filename
+		methodFilename := toSnakeCase(method.Name)
+		fileName := fmt.Sprintf("%s.go", methodFilename)
+		filePath := filepath.Join(pdir, fileName)
+		log.Info().Msgf("Generating %+v", filePath)
+		if err := os.WriteFile(filePath, []byte(fileContent), 0644); err != nil {
+			return err
+		}
+
+		// After code is genreated, fix format and imports
+		err := formatGoFile(filePath)
+		if err != nil {
 			return err
 		}
 	}
+
+	// the init.go has methods for generating provider commands needed by the cmd package
+	err = initStub(pdir, pkg)
+	if err != nil {
+		return err
+	}
+
+	// the providername.go has the types and the New() method
+	err = pkgStub(pdir, pkg)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func initStub(dir, pkgname string) error {
+// generateStub generates code to statisfy an interface constraint method
+func generateStub(method reflect.Method, pkg string) string {
+	var params []string
+	var returns []string
+
+	// Process each parameter
+	for i := 0; i < method.Type.NumIn(); i++ {
+		paramType := method.Type.In(i)
+		paramName := fmt.Sprintf("param%d", i) // Simple parameter names
+		params = append(params, paramName+" "+paramType.String())
+	}
+
+	// Process return values
+	for i := 0; i < method.Type.NumOut(); i++ {
+		returnType := method.Type.Out(i)
+		returns = append(returns, returnType.String())
+	}
+
+	recieverVar, _ := utf8.DecodeRuneInString(pkg)
+	firstLetter := strings.ToLower(string((recieverVar)))
+
+	// Construct the function signature
+	signature := fmt.Sprintf("// %s implements the %s method of the InventoryProvider interface\nfunc (%s %s) %s(%s)",
+		method.Name,
+		method.Name,
+		firstLetter,
+		strings.Title(pkg),
+		method.Name,
+		strings.Join(params, ", "))
+
+	if len(returns) > 0 {
+		signature += " (" + strings.Join(returns, ", ") + ")"
+	}
+
+	// Add a basic function body
+	body := fmt.Sprintf(`{
+// TODO: Implement
+log.Info().Msgf("not yet implemented")
+
+return %s
+}`,
+		strings.Join(returns, ", "))
+
+	return signature + " " + body
+}
+
+// isCommandAvailable checks if a command is available in the PATH
+func isCommandAvailable(name string) bool {
+	_, err := exec.LookPath(name)
+	if err != nil {
+		return false
+	}
+	return err == nil
+}
+
+// formatGoFile formats a go file using gofmt and goimports
+func formatGoFile(filePath string) error {
+	if isCommandAvailable("gofmt") {
+		// Run gofmt
+		gofmtCmd := exec.Command("gofmt", "-w", filePath)
+		if err := gofmtCmd.Run(); err != nil {
+			return fmt.Errorf("gofmt failed: %s", err)
+		}
+	} else {
+		return fmt.Errorf("gofmt not available")
+	}
+
+	// Run goimports
+	if isCommandAvailable("goimports") {
+		goimportsCmd := exec.Command("goimports", "-w", filePath)
+		if err := goimportsCmd.Run(); err != nil {
+			return fmt.Errorf("goimports failed: %s", err)
+		}
+	} else {
+		return fmt.Errorf("goimports not available")
+	}
+
+	return nil
+}
+
+// initStub creates a file with the init command
+func initStub(dir, pkg string) error {
 	iStub := filepath.Join(dir, "init.go")
+	log.Info().Msgf("Generating %+v", iStub)
 	f, err := os.Create(iStub)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
+	// Use reflection to analyze the methods of the ProviderCommands interface
+	providerCommands := reflect.TypeOf((*provider.ProviderCommands)(nil)).Elem()
+	content := []string{}
+	for i := 0; i < providerCommands.NumMethod(); i++ {
+		method := providerCommands.Method(i)
+		fileContent := generateStub(method, pkg)
+		if err != nil {
+			return err
+		}
+		content = append(content, fileContent)
+	}
+
 	// this is what gets written
-	payload := fmt.Sprintf(`package %s
+	payload := fmt.Sprintf("package %s\n\n%s",
+		strings.ToLower(pkg),
+		strings.Join(content, "\n"))
 
-import "github.com/spf13/cobra"
-
-func NewSessionInitCommand() (cmd *cobra.Command, err error) {
-	cmd = &cobra.Command{}
-
-	// Session init flags
-	// cmd.Flags().BoolP("myflag", "m", false, "My flag")
-
-	return cmd, nil
-}
-
-func NewAddCabinetCommand() (cmd *cobra.Command, err error) {
-	cmd = &cobra.Command{}
-
-	return cmd, nil
-}
-
-func UpdateAddCabinetCommand(caniCmd *cobra.Command) error {
-	return nil
-}
-
-func NewAddNodeCommand() (cmd *cobra.Command, err error) {
-	cmd = &cobra.Command{}
-
-	return cmd, nil
-}
-
-func NewUpdateNodeCommand() (cmd *cobra.Command, err error) {
-	cmd = &cobra.Command{}
-
-	return cmd, nil
-}
-
-func UpdateUpdateNodeCommand(caniCmd *cobra.Command) error {
-
-	return nil
-}
-
-func NewExportCommand() (cmd *cobra.Command, err error) {
-	cmd = &cobra.Command{}
-
-	return cmd, nil
-}
-
-func NewImportCommand() (cmd *cobra.Command, err error) {
-	cmd = &cobra.Command{}
-
-	return cmd, nil
-}
-		`, pkgname)
 	if _, err := io.WriteString(f, payload); err != nil {
 		return err
 	}
+
+	err = formatGoFile(iStub)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
+// pkgStub creates a file with the provider name for the provider struct
 func pkgStub(dir, pkgname string) error {
 	//  create a go file with the provider name for the provider struct
 	pStub := filepath.Join(dir, pkgname+".go")
+	log.Info().Msgf("Generating %+v", pStub)
 	f, err := os.Create(pStub)
 	if err != nil {
 		return err
@@ -209,12 +245,23 @@ func pkgStub(dir, pkgname string) error {
 	// this is what gets written
 	payload := fmt.Sprintf(`package %s
 	
-	type %s struct {}
+type %s struct {}
 	
-	// options for %s
-	type %sOpts struct {}
-		`, pkgname, strings.Title(pkgname), pkgname, strings.Title(pkgname))
+// options for %s
+type %sOpts struct {}
+
+// New returns a new %s and is needed to instantiate the provider from the cmd package
+func New() *%s {
+
+return &%s{}
+}`, pkgname, strings.Title(pkgname), pkgname, strings.Title(pkgname), strings.Title(pkgname), strings.Title(pkgname), strings.Title(pkgname))
+
 	if _, err := io.WriteString(f, payload); err != nil {
+		return err
+	}
+
+	err = formatGoFile(pStub)
+	if err != nil {
 		return err
 	}
 	return nil
@@ -224,58 +271,4 @@ func toSnakeCase(str string) string {
 	snake := matchFirstCap.ReplaceAllString(str, "${1}_${2}")
 	snake = matchAllCap.ReplaceAllString(snake, "${1}_${2}")
 	return strings.ToLower(snake)
-}
-
-type Stub struct{}
-
-func (s Stub) ValidateExternal(cmd *cobra.Command, args []string) error {
-	return nil
-}
-func (s Stub) ValidateInternal(cmd *cobra.Command, args []string, datastore inventory.Datastore, enableRequiredDataChecks bool) (map[uuid.UUID]provider.HardwareValidationResult, error) {
-	return map[uuid.UUID]provider.HardwareValidationResult{}, nil
-}
-func (s Stub) ImportInit(cmd *cobra.Command, args []string, datastore inventory.Datastore) error {
-	return nil
-}
-func (s Stub) Import(cmd *cobra.Command, args []string, datastore inventory.Datastore) error {
-	return nil
-}
-func (s Stub) Export(cmd *cobra.Command, args []string, datastore inventory.Datastore) error {
-	return nil
-}
-func (s Stub) Reconcile(cmd *cobra.Command, args []string, datastore inventory.Datastore, dryrun bool, ignoreExternalValidation bool) error {
-	return nil
-}
-func (s Stub) RecommendHardware(inv inventory.Inventory, cmd *cobra.Command, args []string, auto bool) (recommended provider.HardwareRecommendations, err error) {
-	return recommended, nil
-}
-func (s Stub) SetProviderOptions(cmd *cobra.Command, args []string) error {
-	return nil
-}
-func (s Stub) GetProviderOptions() (interface{}, error) {
-	opts := map[string]interface{}{}
-	return opts, nil
-}
-func (s Stub) BuildHardwareMetadata(hw *inventory.Hardware, cmd *cobra.Command, args []string, recommendations provider.HardwareRecommendations) error {
-	return nil
-}
-func (s Stub) NewHardwareMetadata(hw *inventory.Hardware, cmd *cobra.Command, args []string) error {
-	return nil
-}
-func (s Stub) GetFields(hw *inventory.Hardware, fieldNames []string) (values []string, err error) {
-	return values, nil
-}
-func (s Stub) SetFields(hw *inventory.Hardware, values map[string]string) (result provider.SetFieldsResult, err error) {
-	return result, nil
-}
-func (s Stub) GetFieldMetadata() ([]provider.FieldMetadata, error) {
-	return []provider.FieldMetadata{}, nil
-}
-func (s Stub) ListCabinetMetadataColumns() (columns []string) {
-	return nil
-}
-func (s Stub) ListCabinetMetadataRow(inventory.Hardware) (values []string, err error) {
-	return values, nil
-}
-func (s Stub) PrintHardware(hw *inventory.Hardware) {
 }
