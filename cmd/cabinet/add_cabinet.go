@@ -31,9 +31,11 @@ import (
 	"sort"
 
 	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/tui"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -93,13 +95,15 @@ func addCabinet(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
+	var filtered = make(map[uuid.UUID]inventory.Hardware, 0)
 	for _, result := range result.AddedHardware {
 		if result.Hardware.Type == hardwaretypes.Cabinet {
 			log.Debug().Msgf("%s added at %s with parent %s (%s)", result.Hardware.Type, result.Location.String(), hardwaretypes.System, result.Hardware.Parent)
 			log.Info().Str("status", "SUCCESS").Msgf("%s %d was successfully staged to be added to the system", hardwaretypes.Cabinet, recommendations.CabinetOrdinal)
-			root.D.PrintHardware(&result.Hardware)
+			filtered[result.Hardware.ID] = result.Hardware
 		}
 	}
 
+	root.D.PrintHardware(cmd, args, filtered)
 	return nil
 }

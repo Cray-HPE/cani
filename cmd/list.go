@@ -26,10 +26,6 @@
 package cmd
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
@@ -49,13 +45,10 @@ func listInventory(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Convert the inventory into a formatted JSON string
-	inventoryJSON, err := json.MarshalIndent(inv.Hardware, "", "  ")
+	err = D.PrintHardware(cmd, args, inv.Hardware)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Error marshaling inventory to JSON: %v", err))
+		return err
 	}
 
-	// Print the inventory
-	fmt.Println(string(inventoryJSON))
 	return nil
 }

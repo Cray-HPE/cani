@@ -51,13 +51,3 @@ func (hpcm *Hpcm) GetFields(hw *inventory.Hardware, fieldNames []string) (values
 	log.Warn().Msgf("not yet implemented")
 	return []string{}, nil
 }
-
-func (hpcm *Hpcm) ListCabinetMetadataColumns() (columns []string) {
-	log.Warn().Msgf("not yet implemented")
-	return columns
-}
-
-func (hpcm *Hpcm) ListCabinetMetadataRow(hw inventory.Hardware) (values []string, err error) {
-	log.Warn().Msgf("not yet implemented")
-	return values, nil
-}

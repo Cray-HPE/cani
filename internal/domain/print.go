@@ -25,8 +25,16 @@
  */
 package domain
 
-import "github.com/Cray-HPE/cani/internal/inventory"
+import (
+	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/google/uuid"
+	"github.com/spf13/cobra"
+)
 
-func (d *Domain) PrintHardware(hardware *inventory.Hardware) {
-	d.externalInventoryProvider.PrintHardware(hardware)
+func (d *Domain) PrintHardware(cmd *cobra.Command, args []string, filtered map[uuid.UUID]inventory.Hardware) error {
+	err := d.externalInventoryProvider.PrintHardware(cmd, args, filtered)
+	if err != nil {
+		return err
+	}
+	return nil
 }

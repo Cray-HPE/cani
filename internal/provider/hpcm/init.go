@@ -66,6 +66,13 @@ func NewUpdateNodeCommand() (cmd *cobra.Command, err error) {
 	return cmd, nil
 }
 
+func NewListNodeCommand() (cmd *cobra.Command, err error) {
+	// cmd represents for cani alpha add node
+	cmd = &cobra.Command{}
+
+	return cmd, nil
+}
+
 // UpdateUpdateNodeCommand
 func UpdateUpdateNodeCommand(caniCmd *cobra.Command) error {
 

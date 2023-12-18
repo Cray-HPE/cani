@@ -165,16 +165,3 @@ func (d *Domain) Recommend(cmd *cobra.Command, args []string, auto bool) (recomm
 	}
 	return recommendations, nil
 }
-
-func (d *Domain) ListCabinetMetadataColumns() (columns []string) {
-	columns = d.externalInventoryProvider.ListCabinetMetadataColumns()
-	return columns
-}
-
-func (d *Domain) ListCabinetMetadataRow(hw inventory.Hardware) (row []string, err error) {
-	row, err = d.externalInventoryProvider.ListCabinetMetadataRow(hw)
-	if err != nil {
-		return row, err
-	}
-	return row, nil
-}

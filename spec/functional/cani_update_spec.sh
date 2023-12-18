@@ -32,7 +32,7 @@ End
 
 It 'no args'
   BeforeCall remove_config
-  When call bin/cani alpha update
+  When call bin/cani --config "$CANI_CONF" alpha update
   The status should equal 0
   The stdout should satisfy fixture 'cani/update/help'
   The stderr should include 'No active session.'
