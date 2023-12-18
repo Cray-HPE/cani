@@ -129,3 +129,16 @@ func (r HardwareRecommendations) Print() {
 	log.Info().Msgf("Suggested cabinet number: %d", r.CabinetOrdinal)
 	log.Info().Msgf("Suggested VLAN ID: %d", r.ProviderMetadata["HMNVlan"])
 }
+
+// ProviderCommands is an interface for the commands that are specific to a provider
+// this isn't usually used directly, but is used to generate the commands with 'makeprovdier'
+type ProviderCommands interface {
+	NewSessionInitCommand() (cmd *cobra.Command, err error)
+	NewAddCabinetCommand() (cmd *cobra.Command, err error)
+	UpdateAddCabinetCommand(caniCmd *cobra.Command) error
+	NewAddNodeCommand() (cmd *cobra.Command, err error)
+	NewUpdateNodeCommand() (cmd *cobra.Command, err error)
+	UpdateUpdateNodeCommand(caniCmd *cobra.Command) error
+	NewExportCommand() (cmd *cobra.Command, err error)
+	NewImportCommand() (cmd *cobra.Command, err error)
+}
