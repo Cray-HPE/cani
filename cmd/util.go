@@ -39,7 +39,7 @@ import (
 // Initilizing a session is where all the information needed to interact with the inventory system(s) is gathered
 // Plugin authors can call this to create their own flags based on their custom business logic
 // A few common flags are set here, but the rest is up to the plugin author
-func mergeProviderFlags(bootstrapCmd *cobra.Command, providerCmd *cobra.Command) (err error) {
+func MergeProviderFlags(bootstrapCmd *cobra.Command, providerCmd *cobra.Command) (err error) {
 	providerFlagset := &pflag.FlagSet{}
 
 	// get the appropriate flagset from the provider's crafted command
@@ -97,7 +97,7 @@ func MergeProviderCommand(bootstrapCmd *cobra.Command, providerCmd *cobra.Comman
 	// all flags should be set in init().
 	// You can set flags after the fact, but it is much easier to work with everything up front
 	// this will set existing variables for each provider
-	err = mergeProviderFlags(bootstrapCmd, providerCmd)
+	err = MergeProviderFlags(bootstrapCmd, providerCmd)
 	if err != nil {
 		log.Error().Msgf("unable to get flags from provider: %v", err)
 		os.Exit(1)

@@ -25,7 +25,12 @@
  */
 package csm
 
-import "github.com/spf13/cobra"
+import (
+	"fmt"
+
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
+)
 
 var (
 	k8sPodsCidr     string
@@ -59,6 +64,96 @@ var (
 	nid     int
 	alias   string
 )
+
+// NewProviderCmd returns the appropriate command to the cmd layer
+func NewProviderCmd(bootstrapCmd *cobra.Command) (providerCmd *cobra.Command, err error) {
+	// first, choose the right command
+	switch bootstrapCmd.Name() {
+	case "init":
+		providerCmd, err = NewSessionInitCommand()
+	case "cabinet":
+		switch bootstrapCmd.Parent().Name() {
+		case "add":
+			providerCmd, err = NewAddCabinetCommand()
+		case "update":
+			providerCmd, err = NewUpdateCabinetCommand()
+		case "list":
+			providerCmd, err = NewListCabinetCommand()
+		}
+	case "blade":
+		switch bootstrapCmd.Parent().Name() {
+		case "add":
+			providerCmd, err = NewAddBladeCommand()
+		case "update":
+			providerCmd, err = NewUpdateBladeCommand()
+		case "list":
+			providerCmd, err = NewListBladeCommand()
+		}
+	case "node":
+		// check for add/update variants
+		switch bootstrapCmd.Parent().Name() {
+		case "add":
+			providerCmd, err = NewAddNodeCommand()
+		case "update":
+			providerCmd, err = NewUpdateNodeCommand()
+		case "list":
+			providerCmd, err = NewListNodeCommand()
+		}
+	case "export":
+		providerCmd, err = NewExportCommand()
+	case "import":
+		providerCmd, err = NewImportCommand()
+	default:
+		log.Debug().Msgf("Command not implemented by provider: %s %s", bootstrapCmd.Parent().Name(), bootstrapCmd.Name())
+	}
+	if err != nil {
+		return providerCmd, err
+	}
+
+	return providerCmd, nil
+}
+
+func UpdateProviderCmd(bootstrapCmd *cobra.Command) (err error) {
+	// first, choose the right command
+	switch bootstrapCmd.Name() {
+	case "init":
+		err = UpdateSessionInitCommand(bootstrapCmd)
+	case "cabinet":
+		// check for add/update variants
+		switch bootstrapCmd.Parent().Name() {
+		case "add":
+			err = UpdateAddCabinetCommand(bootstrapCmd)
+		case "update":
+			err = UpdateUpdateCabinetCommand(bootstrapCmd)
+		case "list":
+			err = UpdateListCabinetCommand(bootstrapCmd)
+		}
+	case "blade":
+		// check for add/update variants
+		switch bootstrapCmd.Parent().Name() {
+		case "add":
+			err = UpdateAddBladeCommand(bootstrapCmd)
+		case "update":
+			err = UpdateUpdateBladeCommand(bootstrapCmd)
+		case "list":
+			err = UpdateListBladeCommand(bootstrapCmd)
+		}
+	case "node":
+		// check for add/update variants
+		switch bootstrapCmd.Parent().Name() {
+		case "add":
+			err = UpdateAddNodeCommand(bootstrapCmd)
+		case "update":
+			err = UpdateUpdateNodeCommand(bootstrapCmd)
+		case "list":
+			err = UpdateUpdateNodeCommand(bootstrapCmd)
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("unable to update cmd from provider: %v", err)
+	}
+	return nil
+}
 
 func NewSessionInitCommand() (cmd *cobra.Command, err error) {
 	// cmd represents the session init command
@@ -100,6 +195,10 @@ func NewSessionInitCommand() (cmd *cobra.Command, err error) {
 	return cmd, nil
 }
 
+func UpdateSessionInitCommand(caniCmd *cobra.Command) error {
+	return nil
+}
+
 func NewAddCabinetCommand() (cmd *cobra.Command, err error) {
 	// cmd represents the session init command
 	cmd = &cobra.Command{}
@@ -116,6 +215,24 @@ func UpdateAddCabinetCommand(caniCmd *cobra.Command) error {
 	return nil
 }
 
+func NewUpdateCabinetCommand() (cmd *cobra.Command, err error) {
+	cmd = &cobra.Command{}
+	return cmd, nil
+}
+
+func UpdateUpdateCabinetCommand(caniCmd *cobra.Command) error {
+	return nil
+}
+
+func NewListCabinetCommand() (cmd *cobra.Command, err error) {
+	cmd = &cobra.Command{}
+	return cmd, nil
+}
+
+func UpdateListCabinetCommand(caniCmd *cobra.Command) error {
+	return nil
+}
+
 func NewAddNodeCommand() (cmd *cobra.Command, err error) {
 	// cmd represents for cani alpha add node
 	cmd = &cobra.Command{}
@@ -127,6 +244,10 @@ func NewAddNodeCommand() (cmd *cobra.Command, err error) {
 	return cmd, nil
 }
 
+func UpdateAddNodeCommand(caniCmd *cobra.Command) error {
+	return nil
+}
+
 func NewUpdateNodeCommand() (cmd *cobra.Command, err error) {
 	// cmd represents for cani alpha update node
 	cmd = &cobra.Command{}
@@ -136,6 +257,20 @@ func NewUpdateNodeCommand() (cmd *cobra.Command, err error) {
 	cmd.Flags().StringSlice("alias", []string{}, "Comma-separated aliases of the node")
 
 	return cmd, nil
+}
+
+// NewListNodeCommand implements the NewListNodeCommand method of the InventoryProvider interface
+func NewListNodeCommand() (cmd *cobra.Command, err error) {
+	// TODO: Implement
+	cmd = &cobra.Command{}
+
+	return cmd, nil
+}
+
+// UpdateListNodeCommand implements the UpdateListNodeCommand method of the InventoryProvider interface
+func UpdateListNodeCommand(caniCmd *cobra.Command) error {
+	// TODO: Implement
+	return nil
 }
 
 // UpdateUpdateNodeCommand
@@ -164,4 +299,37 @@ func NewImportCommand() (cmd *cobra.Command, err error) {
 	cmd = &cobra.Command{}
 
 	return cmd, nil
+}
+
+func NewAddBladeCommand() (cmd *cobra.Command, err error) {
+	// cmd represents cani alpha import
+	cmd = &cobra.Command{}
+
+	return cmd, nil
+}
+
+func UpdateAddBladeCommand(caniCmd *cobra.Command) error {
+	return nil
+}
+
+func NewUpdateBladeCommand() (cmd *cobra.Command, err error) {
+	// cmd represents cani alpha import
+	cmd = &cobra.Command{}
+
+	return cmd, nil
+}
+
+func UpdateUpdateBladeCommand(caniCmd *cobra.Command) error {
+	return nil
+}
+
+func NewListBladeCommand() (cmd *cobra.Command, err error) {
+	// cmd represents cani alpha import
+	cmd = &cobra.Command{}
+
+	return cmd, nil
+}
+
+func UpdateListBladeCommand(caniCmd *cobra.Command) error {
+	return nil
 }

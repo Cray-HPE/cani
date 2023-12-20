@@ -79,7 +79,7 @@ func init() {
 
 	// all flags should be set in init().  you can set flags after the fact, but it is much easier to work with everything up front
 	// this will set existing variables for each provider
-	err = mergeProviderFlags(BootstrapCmd, ProviderCmd)
+	err = root.MergeProviderFlags(BootstrapCmd, ProviderCmd)
 	if err != nil {
 		log.Error().Msgf("unable to get flags from provider: %v", err)
 		os.Exit(1)
