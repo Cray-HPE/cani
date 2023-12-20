@@ -144,3 +144,17 @@ func WriteConfig(path string, cfg *Config) error {
 
 	return nil
 }
+
+// AvailableDomains returns a slice of available domains read from the config
+func (c *Config) AvailableDomains() (map[string]*domain.Domain, error) {
+	domains := make(map[string]*domain.Domain, 0)
+
+	for p, d := range c.Session.Domains {
+		log.Info().Msgf("Found an available domain: %+v", p)
+		_, exists := domains[p]
+		if !exists {
+			domains[p] = d
+		}
+	}
+	return domains, nil
+}

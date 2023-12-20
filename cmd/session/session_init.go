@@ -40,28 +40,7 @@ import (
 	"github.com/manifoldco/promptui"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
-
-// mergeProviderFlags creates a new init command
-// Initilizing a session is where all the information needed to interact with the inventory system(s) is gathered
-// Plugin authors can call this to create their own flags based on their custom business logic
-// A few common flags are set here, but the rest is up to the plugin author
-func mergeProviderFlags(bootstrapCmd *cobra.Command, providerCmd *cobra.Command) (err error) {
-	providerFlagset := &pflag.FlagSet{}
-
-	// get the appropriate flagset from the provider's crafted command
-	providerFlagset = providerCmd.Flags()
-
-	if err != nil {
-		return err
-	}
-
-	// add the provider flags to the command
-	bootstrapCmd.Flags().AddFlagSet(providerFlagset)
-
-	return nil
-}
 
 func initSessionWithProviderCmd(cmd *cobra.Command, args []string) (err error) {
 	// Create a domain object to interact with the datastore and the provider
