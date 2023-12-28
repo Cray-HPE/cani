@@ -55,14 +55,14 @@ func init() {
 	AlphaCmd.AddCommand(ValidateCmd)
 
 	AlphaCmd.AddCommand(ExportCmd)
-	err := MergeProviderCommand(ExportCmd, ProviderExportCmd)
+	err := MergeProviderCommand(ExportCmd)
 	if err != nil {
 		log.Error().Msgf("%+v", err)
 		os.Exit(1)
 	}
 
 	AlphaCmd.AddCommand(ImportCmd)
-	err = MergeProviderCommand(ImportCmd, ProviderImportCmd)
+	err = MergeProviderCommand(ImportCmd)
 	if err != nil {
 		log.Error().Msgf("%+v", err)
 		os.Exit(1)

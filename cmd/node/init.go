@@ -29,8 +29,10 @@ import (
 	"os"
 
 	root "github.com/Cray-HPE/cani/cmd"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 var (
@@ -48,6 +50,13 @@ var (
 )
 
 func init() {
+	log.Logger = log.Output(
+		zerolog.ConsoleWriter{
+			Out: os.Stderr,
+			// When not in a terminal disable color
+			NoColor: !term.IsTerminal(int(os.Stderr.Fd())),
+		},
+	)
 	var err error
 	// Add variants to root commands
 	root.AddCmd.AddCommand(AddNodeCmd)
@@ -60,7 +69,7 @@ func init() {
 
 	// Merge CANI's command with the provider-specified command
 	// this allows for CANI's operations to remain consistent, while adding provider config on top
-	err = root.MergeProviderCommand(AddNodeCmd, ProviderAddNodeCmd)
+	err = root.MergeProviderCommand(AddNodeCmd)
 	if err != nil {
 		log.Error().Msgf("%+v", err)
 		os.Exit(1)
@@ -81,12 +90,12 @@ func init() {
 
 	// Merge CANI's command with the provider-specified command
 	// this allows for CANI's operations to remain consistent, while adding provider config on top
-	err = root.MergeProviderCommand(UpdateNodeCmd, ProviderUpdateNodeCmd)
+	err = root.MergeProviderCommand(UpdateNodeCmd)
 	if err != nil {
 		log.Error().Msgf("%+v", err)
 		os.Exit(1)
 	}
-	err = root.MergeProviderCommand(ListNodeCmd, ProviderListNodeCmd)
+	err = root.MergeProviderCommand(ListNodeCmd)
 	if err != nil {
 		log.Error().Msgf("%+v", err)
 		os.Exit(1)
