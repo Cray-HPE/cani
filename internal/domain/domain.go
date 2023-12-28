@@ -164,3 +164,10 @@ type UpdatedHardwareResult struct {
 	DatastoreValidationErrors map[uuid.UUID]inventory.ValidateResult // TODO
 	ProviderValidationErrors  map[uuid.UUID]provider.HardwareValidationResult
 }
+
+func GetProviders() []provider.InventoryProvider {
+	supportedProviders := []provider.InventoryProvider{
+		&csm.CSM{},
+	}
+	return supportedProviders
+}

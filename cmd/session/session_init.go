@@ -43,10 +43,18 @@ import (
 )
 
 func initSessionWithProviderCmd(cmd *cobra.Command, args []string) (err error) {
-	// Create a domain object to interact with the datastore and the provider
-	root.D, err = domain.New(cmd, args)
-	if err != nil {
-		return err
+	for _, p := range domain.GetProviders() {
+		// if the provider matches the arg requested, a session can begin
+		if p.Slug() == args[0] {
+			providerInitCmd, exists := ProviderInitCmds[p.Slug()]
+			if exists {
+				// Create a domain object to interact with the datastore and the provider
+				root.D, err = domain.New(providerInitCmd, args)
+				if err != nil {
+					return err
+				}
+			}
+		}
 	}
 
 	// Set the datastore

@@ -31,6 +31,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func NewSessionInitCommand(p string) (providerCmd *cobra.Command, err error) {
+	switch p {
+	case "csm":
+		providerCmd, err = csm.NewSessionInitCommand()
+	}
+	if err != nil {
+		return providerCmd, err
+	}
+	return providerCmd, nil
+}
+
 // NewProviderCmd returns the appropriate command to the cmd layer
 func NewProviderCmd(bootstrapCmd *cobra.Command, availableDomains map[string]*Domain) (providerCmd *cobra.Command, err error) {
 	providerCmd = &cobra.Command{}

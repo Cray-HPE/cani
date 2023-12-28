@@ -30,7 +30,7 @@ import (
 
 	root "github.com/Cray-HPE/cani/cmd"
 	"github.com/Cray-HPE/cani/cmd/taxonomy"
-	"github.com/Cray-HPE/cani/internal/provider/csm"
+	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -42,10 +42,10 @@ var (
 	ignoreValidationMessage  = "Ignore validation failures. Use this to allow unconventional configurations."
 	forceInit                bool
 
-	ProviderCmd = &cobra.Command{}
+	ProviderInitCmds = map[string]*cobra.Command{}
 	// BootstapCmd is used to start a session with a specific provider and allows the provider to define
 	// how the real init command is defined using their custom business logic
-	BootstrapCmd = &cobra.Command{
+	SessionInitCmd = &cobra.Command{
 		Use:       "init PROVIDER",
 		Short:     taxonomy.InitShort,
 		Long:      taxonomy.InitLong,
@@ -56,38 +56,32 @@ var (
 )
 
 func init() {
-	// init is run once, and this is where the flags get set
-	// since flags vary by provider, create a variable for each
-	var err error
-	for _, provider := range taxonomy.SupportedProviders {
-		switch provider {
-		case taxonomy.CSM:
-			ProviderCmd, err = csm.NewSessionInitCommand()
-		default:
-			log.Debug().Msgf("skipping provider: %s", provider)
-		}
+	// Define the bare minimum needed to determine who the provider for the session will be
+	SessionInitCmd.Flags().BoolVar(&ignoreExternalValidation, "ignore-validation", false, ignoreValidationMessage)
+	SessionInitCmd.Flags().BoolVarP(&forceInit, "force", "f", false, "Overwrite the existing session with a new session")
+
+	for _, p := range domain.GetProviders() {
+		// Create a domain object to interact with the datastore and the provider
+		providerCmd, err := domain.NewSessionInitCommand(p.Slug())
 		if err != nil {
-			log.Error().Msgf("unable to get cmd from provider: %v", err)
+			log.Error().Msgf("unable to get provider init command: %v", err)
 			os.Exit(1)
 		}
-		ProviderCmd.Use = "init"
-	}
+		providerCmd.Use = "init"
 
-	// Define the bare minimum needed to determine who the provider for the session will be
-	BootstrapCmd.Flags().BoolVar(&ignoreExternalValidation, "ignore-validation", false, ignoreValidationMessage)
-	BootstrapCmd.Flags().BoolVarP(&forceInit, "force", "f", false, "Overwrite the existing session with a new session")
+		// all flags should be set in init().  you can set flags after the fact, but it is much easier to work with everything up front
+		// this will set existing variables for each provider
+		err = root.MergeProviderFlags(SessionInitCmd, providerCmd)
+		if err != nil {
+			log.Error().Msgf("unable to get flags from provider: %v", err)
+			os.Exit(1)
+		}
 
-	// all flags should be set in init().  you can set flags after the fact, but it is much easier to work with everything up front
-	// this will set existing variables for each provider
-	err = root.MergeProviderFlags(BootstrapCmd, ProviderCmd)
-	if err != nil {
-		log.Error().Msgf("unable to get flags from provider: %v", err)
-		os.Exit(1)
+		ProviderInitCmds[p.Slug()] = providerCmd
 	}
 
 	// Add session commands to root commands
-	root.SessionCmd.AddCommand(BootstrapCmd)
-	BootstrapCmd.AddCommand(ProviderCmd)
+	root.SessionCmd.AddCommand(SessionInitCmd)
 	root.SessionCmd.AddCommand(SessionApplyCmd)
 	root.SessionCmd.AddCommand(SessionStatusCmd)
 	root.SessionCmd.AddCommand(SessionSummaryCmd)
