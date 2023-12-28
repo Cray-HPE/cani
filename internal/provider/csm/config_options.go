@@ -59,10 +59,10 @@ type CsmOpts struct {
 }
 
 func (csm *CSM) SetProviderOptions(cmd *cobra.Command, args []string) error {
-	useSimulation := cmd.Flags().Changed("csm-simulator")
+	useSimulation := cmd.Flags().Changed("use-simulator")
 	slsUrl, _ := cmd.Flags().GetString("csm-url-sls")
 	hsmUrl, _ := cmd.Flags().GetString("csm-url-hsm")
-	insecure := cmd.Flags().Changed("csm-insecure-https")
+	insecure := cmd.Flags().Changed("insecure")
 	providerHost, _ := cmd.Flags().GetString("csm-api-host")
 	tokenUsername, _ := cmd.Flags().GetString("csm-keycloak-username")
 	tokenPassword, _ := cmd.Flags().GetString("csm-keycloak-password")
