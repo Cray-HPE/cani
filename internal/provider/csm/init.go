@@ -44,7 +44,6 @@ var (
 	providerHost    string
 	tokenUsername   string
 	tokenPassword   string
-	useSimulation   bool
 	vlanId          int
 
 	// import properties
@@ -165,8 +164,6 @@ func NewSessionInitCommand() (cmd *cobra.Command, err error) {
 	// Session init flags
 	cmd.Flags().String("csm-url-sls", "", "(CSM Provider) Base URL for the System Layout Service (SLS)")
 	cmd.Flags().String("csm-url-hsm", "", "(CSM Provider) Base URL for the Hardware State Manager (HSM)")
-	cmd.Flags().BoolVarP(&insecure, "csm-insecure-https", "k", false, "(CSM Provider) Allow insecure connections when using HTTPS to CSM services")
-	cmd.Flags().BoolVarP(&useSimulation, "csm-simulator", "S", false, "(CSM Provider) Use simulation environment URLs")
 
 	// These three pieces are needed for the CSM provider to get a token
 	cmd.Flags().StringVar(&providerHost, "csm-api-host", "api-gw-service.local", "(CSM Provider) Host or FQDN for authentation and APIs")

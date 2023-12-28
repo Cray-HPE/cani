@@ -59,6 +59,8 @@ func init() {
 	// Define the bare minimum needed to determine who the provider for the session will be
 	SessionInitCmd.Flags().BoolVar(&ignoreExternalValidation, "ignore-validation", false, ignoreValidationMessage)
 	SessionInitCmd.Flags().BoolVarP(&forceInit, "force", "f", false, "Overwrite the existing session with a new session")
+	SessionInitCmd.Flags().BoolP("insecure", "k", false, "Allow insecure connections when using HTTPS")
+	SessionInitCmd.Flags().BoolP("use-simulator", "S", false, "Use simulation environtment settings")
 
 	for _, p := range domain.GetProviders() {
 		// Create a domain object to interact with the datastore and the provider

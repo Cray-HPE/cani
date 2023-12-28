@@ -33,9 +33,7 @@ func NewSessionInitCommand() (cmd *cobra.Command, err error) {
 	cmd.Long = `HPCM`
 
 	// Session init flags
-	cmd.Flags().BoolP("use-simulator", "S", false, "Use simulation environtment settings")
 	cmd.Flags().String("cmdb-url", "cmu/v1", "Base URL for the CMDB")
-	cmd.Flags().BoolP("insecure", "k", false, "Allow insecure connections when using HTTPS")
 	cmd.Flags().String("host", "localhost:8080", "Host or FQDN for APIs")
 	cmd.Flags().String("cacert", "", "Path to the CA certificate file")
 	cmd.Flags().String("token", "", "API token")
