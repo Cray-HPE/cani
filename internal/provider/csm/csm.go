@@ -42,6 +42,10 @@ import (
 	sls_client "github.com/Cray-HPE/cani/pkg/sls-client"
 )
 
+const (
+	CsmSlug = "csm"
+)
+
 type CSM struct {
 	// Clients
 	slsClient       *sls_client.APIClient
@@ -161,6 +165,10 @@ func New(cmd *cobra.Command, args []string, hwlib *hardwaretypes.Library, opts i
 	}
 
 	// return csm, nil
+}
+
+func (csm *CSM) Slug() string {
+	return CsmSlug
 }
 
 func (csm *CSM) setupClients() (err error) {

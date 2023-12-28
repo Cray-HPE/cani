@@ -90,6 +90,9 @@ type InventoryProvider interface {
 
 	// Print
 	PrintHardware(cmd *cobra.Command, args []string, filtered map[uuid.UUID]inventory.Hardware) error
+
+	// Provider's name
+	Slug() string
 }
 
 type HardwareValidationResult struct {
