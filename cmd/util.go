@@ -28,8 +28,7 @@ package cmd
 import (
 	"os"
 
-	"github.com/Cray-HPE/cani/cmd/taxonomy"
-	"github.com/Cray-HPE/cani/internal/provider/csm"
+	"github.com/Cray-HPE/cani/internal/domain"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -55,44 +54,18 @@ func MergeProviderFlags(bootstrapCmd *cobra.Command, providerCmd *cobra.Command)
 	return nil
 }
 
-func MergeProviderCommand(bootstrapCmd *cobra.Command, providerCmd *cobra.Command) (err error) {
+func MergeProviderCommand(bootstrapCmd *cobra.Command) (err error) {
 	// each provider can craft their own commands
 	// since this runs during init(), the domain object is not yet set up, switch statements are used to call the necessary functions
-	for _, provider := range taxonomy.SupportedProviders {
-		switch provider {
-		case taxonomy.CSM:
-			// first, choose the right command
-			switch bootstrapCmd.Name() {
-			case "cabinet":
-				// check for add/update variants
-				switch bootstrapCmd.Parent().Name() {
-				case "add":
-					providerCmd, err = csm.NewAddCabinetCommand()
-				}
-			case "node":
-				// check for add/update variants
-				switch bootstrapCmd.Parent().Name() {
-				case "add":
-					providerCmd, err = csm.NewAddNodeCommand()
-				case "update":
-					providerCmd, err = csm.NewUpdateNodeCommand()
-				}
-			case "export":
-				providerCmd, err = csm.NewExportCommand()
-			case "import":
-				providerCmd, err = csm.NewImportCommand()
-			}
-
-		default:
-			log.Debug().Msgf("skipping provider: %s", provider)
-		}
-		if err != nil {
-			log.Error().Msgf("unable to get cmd from provider: %v", err)
-			os.Exit(1)
-		}
-		// the provider command should be the same as the bootstrap command, allowing it to override the bootstrap cmd
-		providerCmd.Use = bootstrapCmd.Name()
+	log.Debug().Msgf("Merging '%s %s' command with provider command", bootstrapCmd.Parent().Name(), bootstrapCmd.Name())
+	providerCmd := &cobra.Command{}
+	providerCmd, err = domain.NewProviderCmd(bootstrapCmd)
+	if err != nil {
+		log.Error().Msgf("unable to get cmd from provider: %v", err)
+		os.Exit(1)
 	}
+	// the provider command should be the same as the bootstrap command, allowing it to override the bootstrap cmd
+	providerCmd.Use = bootstrapCmd.Name()
 
 	// all flags should be set in init().
 	// You can set flags after the fact, but it is much easier to work with everything up front
@@ -106,31 +79,10 @@ func MergeProviderCommand(bootstrapCmd *cobra.Command, providerCmd *cobra.Comman
 	// Now the provider command has CANI's settings and those set by the provider
 	// It may seem redundant to run this again, but in order to do things like MarkFlagsRequiredTogether(),
 	// it is necessary to have all of the flags available during init, which is what the MergeProviderFlags will do
-	for _, provider := range taxonomy.SupportedProviders {
-		switch provider {
-		case taxonomy.CSM:
-			// first, choose the right command
-			switch bootstrapCmd.Name() {
-			case "cabinet":
-				// check for add/update variants
-				switch bootstrapCmd.Parent().Name() {
-				case "add":
-					err = csm.UpdateAddCabinetCommand(bootstrapCmd)
-				}
-			case "node":
-				// check for add/update variants
-				switch bootstrapCmd.Parent().Name() {
-				case "update":
-					err = csm.UpdateUpdateNodeCommand(bootstrapCmd)
-				}
-			}
-		default:
-			log.Debug().Msgf("skipping provider: %s", provider)
-		}
-		if err != nil {
-			log.Error().Msgf("unable to update cmd from provider: %v", err)
-			os.Exit(1)
-		}
+	err = domain.UpdateProviderCmd(bootstrapCmd)
+	if err != nil {
+		log.Error().Msgf("unable to get cmd from provider: %v", err)
+		os.Exit(1)
 	}
 	return nil
 }

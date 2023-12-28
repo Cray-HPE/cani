@@ -43,10 +43,10 @@ func NewSessionInitCommand(p string) (providerCmd *cobra.Command, err error) {
 }
 
 // NewProviderCmd returns the appropriate command to the cmd layer
-func NewProviderCmd(bootstrapCmd *cobra.Command, availableDomains map[string]*Domain) (providerCmd *cobra.Command, err error) {
+func NewProviderCmd(bootstrapCmd *cobra.Command) (providerCmd *cobra.Command, err error) {
 	providerCmd = &cobra.Command{}
-	for _, d := range availableDomains {
-		switch d.Provider {
+	for _, p := range GetProviders() {
+		switch p.Slug() {
 		case taxonomy.CSM:
 			providerCmd, err = csm.NewProviderCmd(bootstrapCmd)
 		}
@@ -59,9 +59,9 @@ func NewProviderCmd(bootstrapCmd *cobra.Command, availableDomains map[string]*Do
 }
 
 // UpdateProviderCmd allows the provider to make updates to the command after cani defines its settings
-func UpdateProviderCmd(bootstrapCmd *cobra.Command, availableDomains map[string]*Domain) (err error) {
-	for _, d := range availableDomains {
-		switch d.Provider {
+func UpdateProviderCmd(bootstrapCmd *cobra.Command) (err error) {
+	for _, p := range GetProviders() {
+		switch p.Slug() {
 		case taxonomy.CSM:
 			err = csm.UpdateProviderCmd(bootstrapCmd)
 		}
