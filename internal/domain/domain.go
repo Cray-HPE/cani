@@ -60,7 +60,6 @@ var SessionInitCmd *cobra.Command
 // New returns a new Domain
 func New(cmd *cobra.Command, args []string) (d *Domain, err error) {
 	d = &Domain{}
-	d.Provider = args[0]
 	return d, nil
 }
 

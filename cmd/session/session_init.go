@@ -43,19 +43,13 @@ import (
 )
 
 func initSessionWithProviderCmd(cmd *cobra.Command, args []string) (err error) {
-	for _, p := range domain.GetProviders() {
-		// if the provider matches the arg requested, a session can begin
-		if p.Slug() == args[0] {
-			providerInitCmd, exists := ProviderInitCmds[p.Slug()]
-			if exists {
-				// Create a domain object to interact with the datastore and the provider
-				root.D, err = domain.New(providerInitCmd, args)
-				if err != nil {
-					return err
-				}
-			}
-		}
+	// Create a domain object to interact with the datastore and the provider
+	root.D, err = domain.New(cmd, args)
+	if err != nil {
+		return err
 	}
+
+	root.D.Provider = cmd.Use
 
 	// Set the datastore
 	log.Debug().Msgf("checking provider %s", root.D.Provider)
@@ -69,7 +63,7 @@ func initSessionWithProviderCmd(cmd *cobra.Command, args []string) (err error) {
 	root.D.CustomHardwareTypesDir = config.CustomDir
 	root.D.LogFilePath = filepath.Join(config.ConfigDir, taxonomy.LogFile)
 
-	log.Debug().Msgf("creating domain object for provider %s", args[0])
+	log.Debug().Msgf("creating domain object for provider %s", root.D.Provider)
 	// Setup the domain now that the minimum required options are set
 	// This allows the provider to define their own logic and keeps it out
 	// of the 'cmd' package
@@ -135,7 +129,7 @@ func initSessionWithProviderCmd(cmd *cobra.Command, args []string) (err error) {
 	root.D.Active = true
 
 	// add this provider to the config with the assembled domain object
-	root.Conf.Session.Domains[args[0]] = root.D
+	root.Conf.Session.Domains[root.D.Provider] = root.D
 
 	// write the config to the file
 	err = root.WriteSession(cmd, args)

@@ -62,9 +62,9 @@ It "--config $CANI_CONF init"
 End
 
 # Starting a session without passing a provider should fail
-It "--config $CANI_CONF init fake -S --csm-api-host localhost:8443"
+It "--config $CANI_CONF init fake"
   BeforeCall remove_config
-  When call bin/cani alpha session --config "$CANI_CONF" init fake -S --csm-api-host localhost:8443
+  When call bin/cani alpha session --config "$CANI_CONF" init fake
   The status should equal 1
   The line 1 of stderr should equal 'Error: fake is not a valid provider.  Valid providers: [csm]'
 End

@@ -86,7 +86,7 @@ func runRoot(cmd *cobra.Command, args []string) error {
 
 // WriteSession writes the session configuration back to the config file
 func WriteSession(cmd *cobra.Command, args []string) error {
-	if cmd.Name() == "init" {
+	if cmd.Parent().Name() == "init" {
 		// Write the configuration back to the file
 		cfgFile := cmd.Root().PersistentFlags().Lookup("config").Value.String()
 		log.Debug().Msgf("Writing session to config %s", cfgFile)

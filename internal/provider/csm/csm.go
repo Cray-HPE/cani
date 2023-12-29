@@ -66,7 +66,7 @@ func New(cmd *cobra.Command, args []string, hwlib *hardwaretypes.Library, opts i
 		Options:         &CsmOpts{},
 	}
 
-	if cmd.Name() == "init" {
+	if cmd.Parent().Name() == "init" {
 		useSimulation := cmd.Flags().Changed("use-simulator")
 		slsUrl, _ := cmd.Flags().GetString("csm-url-sls")
 		hsmUrl, _ := cmd.Flags().GetString("csm-url-hsm")
