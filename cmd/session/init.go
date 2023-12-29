@@ -63,23 +63,28 @@ func init() {
 	SessionInitCmd.Flags().BoolP("use-simulator", "S", false, "Use simulation environtment settings")
 
 	for _, p := range domain.GetProviders() {
-		// Create a domain object to interact with the datastore and the provider
+		// Create a provider "init" command
 		providerCmd, err := domain.NewSessionInitCommand(p.Slug())
 		if err != nil {
 			log.Error().Msgf("unable to get provider init command: %v", err)
 			os.Exit(1)
 		}
-		providerCmd.Use = "init"
 
-		// all flags should be set in init().  you can set flags after the fact, but it is much easier to work with everything up front
-		// this will set existing variables for each provider
-		err = root.MergeProviderFlags(SessionInitCmd, providerCmd)
+		// Merge cani's default flags into the provider command
+		err = root.MergeProviderFlags(providerCmd, SessionInitCmd)
 		if err != nil {
 			log.Error().Msgf("unable to get flags from provider: %v", err)
 			os.Exit(1)
 		}
 
-		ProviderInitCmds[p.Slug()] = providerCmd
+		// set its use to the provider name (to be used as an arg to the "init" command)
+		providerCmd.Use = p.Slug()
+		// run cani's initialization function
+		providerCmd.RunE = initSessionWithProviderCmd
+
+		// add it as a sub-command to "init" so when an arg is passed, it will call the appropriate provider command
+		SessionInitCmd.AddCommand(providerCmd)
+
 	}
 
 	// Add session commands to root commands

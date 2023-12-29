@@ -131,7 +131,6 @@ func initConfig() {
 func setupDomain(cmd *cobra.Command, args []string) (err error) {
 	log.Debug().Msgf("Setting %s provider", cmd.Name())
 	log.Debug().Msgf("Setting up domain for command: %s", cmd.Name())
-	// if cmd.Name() != "init" || cmd.Name() != "status" {
 	log.Debug().Msgf("Checking for active domains")
 	// Find an active session
 	activeDomains := []*domain.Domain{}
@@ -146,7 +145,7 @@ func setupDomain(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 
-	if cmd.Name() != "init" {
+	if cmd.Parent().Name() != "init" {
 		// Error if no sessions are active
 		if len(activeProviders) == 0 {
 			// These commands are special because they validate hardware in the args
