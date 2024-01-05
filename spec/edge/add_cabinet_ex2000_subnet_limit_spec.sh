@@ -61,7 +61,7 @@ Parameters:dynamic
 End
 
 It 'Add ex2000 cabinet to reach subnet limit'
-  When call bin/cani alpha --config "$CANI_CONF" add cabinet hpe-ex2000 --auto --accept
+  When call bin/cani alpha --config "$CANI_CONF" add cabinet csm hpe-ex2000 --auto --accept
   The status should equal 0
   The line 1 of stderr should include 'Querying inventory to suggest Cabinet'
   The line 2 of stderr should include "Suggested cabinet number: $1"

@@ -50,7 +50,7 @@ It 'start a session'
 End
 
 It 'add hpe-ex2500-1-liquid-cooled-chassis cabinet'
-  When call bin/cani alpha --config "$CANI_CONF" add cabinet hpe-ex2500-1-liquid-cooled-chassis --auto --accept
+  When call bin/cani alpha --config "$CANI_CONF" add cabinet csm hpe-ex2500-1-liquid-cooled-chassis --auto --accept
   The status should equal 0
   The line 1 of stderr should include 'Querying inventory to suggest Cabinet'
   The line 2 of stderr should include 'Suggested cabinet number: 8000'
@@ -59,7 +59,7 @@ It 'add hpe-ex2500-1-liquid-cooled-chassis cabinet'
 End
 
 It 'add hpe-ex2500-2-liquid-cooled-chassis cabinet'
-  When call bin/cani alpha --config "$CANI_CONF" add cabinet hpe-ex2500-2-liquid-cooled-chassis --auto --accept
+  When call bin/cani alpha --config "$CANI_CONF" add cabinet csm hpe-ex2500-2-liquid-cooled-chassis --auto --accept
   The status should equal 0
   The line 1 of stderr should include 'Querying inventory to suggest Cabinet'
   The line 2 of stderr should include 'Suggested cabinet number: 8001'
@@ -68,7 +68,7 @@ It 'add hpe-ex2500-2-liquid-cooled-chassis cabinet'
 End
 
 It 'add hpe-ex2500-3-liquid-cooled-chassis cabinet'
-  When call bin/cani alpha --config "$CANI_CONF" add cabinet hpe-ex2500-3-liquid-cooled-chassis --auto --accept
+  When call bin/cani alpha --config "$CANI_CONF" add cabinet csm hpe-ex2500-3-liquid-cooled-chassis --auto --accept
   The status should equal 0
   The line 1 of stderr should include 'Querying inventory to suggest Cabinet'
   The line 2 of stderr should include 'Suggested cabinet number: 8002'

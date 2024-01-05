@@ -207,7 +207,7 @@ Describe 'session migration:'
     BeforeCall use_single_provider_session
     BeforeCall use_valid_datastore_system_only
     BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
-    When call bin/cani --config "$CANI_CONF" alpha add cabinet hpe-ex4000 --auto --accept
+    When call bin/cani --config "$CANI_CONF" alpha add cabinet csm hpe-ex4000 --auto --accept
     The status should equal 0
     The stderr should include 'Translating single-provider config to multi-provider'
 

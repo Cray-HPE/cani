@@ -34,7 +34,7 @@ It 'init session'
 End
 
 It 'add cabinet hpe-ex2500-1-liquid-cooled-chassis'
-  When call bin/cani alpha --config "$CANI_CONF" add cabinet hpe-ex2500-1-liquid-cooled-chassis --auto --accept
+  When call bin/cani alpha --config "$CANI_CONF" add cabinet csm hpe-ex2500-1-liquid-cooled-chassis --auto --accept
   The status should equal 0
   The line 1 of stderr should include 'Querying inventory to suggest Cabinet'
   The line 2 of stderr should include 'Suggested cabinet number: 8000'
@@ -43,7 +43,7 @@ It 'add cabinet hpe-ex2500-1-liquid-cooled-chassis'
 End
 
 It 'export sls json'
-  When call bin/cani alpha --config "$CANI_CONF" export --format sls-json
+  When call bin/cani alpha --config "$CANI_CONF" export csm --format sls-json
   The status should equal 0
   The stderr should include 'GET http'
   The stderr should include 'sls/v1/dumpstate'
@@ -51,15 +51,15 @@ It 'export sls json'
 End
 
 It 'export sls json and parse the json'
-  When call sh -c 'bin/cani alpha --config "$CANI_CONF" export --format sls-json | jq'
+  When call sh -c 'bin/cani alpha --config "$CANI_CONF" export csm --format sls-json | jq'
   The status should equal 0
   The stderr should include 'GET http'
   The stderr should include 'sls/v1/dumpstate'
   The output should include '"x8000": {'
 End
 
-It 'add blade --config "$CANI_CONF" hpe-crayex-ex235n-compute-blade --cabinet 8000 --chassis 0 --blade 0'
-  When call bin/cani alpha add blade --config "$CANI_CONF" hpe-crayex-ex235n-compute-blade --cabinet 8000 --chassis 0 --blade 0
+It 'add blade csm --config "$CANI_CONF" hpe-crayex-ex235n-compute-blade --cabinet 8000 --chassis 0 --blade 0'
+  When call bin/cani alpha add blade csm --config "$CANI_CONF" hpe-crayex-ex235n-compute-blade --cabinet 8000 --chassis 0 --blade 0
   The status should equal 0
   The line 2 of stderr should include "NodeBlade was successfully staged to be added to the system"
   The line 3 of stderr should include "UUID: "
@@ -69,7 +69,7 @@ It 'add blade --config "$CANI_CONF" hpe-crayex-ex235n-compute-blade --cabinet 80
 End
 
 It 'export invalid sls data but with ignore-validation option'
-  When call sh -c 'bin/cani alpha --config "$CANI_CONF" export --format sls-json --ignore-validation | jq'
+  When call sh -c 'bin/cani alpha --config "$CANI_CONF" export csm --format sls-json --ignore-validation | jq'
   The status should equal 0
   The stderr should include 'GET http'
   The stderr should include 'sls/v1/dumpstate'
@@ -77,7 +77,7 @@ It 'export invalid sls data but with ignore-validation option'
 End
 
 It 'export invalid sls data and expect validation failure'
-  When call bin/cani alpha --config "$CANI_CONF" export --format sls-json
+  When call bin/cani alpha --config "$CANI_CONF" export csm --format sls-json
   The status should equal 1
   The stderr should include 'GET http'
   The stderr should include 'sls/v1/dumpstate'

@@ -28,8 +28,8 @@ set -u
 
 : "${CANI_CONF:-/tmp/.cani/cani.yml}"
 
-for blade in $(bin/cani --config "$CANI_CONF" alpha add blade -L); do
-  for cabinet in $(bin/cani --config "$CANI_CONF" alpha add cabinet -L); do
+for blade in $(bin/cani --config "$CANI_CONF" alpha add blade csm -L); do
+  for cabinet in $(bin/cani --config "$CANI_CONF" alpha add cabinet csm -L); do
     if [ "$cabinet" = "hpe-eia-cabinet" ];then 
       continue
     else 
