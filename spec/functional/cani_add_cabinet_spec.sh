@@ -39,21 +39,21 @@ End
 # it should list the available hardware types
 It "--config $CANI_CONF"
   BeforeCall use_active_session # session is active
-  When call bin/cani alpha add cabinet --config "$CANI_CONF"
+  When call bin/cani alpha add cabinet csm --config "$CANI_CONF"
   The status should equal 1
   The line 1 of stderr should include 'Error: No hardware type provided: Choose from: hpe-eia-cabinet", "hpe-ex2000", "hpe-ex2500-1-liquid-cooled-chassis", "hpe-ex2500-2-liquid-cooled-chassis", "hpe-ex2500-3-liquid-cooled-chassis", "hpe-ex3000", "hpe-ex4000'
 End
 
 # Adding a cabinet with an invalid hardware type should fail
 It "--config $CANI_CONF fake-hardware-type"
-  When call bin/cani alpha add cabinet --config "$CANI_CONF" fake-hardware-type
+  When call bin/cani alpha add cabinet csm --config "$CANI_CONF" fake-hardware-type
   The status should equal 1
   The line 1 of stderr should equal 'Error: Invalid hardware type: fake-hardware-type'
 End
 
 # Listing hardware types should show available hardware types
 It "--config $CANI_CONF -L"
-  When call bin/cani alpha add cabinet --config "$CANI_CONF" -L
+  When call bin/cani alpha add cabinet csm --config "$CANI_CONF" -L
   The status should equal 0
   The line 1 of stdout should equal "hpe-eia-cabinet"
   The line 2 of stdout should equal "hpe-ex2000"
@@ -68,7 +68,7 @@ End
 It "--config $CANI_CONF hpe-ex2000"
   BeforeCall use_inactive_session # session is inactive
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
-  When call bin/cani alpha add cabinet --config "$CANI_CONF" hpe-ex2000
+  When call bin/cani alpha add cabinet csm --config "$CANI_CONF" hpe-ex2000
   The status should equal 1
   The line 1 of stderr should include "No active session."
 End
@@ -79,7 +79,7 @@ End
 It "--config $CANI_CONF hpe-ex2000"
   BeforeCall use_active_session # session is active
   BeforeCall remove_datastore # datastore does not exist
-  When call bin/cani alpha add cabinet --config "$CANI_CONF" hpe-ex2000
+  When call bin/cani alpha add cabinet csm --config "$CANI_CONF" hpe-ex2000
   The status should equal 1
   The line 1 of stderr should include "Datastore '$CANI_DS' does not exist.  Run 'session init' to begin"
 End
@@ -92,7 +92,7 @@ End
 It "--config $CANI_CONF hpe-ex2000"
   BeforeCall use_active_session # session is active
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
-  When call bin/cani alpha add cabinet --config "$CANI_CONF" hpe-ex2000
+  When call bin/cani alpha add cabinet csm --config "$CANI_CONF" hpe-ex2000
   The status should equal 1
   The line 1 of stderr should equal 'Error: required flag(s) "cabinet", "vlan-id" not set'
 End
@@ -105,7 +105,7 @@ End
 It "--config $CANI_CONF hpe-ex2000 --cabinet 1234"
   BeforeCall use_active_session # session is active
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
-  When call bin/cani alpha add cabinet --config "$CANI_CONF" hpe-ex2000 --cabinet 1234
+  When call bin/cani alpha add cabinet csm --config "$CANI_CONF" hpe-ex2000 --cabinet 1234
   The status should equal 1
   The line 1 of stderr should equal 'Error: required flag(s) "vlan-id" not set'
 End
@@ -118,7 +118,7 @@ End
 It "--config $CANI_CONF hpe-ex2000 --vlan-id 1234"
   BeforeCall use_active_session # session is active
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
-  When call bin/cani alpha add cabinet --config "$CANI_CONF" hpe-ex2000 --vlan-id 1234
+  When call bin/cani alpha add cabinet csm --config "$CANI_CONF" hpe-ex2000 --vlan-id 1234
   The status should equal 1
   The line 1 of stderr should equal 'Error: required flag(s) "cabinet" not set'
 End
@@ -132,7 +132,7 @@ End
 It "--config $CANI_CONF hpe-ex2000 --cabinet 1234 --vlan-id 12345678"
   BeforeCall use_active_session # session is active
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
-  When call bin/cani alpha add cabinet --config "$CANI_CONF" hpe-ex2000 --cabinet 1234 --vlan-id 12345678
+  When call bin/cani alpha add cabinet csm --config "$CANI_CONF" hpe-ex2000 --cabinet 1234 --vlan-id 12345678
   The status should equal 1
   The line 1 of stderr should include "Error: VLAN exceeds the provider's maximum range (3999).  Please choose a valid VLAN"
 End
@@ -146,7 +146,7 @@ End
 It "--config $CANI_CONF hpe-ex2000 --cabinet 1234 --vlan-id 1234"
   BeforeCall use_active_session # session is active
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
-  When call bin/cani alpha add cabinet --config "$CANI_CONF" hpe-ex2000 --cabinet 1234 --vlan-id 1234
+  When call bin/cani alpha add cabinet csm --config "$CANI_CONF" hpe-ex2000 --cabinet 1234 --vlan-id 1234
   The status should equal 0
   The line 1 of stderr should include "Cabinet 1234 was successfully staged to be added to the system"
   The line 2 of stderr should include "UUID: "
@@ -162,7 +162,7 @@ End
 #   - the cabinet already exists
 It "--config $CANI_CONF hpe-ex2000 --cabinet 1234 --vlan-id 1234"
   BeforeCall use_active_session # session is active
-  When call bin/cani alpha add cabinet --config "$CANI_CONF" hpe-ex2000 --cabinet 1234 --vlan-id 1234
+  When call bin/cani alpha add cabinet csm --config "$CANI_CONF" hpe-ex2000 --cabinet 1234 --vlan-id 1234
   The status should equal 1
   The line 1 of stderr should equal "Error: Cabinet number 1234 is already in use"
   The line 2 of stderr should equal "please re-run the command with an available Cabinet number"
@@ -177,7 +177,7 @@ End
 #   - the vlan already exists 
 It "--config $CANI_CONF hpe-ex2000 --cabinet 4321 --vlan-id 1234"
   BeforeCall use_active_session # session is active
-  When call bin/cani alpha add cabinet --config "$CANI_CONF" hpe-ex2000 --cabinet 4321 --vlan-id 1234
+  When call bin/cani alpha add cabinet csm --config "$CANI_CONF" hpe-ex2000 --cabinet 4321 --vlan-id 1234
   The status should equal 1
   The line 1 of stderr should include "Inventory data validation errors encountered"
   The stderr should include "    - Specified HMN Vlan (1234) is not unique, shared by: "
@@ -191,7 +191,7 @@ End
 #   - vlan-id flag is not set 
 It "--config $CANI_CONF hpe-ex2000 --auto --vlan-id 1234"
   BeforeCall use_active_session # session is active
-  When call bin/cani alpha add cabinet --config "$CANI_CONF" hpe-ex2000 --auto --vlan-id 1234
+  When call bin/cani alpha add cabinet csm --config "$CANI_CONF" hpe-ex2000 --auto --vlan-id 1234
   The status should equal 1
   The line 1 of stderr should equal "Error: if any flags in the group [cabinet vlan-id] are set they must all be set; missing [cabinet]"
 End
@@ -204,7 +204,7 @@ End
 #   - vlan-id flag is set 
 It "--config $CANI_CONF hpe-ex2000 --auto --cabinet 4321"
   BeforeCall use_active_session # session is active
-  When call bin/cani alpha add cabinet --config "$CANI_CONF" hpe-ex2000 --auto --cabinet 4321 
+  When call bin/cani alpha add cabinet csm --config "$CANI_CONF" hpe-ex2000 --auto --cabinet 4321 
   The status should equal 1
   The line 1 of stderr should equal "Error: if any flags in the group [cabinet vlan-id] are set they must all be set; missing [vlan-id]"
 End
@@ -216,7 +216,7 @@ End
 #   - accept flag is set
 It "--config $CANI_CONF hpe-ex2000 --auto --accept"
   BeforeCall use_active_session # session is active
-  When call bin/cani alpha add cabinet --config "$CANI_CONF" hpe-ex2000 --auto --accept 
+  When call bin/cani alpha add cabinet csm --config "$CANI_CONF" hpe-ex2000 --auto --accept 
   The status should equal 0
   The line 1 of stderr should include " Querying inventory to suggest Cabinet"
   The line 2 of stderr should include " Suggested cabinet number: "
@@ -251,7 +251,7 @@ Parameters
 End
 
 It "--config $CANI_CONF $1 --auto --accept"
-  When call bin/cani alpha add cabinet --config "$CANI_CONF" "$1" --auto --accept
+  When call bin/cani alpha add cabinet csm --config "$CANI_CONF" "$1" --auto --accept
   The line 1 of stderr should include " Querying inventory to suggest Cabinet"
   The line 2 of stderr should include " Suggested cabinet number: "
   The line 3 of stderr should include " Suggested VLAN ID: "
@@ -300,7 +300,7 @@ End
 
 # setup a bunch of cabinets with incongruent cabinet numbers
 It "--config $CANI_CONF $1 --cabinet $2 --vlan-id $3 --accept"
-  When call bin/cani alpha add cabinet --config "$CANI_CONF" "$1" --cabinet "$2" --vlan-id "$3" --accept
+  When call bin/cani alpha add cabinet csm --config "$CANI_CONF" "$1" --cabinet "$2" --vlan-id "$3" --accept
   The line 1 of stderr should include " was successfully staged to be added to the system"
   The line 2 of stderr should include " UUID: "
   The line 3 of stderr should include " Cabinet Number: $2"
@@ -343,7 +343,7 @@ End
 
 # setup a bunch of cabinets with incongruent cabinet numbers
 It "--config $CANI_CONF $1 --auto --accept"
-  When call bin/cani alpha add cabinet --config "$CANI_CONF" "$1" --auto --accept
+  When call bin/cani alpha add cabinet csm --config "$CANI_CONF" "$1" --auto --accept
   The line 1 of stderr should include " Querying inventory to suggest Cabinet"
   The line 2 of stderr should include " Suggested cabinet number: "
   The line 3 of stderr should include " Suggested VLAN ID: "
@@ -392,7 +392,7 @@ End
 
 # setup a bunch of cabinets with incongruent cabinet numbers
 It "--config $CANI_CONF $1 --cabinet $2 --vlan-id $3 --accept"
-  When call bin/cani alpha add cabinet --config "$CANI_CONF" "$1" --cabinet "$2" --vlan-id "$3" --accept
+  When call bin/cani alpha add cabinet csm --config "$CANI_CONF" "$1" --cabinet "$2" --vlan-id "$3" --accept
   The line 1 of stderr should include " was successfully staged to be added to the system"
   The line 2 of stderr should include " UUID: "
   The line 3 of stderr should include " Cabinet Number: $2"
@@ -435,7 +435,7 @@ End
 
 # setup a bunch of cabinets with incongruent cabinet numbers
 It "--config $CANI_CONF $1 --auto --accept"
-  When call bin/cani alpha add cabinet --config "$CANI_CONF" "$1" --auto --accept
+  When call bin/cani alpha add cabinet csm --config "$CANI_CONF" "$1" --auto --accept
   The line 1 of stderr should include " Querying inventory to suggest Cabinet"
   The line 2 of stderr should include " Suggested cabinet number: "
   The line 3 of stderr should include " Suggested VLAN ID: "
@@ -449,7 +449,7 @@ It 'validates a custom hardware type appears in the list of supported hardware'
   BeforeCall use_active_session
   BeforeCall use_custom_hw_type
   BeforeCall use_valid_datastore_system_only
-  When call bin/cani --config "$CANI_CONF" alpha add cabinet -L
+  When call bin/cani --config "$CANI_CONF" alpha add cabinet csm -L
   The status should equal 0
   The line 8 of stdout should equal 'my-custom-cabinet'
 End
@@ -458,7 +458,7 @@ It "--config $CANI_CONF my-custom-cabinet --auto --accept"
   BeforeCall use_active_session
   BeforeCall use_custom_hw_type
   BeforeCall use_valid_datastore_system_only
-  When call bin/cani alpha add cabinet --config "$CANI_CONF" my-custom-cabinet --auto --accept
+  When call bin/cani alpha add cabinet csm --config "$CANI_CONF" my-custom-cabinet --auto --accept
   The status should equal 0
   The line 1 of stderr should include " Querying inventory to suggest Cabinet"
   The line 2 of stderr should include " Suggested cabinet number: 4321"
@@ -471,7 +471,7 @@ End
 
 It 'validate cabinet is added'
   BeforeCall use_custom_hw_type
-  When call bin/cani alpha list cabinet --config "$CANI_CONF"
+  When call bin/cani alpha list cabinet csm --config "$CANI_CONF"
   The status should equal 0
   The line 2 of stdout should include "staged"
   The line 2 of stdout should include "my-custom-cabinet"

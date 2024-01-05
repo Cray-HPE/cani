@@ -39,21 +39,21 @@ End
 # Adding a blade withot a hardware type should fail
 # it should list the available hardware types
 It "--config $CANI_CONF"
-  When call bin/cani alpha add blade --config "$CANI_CONF"
+  When call bin/cani alpha add blade csm --config "$CANI_CONF"
   The status should equal 1
   The line 1 of stderr should include 'Error: No hardware type provided: Choose from: [hpe-crayex-ex235a-compute-blade hpe-crayex-ex235n-compute-blade hpe-crayex-ex254n-compute-blade hpe-crayex-ex420-compute-blade hpe-crayex-ex425-compute-blade hpe-crayex-ex4252-compute-blade]'
 End
 
 # Adding a blade with an invalid hardware type should fail
 It "--config $CANI_CONF fake-hardware-type"
-  When call bin/cani alpha add blade --config "$CANI_CONF" fake-hardware-type
+  When call bin/cani alpha add blade csm --config "$CANI_CONF" fake-hardware-type
   The status should equal 1
   The line 1 of stderr should equal 'Error: Invalid hardware type: fake-hardware-type'
 End
 
 # Listing hardware types should show available hardware types
 It "--config $CANI_CONF -L"
-  When call bin/cani alpha add blade --config "$CANI_CONF" -L
+  When call bin/cani alpha add blade csm --config "$CANI_CONF" -L
   The status should equal 0
   The line 1 of stdout should equal "hpe-crayex-ex235a-compute-blade"
   The line 2 of stdout should equal "hpe-crayex-ex235n-compute-blade"
@@ -73,7 +73,7 @@ Parameters:dynamic
   mkdir -p "$CANI_DIR"
   cp "$SHELLSPEC_HELPERDIR/testdata/fixtures/cani/configs/canitest_valid_active.yml" "$CANI_CONF"
   cp "$FIXTURES"/cani/configs/canitestdb_valid_system_only.json "$CANI_DS"
-  for blade in $(bin/cani --config "$SHELLSPEC_HELPERDIR/testdata/fixtures/cani/configs/canitest_valid_active.yml" alpha add blade -L); do
+  for blade in $(bin/cani --config "$SHELLSPEC_HELPERDIR/testdata/fixtures/cani/configs/canitest_valid_active.yml" alpha add blade csm -L); do
     %data "$blade"
   done
 End
@@ -82,7 +82,7 @@ End
 It "--config $CANI_CONF $1 --cabinet 3000 --chassis 1 --blade 0 (no session)"
   BeforeCall use_inactive_session # session is inactive
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
-  When call bin/cani alpha add blade --config "$CANI_CONF" "$1" --cabinet 3000 --chassis 1 --blade 0
+  When call bin/cani alpha add blade csm --config "$CANI_CONF" "$1" --cabinet 3000 --chassis 1 --blade 0
   The status should equal 1
   The line 1 of stderr should include "No active session."
 End
@@ -93,7 +93,7 @@ End
 It "--config $CANI_CONF $1 --cabinet 3000 --chassis 1 --blade 0 (active session, no datastore)"
   BeforeCall use_active_session # session is active
   BeforeCall remove_datastore # datastore does not exist
-  When call bin/cani alpha add blade --config "$CANI_CONF" "$1" --cabinet 3000 --chassis 1 --blade 0
+  When call bin/cani alpha add blade csm --config "$CANI_CONF" "$1" --cabinet 3000 --chassis 1 --blade 0
   The status should equal 1
   The line 1 of stderr should include "Datastore '$CANI_DS' does not exist.  Run 'session init' to begin"
 End
@@ -107,7 +107,7 @@ End
 It "--config $CANI_CONF $1 (active session, datastore, no flags)"
   BeforeCall use_active_session # session is active
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
-  When call bin/cani alpha add blade --config "$CANI_CONF" "$1"
+  When call bin/cani alpha add blade csm --config "$CANI_CONF" "$1"
   The status should equal 1
   The line 1 of stderr should equal 'Error: required flag(s) "blade", "cabinet", "chassis" not set'
 End
@@ -120,7 +120,7 @@ End
 It "--config $CANI_CONF $1 --cabinet 3000 (active session, datastore, some flags)"
   BeforeCall use_active_session # session is active
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
-  When call bin/cani alpha add blade --config "$CANI_CONF" "$1" --cabinet 3000
+  When call bin/cani alpha add blade csm --config "$CANI_CONF" "$1" --cabinet 3000
   The status should equal 1
   The line 1 of stderr should equal 'Error: required flag(s) "blade", "chassis" not set'
 End
@@ -132,7 +132,7 @@ End
 It "--config $CANI_CONF $1 --cabinet 3000 --chassis 0 (active session, datastore, some flags)"
   BeforeCall use_active_session # session is active
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
-  When call bin/cani alpha add blade --config "$CANI_CONF" "$1" --cabinet 3000 --chassis 0
+  When call bin/cani alpha add blade csm --config "$CANI_CONF" "$1" --cabinet 3000 --chassis 0
   The status should equal 1
   The line 1 of stderr should equal 'Error: required flag(s) "blade", not set'
 End
@@ -147,7 +147,7 @@ End
 It "--config $CANI_CONF $1 --cabinet 3000 --chassis 1 --blade 0 (active session, datastore, all flags, no cabinet)"
   BeforeCall use_active_session # session is active
   BeforeCall use_valid_datastore_system_only # deploy a valid datastore
-  When call bin/cani alpha add blade --config "$CANI_CONF" "$1" --cabinet 3000 --chassis 1 --blade 0
+  When call bin/cani alpha add blade csm --config "$CANI_CONF" "$1" --cabinet 3000 --chassis 1 --blade 0
   The status should equal 1
   The line 1 of stderr should equal 'Error: unable to find Cabinet at System:0->Cabinet:3000'
   The line 2 of stderr should equal "try 'list cabinet'"
@@ -164,7 +164,7 @@ End
 It "--config $CANI_CONF $1 --cabinet 3000 --chassis 1234 --blade 0 (active session, datastore, all flags, no chassis)"
   BeforeCall use_active_session # session is active
   BeforeCall use_valid_datastore_one_hpe_eia_cabinet_cabinet # deploy a valid datastore with one cabinet
-  When call bin/cani alpha add blade --config "$CANI_CONF" "$1" --cabinet 3000 --chassis 1234 --blade 0
+  When call bin/cani alpha add blade csm --config "$CANI_CONF" "$1" --cabinet 3000 --chassis 1234 --blade 0
   The status should equal 1
   The line 1 of stderr should equal 'Error: in order to add a NodeBlade, a Chassis is needed'
   The line 2 of stderr should equal "unable to find Chassis at System:0->Cabinet:3000->Chassis:1234"
@@ -181,7 +181,7 @@ End
 It "--config $CANI_CONF $1 --cabinet 3000 --chassis 0 --blade 0 (happy path)"
   BeforeCall use_active_session # session is active
   BeforeCall use_valid_datastore_one_hpe_eia_cabinet_cabinet # deploy a valid datastore with one cabinet and one blade
-  When call bin/cani alpha add blade --config "$CANI_CONF" "$1" --cabinet 3000 --chassis 0 --blade 0
+  When call bin/cani alpha add blade csm --config "$CANI_CONF" "$1" --cabinet 3000 --chassis 0 --blade 0
   The status should equal 0
   The line 2 of stderr should include "NodeBlade was successfully staged to be added to the system"
   The line 3 of stderr should include "UUID: "
@@ -202,7 +202,7 @@ End
 It "--config $CANI_CONF $1 --cabinet 3000 --chassis 0 --blade 0 (active session, datastore, all flags, existing hardware)"
   BeforeCall use_active_session # session is active
   BeforeCall use_valid_datastore_one_hpe_eia_cabinet_cabinet_one_blade
-  When call bin/cani alpha add blade --config "$CANI_CONF" "$1" --cabinet 3000 --chassis 0 --blade 0
+  When call bin/cani alpha add blade csm --config "$CANI_CONF" "$1" --cabinet 3000 --chassis 0 --blade 0
   The status should equal 1
   The line 1 of stderr should equal "Error: NodeBlade number 0 is already in use"
   The line 2 of stderr should equal "please re-run the command with an available NodeBlade number"
@@ -211,7 +211,7 @@ End
 
 # blade suggestions should fail if there are no empty slots
 It "--config $CANI_CONF $1 --auto --accept (no slots available)"
-  When call bin/cani alpha add blade --config "$CANI_CONF" "$1" --auto --accept
+  When call bin/cani alpha add blade csm --config "$CANI_CONF" "$1" --auto --accept
   The status should equal 1
   The line 1 of stderr should equal 'Error: no available NodeBlade slots'
 End
@@ -224,9 +224,9 @@ Describe 'cani add blade'
 
 Parameters:dynamic
   # For each cabinet type
-  for bld in $(bin/cani --config "$CANI_CONF" alpha add blade -L); do
+  for bld in $(bin/cani --config "$CANI_CONF" alpha add blade csm -L); do
     # add each blade type
-    for cab in $(bin/cani --config "$CANI_CONF" alpha add cabinet -L); do
+    for cab in $(bin/cani --config "$CANI_CONF" alpha add cabinet csm -L); do
       cab_ds_fixture=$(echo "$cab" | awk '{print $1}' | tr '-' '_')
       # ordinals vary depending upon the cabinet
       if [ "$cab_ds_fixture" = "hpe_eia_cabinet" ]; then continue;fi
@@ -249,7 +249,7 @@ It "--config $CANI_CONF $2 --auto --accept (into $1)"
   BeforeCall use_active_session # session is active
   BeforeCall use_valid_datastore_one_"$1"_cabinet # deploy a valid datastore with one cabinet
   BeforeCall use_custom_hw_type
-  When call bin/cani alpha add blade --config "$CANI_CONF" "$2" --auto --accept
+  When call bin/cani alpha add blade csm --config "$CANI_CONF" "$2" --auto --accept
   The status should equal 0
   The line 1 of stderr should include 'Querying inventory to suggest cabinet, chassis, and blade for this NodeBlade'
   The line 2 of stderr should include "Suggested Cabinet number: $3"

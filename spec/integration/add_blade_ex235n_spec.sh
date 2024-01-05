@@ -50,14 +50,14 @@ It 'start a session'
 End
 
 It 'verify empty blade slot'
-  When call bin/cani alpha list blade --config "$CANI_CONF"
+  When call bin/cani alpha list blade csm --config "$CANI_CONF"
   The status should equal 0
   The line 2 of output should include 'empty		System:0->Cabinet:9000->Chassis:1->NodeBlade:0'
   The line 3 of output should include 'empty		System:0->Cabinet:9000->Chassis:1->NodeBlade:1'
 End
 
 It 'verify empty nodes'
-  When call bin/cani alpha list node --config "$CANI_CONF"
+  When call bin/cani alpha list node csm --config "$CANI_CONF"
   The status should equal 0
   The line 2 of output should include 'empty		Compute		[nid001000]	1000	System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:0->Node:0'
   The line 3 of output should include 'empty		Compute		[nid001001]	1001	System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:0->Node:1'
@@ -70,7 +70,7 @@ It 'verify empty nodes'
 End
 
 It 'add ex235n blade'
-  When call bin/cani alpha --config "$CANI_CONF" add blade hpe-crayex-ex235n-compute-blade --auto --accept
+  When call bin/cani alpha --config "$CANI_CONF" add blade csm hpe-crayex-ex235n-compute-blade --auto --accept
   The status should equal 0
   The line 1 of stderr should include 'Querying inventory to suggest cabinet, chassis, and blade for this NodeBlade'
   The line 2 of stderr should include 'Suggested Cabinet number: 9000'
@@ -84,7 +84,7 @@ It 'add ex235n blade'
 End
 
 It 'verify staged blade slot'
-  When call bin/cani alpha list blade --config "$CANI_CONF"
+  When call bin/cani alpha list blade csm --config "$CANI_CONF"
   The status should equal 0
   The line 2 of stdout should include 'staged'
   The line 2 of stdout should include 'hpe-crayex-ex235n-compute-blade'
@@ -94,7 +94,7 @@ It 'verify staged blade slot'
 End
 
 It 'verify staged nodes'
-  When call bin/cani alpha list node --config "$CANI_CONF"
+  When call bin/cani alpha list node csm --config "$CANI_CONF"
   The status should equal 0
   # two nodes should be added
   The line 2 of stdout should include 'staged'
