@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -27,9 +27,20 @@ package domain
 
 import (
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
+
+// PrintRecommendations implements the InventoryProvider interface
+// it prints the hardware to stdout based on the command
+func (d *Domain) PrintRecommendations(cmd *cobra.Command, args []string, recommendations provider.HardwareRecommendations) error {
+	err := d.externalInventoryProvider.PrintRecommendations(cmd, args, recommendations)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 func (d *Domain) PrintHardware(cmd *cobra.Command, args []string, filtered map[uuid.UUID]inventory.Hardware) error {
 	err := d.externalInventoryProvider.PrintHardware(cmd, args, filtered)

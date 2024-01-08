@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -42,11 +42,12 @@ import (
 
 // AddBladeCmd represents the blade add command
 var AddBladeCmd = &cobra.Command{
-	Use:     "blade",
+	Use:     "blade PROVIDER",
 	Short:   "Add blades to the inventory.",
 	Long:    `Add blades to the inventory.`,
 	PreRunE: validHardware, // Hardware can only be valid if defined in the hardware library
-	RunE:    addBlade,      // Add a blade when this sub-command is called
+	Args:    cobra.ExactArgs(1),
+	RunE:    addBlade, // Add a blade when this sub-command is called
 }
 
 // addBlade adds a blade to the inventory

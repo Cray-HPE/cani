@@ -2,7 +2,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -29,26 +29,26 @@ Describe 'cani update node'
 It "validate blade exists"
   BeforeCall use_active_session # session is active
   BeforeCall use_valid_datastore_one_ex2000_one_blade # deploy a valid datastore with one cabinet
-  When call bin/cani alpha list blade --config "$CANI_CONF"
+  When call bin/cani alpha list blade csm --config "$CANI_CONF"
   The status should equal 0
   The line 2 of stdout should include '1d87f035-6c89-4670-a86d-61bb09f1928c'
 End
 
 It "validate nodes exist"
-  When call bin/cani alpha list node --config "$CANI_CONF"
+  When call bin/cani alpha list node csm --config "$CANI_CONF"
   The status should equal 0
   The line 2 of stdout should include 'd28c3201-9dfa-4788-852f-86054cd99232'
   The line 3 of stdout should include '8ab879e0-f269-4c88-aaf4-4a345985d41e'
 End
 
-It "update node --config $CANI_CONF --uuid 8ab879e0-f269-4c88-aaf4-4a345985d41e --role Application --subrole Worker --nid 1234"
-  When call bin/cani alpha update node --config "$CANI_CONF" --uuid 8ab879e0-f269-4c88-aaf4-4a345985d41e --role Application --subrole Worker --nid 1234
+It "update node csm --config $CANI_CONF --uuid 8ab879e0-f269-4c88-aaf4-4a345985d41e --role Application --subrole Worker --nid 1234"
+  When call bin/cani alpha update node csm --config "$CANI_CONF" --uuid 8ab879e0-f269-4c88-aaf4-4a345985d41e --role Application --subrole Worker --nid 1234
   The status should equal 0
   The line 1 of stderr should include 'Updated node'
 End
 
 It "validate node is updated"
-  When call bin/cani alpha list node --config "$CANI_CONF"
+  When call bin/cani alpha list node csm --config "$CANI_CONF"
   The status should equal 0
   The line 3 of stdout should include '8ab879e0-f269-4c88-aaf4-4a345985d41e'
   The line 3 of stdout should include 'Application'

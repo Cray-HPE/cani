@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -32,9 +32,10 @@ import (
 
 // AddNodeCmd represents the node add command
 var AddNodeCmd = &cobra.Command{
-	Use:     "node",
+	Use:     "node PROVIDER",
 	Short:   "Add nodes to the inventory.",
 	Long:    `Add nodes to the inventory.`,
+	Args:    cobra.ExactArgs(1),
 	PreRunE: validHardware, // Hardware can only be valid if defined in the hardware library
 	RunE:    addNode,       // Add a node when this sub-command is called
 }

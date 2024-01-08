@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -42,7 +42,6 @@ var (
 	ignoreValidationMessage  = "Ignore validation failures. Use this to allow unconventional configurations."
 	forceInit                bool
 
-	ProviderInitCmds = map[string]*cobra.Command{}
 	// BootstapCmd is used to start a session with a specific provider and allows the provider to define
 	// how the real init command is defined using their custom business logic
 	SessionInitCmd = &cobra.Command{
@@ -55,37 +54,13 @@ var (
 	}
 )
 
-func init() {
+func Init() {
+	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/cmd/session.init")
 	// Define the bare minimum needed to determine who the provider for the session will be
 	SessionInitCmd.Flags().BoolVar(&ignoreExternalValidation, "ignore-validation", false, ignoreValidationMessage)
 	SessionInitCmd.Flags().BoolVarP(&forceInit, "force", "f", false, "Overwrite the existing session with a new session")
 	SessionInitCmd.Flags().BoolP("insecure", "k", false, "Allow insecure connections when using HTTPS")
 	SessionInitCmd.Flags().BoolP("use-simulator", "S", false, "Use simulation environtment settings")
-
-	for _, p := range domain.GetProviders() {
-		// Create a provider "init" command
-		providerCmd, err := domain.NewSessionInitCommand(p.Slug())
-		if err != nil {
-			log.Error().Msgf("unable to get provider init command: %v", err)
-			os.Exit(1)
-		}
-
-		// Merge cani's default flags into the provider command
-		err = root.MergeProviderFlags(providerCmd, SessionInitCmd)
-		if err != nil {
-			log.Error().Msgf("unable to get flags from provider: %v", err)
-			os.Exit(1)
-		}
-
-		// set its use to the provider name (to be used as an arg to the "init" command)
-		providerCmd.Use = p.Slug()
-		// run cani's initialization function
-		providerCmd.RunE = initSessionWithProviderCmd
-
-		// add it as a sub-command to "init" so when an arg is passed, it will call the appropriate provider command
-		SessionInitCmd.AddCommand(providerCmd)
-
-	}
 
 	// Add session commands to root commands
 	root.SessionCmd.AddCommand(SessionInitCmd)
@@ -97,4 +72,14 @@ func init() {
 	SessionApplyCmd.Flags().BoolVarP(&commit, "commit", "c", false, "Commit changes to session")
 	SessionApplyCmd.Flags().BoolVarP(&dryrun, "dryrun", "d", false, "Perform dryrun, and do not make changes to the system")
 	SessionApplyCmd.Flags().BoolVar(&ignoreExternalValidation, "ignore-validation", false, ignoreValidationMessage)
+
+	for _, p := range domain.GetProviders() {
+		for _, c := range []*cobra.Command{SessionInitCmd} {
+			err := root.RegisterProviderCommand(p, c)
+			if err != nil {
+				log.Error().Msgf("Unable to get command '%s %s' from provider %s ", c.Parent().Name(), c.Name(), p.Slug())
+				os.Exit(1)
+			}
+		}
+	}
 }

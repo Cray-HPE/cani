@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -26,8 +26,10 @@
 package csm
 
 import (
+	"errors"
 	"fmt"
 
+	"github.com/Cray-HPE/cani/pkg/utils"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -64,46 +66,50 @@ var (
 	alias   string
 )
 
+func Init() {
+	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/internal/provider/csm.init")
+}
+
 // NewProviderCmd returns the appropriate command to the cmd layer
-func NewProviderCmd(bootstrapCmd *cobra.Command) (providerCmd *cobra.Command, err error) {
+func NewProviderCmd(caniCmd *cobra.Command) (providerCmd *cobra.Command, err error) {
 	// first, choose the right command
-	switch bootstrapCmd.Name() {
+	switch caniCmd.Name() {
 	case "init":
-		providerCmd, err = NewSessionInitCommand()
+		providerCmd, err = NewSessionInitCommand(caniCmd)
 	case "cabinet":
-		switch bootstrapCmd.Parent().Name() {
+		switch caniCmd.Parent().Name() {
 		case "add":
-			providerCmd, err = NewAddCabinetCommand()
+			providerCmd, err = NewAddCabinetCommand(caniCmd)
 		case "update":
-			providerCmd, err = NewUpdateCabinetCommand()
+			providerCmd, err = NewUpdateCabinetCommand(caniCmd)
 		case "list":
-			providerCmd, err = NewListCabinetCommand()
+			providerCmd, err = NewListCabinetCommand(caniCmd)
 		}
 	case "blade":
-		switch bootstrapCmd.Parent().Name() {
+		switch caniCmd.Parent().Name() {
 		case "add":
-			providerCmd, err = NewAddBladeCommand()
+			providerCmd, err = NewAddBladeCommand(caniCmd)
 		case "update":
-			providerCmd, err = NewUpdateBladeCommand()
+			providerCmd, err = NewUpdateBladeCommand(caniCmd)
 		case "list":
-			providerCmd, err = NewListBladeCommand()
+			providerCmd, err = NewListBladeCommand(caniCmd)
 		}
 	case "node":
 		// check for add/update variants
-		switch bootstrapCmd.Parent().Name() {
+		switch caniCmd.Parent().Name() {
 		case "add":
-			providerCmd, err = NewAddNodeCommand()
+			providerCmd, err = NewAddNodeCommand(caniCmd)
 		case "update":
-			providerCmd, err = NewUpdateNodeCommand()
+			providerCmd, err = NewUpdateNodeCommand(caniCmd)
 		case "list":
-			providerCmd, err = NewListNodeCommand()
+			providerCmd, err = NewListNodeCommand(caniCmd)
 		}
 	case "export":
-		providerCmd, err = NewExportCommand()
+		providerCmd, err = NewExportCommand(caniCmd)
 	case "import":
-		providerCmd, err = NewImportCommand()
+		providerCmd, err = NewImportCommand(caniCmd)
 	default:
-		log.Debug().Msgf("Command not implemented by provider: %s %s", bootstrapCmd.Parent().Name(), bootstrapCmd.Name())
+		err = fmt.Errorf("Command not implemented by provider: %s %s", caniCmd.Parent().Name(), caniCmd.Name())
 	}
 	if err != nil {
 		return providerCmd, err
@@ -112,55 +118,9 @@ func NewProviderCmd(bootstrapCmd *cobra.Command) (providerCmd *cobra.Command, er
 	return providerCmd, nil
 }
 
-func UpdateProviderCmd(bootstrapCmd *cobra.Command) (err error) {
-	// first, choose the right command
-	switch bootstrapCmd.Name() {
-	case "init":
-		err = UpdateSessionInitCommand(bootstrapCmd)
-	case "cabinet":
-		// check for add/update variants
-		switch bootstrapCmd.Parent().Name() {
-		case "add":
-			err = UpdateAddCabinetCommand(bootstrapCmd)
-		case "update":
-			err = UpdateUpdateCabinetCommand(bootstrapCmd)
-		case "list":
-			err = UpdateListCabinetCommand(bootstrapCmd)
-		}
-	case "blade":
-		// check for add/update variants
-		switch bootstrapCmd.Parent().Name() {
-		case "add":
-			err = UpdateAddBladeCommand(bootstrapCmd)
-		case "update":
-			err = UpdateUpdateBladeCommand(bootstrapCmd)
-		case "list":
-			err = UpdateListBladeCommand(bootstrapCmd)
-		}
-	case "node":
-		// check for add/update variants
-		switch bootstrapCmd.Parent().Name() {
-		case "add":
-			err = UpdateAddNodeCommand(bootstrapCmd)
-		case "update":
-			err = UpdateUpdateNodeCommand(bootstrapCmd)
-		case "list":
-			err = UpdateUpdateNodeCommand(bootstrapCmd)
-		}
-	}
-	if err != nil {
-		return fmt.Errorf("unable to update cmd from provider: %v", err)
-	}
-	return nil
-}
-
-func NewSessionInitCommand() (cmd *cobra.Command, err error) {
-	// cmd represents the session init command
-	cmd = &cobra.Command{}
+func NewSessionInitCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
+	cmd = utils.CloneCommand(caniCmd)
 	cmd.Long = `Query SLS and HSM.  Validate the data against a schema before allowing an import into CANI.`
-	// ValidArgs:    DO NOT CONFIGURE.  This is set by cani's cmd pkg
-	// Args:         DO NOT CONFIGURE.  This is set by cani's cmd pkg
-	// RunE:         DO NOT CONFIGURE.  This is set by cani's cmd pkg
 	// Session init flags
 	cmd.Flags().String("csm-url-sls", "", "(CSM Provider) Base URL for the System Layout Service (SLS)")
 	cmd.Flags().String("csm-url-hsm", "", "(CSM Provider) Base URL for the Hardware State Manager (HSM)")
@@ -192,47 +152,70 @@ func NewSessionInitCommand() (cmd *cobra.Command, err error) {
 	return cmd, nil
 }
 
-func UpdateSessionInitCommand(caniCmd *cobra.Command) error {
-	return nil
-}
-
-func NewAddCabinetCommand() (cmd *cobra.Command, err error) {
-	// cmd represents the session init command
-	cmd = &cobra.Command{}
+func NewAddCabinetCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
+	cmd = utils.CloneCommand(caniCmd)
+	cmd.Flags().Int("cabinet", 1001, "Cabinet number.")
 	cmd.Flags().Int("vlan-id", -1, "Vlan ID for the cabinet.")
+	cmd.MarkFlagsRequiredTogether("cabinet", "vlan-id")
+	cmd.MarkFlagsMutuallyExclusive("auto")
 
+	// make a wrapper script if PreRunE is already set
+	if caniCmd.PreRunE != nil {
+		fn := func(c *cobra.Command, a []string) error {
+			err = caniCmd.PreRunE(c, a)
+			if err != nil {
+				return err
+			}
+
+			err = validCAddCabinetFlags(c, a)
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+
+		// assign the wrapper to the PreRunE field
+		cmd.PreRunE = fn
+	}
 	return cmd, nil
 }
 
-// UpdateAddCabinetCommand is run during init and allows the provider to set additional options for CANI flags
-// such as marking certain options mutually exclusive with the auto flag
-func UpdateAddCabinetCommand(caniCmd *cobra.Command) error {
-	caniCmd.MarkFlagsRequiredTogether("cabinet", "vlan-id")
-	caniCmd.MarkFlagsMutuallyExclusive("auto")
+// validCAddCabinetFlags has additional flag logic to account for overiding required flags with the --auto flag
+func validCAddCabinetFlags(cmd *cobra.Command, args []string) error {
+	cabinetSet := cmd.Flags().Changed("cabinet")
+	vlanIdSet := cmd.Flags().Changed("vlan-id")
+	autoSet := cmd.Flags().Changed("auto")
+	// if auto is set, the values are recommended and the required flags are bypassed
+	if autoSet {
+		return nil
+	} else {
+		if !cabinetSet && !vlanIdSet {
+			return errors.New("required flag(s) \"cabinet\", \"vlan-id\" not set")
+		}
+		if cabinetSet && !vlanIdSet {
+			return errors.New("required flag(s) \"vlan-id\" not set")
+		}
+		if !cabinetSet && vlanIdSet {
+			return errors.New("required flag(s) \"cabinet\" not set")
+		}
+	}
+
 	return nil
 }
 
-func NewUpdateCabinetCommand() (cmd *cobra.Command, err error) {
-	cmd = &cobra.Command{}
+func NewUpdateCabinetCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
+	cmd = utils.CloneCommand(caniCmd)
 	return cmd, nil
 }
 
-func UpdateUpdateCabinetCommand(caniCmd *cobra.Command) error {
-	return nil
-}
-
-func NewListCabinetCommand() (cmd *cobra.Command, err error) {
-	cmd = &cobra.Command{}
+func NewListCabinetCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
+	cmd = utils.CloneCommand(caniCmd)
 	return cmd, nil
 }
 
-func UpdateListCabinetCommand(caniCmd *cobra.Command) error {
-	return nil
-}
-
-func NewAddNodeCommand() (cmd *cobra.Command, err error) {
+func NewAddNodeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
 	// cmd represents for cani alpha add node
-	cmd = &cobra.Command{}
+	cmd = utils.CloneCommand(caniCmd)
 	cmd.Flags().StringVar(&role, "role", "", "Role of the node")
 	cmd.Flags().StringVar(&subrole, "subrole", "", "Subrole of the node")
 	cmd.Flags().IntVar(&nid, "nid", 0, "NID of the node")
@@ -241,13 +224,9 @@ func NewAddNodeCommand() (cmd *cobra.Command, err error) {
 	return cmd, nil
 }
 
-func UpdateAddNodeCommand(caniCmd *cobra.Command) error {
-	return nil
-}
-
-func NewUpdateNodeCommand() (cmd *cobra.Command, err error) {
+func NewUpdateNodeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
 	// cmd represents for cani alpha update node
-	cmd = &cobra.Command{}
+	cmd = utils.CloneCommand(caniCmd)
 	cmd.Flags().String("role", "", "Role of the node")
 	cmd.Flags().String("subrole", "", "Subrole of the node")
 	cmd.Flags().Int("nid", 0, "NID of the node")
@@ -257,28 +236,14 @@ func NewUpdateNodeCommand() (cmd *cobra.Command, err error) {
 }
 
 // NewListNodeCommand implements the NewListNodeCommand method of the InventoryProvider interface
-func NewListNodeCommand() (cmd *cobra.Command, err error) {
-	// TODO: Implement
-	cmd = &cobra.Command{}
-
+func NewListNodeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
+	cmd = utils.CloneCommand(caniCmd)
 	return cmd, nil
 }
 
-// UpdateListNodeCommand implements the UpdateListNodeCommand method of the InventoryProvider interface
-func UpdateListNodeCommand(caniCmd *cobra.Command) error {
-	// TODO: Implement
-	return nil
-}
-
-// UpdateUpdateNodeCommand
-func UpdateUpdateNodeCommand(caniCmd *cobra.Command) error {
-
-	return nil
-}
-
-func NewExportCommand() (cmd *cobra.Command, err error) {
+func NewExportCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
 	// cmd represents cani alpha export
-	cmd = &cobra.Command{}
+	cmd = utils.CloneCommand(caniCmd)
 	cmd.Flags().StringVar(
 		&csvHeaders, "headers", "Type,Vlan,Role,SubRole,Status,Nid,Alias,Name,ID,Location", "Comma separated list of fields to get")
 	cmd.Flags().StringVarP(
@@ -291,42 +256,23 @@ func NewExportCommand() (cmd *cobra.Command, err error) {
 	return cmd, nil
 }
 
-func NewImportCommand() (cmd *cobra.Command, err error) {
-	// cmd represents cani alpha import
-	cmd = &cobra.Command{}
-
+func NewImportCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
+	cmd = utils.CloneCommand(caniCmd)
 	return cmd, nil
 }
 
-func NewAddBladeCommand() (cmd *cobra.Command, err error) {
-	// cmd represents cani alpha import
-	cmd = &cobra.Command{}
-
+func NewAddBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
+	cmd = utils.CloneCommand(caniCmd)
+	cmd.MarkFlagsMutuallyExclusive("auto")
 	return cmd, nil
 }
 
-func UpdateAddBladeCommand(caniCmd *cobra.Command) error {
-	return nil
-}
-
-func NewUpdateBladeCommand() (cmd *cobra.Command, err error) {
-	// cmd represents cani alpha import
-	cmd = &cobra.Command{}
-
+func NewUpdateBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
+	cmd = utils.CloneCommand(caniCmd)
 	return cmd, nil
 }
 
-func UpdateUpdateBladeCommand(caniCmd *cobra.Command) error {
-	return nil
-}
-
-func NewListBladeCommand() (cmd *cobra.Command, err error) {
-	// cmd represents cani alpha import
-	cmd = &cobra.Command{}
-
+func NewListBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
+	cmd = utils.CloneCommand(caniCmd)
 	return cmd, nil
-}
-
-func UpdateListBladeCommand(caniCmd *cobra.Command) error {
-	return nil
 }

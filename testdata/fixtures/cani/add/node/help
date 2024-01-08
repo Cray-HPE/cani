@@ -1,17 +1,19 @@
 Add nodes to the inventory.
 
 Usage:
-  cani alpha add node [flags]
+  cani alpha add node PROVIDER [flags]
+  cani alpha add node [command]
+
+Available Commands:
+  csm         Add nodes to the inventory.
 
 Flags:
-      --alias string           Alias of the node
   -h, --help                   help for node
   -L, --list-supported-types   List supported hardware types.
-      --nid int                NID of the node
-      --role string            Role of the node
-      --subrole string         Subrole of the node
 
 Global Flags:
       --config string   Path to the configuration file
   -D, --debug           additional debug output
   -v, --verbose         additional verbose output
+
+Use "cani alpha add node [command] --help" for more information about a command.

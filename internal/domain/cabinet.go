@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -29,6 +29,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Cray-HPE/cani/cmd/taxonomy"
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
@@ -112,17 +113,20 @@ func (d *Domain) AddCabinet(cmd *cobra.Command, args []string, recommendations p
 			)
 		}
 
-		hardwareLocation, err := d.datastore.GetLocation(hardware)
-		if err != nil {
-			panic(err)
+		hlp := HardwareLocationPair{
+			Hardware: hardware,
 		}
 
-		result.AddedHardware = append(result.AddedHardware, HardwareLocationPair{
-			Hardware: hardware,
-			Location: hardwareLocation,
-		})
-		log.Debug().Str("path", hardwareLocation.String()).Msg("Datastore")
+		result.AddedHardware = append(result.AddedHardware, hlp)
 
+		if d.Provider == taxonomy.CSM {
+			hardwareLocation, err := d.datastore.GetLocation(hardware)
+			if err != nil {
+				panic(err)
+			}
+			hlp.Location = hardwareLocation
+			log.Debug().Str("path", hardwareLocation.String()).Msg("Datastore")
+		}
 	}
 
 	// Validate the current state of CANI's inventory data against the provider plugin

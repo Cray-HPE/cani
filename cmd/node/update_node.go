@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -38,9 +38,10 @@ import (
 
 // UpdateNodeCmd represents the node update command
 var UpdateNodeCmd = &cobra.Command{
-	Use:   "node",
+	Use:   "node PROVIDER",
 	Short: "Update nodes in the inventory.",
 	Long:  `Update nodes in the inventory.`,
+	Args:  cobra.ExactArgs(1),
 	RunE:  updateNode, // Update a node when this sub-command is called
 }
 

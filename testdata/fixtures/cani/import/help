@@ -1,7 +1,11 @@
 Import assets into the inventory.
 
 Usage:
-  cani alpha import [FILE] [flags]
+  cani alpha import PROVIDER [FILE] [flags]
+  cani alpha import [command]
+
+Available Commands:
+  csm         Import assets into the inventory.
 
 Flags:
   -h, --help   help for import
@@ -10,3 +14,5 @@ Global Flags:
       --config string   Path to the configuration file
   -D, --debug           additional debug output
   -v, --verbose         additional verbose output
+
+Use "cani alpha import [command] --help" for more information about a command.

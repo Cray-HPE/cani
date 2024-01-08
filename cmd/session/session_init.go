@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -49,7 +49,7 @@ func initSessionWithProviderCmd(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	root.D.Provider = cmd.Use
+	root.D.Provider = cmd.Name()
 
 	// Set the datastore
 	log.Debug().Msgf("checking provider %s", root.D.Provider)
@@ -57,7 +57,7 @@ func initSessionWithProviderCmd(cmd *cobra.Command, args []string) (err error) {
 	case taxonomy.CSM:
 		root.D.DatastorePath = filepath.Join(config.ConfigDir, taxonomy.DsFileCSM)
 	default:
-		root.D.DatastorePath = filepath.Join(config.ConfigDir, taxonomy.DsFile)
+		err = fmt.Errorf("not a valid provider: %s", root.D.Provider)
 	}
 	// Set the paths needed for starting a session
 	root.D.CustomHardwareTypesDir = config.CustomDir

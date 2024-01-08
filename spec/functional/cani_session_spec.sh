@@ -2,7 +2,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -207,7 +207,7 @@ Describe 'session migration:'
     BeforeCall use_single_provider_session
     BeforeCall use_valid_datastore_system_only
     BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
-    When call bin/cani --config "$CANI_CONF" alpha add cabinet hpe-ex4000 --auto --accept
+    When call bin/cani --config "$CANI_CONF" alpha add cabinet csm hpe-ex4000 --auto --accept
     The status should equal 0
     The stderr should include 'Translating single-provider config to multi-provider'
 

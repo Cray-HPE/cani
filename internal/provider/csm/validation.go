@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -120,7 +120,7 @@ func (csm *CSM) validateInternalNode(allHardware map[uuid.UUID]inventory.Hardwar
 		if cHardware.Type != hardwaretypes.Node {
 			continue
 		}
-		log.Debug().Msgf("Validating %s: %v", cHardware.ID, cHardware)
+		log.Trace().Msgf("Validating %s: %v", cHardware.ID, cHardware)
 
 		metadata, err := DecodeProviderMetadata(cHardware)
 		if err != nil {
@@ -260,7 +260,7 @@ func (csm *CSM) validateInternalCabinet(allHardware map[uuid.UUID]inventory.Hard
 			continue
 		}
 
-		log.Debug().Msgf("Validating %s: %v", cHardware.ID, cHardware)
+		log.Trace().Msgf("Validating %s: %v", cHardware.ID, cHardware)
 
 		metadata, err := DecodeProviderMetadata(cHardware)
 		if err != nil {

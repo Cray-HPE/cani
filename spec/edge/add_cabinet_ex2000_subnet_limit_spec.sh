@@ -2,7 +2,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -61,12 +61,13 @@ Parameters:dynamic
 End
 
 It 'Add ex2000 cabinet to reach subnet limit'
-  When call bin/cani alpha --config "$CANI_CONF" add cabinet hpe-ex2000 --auto --accept
+  When call bin/cani alpha --config "$CANI_CONF" add cabinet csm hpe-ex2000 --auto --accept
   The status should equal 0
   The line 1 of stderr should include 'Querying inventory to suggest Cabinet'
   The line 2 of stderr should include "Suggested cabinet number: $1"
   The line 3 of stderr should include "Suggested VLAN ID: $2"
-  The line 4 of stderr should include "Cabinet $1 was successfully staged to be added to the system"
+  The line 4 of stderr should include "Cabinet was successfully staged to be added to the system"
+  The line 6 of stderr should include "Cabinet Number: $1"
 End
 
 End

@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -26,48 +26,28 @@
 package domain
 
 import (
-	"github.com/Cray-HPE/cani/cmd/taxonomy"
+	"fmt"
+
 	"github.com/Cray-HPE/cani/internal/provider/csm"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
-func NewSessionInitCommand(p string) (providerCmd *cobra.Command, err error) {
-	switch p {
-	case "csm":
-		providerCmd, err = csm.NewSessionInitCommand()
-	}
-	if err != nil {
-		return providerCmd, err
-	}
-	return providerCmd, nil
+func init() {
+	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/internal/domain.init")
 }
 
 // NewProviderCmd returns the appropriate command to the cmd layer
-func NewProviderCmd(bootstrapCmd *cobra.Command) (providerCmd *cobra.Command, err error) {
+func NewProviderCmd(caniCmd *cobra.Command, p string) (providerCmd *cobra.Command, err error) {
 	providerCmd = &cobra.Command{}
-	for _, p := range GetProviders() {
-		switch p.Slug() {
-		case taxonomy.CSM:
-			providerCmd, err = csm.NewProviderCmd(bootstrapCmd)
-		}
-		if err != nil {
-			return providerCmd, nil
-		}
+	switch p {
+	case "csm":
+		providerCmd, err = csm.NewProviderCmd(caniCmd)
+	default:
+		err = fmt.Errorf("no command matched for provider %s", p)
 	}
-
+	if err != nil {
+		return providerCmd, nil
+	}
 	return providerCmd, nil
-}
-
-// UpdateProviderCmd allows the provider to make updates to the command after cani defines its settings
-func UpdateProviderCmd(bootstrapCmd *cobra.Command) (err error) {
-	for _, p := range GetProviders() {
-		switch p.Slug() {
-		case taxonomy.CSM:
-			err = csm.UpdateProviderCmd(bootstrapCmd)
-		}
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }

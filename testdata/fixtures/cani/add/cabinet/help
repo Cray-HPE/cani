@@ -1,17 +1,21 @@
 Add cabinets to the inventory.
 
 Usage:
-  cani alpha add cabinet [flags]
+  cani alpha add cabinet PROVIDER [flags]
+  cani alpha add cabinet [command]
+
+Available Commands:
+  csm         Add cabinets to the inventory.
 
 Flags:
   -y, --accept                 Automatically accept recommended values.
       --auto                   Automatically recommend and assign required flags.
-      --cabinet int            Cabinet number. (default 1001)
   -h, --help                   help for cabinet
   -L, --list-supported-types   List supported hardware types.
-      --vlan-id int            Vlan ID for the cabinet. (default -1)
 
 Global Flags:
       --config string   Path to the configuration file
   -D, --debug           additional debug output
   -v, --verbose         additional verbose output
+
+Use "cani alpha add cabinet [command] --help" for more information about a command.

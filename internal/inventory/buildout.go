@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -103,7 +103,7 @@ func GenerateHardwareBuildOut(l *hardwaretypes.Library, opts GenerateHardwareBui
 		current := queue[0]
 		queue = queue[1:]
 
-		log.Debug().Msgf("Visiting: %s", current.DeviceTypeSlug)
+		log.Trace().Msgf("Visiting: %s", current.DeviceTypeSlug)
 		currentDeviceType, ok := l.DeviceTypes[current.DeviceTypeSlug]
 		if !ok {
 			return nil, fmt.Errorf("device type (%v) does not exist", current.DeviceTypeSlug)
@@ -125,9 +125,9 @@ func GenerateHardwareBuildOut(l *hardwaretypes.Library, opts GenerateHardwareBui
 		}
 
 		for _, deviceBay := range currentDeviceType.DeviceBays {
-			log.Debug().Msgf("  Device bay: %s", deviceBay.Name)
+			log.Trace().Msgf("  Device bay: %s", deviceBay.Name)
 			if deviceBay.Default != nil {
-				log.Debug().Msgf("    Default: %s", deviceBay.Default.Slug)
+				log.Trace().Msgf("    Default: %s", deviceBay.Default.Slug)
 
 				queue = append(queue, HardwareBuildOut{
 					// Hardware type is deferred until when it is processed

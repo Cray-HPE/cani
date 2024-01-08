@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -35,9 +35,10 @@ var (
 
 // ExportCmd represents the export command
 var ExportCmd = &cobra.Command{
-	Use:   "export",
+	Use:   "export PROVIDER",
 	Short: "Export assets from the inventory.",
 	Long:  `Export assets from the inventory.`,
+	Args:  cobra.ExactArgs(1),
 	RunE:  export,
 }
 

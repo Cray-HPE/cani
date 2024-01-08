@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -60,6 +60,7 @@ var SessionInitCmd *cobra.Command
 // New returns a new Domain
 func New(cmd *cobra.Command, args []string) (d *Domain, err error) {
 	d = &Domain{}
+	d.Provider = cmd.Name()
 	return d, nil
 }
 
@@ -73,7 +74,7 @@ func (d *Domain) SetupDomain(cmd *cobra.Command, args []string, configDomains ma
 	for _, sessionDomain := range configDomains {
 		if sessionDomain.Active {
 			d.Active = true
-			log.Debug().Msgf("Setting top level Domain to Active=true")
+			log.Trace().Msgf("Setting top level Domain to Active=true")
 		}
 	}
 
@@ -84,14 +85,13 @@ func (d *Domain) SetupDomain(cmd *cobra.Command, args []string, configDomains ma
 		}
 	}
 
-	log.Debug().Msgf("Setting up datastore interface: %s", d.DatastorePath)
+	log.Trace().Msgf("Setting up datastore interface: %s", d.DatastorePath)
 	// Load the datastore.  Different providers have different storage needs
 	switch d.Provider {
 	case taxonomy.CSM:
 		d.datastore, err = inventory.NewDatastoreJSONCSM(d.DatastorePath, d.LogFilePath, inventory.Provider(d.Provider))
 	default:
-		log.Warn().Msgf("using default provider datastore")
-		d.datastore, err = inventory.NewDatastoreJSON(d.DatastorePath, d.LogFilePath, inventory.Provider(d.Provider))
+		return fmt.Errorf("invalid provider: %s", d.Provider)
 	}
 	if err != nil {
 		return errors.Join(
@@ -100,7 +100,7 @@ func (d *Domain) SetupDomain(cmd *cobra.Command, args []string, configDomains ma
 		)
 	}
 
-	log.Debug().Msgf("loading embedded and custom hardwaretypes: %s", d.CustomHardwareTypesDir)
+	log.Trace().Msgf("loading embedded and custom hardwaretypes: %s", d.CustomHardwareTypesDir)
 	// Load the hardware type library.  Supported hardware is embedded
 	// this also loads any custom-deinfed hardware at the given path
 	d.hardwareTypeLibrary, err = hardwaretypes.NewEmbeddedLibrary(d.CustomHardwareTypesDir)
@@ -111,12 +111,11 @@ func (d *Domain) SetupDomain(cmd *cobra.Command, args []string, configDomains ma
 		)
 	}
 
-	log.Debug().Msgf("getting plugin settings for provider %s", d.Provider)
+	log.Trace().Msgf("getting plugin settings for provider %s", d.Provider)
 	// Instantiate the provider interface object
 	switch d.Provider {
 	case taxonomy.CSM:
 		d.externalInventoryProvider, err = csm.New(cmd, args, d.hardwareTypeLibrary, d.Options)
-
 	default:
 		return fmt.Errorf("unknown external inventory provider provided (%s)", d.Provider)
 	}
@@ -128,7 +127,7 @@ func (d *Domain) SetupDomain(cmd *cobra.Command, args []string, configDomains ma
 		)
 	}
 
-	if cmd.Name() == "init" {
+	if cmd.Parent().Name() == "init" {
 		err := d.externalInventoryProvider.SetProviderOptions(cmd, args)
 		if err != nil {
 			return err
@@ -169,4 +168,8 @@ func GetProviders() []provider.InventoryProvider {
 		&csm.CSM{},
 	}
 	return supportedProviders
+}
+
+func (d *Domain) Slug() string {
+	return d.externalInventoryProvider.Slug()
 }

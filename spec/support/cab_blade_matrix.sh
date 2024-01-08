@@ -2,7 +2,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -28,8 +28,8 @@ set -u
 
 : "${CANI_CONF:-/tmp/.cani/cani.yml}"
 
-for blade in $(bin/cani --config "$CANI_CONF" alpha add blade -L); do
-  for cabinet in $(bin/cani --config "$CANI_CONF" alpha add cabinet -L); do
+for blade in $(bin/cani --config "$CANI_CONF" alpha add blade csm -L); do
+  for cabinet in $(bin/cani --config "$CANI_CONF" alpha add cabinet csm -L); do
     if [ "$cabinet" = "hpe-eia-cabinet" ];then 
       continue
     else 

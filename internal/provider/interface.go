@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -33,6 +33,10 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
+
+func Init() {
+	log.Info().Msgf("%+v", "github.com/Cray-HPE/cani/internal/provider.init")
+}
 
 var ErrDataValidationFailure = fmt.Errorf("data validation failure")
 
@@ -90,6 +94,7 @@ type InventoryProvider interface {
 
 	// Print
 	PrintHardware(cmd *cobra.Command, args []string, filtered map[uuid.UUID]inventory.Hardware) error
+	PrintRecommendations(cmd *cobra.Command, args []string, recommendations HardwareRecommendations) error
 
 	// Provider's name
 	Slug() string
@@ -132,12 +137,17 @@ func (r HardwareRecommendations) Print() {
 // ProviderCommands is an interface for the commands that are specific to a provider
 // this isn't usually used directly, but is used to generate the commands with 'makeprovdier'
 type ProviderCommands interface {
-	NewSessionInitCommand() (cmd *cobra.Command, err error)
-	NewAddCabinetCommand() (cmd *cobra.Command, err error)
-	UpdateAddCabinetCommand(caniCmd *cobra.Command) error
-	NewAddNodeCommand() (cmd *cobra.Command, err error)
-	NewUpdateNodeCommand() (cmd *cobra.Command, err error)
-	UpdateUpdateNodeCommand(caniCmd *cobra.Command) error
-	NewExportCommand() (cmd *cobra.Command, err error)
-	NewImportCommand() (cmd *cobra.Command, err error)
+	NewProviderCmd(caniCmd *cobra.Command) (providerCmd *cobra.Command, err error)
+	NewSessionInitCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
+	NewAddCabinetCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
+	NewUpdateCabinetCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
+	NewListCabinetCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
+	NewAddBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
+	NewUpdateBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
+	NewListBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
+	NewAddNodeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
+	NewUpdateNodeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
+	NewListNodeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
+	NewExportCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
+	NewImportCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
 }

@@ -23,20 +23,32 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package inventory
+package utils
 
-import (
-	"os"
+import "github.com/spf13/cobra"
 
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
-)
+func CloneCommand(cmd *cobra.Command) (newCmd *cobra.Command) {
+	if cmd == nil {
+		return nil
+	}
 
-var (
-	tl     *os.File
-	logger zerolog.Logger
-)
+	// copy certain fields, omitting some currently not in use by cani
+	newCmd = &cobra.Command{
+		Use:       cmd.Use,
+		Short:     cmd.Short,
+		Long:      cmd.Long,
+		RunE:      cmd.RunE,
+		PreRunE:   cmd.PreRunE,
+		ValidArgs: cmd.ValidArgs,
+	}
 
-func init() {
-	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/internal/inventory.init")
+	// copy flags to the new command
+	newCmd.Flags().AddFlagSet(cmd.Flags())
+
+	// copy any subcommands recursively to the new command
+	for _, subCmd := range cmd.Commands() {
+		newCmd.AddCommand(CloneCommand(subCmd))
+	}
+
+	return newCmd
 }

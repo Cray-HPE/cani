@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -69,34 +69,6 @@ func validHardware(cmd *cobra.Command, args []string) (err error) {
 		}
 		if !matchFound {
 			return errors.New("Invalid hardware type: " + arg)
-		}
-	}
-
-	err = validFlagCombos(cmd, args)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// validFlagCombos has additional flag logic to account for overiding required flags with the --auto flag
-func validFlagCombos(cmd *cobra.Command, args []string) error {
-	cabinetSet := cmd.Flags().Changed("cabinet")
-	vlanIdSet := cmd.Flags().Changed("vlan-id")
-	autoSet := cmd.Flags().Changed("auto")
-	// if auto is set, the values are recommended and the required flags are bypassed
-	if autoSet {
-		return nil
-	} else {
-		if !cabinetSet && !vlanIdSet {
-			return errors.New("required flag(s) \"cabinet\", \"vlan-id\" not set")
-		}
-		if cabinetSet && !vlanIdSet {
-			return errors.New("required flag(s) \"vlan-id\" not set")
-		}
-		if !cabinetSet && vlanIdSet {
-			return errors.New("required flag(s) \"cabinet\" not set")
 		}
 	}
 

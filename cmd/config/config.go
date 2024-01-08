@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -35,6 +35,10 @@ import (
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v3"
 )
+
+func Init() {
+	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/cmd/config.init")
+}
 
 // Config is the top-level config struct that is written/read to/from a file
 type Config struct {
@@ -145,16 +149,34 @@ func WriteConfig(path string, cfg *Config) error {
 	return nil
 }
 
-// AvailableDomains returns a slice of available domains read from the config
-func (c *Config) AvailableDomains() (map[string]*domain.Domain, error) {
-	domains := make(map[string]*domain.Domain, 0)
-
+func (c *Config) ActiveProvider() (activeDomain *domain.Domain, err error) {
+	// Find an active session
+	activeDomains := []*domain.Domain{}
+	activeProviders := []string{}
 	for p, d := range c.Session.Domains {
-		log.Info().Msgf("Found an available domain: %+v", p)
-		_, exists := domains[p]
-		if !exists {
-			domains[p] = d
+		if d.Active {
+			log.Debug().Msgf("Provider '%s' is ACTIVE", p)
+			activeDomains = append(activeDomains, d)
+			activeProviders = append(activeProviders, p)
+		} else {
+			log.Debug().Msgf("Provider '%s' is inactive", p)
 		}
 	}
-	return domains, nil
+
+	// Check that only one session is active
+	if len(activeProviders) > 1 {
+		for _, p := range activeProviders {
+			err := fmt.Errorf("currently active: %v", p)
+			log.Error().Msgf("%v", err)
+		}
+
+		return nil, fmt.Errorf("only one session may be active at a time")
+	}
+	if len(activeDomains) == 0 {
+		log.Info().Msgf("No active domains")
+		return nil, nil
+	}
+	activeDomain = activeDomains[0]
+
+	return activeDomain, nil
 }

@@ -1,18 +1,18 @@
 Export assets from the inventory.
 
 Usage:
-  cani alpha export [flags]
+  cani alpha export PROVIDER [flags]
+  cani alpha export [command]
+
+Available Commands:
+  csm         Export assets from the inventory.
 
 Flags:
-  -a, --all                 List all components. This overrides the --type option
-      --format string       Format option: [csv, sls-json] (default "csv")
-      --headers string      Comma separated list of fields to get (default "Type,Vlan,Role,SubRole,Status,Nid,Alias,Name,ID,Location")
-  -h, --help                help for export
-      --ignore-validation   Skip validating the sls data. This only applies to the sls-json format.
-  -L, --list-fields         List details about the fields in the CSV
-  -t, --type string         Comma separated list of the types of components to output (default "Node,Cabinet")
+  -h, --help   help for export
 
 Global Flags:
       --config string   Path to the configuration file
   -D, --debug           additional debug output
   -v, --verbose         additional verbose output
+
+Use "cani alpha export [command] --help" for more information about a command.

@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -31,13 +31,11 @@ import (
 	"os"
 
 	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
 // validHardware checks that the hardware type is valid by comparing it against the list of hardware types
 func validHardware(cmd *cobra.Command, args []string) (err error) {
-	log.Debug().Msgf("Validating hardware %+v", root.D)
 	if cmd.Flags().Changed("list-supported-types") {
 		cmd.SetOut(os.Stdout)
 		for _, hw := range root.BladeTypes {

@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -28,6 +28,8 @@ package taxonomy
 import (
 	"path/filepath"
 	"sort"
+
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -50,6 +52,7 @@ var (
 	SupportedProviders = []string{CSM}
 )
 
-func init() {
+func Init() {
+	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/cmd/taxonomy.init")
 	sort.Strings(SupportedProviders)
 }
