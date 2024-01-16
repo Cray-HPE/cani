@@ -13,6 +13,7 @@ Flags:
       --blade int              Blade (default 1)
       --cabinet int            Parent cabinet (default 1001)
       --chassis int            Parent chassis (default 7)
+  -g, --geoloc                 Require geolocation (LocationPaths, Ordinals, Parents, Children)
   -h, --help                   help for blade
   -L, --list-supported-types   List supported hardware types.
 

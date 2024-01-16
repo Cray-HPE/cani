@@ -23,53 +23,51 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package blade
+package inventory
 
 import (
-	"errors"
 	"fmt"
-	"os"
 
-	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/spf13/cobra"
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 )
 
-// validHardware checks that the hardware type is valid by comparing it against the list of hardware types
-func validHardware(cmd *cobra.Command, args []string) (err error) {
-	if cmd.Flags().Changed("list-supported-types") {
-		cmd.SetOut(os.Stdout)
-		for _, hw := range root.BladeTypes {
-			// print additional provider defaults
-			if root.Verbose {
-				cmd.Printf("%s\n", hw.Slug)
-			} else {
-				cmd.Printf("%s\n", hw.Slug)
+func GenerateDefaultHardwareBuildOutNoGeoloc(l *hardwaretypes.Library, opts GenerateHardwareBuildOutOpts) (results []HardwareBuildOut, err error) {
+
+	queue := []HardwareBuildOut{
+		{
+			ID:             uuid.New(),
+			DeviceTypeSlug: opts.DeviceTypeSlug,
+		},
+	}
+
+	for len(queue) != 0 {
+		current := queue[0]
+		queue = queue[1:]
+
+		log.Trace().Msgf("Visiting: %s", current.DeviceTypeSlug)
+		currentDeviceType, ok := l.DeviceTypes[current.DeviceTypeSlug]
+		if !ok {
+			return nil, fmt.Errorf("device type (%v) does not exist", current.DeviceTypeSlug)
+		}
+
+		// Retrieve the hardware type at this point in time, so we only lookup in the map once
+		current.DeviceType = currentDeviceType
+
+		for _, deviceBay := range currentDeviceType.DeviceBays {
+			log.Trace().Msgf("  Device bay: %s", deviceBay.Name)
+			if deviceBay.Default != nil {
+				log.Trace().Msgf("    Default: %s", deviceBay.Default.Slug)
+
+				queue = append(queue, HardwareBuildOut{
+					ID: uuid.New(),
+				})
 			}
 		}
-		os.Exit(0)
+
+		results = append(results, current)
 	}
 
-	if len(args) == 0 {
-		bladeTypes := []string{}
-		for _, hw := range root.BladeTypes {
-			bladeTypes = append(bladeTypes, hw.Slug)
-		}
-		return fmt.Errorf("No hardware type provided: Choose from: %s", bladeTypes)
-	}
-
-	// Check that each arg is a valid blade type
-	for _, arg := range args {
-		matchFound := false
-		for _, device := range root.BladeTypes {
-			if arg == device.Slug {
-				matchFound = true
-				break
-			}
-		}
-		if !matchFound {
-			return errors.New("Invalid hardware type: " + arg)
-		}
-	}
-
-	return nil
+	return results, nil
 }

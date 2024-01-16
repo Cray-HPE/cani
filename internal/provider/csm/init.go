@@ -154,6 +154,7 @@ func NewSessionInitCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err erro
 
 func NewAddCabinetCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
 	cmd = utils.CloneCommand(caniCmd)
+	cmd.Flags().Set("geoloc", "true")
 	cmd.Flags().Int("cabinet", 1001, "Cabinet number.")
 	cmd.Flags().Int("vlan-id", -1, "Vlan ID for the cabinet.")
 	cmd.MarkFlagsRequiredTogether("cabinet", "vlan-id")
@@ -216,6 +217,7 @@ func NewListCabinetCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err erro
 func NewAddNodeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
 	// cmd represents for cani alpha add node
 	cmd = utils.CloneCommand(caniCmd)
+	cmd.Flags().Set("geoloc", "true")
 	cmd.Flags().StringVar(&role, "role", "", "Role of the node")
 	cmd.Flags().StringVar(&subrole, "subrole", "", "Subrole of the node")
 	cmd.Flags().IntVar(&nid, "nid", 0, "NID of the node")
@@ -263,8 +265,70 @@ func NewImportCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
 
 func NewAddBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
 	cmd = utils.CloneCommand(caniCmd)
+	cmd.Flags().Set("geoloc", "true")
+	// make a wrapper script if PreRunE is already set
+	if caniCmd.PreRunE != nil {
+		fn := func(c *cobra.Command, a []string) error {
+			err = caniCmd.PreRunE(c, a)
+			if err != nil {
+				return err
+			}
+
+			err = validAddBladeFlags(c, a)
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+
+		// assign the wrapper to the PreRunE field
+		cmd.PreRunE = fn
+	}
 	cmd.MarkFlagsMutuallyExclusive("auto")
 	return cmd, nil
+}
+
+// validCAddCabinetFlags has additional flag logic to account for overiding required flags with the --auto flag
+func validAddBladeFlags(cmd *cobra.Command, args []string) error {
+	cabinetSet := cmd.Flags().Changed("cabinet")
+	chassisSet := cmd.Flags().Changed("chassis")
+	bladeSet := cmd.Flags().Changed("blade")
+	autoSet := cmd.Flags().Changed("auto")
+	// if auto is set, the values are recommended and the required flags are bypassed
+	if autoSet {
+		return nil
+	} else {
+		// No flags set
+		if !cabinetSet && !chassisSet && !bladeSet {
+			return errors.New("required flag(s) \"blade\", \"cabinet\", \"chassis\" not set")
+		}
+		// permutations with cabinet set
+		if cabinetSet && !chassisSet && !bladeSet {
+			return errors.New("required flag(s) \"blade\", \"chassis\" not set")
+		}
+		if cabinetSet && chassisSet && !bladeSet {
+			return errors.New("required flag(s) \"blade\", not set")
+		}
+		// permutations with chassis set
+		if !cabinetSet && chassisSet && !bladeSet {
+			return errors.New("required flag(s) \"blade\", \"cabinet\" not set")
+		}
+		if !cabinetSet && chassisSet && bladeSet {
+			return errors.New("required flag(s) \"cabinet\" not set")
+		}
+		// permutations with blade set
+		if !cabinetSet && !chassisSet && bladeSet {
+			return errors.New("required flag(s) \"cabinet\", \"chassis\" not set")
+		}
+		if cabinetSet && !chassisSet && bladeSet {
+			return errors.New("required flag(s) \"chassis\" not set")
+		}
+		if !cabinetSet && chassisSet && bladeSet {
+			return errors.New("required flag(s) \"cabinet\" not set")
+		}
+	}
+
+	return nil
 }
 
 func NewUpdateBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {

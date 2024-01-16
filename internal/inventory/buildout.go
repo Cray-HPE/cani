@@ -58,6 +58,13 @@ func GenerateDefaultHardwareBuildOut(l *hardwaretypes.Library, deviceTypeSlug st
 	})
 }
 
+func GenerateDefaultHardwareBuildOutNoLoc(l *hardwaretypes.Library, deviceTypeSlug string, parentHardware Hardware) (results []HardwareBuildOut, err error) {
+	return GenerateHardwareBuildOut(l, GenerateHardwareBuildOutOpts{
+		DeviceTypeSlug: deviceTypeSlug,
+		ParentHardware: parentHardware,
+	})
+}
+
 type GenerateHardwareBuildOutOpts struct {
 	DeviceTypeSlug string
 	DeviceOrdinal  int

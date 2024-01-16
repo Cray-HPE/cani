@@ -29,7 +29,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Cray-HPE/cani/cmd/taxonomy"
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
@@ -39,7 +38,35 @@ import (
 )
 
 // AddCabinet adds a cabinet to the inventory
-func (d *Domain) AddCabinet(cmd *cobra.Command, args []string, recommendations provider.HardwareRecommendations) (AddHardwareResult, error) {
+func (d *Domain) AddCabinet(cmd *cobra.Command, args []string, recommendations provider.HardwareRecommendations) (result AddHardwareResult, err error) {
+	// args and flags
+	geoloc := cmd.Flags().Changed("geoloc")
+
+	// Verify the provided device type slug is a cabinet
+	deviceTypeSlug := args[0]
+	deviceType, err := d.hardwareTypeLibrary.GetDeviceType(deviceTypeSlug)
+	if err != nil {
+		return AddHardwareResult{}, err
+	}
+	if deviceType.HardwareType != hardwaretypes.Cabinet {
+		return AddHardwareResult{}, fmt.Errorf("provided device hardware type (%s) is not a %s", deviceTypeSlug, hardwaretypes.Cabinet)
+	}
+
+	// add the blade, with or without geolocation information
+	if geoloc {
+		result, err = d.addCabinetWithGeoLoc(cmd, args, recommendations)
+	} else {
+		result, err = d.addCabinetNoGeoLoc(cmd, args, recommendations)
+	}
+	if err != nil {
+		return result, err
+	}
+
+	return result, d.datastore.Flush()
+}
+
+// addCabinetWithGeoLoc adds a cabinet to the inventory
+func (d *Domain) addCabinetWithGeoLoc(cmd *cobra.Command, args []string, recommendations provider.HardwareRecommendations) (AddHardwareResult, error) {
 	// Validate provided cabinet exists
 	// Craft the path to the cabinet
 	cabinetLocationPath := inventory.LocationPath{
@@ -119,14 +146,12 @@ func (d *Domain) AddCabinet(cmd *cobra.Command, args []string, recommendations p
 
 		result.AddedHardware = append(result.AddedHardware, hlp)
 
-		if d.Provider == taxonomy.CSM {
-			hardwareLocation, err := d.datastore.GetLocation(hardware)
-			if err != nil {
-				panic(err)
-			}
-			hlp.Location = hardwareLocation
-			log.Debug().Str("path", hardwareLocation.String()).Msg("Datastore")
+		hardwareLocation, err := d.datastore.GetLocation(hardware)
+		if err != nil {
+			panic(err)
 		}
+		hlp.Location = hardwareLocation
+		log.Debug().Str("path", hardwareLocation.String()).Msg("Datastore")
 	}
 
 	// Validate the current state of CANI's inventory data against the provider plugin

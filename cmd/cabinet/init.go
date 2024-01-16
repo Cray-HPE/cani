@@ -54,6 +54,7 @@ func Init() {
 	AddCabinetCmd.Flags().BoolVar(&auto, "auto", false, "Automatically recommend and assign required flags.")
 	AddCabinetCmd.MarkFlagsMutuallyExclusive("auto")
 	AddCabinetCmd.Flags().BoolVarP(&accept, "accept", "y", false, "Automatically accept recommended values.")
+	AddCabinetCmd.Flags().BoolP("geoloc", "g", false, "Require geolocation (LocationPaths, Ordinals, Parents, Children)")
 
 	// Common 'list cabinet' flags and then merge with provider-specified command
 	ListCabinetCmd.Flags().StringVarP(&format, "format", "f", "pretty", "Format out output")

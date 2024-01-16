@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -36,7 +36,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Cray-HPE/cani/internal/util/uuidutil"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -258,42 +257,6 @@ func (ds *DatastoreJSON) Validate() (map[uuid.UUID]ValidateResult, error) {
 	//
 	// Verify all complete location paths are unique.
 	//
-
-	// Build up a lookup map of location paths to hardware UUIDs
-	foundLocationPaths := map[string][]uuid.UUID{}
-	for _, hardware := range ds.inventory.Hardware {
-		if len(hardware.LocationPath) == 0 {
-			continue
-		}
-
-		if hardware.LocationPath[0].HardwareType != hardwaretypes.System {
-			// Skip any piece of hardware that does not begin with System type, as it is not complete
-			continue
-		}
-
-		key := hardware.LocationPath.String()
-		foundLocationPaths[key] = append(foundLocationPaths[key], hardware.ID)
-	}
-
-	// Verify all location paths have only one Hardware object present
-	for _, hardwareIDs := range foundLocationPaths {
-		if len(hardwareIDs) == 1 {
-			continue
-		}
-
-		for _, hardwareID := range hardwareIDs {
-			if _, exists := validationResults[hardwareID]; !exists {
-				validationResults[hardwareID] = ValidateResult{Hardware: ds.inventory.Hardware[hardwareID]}
-			}
-
-			// Add the validation error and push it back into the map
-			validationResult := validationResults[hardwareID]
-			validationResult.Errors = append(validationResult.Errors,
-				fmt.Sprintf("Location path not unique shared by: %s", uuidutil.Join(hardwareIDs, ", ", hardwareID)),
-			)
-			validationResults[hardwareID] = validationResult
-		}
-	}
 
 	if len(validationResults) > 0 {
 		return validationResults, ErrDatastoreValidationFailure
