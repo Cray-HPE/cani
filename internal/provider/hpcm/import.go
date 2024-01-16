@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -26,46 +26,26 @@
 package hpcm
 
 import (
-	"errors"
-	"fmt"
-
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
 func (hpcm *Hpcm) ImportInit(cmd *cobra.Command, args []string, datastore inventory.Datastore) error {
-	// Clone the datastore during import
-	tempDatastore, err := datastore.Clone()
-	if err != nil {
-		return errors.Join(fmt.Errorf("failed to clone datastore"), err)
-	}
-
-	// Get the parent system
-	sys, err := datastore.GetSystemZero()
+	// copy the datastore and add set provider metadata
+	ds, err := setupTempDatastore(datastore)
 	if err != nil {
 		return err
 	}
 
-	// Get the provider name
-	p, err := datastore.InventoryProvider()
+	// translate external inventory data to cani hardware entries
+	err = hpcm.Translate(cmd, args, ds)
 	if err != nil {
 		return err
 	}
 
-	// Set top-level meta to the "system"
-	sysMeta := inventory.ProviderMetadataRaw{}
-	sys.ProviderMetadata = make(map[inventory.Provider]inventory.ProviderMetadataRaw)
-	sys.ProviderMetadata[p] = sysMeta
-
-	// Update the datastore
-	err = tempDatastore.Update(&sys)
-	if err != nil {
-		return err
-	}
-
-	// merge in changes
-	err = datastore.Merge(tempDatastore)
+	// merge the temp datastore with the existing one
+	err = datastore.Merge(ds)
 	if err != nil {
 		return err
 	}
@@ -74,6 +54,6 @@ func (hpcm *Hpcm) ImportInit(cmd *cobra.Command, args []string, datastore invent
 }
 
 func (hpcm *Hpcm) Import(cmd *cobra.Command, args []string, datastore inventory.Datastore) error {
-	log.Warn().Msgf("not yet implemented")
+	log.Warn().Msgf("Import not yet implemented")
 	return nil
 }

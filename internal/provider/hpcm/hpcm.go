@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -26,9 +26,11 @@
 package hpcm
 
 import (
-	"os"
+	"fmt"
 
+	"github.com/Cray-HPE/cani/cmd/taxonomy"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+	hpcm_client "github.com/Cray-HPE/cani/pkg/hpcm-client"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -36,29 +38,17 @@ import (
 func New(cmd *cobra.Command, args []string, hardwareLibrary *hardwaretypes.Library, opts interface{}) (hpcm *Hpcm, err error) {
 	hpcm = &Hpcm{
 		hardwareLibrary: hardwareLibrary,
+		CmConfig:        HpcmConfig{},
+		client:          &hpcm_client.APIClient{},
 		Options:         &HpcmOpts{},
+		Cmdb:            Cmdb{},
 	}
 
-	if cmd.Name() == "init" {
-		useSimulation := cmd.Flags().Changed("use-simulator")
-		baseCmdbUrl, _ := cmd.Flags().GetString("cmdb-url")
-		insecure := cmd.Flags().Changed("insecure")
-		host, _ := cmd.Flags().GetString("host")
-		cacert, _ := cmd.Flags().GetString("cacert")
-		token, _ := cmd.Flags().GetString("token")
-		if useSimulation {
-			hpcm.Options.Simulation = true
-			insecure = true
-			token = os.Getenv("token")
+	if cmd.Parent().Name() == "init" {
+		err = hpcm.SetProviderOptions(cmd, args)
+		if err != nil {
+			return hpcm, err
 		}
-		if insecure {
-			hpcm.Options.InsecureSkipVerify = true
-		}
-		hpcm.Options.CmdbHost = host
-		hpcm.Options.CmdbUrlBase = baseCmdbUrl
-		hpcm.Options.CaCert = cacert
-		hpcm.Options.Token = token
-		// cmd flags here
 	} else {
 		// use the existing options if a new session is not being initialized
 		optsMarshaled, err := yaml.Marshal(opts)
@@ -75,4 +65,39 @@ func New(cmd *cobra.Command, args []string, hardwareLibrary *hardwaretypes.Libra
 	}
 
 	return hpcm, nil
+}
+
+func (hpcm *Hpcm) Slug() string {
+	return "hpcm"
+}
+
+func (hpcm *Hpcm) setupClient(cmd *cobra.Command, args []string) error {
+	// generate a new client to use with the API
+	client, ctx, err := hpcm.newClient()
+	if err != nil {
+		return err
+	}
+
+	hpcm.Options.context = ctx
+
+	// craft the url string
+	baseUrl := fmt.Sprintf("https://%s/%s", hpcm.Options.CmdbHost, hpcm.Options.CmdbUrlBase)
+
+	// create a hpcm client config using the client created earlier
+	cfg := &hpcm_client.Configuration{
+		BasePath:      baseUrl,
+		Host:          hpcm.Options.CmdbHost,
+		UserAgent:     taxonomy.App,
+		Scheme:        "https",
+		DefaultHeader: make(map[string]string),
+		HTTPClient:    client.StandardClient(),
+	}
+
+	// use the token for auth
+	cfg.AddDefaultHeader("X-Auth-Token", hpcm.Options.Token)
+
+	// create the API client
+	c := hpcm_client.NewAPIClient(cfg)
+	hpcm.client = c
+	return nil
 }

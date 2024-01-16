@@ -26,36 +26,18 @@
 package hpcm
 
 import (
-	"github.com/spf13/cobra"
+	hpcm_client "github.com/Cray-HPE/cani/pkg/hpcm-client"
 )
 
-// ValidateExternal validates the CMDB, a config, or runs a [non]interactive survey
-func (hpcm *Hpcm) ValidateExternal(cmd *cobra.Command, args []string) (err error) {
-	err = hpcm.siteSurvey(cmd, args)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// siteSurvey checks the flags passed in during 'session init' and validates
-// the appropriate data source.  It adds the validated data to the *Hpcm object
-func (hpcm *Hpcm) siteSurvey(cmd *cobra.Command, args []string) error {
-	// [non]interactively get the hpcm cluster config file if one is passed in
-	if cmd.Flags().Changed("cm-config") {
-		f, _ := cmd.Flags().GetString("cm-config")
-		cm, err := LoadCmConfig(f)
-		if err != nil {
-			return err
-		}
-		hpcm.CmConfig = cm
-		// by default, import from the CMDB if no flags were passed
-	} else {
-		err := hpcm.dumpCmdb(cmd, args)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+type Cmdb struct {
+	Controllers     []hpcm_client.Group
+	CustomGroups    []hpcm_client.Group
+	ImageGroups     []hpcm_client.Group
+	ManagementCards []hpcm_client.ManagementCard
+	NetworkGroups   []hpcm_client.Group
+	Networks        []hpcm_client.Network
+	Nics            []hpcm_client.Nic
+	NodeTemplates   []hpcm_client.NodeTemplate
+	Nodes           []hpcm_client.Node
+	SystemGroups    []hpcm_client.Group
 }

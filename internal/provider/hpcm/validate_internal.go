@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -34,6 +34,6 @@ import (
 )
 
 func (hpcm *Hpcm) ValidateInternal(cmd *cobra.Command, args []string, datastore inventory.Datastore, enableRequiredDataChecks bool) (map[uuid.UUID]provider.HardwareValidationResult, error) {
-	log.Warn().Msgf("not yet implemented")
+	log.Warn().Msgf("ValidateInternal not yet implemented")
 	return map[uuid.UUID]provider.HardwareValidationResult{}, nil
 }

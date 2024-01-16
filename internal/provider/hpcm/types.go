@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -26,15 +26,18 @@
 package hpcm
 
 import (
+	"context"
+
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	hpcm_client "github.com/Cray-HPE/cani/pkg/hpcm-client"
 )
 
 type Hpcm struct {
 	hardwareLibrary *hardwaretypes.Library
+	client          *hpcm_client.APIClient
 	Options         *HpcmOpts
-	Nodes           []hpcm_client.Node
-	MgmtCards       []hpcm_client.ManagementCard
+	CmConfig        HpcmConfig
+	Cmdb            Cmdb
 }
 
 type HpcmOpts struct {
@@ -45,4 +48,5 @@ type HpcmOpts struct {
 	Token              string
 	Insecure           bool
 	CaCert             string
+	context            context.Context
 }

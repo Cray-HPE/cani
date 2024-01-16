@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -25,69 +25,132 @@
  */
 package hpcm
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/Cray-HPE/cani/pkg/utils"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
+)
 
-func NewSessionInitCommand() (cmd *cobra.Command, err error) {
-	cmd = &cobra.Command{}
-	cmd.Short = `HPCM`
-	cmd.Long = `HPCM`
+func init() {
+	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/internal/provider/hpcm.init")
+}
 
+// NewProviderCmd returns the appropriate command to the cmd layer
+func NewProviderCmd(caniCmd *cobra.Command) (providerCmd *cobra.Command, err error) {
+	// first, choose the right command
+	switch caniCmd.Name() {
+	case "init":
+		providerCmd, err = NewSessionInitCommand(caniCmd)
+	case "cabinet":
+		switch caniCmd.Parent().Name() {
+		case "add":
+			providerCmd, err = NewAddCabinetCommand(caniCmd)
+		case "update":
+			providerCmd, err = NewUpdateCabinetCommand(caniCmd)
+		case "list":
+			providerCmd, err = NewListCabinetCommand(caniCmd)
+		}
+	case "blade":
+		switch caniCmd.Parent().Name() {
+		case "add":
+			providerCmd, err = NewAddBladeCommand(caniCmd)
+		case "update":
+			providerCmd, err = NewUpdateBladeCommand(caniCmd)
+		case "list":
+			providerCmd, err = NewListBladeCommand(caniCmd)
+		}
+	case "node":
+		// check for add/update variants
+		switch caniCmd.Parent().Name() {
+		case "add":
+			providerCmd, err = NewAddNodeCommand(caniCmd)
+		case "update":
+			providerCmd, err = NewUpdateNodeCommand(caniCmd)
+		case "list":
+			providerCmd, err = NewListNodeCommand(caniCmd)
+		}
+	case "export":
+		providerCmd, err = NewExportCommand(caniCmd)
+	case "import":
+		providerCmd, err = NewImportCommand(caniCmd)
+	default:
+		log.Info().Msgf("Command not implemented by provider: %s %s", caniCmd.Parent().Name(), caniCmd.Name())
+	}
+	if err != nil {
+		return providerCmd, err
+	}
+
+	return providerCmd, nil
+}
+
+func NewSessionInitCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
+	cmd = utils.CloneCommand(caniCmd)
+	cmd.Short = `Validate and import from the HPCM CMDB`
+	cmd.Long = `Validate and import from the HPCM CMDB`
+	cmd.Use = "hpcm"
 	// Session init flags
 	cmd.Flags().String("cmdb-url", "cmu/v1", "Base URL for the CMDB")
 	cmd.Flags().String("host", "localhost:8080", "Host or FQDN for APIs")
 	cmd.Flags().String("cacert", "", "Path to the CA certificate file")
 	cmd.Flags().String("token", "", "API token")
+	cmd.Flags().StringP("cm-config", "C", "", "Path to a HPCM config file/cluster manager file/cluster definition file")
 	return cmd, nil
 }
 
-func NewAddCabinetCommand() (cmd *cobra.Command, err error) {
-	cmd = &cobra.Command{}
-
+func NewAddCabinetCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
+	cmd = utils.CloneCommand(caniCmd)
 	return cmd, nil
 }
 
-func UpdateAddCabinetCommand(caniCmd *cobra.Command) error {
-	return nil
-}
-
-func NewAddNodeCommand() (cmd *cobra.Command, err error) {
-	// cmd represents for cani alpha add node
-	cmd = &cobra.Command{}
-
+func NewUpdateCabinetCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
+	cmd = utils.CloneCommand(caniCmd)
 	return cmd, nil
 }
 
-func NewUpdateNodeCommand() (cmd *cobra.Command, err error) {
-	// cmd represents for cani alpha update node
-	cmd = &cobra.Command{}
-
+func NewListCabinetCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
+	cmd = utils.CloneCommand(caniCmd)
 	return cmd, nil
 }
 
-func NewListNodeCommand() (cmd *cobra.Command, err error) {
-	// cmd represents for cani alpha add node
-	cmd = &cobra.Command{}
-
+func NewAddNodeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
+	cmd = utils.CloneCommand(caniCmd)
 	return cmd, nil
 }
 
-// UpdateUpdateNodeCommand
-func UpdateUpdateNodeCommand(caniCmd *cobra.Command) error {
-
-	return nil
+func NewUpdateNodeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
+	cmd = utils.CloneCommand(caniCmd)
+	return cmd, nil
 }
 
-func NewExportCommand() (cmd *cobra.Command, err error) {
-	// cmd represents cani alpha export
-	cmd = &cobra.Command{}
+// NewListNodeCommand implements the NewListNodeCommand method of the InventoryProvider interface
+func NewListNodeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
+	cmd = utils.CloneCommand(caniCmd)
+	return cmd, nil
+}
+
+func NewAddBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
+	cmd = utils.CloneCommand(caniCmd)
+	return cmd, nil
+}
+
+func NewUpdateBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
+	cmd = utils.CloneCommand(caniCmd)
+	return cmd, nil
+}
+
+func NewListBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
+	cmd = utils.CloneCommand(caniCmd)
+	return cmd, nil
+}
+
+func NewExportCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
+	cmd = utils.CloneCommand(caniCmd)
 	cmd.Flags().Bool("hpcm", false, "Export inventory to HPCM format.")
 
 	return cmd, nil
 }
 
-func NewImportCommand() (cmd *cobra.Command, err error) {
-	// cmd represents cani alpha import
-	cmd = &cobra.Command{}
-
+func NewImportCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
+	cmd = utils.CloneCommand(caniCmd)
 	return cmd, nil
 }
