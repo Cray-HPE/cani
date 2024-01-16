@@ -142,7 +142,8 @@ type DefaultHardware struct {
 }
 
 type ProviderDefaults struct {
-	CSM *ProviderDefaultsCSM `yaml:"csm"`
+	CSM  *ProviderDefaultsCSM  `yaml:"csm"`
+	Hpcm *ProviderDefaultsHpcm `yaml:"hpcm"`
 }
 
 type ProviderDefaultsCSM struct {
@@ -150,6 +151,11 @@ type ProviderDefaultsCSM struct {
 	Ordinal         int     `yaml:"Ordinal"`
 	StartingHmnVlan int     `yaml:"StartingHmnVlan"`
 	EndingHmnVlan   int     `yaml:"EndingHmnVlan"`
+}
+
+type ProviderDefaultsHpcm struct {
+	Class   *string `yaml:"Class"`
+	Ordinal int     `yaml:"Ordinal"`
 }
 
 // TODO
