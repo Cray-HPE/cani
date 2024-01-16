@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -33,21 +33,21 @@ import (
 )
 
 func (hpcm *Hpcm) BuildHardwareMetadata(hw *inventory.Hardware, cmd *cobra.Command, args []string, recommendations provider.HardwareRecommendations) error {
-	log.Warn().Msgf("not yet implemented")
+	log.Warn().Msgf("BuildHardwareMetadata not yet implemented")
 	return nil
 }
 
 func (hpcm *Hpcm) NewHardwareMetadata(hw *inventory.Hardware, cmd *cobra.Command, args []string) error {
-	log.Warn().Msgf("not yet implemented")
+	log.Warn().Msgf("NewHardwareMetadata not yet implemented")
 	return nil
 }
 
 func (hpcm *Hpcm) GetFieldMetadata() ([]provider.FieldMetadata, error) {
-	log.Warn().Msgf("not yet implemented")
+	log.Warn().Msgf("GetFieldMetadata not yet implemented")
 	return []provider.FieldMetadata{}, nil
 }
 
 func (hpcm *Hpcm) GetFields(hw *inventory.Hardware, fieldNames []string) (values []string, err error) {
-	log.Warn().Msgf("not yet implemented")
+	log.Warn().Msgf("GetFields not yet implemented")
 	return []string{}, nil
 }
