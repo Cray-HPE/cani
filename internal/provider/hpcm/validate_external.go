@@ -52,7 +52,7 @@ func (hpcm *Hpcm) siteSurvey(cmd *cobra.Command, args []string) error {
 		hpcm.CmConfig = cm
 		// by default, import from the CMDB if no flags were passed
 	} else {
-		err := hpcm.dumpCmdb(cmd, args)
+		err := hpcm.LoadCmdb(cmd, args)
 		if err != nil {
 			return err
 		}

@@ -44,3 +44,4 @@ canitest_export.csv
 # support repos
 hms-simulation-environment/
 shellspec/
+nautobot-docker-compose/

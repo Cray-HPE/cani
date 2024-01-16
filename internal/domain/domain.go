@@ -34,6 +34,8 @@ import (
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/provider/csm"
+	"github.com/Cray-HPE/cani/internal/provider/hpcm"
+	"github.com/Cray-HPE/cani/internal/provider/hpengi"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
@@ -90,6 +92,10 @@ func (d *Domain) SetupDomain(cmd *cobra.Command, args []string, configDomains ma
 	switch d.Provider {
 	case taxonomy.CSM:
 		d.datastore, err = inventory.NewDatastoreJSONCSM(d.DatastorePath, d.LogFilePath, inventory.Provider(d.Provider))
+	case taxonomy.HPCM:
+		d.datastore, err = inventory.NewDatastoreJSON(d.DatastorePath, d.LogFilePath, inventory.Provider(d.Provider))
+	case taxonomy.Hpengi:
+		d.datastore, err = inventory.NewDatastoreJSON(d.DatastorePath, d.LogFilePath, inventory.Provider(d.Provider))
 	default:
 		return fmt.Errorf("invalid provider: %s", d.Provider)
 	}
@@ -116,13 +122,18 @@ func (d *Domain) SetupDomain(cmd *cobra.Command, args []string, configDomains ma
 	switch d.Provider {
 	case taxonomy.CSM:
 		d.externalInventoryProvider, err = csm.New(cmd, args, d.hardwareTypeLibrary, d.Options)
+	case taxonomy.HPCM:
+		d.externalInventoryProvider, err = hpcm.New(cmd, args, d.hardwareTypeLibrary, d.Options)
+	case taxonomy.Hpengi:
+		d.externalInventoryProvider, err = hpengi.New(cmd, args, d.hardwareTypeLibrary, d.Options)
 	default:
 		return fmt.Errorf("unknown external inventory provider provided (%s)", d.Provider)
 	}
 
 	if err != nil {
 		return errors.Join(
-			fmt.Errorf("failed to initialize %s external inventory provider", d.Provider),
+			fmt.Errorf("failed to initialize CSM external inventory provider"),
+			fmt.Errorf("failed to initialize CSM external inventory provider"),
 			err,
 		)
 	}
@@ -166,6 +177,8 @@ type UpdatedHardwareResult struct {
 func GetProviders() []provider.InventoryProvider {
 	supportedProviders := []provider.InventoryProvider{
 		&csm.CSM{},
+		&hpcm.Hpcm{},
+		&hpengi.Hpengi{},
 	}
 	return supportedProviders
 }

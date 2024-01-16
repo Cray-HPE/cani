@@ -28,6 +28,7 @@ set -o pipefail
 
 SIM_REPO="${1:-../hms-simulation-environment}"
 SLS_DUMP="${2:-../hms-simulation-environment/configs/sls/no_hardware.json}"
+CANI_COMPOSE="${3:-./testdata/docker-compose.cani.yml}"
 
 # start the simulator with the specified SLS config
 pushd "${SIM_REPO}" || exit 1
@@ -42,3 +43,8 @@ pushd "${SIM_REPO}" || exit 1
   docker compose stop cray-meds
   docker compose stop cray-reds
 popd || exit 1
+
+# # setup additonal simulation services for other providers
+# docker compose -f "${CANI_COMPOSE}" up -d
+# # export token=$(docker exec testdata-cmdb-1 cat /opt/clmgr/etc/.cli_token) 
+# docker volume create --name cmdb-data --opt type=none --opt device=testdata/fixtures/hpcm/

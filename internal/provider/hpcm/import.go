@@ -39,9 +39,16 @@ func (hpcm *Hpcm) ImportInit(cmd *cobra.Command, args []string, datastore invent
 	}
 
 	// translate external inventory data to cani hardware entries
-	err = hpcm.Translate(cmd, args, ds)
+	translated, err := hpcm.Translate(cmd, args)
 	if err != nil {
 		return err
+	}
+
+	for _, hw := range translated {
+		err = ds.Add(hw)
+		if err != nil {
+			return err
+		}
 	}
 
 	// merge the temp datastore with the existing one

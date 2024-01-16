@@ -35,6 +35,8 @@ import (
 const (
 	App              = "cani"
 	CSM              = "csm"
+	HPCM             = "hpcm"
+	Hpengi           = "hpengi"
 	DsFile           = App + "db.json"
 	DsFileCSM        = App + "db.json"
 	LogFile          = App + "db.log"
@@ -49,7 +51,7 @@ const (
 var (
 	DsPath             = filepath.Join(CfgDir, DsFile)
 	CfgPath            = filepath.Join(CfgDir, CfgFile)
-	SupportedProviders = []string{CSM}
+	SupportedProviders = []string{CSM, Hpengi, HPCM}
 )
 
 func Init() {

@@ -6,6 +6,7 @@ Usage:
 
 Available Commands:
   csm         Import assets into the inventory.
+  hpcm        Import assets into the inventory.
 
 Flags:
   -h, --help   help for import

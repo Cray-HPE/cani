@@ -71,7 +71,7 @@ func (hpcm *Hpcm) Slug() string {
 	return "hpcm"
 }
 
-func (hpcm *Hpcm) setupClient(cmd *cobra.Command, args []string) error {
+func (hpcm *Hpcm) SetupClient(cmd *cobra.Command, args []string) error {
 	// generate a new client to use with the API
 	client, ctx, err := hpcm.newClient()
 	if err != nil {

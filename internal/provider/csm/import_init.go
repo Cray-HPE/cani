@@ -950,27 +950,25 @@ func FromXname(xnameRaw xnames.Xname) (inventory.LocationPath, error) {
 
 func (csm *CSM) identifyDeviceSlug(manufacturer, model, partNumber string) (string, error) {
 	for deviceSlug, deviceType := range csm.hardwareLibrary.DeviceTypes {
-		for _, identification := range deviceType.Identifications {
-			// log.Info().Msgf("Checking %v against [%s, %s]", identification, manufacturer, model)
+		// log.Info().Msgf("Checking %v against [%s, %s]", identification, manufacturer, model)
 
-			// Check Manufacturer
-			if identification.Manufacturer != manufacturer {
-				continue
-			}
-
-			// Check Model
-			if identification.Model != model {
-				continue
-			}
-
-			// Check Part Number
-			if identification.PartNumber != nil && *identification.PartNumber != partNumber {
-				continue
-			}
-
-			// Found a match!
-			return deviceSlug, nil
+		// Check Manufacturer
+		if deviceType.Manufacturer != manufacturer {
+			continue
 		}
+
+		// Check Model
+		if deviceType.Model != model {
+			continue
+		}
+
+		// Check Part Number
+		if deviceType.PartNumber != nil && *deviceType.PartNumber != partNumber {
+			continue
+		}
+
+		// Found a match!
+		return deviceSlug, nil
 	}
 
 	return "", fmt.Errorf("unable to find corrensponding device slug for manufacturer (%s) and model (%s)", manufacturer, model)

@@ -33,6 +33,7 @@ import (
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/Cray-HPE/cani/pkg/pointers"
 	"github.com/google/uuid"
+	netbox "github.com/netbox-community/go-netbox/v3"
 )
 
 // Inventory is the top level object that represents the entire inventory
@@ -116,6 +117,7 @@ type Hardware struct {
 	Children         []uuid.UUID                      `json:"Children,omitempty" yaml:"Children,omitempty"`         // derived from Parent
 	LocationPath     LocationPath                     `json:"LocationPath,omitempty" yaml:"LocationPath,omitempty"` // derived from Parent
 	LocationOrdinal  *int                             `json:"LocationOrdinal,omitempty" yaml:"LocationOrdinal,omitempty" default:"" usage:"LocationOrdinal"`
+	Netbox           netbox.Device                    `json:"Netbox,omitempty" yaml:"Netbox,omitempty"` // derived from LocationPath
 }
 
 func (hardware *Hardware) SetProviderMetadata(provider Provider, metadata map[string]interface{}) {

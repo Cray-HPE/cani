@@ -59,7 +59,7 @@ func (hpcm *Hpcm) SetProviderOptions(cmd *cobra.Command, args []string) error {
 	hpcm.Options.CaCert = cacert
 	hpcm.Options.Token = token
 
-	err := hpcm.setupClient(cmd, args)
+	err := hpcm.SetupClient(cmd, args)
 	if err != nil {
 		return err
 	}

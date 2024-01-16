@@ -73,7 +73,6 @@ func unmarshalMultiple(in []byte, out *[]DeviceType) error {
 
 			break
 		}
-
 		*out = append(*out, deviceType)
 		documentNumber++
 	}

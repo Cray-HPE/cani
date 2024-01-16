@@ -29,6 +29,8 @@ import (
 	"fmt"
 
 	"github.com/Cray-HPE/cani/internal/provider/csm"
+	"github.com/Cray-HPE/cani/internal/provider/hpcm"
+	"github.com/Cray-HPE/cani/internal/provider/hpengi"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -43,6 +45,10 @@ func NewProviderCmd(caniCmd *cobra.Command, p string) (providerCmd *cobra.Comman
 	switch p {
 	case "csm":
 		providerCmd, err = csm.NewProviderCmd(caniCmd)
+	case "hpcm":
+		providerCmd, err = hpcm.NewProviderCmd(caniCmd)
+	case "hpengi":
+		providerCmd, err = hpengi.NewProviderCmd(caniCmd)
 	default:
 		err = fmt.Errorf("no command matched for provider %s", p)
 	}

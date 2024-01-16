@@ -29,6 +29,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
+
+	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+	"github.com/netbox-community/go-netbox/v3"
 )
 
 type Paddle struct {
@@ -107,4 +111,160 @@ func LoadPaddle(path string) (ccj *Paddle, err error) {
 	}
 
 	return ccj, nil
+}
+
+// // ElevationToLocationPath converts a CANU elevation to a CANI LocationPath
+// func (top PaddleTopologyElem) ElevationToLocationPath(b []byte) error {
+// 	// HPCM        --->   CANI
+// 	// ------------------------------
+// 	// Rack        --->   Cabinet
+// 	// Chassis     --->   Chassis
+// 	// Tray        --->   NodeBlade/SwitchBlade
+// 	// Controller  --->   NodeController
+// 	// Node        --->   Node
+// 	var system, cabinet, chassis, blade, controller, node inventory.LocationToken
+// 	// rack and chassis map to cabinet and chassis
+// 	system = inventory.LocationToken{HardwareType: hardwaretypes.System, Ordinal: 0}
+// 	cabinet = inventory.LocationToken{HardwareType: hardwaretypes.Cabinet, Ordinal: int(hpcmLoc.Rack)}
+// 	chassis = inventory.LocationToken{HardwareType: hardwaretypes.Chassis, Ordinal: int(hpcmLoc.Chassis)}
+
+// 	// HPCM's Tray could be one of NodeBlade, ManagementSwitchEnclosure, or HighSpeedSwitchEnclosure
+// 	switch top.Type {
+// 	case hardwaretypes.System:
+// 		log.Debug().Msgf("LocationPath for %+v is currently limited to a single system", hardwaretypes.System)
+// 		caniLoc = inventory.LocationPath{system}
+// 	case hardwaretypes.Cabinet:
+// 		caniLoc = inventory.LocationPath{system, cabinet}
+// 	case hardwaretypes.Chassis:
+// 		caniLoc = inventory.LocationPath{system, cabinet, chassis}
+// 	case hardwaretypes.NodeBlade:
+// 		blade = inventory.LocationToken{HardwareType: hardwaretypes.NodeBlade, Ordinal: int(hpcmLoc.Tray)}
+// 		caniLoc = inventory.LocationPath{system, cabinet, chassis, blade}
+// 	case hardwaretypes.ManagementSwitchEnclosure:
+// 		blade = inventory.LocationToken{HardwareType: hardwaretypes.ManagementSwitchEnclosure, Ordinal: int(hpcmLoc.Tray)}
+// 		caniLoc = inventory.LocationPath{system, cabinet, chassis, blade}
+// 	case hardwaretypes.HighSpeedSwitchEnclosure:
+// 		blade = inventory.LocationToken{HardwareType: hardwaretypes.HighSpeedSwitchEnclosure, Ordinal: int(hpcmLoc.Tray)}
+// 		caniLoc = inventory.LocationPath{system, cabinet, chassis, blade}
+// 	case hardwaretypes.Node:
+// 		blade = inventory.LocationToken{HardwareType: hardwaretypes.NodeBlade, Ordinal: int(hpcmLoc.Tray)}
+// 		controller = inventory.LocationToken{HardwareType: hardwaretypes.NodeController, Ordinal: int(hpcmLoc.Controller)}
+// 		node = inventory.LocationToken{HardwareType: hardwaretypes.Node, Ordinal: int(hpcmLoc.Node)}
+// 		caniLoc = inventory.LocationPath{system, cabinet, chassis, blade, controller, node}
+// 	default:
+// 		// assume a node
+// 		blade = inventory.LocationToken{HardwareType: hardwaretypes.NodeBlade, Ordinal: int(hpcmLoc.Tray)}
+// 		controller = inventory.LocationToken{HardwareType: hardwaretypes.NodeController, Ordinal: int(hpcmLoc.Controller)}
+// 		node = inventory.LocationToken{HardwareType: hardwaretypes.Node, Ordinal: int(hpcmLoc.Node)}
+// 		caniLoc = inventory.LocationPath{system, cabinet, chassis, blade, controller, node}
+// 		// log.Warn().Msgf("Unable to get LocationPath from hardware type: %v", caniHwType)
+// 	}
+
+// 	log.Debug().Msgf("Set LocationPath via HPCM geo location values: %+v -> %v", hpcmLoc, caniLoc)
+
+// 	return caniLoc, nil
+// 	return nil
+// }
+
+// PaddleTypeToCaniHardwareType converts a PADDLE type into a CANI hardwaretype
+func (top PaddleTopologyElem) PaddleTypeToCaniHardwareType() (t hardwaretypes.HardwareType, err error) {
+	switch *top.Type {
+	case "switch":
+		switch *top.Architecture {
+		case "spine", "river_bmc_leaf":
+			t = hardwaretypes.ManagementSwitch
+		case "slingshot_hsn_switch":
+			t = hardwaretypes.HighSpeedSwitch
+		}
+
+	case "server":
+		switch *top.Architecture {
+		case "river_ncn_node_2_port_gigabyte", "river_ncn_node_4_port_gigabyte", "mountain_compute_leaf":
+			t = hardwaretypes.NodeBlade
+		}
+
+	case "none":
+		switch *top.Architecture {
+		case "pdu":
+			t = hardwaretypes.CabinetPDU
+		case "kvm":
+			t = "FIXME hardwaretypes.CabinetKVM"
+		}
+
+	case "node":
+		t = hardwaretypes.Node
+
+	default:
+		err = fmt.Errorf("unable to map Paddle type to CANI hardwaretype: %v", *top.Type)
+	}
+	if err != nil {
+		return t, err
+	}
+
+	return t, nil
+}
+
+// func (port PaddleTopologyElemPortsElem) PaddleToNetbox() (nb map[string]interface{}, err error) {
+// 	dt := hardwaretypes.DeviceType{}
+
+// 	nb = make(map[string]interface{}, 0)
+// 	nb["name"] = fmt.Sprintf("port-%d", *port.Port)
+// 	nb["destination"] = *port.DestinationPort
+// 	nb["type"] = "1000base-t"
+// 	return nb, nil
+// }
+
+// PaddleToNetboxDeviceType converts a PADDLE type into a CANI hardwaretype
+func (top PaddleTopologyElem) PaddleToNetboxDeviceType() (dt hardwaretypes.DeviceType, err error) {
+	dt = hardwaretypes.DeviceType{}
+	if top.RackElevation != nil {
+		racku, err := strconv.Atoi(*top.RackElevation)
+		if err != nil {
+			return dt, err
+		}
+		u := float64(racku)
+		dt.UHeight = &u
+	}
+
+	for _, p := range top.Ports {
+		frontport := netbox.FrontPort{}
+		ifcfg := netbox.Interface{}
+		frontport.Name = fmt.Sprintf("port-%d", *p.DestinationPort)
+		if p.DestinationNodeId != nil {
+			// log.Info().Msgf("destid %+v", *p.DestinationNodeId)
+			frontport.Id = int32(*p.DestinationNodeId)
+		}
+		if p.DestinationPort != nil {
+
+			// log.Info().Msgf("destport %+v", *p.DestinationPort)
+		}
+		if p.DestinationSlot != nil {
+			// log.Info().Msgf("destslot %+v", *p.DestinationSlot)
+		}
+		if p.Port != nil {
+			// log.Info().Msgf("port %+v", *p.Port)
+		}
+		if p.Slot != nil {
+			// log.Info().Msgf("slot %+v", *p.Slot)
+			t := netbox.FrontPortType{}
+			l := netbox.FrontPortTypeLabel(*p.Slot)
+			t.Label = &l
+			frontport.Type = t
+		}
+		if p.Speed != nil {
+			is := netbox.NullableInt32{}
+			s := int32(*p.Speed)
+			is.Set(&s)
+			ifcfg.Speed = is
+			// log.Info().Msgf("speed %+v", *p.Speed)
+		}
+		// port.Type = "1000base-t"
+		// port.Destination = *p.DestinationPort
+		// dt.FrontPorts = append(dt.FrontPorts, frontport)
+		// dt.Interfaces = append(dt.Interfaces, ifcfg)
+	}
+
+	// log.Debug().Msgf("Set LocationPath via HPCM geo location values: %+v -> %v", top.Location, dt)
+
+	return dt, nil
 }

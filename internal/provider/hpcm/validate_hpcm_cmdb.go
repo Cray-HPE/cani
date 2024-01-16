@@ -40,10 +40,10 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// dumpCmdb GETs endpoints from the CMDB and saves the results in the *Hpcm.Cmdb
+// LoadCmdb GETs endpoints from the CMDB and saves the results in the *Hpcm.Cmdb
 // this is typically run during ValidateExternal so known-good data is added
 // TODO: add further validation checks
-func (hpcm *Hpcm) dumpCmdb(cmd *cobra.Command, args []string) (err error) {
+func (hpcm *Hpcm) LoadCmdb(cmd *cobra.Command, args []string) (err error) {
 	// alertOpts := &hpcm_client.AlertOperationsApiGetAllOpts{}
 	// alerts, _, err := hpcm.client.AlertOperationsApi.GetAll(hpcm.Options.context, alertOpts)
 	// if err != nil {

@@ -6,6 +6,7 @@ Usage:
 
 Available Commands:
   csm         Export assets from the inventory.
+  hpcm        Export assets from the inventory.
 
 Flags:
   -h, --help   help for export

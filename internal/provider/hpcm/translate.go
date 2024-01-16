@@ -39,87 +39,79 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func (hpcm *Hpcm) Translate(cmd *cobra.Command, args []string, ds inventory.Datastore) (err error) {
-	var translated = map[uuid.UUID]*inventory.Hardware{}
+func (hpcm *Hpcm) Translate(cmd *cobra.Command, args []string) (translated map[uuid.UUID]*inventory.Hardware, err error) {
+	// translated = make(map[uuid.UUID]*inventory.Hardware, 0)
 
 	// check if input is coming from a cm config file
 	if cmd.Flags().Changed("cm-config") {
-		translated, err = hpcm.TranslateCmConfig()
+		translated, err = hpcm.CmConfig.TranslateCmConfig()
 		if err != nil {
-			return err
+			return translated, err
 		}
 		// by default, translate information from the cmdb
 	} else {
 		translated, err = hpcm.TranslateCmdb()
 		if err != nil {
-			return err
+			return translated, err
 		}
 	}
 
-	// add the translated hardware to the datastore
-	for _, hw := range translated {
-		err = ds.Add(hw)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return translated, nil
 }
 
 // extractProviderMetadata is a catchall function for HPCM data that doesn't fit elsewhere
 // it is all meant to be mapped to the provider properties
 func extractProviderMetadata(node hpcm_client.Node) (md map[string]interface{}, err error) {
 	md = make(map[string]interface{}, 0)
-	md["AdministrativeStatus"] = node.AdministrativeStatus
-	md["Aliases"] = node.Aliases
-	md["Attributes"] = node.Attributes
-	md["BiosBootMode"] = node.BiosBootMode
-	md["Controller"] = make(map[string]interface{}, 0)
+	md["administrativeStatus"] = node.AdministrativeStatus
+	md["aliases"] = node.Aliases
+	md["attributes"] = node.Attributes
+	md["biosBootMode"] = node.BiosBootMode
+	md["controller"] = make(map[string]interface{}, 0)
 	// password should come from elsewhere
-	cntrlr := md["Controller"].(map[string]interface{})
+	cntrlr := md["controller"].(map[string]interface{})
 	cntrlr["channel"] = node.Controller.Channel
 	cntrlr["ipAddress"] = node.Controller.IpAddress
 	cntrlr["macAddress"] = node.Controller.MacAddress
 	cntrlr["protocol"] = node.Controller.Protocol
 	cntrlr["type"] = node.Controller.Type_
 	cntrlr["username"] = node.Controller.Username
-	md["CreationTime"] = node.CreationTime
-	md["DeletionTime"] = node.DeletionTime
-	md["Etag"] = node.Etag
-	md["Image"] = node.Image
-	md["ImagePending"] = node.ImagePending
-	md["ImageTransport"] = node.ImageTransport
-	md["InternalName"] = node.InternalName
-	md["Inventory"] = make(map[string]interface{}, 0)
-	mdInv := md["Inventory"].(map[string]interface{})
+	md["creationTime"] = node.CreationTime
+	md["deletionTime"] = node.DeletionTime
+	md["etag"] = node.Etag
+	md["image"] = node.Image
+	md["imagePending"] = node.ImagePending
+	md["imageTransport"] = node.ImageTransport
+	md["internalName"] = node.InternalName
+	md["inventory"] = make(map[string]interface{}, 0)
+	mdInv := md["inventory"].(map[string]interface{})
 	if node.Inventory != nil {
 		inv := *node.Inventory
 		for k, v := range inv.(map[string]interface{}) {
 			mdInv[k] = v
 		}
 	}
-	md["IscsiRoot"] = node.IscsiRoot
-	md["Links"] = node.Links
-	md["Managed"] = node.Managed
-	md["Management"] = make(map[string]interface{}, 0)
+	md["iscsiRoot"] = node.IscsiRoot
+	md["links"] = node.Links
+	md["managed"] = node.Managed
+	md["management"] = make(map[string]interface{}, 0)
 	// password should come from elsewhere
-	mgmt := md["Management"].(map[string]interface{})
+	mgmt := md["management"].(map[string]interface{})
 	mgmt["cardIpAddress"] = node.Management.CardIpAddress
 	mgmt["cardMacAddress"] = node.Management.CardMacAddress
 	mgmt["cardType"] = node.Management.CardType
 	mgmt["channel"] = node.Management.Channel
 	mgmt["protocol"] = node.Management.Protocol
 	mgmt["username"] = node.Management.Username
-	md["ModificationTime"] = node.ModificationTime
-	md["Monitoring"] = node.Monitoring
-	md["Network"] = node.Network
-	md["NodeController"] = node.NodeController
-	md["AdministrativeStatus"] = node.OperationalStatus
-	md["Platform"] = node.Platform
-	md["RootFs"] = node.RootFs
-	md["RootSlot"] = node.RootSlot
-	md["TemplateName"] = node.TemplateName
+	md["modificationTime"] = node.ModificationTime
+	md["monitoring"] = node.Monitoring
+	md["network"] = node.Network
+	md["nodeController"] = node.NodeController
+	md["administrativeStatus"] = node.OperationalStatus
+	md["platform"] = node.Platform
+	md["rootFs"] = node.RootFs
+	md["rootSlot"] = node.RootSlot
+	md["templateName"] = node.TemplateName
 
 	return md, nil
 }
@@ -127,8 +119,8 @@ func extractProviderMetadata(node hpcm_client.Node) (md map[string]interface{}, 
 // getVendor messily gets the vendor from an interface
 func getVendor(node hpcm_client.Node) (vendor string) {
 	md := make(map[string]interface{}, 0)
-	md["Inventory"] = make(map[string]interface{}, 0)
-	mdInv := md["Inventory"].(map[string]interface{})
+	md["inventory"] = make(map[string]interface{}, 0)
+	mdInv := md["inventory"].(map[string]interface{})
 	if node.Inventory != nil {
 		inv := *node.Inventory
 		for k, v := range inv.(map[string]interface{}) {
@@ -149,8 +141,8 @@ func getVendor(node hpcm_client.Node) (vendor string) {
 // getModel messily gets the model from an interface
 func getModel(node hpcm_client.Node) (vendor string) {
 	md := make(map[string]interface{}, 0)
-	md["Inventory"] = make(map[string]interface{}, 0)
-	mdInv := md["Inventory"].(map[string]interface{})
+	md["inventory"] = make(map[string]interface{}, 0)
+	mdInv := md["inventory"].(map[string]interface{})
 	if node.Inventory != nil {
 		inv := *node.Inventory
 		for k, v := range inv.(map[string]interface{}) {
@@ -206,6 +198,33 @@ func setupTempDatastore(datastore inventory.Datastore) (temp inventory.Datastore
 	return temp, nil
 }
 
+func hpcmLocToCaniType(cmloc hpcm_client.LocationSettings) (string, error) {
+	if &cmloc.Rack == nil {
+		log.Info().Msgf("%+v", "rack nil")
+	}
+	if &cmloc.Chassis == nil {
+		log.Info().Msgf("%+v", "chassis nil")
+	}
+	if &cmloc.Tray == nil {
+		log.Info().Msgf("%+v", "tray nil")
+	}
+	if &cmloc.Controller == nil {
+		log.Info().Msgf("%+v", "controller nil")
+	}
+	if &cmloc.Node == nil {
+		log.Info().Msgf("%+v", "node nil")
+	}
+	system := inventory.LocationToken{HardwareType: hardwaretypes.System, Ordinal: 0}
+	cabinet := inventory.LocationToken{HardwareType: hardwaretypes.Cabinet, Ordinal: int(cmloc.Rack)}
+	chassis := inventory.LocationToken{HardwareType: hardwaretypes.Chassis, Ordinal: int(cmloc.Chassis)}
+	blade := inventory.LocationToken{HardwareType: hardwaretypes.NodeBlade, Ordinal: int(cmloc.Tray)}
+	bmc := inventory.LocationToken{HardwareType: hardwaretypes.NodeController, Ordinal: int(cmloc.Controller)}
+	node := inventory.LocationToken{HardwareType: hardwaretypes.Node, Ordinal: int(cmloc.Node)}
+	lp := inventory.LocationPath{system, cabinet, chassis, blade, bmc, node}
+
+	return lp.GetHardwareTypePath().Key(), nil
+}
+
 // hpcmLocToCaniLoc translates hpcm location keys to a cani location path
 func hpcmLocToCaniLoc(caniHwType hardwaretypes.HardwareType, hpcmLoc *hpcm_client.LocationSettings) (caniLoc inventory.LocationPath, err error) {
 	// HPCM        --->   CANI
@@ -215,7 +234,7 @@ func hpcmLocToCaniLoc(caniHwType hardwaretypes.HardwareType, hpcmLoc *hpcm_clien
 	// Tray        --->   NodeBlade/SwitchBlade
 	// Controller  --->   NodeController
 	// Node        --->   Node
-	var system, cabinet, chassis, blade, node inventory.LocationToken
+	var system, cabinet, chassis, blade, controller, node inventory.LocationToken
 	// rack and chassis map to cabinet and chassis
 	system = inventory.LocationToken{HardwareType: hardwaretypes.System, Ordinal: 0}
 	cabinet = inventory.LocationToken{HardwareType: hardwaretypes.Cabinet, Ordinal: int(hpcmLoc.Rack)}
@@ -241,10 +260,16 @@ func hpcmLocToCaniLoc(caniHwType hardwaretypes.HardwareType, hpcmLoc *hpcm_clien
 		caniLoc = inventory.LocationPath{system, cabinet, chassis, blade}
 	case hardwaretypes.Node:
 		blade = inventory.LocationToken{HardwareType: hardwaretypes.NodeBlade, Ordinal: int(hpcmLoc.Tray)}
+		controller = inventory.LocationToken{HardwareType: hardwaretypes.NodeController, Ordinal: int(hpcmLoc.Controller)}
 		node = inventory.LocationToken{HardwareType: hardwaretypes.Node, Ordinal: int(hpcmLoc.Node)}
-		caniLoc = inventory.LocationPath{system, cabinet, chassis, blade, node}
+		caniLoc = inventory.LocationPath{system, cabinet, chassis, blade, controller, node}
 	default:
-		log.Warn().Msgf("Unable to get LocationPath from hardware type: %v", caniHwType)
+		// assume a node
+		blade = inventory.LocationToken{HardwareType: hardwaretypes.NodeBlade, Ordinal: int(hpcmLoc.Tray)}
+		controller = inventory.LocationToken{HardwareType: hardwaretypes.NodeController, Ordinal: int(hpcmLoc.Controller)}
+		node = inventory.LocationToken{HardwareType: hardwaretypes.Node, Ordinal: int(hpcmLoc.Node)}
+		caniLoc = inventory.LocationPath{system, cabinet, chassis, blade, controller, node}
+		// log.Warn().Msgf("Unable to get LocationPath from hardware type: %v", caniHwType)
 	}
 
 	log.Debug().Msgf("Set LocationPath via HPCM geo location values: %+v -> %v", hpcmLoc, caniLoc)
@@ -261,13 +286,11 @@ func hpcmTypeToCaniHardwareType(hpcmType string) (t hardwaretypes.HardwareType, 
 		t = hardwaretypes.Chassis
 	case "cmc":
 		t = hardwaretypes.ChassisManagementModule
-	case "compute":
-		t = hardwaretypes.Node
 	case "cooldev":
 		t = hardwaretypes.CoolingDistributionUnit
 	case "ib_switch":
 		t = hardwaretypes.HighSpeedSwitch
-	case "leader", "leader_alias", "ice_compute":
+	case "compute", "leader", "leader_alias", "ice_compute":
 		t = hardwaretypes.Node
 	case "leaf", "spine", "mgmt_switch":
 		t = hardwaretypes.ManagementSwitch
@@ -275,8 +298,11 @@ func hpcmTypeToCaniHardwareType(hpcmType string) (t hardwaretypes.HardwareType, 
 		t = hardwaretypes.CabinetPDU
 	case "switch_blade":
 		t = hardwaretypes.ManagementSwitchEnclosure
+	case "":
+		// assume anything else is a node.  this may be a mistake
+		t = hardwaretypes.Node
 	default:
-		err = fmt.Errorf("unabled to map HPCM type to CANI hardwaretype: %v", hpcmType)
+		err = fmt.Errorf("unable to map HPCM type to CANI hardwaretype: %v", hpcmType)
 	}
 	if err != nil {
 		return t, err
