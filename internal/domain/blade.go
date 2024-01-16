@@ -38,8 +38,39 @@ import (
 )
 
 // AddBlade adds a blade to the inventory by crafting location paths from the given ordinals and generating a hardware buildout
-func (d *Domain) AddBlade(cmd *cobra.Command, args []string, cabinetOrdinal, chassisOrdinal, bladeOrdinal int) (AddHardwareResult, error) {
+func (d *Domain) AddBlade(cmd *cobra.Command, args []string) (result AddHardwareResult, err error) {
+	// args and flags
+	geoloc := cmd.Flags().Changed("geoloc")
+
+	// Verify the provided device type slug is a node blade
 	deviceTypeSlug := args[0]
+	deviceType, err := d.hardwareTypeLibrary.GetDeviceType(deviceTypeSlug)
+	if err != nil {
+		return AddHardwareResult{}, err
+	}
+	if deviceType.HardwareType != hardwaretypes.NodeBlade {
+		return AddHardwareResult{}, fmt.Errorf("provided device hardware type (%s) is not a %s", deviceTypeSlug, hardwaretypes.NodeBlade)
+	}
+
+	// add the blade, with or without geolocation information
+	if geoloc {
+		result, err = d.addBladeWithGeoLoc(cmd, args)
+	} else {
+		result, err = d.addBladeNoGeoLoc(cmd, args)
+	}
+	if err != nil {
+		return result, err
+	}
+
+	return result, d.datastore.Flush()
+}
+
+// addBladeWithGeoLoc adds a blade to the inventory by crafting location paths from the given ordinals and generating a hardware buildout
+func (d *Domain) addBladeWithGeoLoc(cmd *cobra.Command, args []string) (AddHardwareResult, error) {
+	deviceTypeSlug := args[0]
+	cabinetOrdinal, _ := cmd.Flags().GetInt("cabinet")
+	chassisOrdinal, _ := cmd.Flags().GetInt("chassis")
+	bladeOrdinal, _ := cmd.Flags().GetInt("blade")
 
 	// Check if the cabinet exists
 	cabinetPath := inventory.LocationPath{

@@ -55,11 +55,11 @@ func Init() {
 	// Add a flag to show supported types
 	AddBladeCmd.Flags().BoolP("list-supported-types", "L", false, "List supported hardware types.")
 
+	AddBladeCmd.Flags().BoolP("geoloc", "g", false, "Require geolocation (LocationPaths, Ordinals, Parents, Children)")
 	// Blades have several parents, so we need to add flags for each
 	AddBladeCmd.Flags().IntVar(&cabinet, "cabinet", 1001, "Parent cabinet")
 	AddBladeCmd.Flags().IntVar(&chassis, "chassis", 7, "Parent chassis")
 	AddBladeCmd.Flags().IntVar(&blade, "blade", 1, "Blade")
-	AddBladeCmd.MarkFlagsRequiredTogether("cabinet", "chassis", "blade")
 
 	AddBladeCmd.Flags().BoolVar(&auto, "auto", false, "Automatically recommend values for parent hardware")
 	AddBladeCmd.MarkFlagsRequiredTogether("list-supported-types")

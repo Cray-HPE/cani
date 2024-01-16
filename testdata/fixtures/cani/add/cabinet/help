@@ -10,6 +10,7 @@ Available Commands:
 Flags:
   -y, --accept                 Automatically accept recommended values.
       --auto                   Automatically recommend and assign required flags.
+  -g, --geoloc                 Require geolocation (LocationPaths, Ordinals, Parents, Children)
   -h, --help                   help for cabinet
   -L, --list-supported-types   List supported hardware types.
 
