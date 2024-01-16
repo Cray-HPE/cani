@@ -6,6 +6,7 @@ Usage:
 
 Available Commands:
   csm         Add cabinets to the inventory.
+  ngsm        Add cabinets to the inventory.
 
 Flags:
   -y, --accept                 Automatically accept recommended values.

@@ -8,6 +8,7 @@ require (
 	github.com/antihax/optional v1.0.0
 	github.com/fatih/color v1.13.0
 	github.com/fatih/structs v1.1.0
+	github.com/gocarina/gocsv v0.0.0-20231116093920-b87c2d0e983a
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-retryablehttp v0.7.2
 	github.com/manifoldco/promptui v0.9.0

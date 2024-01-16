@@ -34,6 +34,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/provider/csm"
+	"github.com/Cray-HPE/cani/internal/provider/ngsm"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
@@ -90,6 +91,8 @@ func (d *Domain) SetupDomain(cmd *cobra.Command, args []string, configDomains ma
 	switch d.Provider {
 	case taxonomy.CSM:
 		d.datastore, err = inventory.NewDatastoreJSONCSM(d.DatastorePath, d.LogFilePath, inventory.Provider(d.Provider))
+	case taxonomy.Ngsm:
+		d.datastore, err = inventory.NewDatastoreJSON(d.DatastorePath, d.LogFilePath, inventory.Provider(d.Provider))
 	default:
 		return fmt.Errorf("invalid provider: %s", d.Provider)
 	}
@@ -116,6 +119,8 @@ func (d *Domain) SetupDomain(cmd *cobra.Command, args []string, configDomains ma
 	switch d.Provider {
 	case taxonomy.CSM:
 		d.externalInventoryProvider, err = csm.New(cmd, args, d.hardwareTypeLibrary, d.Options)
+	case taxonomy.Ngsm:
+		d.externalInventoryProvider, err = ngsm.New(cmd, args, d.hardwareTypeLibrary, d.Options)
 	default:
 		return fmt.Errorf("unknown external inventory provider provided (%s)", d.Provider)
 	}
@@ -166,6 +171,7 @@ type UpdatedHardwareResult struct {
 func GetProviders() []provider.InventoryProvider {
 	supportedProviders := []provider.InventoryProvider{
 		&csm.CSM{},
+		&ngsm.Ngsm{},
 	}
 	return supportedProviders
 }

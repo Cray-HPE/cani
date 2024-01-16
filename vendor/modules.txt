@@ -23,6 +23,9 @@ github.com/fatih/color
 # github.com/fatih/structs v1.1.0
 ## explicit
 github.com/fatih/structs
+# github.com/gocarina/gocsv v0.0.0-20231116093920-b87c2d0e983a
+## explicit; go 1.13
+github.com/gocarina/gocsv
 # github.com/golang/protobuf v1.5.3
 ## explicit; go 1.9
 github.com/golang/protobuf/proto

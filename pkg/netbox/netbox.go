@@ -67,7 +67,7 @@ func NewClient() (*netbox.APIClient, context.Context, error) {
 	nbcfg.HTTPClient = c
 	nbcfg.DefaultHeader["Authorization"] = fmt.Sprintf("Token %s", token)
 	nbcfg.Debug = false
-	nbcfg.Scheme = "https"
+	nbcfg.Scheme = "http" // FIXME
 
 	ctx := context.Background()
 	client := netbox.NewAPIClient(nbcfg)
