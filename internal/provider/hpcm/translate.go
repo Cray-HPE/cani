@@ -39,32 +39,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func (hpcm *Hpcm) Translate(cmd *cobra.Command, args []string, ds inventory.Datastore) (err error) {
-	var translated = map[uuid.UUID]*inventory.Hardware{}
+func (hpcm *Hpcm) Translate(cmd *cobra.Command, args []string) (translated map[uuid.UUID]*inventory.Hardware, err error) {
+	// translated = make(map[uuid.UUID]*inventory.Hardware, 0)
 
 	// check if input is coming from a cm config file
 	if cmd.Flags().Changed("cm-config") {
-		translated, err = hpcm.TranslateCmConfig()
+		translated, err = hpcm.CmConfig.TranslateCmConfig()
 		if err != nil {
-			return err
+			return translated, err
 		}
 		// by default, translate information from the cmdb
 	} else {
 		translated, err = hpcm.TranslateCmdb()
 		if err != nil {
-			return err
+			return translated, err
 		}
 	}
 
-	// add the translated hardware to the datastore
-	for _, hw := range translated {
-		err = ds.Add(hw)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return translated, nil
 }
 
 // extractProviderMetadata is a catchall function for HPCM data that doesn't fit elsewhere
@@ -206,6 +198,33 @@ func setupTempDatastore(datastore inventory.Datastore) (temp inventory.Datastore
 	return temp, nil
 }
 
+func hpcmLocToCaniType(cmloc hpcm_client.LocationSettings) (string, error) {
+	if &cmloc.Rack == nil {
+		log.Info().Msgf("%+v", "rack nil")
+	}
+	if &cmloc.Chassis == nil {
+		log.Info().Msgf("%+v", "chassis nil")
+	}
+	if &cmloc.Tray == nil {
+		log.Info().Msgf("%+v", "tray nil")
+	}
+	if &cmloc.Controller == nil {
+		log.Info().Msgf("%+v", "controller nil")
+	}
+	if &cmloc.Node == nil {
+		log.Info().Msgf("%+v", "node nil")
+	}
+	system := inventory.LocationToken{HardwareType: hardwaretypes.System, Ordinal: 0}
+	cabinet := inventory.LocationToken{HardwareType: hardwaretypes.Cabinet, Ordinal: int(cmloc.Rack)}
+	chassis := inventory.LocationToken{HardwareType: hardwaretypes.Chassis, Ordinal: int(cmloc.Chassis)}
+	blade := inventory.LocationToken{HardwareType: hardwaretypes.NodeBlade, Ordinal: int(cmloc.Tray)}
+	bmc := inventory.LocationToken{HardwareType: hardwaretypes.NodeController, Ordinal: int(cmloc.Controller)}
+	node := inventory.LocationToken{HardwareType: hardwaretypes.Node, Ordinal: int(cmloc.Node)}
+	lp := inventory.LocationPath{system, cabinet, chassis, blade, bmc, node}
+
+	return lp.GetHardwareTypePath().Key(), nil
+}
+
 // hpcmLocToCaniLoc translates hpcm location keys to a cani location path
 func hpcmLocToCaniLoc(caniHwType hardwaretypes.HardwareType, hpcmLoc *hpcm_client.LocationSettings) (caniLoc inventory.LocationPath, err error) {
 	// HPCM        --->   CANI
@@ -215,7 +234,7 @@ func hpcmLocToCaniLoc(caniHwType hardwaretypes.HardwareType, hpcmLoc *hpcm_clien
 	// Tray        --->   NodeBlade/SwitchBlade
 	// Controller  --->   NodeController
 	// Node        --->   Node
-	var system, cabinet, chassis, blade, node inventory.LocationToken
+	var system, cabinet, chassis, blade, controller, node inventory.LocationToken
 	// rack and chassis map to cabinet and chassis
 	system = inventory.LocationToken{HardwareType: hardwaretypes.System, Ordinal: 0}
 	cabinet = inventory.LocationToken{HardwareType: hardwaretypes.Cabinet, Ordinal: int(hpcmLoc.Rack)}
@@ -241,10 +260,16 @@ func hpcmLocToCaniLoc(caniHwType hardwaretypes.HardwareType, hpcmLoc *hpcm_clien
 		caniLoc = inventory.LocationPath{system, cabinet, chassis, blade}
 	case hardwaretypes.Node:
 		blade = inventory.LocationToken{HardwareType: hardwaretypes.NodeBlade, Ordinal: int(hpcmLoc.Tray)}
+		controller = inventory.LocationToken{HardwareType: hardwaretypes.NodeController, Ordinal: int(hpcmLoc.Controller)}
 		node = inventory.LocationToken{HardwareType: hardwaretypes.Node, Ordinal: int(hpcmLoc.Node)}
-		caniLoc = inventory.LocationPath{system, cabinet, chassis, blade, node}
+		caniLoc = inventory.LocationPath{system, cabinet, chassis, blade, controller, node}
 	default:
-		log.Warn().Msgf("Unable to get LocationPath from hardware type: %v", caniHwType)
+		// assume a node
+		blade = inventory.LocationToken{HardwareType: hardwaretypes.NodeBlade, Ordinal: int(hpcmLoc.Tray)}
+		controller = inventory.LocationToken{HardwareType: hardwaretypes.NodeController, Ordinal: int(hpcmLoc.Controller)}
+		node = inventory.LocationToken{HardwareType: hardwaretypes.Node, Ordinal: int(hpcmLoc.Node)}
+		caniLoc = inventory.LocationPath{system, cabinet, chassis, blade, controller, node}
+		// log.Warn().Msgf("Unable to get LocationPath from hardware type: %v", caniHwType)
 	}
 
 	log.Debug().Msgf("Set LocationPath via HPCM geo location values: %+v -> %v", hpcmLoc, caniLoc)
@@ -273,8 +298,11 @@ func hpcmTypeToCaniHardwareType(hpcmType string) (t hardwaretypes.HardwareType, 
 		t = hardwaretypes.CabinetPDU
 	case "switch_blade":
 		t = hardwaretypes.ManagementSwitchEnclosure
+	case "":
+		// assume anything else is a node.  this may be a mistake
+		t = hardwaretypes.Node
 	default:
-		err = fmt.Errorf("unabled to map HPCM type to CANI hardwaretype: %v", hpcmType)
+		err = fmt.Errorf("unable to map HPCM type to CANI hardwaretype: %v", hpcmType)
 	}
 	if err != nil {
 		return t, err

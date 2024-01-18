@@ -56,9 +56,9 @@ func initSessionWithProviderCmd(cmd *cobra.Command, args []string) (err error) {
 	switch root.D.Provider {
 	case taxonomy.CSM:
 		root.D.DatastorePath = filepath.Join(config.ConfigDir, taxonomy.DsFileCSM)
-	case taxonomy.Hpengi:
-		root.D.DatastorePath = filepath.Join(config.ConfigDir, taxonomy.DsFile)
 	case taxonomy.HPCM:
+		root.D.DatastorePath = filepath.Join(config.ConfigDir, taxonomy.DsFile)
+	case taxonomy.Hpengi:
 		root.D.DatastorePath = filepath.Join(config.ConfigDir, taxonomy.DsFile)
 	default:
 		err = fmt.Errorf("not a valid provider: %s", root.D.Provider)

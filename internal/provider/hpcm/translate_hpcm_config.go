@@ -26,8 +26,6 @@
 package hpcm
 
 import (
-	"fmt"
-
 	"github.com/Cray-HPE/cani/cmd/taxonomy"
 	"github.com/Cray-HPE/cani/internal/inventory"
 	hpcm_client "github.com/Cray-HPE/cani/pkg/hpcm-client"
@@ -36,108 +34,87 @@ import (
 )
 
 // TranslateCmConfigToCaniHw translates data from Hpcm.CmConfig to CANI format
-func (hpcm *Hpcm) TranslateCmConfig() (translated map[uuid.UUID]*inventory.Hardware, err error) {
+func (cm HpcmConfig) TranslateCmConfig() (translated map[uuid.UUID]*inventory.Hardware, err error) {
 	translated = make(map[uuid.UUID]*inventory.Hardware, 0)
-	for _, d := range hpcm.CmConfig.Discover {
+	for _, d := range cm.Discover {
 		log.Debug().Msgf("Translating %s hardware to %s format (%+v)", "HPCM", taxonomy.App, d.Hostname1)
-		hw := &inventory.Hardware{}
 
-		// translate the hpcm fields to cani fields
-		err = TranslateCmHardwareToCaniHw(d, hpcm.CmConfig, hw)
-		if err != nil {
-			return translated, err
-		}
+		_ = d.getModel()
+		// 	// translate the hpcm fields to cani fields
+		// 	t, err := TranslateCmHardwareToCaniHw(d, cm)
+		// 	if err != nil {
+		// 		return translated, err
+		// 	}
 
-		// add the hardware to the map if it does not exist
-		_, exists := translated[hw.ID]
-		if exists {
-			return translated, fmt.Errorf("Hardware already exists: %s", hw.ID)
-		}
-		translated[hw.ID] = hw
+		// 	// add the hardware to the map if it does not exist
+		// 	_, exists := translated[t.ID]
+		// 	if exists {
+		// 		return translated, fmt.Errorf("Hardware already exists: %s", hw.ID)
+		// 	}
+		// 	translated[hw.ID] = hw
 	}
 
 	// return the map of translated hpcm --> cani hardware
 	return translated, nil
 }
 
-func TranslateCmHardwareToCaniHw(d Discover, cm HpcmConfig, hw *inventory.Hardware) (err error) {
-	// create a uuid for the new hardware
-	u := uuid.New()
-	log.Debug().Msgf("  Unique Identifier:  --> %s: %+v", "ID", u)
-	hw.ID = u
+func (cm HpcmConfig) TranslateCmHardwareToCaniHw() (translated map[uuid.UUID]*inventory.Hardware, err error) {
+	translated = make(map[uuid.UUID]*inventory.Hardware, 0)
 
-	// Convert HPCM type to cani hardwaretypes
-	t, err := hpcmTypeToCaniHardwareType(d.Type)
-	if err != nil {
-		return err
+	for _, d := range cm.Discover {
+		hw := &inventory.Hardware{}
+		hw.ID = uuid.New()
+
+		// Convert HPCM type to cani hardwaretypes
+		t, err := hpcmTypeToCaniHardwareType(d.Type)
+		if err != nil {
+			return translated, err
+		}
+		hw.Type = t
+
+		// Convert HPCM location to cani location
+		cmloc := &hpcm_client.LocationSettings{
+			Rack:       int32(d.RackNr),
+			Chassis:    int32(d.Chassis),
+			Tray:       int32(d.Tray),
+			Controller: int32(d.ControllerNr),
+			Node:       int32(d.NodeNr),
+		}
+
+		lp, err := hpcmLocToCaniLoc(hw.Type, cmloc)
+		if err != nil {
+			return translated, err
+		}
+
+		hw.LocationPath = lp
+		hw.Architecture = d.Architecture
+		hw.Model = d.TemplateName
+		hw.Name = d.Hostname1
+
+		_, exists := translated[hw.ID]
+		if !exists {
+			translated[hw.ID] = hw
+		}
 	}
-	hw.Type = t
-	log.Debug().Msgf("  type: %s --> %s: %s", d.Type, "Type", t)
-
-	// Convert HPCM template name to cani device type slug
-	s := hpcmCmTemplateNameToCaniSlug(d, cm)
-	if err != nil {
-		return err
-	}
-	hw.DeviceTypeSlug = s
-	log.Debug().Msgf("  template_name: %s --> %s: %s", d.TemplateName, "DeviceTypeSlug", s)
-
-	// Convert HPCM card type to cani vendor
-	v := hpcmCmCardTypeToCaniVendor(d, cm)
-	if err != nil {
-		return err
-	}
-	hw.Vendor = v
-	log.Debug().Msgf("  card_type: %s --> %s: %s", d.CardType, "Vendor", v)
-
-	// Convert HPCM card type to cani vendor
-	cmloc := &hpcm_client.LocationSettings{
-		Rack:       int32(d.RackNr),
-		Chassis:    int32(d.Chassis),
-		Tray:       int32(d.Tray),
-		Node:       int32(d.NodeNr),
-		Controller: int32(d.ControllerNr),
-	}
-	lp, err := hpcmLocToCaniLoc(hw.Type, cmloc)
-	if err != nil {
-		return err
-	}
-	hw.LocationPath = lp
-	log.Debug().Msgf("  *_nr: %d->%d->%d->%d --> %s: %s",
-		d.RackNr,
-		d.Chassis,
-		d.Tray,
-		d.NodeNr,
-		"LocationPath", lp.String())
-
-	// these fields map 1:1 and are not necessarily required, so just fill them
-	hw.LocationOrdinal = &d.NodeNr
-	log.Debug().Msgf("  node_nr: %d --> %s: %d", d.NodeNr, "LocationOrdinal", *hw.LocationOrdinal)
-	hw.Architecture = d.Architecture
-	log.Debug().Msgf("  %s: %s %s %s: %s", "architecture", d.Architecture, "-->", "Architecture", hw.Architecture)
-	hw.Model = d.TemplateName
-	// log.Debug().Msgf("  %s: %s %s %s: %s", "template_name", d.TemplateName, "-->", "Model", hw.Model)
-	hw.Name = d.Hostname1
-	log.Debug().Msgf("  %s: %s %s %s: %s", "hostname1", d.Hostname1, "-->", "Name", hw.Name)
-	log.Debug().Msgf("")
-
-	return nil
+	return translated, nil
 }
 
-// hpcmCmCardTypeToCaniVendor
-func hpcmCmCardTypeToCaniVendor(d Discover, cm HpcmConfig) (v string) {
-	switch d.CardType {
-	case "iLo":
-		v = "HPE"
-	case "Intel":
-		v = "Intel"
-	case "IPMI":
-		v = "IPMI"
-	default:
-		v = "Unknown"
-	}
-
-	return v
+// getModel messily gets the model from a Discover object
+func (d Discover) getModel() (model string) {
+	log.Info().Msgf("%+v", d)
+	// md := make(map[string]interface{}, 0)
+	// md["Inventory"] = make(map[string]interface{}, 0)
+	// mdInv := md["Inventory"].(map[string]interface{})
+	// if node.Inventory != nil {
+	// 	inv := *node.Inventory
+	// 	for k, v := range inv.(map[string]interface{}) {
+	// 		if k == "fru.Model" {
+	// 			vendor = v.(string)
+	// 		}
+	// 		mdInv[k] = v
+	// 	}
+	// }
+	return model
 }
 
 // hpcmCmTemplateNameToCaniSlug

@@ -33,11 +33,18 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider/hpcm"
 	"github.com/Cray-HPE/cani/pkg/canu"
 	sls "github.com/Cray-HPE/hms-sls/v2/pkg/sls-common"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
+)
+
+var (
+	translated = make(map[uuid.UUID]*inventory.Hardware, 0)
+	hpcmObj    = &hpcm.Hpcm{}
 )
 
 // ValidateExternal
@@ -56,11 +63,22 @@ func (hpengi *Hpengi) ValidateExternal(cmd *cobra.Command, args []string) error 
 func (hpengi *Hpengi) siteSurvey(cmd *cobra.Command, args []string) error {
 	// [non]interactively get the hpcm cluster config file if one is passed in
 	if cmd.Flags().Changed("cm-config") {
-		cm, err := hpengi.getCmConfig(cmd, args)
+		f, _ := cmd.Flags().GetString("cm-config")
+		cm, err := hpcm.LoadCmConfig(f)
 		if err != nil {
 			return err
 		}
 		hpengi.CmConfig = cm
+	}
+
+	// validate the customer intent document if one is passed in
+	if cmd.Flags().Changed("cmdb") {
+		err := hpcmObj.LoadCmdb(cmd, args)
+		if err != nil {
+			return err
+		}
+
+		hpengi.HpcmCmdb = hpcmObj.Cmdb
 	}
 
 	// validate the customer intent document if one is passed in

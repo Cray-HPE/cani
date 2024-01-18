@@ -35,6 +35,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/provider/csm"
 	"github.com/Cray-HPE/cani/internal/provider/hpcm"
+	"github.com/Cray-HPE/cani/internal/provider/hpengi"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
@@ -93,6 +94,8 @@ func (d *Domain) SetupDomain(cmd *cobra.Command, args []string, configDomains ma
 		d.datastore, err = inventory.NewDatastoreJSONCSM(d.DatastorePath, d.LogFilePath, inventory.Provider(d.Provider))
 	case taxonomy.HPCM:
 		d.datastore, err = inventory.NewDatastoreJSON(d.DatastorePath, d.LogFilePath, inventory.Provider(d.Provider))
+	case taxonomy.Hpengi:
+		d.datastore, err = inventory.NewDatastoreJSON(d.DatastorePath, d.LogFilePath, inventory.Provider(d.Provider))
 	default:
 		return fmt.Errorf("invalid provider: %s", d.Provider)
 	}
@@ -121,6 +124,8 @@ func (d *Domain) SetupDomain(cmd *cobra.Command, args []string, configDomains ma
 		d.externalInventoryProvider, err = csm.New(cmd, args, d.hardwareTypeLibrary, d.Options)
 	case taxonomy.HPCM:
 		d.externalInventoryProvider, err = hpcm.New(cmd, args, d.hardwareTypeLibrary, d.Options)
+	case taxonomy.Hpengi:
+		d.externalInventoryProvider, err = hpengi.New(cmd, args, d.hardwareTypeLibrary, d.Options)
 	default:
 		return fmt.Errorf("unknown external inventory provider provided (%s)", d.Provider)
 	}
@@ -173,6 +178,7 @@ func GetProviders() []provider.InventoryProvider {
 	supportedProviders := []provider.InventoryProvider{
 		&csm.CSM{},
 		&hpcm.Hpcm{},
+		&hpengi.Hpengi{},
 	}
 	return supportedProviders
 }

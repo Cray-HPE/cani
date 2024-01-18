@@ -31,6 +31,7 @@ import (
 
 	"github.com/Cray-HPE/cani/cmd/taxonomy"
 	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider/hpcm"
 	"github.com/Cray-HPE/cani/pkg/canu"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
@@ -46,55 +47,51 @@ func (hpengi *Hpengi) ImportInit(cmd *cobra.Command, args []string, datastore in
 		return err
 	}
 
-	if cmd.Flags().Changed("sls-config") {
-		// get a map of translated hardware from the hpcm config
-		toImport, err := hpengi.translateSlsDumpstateToCaniHw(cmd, args)
+	if cmd.Flags().Changed("cm-config") {
+		f, _ := cmd.Flags().GetString("cm-config")
+		cm, err := hpcm.LoadCmConfig(f)
 		if err != nil {
 			return err
 		}
 
-		// import each hardware
-		for _, hw := range toImport {
-			log.Info().Msgf("Importing %+v", hw.Name)
-			err = ds.Add(hw)
-			if err != nil {
-				return err
-			}
+		translated, err = cm.TranslateCmHardwareToCaniHw()
+		if err != nil {
+			return err
+		}
+	}
+
+	if cmd.Flags().Changed("sls-config") {
+		// get a map of translated hardware from the hpcm config
+		translated, err = hpengi.translateSlsDumpstateToCaniHw(cmd, args)
+		if err != nil {
+			return err
 		}
 	}
 
 	if cmd.Flags().Changed("paddle") {
 		// get a map of translated hardware from the hpcm config
-		toImport, err := hpengi.translatePaddleToCaniHw(cmd, args)
+		translated, err = hpengi.translatePaddleToCaniHw(cmd, args)
 		if err != nil {
 			return err
 		}
-		// import each hardware
-		for _, hw := range toImport {
-			log.Info().Msgf("Importing %+v", hw.Name)
-			err = ds.Add(hw)
-			if err != nil {
-				return err
-			}
+	}
+
+	if cmd.Flags().Changed("cmdb") {
+		// translate external inventory data to cani hardware entries
+		translated, err = hpcmObj.Translate(cmd, args)
+		if err != nil {
+			return err
 		}
 	}
 
-	// if cmd.Flags().Changed("cm-config") {
-	// 	// get a map of translated hardware from the hpcm config
-	// 	toImport, err := hpcm.TranslateCmConfigToCaniHw(cmd, args)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	// import each hardware
-	// 	for _, hw := range toImport {
-	// 		log.Info().Msgf("Importing %+v", hw.Name)
-	// 		err = ds.Add(hw)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-	// 	}
-	// }
+	// all flags will return a map of translated hardware
+	// loop through that, and add it each to the datastore
+	for _, hw := range translated {
+		err = ds.Add(hw)
+		if err != nil {
+			return err
+		}
+	}
 
 	// merge the datastore if all is successful
 	err = datastore.Merge(ds)

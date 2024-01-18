@@ -38,6 +38,7 @@ type Hpengi struct {
 	Options         *HpengiOpts
 	Cid             Cid             `json:"CID"`
 	CmConfig        hpcm.HpcmConfig `json:"CmConfig"`
+	HpcmCmdb        hpcm.Cmdb       `json:"HpcmCmdb"`
 	Paddle          *canu.Paddle    `json:"Paddle"`
 	SlsInput        sls.SLSState    `json:"SlsInputFile"`
 }

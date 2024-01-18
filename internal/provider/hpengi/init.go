@@ -12,8 +12,13 @@ func init() {
 
 func NewSessionInitCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
 	cmd = utils.CloneCommand(caniCmd)
-	cmd.Flags().StringP("cid", "c", "", "Path to a Smart Customer Intent Document")
+	cmd.Flags().StringP("cid", "i", "", "Path to a Smart Customer Intent Document")
 	cmd.Flags().StringP("cm-config", "C", "", "Path to a HPCM config file/cluster manager file/cluster definition file")
+	cmd.Flags().Bool("cmdb", false, "Import from the CMDB")
+	cmd.Flags().String("cmdb-url", "cmu/v1", "Base URL for the CMDB")
+	cmd.Flags().String("host", "localhost:8080", "Host or FQDN for APIs")
+	cmd.Flags().String("cacert", "", "Path to the CA certificate file")
+	cmd.Flags().String("token", "", "API token")
 	cmd.Flags().StringP("paddle", "P", "", "Path to a Paddle/CCJ/machine-readable SHCD file")
 	cmd.Flags().StringP("sls-dumpstate", "s", "", "Path to a SLS input/dumpstate file")
 	return cmd, nil
