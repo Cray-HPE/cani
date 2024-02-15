@@ -3,6 +3,7 @@ package netbox
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -61,44 +62,44 @@ func (dt DeviceType) getManufacturer(client *netbox.APIClient, ctx context.Conte
 }
 
 func createDeviceType(client *netbox.APIClient, ctx context.Context, dt DeviceType) error {
-	req := netbox.WritableDeviceTypeRequest{}
+	d := netbox.WritableDeviceTypeRequest{}
+	log.Info().Msgf("len(dt.Interfaces) %+v", len(dt.Interfaces))
 	// required:
 	//   - manufacturer
 	mf, err := dt.getManufacturer(client, ctx)
 	if err != nil {
 		return err
 	}
-	req.SetManufacturer(mf.Id)
+	d.SetManufacturer(mf.Id)
 	//   - model
-	req.SetModel(dt.Model)
+	d.SetModel(dt.Model)
 	//   - slug
-	req.SetSlug(stringToSlug(dt.Model))
+	d.SetSlug(dt.Slug)
 	//	 - u_height
 	if dt.UHeight != nil {
-		req.SetUHeight(*dt.UHeight)
+		d.SetUHeight(*dt.UHeight)
 	}
 
 	// optional:
 	if dt.Comments != nil {
-		req.SetComments(*dt.Comments)
+		d.SetComments(*dt.Comments)
 	}
 	if dt.PartNumber != nil {
-		req.SetPartNumber(*dt.PartNumber)
+		d.SetPartNumber(*dt.PartNumber)
 	}
 	if dt.IsFullDepth != nil {
-		req.SetIsFullDepth(*dt.IsFullDepth)
+		d.SetIsFullDepth(*dt.IsFullDepth)
 	}
 	// unit and weight required together
 	if dt.WeightUnit != nil {
 		wu := netbox.DeviceTypeWeightUnitValue(*dt.WeightUnit)
-		req.SetWeightUnit(wu)
+		d.SetWeightUnit(wu)
 		if dt.Weight != nil {
-			req.SetWeight(*dt.Weight)
+			d.SetWeight(*dt.Weight)
 		}
 	}
-
-	req.AdditionalProperties = make(map[string]interface{}, 0)
-	req.CustomFields = make(map[string]interface{}, 0)
+	d.AdditionalProperties = make(map[string]interface{}, 0)
+	d.CustomFields = make(map[string]interface{}, 0)
 	// req.SetFrontImage(dt.FrontImage)
 	// req.SetRearImage(dt.RearImage)
 	// req.SetDefaultPlatform()
@@ -107,22 +108,130 @@ func createDeviceType(client *netbox.APIClient, ctx context.Context, dt DeviceTy
 	// req.SetTags()
 	// req.SetAirflow(dt.Airflow)
 
-	d := client.DcimAPI.DcimDeviceTypesCreate(ctx).WritableDeviceTypeRequest(req)
-	_, resp, err := d.Execute()
+	req := client.DcimAPI.DcimDeviceTypesCreate(ctx).WritableDeviceTypeRequest(d)
+	createdDeviceType, resp, err := req.Execute()
+	if err != nil {
+		body, _ := io.ReadAll(resp.Body)
+		defer resp.Body.Close()
+		if resp.StatusCode == 201 {
+			log.Debug().Msgf("%+v", resp.Status) // still created
+		} else if resp.StatusCode == 400 {
+			log.Error().Msgf("%+v", string(body))
+			return err
+		}
+		// if it was created, there seems to be a bug where the devicetype returned by req.Execute() is empty
+		// do some stupid parsing of the response body to get the id
+		getId := make(map[string]interface{}, 0)
+		err = json.Unmarshal(body, &getId) // Convert to a map
+		if err != nil {
+			return err
+		}
+		cid := getId["id"].(float64)        // created device id
+		createdDeviceType.SetId(int32(cid)) // set it
+	}
+
+	// Create interface templates and assign it to the created device type
+	for _, i := range dt.Interfaces {
+		iftmpl := netbox.NewWritableInterfaceTemplateRequestWithDefaults()
+		// required:
+		//  - name
+		iftmpl.SetName(i.Name)
+		//  - type
+		itv := netbox.NewInterfaceTypeWithDefaults()
+		val := netbox.InterfaceTypeValue(i.Type)
+		// lbl := netbox.InterfaceTypeLabel(i.Type)
+		itv.SetValue(val)
+		// itv.SetLabel(lbl)
+		iftmpl.SetType(val)
+		iftmpl.SetDeviceType(createdDeviceType.GetId())
+		// ndt := netbox.NewNestedDeviceTypeWithDefaults()
+		// ndt.SetDisplay(dt.Model)
+		r := client.DcimAPI.DcimInterfaceTemplatesCreate(ctx).WritableInterfaceTemplateRequest(*iftmpl)
+		// r := client.DcimAPI.DcimInterfacesCreate(ctx).WritableInterfaceRequest(*iftmpl)
+		_, resp, err := r.Execute()
+		if err != nil {
+
+			body, _ := io.ReadAll(resp.Body)
+			defer resp.Body.Close()
+			// still created
+			if resp.StatusCode == 201 {
+				return nil
+			}
+
+			if resp.StatusCode == 400 {
+				log.Error().Msgf("could not make interface template: %+v", string(body))
+				return err
+			}
+
+			return err
+		}
+	}
+	return nil
+}
+
+func createModuleType(client *netbox.APIClient, ctx context.Context, mt ModuleType) error {
+	existingMfg, err := getExistingVendors(client, ctx)
+	if err != nil {
+		return err
+	}
+
+	module := netbox.NewWritableModuleTypeRequestWithDefaults()
+	for _, m := range existingMfg {
+		if strings.ToLower(m.Name) == strings.ToLower(mt.Manufacturer) {
+			module.SetManufacturer(m.Id)
+			module.SetModel(mt.Model)
+		}
+	}
+	_, ok := module.GetManufacturerOk()
+	if !ok {
+		return fmt.Errorf("manufacturer not found: %+v", mt.Manufacturer)
+	}
+
+	req := client.DcimAPI.DcimModuleTypesCreate(ctx).WritableModuleTypeRequest(*module)
+	_, resp, err := req.Execute()
 	if err != nil {
 
+		body, _ := io.ReadAll(resp.Body)
+		defer resp.Body.Close()
 		// still created
 		if resp.StatusCode == 201 {
-			// no value given for required property device_count
 			return nil
 		}
 
 		if resp.StatusCode == 400 {
-			log.Warn().Msgf("DeviceType already exists (ignoring): %+v", dt.Model)
-			return nil
+			log.Warn().Msgf("%+v", string(body))
+			return err
 		}
 
 		return err
+	}
+	return nil
+}
+
+func createInterfaces(client *netbox.APIClient, ctx context.Context, dt DeviceType) error {
+	for _, i := range dt.Interfaces {
+		req := netbox.WritableInterfaceRequest{}
+		req.SetName(i.Name)
+		d := client.DcimAPI.DcimInterfacesCreate(ctx).WritableInterfaceRequest(req)
+		_, resp, err := d.Execute()
+		if err != nil {
+
+			body, _ := io.ReadAll(resp.Body)
+			defer resp.Body.Close()
+			// still created
+			if resp.StatusCode == 201 {
+				// no value given for required property device_count
+				return nil
+			}
+
+			if resp.StatusCode == 400 {
+				log.Warn().Msgf("DeviceType already exists (ignoring): %+v (%+v)", dt.Model, stringToSlug(dt.Model))
+				log.Warn().Msgf("%+v", string(body))
+				return nil
+			}
+
+			return err
+		}
 	}
 
 	return nil
@@ -175,6 +284,43 @@ func CreateDeviceTypeMap(manufacturersToImport map[string]string, deviceTypesToI
 	}
 }
 
+func CreateModuleTypeMap(manufacturersToImport map[string]string, moduleTypesToImport map[string]ModuleType, ignoreDirs []string) filepath.WalkFunc {
+	return func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			log.Print(err)
+			return nil
+		}
+		if info.IsDir() {
+			dir := filepath.Base(path)
+			for _, d := range ignoreDirs {
+				if d == dir {
+					return filepath.SkipDir
+				}
+			}
+		} else {
+			mt, err := UnmarshalModuleType(path)
+			if err != nil {
+				return err
+			}
+
+			// add the manufacturer to the map
+			// it is required to add a devicetype
+			sanitized := strings.ToLower(mt.Manufacturer)
+			_, manufacturerExists := manufacturersToImport[sanitized]
+			if !manufacturerExists {
+				manufacturersToImport[sanitized] = mt.Manufacturer
+			}
+
+			// add the module type to the map
+			_, moduleTypeExists := moduleTypesToImport[mt.Model]
+			if !moduleTypeExists {
+				moduleTypesToImport[mt.Model] = mt
+			}
+		}
+		return nil
+	}
+}
+
 // NewClient creates a new netbox client using the environment variables
 // This maintains parity/compatiblity with Device-Type-Librery-Import python repo
 func NewClient() (*netbox.APIClient, context.Context, error) {
@@ -195,7 +341,7 @@ func NewClient() (*netbox.APIClient, context.Context, error) {
 	c := httpClient.StandardClient()
 
 	// create the netbox config
-	token := "0123456789abcdef0123456789abcdef01234567"
+	token := os.Getenv("NETBOX_TOKEN")
 	host := stripProtocolsAndSpecialChars("127.0.0.1:8000")
 	nbcfg := netbox.NewConfiguration()
 	nbcfg.Host = host

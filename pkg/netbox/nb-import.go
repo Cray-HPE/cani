@@ -89,7 +89,7 @@ func CreateManufacturers(client *netbox.APIClient, ctx context.Context, manufact
 		return fmt.Errorf("failed to get existing manufacturers: %+v: %+v", resp.Status, err)
 	}
 
-	log.Info().Msgf("Found %+v importable manufacturers ", len(manufacturersToImport))
+	log.Debug().Msgf("Found %+v importable manufacturers ", len(manufacturersToImport))
 	log.Info().Msgf("Found %+v existing manufacturers", len(existingManufacturers.Results))
 
 	// // FIXME: parse next url for offset and create a new req
@@ -160,8 +160,8 @@ func CreateDeviceTypes(client *netbox.APIClient, ctx context.Context, deviceType
 		}
 	}
 
-	log.Info().Msgf("Found %+v importable DeviceTypes", len(deviceTypesToImport))
-	log.Info().Msgf("Found %+v existing DeviceTypes", len(existingDeviceTypes))
+	log.Debug().Msgf("Found %+v importable device types", len(deviceTypesToImport))
+	log.Info().Msgf("Found %+v existing device types", len(existingDeviceTypes))
 
 	// as long as there are existing manufacturers,
 	// we need to check if the manufacturers to import already exists to avoid duplicates
@@ -170,7 +170,7 @@ func CreateDeviceTypes(client *netbox.APIClient, ctx context.Context, deviceType
 			// if the manufacturer does not exist in the ones that need to be imported, add it to the map
 			_, ok := deviceTypesToImport[existingDeviceType.Model]
 			if ok {
-				log.Debug().Msgf("Existing DeviceType will not be re-created: %+v (%s)", existingDeviceType.Model, existingDeviceType.GetPartNumber())
+				log.Trace().Msgf("Existing DeviceType will not be re-created: %+v (%s)", existingDeviceType.Model, existingDeviceType.GetPartNumber())
 				delete(deviceTypesToImport, existingDeviceType.Model)
 			}
 		}
@@ -178,8 +178,73 @@ func CreateDeviceTypes(client *netbox.APIClient, ctx context.Context, deviceType
 
 	// loop through devicetypes that do not exist and create them
 	for _, deviceType := range deviceTypesToImport {
-		log.Info().Msgf("Creating DeviceType: %+v (%+v)", deviceType.Model, deviceType.PartNumber)
+		log.Info().Msgf("Creating DeviceType: %+v (%+v)", deviceType.Model, deviceType.Slug)
 		err := createDeviceType(client, ctx, deviceType)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func CreateModuleTypes(client *netbox.APIClient, ctx context.Context, moduleTypesToImport map[string]ModuleType) error {
+	const maxLimit = 1000 // 1000 is the max limit for this endpoint
+	var existingModuleTypes = []netbox.ModuleType{}
+
+	limit := maxLimit
+	offset := 0
+	for {
+		req := client.DcimAPI.DcimModuleTypesList(ctx).Limit(int32(limit)).Offset(int32(offset))
+		paginatedModuleTypes, resp, err := req.Execute()
+		if err != nil {
+			return fmt.Errorf("failed to get existing DeviceTypes: %+v: %+v", resp.Status, err)
+		}
+
+		existingModuleTypes = append(existingModuleTypes, paginatedModuleTypes.Results...)
+
+		// no more pages to get
+		if paginatedModuleTypes.Next.Get() == nil {
+			break
+		}
+
+		var next *url.URL
+		next, err = url.Parse(paginatedModuleTypes.GetNext())
+		if err != nil {
+			return err
+		}
+		limitQ := next.Query().Get("limit")
+		offsetQ := next.Query().Get("offset")
+		limit, err = strconv.Atoi(limitQ)
+		if err != nil {
+			return err
+		}
+		offset, err = strconv.Atoi(offsetQ)
+		if err != nil {
+			return err
+		}
+	}
+
+	log.Debug().Msgf("Found %+v importable module types", len(moduleTypesToImport))
+	log.Info().Msgf("Found %+v existing module types", len(existingModuleTypes))
+
+	// as long as there are existing manufacturers,
+	// we need to check if the manufacturers to import already exists to avoid duplicates
+	if len(existingModuleTypes) != 0 {
+		for _, existingModuleType := range existingModuleTypes {
+			// if the manufacturer does not exist in the ones that need to be imported, add it to the map
+			_, ok := moduleTypesToImport[existingModuleType.Model]
+			if ok {
+				log.Trace().Msgf("Existing ModuleType will not be re-created: %+v (%s)", existingModuleType.Model, existingModuleType.GetPartNumber())
+				delete(moduleTypesToImport, existingModuleType.Model)
+			}
+		}
+	}
+
+	// loop through devicetypes that do not exist and create them
+	for _, moduleType := range moduleTypesToImport {
+		log.Info().Msgf("Creating ModuleType: %+v", moduleType.Model)
+		err := createModuleType(client, ctx, moduleType)
 		if err != nil {
 			return err
 		}

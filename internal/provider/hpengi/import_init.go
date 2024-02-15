@@ -1,0 +1,99 @@
+/*
+ *
+ *  MIT License
+ *
+ *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *
+ *  Permission is hereby granted, free of charge, to any person obtaining a
+ *  copy of this software and associated documentation files (the "Software"),
+ *  to deal in the Software without restriction, including without limitation
+ *  the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ *  and/or sell copies of the Software, and to permit persons to whom the
+ *  Software is furnished to do so, subject to the following conditions:
+ *
+ *  The above copyright notice and this permission notice shall be included
+ *  in all copies or substantial portions of the Software.
+ *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ *  THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ *  OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ *  ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ *  OTHER DEALINGS IN THE SOFTWARE.
+ *
+ */
+package hpengi
+
+import (
+	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider/hpcm"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
+)
+
+// ImportInit imports the external inventory data into CANI's inventory format
+func (hpengi *Hpengi) ImportInit(cmd *cobra.Command, args []string, datastore inventory.Datastore) error {
+	log.Warn().Msgf("ImportInit partially implemented")
+	// copy the datastore and add set provider metadata
+	ds, err := setupTempDatastore(datastore)
+	if err != nil {
+		return err
+	}
+
+	if cmd.Flags().Changed("cm-config") {
+		log.Info().Msgf("Translating %T", hpengi.Hpcm.CmConfig)
+		f, _ := cmd.Flags().GetString("cm-config")
+		cm, err := hpcm.LoadCmConfig(f)
+		if err != nil {
+			return err
+		}
+
+		translated, err = cm.TranslateCmHardwareToCaniHw()
+		if err != nil {
+			return err
+		}
+	}
+
+	if cmd.Flags().Changed("sls-dumpstate") {
+		// get a map of translated hardware from the hpcm config
+		translated, err = hpengi.translateSlsDumpstateToCaniHw(cmd, args)
+		if err != nil {
+			return err
+		}
+	}
+
+	if cmd.Flags().Changed("paddle") {
+		log.Info().Msgf("Translating %T", hpengi.Paddle)
+		// get a map of translated hardware from the hpcm config
+		// translated, err = hpengi.translatePaddleToCaniHw(cmd, args)
+		// if err != nil {
+		// 	return err
+		// }
+	}
+
+	if cmd.Flags().Changed("cmdb") {
+		// translate external inventory data to cani hardware entries
+		translated, err = hpengi.Hpcm.Translate(cmd, args)
+		if err != nil {
+			return err
+		}
+	}
+
+	// all flags will return a map of translated hardware
+	// loop through that, and add it each to the datastore
+	for _, hw := range translated {
+		err = ds.Add(hw)
+		if err != nil {
+			return err
+		}
+	}
+
+	// merge the datastore if all is successful
+	err = datastore.Merge(ds)
+	if err != nil {
+		return err
+	}
+
+	return datastore.Flush()
+}

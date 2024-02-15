@@ -26,10 +26,13 @@
 package hpengi
 
 import (
+	"context"
+
 	"github.com/Cray-HPE/cani/internal/provider/hpcm"
 	"github.com/Cray-HPE/cani/pkg/canu"
 	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	sls "github.com/Cray-HPE/hms-sls/v2/pkg/sls-common"
+	"github.com/netbox-community/go-netbox/v3"
 	"github.com/spf13/cobra"
 )
 
@@ -40,6 +43,8 @@ type Hpengi struct {
 	Paddle          *canu.Paddle `json:"Paddle"`
 	SlsInput        sls.SLSState `json:"SlsInputFile"`
 	Hpcm            *hpcm.Hpcm   `json:"hpcm"`
+	NetboxClient    *netbox.APIClient
+	context         context.Context
 }
 
 type HpengiOpts struct {
