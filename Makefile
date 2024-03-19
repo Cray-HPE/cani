@@ -185,6 +185,19 @@ bin/swagger-codegen-cli.jar:
 	mkdir -p ./bin
 	wget https://repo1.maven.org/maven2/io/swagger/codegen/v3/swagger-codegen-cli/3.0.43/swagger-codegen-cli-3.0.43.jar -O bin/swagger-codegen-cli.jar
 
+# needs human munging until go-jsonschema can read a dir for resolving refs
+netbox-dt-schema:
+	go-jsonschema -p netbox devicetype-library/schema/devicetype.json -o pkg/netbox/types_devicetypes.go
+
+# needs human munging until go-jsonschema can read a dir for resolving refs
+netbox-mt-schema:
+	go-jsonschema -p netbox devicetype-library/schema/moduletype.json -o pkg/netbox/types_moduletypes.go
+
+# needs human munging find/replace to make the generated file work
+nbschema: netbox-dt-schema netbox-mt-schema
+	go-jsonschema -p netbox pkg/netbox/schema/devicetype-for-go-jsonschema.json -o pkg/netbox/types_devicetypes.go
+	go-jsonschema -p netbox pkg/netbox/schema/moduletype-for-go-jsonschema.json -o pkg/netbox/types_moduletypes.go
+
 vet: version
 	go vet -v ./...
 
