@@ -12,11 +12,12 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.2
 	github.com/manifoldco/promptui v0.9.0
 	github.com/mitchellh/mapstructure v1.5.0
+	github.com/netbox-community/go-netbox/v3 v3.7.1-alpha.0
 	github.com/rs/zerolog v1.29.1
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.7.1
+	github.com/stretchr/testify v1.8.4
 	golang.org/x/oauth2 v0.8.0
 	golang.org/x/term v0.16.0
 	gopkg.in/ini.v1 v1.67.0
