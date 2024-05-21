@@ -1,0 +1,22 @@
+---
+manufacturer: HPE
+model: HPE 42U 800mmx1200mm G2 Enterprise Shock Rack
+slug: hpe-g2-enterprise-shock-rack
+part_number: P9K46A
+u_height: 2
+is_full_depth: true
+subdevice_role: parent
+module-bays:
+  - name: PS1
+    position: '1'
+  - name: PS2
+    position: '2'
+  - name: PS3
+    position: '3'
+  - name: PS4
+    position: '4'
+device-bays:
+  - name: Node Bay 1
+  - name: Node Bay 2
+  - name: Node Bay 3
+  - name: Node Bay 4
