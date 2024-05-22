@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -23,34 +23,16 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package domain
+package ngsm
 
 import (
-	"fmt"
-
-	"github.com/Cray-HPE/cani/internal/provider/csm"
-	"github.com/Cray-HPE/cani/internal/provider/ngsm"
+	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/rs/zerolog/log"
-	"github.com/spf13/cobra"
 )
 
-func init() {
-	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/internal/domain.init")
-}
-
-// NewProviderCmd returns the appropriate command to the cmd layer
-func NewProviderCmd(caniCmd *cobra.Command, p string) (providerCmd *cobra.Command, err error) {
-	providerCmd = &cobra.Command{}
-	switch p {
-	case "csm":
-		providerCmd, err = csm.NewProviderCmd(caniCmd)
-	case "ngsm":
-		providerCmd, err = ngsm.NewProviderCmd(caniCmd)
-	default:
-		err = fmt.Errorf("no command matched for provider %s", p)
-	}
-	if err != nil {
-		return providerCmd, nil
-	}
-	return providerCmd, nil
+// Set fields in the hardware's metadata
+func (ngsm *Ngsm) SetFields(hw *inventory.Hardware, values map[string]string) (result provider.SetFieldsResult, err error) {
+	log.Warn().Msgf("SetFields not yet implemented")
+	return provider.SetFieldsResult{}, nil
 }

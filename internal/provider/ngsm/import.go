@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -23,34 +23,37 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package domain
+package ngsm
 
 import (
-	"fmt"
-
-	"github.com/Cray-HPE/cani/internal/provider/csm"
-	"github.com/Cray-HPE/cani/internal/provider/ngsm"
+	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/internal/domain.init")
+// Import
+func (ngsm *Ngsm) Import(cmd *cobra.Command, args []string, datastore inventory.Datastore) error {
+	log.Warn().Msgf("Importing to netbox is not yet implemented")
+
+	return nil
 }
 
-// NewProviderCmd returns the appropriate command to the cmd layer
-func NewProviderCmd(caniCmd *cobra.Command, p string) (providerCmd *cobra.Command, err error) {
-	providerCmd = &cobra.Command{}
-	switch p {
-	case "csm":
-		providerCmd, err = csm.NewProviderCmd(caniCmd)
-	case "ngsm":
-		providerCmd, err = ngsm.NewProviderCmd(caniCmd)
-	default:
-		err = fmt.Errorf("no command matched for provider %s", p)
-	}
+func (ngsm *Ngsm) getUnknownDeviceTypeId() (id *int32, err error) {
+	// get the device type id from the map
+	req := ngsm.NetboxClient.DcimAPI.DcimDeviceTypesList(ngsm.context).Limit(int32(1)).Offset(int32(0)).Q("unknown")
+	paginated, resp, err := req.Execute()
 	if err != nil {
-		return providerCmd, nil
+		log.Error().Msgf("%+v: %+v", resp.Status, err)
+		return nil, err
 	}
-	return providerCmd, nil
+
+	// check if the unknown device type exists and return its id
+	for _, existing := range paginated.Results {
+		if existing.GetModel() == "unknown" {
+			i := existing.GetId()
+			id = &i
+			return &i, nil
+		}
+	}
+	return nil, nil
 }

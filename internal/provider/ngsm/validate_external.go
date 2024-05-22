@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -23,34 +23,41 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package domain
+package ngsm
 
 import (
-	"fmt"
-
-	"github.com/Cray-HPE/cani/internal/provider/csm"
-	"github.com/Cray-HPE/cani/internal/provider/ngsm"
-	"github.com/rs/zerolog/log"
+	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/internal/domain.init")
+var (
+	translated = make(map[uuid.UUID]*inventory.Hardware, 0)
+)
+
+// ValidateExternal validates the external inventory
+// for NGSM, this could be an HBOM, a customer intent document, an existing
+// CMDB instance, an hpcm.config file, an SLS dumpstate, or a paddle file.
+func (ngsm *Ngsm) ValidateExternal(cmd *cobra.Command, args []string) error {
+	err := ngsm.siteSurvey(cmd, args)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-// NewProviderCmd returns the appropriate command to the cmd layer
-func NewProviderCmd(caniCmd *cobra.Command, p string) (providerCmd *cobra.Command, err error) {
-	providerCmd = &cobra.Command{}
-	switch p {
-	case "csm":
-		providerCmd, err = csm.NewProviderCmd(caniCmd)
-	case "ngsm":
-		providerCmd, err = ngsm.NewProviderCmd(caniCmd)
-	default:
-		err = fmt.Errorf("no command matched for provider %s", p)
+// siteSurvey will run interactively or non-interactively to gather the
+// necessary information. ngsm may be a brand new system but could also be a
+// migration from a different provider
+func (ngsm *Ngsm) siteSurvey(cmd *cobra.Command, args []string) error {
+	// validate the hbom if one or more were provided
+	if cmd.Flags().Changed("bom") {
+		err := ngsm.loadBoms(cmd, args)
+		if err != nil {
+			return err
+		}
 	}
-	if err != nil {
-		return providerCmd, nil
-	}
-	return providerCmd, nil
+
+	return nil
 }

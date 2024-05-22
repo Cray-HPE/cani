@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -23,34 +23,24 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package domain
+package ngsm
 
 import (
-	"fmt"
-
-	"github.com/Cray-HPE/cani/internal/provider/csm"
-	"github.com/Cray-HPE/cani/internal/provider/ngsm"
+	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/internal/domain.init")
+// PrintRecommendations implements the InventoryProvider interface
+// it prints the hardware to stdout based on the command
+func (ngsm *Ngsm) PrintRecommendations(cmd *cobra.Command, args []string, recommendations provider.HardwareRecommendations) error {
+	log.Warn().Msgf("PrintRecommendations not yet implemented")
+	return nil
 }
 
-// NewProviderCmd returns the appropriate command to the cmd layer
-func NewProviderCmd(caniCmd *cobra.Command, p string) (providerCmd *cobra.Command, err error) {
-	providerCmd = &cobra.Command{}
-	switch p {
-	case "csm":
-		providerCmd, err = csm.NewProviderCmd(caniCmd)
-	case "ngsm":
-		providerCmd, err = ngsm.NewProviderCmd(caniCmd)
-	default:
-		err = fmt.Errorf("no command matched for provider %s", p)
-	}
-	if err != nil {
-		return providerCmd, nil
-	}
-	return providerCmd, nil
+func (ngsm *Ngsm) PrintHardware(cmd *cobra.Command, args []string, filtered map[uuid.UUID]inventory.Hardware) error {
+	log.Warn().Msgf("PrintHardware not yet implemented")
+	return nil
 }
