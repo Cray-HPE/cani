@@ -161,7 +161,7 @@ func (q *queue) addRow(row *Row) (err error) {
 	return nil
 }
 
-// Sanitize attepts to sanitize the row's content so valid data is returned
+// Sanitize attempts to sanitize the row's content so valid data is returned
 // this will do things like normalize part numbers, clean up blankspace, etc.
 func (row *Row) Sanitize() (parsed *Row, err error) {
 	// sanitize the row's content

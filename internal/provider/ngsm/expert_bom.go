@@ -129,8 +129,7 @@ func (row *Row) RackDimensions() (width int, depth int, unit string, err error) 
 	return width, depth, "mm", nil
 }
 
-// RackDimensions returns the width and depth of a rack in millimeters parsed
-// via regex from the product description 'NNNmmxNNNmm'
+// RackHeightU returns the height of a rack in U parsed via regex from the product description
 func (row *Row) RackHeightU() (u int, err error) {
 	re := regexp.MustCompile(`\d+U`)
 	height := re.FindString(row.ProductDescription)
@@ -162,7 +161,7 @@ func (row *Row) IsDevice(deviceTypeIds map[string]int32) bool {
 // NewRowFromRow returns a new row from the existing row
 // this is often used to create a duplicate row if the quantity is more than 1
 // a few fields need to be set by the consumer of this function, like the netbox
-// namne, source, etc.
+// name, source, etc.
 func (row *Row) NewRowFromRow() (newRow Row) {
 	newRow = Row{}
 	newRow.SetRow(row.row)
