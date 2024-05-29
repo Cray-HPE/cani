@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -142,7 +142,8 @@ type DefaultHardware struct {
 }
 
 type ProviderDefaults struct {
-	CSM *ProviderDefaultsCSM `yaml:"csm"`
+	CSM  *ProviderDefaultsCSM  `yaml:"csm"`
+	NGSM *ProviderDefaultsNgsm `yaml:"ngsm"`
 }
 
 type ProviderDefaultsCSM struct {
@@ -150,6 +151,9 @@ type ProviderDefaultsCSM struct {
 	Ordinal         int     `yaml:"Ordinal"`
 	StartingHmnVlan int     `yaml:"StartingHmnVlan"`
 	EndingHmnVlan   int     `yaml:"EndingHmnVlan"`
+}
+type ProviderDefaultsNgsm struct {
+	Ordinal int `yaml:"Ordinal"`
 }
 
 // TODO

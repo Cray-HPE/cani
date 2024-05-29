@@ -58,7 +58,7 @@ It "--config $CANI_CONF init"
   BeforeCall remove_config
   When call bin/cani alpha session --config "$CANI_CONF" init
   The status should equal 1
-  The line 1 of stderr should equal 'Error: Need a provider.  Choose from: [csm]'
+  The line 1 of stderr should equal 'Error: Need a provider.  Choose from: [csm ngsm]'
 End
 
 # Starting a session without passing a provider should fail
@@ -66,7 +66,7 @@ It "--config $CANI_CONF init fake"
   BeforeCall remove_config
   When call bin/cani alpha session --config "$CANI_CONF" init fake
   The status should equal 1
-  The line 1 of stderr should equal 'Error: fake is not a valid provider.  Valid providers: [csm]'
+  The line 1 of stderr should equal 'Error: fake is not a valid provider.  Valid providers: [csm ngsm]'
 End
 
 # Starting a session should fail with:

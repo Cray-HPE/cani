@@ -59,7 +59,7 @@ func MergeProviderFlags(providerCmd *cobra.Command, caniCmd *cobra.Command) (err
 // at present, the user must run commands + provider name, like:
 //
 //	cani add cabinet csm
-//	cani list blade hpengi
+//	cani list blade ngsm
 //
 // this requires hiding the provider sub command and dynamically executing it, as opposed to making the user type it in
 func RegisterProviderCommand(p provider.InventoryProvider, caniCmd *cobra.Command) (err error) {

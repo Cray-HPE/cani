@@ -6,6 +6,7 @@ Usage:
 
 Available Commands:
   csm         Add blades to the inventory.
+  ngsm        Add blades to the inventory.
 
 Flags:
   -y, --accept                 Automatically accept recommended values.
