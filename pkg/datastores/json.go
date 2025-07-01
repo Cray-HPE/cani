@@ -23,7 +23,7 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package inventory
+package datastores
 
 import (
 	"encoding/json"
@@ -36,7 +36,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
