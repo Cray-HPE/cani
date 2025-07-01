@@ -33,22 +33,22 @@ import (
 
 // validProvider checks that the provider is valid and that at least one argument is provided
 func validProvider(cmd *cobra.Command, args []string) (err error) {
-	// This helper function checks if a provider is valid.
-	isValidProvider := func(provider string) bool {
-		for _, validArg := range cmd.ValidArgs {
-			if provider == validArg {
-				return true
-			}
-		}
-		return false
-	}
+	// // This helper function checks if a provider is valid.
+	// isValidProvider := func(provider string) bool {
+	// 	for _, validArg := range cmd.ValidArgs {
+	// 		if provider == validArg {
+	// 			return true
+	// 		}
+	// 	}
+	// 	return false
+	// }
 
-	// Check the session provider.
-	if len(args) != 1 {
-		return fmt.Errorf("Need a provider.  Choose from: %+v", cmd.ValidArgs)
-	} else if !isValidProvider(args[0]) {
-		return fmt.Errorf("%s is not a valid provider.  Valid providers: %+v", args[0], cmd.ValidArgs)
-	}
+	// // Check the session provider.
+	// if len(args) != 1 {
+	// 	return fmt.Errorf("Need a provider.  Choose from: %+v", cmd.ValidArgs)
+	// } else if !isValidProvider(args[0]) {
+	// 	return fmt.Errorf("%s is not a valid provider.  Valid providers: %+v", args[0], cmd.ValidArgs)
+	// }
 
-	return nil
+	return fmt.Errorf("not yet implemented")
 }

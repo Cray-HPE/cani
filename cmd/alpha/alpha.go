@@ -23,25 +23,23 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package cmd
+package alpha
 
 import (
 	"github.com/spf13/cobra"
 )
 
-// AlphaCmd represents the alpha command for unstable features
-var AlphaCmd = &cobra.Command{
-	Use:   "alpha",
-	Short: "Run commands that are considered unstable.",
-	Long:  `Run commands that are considered unstable.`,
-	RunE:  runAlpha,
-}
-
-// runAlpha represents the alpha command for unstable features
-func runAlpha(cmd *cobra.Command, args []string) error {
-	if len(args) == 0 {
-		cmd.Help()
+// NewCommand creates the parent "alpha" command
+func NewCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "alpha",
+		Short: "Run commands that are considered unstable.",
+		Long:  `Run commands that are considered unstable.`,
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.Help()
+			return nil
+		},
 	}
-
-	return nil
+	return cmd
 }

@@ -23,25 +23,25 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package node
+package add
 
 import (
-	"github.com/rs/zerolog/log"
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
 // AddNodeCmd represents the node add command
 var AddNodeCmd = &cobra.Command{
-	Use:     "node PROVIDER",
-	Short:   "Add nodes to the inventory.",
-	Long:    `Add nodes to the inventory.`,
-	Args:    cobra.ExactArgs(1),
-	PreRunE: validHardware, // Hardware can only be valid if defined in the hardware library
-	RunE:    addNode,       // Add a node when this sub-command is called
+	Use:   "node PROVIDER",
+	Short: "Add nodes to the inventory.",
+	Long:  `Add nodes to the inventory.`,
+	Args:  cobra.ExactArgs(1),
+	// PreRunE: validHardware, // Hardware can only be valid if defined in the hardware library
+	RunE: addNode, // Add a node when this sub-command is called
 }
 
 // addNode adds a node to the inventory
 func addNode(cmd *cobra.Command, args []string) error {
-	log.Info().Msgf("Not yet implemented")
-	return nil
+	return fmt.Errorf("not yet implemented")
 }

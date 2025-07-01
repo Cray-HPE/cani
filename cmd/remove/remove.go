@@ -23,24 +23,50 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package cmd
+package remove
 
 import (
+	"fmt"
+
+	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/spf13/cobra"
 )
 
-// removeCmd represents the remove command
-var RemoveCmd = &cobra.Command{
-	Use:   "remove",
-	Short: "Remove assets from the inventory.",
-	Long:  `Remove assets from the inventory.`,
-	RunE:  remove,
+// NewCommand creates the parent "add" command
+func NewCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "remove",
+		Short:   "Remove items from the inventory",
+		Long:    `Remove items from the inventory.`,
+		PreRunE: provider.GetActiveProvider,
+		Args:    cobra.ArbitraryArgs,
+		RunE:    remove,
+	}
+
+	// Add all subcommands
+	cmd.RemoveCommand(newRackCommand())
+	cmd.RemoveCommand(newBladeCommand())
+
+	cmd.PersistentFlags().BoolP("force", "f", false, "Remove devices without confirmation.")
+	cmd.MarkFlagsMutuallyExclusive("force")
+
+	return cmd
 }
 
-// remove is the main entry point for the switch command.
+// remove is the main entry point for the remove command.
 func remove(cmd *cobra.Command, args []string) error {
-	if len(args) == 0 {
-		cmd.Help()
+	devicesToRemove, err := provider.ActiveProvider.Remove(cmd, args)
+	if err != nil {
+		return err
 	}
+
+	if err := datastores.SetDeviceStore(cmd, args); err != nil {
+		return fmt.Errorf("failed to set device store: %w", err)
+	}
+	if err := datastores.Datastore.Delete(devicesToRemove); err != nil {
+		return fmt.Errorf("failed to delete devices from datastore: %w", err)
+	}
+
 	return nil
 }

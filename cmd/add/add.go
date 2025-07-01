@@ -23,24 +23,86 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package cmd
+package add
 
 import (
+	"fmt"
+	"log"
+
+	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/Cray-HPE/cani/pkg/datastores"
+	"github.com/Cray-HPE/cani/pkg/devicetypes"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
-// AddCmd represents the switch add command
-var AddCmd = &cobra.Command{
-	Use:   "add",
-	Short: "Add assets to the inventory.",
-	Long:  `Add assets to the inventory.`,
-	RunE:  add,
+// NewCommand creates the parent "add" command
+func NewCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "add",
+		Short:   "Add items to the inventory",
+		Long:    `Add items to the inventory.`,
+		PreRunE: provider.GetActiveProvider,
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.Help()
+			return nil
+		},
+	}
+
+	// Add all subcommands
+	cmd.AddCommand(newRackCommand())
+	cmd.AddCommand(newBladeCommand())
+
+	cmd.PersistentFlags().BoolP("auto", "a", false, "Automatically recommend values for parent hardware")
+	cmd.PersistentFlags().BoolP("accept", "y", false, "Automatically accept recommended values.")
+	cmd.PersistentFlags().BoolP("list-supported-types", "L", false, "List supported hardware types.")
+	cmd.MarkFlagsRequiredTogether("list-supported-types")
+	cmd.PersistentFlags().IntP("qty", "q", 1, "Quantity of device types to add.")
+	cmd.PersistentFlags().StringP("parent", "p", uuid.Nil.String(), "Parent device ID.")
+	cmd.MarkFlagsMutuallyExclusive("auto")
+
+	return cmd
 }
 
 // add is the main entry point for the add command.
 func add(cmd *cobra.Command, args []string) error {
-	if len(args) == 0 {
-		cmd.Help()
+	var devicetype devicetypes.DeviceType
+
+	switch cmd.Name() {
+	case "blade":
+		devicetype = devicetypes.Blades()[args[0]]
+	case "rack":
+		devicetype = devicetypes.Racks()[args[0]]
+	default:
+		return fmt.Errorf("unknown device type: %s", args[0])
 	}
+
+	devicesToAdd, err := provider.ActiveProvider.Add(cmd, args, devicetype)
+	if err != nil {
+		return err
+	}
+
+	if err := datastores.SetDeviceStore(cmd, args); err != nil {
+		return fmt.Errorf("failed to set device store: %w", err)
+	}
+	if err := datastores.Datastore.Create(devicesToAdd); err != nil {
+		return fmt.Errorf("failed to create devices in datastore: %w", err)
+	}
+
+	log.Println("")
+	for _, device := range devicesToAdd {
+		if device == nil {
+			log.Printf("No devices to add for %s", devicetype.Type)
+			continue
+		}
+		if device.Parent == uuid.Nil && device.Type != devicetypes.Rack {
+			log.Printf("Added %s (%s) without a parent", device.ID, device.Name)
+			continue
+		}
+		log.Printf("Added %s (%s) with parent %s", device.ID, device.Name, device.Parent)
+	}
+	log.Println("")
+	log.Printf("%d %s added to the inventory", len(devicesToAdd), devicetype.Type)
 	return nil
 }

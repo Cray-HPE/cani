@@ -23,86 +23,23 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package cabinet
+package add
 
 import (
-	"errors"
-	"fmt"
-	"sort"
-
-	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/internal/inventory"
 	"github.com/Cray-HPE/cani/internal/provider"
-	"github.com/Cray-HPE/cani/internal/tui"
-	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
-	"github.com/google/uuid"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
-// AddCabinetCmd represents the cabinet add command
-var AddCabinetCmd = &cobra.Command{
-	Use:     "cabinet PROVIDER",
-	Short:   "Add cabinets to the inventory.",
-	Long:    `Add cabinets to the inventory.`,
-	PreRunE: validHardware, // Hardware can only be valid if defined in the hardware library
-	Args:    cobra.ExactArgs(1),
-	RunE:    addCabinet,
-}
-
-// addCabinet adds a cabinet to the inventory
-func addCabinet(cmd *cobra.Command, args []string) (err error) {
-	var recommendations = provider.HardwareRecommendations{}
-	recommendations, err = root.D.Recommend(cmd, args, auto)
-	if err != nil {
-		return err
+// newRackCommand creates the "add rack" command
+func newRackCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "rack",
+		Short:   "Add rack(s) to the inventory.",
+		Long:    `Add rack(s) to the inventory.`,
+		PreRunE: provider.GetActiveProvider,
+		Args:    validDeviceType,
+		RunE:    add,
 	}
 
-	if auto {
-		// get hardware recommendations from the provider
-		log.Info().Msgf("Querying inventory to suggest %s", hardwaretypes.Cabinet)
-		// Prompt the user to confirm the suggestions
-		if !accept {
-			accept, err = tui.CustomConfirmation(fmt.Sprintf("Would you like to accept the recommendations and add the %s", hardwaretypes.Cabinet))
-			if err != nil {
-				return err
-			}
-		}
-
-		// If the user chose not to accept the suggestions, exit
-		if !accept {
-			log.Warn().Msgf("Aborted %s add", hardwaretypes.Cabinet)
-			return nil
-		}
-
-		// log the provider recommendations to the screen
-		root.D.PrintRecommendations(cmd, args, recommendations)
-	}
-
-	// Add the cabinet to the inventory using domain methods
-	result, err := root.D.AddCabinet(cmd, args, recommendations)
-	if errors.Is(err, provider.ErrDataValidationFailure) {
-		log.Error().Msgf("Inventory data validation errors encountered")
-		for id, failedValidation := range result.ProviderValidationErrors {
-			log.Error().Msgf("  %s: %s", id, failedValidation.Hardware.LocationPath.String())
-			sort.Strings(failedValidation.Errors)
-			for _, validationError := range failedValidation.Errors {
-				log.Error().Msgf("    - %s", validationError)
-			}
-		}
-
-		return err
-	} else if err != nil {
-		return err
-	}
-
-	var filtered = make(map[uuid.UUID]inventory.Hardware, 0)
-	for _, result := range result.AddedHardware {
-		if result.Hardware.Type == hardwaretypes.Cabinet {
-			filtered[result.Hardware.ID] = result.Hardware
-		}
-	}
-
-	root.D.PrintHardware(cmd, args, filtered)
-	return nil
+	return cmd
 }

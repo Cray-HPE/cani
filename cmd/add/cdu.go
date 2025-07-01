@@ -23,24 +23,24 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package cdu
+package add
 
 import (
-	"github.com/rs/zerolog/log"
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
 // AddCduCmd represents the cdu add command
 var AddCduCmd = &cobra.Command{
-	Use:     "cdu",
-	Short:   "Add cdus to the inventory.",
-	Long:    `Add cdus to the inventory.`,
-	PreRunE: validHardware, // Hardware can only be valid if defined in the hardware library
-	RunE:    addCdu,        // Add a cdu when this sub-command is called
+	Use:   "cdu",
+	Short: "Add cdus to the inventory.",
+	Long:  `Add cdus to the inventory.`,
+	// PreRunE: validHardware, // Hardware can only be valid if defined in the hardware library
+	RunE: addCdu, // Add a cdu when this sub-command is called
 }
 
 // addCdu adds a cdu to the inventory
 func addCdu(cmd *cobra.Command, args []string) error {
-	log.Info().Msgf("Not yet implemented")
-	return nil
+	return fmt.Errorf("not yet implemented")
 }

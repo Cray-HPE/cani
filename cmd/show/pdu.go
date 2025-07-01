@@ -23,10 +23,11 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package pdu
+package show
 
 import (
-	"github.com/rs/zerolog/log"
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -41,6 +42,5 @@ var ListPduCmd = &cobra.Command{
 
 // listPdu lists pdus in the inventory
 func listPdu(cmd *cobra.Command, args []string) error {
-	log.Info().Msgf("Not yet implemented")
-	return nil
+	return fmt.Errorf("not yet implemented")
 }

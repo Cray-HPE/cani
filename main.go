@@ -50,39 +50,19 @@ package main
 
 import (
 	"github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/cmd/blade"
-	"github.com/Cray-HPE/cani/cmd/cabinet"
-	"github.com/Cray-HPE/cani/cmd/cdu"
-	"github.com/Cray-HPE/cani/cmd/chassis"
-	"github.com/Cray-HPE/cani/cmd/node"
-	"github.com/Cray-HPE/cani/cmd/pdu"
-	"github.com/Cray-HPE/cani/cmd/session"
-	sw "github.com/Cray-HPE/cani/cmd/switch"
-	_ "github.com/Cray-HPE/cani/internal/provider"
-	_ "github.com/Cray-HPE/cani/pkg/hardwaretypes"
-	"github.com/rs/zerolog/log"
+	_ "github.com/Cray-HPE/cani/pkg/devicetypes"
+	_ "github.com/Cray-HPE/cani/pkg/provider/csm"  // CSM provider is deprecated, but still included for legacy support
+	_ "github.com/Cray-HPE/cani/pkg/provider/ngsm" // register csm provider
 )
 
 // Run all package init functions in a specific order
 // this is mainly due to all cobra commands needing flags and other settings
 // to be set during init
 func init() {
-	// configure logging first for friendly console-logs
-	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/main.init")
 	// load the config and generate root commands
 	cmd.Init()
-	// initialize cobra commands for each package
-	session.Init()
-	cabinet.Init()
-	cdu.Init()
-	chassis.Init()
-	blade.Init()
-	node.Init()
-	pdu.Init()
-	sw.Init()
 }
 
 func main() {
-	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/main.main")
 	cmd.Execute()
 }

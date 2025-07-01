@@ -23,39 +23,30 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package blade
+package remove
 
 import (
-	"fmt"
-
-	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/google/uuid"
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/spf13/cobra"
 )
 
-// RemoveBladeCmd represents the blade remove command
-var RemoveBladeCmd = &cobra.Command{
-	Use:   "blade",
-	Short: "Remove blades from the inventory.",
-	Long:  `Remove blades from the inventory.`,
-	Args:  cobra.ArbitraryArgs,
-	RunE:  removeBlade,
+// newBladeCommand creates the "add blade" command
+func newBladeCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "blade",
+		Short:   "Remove blades from the inventory.",
+		Long:    `Remove blades from the inventory.`,
+		PreRunE: provider.GetActiveProvider,
+		RunE:    remove,
+	}
+
+	// Add flags
+
+	return cmd
 }
 
-// removeBlade removes a blade from the inventory.
-func removeBlade(cmd *cobra.Command, args []string) error {
-	for _, arg := range args {
-		// Convert the argument to a UUID
-		u, err := uuid.Parse(arg)
-		if err != nil {
-			return fmt.Errorf("Need a UUID to remove: %s", err.Error())
-		}
+// removeBlade removes a blade from the inventory
+func removeBlade(cmd *cobra.Command, args []string) (err error) {
 
-		// Remove the blade from the inventory
-		err = root.D.RemoveBlade(u, recursion)
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }

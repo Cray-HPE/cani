@@ -26,201 +26,95 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
+	"log"
 
-	"github.com/Cray-HPE/cani/cmd/config"
-	"github.com/Cray-HPE/cani/cmd/taxonomy"
-	"github.com/Cray-HPE/cani/internal/domain"
-	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+	"github.com/Cray-HPE/cani/cmd/add"
+	"github.com/Cray-HPE/cani/cmd/alpha"
+	"github.com/Cray-HPE/cani/cmd/remove"
+	"github.com/Cray-HPE/cani/cmd/serve"
+	"github.com/Cray-HPE/cani/cmd/session"
+	"github.com/Cray-HPE/cani/cmd/show"
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 )
 
 var (
-	ActiveDomain = &domain.Domain{}
+	rootCmd *cobra.Command
+	cfgFile string
 )
 
-// Init() is called during init() in internal/initmanager for multi-provider support
 func Init() {
-	setupLogging()
-	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/cmd.init")
-	// Create or load a yaml config and the database
-	cobra.OnInitialize(setupLogging, initConfig)
+	// initialize the root command
+	rootCmd = newRootCommand()
 
-	RootCmd.AddCommand(AlphaCmd)
-	RootCmd.AddCommand(MakeDocsCmd)
-	RootCmd.AddCommand(MakeProviderCmd)
-	AlphaCmd.AddCommand(AddCmd)
-	AlphaCmd.AddCommand(ListCmd)
-	AlphaCmd.AddCommand(RemoveCmd)
-	AlphaCmd.AddCommand(SessionCmd)
-	AlphaCmd.AddCommand(UpdateCmd)
-	AlphaCmd.AddCommand(ValidateCmd)
+	// build core verbs
+	sessionCmd := session.NewCommand()
+	addCmd := add.NewCommand()
+	removeCmd := remove.NewCommand() // reusing the add package for remove functionality
+	serveCmd := serve.NewCommand()
+	showCmd := show.NewCommand()
 
-	AlphaCmd.AddCommand(ExportCmd)
-	AlphaCmd.AddCommand(ImportCmd)
-
-	// Global root command flags
-	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", cfgFile, "Path to the configuration file")
-	RootCmd.PersistentFlags().BoolVarP(&Debug, "debug", "D", false, "additional debug output")
-	RootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "additional verbose output")
-
-	// Register all provider commands during init()
-	for _, p := range domain.GetProviders() {
-		for _, c := range []*cobra.Command{ImportCmd, ExportCmd} {
-			err := RegisterProviderCommand(p, c)
-			if err != nil {
-				log.Error().Msgf("Unable to get command '%s %s' from provider %s ", c.Parent().Name(), c.Name(), p.Slug())
-				os.Exit(1)
-			}
-		}
-	}
-}
-
-func GetActiveDomain() (err error) {
-	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/cmd.InitGetActiveDomain")
-	// Get the active domain, needed for selecting provider commands early during init
-	ActiveDomain, err = Conf.ActiveProvider()
-	if err != nil {
-		return err
-	}
-
-	// once loaded, we can determine early on if there is an active provider
-	// and set the appropriate commands to use
-	if ActiveDomain != nil {
-		if ActiveDomain.Active {
-			log.Debug().Msgf("Active domain provider: %+v", ActiveDomain.Provider)
-		} else {
-			log.Debug().Msgf("No active domain")
-		}
-	}
-	return nil
-}
-
-// setupLogging sets up the global logger
-func setupLogging() {
-	// Default level for this example is info, unless debug flag is present
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	// Fancy, human-friendly console logger (but slower)
-	log.Logger = log.Output(
-		zerolog.ConsoleWriter{
-			Out: os.Stderr,
-			// When not in a terminal disable color
-			NoColor: !term.IsTerminal(int(os.Stderr.Fd())),
-		},
+	// at present, all commands are under the alpha command since this is still a work in progress
+	alphaCmd := alpha.NewCommand()
+	rootCmd.AddCommand(alphaCmd)
+	alphaCmd.AddCommand(
+		sessionCmd,
+		addCmd,
+		removeCmd,
+		showCmd,
+		serveCmd,
 	)
-	if Debug {
-		// enable debug output globally
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-		log.Debug().Msg("Debug logging enabled")
-		// include file and line number in debug output
-		if Verbose {
-			log.Logger = log.With().Caller().Logger()
-		}
-	}
-	if Verbose || os.Getenv("CANI_DEBUG") != "" {
-		zerolog.SetGlobalLevel(zerolog.TraceLevel)
-		log.Logger = log.With().Caller().Logger()
-	}
-}
 
-func initConfig() {
-	homeDir, err := os.UserHomeDir()
-	cobra.CheckErr(err)
-	if cfgFile != "" {
-		// global debug cannot be run during init() so check for debug flag here
-		if Debug {
-			log.Debug().Msg(fmt.Sprintf("Using user-defined config file: %s", cfgFile))
+	// now for each verb (except session init), ask each provider to decorate it
+	for _, caniCmd := range rootCmd.Commands() {
+		for _, p := range provider.GetProviders() {
+			if providerCmd, err := p.NewProviderCmd(caniCmd); err == nil {
+				if providerCmd == nil {
+					// this provider doesn’t customize that verb
+					continue
+				}
+				// log.Printf("Merging in %s command from %s", providerCmd.Name(), p.Slug())
+				// mergeProviderCommand(caniCmd, providerCmd)
+			}
 		}
-	} else {
-		// Set a default configuration file
-		cfgFile = filepath.Join(homeDir, taxonomy.CfgPath)
-		if Debug {
-			log.Debug().Msg(fmt.Sprintf("Using default config file %s", cfgFile))
-		}
-	}
-	// Initialize the configuration file if it does not exist
-	err = config.InitConfig(cfgFile)
-	if err != nil {
-		log.Error().Msg(fmt.Sprintf("Error initializing config file: %s", err))
-		os.Exit(1)
-	}
-
-	// Load the configuration file
-	Conf, err = config.LoadConfig(cfgFile)
-	if err != nil {
-		log.Error().Msg(fmt.Sprintf("Error loading config file: %s", err))
-		os.Exit(1)
 	}
 
 }
 
-func setupDomain(cmd *cobra.Command, args []string) (err error) {
-	log.Debug().Msgf("Setting %s provider", cmd.Name())
-	log.Debug().Msgf("Setting up domain for command: %s", cmd.Name())
-	log.Debug().Msgf("Checking for active domains")
-	// Find an active session
-	activeDomains := []*domain.Domain{}
-	activeProviders := []string{}
-	for p, d := range Conf.Session.Domains {
-		if d.Active {
-			log.Debug().Msgf("Provider '%s' is ACTIVE", p)
-			activeDomains = append(activeDomains, d)
-			activeProviders = append(activeProviders, p)
-		} else {
-			log.Debug().Msgf("Provider '%s' is inactive", p)
-		}
+// mergeProviderCommand copies metadata, flags, RunE/Args and sub-commands
+// from providerCmd into baseCmd
+func mergeProviderCommand(baseCmd *cobra.Command, providerCmd *cobra.Command) {
+	if providerCmd.Short != "" {
+		baseCmd.Short = providerCmd.Short
+	}
+	if providerCmd.Long != "" {
+		baseCmd.Long = providerCmd.Long
+	}
+	if providerCmd.RunE != nil {
+		baseCmd.RunE = providerCmd.RunE
+	}
+	if providerCmd.Args != nil {
+		baseCmd.Args = providerCmd.Args
 	}
 
-	// FIXME: Duplicated by config.ActiveProvider
-	if cmd.Parent().Name() != "init" {
-		// Error if no sessions are active
-		if len(activeProviders) == 0 {
-			// These commands are special because they validate hardware in the args
-			// so SetupDomain is called manually
-			// The timing of events works out such that simply returning the error
-			// will exit without the message
-			if cmd.Parent().Name() == "status" {
-				log.Info().Msgf("No active session.")
-				return nil
-			} else {
-				log.Error().Msgf("No active session.")
-				return err
-			}
-		}
+	// merge flags
+	baseCmd.Flags().AddFlagSet(providerCmd.Flags())
+	baseCmd.PersistentFlags().AddFlagSet(providerCmd.PersistentFlags())
 
-		// Check that only one session is active
-		if len(activeProviders) > 1 {
-			for _, p := range activeProviders {
-				err := fmt.Errorf("currently active: %v", p)
-				log.Error().Msgf("%v", err)
-			}
-			log.Error().Msgf("only one session may be active at a time")
-			return err
-		}
-		activeDomain := activeDomains[0]
-
-		log.Debug().Msgf("Active provider is: %s", activeDomain.Provider)
-		D = activeDomain
-		err = D.SetupDomain(cmd, args, Conf.Session.Domains)
-		if err != nil {
-			return err
-		}
-		HwLibrary, err := hardwaretypes.NewEmbeddedLibrary(D.CustomHardwareTypesDir)
-		if err != nil {
-			return err
-		}
-
-		// Get the list of supported hardware types
-		CabinetTypes = HwLibrary.GetDeviceTypesByHardwareType(hardwaretypes.Cabinet)
-		BladeTypes = HwLibrary.GetDeviceTypesByHardwareType(hardwaretypes.NodeBlade)
-		NodeTypes = HwLibrary.GetDeviceTypesByHardwareType(hardwaretypes.NodeBlade)
-		MgmtSwitchTypes = HwLibrary.GetDeviceTypesByHardwareType(hardwaretypes.ManagementSwitch)
-		HsnSwitchTypes = HwLibrary.GetDeviceTypesByHardwareType(hardwaretypes.HighSpeedSwitch)
+	// merge valid args, examples, aliases, annotations
+	baseCmd.ValidArgs = providerCmd.ValidArgs
+	baseCmd.Example = providerCmd.Example
+	baseCmd.Aliases = append(baseCmd.Aliases, providerCmd.Aliases...)
+	if baseCmd.Annotations == nil {
+		baseCmd.Annotations = map[string]string{}
 	}
-	return nil
+	for k, v := range providerCmd.Annotations {
+		baseCmd.Annotations[k] = v
+	}
+
+	// and finally merge any children
+	for _, sc := range providerCmd.Commands() {
+		log.Printf("Merging %s sub-command into %s", sc.Name(), baseCmd.Name())
+		baseCmd.AddCommand(sc)
+	}
 }

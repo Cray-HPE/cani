@@ -23,24 +23,24 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package pdu
+package add
 
 import (
-	"github.com/rs/zerolog/log"
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
 // AddPduCmd represents the pdu add command
 var AddPduCmd = &cobra.Command{
-	Use:     "pdu",
-	Short:   "Add pdus to the inventory.",
-	Long:    `Add pdus to the inventory.`,
-	PreRunE: validHardware, // Hardware can only be valid if defined in the hardware library
-	RunE:    addPdu,        // Add a pdu when this sub-command is called
+	Use:   "pdu",
+	Short: "Add pdus to the inventory.",
+	Long:  `Add pdus to the inventory.`,
+	// PreRunE: validHardware, // Hardware can only be valid if defined in the hardware library
+	RunE: addPdu, // Add a pdu when this sub-command is called
 }
 
 // addPdu adds a pdu to the inventory
 func addPdu(cmd *cobra.Command, args []string) error {
-	log.Info().Msgf("Not yet implemented")
-	return nil
+	return fmt.Errorf("not yet implemented")
 }

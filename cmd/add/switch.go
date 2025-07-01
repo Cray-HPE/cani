@@ -23,24 +23,24 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package sw
+package add
 
 import (
-	"github.com/rs/zerolog/log"
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
 // AddSwitchCmd represents the switch add command
 var AddSwitchCmd = &cobra.Command{
-	Use:     "switch",
-	Short:   "Add switches to the inventory.",
-	Long:    `Add switches to the inventory.`,
-	PreRunE: validHardware, // Hardware can only be valid if defined in the hardware library
-	RunE:    addSwitch,     // Add a switch when this sub-command is called
+	Use:   "switch",
+	Short: "Add switches to the inventory.",
+	Long:  `Add switches to the inventory.`,
+	// PreRunE: validHardware, // Hardware can only be valid if defined in the hardware library
+	RunE: addSwitch, // Add a switch when this sub-command is called
 }
 
 // addSwitch adds a switch to the inventory
 func addSwitch(cmd *cobra.Command, args []string) error {
-	log.Info().Msgf("Not yet implemented")
-	return nil
+	return fmt.Errorf("not yet implemented")
 }

@@ -23,36 +23,22 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package cabinet
+package remove
 
 import (
-	"github.com/rs/zerolog/log"
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/spf13/cobra"
 )
 
-// RemoveCabinetCmd represents the cabinet remove command
-var RemoveCabinetCmd = &cobra.Command{
-	Use:   "cabinet",
-	Short: "Remove cabinets from the inventory.",
-	Long:  `Remove cabinets from the inventory.`,
-	Args:  cobra.ArbitraryArgs,
-	RunE:  removeCabinet,
-}
+// newRackCommand creates the "add rack" command
+func newRackCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "rack",
+		Short:   "Remove rack(s) from the inventory.",
+		Long:    `Remove rack(s) from the inventory.`,
+		PreRunE: provider.GetActiveProvider,
+		RunE:    remove,
+	}
 
-// removeCabinet removes a cabinet from the inventory.
-func removeCabinet(cmd *cobra.Command, args []string) error {
-	log.Info().Msgf("Not yet implemented")
-	// for _, arg := range args {
-	// 	// Convert the argument to a UUID
-	// 	u, err := uuid.Parse(arg)
-	// 	if err != nil {
-	// 		return fmt.Errorf("Need a UUID to remove: %s", err.Error())
-	// 	}
-	// 	// Remove item from the inventory
-	// 	err = root.Domain.RemoveCabinet(u)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
-	return nil
+	return cmd
 }

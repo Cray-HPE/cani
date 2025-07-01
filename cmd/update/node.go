@@ -23,16 +23,9 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package node
+package update
 
 import (
-	"errors"
-	"sort"
-
-	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/internal/provider"
-	"github.com/google/uuid"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -47,46 +40,46 @@ var UpdateNodeCmd = &cobra.Command{
 
 // updateNode updates a node to the inventory
 func updateNode(cmd *cobra.Command, args []string) (err error) {
-	// Remove the node from the inventory using domain methods
-	if cmd.Flags().Changed("uuid") {
-		// parse the passed in uuid
-		u, err := uuid.Parse(nodeUuid)
-		if err != nil {
-			return err
-		}
-		// get the inventory
-		inv, err := root.D.List()
-		if err != nil {
-			return err
-		}
-		// if the hardware exists, extract the location ordinals for the user
-		if n, ok := inv.Hardware[u]; ok {
-			cabinet = n.LocationPath.GetOrdinalPath()[1]
-			chassis = n.LocationPath.GetOrdinalPath()[2]
-			blade = n.LocationPath.GetOrdinalPath()[3]
-			nodecard = n.LocationPath.GetOrdinalPath()[4]
-			node = n.LocationPath.GetOrdinalPath()[5]
-		}
-	}
+	// // Remove the node from the inventory using domain methods
+	// if cmd.Flags().Changed("uuid") {
+	// 	// parse the passed in uuid
+	// 	u, err := uuid.Parse(nodeUuid)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	// get the inventory
+	// 	inv, err := root.D.List()
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	// if the hardware exists, extract the location ordinals for the user
+	// 	if n, ok := inv.Hardware[u]; ok {
+	// 		cabinet = n.LocationPath.GetOrdinalPath()[1]
+	// 		chassis = n.LocationPath.GetOrdinalPath()[2]
+	// 		blade = n.LocationPath.GetOrdinalPath()[3]
+	// 		nodecard = n.LocationPath.GetOrdinalPath()[4]
+	// 		node = n.LocationPath.GetOrdinalPath()[5]
+	// 	}
+	// }
 
-	result, err := root.D.UpdateNode(cmd, args, cabinet, chassis, blade, nodecard, node)
-	if errors.Is(err, provider.ErrDataValidationFailure) {
-		// TODO the following should probably suggest commands to fix the issue?
-		log.Error().Msgf("Inventory data validation errors encountered")
-		for id, failedValidation := range result.ProviderValidationErrors {
-			log.Error().Msgf("  %s: %s", id, failedValidation.Hardware.LocationPath.String())
-			sort.Strings(failedValidation.Errors)
-			for _, validationError := range failedValidation.Errors {
-				log.Error().Msgf("    - %s", validationError)
-			}
-		}
+	// result, err := root.D.UpdateNode(cmd, args, cabinet, chassis, blade, nodecard, node)
+	// if errors.Is(err, provider.ErrDataValidationFailure) {
+	// 	// TODO the following should probably suggest commands to fix the issue?
+	// 	log.Error().Msgf("Inventory data validation errors encountered")
+	// 	for id, failedValidation := range result.ProviderValidationErrors {
+	// 		log.Error().Msgf("  %s: %s", id, failedValidation.Hardware.LocationPath.String())
+	// 		sort.Strings(failedValidation.Errors)
+	// 		for _, validationError := range failedValidation.Errors {
+	// 			log.Error().Msgf("    - %s", validationError)
+	// 		}
+	// 	}
 
-		return err
-	} else if err != nil {
-		return err
-	}
+	// 	return err
+	// } else if err != nil {
+	// 	return err
+	// }
 
-	// TODO need a better identify, perhaps its UUID, or its location path?
-	log.Info().Msgf("Updated node")
+	// // TODO need a better identify, perhaps its UUID, or its location path?
+	// log.Printf("Updated node")
 	return nil
 }

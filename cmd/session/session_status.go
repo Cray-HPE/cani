@@ -27,10 +27,7 @@ package session
 
 import (
 	"fmt"
-	"os"
 
-	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -44,21 +41,20 @@ var SessionStatusCmd = &cobra.Command{
 
 // showSession shows the status of the session
 func showSession(cmd *cobra.Command, args []string) error {
-	for p, d := range root.Conf.Session.Domains {
-		if d.Active {
-			ds := d.DatastorePath
-			conf := root.RootCmd.PersistentFlags().Lookup("config").Value.String()
-			// If the session is active, check that the datastore exists
-			_, err := os.Stat(ds)
-			if err != nil {
-				return fmt.Errorf("Session is ACTIVE with provider '%s' but datastore '%s' does not exist", p, ds)
-			}
-			log.Info().Msgf("Session is ACTIVE for %s", p)
-			log.Info().Msgf("See %s for session details", conf)
-		} else {
-			log.Info().Msgf("Session is INACTIVE for %s", p)
-		}
-	}
-
-	return nil
+	// for p, d := range root.Conf.Session.Domains {
+	// 	if d.Active {
+	// 		ds := d.DatastorePath
+	// 		conf := root.RootCmd.PersistentFlags().Lookup("config").Value.String()
+	// 		// If the session is active, check that the datastore exists
+	// 		_, err := os.Stat(ds)
+	// 		if err != nil {
+	// 			return fmt.Errorf("Session is ACTIVE with provider '%s' but datastore '%s' does not exist", p, ds)
+	// 		}
+	// 		log.Printf("Session is ACTIVE for %s", p)
+	// 		log.Printf("See %s for session details", conf)
+	// 	} else {
+	// 		log.Printf("Session is INACTIVE for %s", p)
+	// 	}
+	// }
+	return fmt.Errorf("not yet implemented")
 }
