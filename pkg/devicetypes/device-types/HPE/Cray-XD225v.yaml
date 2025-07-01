@@ -1,0 +1,34 @@
+---
+manufacturer: HPE
+model: Cray XD225v Node
+slug: cray-xd225v-node
+hardware-type: NodeBlade
+part_number: P52183-B21
+u_height: 1
+is_full_depth: true
+subdevice_role: child
+console-ports:
+  - name: console
+    type: rj-45-console
+  - name: console usb3
+    type: usb-a
+  - name: VGA
+    type: other
+power-ports:
+  - name: PSU1
+    type: iec-60320-c14
+    allocated_draw: 67
+    maximum_draw: 105
+module-bays:
+  - name: PCIe1
+    position: PCIe1
+    label: primary riser
+  - name: PCIe2
+    position: PCIe2
+    label: primary riser
+interfaces:
+  - name: Management
+    type: 100base-tx
+    mgmt_only: true
+  - name: GigabitEthernet0/0/1
+    type: 1000base-t

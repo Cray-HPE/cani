@@ -23,8 +23,9 @@
 #
 ---
 manufacturer: HPE
-model: ProLiant DL385 Gen11 8SFF
-slug: hpe-proliant-dl385-gen11-8sff
+model: HPE ProLiant DL385 Gen11 8SFF Configure-to-order Server
+slug: hpe-proliant-dl385-gen11-8sff-configure-to-order-server
+hardware-type: NodeBlade
 part_number: P53921-B21
 u_height: 2
 is_full_depth: true

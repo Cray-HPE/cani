@@ -1,0 +1,107 @@
+---
+manufacturer: HPE
+model: HPE 42U 800mmx1200mm G2 Enterprise Shock Rack
+slug: hpe-42u-800mmx1200mm-g2-enterprise-shock-rack
+hardware-type: rack
+part_number: P9K46A
+u_height: 2
+is_full_depth: true
+subdevice_role: parent
+module-bays:
+  - name: PS1
+    position: '1'
+  - name: PS2
+    position: '2'
+  - name: PS3
+    position: '3'
+  - name: PS4
+    position: '4'
+device-bays:
+  - name: TORC bay 1
+    type: "torc"
+  # Reserve the first 4 U's for switches
+  - name: "U1 - Switch Bay 1"
+    type: "switch"
+  - name: "U2 - Switch Bay 2"
+    type: "switch"
+  - name: "U3 - Switch Bay 3"
+    type: "switch"
+  - name: "U4 - Switch Bay 4"
+    type: "switch"
+  # The remaining U's for blades
+  - name: "U5 - Blade Bay 5"
+    type: "blade"
+  - name: "U6 - Blade Bay 6"
+    type: "blade"
+  - name: "U7 - Blade Bay 7"
+    type: "blade"
+  - name: "U8 - Blade Bay 8"
+    type: "blade"
+  - name: "U9 - Blade Bay 9"
+    type: "blade"
+  - name: "U10 - Blade Bay 10"
+    type: "blade"
+  - name: "U11 - Blade Bay 11"
+    type: "blade"
+  - name: "U12 - Blade Bay 12"
+    type: "blade"
+  - name: "U13 - Blade Bay 13"
+    type: "blade"
+  - name: "U14 - Blade Bay 14"
+    type: "blade"
+  - name: "U15 - Blade Bay 15"
+    type: "blade"
+  - name: "U16 - Blade Bay 16"
+    type: "blade"
+  - name: "U17 - Blade Bay 17"
+    type: "blade"
+  - name: "U18 - Blade Bay 18"
+    type: "blade"
+  - name: "U19 - Blade Bay 19"
+    type: "blade"
+  - name: "U20 - Blade Bay 20"
+    type: "blade"
+  - name: "U21 - Blade Bay 21"
+    type: "blade"
+  - name: "U22 - Blade Bay 22"
+    type: "blade"
+  - name: "U23 - Blade Bay 23"
+    type: "blade"
+  - name: "U24 - Blade Bay 24"
+    type: "blade"
+  - name: "U25 - Blade Bay 25"
+    type: "blade"
+  - name: "U26 - Blade Bay 26"
+    type: "blade"
+  - name: "U27 - Blade Bay 27"
+    type: "blade"
+  - name: "U28 - Blade Bay 28"
+    type: "blade"
+  - name: "U29 - Blade Bay 29"
+    type: "blade"
+  - name: "U30 - Blade Bay 30"
+    type: "blade"
+  - name: "U31 - Blade Bay 31"
+    type: "blade"
+  - name: "U32 - Blade Bay 32"
+    type: "blade"
+  - name: "U33 - Blade Bay 33"
+    type: "blade"
+  - name: "U34 - Blade Bay 34"
+    type: "blade"
+  - name: "U35 - Blade Bay 35"
+    type: "blade"
+  - name: "U36 - Blade Bay 36"
+    type: "blade"
+  - name: "U37 - Blade Bay 37"
+    type: "blade"
+  - name: "U38 - Blade Bay 38"
+    type: "blade"
+  - name: "U39 - Blade Bay 39"
+    type: "blade"
+  - name: "U40 - Blade Bay 40"
+    type: "blade"
+  - name: "U41 - Blade Bay 41"
+    type: "blade"
+  - name: "U42 - Blade Bay 42"
+    type: "blade"

@@ -25,6 +25,7 @@
 manufacturer: HPE
 model: HPE Apollo 35 System
 slug: hpe-apollo-35-system
+hardware-type: NodeBlade
 u_height: 2
 is_full_depth: true
 console-ports:

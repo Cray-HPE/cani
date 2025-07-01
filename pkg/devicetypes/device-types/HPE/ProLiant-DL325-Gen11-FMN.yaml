@@ -23,8 +23,9 @@
 #
 ---
 manufacturer: HPE
-model: ProLiant DL325 Gen11 FMN
-slug: hpe-proliant-dl325-gen11-fmn
+model: HPE v3 Fabric Manager Node
+slug: hpe-v3-fabric-manager-node
+hardware-type: NodeBlade
 part_number: S2E06A
 u_height: 1
 is_full_depth: true

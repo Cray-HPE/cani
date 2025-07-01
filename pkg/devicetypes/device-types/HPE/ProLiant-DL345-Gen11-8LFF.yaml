@@ -25,6 +25,7 @@
 manufacturer: HPE
 model: ProLiant DL345 Gen11 8LFF
 slug: hpe-proliant-dl345-gen11-8lff
+hardware-type: NodeBlade
 u_height: 1
 is_full_depth: true
 part_number: P54204-B21

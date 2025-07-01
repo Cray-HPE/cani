@@ -23,8 +23,9 @@
 #
 ---
 manufacturer: HPE
-model: ProLiant DL325 Gen11 8SFF
-slug: hpe-proliant-dl325-gen11-8sff
+model: HPE ProLiant DL325 Gen11 8SFF Configure-to-order Server
+slug: hpe-proliant-dl325-gen11-8sff-configure-to-order-server
+hardware-type: NodeBlade
 part_number: P54199-B21
 u_height: 1
 is_full_depth: true

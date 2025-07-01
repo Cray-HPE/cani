@@ -24,7 +24,8 @@
 ---
 manufacturer: HPE
 model: HPE Aruba Networking 8360-48Y6C v2 Power-to-Port Airflow 5 Fans 2 PSU Attached Bundle
-slug: hpe-aruba-8360-48y6c-v2
+slug: hpe-aruba-networking-8360-48y6c-v2-power-to-port-airflow-5-fans-2-psu-attached-bundle
+hardware-type: ManagementSwitch
 part_number: R9G23A
 u_height: 1
 is_full_depth: false
