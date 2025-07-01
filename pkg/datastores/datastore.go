@@ -23,12 +23,11 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package inventory
+package datastores
 
 import (
 	"errors"
 
-	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 	"github.com/google/uuid"
 )
 
