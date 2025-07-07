@@ -1,0 +1,7711 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="cani documenation">
+      
+      
+        <meta name="author" content="Cray-HPE">
+      
+      
+      
+        <link rel="prev" href="../../troubleshooting/known_errors/">
+      
+      
+        <link rel="next" href="../customizing/">
+      
+      <link rel="icon" href="../../custom_theme/img/favicon.ico">
+      <meta name="generator" content="mkdocs-1.4.3, mkdocs-material-9.1.15">
+    
+    
+<title>CANI</title>
+
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.26e3688c.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ecc896b0.min.css">
+      
+      
+
+    
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#schema-docs" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+          <aside class="md-banner md-banner--warning">
+            <div class="md-banner__inner md-grid md-typeset">
+              
+  You're not viewing the latest version.
+  <a href="../../..">
+    <strong>Click here to go to latest.</strong>
+  </a>
+
+            </div>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),outdated=__md_get("__outdated",sessionStorage);!0===outdated&&el&&(el.hidden=!1)</script>
+          </aside>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="cani" class="md-header__button md-logo" aria-label="cani" data-md-component="logo">
+      
+  <img src="../../custom_theme/img/hpe_pri_wht_rev_rgb.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            cani
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Schema
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+          
+            
+            
+            
+            <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="cani use dark mode?"  type="radio" name="__palette" id="__palette_1">
+            
+              <label class="md-header__button md-icon" title="cani use dark mode?" for="__palette_2" hidden>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+              </label>
+            
+          
+            
+            
+            
+            <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="cani use light mode?"  type="radio" name="__palette" id="__palette_2">
+            
+              <label class="md-header__button md-icon" title="cani use light mode?" for="__palette_1" hidden>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+              </label>
+            
+          
+        </form>
+      
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Cray-HPE/cani" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="cani" class="md-nav__button md-logo" aria-label="cani" data-md-component="logo">
+      
+  <img src="../../custom_theme/img/hpe_pri_wht_rev_rgb.png" alt="logo">
+
+    </a>
+    cani
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Cray-HPE/cani" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        Home
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+          Installation
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_2">
+          <span class="md-nav__icon md-icon"></span>
+          Installation
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../install/rpm_install/" class="md-nav__link">
+        RPM
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../install/go_install/" class="md-nav__link">
+        Go
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          Getting Started
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_3">
+          <span class="md-nav__icon md-icon"></span>
+          Getting Started
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/starting_a_session/" class="md-nav__link">
+        Starting A Session
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/importing_provider_data/" class="md-nav__link">
+        Importing Data
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/adding_hardware/" class="md-nav__link">
+        Adding Hardware
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/updating_hardware/" class="md-nav__link">
+        Updating Hardware
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/validating/" class="md-nav__link">
+        Validating
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/applying_a_session/" class="md-nav__link">
+        Stopping A Session
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          Providers
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_4">
+          <span class="md-nav__icon md-icon"></span>
+          Providers
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../providers/csm/" class="md-nav__link">
+        CSM
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../providers/hpcm/" class="md-nav__link">
+        HPCM
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+          Inventory Format
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_5">
+          <span class="md-nav__icon md-icon"></span>
+          Inventory Format
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../inventory_format/overview/" class="md-nav__link">
+        Overview
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../inventory_format/uuid/" class="md-nav__link">
+        UUID Keys
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../inventory_format/metadata/" class="md-nav__link">
+        Metadata
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+          CRUD Ops
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_6">
+          <span class="md-nav__icon md-icon"></span>
+          CRUD Ops
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../crud/create/" class="md-nav__link">
+        Create (add)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../crud/read/" class="md-nav__link">
+        Read (list)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../crud/update/" class="md-nav__link">
+        Update
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../crud/delete/" class="md-nav__link">
+        Delete (remove)
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+          Development
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_7">
+          <span class="md-nav__icon md-icon"></span>
+          Development
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/simulator/" class="md-nav__link">
+        HSM Simulator
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/vshasta/" class="md-nav__link">
+        vShasta v2
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/testing/" class="md-nav__link">
+        Testing
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/releasing/" class="md-nav__link">
+        Releasing
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/versioning/" class="md-nav__link">
+        Versioning
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+          Troubleshooting
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_8">
+          <span class="md-nav__icon md-icon"></span>
+          Troubleshooting
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/known_errors/" class="md-nav__link">
+        Known Errors
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+    
+  
+  
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" checked>
+      
+      
+      
+        <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+          Hardware Types Library
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="true">
+        <label class="md-nav__title" for="__nav_9">
+          <span class="md-nav__icon md-icon"></span>
+          Hardware Types Library
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Schema
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        Schema
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-property-root-manufacturer" class="md-nav__link">
+    1. Property root &gt; manufacturer
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-property-root-model" class="md-nav__link">
+    2. Property root &gt; model
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-property-root-hardware-type" class="md-nav__link">
+    3. Property root &gt; hardware-type
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-property-root-slug" class="md-nav__link">
+    4. Property root &gt; slug
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-property-root-part_number" class="md-nav__link">
+    5. Property root &gt; part_number
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-property-root-u_height" class="md-nav__link">
+    6. Property root &gt; u_height
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-property-root-is_full_depth" class="md-nav__link">
+    7. Property root &gt; is_full_depth
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-property-root-airflow" class="md-nav__link">
+    8. Property root &gt; airflow
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-property-root-weight" class="md-nav__link">
+    9. Property root &gt; weight
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-property-root-weight_unit" class="md-nav__link">
+    10. Property root &gt; weight_unit
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-property-root-front_image" class="md-nav__link">
+    11. Property root &gt; front_image
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-property-root-rear_image" class="md-nav__link">
+    12. Property root &gt; rear_image
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-property-root-subdevice_role" class="md-nav__link">
+    13. Property root &gt; subdevice_role
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-property-root-console-ports" class="md-nav__link">
+    14. Property root &gt; console-ports
+  </a>
+  
+    <nav class="md-nav" aria-label="14. Property root > console-ports">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#141-root-console-ports-console-port" class="md-nav__link">
+    14.1. root &gt; console-ports &gt; console-port
+  </a>
+  
+    <nav class="md-nav" aria-label="14.1. root > console-ports > console-port">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1411-property-root-console-ports-console-ports-items-name" class="md-nav__link">
+    14.1.1. Property root &gt; console-ports &gt; console-ports items &gt; name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1412-property-root-console-ports-console-ports-items-label" class="md-nav__link">
+    14.1.2. Property root &gt; console-ports &gt; console-ports items &gt; label
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1413-property-root-console-ports-console-ports-items-type" class="md-nav__link">
+    14.1.3. Property root &gt; console-ports &gt; console-ports items &gt; type
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-property-root-console-server-ports" class="md-nav__link">
+    15. Property root &gt; console-server-ports
+  </a>
+  
+    <nav class="md-nav" aria-label="15. Property root > console-server-ports">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#151-root-console-server-ports-console-server-port" class="md-nav__link">
+    15.1. root &gt; console-server-ports &gt; console-server-port
+  </a>
+  
+    <nav class="md-nav" aria-label="15.1. root > console-server-ports > console-server-port">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1511-property-root-console-server-ports-console-server-ports-items-name" class="md-nav__link">
+    15.1.1. Property root &gt; console-server-ports &gt; console-server-ports items &gt; name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1512-property-root-console-server-ports-console-server-ports-items-label" class="md-nav__link">
+    15.1.2. Property root &gt; console-server-ports &gt; console-server-ports items &gt; label
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1513-property-root-console-server-ports-console-server-ports-items-type" class="md-nav__link">
+    15.1.3. Property root &gt; console-server-ports &gt; console-server-ports items &gt; type
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#16-property-root-power-ports" class="md-nav__link">
+    16. Property root &gt; power-ports
+  </a>
+  
+    <nav class="md-nav" aria-label="16. Property root > power-ports">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#161-root-power-ports-power-port" class="md-nav__link">
+    16.1. root &gt; power-ports &gt; power-port
+  </a>
+  
+    <nav class="md-nav" aria-label="16.1. root > power-ports > power-port">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1611-property-root-power-ports-power-ports-items-name" class="md-nav__link">
+    16.1.1. Property root &gt; power-ports &gt; power-ports items &gt; name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1612-property-root-power-ports-power-ports-items-label" class="md-nav__link">
+    16.1.2. Property root &gt; power-ports &gt; power-ports items &gt; label
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1613-property-root-power-ports-power-ports-items-type" class="md-nav__link">
+    16.1.3. Property root &gt; power-ports &gt; power-ports items &gt; type
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1614-property-root-power-ports-power-ports-items-maximum_draw" class="md-nav__link">
+    16.1.4. Property root &gt; power-ports &gt; power-ports items &gt; maximum_draw
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1615-property-root-power-ports-power-ports-items-allocated_draw" class="md-nav__link">
+    16.1.5. Property root &gt; power-ports &gt; power-ports items &gt; allocated_draw
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#17-property-root-power-outlets" class="md-nav__link">
+    17. Property root &gt; power-outlets
+  </a>
+  
+    <nav class="md-nav" aria-label="17. Property root > power-outlets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#171-root-power-outlets-power-outlet" class="md-nav__link">
+    17.1. root &gt; power-outlets &gt; power-outlet
+  </a>
+  
+    <nav class="md-nav" aria-label="17.1. root > power-outlets > power-outlet">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1711-property-root-power-outlets-power-outlets-items-name" class="md-nav__link">
+    17.1.1. Property root &gt; power-outlets &gt; power-outlets items &gt; name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1712-property-root-power-outlets-power-outlets-items-label" class="md-nav__link">
+    17.1.2. Property root &gt; power-outlets &gt; power-outlets items &gt; label
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1713-property-root-power-outlets-power-outlets-items-type" class="md-nav__link">
+    17.1.3. Property root &gt; power-outlets &gt; power-outlets items &gt; type
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1714-property-root-power-outlets-power-outlets-items-power_port" class="md-nav__link">
+    17.1.4. Property root &gt; power-outlets &gt; power-outlets items &gt; power_port
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1715-property-root-power-outlets-power-outlets-items-feed_leg" class="md-nav__link">
+    17.1.5. Property root &gt; power-outlets &gt; power-outlets items &gt; feed_leg
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#18-property-root-interfaces" class="md-nav__link">
+    18. Property root &gt; interfaces
+  </a>
+  
+    <nav class="md-nav" aria-label="18. Property root > interfaces">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#181-root-interfaces-interface" class="md-nav__link">
+    18.1. root &gt; interfaces &gt; interface
+  </a>
+  
+    <nav class="md-nav" aria-label="18.1. root > interfaces > interface">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1811-property-root-interfaces-interfaces-items-name" class="md-nav__link">
+    18.1.1. Property root &gt; interfaces &gt; interfaces items &gt; name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1812-property-root-interfaces-interfaces-items-label" class="md-nav__link">
+    18.1.2. Property root &gt; interfaces &gt; interfaces items &gt; label
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1813-property-root-interfaces-interfaces-items-type" class="md-nav__link">
+    18.1.3. Property root &gt; interfaces &gt; interfaces items &gt; type
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1814-property-root-interfaces-interfaces-items-poe_mode" class="md-nav__link">
+    18.1.4. Property root &gt; interfaces &gt; interfaces items &gt; poe_mode
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1815-property-root-interfaces-interfaces-items-poe_type" class="md-nav__link">
+    18.1.5. Property root &gt; interfaces &gt; interfaces items &gt; poe_type
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1816-property-root-interfaces-interfaces-items-mgmt_only" class="md-nav__link">
+    18.1.6. Property root &gt; interfaces &gt; interfaces items &gt; mgmt_only
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#19-property-root-front-ports" class="md-nav__link">
+    19. Property root &gt; front-ports
+  </a>
+  
+    <nav class="md-nav" aria-label="19. Property root > front-ports">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#191-root-front-ports-front-port" class="md-nav__link">
+    19.1. root &gt; front-ports &gt; front-port
+  </a>
+  
+    <nav class="md-nav" aria-label="19.1. root > front-ports > front-port">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1911-property-root-front-ports-front-ports-items-name" class="md-nav__link">
+    19.1.1. Property root &gt; front-ports &gt; front-ports items &gt; name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1912-property-root-front-ports-front-ports-items-label" class="md-nav__link">
+    19.1.2. Property root &gt; front-ports &gt; front-ports items &gt; label
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1913-property-root-front-ports-front-ports-items-type" class="md-nav__link">
+    19.1.3. Property root &gt; front-ports &gt; front-ports items &gt; type
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1914-property-root-front-ports-front-ports-items-color" class="md-nav__link">
+    19.1.4. Property root &gt; front-ports &gt; front-ports items &gt; color
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1915-property-root-front-ports-front-ports-items-rear_port" class="md-nav__link">
+    19.1.5. Property root &gt; front-ports &gt; front-ports items &gt; rear_port
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1916-property-root-front-ports-front-ports-items-rear_port_position" class="md-nav__link">
+    19.1.6. Property root &gt; front-ports &gt; front-ports items &gt; rear_port_position
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#20-property-root-rear-ports" class="md-nav__link">
+    20. Property root &gt; rear-ports
+  </a>
+  
+    <nav class="md-nav" aria-label="20. Property root > rear-ports">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#201-root-rear-ports-rear-port" class="md-nav__link">
+    20.1. root &gt; rear-ports &gt; rear-port
+  </a>
+  
+    <nav class="md-nav" aria-label="20.1. root > rear-ports > rear-port">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2011-property-root-rear-ports-rear-ports-items-name" class="md-nav__link">
+    20.1.1. Property root &gt; rear-ports &gt; rear-ports items &gt; name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2012-property-root-rear-ports-rear-ports-items-label" class="md-nav__link">
+    20.1.2. Property root &gt; rear-ports &gt; rear-ports items &gt; label
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2013-property-root-rear-ports-rear-ports-items-type" class="md-nav__link">
+    20.1.3. Property root &gt; rear-ports &gt; rear-ports items &gt; type
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2014-property-root-rear-ports-rear-ports-items-color" class="md-nav__link">
+    20.1.4. Property root &gt; rear-ports &gt; rear-ports items &gt; color
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2015-property-root-rear-ports-rear-ports-items-positions" class="md-nav__link">
+    20.1.5. Property root &gt; rear-ports &gt; rear-ports items &gt; positions
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#21-property-root-module-bays" class="md-nav__link">
+    21. Property root &gt; module-bays
+  </a>
+  
+    <nav class="md-nav" aria-label="21. Property root > module-bays">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#211-root-module-bays-module-bay" class="md-nav__link">
+    21.1. root &gt; module-bays &gt; module-bay
+  </a>
+  
+    <nav class="md-nav" aria-label="21.1. root > module-bays > module-bay">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2111-property-root-module-bays-module-bays-items-name" class="md-nav__link">
+    21.1.1. Property root &gt; module-bays &gt; module-bays items &gt; name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2112-property-root-module-bays-module-bays-items-label" class="md-nav__link">
+    21.1.2. Property root &gt; module-bays &gt; module-bays items &gt; label
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2113-property-root-module-bays-module-bays-items-position" class="md-nav__link">
+    21.1.3. Property root &gt; module-bays &gt; module-bays items &gt; position
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#22-property-root-device-bays" class="md-nav__link">
+    22. Property root &gt; device-bays
+  </a>
+  
+    <nav class="md-nav" aria-label="22. Property root > device-bays">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#221-root-device-bays-device-bay" class="md-nav__link">
+    22.1. root &gt; device-bays &gt; device-bay
+  </a>
+  
+    <nav class="md-nav" aria-label="22.1. root > device-bays > device-bay">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2211-property-root-device-bays-device-bays-items-name" class="md-nav__link">
+    22.1.1. Property root &gt; device-bays &gt; device-bays items &gt; name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2212-property-root-device-bays-device-bays-items-label" class="md-nav__link">
+    22.1.2. Property root &gt; device-bays &gt; device-bays items &gt; label
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2213-property-root-device-bays-device-bays-items-ordinal" class="md-nav__link">
+    22.1.3. Property root &gt; device-bays &gt; device-bays items &gt; ordinal
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2214-property-root-device-bays-device-bays-items-allowed" class="md-nav__link">
+    22.1.4. Property root &gt; device-bays &gt; device-bays items &gt; allowed
+  </a>
+  
+    <nav class="md-nav" aria-label="22.1.4. Property root > device-bays > device-bays items > allowed">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#22141-property-root-device-bays-device-bays-items-allowed-slug" class="md-nav__link">
+    22.1.4.1. Property root &gt; device-bays &gt; device-bays items &gt; allowed &gt; slug
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#221411-root-device-bays-device-bays-items-allowed-slug-slug" class="md-nav__link">
+    22.1.4.1.1. root &gt; device-bays &gt; device-bays items &gt; allowed &gt; slug &gt; slug
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22142-property-root-device-bays-device-bays-items-allowed-hardware-type" class="md-nav__link">
+    22.1.4.2. Property root &gt; device-bays &gt; device-bays items &gt; allowed &gt; hardware-type
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#221421-root-device-bays-device-bays-items-allowed-hardware-type-hardware-type" class="md-nav__link">
+    22.1.4.2.1. root &gt; device-bays &gt; device-bays items &gt; allowed &gt; hardware-type &gt; hardware-type
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2215-property-root-device-bays-device-bays-items-default" class="md-nav__link">
+    22.1.5. Property root &gt; device-bays &gt; device-bays items &gt; default
+  </a>
+  
+    <nav class="md-nav" aria-label="22.1.5. Property root > device-bays > device-bays items > default">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#22151-property-root-device-bays-device-bays-items-default-slug" class="md-nav__link">
+    22.1.5.1. Property root &gt; device-bays &gt; device-bays items &gt; default &gt; slug
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#23-property-root-identifications" class="md-nav__link">
+    23. Property root &gt; identifications
+  </a>
+  
+    <nav class="md-nav" aria-label="23. Property root > identifications">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#231-root-identifications-identifications" class="md-nav__link">
+    23.1. root &gt; identifications &gt; identifications
+  </a>
+  
+    <nav class="md-nav" aria-label="23.1. root > identifications > identifications">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2311-property-root-identifications-identifications-manufacturer" class="md-nav__link">
+    23.1.1. Property root &gt; identifications &gt; identifications &gt; manufacturer
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2312-property-root-identifications-identifications-model" class="md-nav__link">
+    23.1.2. Property root &gt; identifications &gt; identifications &gt; model
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2313-property-root-identifications-identifications-part-number" class="md-nav__link">
+    23.1.3. Property root &gt; identifications &gt; identifications &gt; part-number
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#24-property-root-inventory-items" class="md-nav__link">
+    24. Property root &gt; inventory-items
+  </a>
+  
+    <nav class="md-nav" aria-label="24. Property root > inventory-items">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#241-root-inventory-items-inventory-item" class="md-nav__link">
+    24.1. root &gt; inventory-items &gt; inventory-item
+  </a>
+  
+    <nav class="md-nav" aria-label="24.1. root > inventory-items > inventory-item">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2411-property-root-inventory-items-inventory-items-items-name" class="md-nav__link">
+    24.1.1. Property root &gt; inventory-items &gt; inventory-items items &gt; name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2412-property-root-inventory-items-inventory-items-items-label" class="md-nav__link">
+    24.1.2. Property root &gt; inventory-items &gt; inventory-items items &gt; label
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2413-property-root-inventory-items-inventory-items-items-manufacturer" class="md-nav__link">
+    24.1.3. Property root &gt; inventory-items &gt; inventory-items items &gt; manufacturer
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2414-property-root-inventory-items-inventory-items-items-part_id" class="md-nav__link">
+    24.1.4. Property root &gt; inventory-items &gt; inventory-items items &gt; part_id
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#25-property-root-comments" class="md-nav__link">
+    25. Property root &gt; comments
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#26-property-root-provider_defaults" class="md-nav__link">
+    26. Property root &gt; provider_defaults
+  </a>
+  
+    <nav class="md-nav" aria-label="26. Property root > provider_defaults">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#261-property-root-provider_defaults-csm" class="md-nav__link">
+    26.1. Property root &gt; provider_defaults &gt; csm
+  </a>
+  
+    <nav class="md-nav" aria-label="26.1. Property root > provider_defaults > csm">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2611-property-root-provider_defaults-csm-class" class="md-nav__link">
+    26.1.1. Property root &gt; provider_defaults &gt; csm &gt; Class
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2612-property-root-provider_defaults-csm-ordinal" class="md-nav__link">
+    26.1.2. Property root &gt; provider_defaults &gt; csm &gt; Ordinal
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2613-property-root-provider_defaults-csm-startinghmnvlan" class="md-nav__link">
+    26.1.3. Property root &gt; provider_defaults &gt; csm &gt; StartingHmnVlan
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2614-property-root-provider_defaults-csm-endinghmnvlan" class="md-nav__link">
+    26.1.4. Property root &gt; provider_defaults &gt; csm &gt; EndingHmnVlan
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../customizing/" class="md-nav__link">
+        Adding Custom Hardware
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="0">
+          Commands
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_10">
+          <span class="md-nav__icon md-icon"></span>
+          Commands
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani/" class="md-nav__link">
+        Cani
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha/" class="md-nav__link">
+        Cani alpha
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_add/" class="md-nav__link">
+        Cani alpha add
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_add_blade/" class="md-nav__link">
+        Cani alpha add blade
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_add_blade_csm/" class="md-nav__link">
+        Cani alpha add blade csm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_add_blade_ngsm/" class="md-nav__link">
+        Cani alpha add blade ngsm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_add_blade_ngsm_csm/" class="md-nav__link">
+        Cani alpha add blade ngsm csm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_add_cabinet/" class="md-nav__link">
+        Cani alpha add cabinet
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_add_cabinet_csm/" class="md-nav__link">
+        Cani alpha add cabinet csm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_add_cabinet_ngsm/" class="md-nav__link">
+        Cani alpha add cabinet ngsm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_add_cabinet_ngsm_csm/" class="md-nav__link">
+        Cani alpha add cabinet ngsm csm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_add_cdu/" class="md-nav__link">
+        Cani alpha add cdu
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_add_chassis/" class="md-nav__link">
+        Cani alpha add chassis
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_add_node/" class="md-nav__link">
+        Cani alpha add node
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_add_node_csm/" class="md-nav__link">
+        Cani alpha add node csm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_add_node_ngsm/" class="md-nav__link">
+        Cani alpha add node ngsm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_add_node_ngsm_csm/" class="md-nav__link">
+        Cani alpha add node ngsm csm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_add_pdu/" class="md-nav__link">
+        Cani alpha add pdu
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_add_switch/" class="md-nav__link">
+        Cani alpha add switch
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_export/" class="md-nav__link">
+        Cani alpha export
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_export_csm/" class="md-nav__link">
+        Cani alpha export csm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_export_ngsm/" class="md-nav__link">
+        Cani alpha export ngsm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_export_ngsm_csm/" class="md-nav__link">
+        Cani alpha export ngsm csm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_import/" class="md-nav__link">
+        Cani alpha import
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_import_csm/" class="md-nav__link">
+        Cani alpha import csm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_import_ngsm/" class="md-nav__link">
+        Cani alpha import ngsm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_import_ngsm_csm/" class="md-nav__link">
+        Cani alpha import ngsm csm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_list/" class="md-nav__link">
+        Cani alpha list
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_list_blade/" class="md-nav__link">
+        Cani alpha list blade
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_list_blade_csm/" class="md-nav__link">
+        Cani alpha list blade csm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_list_blade_ngsm/" class="md-nav__link">
+        Cani alpha list blade ngsm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_list_blade_ngsm_csm/" class="md-nav__link">
+        Cani alpha list blade ngsm csm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_list_cabinet/" class="md-nav__link">
+        Cani alpha list cabinet
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_list_cabinet_csm/" class="md-nav__link">
+        Cani alpha list cabinet csm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_list_cabinet_ngsm/" class="md-nav__link">
+        Cani alpha list cabinet ngsm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_list_cabinet_ngsm_csm/" class="md-nav__link">
+        Cani alpha list cabinet ngsm csm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_list_cdu/" class="md-nav__link">
+        Cani alpha list cdu
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_list_chassis/" class="md-nav__link">
+        Cani alpha list chassis
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_list_node/" class="md-nav__link">
+        Cani alpha list node
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_list_node_csm/" class="md-nav__link">
+        Cani alpha list node csm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_list_node_ngsm/" class="md-nav__link">
+        Cani alpha list node ngsm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_list_node_ngsm_csm/" class="md-nav__link">
+        Cani alpha list node ngsm csm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_list_pdu/" class="md-nav__link">
+        Cani alpha list pdu
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_list_switch/" class="md-nav__link">
+        Cani alpha list switch
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_remove/" class="md-nav__link">
+        Cani alpha remove
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_remove_blade/" class="md-nav__link">
+        Cani alpha remove blade
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_remove_cabinet/" class="md-nav__link">
+        Cani alpha remove cabinet
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_remove_cdu/" class="md-nav__link">
+        Cani alpha remove cdu
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_remove_chassis/" class="md-nav__link">
+        Cani alpha remove chassis
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_remove_node/" class="md-nav__link">
+        Cani alpha remove node
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_remove_pdu/" class="md-nav__link">
+        Cani alpha remove pdu
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_remove_switch/" class="md-nav__link">
+        Cani alpha remove switch
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_session/" class="md-nav__link">
+        Cani alpha session
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_session_apply/" class="md-nav__link">
+        Cani alpha session apply
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_session_init/" class="md-nav__link">
+        Cani alpha session init
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_session_init_csm/" class="md-nav__link">
+        Cani alpha session init csm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_session_init_ngsm/" class="md-nav__link">
+        Cani alpha session init ngsm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_session_init_ngsm_csm/" class="md-nav__link">
+        Cani alpha session init ngsm csm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_session_status/" class="md-nav__link">
+        Cani alpha session status
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_session_summary/" class="md-nav__link">
+        Cani alpha session summary
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_update/" class="md-nav__link">
+        Cani alpha update
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_update_node/" class="md-nav__link">
+        Cani alpha update node
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_update_node_csm/" class="md-nav__link">
+        Cani alpha update node csm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_update_node_ngsm/" class="md-nav__link">
+        Cani alpha update node ngsm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_update_node_ngsm_csm/" class="md-nav__link">
+        Cani alpha update node ngsm csm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_alpha_validate/" class="md-nav__link">
+        Cani alpha validate
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_completion/" class="md-nav__link">
+        Cani completion
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_completion_bash/" class="md-nav__link">
+        Cani completion bash
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_completion_fish/" class="md-nav__link">
+        Cani completion fish
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_completion_powershell/" class="md-nav__link">
+        Cani completion powershell
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_completion_zsh/" class="md-nav__link">
+        Cani completion zsh
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_makedocs/" class="md-nav__link">
+        Cani makedocs
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/cani_version/" class="md-nav__link">
+        Cani version
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="0">
+          Getting started
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_11">
+          <span class="md-nav__icon md-icon"></span>
+          Getting started
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/export_and_import_data/" class="md-nav__link">
+        Export and Import Data using CSV
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-property-root-manufacturer" class="md-nav__link">
+    1. Property root &gt; manufacturer
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-property-root-model" class="md-nav__link">
+    2. Property root &gt; model
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-property-root-hardware-type" class="md-nav__link">
+    3. Property root &gt; hardware-type
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-property-root-slug" class="md-nav__link">
+    4. Property root &gt; slug
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-property-root-part_number" class="md-nav__link">
+    5. Property root &gt; part_number
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-property-root-u_height" class="md-nav__link">
+    6. Property root &gt; u_height
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-property-root-is_full_depth" class="md-nav__link">
+    7. Property root &gt; is_full_depth
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-property-root-airflow" class="md-nav__link">
+    8. Property root &gt; airflow
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-property-root-weight" class="md-nav__link">
+    9. Property root &gt; weight
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-property-root-weight_unit" class="md-nav__link">
+    10. Property root &gt; weight_unit
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-property-root-front_image" class="md-nav__link">
+    11. Property root &gt; front_image
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-property-root-rear_image" class="md-nav__link">
+    12. Property root &gt; rear_image
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-property-root-subdevice_role" class="md-nav__link">
+    13. Property root &gt; subdevice_role
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-property-root-console-ports" class="md-nav__link">
+    14. Property root &gt; console-ports
+  </a>
+  
+    <nav class="md-nav" aria-label="14. Property root > console-ports">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#141-root-console-ports-console-port" class="md-nav__link">
+    14.1. root &gt; console-ports &gt; console-port
+  </a>
+  
+    <nav class="md-nav" aria-label="14.1. root > console-ports > console-port">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1411-property-root-console-ports-console-ports-items-name" class="md-nav__link">
+    14.1.1. Property root &gt; console-ports &gt; console-ports items &gt; name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1412-property-root-console-ports-console-ports-items-label" class="md-nav__link">
+    14.1.2. Property root &gt; console-ports &gt; console-ports items &gt; label
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1413-property-root-console-ports-console-ports-items-type" class="md-nav__link">
+    14.1.3. Property root &gt; console-ports &gt; console-ports items &gt; type
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-property-root-console-server-ports" class="md-nav__link">
+    15. Property root &gt; console-server-ports
+  </a>
+  
+    <nav class="md-nav" aria-label="15. Property root > console-server-ports">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#151-root-console-server-ports-console-server-port" class="md-nav__link">
+    15.1. root &gt; console-server-ports &gt; console-server-port
+  </a>
+  
+    <nav class="md-nav" aria-label="15.1. root > console-server-ports > console-server-port">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1511-property-root-console-server-ports-console-server-ports-items-name" class="md-nav__link">
+    15.1.1. Property root &gt; console-server-ports &gt; console-server-ports items &gt; name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1512-property-root-console-server-ports-console-server-ports-items-label" class="md-nav__link">
+    15.1.2. Property root &gt; console-server-ports &gt; console-server-ports items &gt; label
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1513-property-root-console-server-ports-console-server-ports-items-type" class="md-nav__link">
+    15.1.3. Property root &gt; console-server-ports &gt; console-server-ports items &gt; type
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#16-property-root-power-ports" class="md-nav__link">
+    16. Property root &gt; power-ports
+  </a>
+  
+    <nav class="md-nav" aria-label="16. Property root > power-ports">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#161-root-power-ports-power-port" class="md-nav__link">
+    16.1. root &gt; power-ports &gt; power-port
+  </a>
+  
+    <nav class="md-nav" aria-label="16.1. root > power-ports > power-port">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1611-property-root-power-ports-power-ports-items-name" class="md-nav__link">
+    16.1.1. Property root &gt; power-ports &gt; power-ports items &gt; name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1612-property-root-power-ports-power-ports-items-label" class="md-nav__link">
+    16.1.2. Property root &gt; power-ports &gt; power-ports items &gt; label
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1613-property-root-power-ports-power-ports-items-type" class="md-nav__link">
+    16.1.3. Property root &gt; power-ports &gt; power-ports items &gt; type
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1614-property-root-power-ports-power-ports-items-maximum_draw" class="md-nav__link">
+    16.1.4. Property root &gt; power-ports &gt; power-ports items &gt; maximum_draw
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1615-property-root-power-ports-power-ports-items-allocated_draw" class="md-nav__link">
+    16.1.5. Property root &gt; power-ports &gt; power-ports items &gt; allocated_draw
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#17-property-root-power-outlets" class="md-nav__link">
+    17. Property root &gt; power-outlets
+  </a>
+  
+    <nav class="md-nav" aria-label="17. Property root > power-outlets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#171-root-power-outlets-power-outlet" class="md-nav__link">
+    17.1. root &gt; power-outlets &gt; power-outlet
+  </a>
+  
+    <nav class="md-nav" aria-label="17.1. root > power-outlets > power-outlet">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1711-property-root-power-outlets-power-outlets-items-name" class="md-nav__link">
+    17.1.1. Property root &gt; power-outlets &gt; power-outlets items &gt; name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1712-property-root-power-outlets-power-outlets-items-label" class="md-nav__link">
+    17.1.2. Property root &gt; power-outlets &gt; power-outlets items &gt; label
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1713-property-root-power-outlets-power-outlets-items-type" class="md-nav__link">
+    17.1.3. Property root &gt; power-outlets &gt; power-outlets items &gt; type
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1714-property-root-power-outlets-power-outlets-items-power_port" class="md-nav__link">
+    17.1.4. Property root &gt; power-outlets &gt; power-outlets items &gt; power_port
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1715-property-root-power-outlets-power-outlets-items-feed_leg" class="md-nav__link">
+    17.1.5. Property root &gt; power-outlets &gt; power-outlets items &gt; feed_leg
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#18-property-root-interfaces" class="md-nav__link">
+    18. Property root &gt; interfaces
+  </a>
+  
+    <nav class="md-nav" aria-label="18. Property root > interfaces">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#181-root-interfaces-interface" class="md-nav__link">
+    18.1. root &gt; interfaces &gt; interface
+  </a>
+  
+    <nav class="md-nav" aria-label="18.1. root > interfaces > interface">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1811-property-root-interfaces-interfaces-items-name" class="md-nav__link">
+    18.1.1. Property root &gt; interfaces &gt; interfaces items &gt; name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1812-property-root-interfaces-interfaces-items-label" class="md-nav__link">
+    18.1.2. Property root &gt; interfaces &gt; interfaces items &gt; label
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1813-property-root-interfaces-interfaces-items-type" class="md-nav__link">
+    18.1.3. Property root &gt; interfaces &gt; interfaces items &gt; type
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1814-property-root-interfaces-interfaces-items-poe_mode" class="md-nav__link">
+    18.1.4. Property root &gt; interfaces &gt; interfaces items &gt; poe_mode
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1815-property-root-interfaces-interfaces-items-poe_type" class="md-nav__link">
+    18.1.5. Property root &gt; interfaces &gt; interfaces items &gt; poe_type
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1816-property-root-interfaces-interfaces-items-mgmt_only" class="md-nav__link">
+    18.1.6. Property root &gt; interfaces &gt; interfaces items &gt; mgmt_only
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#19-property-root-front-ports" class="md-nav__link">
+    19. Property root &gt; front-ports
+  </a>
+  
+    <nav class="md-nav" aria-label="19. Property root > front-ports">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#191-root-front-ports-front-port" class="md-nav__link">
+    19.1. root &gt; front-ports &gt; front-port
+  </a>
+  
+    <nav class="md-nav" aria-label="19.1. root > front-ports > front-port">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1911-property-root-front-ports-front-ports-items-name" class="md-nav__link">
+    19.1.1. Property root &gt; front-ports &gt; front-ports items &gt; name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1912-property-root-front-ports-front-ports-items-label" class="md-nav__link">
+    19.1.2. Property root &gt; front-ports &gt; front-ports items &gt; label
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1913-property-root-front-ports-front-ports-items-type" class="md-nav__link">
+    19.1.3. Property root &gt; front-ports &gt; front-ports items &gt; type
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1914-property-root-front-ports-front-ports-items-color" class="md-nav__link">
+    19.1.4. Property root &gt; front-ports &gt; front-ports items &gt; color
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1915-property-root-front-ports-front-ports-items-rear_port" class="md-nav__link">
+    19.1.5. Property root &gt; front-ports &gt; front-ports items &gt; rear_port
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1916-property-root-front-ports-front-ports-items-rear_port_position" class="md-nav__link">
+    19.1.6. Property root &gt; front-ports &gt; front-ports items &gt; rear_port_position
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#20-property-root-rear-ports" class="md-nav__link">
+    20. Property root &gt; rear-ports
+  </a>
+  
+    <nav class="md-nav" aria-label="20. Property root > rear-ports">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#201-root-rear-ports-rear-port" class="md-nav__link">
+    20.1. root &gt; rear-ports &gt; rear-port
+  </a>
+  
+    <nav class="md-nav" aria-label="20.1. root > rear-ports > rear-port">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2011-property-root-rear-ports-rear-ports-items-name" class="md-nav__link">
+    20.1.1. Property root &gt; rear-ports &gt; rear-ports items &gt; name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2012-property-root-rear-ports-rear-ports-items-label" class="md-nav__link">
+    20.1.2. Property root &gt; rear-ports &gt; rear-ports items &gt; label
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2013-property-root-rear-ports-rear-ports-items-type" class="md-nav__link">
+    20.1.3. Property root &gt; rear-ports &gt; rear-ports items &gt; type
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2014-property-root-rear-ports-rear-ports-items-color" class="md-nav__link">
+    20.1.4. Property root &gt; rear-ports &gt; rear-ports items &gt; color
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2015-property-root-rear-ports-rear-ports-items-positions" class="md-nav__link">
+    20.1.5. Property root &gt; rear-ports &gt; rear-ports items &gt; positions
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#21-property-root-module-bays" class="md-nav__link">
+    21. Property root &gt; module-bays
+  </a>
+  
+    <nav class="md-nav" aria-label="21. Property root > module-bays">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#211-root-module-bays-module-bay" class="md-nav__link">
+    21.1. root &gt; module-bays &gt; module-bay
+  </a>
+  
+    <nav class="md-nav" aria-label="21.1. root > module-bays > module-bay">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2111-property-root-module-bays-module-bays-items-name" class="md-nav__link">
+    21.1.1. Property root &gt; module-bays &gt; module-bays items &gt; name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2112-property-root-module-bays-module-bays-items-label" class="md-nav__link">
+    21.1.2. Property root &gt; module-bays &gt; module-bays items &gt; label
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2113-property-root-module-bays-module-bays-items-position" class="md-nav__link">
+    21.1.3. Property root &gt; module-bays &gt; module-bays items &gt; position
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#22-property-root-device-bays" class="md-nav__link">
+    22. Property root &gt; device-bays
+  </a>
+  
+    <nav class="md-nav" aria-label="22. Property root > device-bays">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#221-root-device-bays-device-bay" class="md-nav__link">
+    22.1. root &gt; device-bays &gt; device-bay
+  </a>
+  
+    <nav class="md-nav" aria-label="22.1. root > device-bays > device-bay">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2211-property-root-device-bays-device-bays-items-name" class="md-nav__link">
+    22.1.1. Property root &gt; device-bays &gt; device-bays items &gt; name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2212-property-root-device-bays-device-bays-items-label" class="md-nav__link">
+    22.1.2. Property root &gt; device-bays &gt; device-bays items &gt; label
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2213-property-root-device-bays-device-bays-items-ordinal" class="md-nav__link">
+    22.1.3. Property root &gt; device-bays &gt; device-bays items &gt; ordinal
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2214-property-root-device-bays-device-bays-items-allowed" class="md-nav__link">
+    22.1.4. Property root &gt; device-bays &gt; device-bays items &gt; allowed
+  </a>
+  
+    <nav class="md-nav" aria-label="22.1.4. Property root > device-bays > device-bays items > allowed">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#22141-property-root-device-bays-device-bays-items-allowed-slug" class="md-nav__link">
+    22.1.4.1. Property root &gt; device-bays &gt; device-bays items &gt; allowed &gt; slug
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#221411-root-device-bays-device-bays-items-allowed-slug-slug" class="md-nav__link">
+    22.1.4.1.1. root &gt; device-bays &gt; device-bays items &gt; allowed &gt; slug &gt; slug
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22142-property-root-device-bays-device-bays-items-allowed-hardware-type" class="md-nav__link">
+    22.1.4.2. Property root &gt; device-bays &gt; device-bays items &gt; allowed &gt; hardware-type
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#221421-root-device-bays-device-bays-items-allowed-hardware-type-hardware-type" class="md-nav__link">
+    22.1.4.2.1. root &gt; device-bays &gt; device-bays items &gt; allowed &gt; hardware-type &gt; hardware-type
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2215-property-root-device-bays-device-bays-items-default" class="md-nav__link">
+    22.1.5. Property root &gt; device-bays &gt; device-bays items &gt; default
+  </a>
+  
+    <nav class="md-nav" aria-label="22.1.5. Property root > device-bays > device-bays items > default">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#22151-property-root-device-bays-device-bays-items-default-slug" class="md-nav__link">
+    22.1.5.1. Property root &gt; device-bays &gt; device-bays items &gt; default &gt; slug
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#23-property-root-identifications" class="md-nav__link">
+    23. Property root &gt; identifications
+  </a>
+  
+    <nav class="md-nav" aria-label="23. Property root > identifications">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#231-root-identifications-identifications" class="md-nav__link">
+    23.1. root &gt; identifications &gt; identifications
+  </a>
+  
+    <nav class="md-nav" aria-label="23.1. root > identifications > identifications">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2311-property-root-identifications-identifications-manufacturer" class="md-nav__link">
+    23.1.1. Property root &gt; identifications &gt; identifications &gt; manufacturer
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2312-property-root-identifications-identifications-model" class="md-nav__link">
+    23.1.2. Property root &gt; identifications &gt; identifications &gt; model
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2313-property-root-identifications-identifications-part-number" class="md-nav__link">
+    23.1.3. Property root &gt; identifications &gt; identifications &gt; part-number
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#24-property-root-inventory-items" class="md-nav__link">
+    24. Property root &gt; inventory-items
+  </a>
+  
+    <nav class="md-nav" aria-label="24. Property root > inventory-items">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#241-root-inventory-items-inventory-item" class="md-nav__link">
+    24.1. root &gt; inventory-items &gt; inventory-item
+  </a>
+  
+    <nav class="md-nav" aria-label="24.1. root > inventory-items > inventory-item">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2411-property-root-inventory-items-inventory-items-items-name" class="md-nav__link">
+    24.1.1. Property root &gt; inventory-items &gt; inventory-items items &gt; name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2412-property-root-inventory-items-inventory-items-items-label" class="md-nav__link">
+    24.1.2. Property root &gt; inventory-items &gt; inventory-items items &gt; label
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2413-property-root-inventory-items-inventory-items-items-manufacturer" class="md-nav__link">
+    24.1.3. Property root &gt; inventory-items &gt; inventory-items items &gt; manufacturer
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2414-property-root-inventory-items-inventory-items-items-part_id" class="md-nav__link">
+    24.1.4. Property root &gt; inventory-items &gt; inventory-items items &gt; part_id
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#25-property-root-comments" class="md-nav__link">
+    25. Property root &gt; comments
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#26-property-root-provider_defaults" class="md-nav__link">
+    26. Property root &gt; provider_defaults
+  </a>
+  
+    <nav class="md-nav" aria-label="26. Property root > provider_defaults">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#261-property-root-provider_defaults-csm" class="md-nav__link">
+    26.1. Property root &gt; provider_defaults &gt; csm
+  </a>
+  
+    <nav class="md-nav" aria-label="26.1. Property root > provider_defaults > csm">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2611-property-root-provider_defaults-csm-class" class="md-nav__link">
+    26.1.1. Property root &gt; provider_defaults &gt; csm &gt; Class
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2612-property-root-provider_defaults-csm-ordinal" class="md-nav__link">
+    26.1.2. Property root &gt; provider_defaults &gt; csm &gt; Ordinal
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2613-property-root-provider_defaults-csm-startinghmnvlan" class="md-nav__link">
+    26.1.3. Property root &gt; provider_defaults &gt; csm &gt; StartingHmnVlan
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2614-property-root-provider_defaults-csm-endinghmnvlan" class="md-nav__link">
+    26.1.4. Property root &gt; provider_defaults &gt; csm &gt; EndingHmnVlan
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="schema-docs">Schema Docs</h1>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>object</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Additional properties</strong></td>
+<td><a href="#" title="Additional Properties not allowed.">[Not allowed]</a></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Pattern</th>
+<th>Type</th>
+<th>Deprecated</th>
+<th>Definition</th>
+<th>Title/Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>+ <a href="#manufacturer">manufacturer</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>+ <a href="#model">model</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>+ <a href="#hardware-type">hardware-type</a></td>
+<td>No</td>
+<td>enum (of string)</td>
+<td>No</td>
+<td>In types.json#/definitions/hardware-type</td>
+<td>-</td>
+</tr>
+<tr>
+<td>+ <a href="#slug">slug</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>In components.json#/definitions/slug</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#part_number">part_number</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#u_height">u_height</a></td>
+<td>No</td>
+<td>number</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#is_full_depth">is_full_depth</a></td>
+<td>No</td>
+<td>boolean</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#airflow">airflow</a></td>
+<td>No</td>
+<td>enum (of string)</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#weight">weight</a></td>
+<td>No</td>
+<td>number</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#weight_unit">weight_unit</a></td>
+<td>No</td>
+<td>enum (of string)</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#front_image">front_image</a></td>
+<td>No</td>
+<td>boolean</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#rear_image">rear_image</a></td>
+<td>No</td>
+<td>boolean</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#subdevice_role">subdevice_role</a></td>
+<td>No</td>
+<td>enum (of string)</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#console-ports">console-ports</a></td>
+<td>No</td>
+<td>array</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#console-server-ports">console-server-ports</a></td>
+<td>No</td>
+<td>array</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#power-ports">power-ports</a></td>
+<td>No</td>
+<td>array</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#power-outlets">power-outlets</a></td>
+<td>No</td>
+<td>array</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#interfaces">interfaces</a></td>
+<td>No</td>
+<td>array</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#front-ports">front-ports</a></td>
+<td>No</td>
+<td>array</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#rear-ports">rear-ports</a></td>
+<td>No</td>
+<td>array</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#module-bays">module-bays</a></td>
+<td>No</td>
+<td>array</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#device-bays">device-bays</a></td>
+<td>No</td>
+<td>array</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#identifications">identifications</a></td>
+<td>No</td>
+<td>array</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#inventory-items">inventory-items</a></td>
+<td>No</td>
+<td>array</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#comments">comments</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#provider_defaults">provider_defaults</a></td>
+<td>No</td>
+<td>object</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h2 id="1-property-root-manufacturer"><a name="manufacturer"></a>1. Property <code>root &gt; manufacturer</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h2 id="2-property-root-model"><a name="model"></a>2. Property <code>root &gt; model</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h2 id="3-property-root-hardware-type"><a name="hardware-type"></a>3. Property <code>root &gt; hardware-type</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>enum (of string)</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Defined in</strong></td>
+<td>types.json#/definitions/hardware-type</td>
+</tr>
+</tbody>
+</table>
+<p>Must be one of:</p>
+<ul>
+<li>"Cabinet"</li>
+<li>"Chassis"</li>
+<li>"ChassisManagementModule"</li>
+<li>"CabinetEnvironmentalController"</li>
+<li>"NodeBlade"</li>
+<li>"NodeCard"</li>
+<li>"NodeController"</li>
+<li>"Node"</li>
+<li>"ManagementSwitchEnclosure"</li>
+<li>"ManagementSwitch"</li>
+<li>"ManagementSwitchController"</li>
+<li>"HighSpeedSwitchEnclosure"</li>
+<li>"HighSpeedSwitch"</li>
+<li>"HighSpeedSwitchController"</li>
+<li>"CabinetPDUController"</li>
+<li>"CabinetPDU"</li>
+<li>"CoolingDistributionUnit"</li>
+</ul>
+<h2 id="4-property-root-slug"><a name="slug"></a>4. Property <code>root &gt; slug</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Defined in</strong></td>
+<td>components.json#/definitions/slug</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Restrictions</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Must match regular expression</strong></td>
+<td><code>^[-a-z0-9_]+$</code> <a href="https://regex101.com/?regex=%5E%5B-a-z0-9_%5D%2B%24">Test</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="5-property-root-part_number"><a name="part_number"></a>5. Property <code>root &gt; part_number</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h2 id="6-property-root-u_height"><a name="u_height"></a>6. Property <code>root &gt; u_height</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>number</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Restrictions</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Multiple of</strong></td>
+<td>0.5</td>
+</tr>
+<tr>
+<td><strong>Minimum</strong></td>
+<td>&ge; 0</td>
+</tr>
+</tbody>
+</table>
+<h2 id="7-property-root-is_full_depth"><a name="is_full_depth"></a>7. Property <code>root &gt; is_full_depth</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>boolean</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h2 id="8-property-root-airflow"><a name="airflow"></a>8. Property <code>root &gt; airflow</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>enum (of string)</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p>Must be one of:</p>
+<ul>
+<li>"front-to-rear"</li>
+<li>"rear-to-front"</li>
+<li>"left-to-right"</li>
+<li>"right-to-left"</li>
+<li>"side-to-rear"</li>
+<li>"passive"</li>
+</ul>
+<h2 id="9-property-root-weight"><a name="weight"></a>9. Property <code>root &gt; weight</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>number</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Restrictions</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Multiple of</strong></td>
+<td>0.01</td>
+</tr>
+<tr>
+<td><strong>Minimum</strong></td>
+<td>&ge; 0</td>
+</tr>
+</tbody>
+</table>
+<h2 id="10-property-root-weight_unit"><a name="weight_unit"></a>10. Property <code>root &gt; weight_unit</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>enum (of string)</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p>Must be one of:</p>
+<ul>
+<li>"kg"</li>
+<li>"g"</li>
+<li>"lb"</li>
+<li>"oz"</li>
+</ul>
+<h2 id="11-property-root-front_image"><a name="front_image"></a>11. Property <code>root &gt; front_image</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>boolean</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h2 id="12-property-root-rear_image"><a name="rear_image"></a>12. Property <code>root &gt; rear_image</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>boolean</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h2 id="13-property-root-subdevice_role"><a name="subdevice_role"></a>13. Property <code>root &gt; subdevice_role</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>enum (of string)</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p>Must be one of:</p>
+<ul>
+<li>"parent"</li>
+<li>"child"</li>
+</ul>
+<h2 id="14-property-root-console-ports"><a name="console-ports"></a>14. Property <code>root &gt; console-ports</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Array restrictions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Min items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Max items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Items unicity</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Additional items</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Tuple validation</strong></td>
+<td>See below</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Each item of this array must be</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#console-ports_items">console-port</a></td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h3 id="141-root-console-ports-console-port"><a name="autogenerated_heading_2"></a>14.1. root &gt; console-ports &gt; console-port</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>object</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Additional properties</strong></td>
+<td><a href="#" title="Additional Properties not allowed.">[Not allowed]</a></td>
+</tr>
+<tr>
+<td><strong>Defined in</strong></td>
+<td>components.json#/definitions/console-port</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Pattern</th>
+<th>Type</th>
+<th>Deprecated</th>
+<th>Definition</th>
+<th>Title/Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>+ <a href="#console-ports_items_name">name</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#console-ports_items_label">label</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>+ <a href="#console-ports_items_type">type</a></td>
+<td>No</td>
+<td>enum (of string)</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1411-property-root-console-ports-console-ports-items-name"><a name="console-ports_items_name"></a>14.1.1. Property <code>root &gt; console-ports &gt; console-ports items &gt; name</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1412-property-root-console-ports-console-ports-items-label"><a name="console-ports_items_label"></a>14.1.2. Property <code>root &gt; console-ports &gt; console-ports items &gt; label</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1413-property-root-console-ports-console-ports-items-type"><a name="console-ports_items_type"></a>14.1.3. Property <code>root &gt; console-ports &gt; console-ports items &gt; type</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>enum (of string)</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<p>Must be one of:</p>
+<ul>
+<li>"de-9"</li>
+<li>"db-25"</li>
+<li>"rj-11"</li>
+<li>"rj-12"</li>
+<li>"rj-45"</li>
+<li>"mini-din-8"</li>
+<li>"usb-a"</li>
+<li>"usb-b"</li>
+<li>"usb-c"</li>
+<li>"usb-mini-a"</li>
+<li>"usb-mini-b"</li>
+<li>"usb-micro-a"</li>
+<li>"usb-micro-b"</li>
+<li>"usb-micro-ab"</li>
+<li>"other"</li>
+</ul>
+<h2 id="15-property-root-console-server-ports"><a name="console-server-ports"></a>15. Property <code>root &gt; console-server-ports</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Array restrictions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Min items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Max items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Items unicity</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Additional items</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Tuple validation</strong></td>
+<td>See below</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Each item of this array must be</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#console-server-ports_items">console-server-port</a></td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h3 id="151-root-console-server-ports-console-server-port"><a name="autogenerated_heading_3"></a>15.1. root &gt; console-server-ports &gt; console-server-port</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>object</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Additional properties</strong></td>
+<td><a href="#" title="Additional Properties not allowed.">[Not allowed]</a></td>
+</tr>
+<tr>
+<td><strong>Defined in</strong></td>
+<td>components.json#/definitions/console-server-port</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Pattern</th>
+<th>Type</th>
+<th>Deprecated</th>
+<th>Definition</th>
+<th>Title/Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>+ <a href="#console-server-ports_items_name">name</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#console-server-ports_items_label">label</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>+ <a href="#console-server-ports_items_type">type</a></td>
+<td>No</td>
+<td>enum (of string)</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1511-property-root-console-server-ports-console-server-ports-items-name"><a name="console-server-ports_items_name"></a>15.1.1. Property <code>root &gt; console-server-ports &gt; console-server-ports items &gt; name</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1512-property-root-console-server-ports-console-server-ports-items-label"><a name="console-server-ports_items_label"></a>15.1.2. Property <code>root &gt; console-server-ports &gt; console-server-ports items &gt; label</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1513-property-root-console-server-ports-console-server-ports-items-type"><a name="console-server-ports_items_type"></a>15.1.3. Property <code>root &gt; console-server-ports &gt; console-server-ports items &gt; type</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>enum (of string)</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<p>Must be one of:</p>
+<ul>
+<li>"de-9"</li>
+<li>"db-25"</li>
+<li>"rj-12"</li>
+<li>"rj-45"</li>
+<li>"mini-din-8"</li>
+<li>"usb-a"</li>
+<li>"usb-b"</li>
+<li>"usb-c"</li>
+<li>"usb-mini-a"</li>
+<li>"usb-mini-b"</li>
+<li>"usb-micro-a"</li>
+<li>"usb-micro-b"</li>
+<li>"usb-micro-ab"</li>
+<li>"other"</li>
+</ul>
+<h2 id="16-property-root-power-ports"><a name="power-ports"></a>16. Property <code>root &gt; power-ports</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Array restrictions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Min items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Max items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Items unicity</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Additional items</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Tuple validation</strong></td>
+<td>See below</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Each item of this array must be</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#power-ports_items">power-port</a></td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h3 id="161-root-power-ports-power-port"><a name="autogenerated_heading_4"></a>16.1. root &gt; power-ports &gt; power-port</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>object</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Additional properties</strong></td>
+<td><a href="#" title="Additional Properties not allowed.">[Not allowed]</a></td>
+</tr>
+<tr>
+<td><strong>Defined in</strong></td>
+<td>components.json#/definitions/power-port</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Pattern</th>
+<th>Type</th>
+<th>Deprecated</th>
+<th>Definition</th>
+<th>Title/Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>+ <a href="#power-ports_items_name">name</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#power-ports_items_label">label</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>+ <a href="#power-ports_items_type">type</a></td>
+<td>No</td>
+<td>enum (of string)</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#power-ports_items_maximum_draw">maximum_draw</a></td>
+<td>No</td>
+<td>integer</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#power-ports_items_allocated_draw">allocated_draw</a></td>
+<td>No</td>
+<td>integer</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1611-property-root-power-ports-power-ports-items-name"><a name="power-ports_items_name"></a>16.1.1. Property <code>root &gt; power-ports &gt; power-ports items &gt; name</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1612-property-root-power-ports-power-ports-items-label"><a name="power-ports_items_label"></a>16.1.2. Property <code>root &gt; power-ports &gt; power-ports items &gt; label</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1613-property-root-power-ports-power-ports-items-type"><a name="power-ports_items_type"></a>16.1.3. Property <code>root &gt; power-ports &gt; power-ports items &gt; type</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>enum (of string)</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<p>Must be one of:</p>
+<ul>
+<li>"iec-60320-c6"</li>
+<li>"iec-60320-c8"</li>
+<li>"iec-60320-c14"</li>
+<li>"iec-60320-c16"</li>
+<li>"iec-60320-c20"</li>
+<li>"iec-60320-c22"</li>
+<li>"iec-60309-p-n-e-4h"</li>
+<li>"iec-60309-p-n-e-6h"</li>
+<li>"iec-60309-p-n-e-9h"</li>
+<li>"iec-60309-2p-e-4h"</li>
+<li>"iec-60309-2p-e-6h"</li>
+<li>"iec-60309-2p-e-9h"</li>
+<li>"iec-60309-3p-e-4h"</li>
+<li>"iec-60309-3p-e-6h"</li>
+<li>"iec-60309-3p-e-9h"</li>
+<li>"iec-60309-3p-n-e-4h"</li>
+<li>"iec-60309-3p-n-e-6h"</li>
+<li>"iec-60309-3p-n-e-9h"</li>
+<li>"nema-1-15p"</li>
+<li>"nema-5-15p"</li>
+<li>"nema-5-20p"</li>
+<li>"nema-5-30p"</li>
+<li>"nema-5-50p"</li>
+<li>"nema-6-15p"</li>
+<li>"nema-6-20p"</li>
+<li>"nema-6-30p"</li>
+<li>"nema-6-50p"</li>
+<li>"nema-10-30p"</li>
+<li>"nema-10-50p"</li>
+<li>"nema-14-20p"</li>
+<li>"nema-14-30p"</li>
+<li>"nema-14-50p"</li>
+<li>"nema-14-60p"</li>
+<li>"nema-15-15p"</li>
+<li>"nema-15-20p"</li>
+<li>"nema-15-30p"</li>
+<li>"nema-15-50p"</li>
+<li>"nema-15-60p"</li>
+<li>"nema-l1-15p"</li>
+<li>"nema-l5-15p"</li>
+<li>"nema-l5-20p"</li>
+<li>"nema-l5-30p"</li>
+<li>"nema-l5-50p"</li>
+<li>"nema-l6-15p"</li>
+<li>"nema-l6-20p"</li>
+<li>"nema-l6-30p"</li>
+<li>"nema-l6-50p"</li>
+<li>"nema-l10-30p"</li>
+<li>"nema-l14-20p"</li>
+<li>"nema-l14-30p"</li>
+<li>"nema-l14-50p"</li>
+<li>"nema-l14-60p"</li>
+<li>"nema-l15-20p"</li>
+<li>"nema-l15-30p"</li>
+<li>"nema-l15-50p"</li>
+<li>"nema-l15-60p"</li>
+<li>"nema-l21-20p"</li>
+<li>"nema-l21-30p"</li>
+<li>"nema-l22-30p"</li>
+<li>"cs6361c"</li>
+<li>"cs6365c"</li>
+<li>"cs8165c"</li>
+<li>"cs8265c"</li>
+<li>"cs8365c"</li>
+<li>"cs8465c"</li>
+<li>"ita-c"</li>
+<li>"ita-e"</li>
+<li>"ita-f"</li>
+<li>"ita-ef"</li>
+<li>"ita-g"</li>
+<li>"ita-h"</li>
+<li>"ita-i"</li>
+<li>"ita-j"</li>
+<li>"ita-k"</li>
+<li>"ita-l"</li>
+<li>"ita-m"</li>
+<li>"ita-n"</li>
+<li>"ita-o"</li>
+<li>"usb-a"</li>
+<li>"usb-b"</li>
+<li>"usb-c"</li>
+<li>"usb-mini-a"</li>
+<li>"usb-mini-b"</li>
+<li>"usb-micro-a"</li>
+<li>"usb-micro-b"</li>
+<li>"usb-micro-ab"</li>
+<li>"usb-3-b"</li>
+<li>"usb-3-micro-b"</li>
+<li>"dc-terminal"</li>
+<li>"saf-d-grid"</li>
+<li>"ubiquiti-smartpower"</li>
+<li>"hardwired"</li>
+<li>"other"</li>
+</ul>
+<h4 id="1614-property-root-power-ports-power-ports-items-maximum_draw"><a name="power-ports_items_maximum_draw"></a>16.1.4. Property <code>root &gt; power-ports &gt; power-ports items &gt; maximum_draw</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>integer</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1615-property-root-power-ports-power-ports-items-allocated_draw"><a name="power-ports_items_allocated_draw"></a>16.1.5. Property <code>root &gt; power-ports &gt; power-ports items &gt; allocated_draw</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>integer</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h2 id="17-property-root-power-outlets"><a name="power-outlets"></a>17. Property <code>root &gt; power-outlets</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Array restrictions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Min items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Max items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Items unicity</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Additional items</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Tuple validation</strong></td>
+<td>See below</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Each item of this array must be</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#power-outlets_items">power-outlet</a></td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h3 id="171-root-power-outlets-power-outlet"><a name="autogenerated_heading_5"></a>17.1. root &gt; power-outlets &gt; power-outlet</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>object</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Additional properties</strong></td>
+<td><a href="#" title="Additional Properties not allowed.">[Not allowed]</a></td>
+</tr>
+<tr>
+<td><strong>Defined in</strong></td>
+<td>components.json#/definitions/power-outlet</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Pattern</th>
+<th>Type</th>
+<th>Deprecated</th>
+<th>Definition</th>
+<th>Title/Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>+ <a href="#power-outlets_items_name">name</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#power-outlets_items_label">label</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>+ <a href="#power-outlets_items_type">type</a></td>
+<td>No</td>
+<td>enum (of string)</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#power-outlets_items_power_port">power_port</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#power-outlets_items_feed_leg">feed_leg</a></td>
+<td>No</td>
+<td>enum (of string)</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1711-property-root-power-outlets-power-outlets-items-name"><a name="power-outlets_items_name"></a>17.1.1. Property <code>root &gt; power-outlets &gt; power-outlets items &gt; name</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1712-property-root-power-outlets-power-outlets-items-label"><a name="power-outlets_items_label"></a>17.1.2. Property <code>root &gt; power-outlets &gt; power-outlets items &gt; label</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1713-property-root-power-outlets-power-outlets-items-type"><a name="power-outlets_items_type"></a>17.1.3. Property <code>root &gt; power-outlets &gt; power-outlets items &gt; type</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>enum (of string)</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<p>Must be one of:</p>
+<ul>
+<li>"iec-60320-c5"</li>
+<li>"iec-60320-c7"</li>
+<li>"iec-60320-c13"</li>
+<li>"iec-60320-c15"</li>
+<li>"iec-60320-c19"</li>
+<li>"iec-60320-c21"</li>
+<li>"iec-60309-p-n-e-4h"</li>
+<li>"iec-60309-p-n-e-6h"</li>
+<li>"iec-60309-p-n-e-9h"</li>
+<li>"iec-60309-2p-e-4h"</li>
+<li>"iec-60309-2p-e-6h"</li>
+<li>"iec-60309-2p-e-9h"</li>
+<li>"iec-60309-3p-e-4h"</li>
+<li>"iec-60309-3p-e-6h"</li>
+<li>"iec-60309-3p-e-9h"</li>
+<li>"iec-60309-3p-n-e-4h"</li>
+<li>"iec-60309-3p-n-e-6h"</li>
+<li>"iec-60309-3p-n-e-9h"</li>
+<li>"nema-1-15r"</li>
+<li>"nema-5-15r"</li>
+<li>"nema-5-20r"</li>
+<li>"nema-5-30r"</li>
+<li>"nema-5-50r"</li>
+<li>"nema-6-15r"</li>
+<li>"nema-6-20r"</li>
+<li>"nema-6-30r"</li>
+<li>"nema-6-50r"</li>
+<li>"nema-10-30r"</li>
+<li>"nema-10-50r"</li>
+<li>"nema-14-20r"</li>
+<li>"nema-14-30r"</li>
+<li>"nema-14-50r"</li>
+<li>"nema-14-60r"</li>
+<li>"nema-15-15r"</li>
+<li>"nema-15-20r"</li>
+<li>"nema-15-30r"</li>
+<li>"nema-15-50r"</li>
+<li>"nema-15-60r"</li>
+<li>"nema-l1-15r"</li>
+<li>"nema-l5-15r"</li>
+<li>"nema-l5-20r"</li>
+<li>"nema-l5-30r"</li>
+<li>"nema-l5-50r"</li>
+<li>"nema-l6-15r"</li>
+<li>"nema-l6-20r"</li>
+<li>"nema-l6-30r"</li>
+<li>"nema-l6-50r"</li>
+<li>"nema-l10-30r"</li>
+<li>"nema-l14-20r"</li>
+<li>"nema-l14-30r"</li>
+<li>"nema-l14-50r"</li>
+<li>"nema-l14-60r"</li>
+<li>"nema-l15-20r"</li>
+<li>"nema-l15-30r"</li>
+<li>"nema-l15-50r"</li>
+<li>"nema-l15-60r"</li>
+<li>"nema-l21-20r"</li>
+<li>"nema-l21-30r"</li>
+<li>"nema-l22-30r"</li>
+<li>"CS6360C"</li>
+<li>"CS6364C"</li>
+<li>"CS8164C"</li>
+<li>"CS8264C"</li>
+<li>"CS8364C"</li>
+<li>"CS8464C"</li>
+<li>"ita-e"</li>
+<li>"ita-f"</li>
+<li>"ita-g"</li>
+<li>"ita-h"</li>
+<li>"ita-i"</li>
+<li>"ita-j"</li>
+<li>"ita-k"</li>
+<li>"ita-l"</li>
+<li>"ita-m"</li>
+<li>"ita-n"</li>
+<li>"ita-o"</li>
+<li>"ita-multistandard"</li>
+<li>"usb-a"</li>
+<li>"usb-micro-b"</li>
+<li>"usb-c"</li>
+<li>"dc-terminal"</li>
+<li>"hdot-cx"</li>
+<li>"saf-d-grid"</li>
+<li>"ubiquiti-smartpower"</li>
+<li>"hardwired"</li>
+<li>"other"</li>
+</ul>
+<h4 id="1714-property-root-power-outlets-power-outlets-items-power_port"><a name="power-outlets_items_power_port"></a>17.1.4. Property <code>root &gt; power-outlets &gt; power-outlets items &gt; power_port</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1715-property-root-power-outlets-power-outlets-items-feed_leg"><a name="power-outlets_items_feed_leg"></a>17.1.5. Property <code>root &gt; power-outlets &gt; power-outlets items &gt; feed_leg</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>enum (of string)</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p>Must be one of:</p>
+<ul>
+<li>"A"</li>
+<li>"B"</li>
+<li>"C"</li>
+</ul>
+<h2 id="18-property-root-interfaces"><a name="interfaces"></a>18. Property <code>root &gt; interfaces</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Array restrictions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Min items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Max items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Items unicity</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Additional items</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Tuple validation</strong></td>
+<td>See below</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Each item of this array must be</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#interfaces_items">interface</a></td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h3 id="181-root-interfaces-interface"><a name="autogenerated_heading_6"></a>18.1. root &gt; interfaces &gt; interface</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>object</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Additional properties</strong></td>
+<td><a href="#" title="Additional Properties not allowed.">[Not allowed]</a></td>
+</tr>
+<tr>
+<td><strong>Defined in</strong></td>
+<td>components.json#/definitions/interface</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Pattern</th>
+<th>Type</th>
+<th>Deprecated</th>
+<th>Definition</th>
+<th>Title/Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>+ <a href="#interfaces_items_name">name</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#interfaces_items_label">label</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>+ <a href="#interfaces_items_type">type</a></td>
+<td>No</td>
+<td>enum (of string)</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#interfaces_items_poe_mode">poe_mode</a></td>
+<td>No</td>
+<td>enum (of string)</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#interfaces_items_poe_type">poe_type</a></td>
+<td>No</td>
+<td>enum (of string)</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#interfaces_items_mgmt_only">mgmt_only</a></td>
+<td>No</td>
+<td>boolean</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1811-property-root-interfaces-interfaces-items-name"><a name="interfaces_items_name"></a>18.1.1. Property <code>root &gt; interfaces &gt; interfaces items &gt; name</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1812-property-root-interfaces-interfaces-items-label"><a name="interfaces_items_label"></a>18.1.2. Property <code>root &gt; interfaces &gt; interfaces items &gt; label</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1813-property-root-interfaces-interfaces-items-type"><a name="interfaces_items_type"></a>18.1.3. Property <code>root &gt; interfaces &gt; interfaces items &gt; type</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>enum (of string)</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<p>Must be one of:</p>
+<ul>
+<li>"virtual"</li>
+<li>"bridge"</li>
+<li>"lag"</li>
+<li>"100base-fx"</li>
+<li>"100base-lfx"</li>
+<li>"100base-tx"</li>
+<li>"100base-t1"</li>
+<li>"1000base-t"</li>
+<li>"1000base-x-gbic"</li>
+<li>"1000base-x-sfp"</li>
+<li>"2.5gbase-t"</li>
+<li>"5gbase-t"</li>
+<li>"10gbase-t"</li>
+<li>"10gbase-cx4"</li>
+<li>"10gbase-x-sfpp"</li>
+<li>"10gbase-x-xfp"</li>
+<li>"10gbase-x-xenpak"</li>
+<li>"10gbase-x-x2"</li>
+<li>"25gbase-x-sfp28"</li>
+<li>"40gbase-x-qsfpp"</li>
+<li>"50gbase-x-sfp28"</li>
+<li>"100gbase-x-cfp"</li>
+<li>"100gbase-x-cfp2"</li>
+<li>"100gbase-x-cfp4"</li>
+<li>"100gbase-x-cpak"</li>
+<li>"100gbase-x-qsfp28"</li>
+<li>"200gbase-x-cfp2"</li>
+<li>"200gbase-x-qsfp56"</li>
+<li>"400gbase-x-qsfpdd"</li>
+<li>"400gbase-x-osfp"</li>
+<li>"ieee802.11a"</li>
+<li>"ieee802.11g"</li>
+<li>"ieee802.11n"</li>
+<li>"ieee802.11ac"</li>
+<li>"ieee802.11ad"</li>
+<li>"ieee802.11ax"</li>
+<li>"ieee802.15.1"</li>
+<li>"gsm"</li>
+<li>"cdma"</li>
+<li>"lte"</li>
+<li>"sonet-oc3"</li>
+<li>"sonet-oc12"</li>
+<li>"sonet-oc48"</li>
+<li>"sonet-oc192"</li>
+<li>"sonet-oc768"</li>
+<li>"sonet-oc1920"</li>
+<li>"sonet-oc3840"</li>
+<li>"1gfc-sfp"</li>
+<li>"2gfc-sfp"</li>
+<li>"4gfc-sfp"</li>
+<li>"8gfc-sfpp"</li>
+<li>"16gfc-sfpp"</li>
+<li>"32gfc-sfp28"</li>
+<li>"64gfc-qsfpp"</li>
+<li>"128gfc-qsfp28"</li>
+<li>"infiniband-sdr"</li>
+<li>"infiniband-ddr"</li>
+<li>"infiniband-qdr"</li>
+<li>"infiniband-fdr10"</li>
+<li>"infiniband-fdr"</li>
+<li>"infiniband-edr"</li>
+<li>"infiniband-hdr"</li>
+<li>"infiniband-ndr"</li>
+<li>"infiniband-xdr"</li>
+<li>"t1"</li>
+<li>"e1"</li>
+<li>"t3"</li>
+<li>"e3"</li>
+<li>"xdsl"</li>
+<li>"docsis"</li>
+<li>"cisco-stackwise"</li>
+<li>"cisco-stackwise-plus"</li>
+<li>"cisco-flexstack"</li>
+<li>"cisco-flexstack-plus"</li>
+<li>"cisco-stackwise-80"</li>
+<li>"cisco-stackwise-160"</li>
+<li>"cisco-stackwise-320"</li>
+<li>"cisco-stackwise-480"</li>
+<li>"juniper-vcp"</li>
+<li>"extreme-summitstack"</li>
+<li>"extreme-summitstack-128"</li>
+<li>"extreme-summitstack-256"</li>
+<li>"extreme-summitstack-512"</li>
+<li>"gpon"</li>
+<li>"xg-pon"</li>
+<li>"xgs-pon"</li>
+<li>"ng-pon2"</li>
+<li>"epon"</li>
+<li>"10g-epon"</li>
+<li>"other"</li>
+</ul>
+<h4 id="1814-property-root-interfaces-interfaces-items-poe_mode"><a name="interfaces_items_poe_mode"></a>18.1.4. Property <code>root &gt; interfaces &gt; interfaces items &gt; poe_mode</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>enum (of string)</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p>Must be one of:</p>
+<ul>
+<li>"pd"</li>
+<li>"pse"</li>
+</ul>
+<h4 id="1815-property-root-interfaces-interfaces-items-poe_type"><a name="interfaces_items_poe_type"></a>18.1.5. Property <code>root &gt; interfaces &gt; interfaces items &gt; poe_type</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>enum (of string)</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p>Must be one of:</p>
+<ul>
+<li>"type1-ieee802.3af"</li>
+<li>"type2-ieee802.3at"</li>
+<li>"type3-ieee802.3bt"</li>
+<li>"type4-ieee802.3bt"</li>
+<li>"passive-24v-2pair"</li>
+<li>"passive-24v-4pair"</li>
+<li>"passive-48v-2pair"</li>
+<li>"passive-48v-4pair"</li>
+</ul>
+<h4 id="1816-property-root-interfaces-interfaces-items-mgmt_only"><a name="interfaces_items_mgmt_only"></a>18.1.6. Property <code>root &gt; interfaces &gt; interfaces items &gt; mgmt_only</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>boolean</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h2 id="19-property-root-front-ports"><a name="front-ports"></a>19. Property <code>root &gt; front-ports</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Array restrictions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Min items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Max items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Items unicity</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Additional items</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Tuple validation</strong></td>
+<td>See below</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Each item of this array must be</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#front-ports_items">front-port</a></td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h3 id="191-root-front-ports-front-port"><a name="autogenerated_heading_7"></a>19.1. root &gt; front-ports &gt; front-port</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>object</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Additional properties</strong></td>
+<td><a href="#" title="Additional Properties of any type are allowed.">[Any type: allowed]</a></td>
+</tr>
+<tr>
+<td><strong>Defined in</strong></td>
+<td>components.json#/definitions/front-port</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Pattern</th>
+<th>Type</th>
+<th>Deprecated</th>
+<th>Definition</th>
+<th>Title/Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>+ <a href="#front-ports_items_name">name</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#front-ports_items_label">label</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>+ <a href="#front-ports_items_type">type</a></td>
+<td>No</td>
+<td>enum (of string)</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#front-ports_items_color">color</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>+ <a href="#front-ports_items_rear_port">rear_port</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#front-ports_items_rear_port_position">rear_port_position</a></td>
+<td>No</td>
+<td>integer</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1911-property-root-front-ports-front-ports-items-name"><a name="front-ports_items_name"></a>19.1.1. Property <code>root &gt; front-ports &gt; front-ports items &gt; name</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1912-property-root-front-ports-front-ports-items-label"><a name="front-ports_items_label"></a>19.1.2. Property <code>root &gt; front-ports &gt; front-ports items &gt; label</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1913-property-root-front-ports-front-ports-items-type"><a name="front-ports_items_type"></a>19.1.3. Property <code>root &gt; front-ports &gt; front-ports items &gt; type</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>enum (of string)</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<p>Must be one of:</p>
+<ul>
+<li>"8p8c"</li>
+<li>"8p6c"</li>
+<li>"8p4c"</li>
+<li>"8p2c"</li>
+<li>"6p6c"</li>
+<li>"6p4c"</li>
+<li>"6p2c"</li>
+<li>"4p4c"</li>
+<li>"4p2c"</li>
+<li>"gg45"</li>
+<li>"tera-4p"</li>
+<li>"tera-2p"</li>
+<li>"tera-1p"</li>
+<li>"110-punch"</li>
+<li>"bnc"</li>
+<li>"f"</li>
+<li>"n"</li>
+<li>"mrj21"</li>
+<li>"st"</li>
+<li>"sc"</li>
+<li>"sc-apc"</li>
+<li>"fc"</li>
+<li>"lc"</li>
+<li>"lc-apc"</li>
+<li>"mtrj"</li>
+<li>"mpo"</li>
+<li>"lsh"</li>
+<li>"lsh-apc"</li>
+<li>"splice"</li>
+<li>"cs"</li>
+<li>"sn"</li>
+<li>"sma-905"</li>
+<li>"sma-906"</li>
+<li>"urm-p2"</li>
+<li>"urm-p4"</li>
+<li>"urm-p8"</li>
+<li>"other"</li>
+</ul>
+<h4 id="1914-property-root-front-ports-front-ports-items-color"><a name="front-ports_items_color"></a>19.1.4. Property <code>root &gt; front-ports &gt; front-ports items &gt; color</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Restrictions</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Must match regular expression</strong></td>
+<td><code>^[a-f0-9]{6}$</code> <a href="https://regex101.com/?regex=%5E%5Ba-f0-9%5D%7B6%7D%24">Test</a></td>
+</tr>
+</tbody>
+</table>
+<h4 id="1915-property-root-front-ports-front-ports-items-rear_port"><a name="front-ports_items_rear_port"></a>19.1.5. Property <code>root &gt; front-ports &gt; front-ports items &gt; rear_port</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1916-property-root-front-ports-front-ports-items-rear_port_position"><a name="front-ports_items_rear_port_position"></a>19.1.6. Property <code>root &gt; front-ports &gt; front-ports items &gt; rear_port_position</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>integer</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h2 id="20-property-root-rear-ports"><a name="rear-ports"></a>20. Property <code>root &gt; rear-ports</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Array restrictions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Min items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Max items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Items unicity</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Additional items</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Tuple validation</strong></td>
+<td>See below</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Each item of this array must be</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#rear-ports_items">rear-port</a></td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h3 id="201-root-rear-ports-rear-port"><a name="autogenerated_heading_8"></a>20.1. root &gt; rear-ports &gt; rear-port</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>object</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Additional properties</strong></td>
+<td><a href="#" title="Additional Properties not allowed.">[Not allowed]</a></td>
+</tr>
+<tr>
+<td><strong>Defined in</strong></td>
+<td>components.json#/definitions/rear-port</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Pattern</th>
+<th>Type</th>
+<th>Deprecated</th>
+<th>Definition</th>
+<th>Title/Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>+ <a href="#rear-ports_items_name">name</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#rear-ports_items_label">label</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>+ <a href="#rear-ports_items_type">type</a></td>
+<td>No</td>
+<td>enum (of string)</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#rear-ports_items_color">color</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#rear-ports_items_positions">positions</a></td>
+<td>No</td>
+<td>integer</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2011-property-root-rear-ports-rear-ports-items-name"><a name="rear-ports_items_name"></a>20.1.1. Property <code>root &gt; rear-ports &gt; rear-ports items &gt; name</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2012-property-root-rear-ports-rear-ports-items-label"><a name="rear-ports_items_label"></a>20.1.2. Property <code>root &gt; rear-ports &gt; rear-ports items &gt; label</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2013-property-root-rear-ports-rear-ports-items-type"><a name="rear-ports_items_type"></a>20.1.3. Property <code>root &gt; rear-ports &gt; rear-ports items &gt; type</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>enum (of string)</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<p>Must be one of:</p>
+<ul>
+<li>"8p8c"</li>
+<li>"8p6c"</li>
+<li>"8p4c"</li>
+<li>"8p2c"</li>
+<li>"6p6c"</li>
+<li>"6p4c"</li>
+<li>"6p2c"</li>
+<li>"4p4c"</li>
+<li>"4p2c"</li>
+<li>"gg45"</li>
+<li>"tera-4p"</li>
+<li>"tera-2p"</li>
+<li>"tera-1p"</li>
+<li>"110-punch"</li>
+<li>"bnc"</li>
+<li>"f"</li>
+<li>"n"</li>
+<li>"mrj21"</li>
+<li>"st"</li>
+<li>"sc"</li>
+<li>"sc-apc"</li>
+<li>"fc"</li>
+<li>"lc"</li>
+<li>"lc-apc"</li>
+<li>"mtrj"</li>
+<li>"mpo"</li>
+<li>"lsh"</li>
+<li>"lsh-apc"</li>
+<li>"splice"</li>
+<li>"cs"</li>
+<li>"sn"</li>
+<li>"sma-905"</li>
+<li>"sma-906"</li>
+<li>"urm-p2"</li>
+<li>"urm-p4"</li>
+<li>"urm-p8"</li>
+</ul>
+<h4 id="2014-property-root-rear-ports-rear-ports-items-color"><a name="rear-ports_items_color"></a>20.1.4. Property <code>root &gt; rear-ports &gt; rear-ports items &gt; color</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Restrictions</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Must match regular expression</strong></td>
+<td><code>^[a-f0-9]{6}$</code> <a href="https://regex101.com/?regex=%5E%5Ba-f0-9%5D%7B6%7D%24">Test</a></td>
+</tr>
+</tbody>
+</table>
+<h4 id="2015-property-root-rear-ports-rear-ports-items-positions"><a name="rear-ports_items_positions"></a>20.1.5. Property <code>root &gt; rear-ports &gt; rear-ports items &gt; positions</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>integer</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h2 id="21-property-root-module-bays"><a name="module-bays"></a>21. Property <code>root &gt; module-bays</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Array restrictions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Min items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Max items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Items unicity</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Additional items</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Tuple validation</strong></td>
+<td>See below</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Each item of this array must be</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#module-bays_items">module-bay</a></td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h3 id="211-root-module-bays-module-bay"><a name="autogenerated_heading_9"></a>21.1. root &gt; module-bays &gt; module-bay</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>object</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Additional properties</strong></td>
+<td><a href="#" title="Additional Properties of any type are allowed.">[Any type: allowed]</a></td>
+</tr>
+<tr>
+<td><strong>Defined in</strong></td>
+<td>components.json#/definitions/module-bay</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Pattern</th>
+<th>Type</th>
+<th>Deprecated</th>
+<th>Definition</th>
+<th>Title/Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>+ <a href="#module-bays_items_name">name</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#module-bays_items_label">label</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#module-bays_items_position">position</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2111-property-root-module-bays-module-bays-items-name"><a name="module-bays_items_name"></a>21.1.1. Property <code>root &gt; module-bays &gt; module-bays items &gt; name</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2112-property-root-module-bays-module-bays-items-label"><a name="module-bays_items_label"></a>21.1.2. Property <code>root &gt; module-bays &gt; module-bays items &gt; label</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2113-property-root-module-bays-module-bays-items-position"><a name="module-bays_items_position"></a>21.1.3. Property <code>root &gt; module-bays &gt; module-bays items &gt; position</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h2 id="22-property-root-device-bays"><a name="device-bays"></a>22. Property <code>root &gt; device-bays</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Array restrictions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Min items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Max items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Items unicity</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Additional items</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Tuple validation</strong></td>
+<td>See below</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Each item of this array must be</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#device-bays_items">device-bay</a></td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h3 id="221-root-device-bays-device-bay"><a name="autogenerated_heading_10"></a>22.1. root &gt; device-bays &gt; device-bay</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>object</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Additional properties</strong></td>
+<td><a href="#" title="Additional Properties not allowed.">[Not allowed]</a></td>
+</tr>
+<tr>
+<td><strong>Defined in</strong></td>
+<td>components.json#/definitions/device-bay</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Pattern</th>
+<th>Type</th>
+<th>Deprecated</th>
+<th>Definition</th>
+<th>Title/Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>+ <a href="#device-bays_items_name">name</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#device-bays_items_label">label</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>+ <a href="#device-bays_items_ordinal">ordinal</a></td>
+<td>No</td>
+<td>integer</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#device-bays_items_allowed">allowed</a></td>
+<td>No</td>
+<td>object</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#device-bays_items_default">default</a></td>
+<td>No</td>
+<td>object</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2211-property-root-device-bays-device-bays-items-name"><a name="device-bays_items_name"></a>22.1.1. Property <code>root &gt; device-bays &gt; device-bays items &gt; name</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2212-property-root-device-bays-device-bays-items-label"><a name="device-bays_items_label"></a>22.1.2. Property <code>root &gt; device-bays &gt; device-bays items &gt; label</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2213-property-root-device-bays-device-bays-items-ordinal"><a name="device-bays_items_ordinal"></a>22.1.3. Property <code>root &gt; device-bays &gt; device-bays items &gt; ordinal</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>integer</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2214-property-root-device-bays-device-bays-items-allowed"><a name="device-bays_items_allowed"></a>22.1.4. Property <code>root &gt; device-bays &gt; device-bays items &gt; allowed</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>object</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Additional properties</strong></td>
+<td><a href="#" title="Additional Properties of any type are allowed.">[Any type: allowed]</a></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Pattern</th>
+<th>Type</th>
+<th>Deprecated</th>
+<th>Definition</th>
+<th>Title/Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>- <a href="#device-bays_items_allowed_slug">slug</a></td>
+<td>No</td>
+<td>array</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#device-bays_items_allowed_hardware-type">hardware-type</a></td>
+<td>No</td>
+<td>array</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h5 id="22141-property-root-device-bays-device-bays-items-allowed-slug"><a name="device-bays_items_allowed_slug"></a>22.1.4.1. Property <code>root &gt; device-bays &gt; device-bays items &gt; allowed &gt; slug</code></h5>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Array restrictions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Min items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Max items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Items unicity</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Additional items</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Tuple validation</strong></td>
+<td>See below</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Each item of this array must be</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#device-bays_items_allowed_slug_items">slug</a></td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h5 id="221411-root-device-bays-device-bays-items-allowed-slug-slug"><a name="autogenerated_heading_11"></a>22.1.4.1.1. root &gt; device-bays &gt; device-bays items &gt; allowed &gt; slug &gt; slug</h5>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Same definition as</strong></td>
+<td><a href="#slug">slug</a></td>
+</tr>
+</tbody>
+</table>
+<h5 id="22142-property-root-device-bays-device-bays-items-allowed-hardware-type"><a name="device-bays_items_allowed_hardware-type"></a>22.1.4.2. Property <code>root &gt; device-bays &gt; device-bays items &gt; allowed &gt; hardware-type</code></h5>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Array restrictions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Min items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Max items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Items unicity</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Additional items</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Tuple validation</strong></td>
+<td>See below</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Each item of this array must be</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#device-bays_items_allowed_hardware-type_items">hardware-type</a></td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h5 id="221421-root-device-bays-device-bays-items-allowed-hardware-type-hardware-type"><a name="autogenerated_heading_12"></a>22.1.4.2.1. root &gt; device-bays &gt; device-bays items &gt; allowed &gt; hardware-type &gt; hardware-type</h5>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>enum (of string)</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Same definition as</strong></td>
+<td><a href="#hardware-type">hardware-type</a></td>
+</tr>
+</tbody>
+</table>
+<h4 id="2215-property-root-device-bays-device-bays-items-default"><a name="device-bays_items_default"></a>22.1.5. Property <code>root &gt; device-bays &gt; device-bays items &gt; default</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>object</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Additional properties</strong></td>
+<td><a href="#" title="Additional Properties of any type are allowed.">[Any type: allowed]</a></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Pattern</th>
+<th>Type</th>
+<th>Deprecated</th>
+<th>Definition</th>
+<th>Title/Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>- <a href="#device-bays_items_default_slug">slug</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>Same as <a href="#slug">slug</a></td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h5 id="22151-property-root-device-bays-device-bays-items-default-slug"><a name="device-bays_items_default_slug"></a>22.1.5.1. Property <code>root &gt; device-bays &gt; device-bays items &gt; default &gt; slug</code></h5>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Same definition as</strong></td>
+<td><a href="#slug">slug</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="23-property-root-identifications"><a name="identifications"></a>23. Property <code>root &gt; identifications</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Array restrictions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Min items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Max items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Items unicity</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Additional items</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Tuple validation</strong></td>
+<td>See below</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Each item of this array must be</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#identifications_items">identifications</a></td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h3 id="231-root-identifications-identifications"><a name="autogenerated_heading_13"></a>23.1. root &gt; identifications &gt; identifications</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>object</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Additional properties</strong></td>
+<td><a href="#" title="Additional Properties not allowed.">[Not allowed]</a></td>
+</tr>
+<tr>
+<td><strong>Defined in</strong></td>
+<td>components.json#/definitions/identifications</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Pattern</th>
+<th>Type</th>
+<th>Deprecated</th>
+<th>Definition</th>
+<th>Title/Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>+ <a href="#identifications_items_manufacturer">manufacturer</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>+ <a href="#identifications_items_model">model</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#identifications_items_part-number">part-number</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2311-property-root-identifications-identifications-manufacturer"><a name="identifications_items_manufacturer"></a>23.1.1. Property <code>root &gt; identifications &gt; identifications &gt; manufacturer</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2312-property-root-identifications-identifications-model"><a name="identifications_items_model"></a>23.1.2. Property <code>root &gt; identifications &gt; identifications &gt; model</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2313-property-root-identifications-identifications-part-number"><a name="identifications_items_part-number"></a>23.1.3. Property <code>root &gt; identifications &gt; identifications &gt; part-number</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h2 id="24-property-root-inventory-items"><a name="inventory-items"></a>24. Property <code>root &gt; inventory-items</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Array restrictions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Min items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Max items</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Items unicity</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Additional items</strong></td>
+<td>False</td>
+</tr>
+<tr>
+<td><strong>Tuple validation</strong></td>
+<td>See below</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Each item of this array must be</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#inventory-items_items">inventory-item</a></td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h3 id="241-root-inventory-items-inventory-item"><a name="autogenerated_heading_14"></a>24.1. root &gt; inventory-items &gt; inventory-item</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>object</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Additional properties</strong></td>
+<td><a href="#" title="Additional Properties not allowed.">[Not allowed]</a></td>
+</tr>
+<tr>
+<td><strong>Defined in</strong></td>
+<td>components.json#/definitions/inventory-item</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Pattern</th>
+<th>Type</th>
+<th>Deprecated</th>
+<th>Definition</th>
+<th>Title/Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>+ <a href="#inventory-items_items_name">name</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#inventory-items_items_label">label</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#inventory-items_items_manufacturer">manufacturer</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#inventory-items_items_part_id">part_id</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2411-property-root-inventory-items-inventory-items-items-name"><a name="inventory-items_items_name"></a>24.1.1. Property <code>root &gt; inventory-items &gt; inventory-items items &gt; name</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2412-property-root-inventory-items-inventory-items-items-label"><a name="inventory-items_items_label"></a>24.1.2. Property <code>root &gt; inventory-items &gt; inventory-items items &gt; label</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2413-property-root-inventory-items-inventory-items-items-manufacturer"><a name="inventory-items_items_manufacturer"></a>24.1.3. Property <code>root &gt; inventory-items &gt; inventory-items items &gt; manufacturer</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2414-property-root-inventory-items-inventory-items-items-part_id"><a name="inventory-items_items_part_id"></a>24.1.4. Property <code>root &gt; inventory-items &gt; inventory-items items &gt; part_id</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h2 id="25-property-root-comments"><a name="comments"></a>25. Property <code>root &gt; comments</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h2 id="26-property-root-provider_defaults"><a name="provider_defaults"></a>26. Property <code>root &gt; provider_defaults</code></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>object</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Additional properties</strong></td>
+<td><a href="#" title="Additional Properties of any type are allowed.">[Any type: allowed]</a></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Pattern</th>
+<th>Type</th>
+<th>Deprecated</th>
+<th>Definition</th>
+<th>Title/Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>- <a href="#provider_defaults_csm">csm</a></td>
+<td>No</td>
+<td>object</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h3 id="261-property-root-provider_defaults-csm"><a name="provider_defaults_csm"></a>26.1. Property <code>root &gt; provider_defaults &gt; csm</code></h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>object</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Additional properties</strong></td>
+<td><a href="#" title="Additional Properties of any type are allowed.">[Any type: allowed]</a></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Pattern</th>
+<th>Type</th>
+<th>Deprecated</th>
+<th>Definition</th>
+<th>Title/Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>- <a href="#provider_defaults_csm_Class">Class</a></td>
+<td>No</td>
+<td>string</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#provider_defaults_csm_Ordinal">Ordinal</a></td>
+<td>No</td>
+<td>integer</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#provider_defaults_csm_StartingHmnVlan">StartingHmnVlan</a></td>
+<td>No</td>
+<td>integer</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>- <a href="#provider_defaults_csm_EndingHmnVlan">EndingHmnVlan</a></td>
+<td>No</td>
+<td>integer</td>
+<td>No</td>
+<td>-</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2611-property-root-provider_defaults-csm-class"><a name="provider_defaults_csm_Class"></a>26.1.1. Property <code>root &gt; provider_defaults &gt; csm &gt; Class</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2612-property-root-provider_defaults-csm-ordinal"><a name="provider_defaults_csm_Ordinal"></a>26.1.2. Property <code>root &gt; provider_defaults &gt; csm &gt; Ordinal</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>integer</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2613-property-root-provider_defaults-csm-startinghmnvlan"><a name="provider_defaults_csm_StartingHmnVlan"></a>26.1.3. Property <code>root &gt; provider_defaults &gt; csm &gt; StartingHmnVlan</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>integer</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2614-property-root-provider_defaults-csm-endinghmnvlan"><a name="provider_defaults_csm_EndingHmnVlan"></a>26.1.4. Property <code>root &gt; provider_defaults &gt; csm &gt; EndingHmnVlan</code></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><code>integer</code></td>
+</tr>
+<tr>
+<td><strong>Required</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p>Generated using <a href="https://github.com/coveooss/json-schema-for-humans">json-schema-for-humans</a> on 2025-07-07 at 13:49:11 +0000</p>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.208ed371.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.b4d07000.min.js"></script>
+      
+    
+  </body>
+</html>
