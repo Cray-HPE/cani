@@ -27,8 +27,13 @@ package datastores
 
 import (
 	"errors"
+	"fmt"
+	stdlog "log"
+	"os"
 
+	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
+	"github.com/spf13/cobra"
 )
 
 var ErrHardwareNotFound = errors.New("hardware not found")
@@ -38,50 +43,56 @@ var ErrHardwareMissingLocationOrdinal = errors.New("hardware missing location or
 var ErrEmptyLocationPath = errors.New("empty location path provided")
 var ErrDatastoreValidationFailure = errors.New("datastore validation failure")
 
-// SearchFilter works as follows
-// - Each field is a different category to filter on
-// - When is there a match?
-//   - A hardware object must match one element in a category
-//   - If a category is empty then all hardware objects will match
-//   - A must match across all categories
-type SearchFilter struct {
-	Types  []hardwaretypes.HardwareType
-	Status []HardwareStatus
+var log = stdlog.New(os.Stdout, "[datastores] ", stdlog.LstdFlags)
+
+// DeviceStore defines the interface for device storage operations
+type DeviceStore interface {
+	// Create adds new devices to the store
+	Create(devices map[uuid.UUID]*devicetypes.CaniDeviceType) error
+
+	// Read retrieves devices from the store
+	// If ids is empty, returns all devices
+	Read(ids []uuid.UUID) (map[uuid.UUID]*devicetypes.CaniDeviceType, error)
+
+	// Update updates existing devices in the store
+	Update(devices map[uuid.UUID]*devicetypes.CaniDeviceType) error
+
+	// Delete removes devices from the store
+	Delete(ids []uuid.UUID) error
+
+	Load() (*devicetypes.Inventory, error)
+	Save(inventory *devicetypes.Inventory) error
 }
 
-type Datastore interface {
-	GetSchemaVersion() (SchemaVersion, error)
-	SetInventoryProvider(provider Provider) error
-	InventoryProvider() (Provider, error)
-	Flush() error
-	Validate() (map[uuid.UUID]ValidateResult, error)
+// StoreType defines the type of datastore
+type StoreType string
 
-	// Crud operations
-	Add(hardware *Hardware) error
-	Get(uuid.UUID) (Hardware, error)
-	Update(hardware *Hardware) error
-	Remove(uuid uuid.UUID, recursion bool) error
-	List() (Inventory, error)
+const (
+	StoreTypeJSON     StoreType = "json"
+	StoreTypePostgres StoreType = "postgres"
+)
 
-	// Graph functions
-	GetLocation(hardware Hardware) (LocationPath, error)
-	GetAtLocation(path LocationPath) (Hardware, error)
-	GetChildren(id uuid.UUID) ([]Hardware, error)
-	GetDescendants(id uuid.UUID) ([]Hardware, error)
-	GetSystemZero() (Hardware, error)              // TODO replace this when multiple systems are supported
-	GetSystem(hardware Hardware) (Hardware, error) // Not yet implemented until multiple systems are supported
+var Datastore DeviceStore
 
-	// TODO for search properties
-	Search(filter SearchFilter) (map[uuid.UUID]Hardware, error)
+// SetDeviceStore returns the appropriate datastore implementation
+func SetDeviceStore(cmd *cobra.Command, args []string) error {
+	storeType := cmd.Root().PersistentFlags().Lookup("datastore").Value.String()
+	switch StoreType(storeType) {
 
-	// Clone creates a in-memory version of the datastore to perform location operations
-	Clone() (Datastore, error)
+	case StoreTypeJSON:
+		Datastore = NewJSONStore()
+		return nil
 
-	// Merge the contents of the remote datastore (most likely a in-memory one with changes)
-	Merge(Datastore) error
-}
+	case StoreTypePostgres:
+		// Get connection string from config/environment/flags
+		connStr := ""
+		if cmd.Root().PersistentFlags().Lookup("pg-conn") != nil {
+			connStr = cmd.Root().PersistentFlags().Lookup("pg-conn").Value.String()
+		}
+		Datastore = NewPostgresStore(connStr)
+		return nil
 
-type ValidateResult struct {
-	Hardware Hardware
-	Errors   []string
+	default:
+		return fmt.Errorf("unsupported datastore type: %s", storeType)
+	}
 }

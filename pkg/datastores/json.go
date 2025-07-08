@@ -27,716 +27,432 @@ package datastores
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
-	"sync"
-	"time"
 
+	"github.com/Cray-HPE/cani/internal/config"
+	"github.com/Cray-HPE/cani/internal/core"
+	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
-type DatastoreJSON struct {
-	inventoryLock sync.RWMutex
-	inventory     *Inventory
-	dataFilePath  string
-	logFilePath   string
+// JSONStore handles inventory persistence
+type JSONStore struct {
+	Path string
 }
 
-func NewDatastoreJSON(dataFilePath string, logfilepath string, provider Provider) (Datastore, error) {
-	datastore := &DatastoreJSON{
-		dataFilePath: dataFilePath,
-		logFilePath:  logfilepath,
+// NewJSONStore creates a new store with the config path
+func NewJSONStore() *JSONStore {
+	// Use the config directory but with our inventory filename
+	return &JSONStore{
+		Path: filepath.Join(filepath.Dir(config.Cfg.Path), filepath.Base(config.Cfg.Datastore)),
+	}
+}
+
+// Load retrieves inventory from disk
+func (s *JSONStore) Load() (*devicetypes.Inventory, error) {
+	inventory := &devicetypes.Inventory{
+		Devices: make(map[uuid.UUID]*devicetypes.CaniDeviceType),
 	}
 
-	if _, err := os.Stat(dataFilePath); os.IsNotExist(err) {
-		// Write a default config file if it doesn't exist
-		log.Info().Msgf("%s does not exist, creating default datastore", dataFilePath)
+	// Check if file exists
+	if _, err := os.Stat(s.Path); os.IsNotExist(err) {
+		// No inventory yet, return empty
+		return inventory, nil
+	}
 
-		// Create the directory if it doesn't exist
-		dbDir := filepath.Dir(dataFilePath)
-		if _, err := os.Stat(dbDir); os.IsNotExist(err) {
-			err = os.Mkdir(dbDir, 0755)
-			if err != nil {
-				return nil, errors.Join(fmt.Errorf("error creating datastore directory"), err)
-			}
-		}
+	data, err := os.ReadFile(s.Path)
+	if err != nil {
+		return nil, fmt.Errorf("reading inventory file: %w", err)
+	}
 
-		// Generate a UUID for a new top-level "System" object
-		system := uuid.New()
-		// Create a config with default values since one does not exist
-		datastore.inventory = &Inventory{
-			SchemaVersion: SchemaVersionV1Alpha1,
-			Provider:      provider,
-			Hardware: map[uuid.UUID]Hardware{
-				// NOTE: At present, we only allow ONE system in the inventory, but leaving the door open for multiple systems
-				system: {
-					Type: hardwaretypes.System, // The top-level object is a hardwaretypes.System
-					ID:   system,               // ID is the same as the key for the top-level system object to prevent a uuid.Nil
-				},
-			},
-		}
+	if err := json.Unmarshal(data, inventory); err != nil {
+		return nil, fmt.Errorf("parsing inventory: %w", err)
+	}
 
+	if len(inventory.Devices) == 0 {
+		log.Printf("No devices found in inventory, starting with an empty inventory")
 	} else {
-		// Load from datastore
-
-		// Create the directory if it doesn't exist
-		cfgDir := filepath.Dir(dataFilePath)
-		os.MkdirAll(cfgDir, os.ModePerm)
-
-		file, err := os.Open(dataFilePath)
-		if err != nil {
-			return nil, err
-		}
-		defer file.Close()
-
-		inventoryRaw, err := io.ReadAll(file)
-		if err != nil {
-			return nil, err
-		}
-
-		if err = json.Unmarshal(inventoryRaw, &datastore.inventory); err != nil {
-			return nil, err
-		}
+		log.Printf("Loaded %d devices from inventory", len(inventory.Devices))
 	}
 
-	if err := datastore.Flush(); err != nil {
-		return nil, err
+	if inventory.Systems() == nil || len(inventory.Systems()) == 0 {
+		log.Printf("No systems found in inventory, adding a default system")
+		system := devicetypes.NewSystem()
+		inventory.Devices[system.ID] = system
+	} else {
+		log.Printf("Found %d systems in inventory", len(inventory.Systems()))
 	}
 
-	return datastore, nil
+	log.Printf("Loaded inventory from %s", s.Path)
+	return inventory, nil
 }
 
-func NewDatastoreJSONInMemory(provider Provider) (*DatastoreJSON, error) {
-	datastore := &DatastoreJSON{}
-
-	// Generate a UUID for a new top-level "System" object
-	system := uuid.New()
-	// Create a config with default values since one does not exist
-	datastore.inventory = &Inventory{
-		SchemaVersion: SchemaVersionV1Alpha1,
-		Provider:      provider,
-		Hardware: map[uuid.UUID]Hardware{
-			// NOTE: At present, we only allow ONE system in the inventory, but leaving the door open for multiple systems
-			system: {
-				Type: hardwaretypes.System, // The top-level object is a hardwaretypes.System
-				ID:   system,               // ID is the same as the key for the top-level system object to prevent a uuid.Nil
-			},
-		},
+// Save writes inventory to disk
+func (s *JSONStore) Save(inventory *devicetypes.Inventory) error {
+	// Create directory if it doesn't exist
+	if err := os.MkdirAll(filepath.Dir(s.Path), 0755); err != nil {
+		return fmt.Errorf("creating inventory directory: %w", err)
 	}
 
-	return datastore, nil
-}
-
-func (ds *DatastoreJSON) GetSchemaVersion() (SchemaVersion, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
-
-	return ds.inventory.SchemaVersion, nil
-}
-
-// SetExternalInventoryProvider sets the external inventory provider
-func (ds *DatastoreJSON) SetInventoryProvider(provider Provider) error {
-	ds.inventoryLock.Lock()
-	defer ds.inventoryLock.Unlock()
-
-	ds.inventory.Provider = provider
-
-	return nil
-}
-
-// GetExternalInventoryProvider gets the external inventory provider
-func (ds *DatastoreJSON) InventoryProvider() (Provider, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
-
-	return ds.inventory.Provider, nil
-}
-
-// Flush writes the current inventory to the datastore
-func (ds *DatastoreJSON) Flush() error {
-	if ds.dataFilePath == "" {
-		// If running in in-memory mode there is nothing to flush
-		return nil
-	}
-
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
-
-	// convert the Inventory struct to a yaml-formatted byte slice.
-	data, err := json.MarshalIndent(ds.inventory, "", "  ")
+	data, err := json.MarshalIndent(inventory, "", "  ")
 	if err != nil {
-		return err
+		return fmt.Errorf("encoding inventory: %w", err)
 	}
 
-	// write the byte slice to a file
-	err = os.WriteFile(ds.dataFilePath, data, 0644)
-	if err != nil {
-		return err
+	if err := os.WriteFile(s.Path, data, 0644); err != nil {
+		return fmt.Errorf("writing inventory file: %w", err)
 	}
 
 	return nil
 }
 
-func (ds *DatastoreJSON) Clone() (Datastore, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
-
-	result, err := NewDatastoreJSONInMemory(ds.inventory.Provider)
+// Create adds new devices to the store
+func (s *JSONStore) Create(devices map[uuid.UUID]*devicetypes.CaniDeviceType) error {
+	// Load existing inventory
+	inventory, err := s.Load()
 	if err != nil {
-		return nil, errors.Join(fmt.Errorf("failed to create in memory datastore"), err)
+		return err
 	}
 
-	// Deep copy the hardware information into the datastore
-	// TODO this is a hack
-	raw, err := json.Marshal(ds.inventory.Hardware)
+	// Ensure devices have parents assigned
+	if err := s.ensureDevicesHaveParents(inventory, devices); err != nil {
+		return err
+	}
+
+	// Add new devices
+	for id, device := range devices {
+		if _, exists := inventory.Devices[id]; exists {
+			return fmt.Errorf("device with ID %s already exists", id)
+		}
+		inventory.Devices[id] = device
+	}
+
+	inventory.VerifyParentChildRelationships()
+
+	// Save updated inventory
+	return s.Save(inventory)
+}
+
+// Read retrieves devices from the store
+func (s *JSONStore) Read(ids []uuid.UUID) (map[uuid.UUID]*devicetypes.CaniDeviceType, error) {
+	// Load inventory
+	inventory, err := s.Load()
 	if err != nil {
 		return nil, err
 	}
-	result.inventory.Hardware = nil
-	if err := json.Unmarshal(raw, &result.inventory.Hardware); err != nil {
-		return nil, err
+
+	// If no IDs provided, return all devices
+	if len(ids) == 0 {
+		return inventory.Devices, nil
+	}
+
+	// Return only requested devices
+	result := make(map[uuid.UUID]*devicetypes.CaniDeviceType)
+	for _, id := range ids {
+		if device, exists := inventory.Devices[id]; exists {
+			result[id] = device
+		}
 	}
 
 	return result, nil
 }
 
-func (ds *DatastoreJSON) Merge(other Datastore) error {
-	ds.inventoryLock.Lock()
-	defer ds.inventoryLock.Unlock()
-
-	otherAllHardware, err := other.List()
+// Update updates existing devices in the store
+func (s *JSONStore) Update(devices map[uuid.UUID]*devicetypes.CaniDeviceType) error {
+	// Load inventory
+	inventory, err := s.Load()
 	if err != nil {
-		return errors.Join(fmt.Errorf("failed to retrieve inventory from other datastore"), err)
-	}
-
-	// Identify hardware to remove
-	hardwareToDelete := []uuid.UUID{}
-	for id := range ds.inventory.Hardware {
-		if _, exists := otherAllHardware.Hardware[id]; !exists {
-			hardwareToDelete = append(hardwareToDelete, id)
-		}
-	}
-	// Remove deleted hardware
-	for _, id := range hardwareToDelete {
-		delete(ds.inventory.Hardware, id)
-	}
-
-	// Update or add hardware
-	for id, otherHardware := range otherAllHardware.Hardware {
-		ds.inventory.Hardware[id] = otherHardware
-	}
-
-	return nil
-}
-
-// Validate validates the current inventory
-func (ds *DatastoreJSON) Validate() (map[uuid.UUID]ValidateResult, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
-
-	log.Warn().Msg("DatastoreJSON's Validate was called. This is not fully implemented")
-	validationResults := map[uuid.UUID]ValidateResult{}
-
-	// Verify inventory map key matches hardware UUID
-	// TODO
-
-	// Verify all parent IDs are valid
-	// TOOD
-
-	// TODO think of other checks
-
-	// TODO for right now say everything is ok
-
-	//
-	// Verify all complete location paths are unique.
-	//
-
-	if len(validationResults) > 0 {
-		return validationResults, ErrDatastoreValidationFailure
-	}
-
-	return nil, nil
-}
-
-// Add adds a new hardware object to the inventory
-func (ds *DatastoreJSON) Add(hardware *Hardware) error {
-	ds.inventoryLock.Lock()
-	defer ds.inventoryLock.Unlock()
-
-	// Check to see if the hardware object has a UUID, if not create one
-	if hardware.ID == uuid.Nil {
-		hardware.ID = uuid.New()
-	}
-
-	// Check to see if this UUID is unique
-	if _, exists := ds.inventory.Hardware[hardware.ID]; exists {
-		return ErrHardwareUUIDConflict
-	}
-
-	// Check to see if parent UUID exists
-	if hardware.Parent != uuid.Nil {
-		if _, exists := ds.inventory.Hardware[hardware.Parent]; !exists {
-			return ErrHardwareParentNotFound
-		}
-	}
-
-	// Add it to the inventory map
-	if ds.inventory.Hardware == nil {
-		log.Warn().Msg("Initializing inventory map")
-		ds.inventory.Hardware = map[uuid.UUID]Hardware{}
-	}
-	ds.inventory.Hardware[hardware.ID] = *hardware
-
-	return nil
-}
-
-// Get returns a hardware object from the inventory
-func (ds *DatastoreJSON) Get(id uuid.UUID) (Hardware, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
-
-	if hardware, exists := ds.inventory.Hardware[id]; exists {
-		return hardware, nil
-	}
-
-	ds.logTransaction("GET", id.String(), nil, nil)
-
-	return Hardware{}, ErrHardwareNotFound
-}
-
-// Update updates a hardware object in the inventory
-func (ds *DatastoreJSON) Update(hardware *Hardware) error {
-	ds.inventoryLock.Lock()
-	defer ds.inventoryLock.Unlock()
-
-	// Check to see if parent UUID exists
-	if hardware.Parent != uuid.Nil {
-		if _, exists := ds.inventory.Hardware[hardware.Parent]; !exists {
-			return ErrHardwareParentNotFound
-		}
-	}
-
-	// Add it to the inventory map
-	ds.inventory.Hardware[hardware.ID] = *hardware
-
-	ds.logTransaction("UPDATE", hardware.ID.String(), nil, nil)
-
-	return nil
-}
-
-// Remove removes a hardware object from the inventory
-func (ds *DatastoreJSON) Remove(id uuid.UUID, recursion bool) error {
-	ds.inventoryLock.Lock()
-	defer ds.inventoryLock.Unlock()
-
-	// Check to see if this UUID exists
-	if _, exists := ds.inventory.Hardware[id]; !exists {
-		return ErrHardwareNotFound
-	}
-
-	// Check to see if any piece of hardware has this device as a parent
-	// as you should not be able to remove a piece of hardware without either
-	// delinking it or removing its children
-	// FIXME: https://github.com/Cray-HPE/cani/pull/28#discussion_r1199347499
-	if children, err := ds.getChildren(id); err != nil {
 		return err
-	} else if len(children) != 0 {
-		childrenIDs := []string{}
-		for _, child := range children {
-			childrenIDs = append(childrenIDs, child.ID.String())
-		}
-		// If recursion is true, remove the children as well
-		if recursion {
-			for _, child := range children {
-				delete(ds.inventory.Hardware, child.ID)
-			}
-		} else {
-			return fmt.Errorf("unable to remove (%s) as it is the parent of [%s]", id.String(), strings.Join(childrenIDs, ","))
-		}
 	}
 
-	// Remove the hardware!
-	delete(ds.inventory.Hardware, id)
-
-	ds.logTransaction("REMOVE", id.String(), nil, nil)
-
-	return nil
-}
-
-// List returns the entire inventory
-func (ds *DatastoreJSON) List() (Inventory, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
-
-	return *ds.inventory, nil
-}
-
-// GetLocation will follow the parent links up to the root node, which is signaled when a NIL parent UUID is found
-// This will either return a partial location path, or a full path up to a cabinet or CDU
-// TODO THIS NEEDS UNIT TESTS
-func (ds *DatastoreJSON) GetLocation(hardware Hardware) (LocationPath, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
-
-	return ds.getLocation(hardware)
-}
-
-// getLocation is just like GetLocation except it doesn't attempt to acquire the inventory RWMutex, so it can be
-// composed into other DatastoreJSON functions that make changes to the inventory structure.
-func (ds *DatastoreJSON) getLocation(hardware Hardware) (LocationPath, error) {
-
-	locationPath := LocationPath{}
-
-	// Follow the parent links up to the root node
-	currentHardwareID := hardware.ID
-	for currentHardwareID != uuid.Nil {
-		currentHardware, exists := ds.inventory.Hardware[currentHardwareID]
-		if !exists {
-			return nil, errors.Join(
-				fmt.Errorf("unable to find ancestor (%s) of (%s)", currentHardwareID, hardware.ID),
-				ErrHardwareNotFound,
-			)
-		}
-
-		// The inventory structure allows for hardware to have no location, and this is a valid state.
-		// Such as information has been obtained from a node, but it is missing geolocation
-		if currentHardware.LocationOrdinal == nil {
-			return nil, errors.Join(
-				fmt.Errorf("missing location ordinal in ancestor (%s) of (%s)", currentHardwareID, hardware.ID),
-				ErrHardwareMissingLocationOrdinal,
-			)
-		}
-
-		// Build up an element in the location path.
-		locationPath = append(locationPath, LocationToken{
-			HardwareType: currentHardware.Type,
-			Ordinal:      *currentHardware.LocationOrdinal,
-		})
-
-		// Go the parent node next
-		currentHardwareID = currentHardware.Parent
-	}
-
-	// Reverse in place, since the tree was traversed bottom up
-	// This is more efficient than building prepending the location path, due to not
-	// needing to a lot of memory allocations and slice magic by adding an new element
-	// to the start of the slice every time we visit a new location.
-	//
-	// For loop
-	// Initial condition: Set i to beginning, and j to the end.
-	// Check: Continue if i is before j
-	// Advance: Move i forward, and j backward
-	for i, j := 0, len(locationPath)-1; i < j; i, j = i+1, j-1 {
-		locationPath[j], locationPath[i] = locationPath[i], locationPath[j]
-	}
-
-	return locationPath, nil
-
-}
-
-// GetAtLocation returns the hardware at the given location
-// TODO THIS NEEDS UNIT TESTS
-func (ds *DatastoreJSON) GetAtLocation(path LocationPath) (Hardware, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
-
-	if len(path) == 0 {
-		return Hardware{}, ErrEmptyLocationPath
-	}
-	log.Trace().Msgf("GetAtLocation: Location Path: %s", path.String())
-
-	//
-	// Traverse the tree to see if the hardware exists at the given location
-	//
-	currentHardware, err := ds.getSystemZero()
-	if err != nil {
-		return Hardware{}, err
-	}
-
-	// Base case - System 0
-	if len(path) == 1 {
-		if path[0].HardwareType == hardwaretypes.System && path[1].Ordinal == 0 {
-			return currentHardware, nil
-		} else {
-			return Hardware{}, ErrHardwareNotFound
-		}
-	}
-
-	// Vist rest of the path
-	for i, locationToken := range path[1:] {
-		log.Trace().Msgf("GetAtLocation: Processing token %d of %d: '%s'", i+1, len(path), locationToken.String())
-		log.Trace().Msgf("GetAtLocation: Current ID %s", currentHardware.ID)
-
-		// For each child of the current hardware object check to see if it
-		foundMatch := false
-		for _, childID := range currentHardware.Children {
-			log.Trace().Msgf("GetAtLocation: Visiting Child (%s)", childID)
-			// Get the hardware
-			childHardware, ok := ds.inventory.Hardware[childID]
-			if !ok {
-				// This should not happen
-				return Hardware{}, errors.Join(
-					fmt.Errorf("unable to find hardware object with ID (%s)", childID),
-					ErrHardwareNotFound,
-				)
-			}
-
-			if childHardware.LocationOrdinal == nil {
-				log.Trace().Msgf("GetAtLocation: Child has no location ordinal set, skipping")
-				continue
-			}
-			log.Trace().Msgf("GetAtLocation: Child location token: %s:%d", childHardware.Type, *childHardware.LocationOrdinal)
-
-			// Check to see if the location token matches
-			if childHardware.Type == locationToken.HardwareType && *childHardware.LocationOrdinal == locationToken.Ordinal {
-				// Found a match!
-				log.Trace().Msgf("GetAtLocation: Child has matching location token")
-				currentHardware = childHardware
-				foundMatch = true
+	// Check if parent reassignment is needed
+	reassignParents := false
+	for _, device := range devices {
+		if _, exists := inventory.Devices[device.ID]; exists {
+			// Only check devices that exist
+			if device.Parent == uuid.Nil && device.Type != "system" {
+				reassignParents = true
 				break
 			}
 		}
-		indent := strings.Repeat(" | ", i)
+	}
 
-		if i == len(path)-2 { // Subtract 2 instead of 1 because we started from the second element of the slice (path[1:])
-			// This is the last iteration of the loop
-			if !foundMatch {
-				log.Debug().Bool("exists", false).Msgf("%s --%s (%d)", indent, locationToken.HardwareType, locationToken.Ordinal)
-			} else {
-				log.Debug().Bool("exists", true).Str("uuid", currentHardware.ID.String()).Msgf("%s --%s (%d)", indent, locationToken.HardwareType, locationToken.Ordinal)
+	// Ask if user wants to reassign parents
+	if reassignParents {
+		shouldReassign, err := core.PromptForConfirmation("Some devices don't have parents. Reassign them?")
+		if err != nil {
+			return err
+		}
+		if shouldReassign {
+			if err := s.ensureDevicesHaveParents(inventory, devices); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Update devices
+	for id, device := range devices {
+		if _, exists := inventory.Devices[id]; !exists {
+			return fmt.Errorf("device with ID %s does not exist", id)
+		}
+		inventory.Devices[id] = device
+	}
+
+	// Save updated inventory
+	return s.Save(inventory)
+}
+
+// Delete removes devices from the store
+func (s *JSONStore) Delete(ids []uuid.UUID) error {
+	// Load inventory
+	inventory, err := s.Load()
+	if err != nil {
+		return err
+	}
+
+	// Validate that all IDs exist
+	var nonExistentIDs []uuid.UUID
+	for _, id := range ids {
+		if _, exists := inventory.Devices[id]; !exists {
+			nonExistentIDs = append(nonExistentIDs, id)
+		}
+	}
+
+	if len(nonExistentIDs) > 0 {
+		return fmt.Errorf("the following device IDs do not exist: %v", nonExistentIDs)
+	}
+
+	// Check if we're deleting systems or racks with children
+	systemsWithChildren := make(map[uuid.UUID][]string) // Map of system ID to child names
+	for _, id := range ids {
+		log.Printf("Checking device %s for children", id)
+		if device, exists := inventory.Devices[id]; exists && (device.Type == devicetypes.System || device.Type == devicetypes.Rack) {
+			// Find children of this system or rack
+			childNames := []string{}
+			for _, potentialChild := range inventory.Devices {
+				if potentialChild.Parent == id {
+					childNames = append(childNames, potentialChild.Name)
+				}
+			}
+
+			if len(childNames) > 0 {
+				systemsWithChildren[id] = childNames
+			}
+		}
+	}
+
+	// Warn about orphaned children
+	if len(systemsWithChildren) > 0 {
+		fmt.Println("Warning: The following systems have child devices that will be orphaned:")
+		for systemID, children := range systemsWithChildren {
+			system := inventory.Devices[systemID]
+			fmt.Printf("- System '%s' has %d children: %s\n", system.Name, len(children), strings.Join(children, ", "))
+		}
+
+		confirm, err := core.PromptForConfirmation("Do you want to proceed and delete these systems?")
+		if err != nil {
+			return err
+		}
+		if !confirm {
+			return fmt.Errorf("operation canceled by user")
+		}
+
+		// Ask if orphaned devices should be reassigned
+		reassign, err := core.PromptForConfirmation("Do you want to reassign orphaned devices to another system?")
+		if err != nil {
+			return err
+		}
+
+		if reassign {
+			log.Printf("Reassigning orphaned devices to a system...")
+			// Gather all orphaned devices
+			orphanedDevices := make(map[uuid.UUID]*devicetypes.CaniDeviceType)
+			for systemID := range systemsWithChildren {
+				for devID, device := range inventory.Devices {
+					if device.Parent == systemID {
+						orphanedDevices[devID] = device
+					}
+				}
+			}
+
+			// Create temporary inventory without deleted systems
+			tempInventory := &devicetypes.Inventory{
+				Devices: make(map[uuid.UUID]*devicetypes.CaniDeviceType),
+			}
+
+			for id, device := range inventory.Devices {
+				// Skip devices being deleted
+				shouldSkip := false
+				for _, deleteID := range ids {
+					if id == deleteID {
+						shouldSkip = true
+						break
+					}
+				}
+
+				if !shouldSkip {
+					tempInventory.Devices[id] = device
+				}
+			}
+
+			// Run parent reassignment on orphaned devices
+			if err := s.ensureDevicesHaveParents(tempInventory, orphanedDevices); err != nil {
+				return err
+			}
+
+			// Update original inventory with reassigned devices
+			for id, device := range orphanedDevices {
+				inventory.Devices[id] = device
+			}
+		}
+	}
+
+	// Delete devices
+	for _, id := range ids {
+		log.Printf("Deleting device with ID %s", id)
+
+		// Before deleting, remove this device from its parent's children list
+		if device, exists := inventory.Devices[id]; exists {
+			if device.Parent != uuid.Nil {
+				if parent, parentExists := inventory.Devices[device.Parent]; parentExists {
+					// Remove this device ID from parent's children slice
+					updatedChildren := make([]uuid.UUID, 0, len(parent.Children))
+					for _, childID := range parent.Children {
+						if childID != id {
+							updatedChildren = append(updatedChildren, childID)
+						}
+					}
+					parent.Children = updatedChildren
+					log.Printf("Removed device %s from parent %s's children list", id, device.Parent)
+				}
 			}
 		}
 
-		if !foundMatch {
-			return Hardware{}, ErrHardwareNotFound
+		delete(inventory.Devices, id)
+	}
+
+	// Check if we deleted all systems
+	if len(inventory.Systems()) == 0 {
+		log.Printf("Adding a system since all were deleted")
+		system := devicetypes.NewSystem()
+		inventory.Devices[system.ID] = system
+	}
+
+	// Save updated inventory
+	return s.Save(inventory)
+}
+
+// findDevicesWithDanglingReferences finds devices that reference deleted devices as parents
+func (s *JSONStore) findDevicesWithDanglingReferences(inventory *devicetypes.Inventory, deletedIDs []uuid.UUID) map[uuid.UUID]*devicetypes.CaniDeviceType {
+	danglingDevices := make(map[uuid.UUID]*devicetypes.CaniDeviceType)
+
+	for deviceID, device := range inventory.Devices {
+		// Skip devices that are being deleted
+		isBeingDeleted := false
+		for _, deletedID := range deletedIDs {
+			if deviceID == deletedID {
+				isBeingDeleted = true
+				break
+			}
+		}
+		if isBeingDeleted {
+			continue
+		}
+
+		// Check if this device's parent is being deleted
+		for _, deletedID := range deletedIDs {
+			if device.Parent == deletedID {
+				danglingDevices[deviceID] = device
+				break
+			}
 		}
 	}
 
-	if currentHardware.ID == uuid.Nil {
-		return Hardware{}, ErrHardwareNotFound
-	}
-
-	return currentHardware, nil
+	return danglingDevices
 }
 
-// GetChildren returns the children of a given hardware object
-func (ds *DatastoreJSON) GetChildren(id uuid.UUID) ([]Hardware, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
+// ensureSystemSelection handles system selection or creation
+// It returns the selected system ID and a modified inventory
+func (s *JSONStore) ensureSystemSelection(inventory *devicetypes.Inventory) (uuid.UUID, error) {
+	systems := inventory.Systems()
 
-	return ds.getChildren(id)
-}
-
-// getChildren returns the children of a given hardware object
-// This function depends on the cached/derived children data
-func (ds *DatastoreJSON) getChildren(id uuid.UUID) ([]Hardware, error) {
-	hardware, exists := ds.inventory.Hardware[id]
-	if !exists {
-		return nil, ErrHardwareNotFound
-	}
-
-	// For right we need to iterate over the map, as we don't have any
-	// book keeping to keep track of child hardware
-	var results []Hardware
-	for _, childID := range hardware.Children {
-		childHardware, exists := ds.inventory.Hardware[childID]
-		if !exists {
-			// This should not happen
-			return nil, fmt.Errorf("unable to find child hardware object with ID (%s) of (%s)", childHardware.ID, hardware.ID)
+	if len(systems) == 0 {
+		// No systems exist, create one
+		log.Printf("Adding a system since none exist in the inventory")
+		system := devicetypes.NewSystem()
+		inventory.Devices[system.ID] = system
+		return system.ID, nil
+	} else if len(systems) > 1 {
+		// Multiple systems exist, let user choose one
+		fmt.Println("Select a system for the operation:")
+		for i, system := range systems {
+			fmt.Printf("  %d. %s (%v)\n", i+1, system.Name, system.ID)
 		}
 
-		results = append(results, childHardware)
-	}
+		// Prompt for selection
+		var selectedIndex int
+		for {
+			fmt.Print("Select a system (enter number): ")
+			var input string
+			fmt.Scanln(&input)
 
-	return results, nil
-}
-
-func (ds *DatastoreJSON) GetDescendants(id uuid.UUID) ([]Hardware, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
-
-	results := []Hardware{}
-	callback := func(h Hardware) error {
-		results = append(results, h)
-		return nil
-	}
-
-	if err := ds.traverseByLocation(id, callback); err != nil {
-		return nil, err
-	}
-
-	return results, nil
-}
-
-func (ds *DatastoreJSON) traverseByLocation(rootID uuid.UUID, callback func(h Hardware) error) error {
-	queue := []uuid.UUID{rootID}
-
-	for len(queue) != 0 {
-		// Pull next ID from the queue
-		hardwareID := queue[0]
-		queue = queue[1:]
-
-		// Retrieve the hardware object
-		hardware, exists := ds.inventory.Hardware[hardwareID]
-		if !exists {
-			// This should not happen
-			return fmt.Errorf("unable to find hardware object with ID (%s)", hardware.ID)
+			// Parse input
+			if i, err := strconv.Atoi(input); err == nil && i > 0 && i <= len(systems) {
+				selectedIndex = i - 1
+				break
+			}
+			fmt.Println("Invalid selection. Please try again.")
 		}
 
-		// Visit the hardware object
-		if err := callback(hardware); err != nil {
-			return errors.Join(fmt.Errorf("callback failed on hardware object with ID (%s)", hardware.ID), err)
+		selectedSystem := systems[selectedIndex]
+		log.Printf("Selected system: %s", selectedSystem.Name)
+		return selectedSystem.ID, nil
+	} else {
+		// Only one system exists
+		chosenSystem, err := core.PromptForConfirmation(
+			fmt.Sprintf("Use system '%s' (%v)?", systems[0].Name, systems[0].ID))
+		if err != nil {
+			return uuid.Nil, err
 		}
+		if !chosenSystem {
+			return uuid.Nil, fmt.Errorf("operation canceled by user")
+		}
+		return systems[0].ID, nil
+	}
+}
 
-		// Add the children to the queue
-		queue = append(queue, hardware.Children...)
+// ensureDevicesHaveParents ensures all non-system devices have valid parent IDs
+func (s *JSONStore) ensureDevicesHaveParents(inventory *devicetypes.Inventory, devices map[uuid.UUID]*devicetypes.CaniDeviceType) error {
+	// Check if any device needs a parent
+	needParent := false
+	for _, device := range devices {
+		if device.Type == devicetypes.Rack && device.Parent == uuid.Nil {
+			needParent = true
+			break
+		}
+	}
+
+	if !needParent {
+		return nil // No parenting needed
+	}
+
+	// Get system selection
+	systemID, err := s.ensureSystemSelection(inventory)
+	if err != nil {
+		return err
+	}
+
+	// Assign parent to devices that need it
+	for _, device := range devices {
+		if device.Type == devicetypes.Rack && device.Parent == uuid.Nil {
+			device.Parent = systemID
+			log.Printf("Set parent of %s to system %v", device.Name, systemID)
+		}
 	}
 
 	return nil
-}
-
-// logTransaction logs a transaction to logger
-func (ds *DatastoreJSON) logTransaction(operation string, key string, value interface{}, err error) {
-	if ds.dataFilePath == "" {
-		// If running in in-memory mode there is currently no place to log
-		return
-	}
-
-	tl, err = os.OpenFile(
-		ds.logFilePath,
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY,
-		0664,
-	)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to open transaction log file")
-		return
-	}
-	logger = zerolog.New(tl).With().Timestamp().Logger()
-	defer tl.Close()
-
-	// Get the current timestamp
-	timestamp := time.Now()
-
-	// Determine the operation status
-	status := "SUCCESS"
-	if err != nil {
-		status = "FAILED"
-	}
-
-	// Log the transaction
-	logEvent := logger.With().
-		Timestamp().
-		Str("timestamp", timestamp.Format(time.RFC3339)).
-		Str("operation", operation).
-		Str("key", key).
-		Interface("value", value).
-		Str("status", status).
-		Logger()
-
-	if err != nil {
-		logEvent.Err(err).Msg("Transaction")
-	} else {
-		logEvent.Info().Msg("Transaction")
-	}
-
-}
-
-// GetSystem returns the system that the given hardware object is a part of
-func (ds *DatastoreJSON) GetSystem(hardware Hardware) (Hardware, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
-
-	return Hardware{}, errors.New("not yet implemented")
-	return ds.getSystem(hardware)
-}
-
-// getSystem will follow the parent links up to the root node and errors if not found
-// this is not in use until multiple systems are implemented
-func (ds *DatastoreJSON) getSystem(hardware Hardware) (Hardware, error) {
-	// Follow the parent links up to the root node
-	currentHardwareID := hardware.ID
-	for currentHardwareID != uuid.Nil {
-		currentHardware, exists := ds.inventory.Hardware[currentHardwareID]
-		if !exists {
-			return Hardware{}, errors.Join(
-				fmt.Errorf("unable to find ancestor (%s) of (%s)", currentHardwareID, hardware.ID),
-				ErrHardwareNotFound,
-			)
-		}
-
-		if currentHardware.Type == hardwaretypes.System {
-			// return the system
-			return currentHardware, nil
-		}
-		// Go the parent node next
-		currentHardwareID = currentHardware.Parent
-	}
-
-	return Hardware{}, ErrHardwareNotFound
-}
-
-// GetSystemZero assumes one system exists and returns it
-func (ds *DatastoreJSON) GetSystemZero() (Hardware, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
-
-	return ds.getSystemZero()
-}
-
-// getSystem finds the System type in the inventory and returns it
-// it does not currently detect multiple systems and may grab the wrong one if multiple exist
-func (ds *DatastoreJSON) getSystemZero() (Hardware, error) {
-	// Assume one system
-	for _, hw := range ds.inventory.Hardware {
-		system, exists := ds.inventory.Hardware[hw.ID]
-		if !exists {
-			return Hardware{}, errors.Join(
-				fmt.Errorf("unable to find %s (%s)", hardwaretypes.System, hw.ID),
-				ErrHardwareNotFound,
-			)
-		}
-
-		if system.Type == hardwaretypes.System {
-			// return the system
-			return system, nil
-		}
-	}
-
-	return Hardware{}, ErrHardwareNotFound
-}
-
-func (ds *DatastoreJSON) Search(filter SearchFilter) (map[uuid.UUID]Hardware, error) {
-	ds.inventoryLock.RLock()
-	defer ds.inventoryLock.RUnlock()
-
-	// Build up lookup maps based on the filter
-	wantedTypes := map[hardwaretypes.HardwareType]bool{}
-	for _, wantedType := range filter.Types {
-		wantedTypes[wantedType] = true
-	}
-
-	wantedStatus := map[HardwareStatus]bool{}
-	for _, status := range filter.Status {
-		wantedStatus[status] = true
-	}
-
-	return ds.inventory.FilterHardware(func(h Hardware) (bool, error) {
-		matchType := false
-		if len(wantedTypes) == 0 || wantedTypes[h.Type] {
-			matchType = true
-		}
-
-		matchStatus := false
-		if len(wantedStatus) == 0 || wantedStatus[h.Status] {
-			matchStatus = true
-		}
-
-		return matchType && matchStatus, nil
-	})
 }
