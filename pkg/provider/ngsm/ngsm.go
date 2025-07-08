@@ -26,77 +26,30 @@
 package ngsm
 
 import (
-	"context"
-
-	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
-	"github.com/netbox-community/go-netbox/v3"
-	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
+	"github.com/Cray-HPE/cani/pkg/provider/ngsm/extract"
 )
 
+// Ngsm is the struct for the NGSM provider
 type Ngsm struct {
-	hardwareLibrary *hardwaretypes.Library
-	Options         *NgsmOpts
-	NetboxClient    *netbox.APIClient
-	context         context.Context
-	Boms            map[string]*queue
+	Options *NgsmOpts
+	Boms    extract.Queues
 }
 
+// NgsmOpts holds the options for the NGSM provider
 type NgsmOpts struct {
-	NetboxOpts NetboxOpts `yaml:"netbox"`
+	Bomtype string `json:"bomtype" yaml:"bomtype"` // Add any options you need for the Ngsm provider
 }
 
-type NetboxOpts struct {
-	Scheme   string                `yaml:"scheme"`
-	Host     string                `yaml:"host"`
-	Token    string                `yaml:"token"`
-	Insecure bool                  `yaml:"insecure"`
-	Debug    bool                  `yaml:"debug"`
-	cfg      *netbox.Configuration `yaml:"-"`
-}
-
-// New returns a new ngsm object, which represents the ngsm inventory
-// When initializing a new sesssion with 'init,' this function is called.
-// ValidateInternal is then called to ensure CANI's inventory structure is ok
-// ValidateExternal is then called to ensure the provider inventory is ok
-// Import is the last to be called and if successful, a session is activated
-func New(cmd *cobra.Command, args []string, hardwareLibrary *hardwaretypes.Library, opts interface{}) (ngsm *Ngsm, err error) {
+// New creates a new instance of the Ngsm provider
+func New() (ngsm *Ngsm) {
 	ngsm = &Ngsm{
-		hardwareLibrary: hardwareLibrary,
-		Options: &NgsmOpts{
-			NetboxOpts: NetboxOpts{
-				cfg: &netbox.Configuration{},
-			},
-		},
-		Boms: make(map[string]*queue, 0),
+		Options: &NgsmOpts{},
+		Boms:    make(extract.Queues),
 	}
-
-	if cmd.Parent().Name() == "init" {
-		// set the provider options
-		err = ngsm.SetProviderOptions(cmd, args)
-		if err != nil {
-			return ngsm, err
-		}
-	} else {
-		// use the existing options if a new session is not being initialized
-		// unmarshal to a CsmOpts object
-		optsMarshaled, err := yaml.Marshal(opts)
-		if err != nil {
-			return nil, err
-		}
-		NgsmOpts := NgsmOpts{}
-		err = yaml.Unmarshal(optsMarshaled, &NgsmOpts)
-		if err != nil {
-			return ngsm, err
-		}
-
-		// set the options to the object
-		ngsm.Options = &NgsmOpts
-	}
-
-	return ngsm, nil
+	return ngsm
 }
 
-func (f Ngsm) Slug() string {
+// Slug returns the slug for the NGSM provider
+func (p *Ngsm) Slug() string {
 	return "ngsm"
 }

@@ -26,16 +26,12 @@
 package ngsm
 
 import (
-	"github.com/Cray-HPE/cani/pkg/provider/ngsm/extract"
-	"github.com/spf13/cobra"
+	"github.com/Cray-HPE/cani/pkg/devicetypes"
+	"github.com/Cray-HPE/cani/pkg/provider/ngsm/transform"
+	"github.com/google/uuid"
 )
 
-// Extract extracts the BOM files from the command line arguments
-func (p *Ngsm) Extract(cmd *cobra.Command, args []string) (err error) {
-	p.Boms, err = extract.Extract(cmd, args)
-	if err != nil {
-		return err
-	}
-
-	return nil
+// Extract transforms devices in the queue into CANI's format
+func (p *Ngsm) Transform(existing devicetypes.Inventory) (map[uuid.UUID]*devicetypes.CaniDeviceType, error) {
+	return transform.Transform(existing, p.Boms)
 }

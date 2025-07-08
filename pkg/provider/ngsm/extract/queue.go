@@ -23,95 +23,84 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package ngsm
+package extract
 
 import (
 	"fmt"
+	"log"
 	"path/filepath"
+	"regexp"
 
-	"github.com/netbox-community/go-netbox/v3"
-	"github.com/rs/zerolog/log"
+	"github.com/Cray-HPE/cani/internal/core"
+	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
 
-// Queue is a map of queues for each bom file
-type Queue map[string]*queue
+// Queues is a map of Queues for each bom file
+type Queues map[string]*Queue
 
-// queue represents a queue of racks and devices to be created in netbox
+// Queue represents a Queue of racks and devices to be created in netbox
 // gathered from an expert bom
-type queue struct {
-	existingRacks       map[string]netbox.Rack
-	existingDevices     map[string]netbox.DeviceWithConfigContext
-	existingDeviceTypes map[string]netbox.DeviceType
-	deviceTypeIds       map[string]int32
-	racksDetected       map[string]Row
-	racksToCreate       map[string]Row
-	rackSummary         map[int32]int
-	devicesDetected     map[string]Row
-	devicesToCreate     map[string]Row
-	deviceSummary       map[int32]int
-	bom                 string
+type Queue struct {
+	ExistingDevices map[string]devicetypes.DeviceType
+	RacksToCreate   map[string]*Row
+	DevicesToCreate map[string]*Row
+	Bom             string
 }
 
-// newQueue creates a new queue for a bom file
+// newQueues creates a new Queue for a bom file
 // it needs the existing device types, racks, and devices from netbox so it can
 // run idempotently
-func newQueue(bom string, existingDeviceTypes map[string]netbox.DeviceType, existingRacks map[string]netbox.Rack, existingDevices map[string]netbox.DeviceWithConfigContext) (q *queue, err error) {
-	q = &queue{
-		existingRacks:       existingRacks,
-		existingDevices:     existingDevices,
-		existingDeviceTypes: existingDeviceTypes,
-		deviceTypeIds:       make(map[string]int32),
-		racksDetected:       make(map[string]Row),
-		racksToCreate:       make(map[string]Row),
-		rackSummary:         make(map[int32]int),
-		devicesDetected:     make(map[string]Row),
-		devicesToCreate:     make(map[string]Row),
-		deviceSummary:       make(map[int32]int),
-		bom:                 bom,
-	}
-
-	// get the device type IDs
-	for _, deviceType := range existingDeviceTypes {
-		if deviceType.GetPartNumber() != "" {
-			q.deviceTypeIds[deviceType.GetPartNumber()] = deviceType.GetId()
-		}
+func newQueues(bom string) (q *Queue, err error) {
+	q = &Queue{
+		ExistingDevices: make(map[string]devicetypes.DeviceType),
+		RacksToCreate:   make(map[string]*Row),
+		DevicesToCreate: make(map[string]*Row),
+		Bom:             bom,
 	}
 
 	return q, nil
 }
 
-// addRack adds a rack to the queue if it is not already an existing rack
-func (q *queue) addRack(row *Row) (err error) {
-	_, ok := q.existingRacks[row.netboxName]
+// func (q *Queue) addSystem(hw *devicetypes.DeviceType) (err error) {
+// 	q.systems[hw.Name] = *hw
+// 	return nil
+// }
+
+// // addRack adds a rack to the Queue if it is not already an existing rack
+// func (q *Queue) addRack(row *Row) (err error) {
+// 	// row.HardwareType = devicetypes.Rack //TODO: make a function to determeine the hardware type
+// 	_, ok := q.existingRacks[row.NetboxName]
+// 	if !ok {
+// 		q.racksToCreate[row.NetboxName] = *row
+// 	}
+
+// 	return nil
+// }
+
+// addDerive adds a device to the Queue if it is not already an existing device
+func (q *Queue) addDevice(row *Row) (err error) {
+	_, ok := q.ExistingDevices[row.NetboxName]
 	if !ok {
-		log.Debug().Msgf("Netbox rack will be created: '%s'", row.netboxName)
-		q.racksDetected[row.netboxName] = *row
-		q.racksToCreate[row.netboxName] = *row
-		q.rackSummary[row.netboxDeviceTypeID]++
+		if row.IsRack() {
+			q.RacksToCreate[row.NetboxName] = row
+		} else {
+			q.DevicesToCreate[row.NetboxName] = row
+		}
 	}
 	return nil
 }
 
-// addDerive adds a device to the queue if it is not already an existing device
-func (q *queue) addDevice(row *Row) (err error) {
-	_, ok := q.existingDevices[row.netboxName]
-	if !ok {
-		log.Debug().Msgf("Netbox device will be created: '%s' (%d)", row.netboxName, row.netboxDeviceTypeID)
-		q.devicesDetected[row.netboxName] = *row
-		q.devicesToCreate[row.netboxName] = *row
-		q.deviceSummary[row.netboxDeviceTypeID]++
-	}
-	return nil
-}
-
-// AddRow adds the row to the queue if it is a valid row for netbox
+// AddRow adds the row to the Queue if it is a valid row for netbox
 // If the row Quantity cell is more than 1, it will create as many duplicate
 // rows as needed for the quantity, each with their own unique name
-func (q *queue) AddRow(row *Row) (err error) {
+func (q *Queue) QueuesRow(row *Row) (err error) {
+	if debug {
+		log.Printf("queuing %+v:%v", filepath.Base(q.Bom), row.Row)
+	}
 	switch {
 	case row.Quantity == 1:
-		row.SetNetboxName(fmt.Sprintf("%s-row-%d-%d/%d", filepath.Base(q.bom), row.row, 1, row.Quantity))
-		err = q.addRow(row)
+		row.SetNetboxName(fmt.Sprintf("%s-row-%d-%d/%d", filepath.Base(q.Bom), row.Row, 1, row.Quantity))
+		err = q.QueueRow(row)
 		if err != nil {
 			return err
 		}
@@ -119,12 +108,11 @@ func (q *queue) AddRow(row *Row) (err error) {
 		for i := 0; i < row.Quantity; i++ {
 			// make a duplicate row for each quantity
 			newRow := row.NewRowFromRow()
-			newRow.SetSource(filepath.Base(q.bom))
-			newRow.SetNetboxDeviceTypeID(q.deviceTypeIds[row.ProductNumber])
+			newRow.SetSource(filepath.Base(q.Bom))
 			// set the name to be unique with the row number and quantity
-			newRow.SetNetboxName(fmt.Sprintf("%s-row-%d-%d/%d", filepath.Base(q.bom), row.row, i+1, row.Quantity))
-			// add each row to the queue
-			err = q.addRow(&newRow)
+			newRow.SetNetboxName(fmt.Sprintf("%s-row-%d-%d/%d", filepath.Base(q.Bom), row.Row, i+1, row.Quantity))
+			// add each row to the Queue
+			err = q.QueueRow(&newRow)
 			if err != nil {
 				return err
 			}
@@ -136,23 +124,30 @@ func (q *queue) AddRow(row *Row) (err error) {
 	return nil
 }
 
-// addRow adds a row to the queue if it is a valid row for netbox and will
+// QueueRow adds a row to the Queue if it is a valid row for netbox and will
 // either add it as a rack or a device
-func (q *queue) addRow(row *Row) (err error) {
-	row.SetSource(filepath.Base(q.bom))
+func (q *Queue) QueueRow(row *Row) (err error) {
+	slug := core.Slugify(row.ProductDescription)
+	row.SetSource(filepath.Base(q.Bom))
+
 	switch {
 
-	case row.IsDevice(q.deviceTypeIds):
-		log.Debug().Msgf("Detected a device: '%v' (%+v:%v)", row.ProductDescription, filepath.Base(q.bom), row.row)
-		row.SetNetboxDeviceTypeID(q.deviceTypeIds[row.ProductNumber])
+	// case row.IsRack():
+	// 	if debug {
+	// 		log.Printf("Validating %+v:%v -> Queuing a rack: %v", filepath.Base(q.bom), row.row, row.ProductNumber)
+	// 	}
+	// 	row.SetNetboxDeviceTypeSlug(slug)
+	// 	err = q.addDevice(row)
+
+	case row.IsDevice():
+		if debug {
+			log.Printf("queuing %v:%v -> %v", filepath.Base(q.Bom), row.Row, row.ProductNumber)
+		}
+		row.SetNetboxDeviceTypeSlug(slug)
 		err = q.addDevice(row)
 
-	case row.IsRack():
-		log.Debug().Msgf("Detected a rack: '%v' (%+v:%v)", row.ProductDescription, filepath.Base(q.bom), row.row)
-		err = q.addRack(row)
-
 	default:
-		log.Trace().Msgf("Not a rack or device: '%v' (%+v:%v)", row.ProductDescription, filepath.Base(q.bom), row.row)
+		// log.Printf("%+v:%v Will not Queue an unknown device type: '%v'", filepath.Base(q.bom), row.row, row.ProductDescription)
 	}
 
 	if err != nil {
@@ -161,14 +156,18 @@ func (q *queue) addRow(row *Row) (err error) {
 	return nil
 }
 
-// Sanitize attempts to sanitize the row's content so valid data is returned
-// this will do things like normalize part numbers, clean up blankspace, etc.
-func (row *Row) Sanitize() (parsed *Row, err error) {
-	// sanitize the row's content
-	err = row.sanitize()
-	if err != nil {
-		return nil, err
+// HasRack checks if the Queue contains any rack hardware
+// Returns the first rack found and true if found, otherwise empty row and false
+func (q *Queue) HasRack() (map[string]*Row, bool) {
+	racks := make(map[string]*Row, 0)
+	for _, row := range q.DevicesToCreate {
+		re1 := regexp.MustCompile(`\d+U`)
+		re2 := regexp.MustCompile(`[Rr]ack`)
+		re3 := regexp.MustCompile(`(?i)[Kk]it|[Ss]ervice`)
+		// if a row has both 'rack', a U count, and does not contain 'kit' or 'service', it is likely a rack
+		if re1.MatchString(row.ProductDescription) && re2.MatchString(row.ProductDescription) && !re3.MatchString(row.ProductDescription) {
+			racks[row.NetboxName] = row
+		}
 	}
-
-	return row, nil
+	return racks, len(racks) > 0
 }

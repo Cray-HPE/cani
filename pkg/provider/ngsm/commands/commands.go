@@ -23,129 +23,71 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package ngsm
+package commands
 
 import (
-	"github.com/Cray-HPE/cani/pkg/utils"
-	"github.com/rs/zerolog/log"
+	"log"
+
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/internal/provider/ngsm.init")
-}
-
-func NewSessionInitCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
-	cmd = utils.CloneCommand(caniCmd)
-	cmd.Flags().String("host", "localhost:8000", "Host or FQDN for APIs")
-	cmd.Flags().String("token", "", "API token")
-	cmd.Flags().String("cacert", "", "Path to the CA certificate file")
-	cmd.Flags().StringArrayP("bom", "b", []string{}, "Path to a BoM file (can specify multiple times)")
-	return cmd, nil
-}
-
-// NewProviderCmd returns the appropriate command to the cmd layer
+// NewProviderCmd creates commands for the NGSM provider
+// This function is called by the cani command to create provider-specific commands
+// based on the parent command (caniCmd).
 func NewProviderCmd(caniCmd *cobra.Command) (providerCmd *cobra.Command, err error) {
-	providerCmd = &cobra.Command{}
-	// first, choose the right command
 	switch caniCmd.Name() {
-	case "init":
-		providerCmd, err = NewSessionInitCommand(caniCmd)
-	case "cabinet":
-		switch caniCmd.Parent().Name() {
-		case "add":
-			providerCmd, err = NewAddCabinetCommand(caniCmd)
-		case "update":
-			providerCmd, err = NewUpdateCabinetCommand(caniCmd)
-		case "list":
-			providerCmd, err = NewListCabinetCommand(caniCmd)
-		}
-	case "blade":
-		switch caniCmd.Parent().Name() {
-		case "add":
-			providerCmd, err = NewAddBladeCommand(caniCmd)
-		case "update":
-			providerCmd, err = NewUpdateBladeCommand(caniCmd)
-		case "list":
-			providerCmd, err = NewListBladeCommand(caniCmd)
-		}
-	case "node":
-		// check for add/update variants
-		switch caniCmd.Parent().Name() {
-		case "add":
-			providerCmd, err = NewAddNodeCommand(caniCmd)
-		case "update":
-			providerCmd, err = NewUpdateNodeCommand(caniCmd)
-		case "list":
-			providerCmd, err = NewListNodeCommand(caniCmd)
-		}
-	case "export":
-		providerCmd, err = NewExportCommand(caniCmd)
-	case "import":
-		providerCmd, err = NewImportCommand(caniCmd)
+	case "init": // session init
+		providerCmd, _ = newInitCmd(caniCmd)
+	case "add":
+		providerCmd, _ = newAddCmd(caniCmd)
+	case "show":
+		providerCmd, _ = newShowCmd(caniCmd)
 	default:
-		log.Debug().Msgf("Command not implemented by provider: %s %s", caniCmd.Parent().Name(), caniCmd.Name())
-		// providerCmd = &cobra.Command{}
-	}
-	if err != nil {
-		return providerCmd, err
+		// this provider doesn’t customize that verb
+		return nil, nil
 	}
 
 	return providerCmd, nil
 }
 
-func NewAddCabinetCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
-	cmd = utils.CloneCommand(caniCmd)
-	return cmd, nil
+// newInitCmd creates the "init" command for the NGSM provider.
+// This command is used to run NGSM-specific initialization tasks before the cani init command.
+// It returns a cobra.Command that can be added to the cani command hierarchy.
+// The command accepts a flag for specifying a BoM file, which can be provided multiple times.
+func newInitCmd(caniCmd *cobra.Command) (providerCmd *cobra.Command, err error) {
+	providerCmd = &cobra.Command{
+		RunE: initializeNGSM,
+	}
+	providerCmd.Flags().StringArrayP("bom", "b", []string{}, "Path to a BoM file (can specify multiple times)")
+
+	return providerCmd, nil
 }
 
-func NewUpdateCabinetCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
-	cmd = utils.CloneCommand(caniCmd)
-	return cmd, nil
+// initializeNGSM is the function that runs during "session init" for the NGSM provider.
+// but runs prior to the task of the cani providerd init command.
+func initializeNGSM(cmd *cobra.Command, args []string) error {
+	log.Println("Running NGSM tasks prior to cani init...")
+	return nil
 }
 
-func NewAddNodeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
-	cmd = utils.CloneCommand(caniCmd)
-	return cmd, nil
+// newAddCmd creates the "add" command for the NGSM provider.
+func newAddCmd(caniCmd *cobra.Command) (providerCmd *cobra.Command, err error) {
+	providerCmd = &cobra.Command{}
+	providerCmd.Flags().StringP("superadd", "s", "", "Super add")
+
+	return providerCmd, nil
 }
 
-func NewUpdateNodeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
-	cmd = utils.CloneCommand(caniCmd)
-	return cmd, nil
+func newShowCmd(caniCmd *cobra.Command) (providerCmd *cobra.Command, err error) {
+	providerCmd = &cobra.Command{
+		RunE: showNGSM,
+	}
+	providerCmd.Flags().StringP("superadd", "s", "", "Super add")
+	return providerCmd, nil
 }
 
-func NewListCabinetCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
-	cmd = utils.CloneCommand(caniCmd)
-	return cmd, nil
-}
+func showNGSM(cmd *cobra.Command, args []string) error {
+	// add additional output formats
 
-func NewExportCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
-	cmd = utils.CloneCommand(caniCmd)
-	return cmd, nil
-}
-
-func NewAddBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
-	cmd = utils.CloneCommand(caniCmd)
-	return cmd, nil
-}
-
-func NewUpdateBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
-	cmd = utils.CloneCommand(caniCmd)
-	return cmd, nil
-}
-
-func NewListBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
-	cmd = utils.CloneCommand(caniCmd)
-	return cmd, nil
-}
-
-func NewListNodeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
-	cmd = utils.CloneCommand(caniCmd)
-	return cmd, nil
-}
-
-func NewImportCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
-	cmd = utils.CloneCommand(caniCmd)
-	cmd.Flags().StringP("bom", "b", "", "Path to a BoM file")
-	return cmd, nil
+	return nil
 }
