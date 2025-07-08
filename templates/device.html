@@ -1,0 +1,52 @@
+{{ define "content" }}
+  <h1>Edit Device Details</h1>
+  <form method="POST" action="/device/update/{{ .Device.ID }}">
+    <table>
+      <tr>
+        <th>ID</th>
+        <td><input type="text" name="id" value="{{ .Device.ID }}" readonly /></td>
+      </tr>
+      <tr>
+        <th>Name</th>
+        <td><input type="text" name="name" value="{{ .Device.Name }}" /></td>
+      </tr>
+      <tr>
+        <th>Type</th>
+        <td>
+          <select name="type">
+            {{ range .DeviceTypesTypeList }}
+              <option value="{{ . }}" {{ if devicetypeTypeEquals $.Device.Type . }}selected{{ end }}>{{ . }}</option>
+            {{ end }}
+          </select>
+        </td>
+      </tr>
+      <tr>
+        <th>Status</th>
+        <td>
+          <select name="status">
+            <option value="staged" {{ if eq .Device.Status "staged" }}selected{{ end }}>Staged</option>
+            <option value="provisioned" {{ if eq .Device.Status "provisioned" }}selected{{ end }}>Production</option>
+            <option value="decommissioned" {{ if eq .Device.Status "decommissioned" }}selected{{ end }}>Decommissioned</option>
+          </select>
+        </td>
+      </tr>
+      <tr>
+        <th>Vendor</th>
+        <td><input type="text" name="vendor" value="{{ .Device.Vendor }}" /></td>
+      </tr>
+      <tr>
+        <th>Model</th>
+        <td><input type="text" name="model" value="{{ .Device.Model }}" /></td>
+      </tr>
+      <tr>
+        <th>Parent</th>
+        <td><input type="text" name="parent" value="{{ .Device.Parent }}" /></td>
+      </tr>
+      <!-- Add more fields as necessary -->
+    </table>
+  <div style="margin-top: 20px;">
+    <button type="submit">Save</button>
+    <a href="/">Cancel</a>
+  </div>
+  </form>
+{{ end }}

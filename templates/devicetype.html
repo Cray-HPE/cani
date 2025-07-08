@@ -1,0 +1,249 @@
+{{ define "content" }}
+  <h1>Device Type Details: {{ .DeviceType.Slug }}</h1>
+  <table>
+    <tr>
+      <th>Manufacturer</th>
+      <td>{{ .DeviceType.Manufacturer }}</td>
+    </tr>
+    <tr>
+      <th>Model</th>
+      <td>{{ .DeviceType.Model }}</td>
+    </tr>
+    <tr>
+      <th>Device Type Type</th>
+      <td>{{ .DeviceType.Type }}</td>
+    </tr>
+    <tr>
+      <th>Slug</th>
+      <td>{{ .DeviceType.Slug }}</td>
+    </tr>
+    <tr>
+      <th>Part Number</th>
+      <td>{{ if .DeviceType.PartNumber }}{{ .DeviceType.PartNumber }}{{ else }}N/A{{ end }}</td>
+    </tr>
+    <tr>
+      <th>U Height</th>
+      <td>{{ if .DeviceType.UHeight }}{{ .DeviceType.UHeight }}{{ else }}N/A{{ end }}</td>
+    </tr>
+    <tr>
+      <th>Is Full Depth</th>
+      <td>{{ if .DeviceType.IsFullDepth }}Yes{{ else }}No{{ end }}</td>
+    </tr>
+    <tr>
+      <th>Weight</th>
+      <td>{{ if .DeviceType.Weight }}{{ .DeviceType.Weight }}{{ else }}N/A{{ end }}</td>
+    </tr>
+    <tr>
+      <th>Weight Unit</th>
+      <td>{{ if .DeviceType.WeightUnit }}{{ .DeviceType.WeightUnit }}{{ else }}N/A{{ end }}</td>
+    </tr>
+    <tr>
+      <th>Front Image</th>
+      <td>{{ if .DeviceType.FrontImage }}Yes{{ else }}No{{ end }}</td>
+    </tr>
+    <tr>
+      <th>Rear Image</th>
+      <td>{{ if .DeviceType.RearImage }}Yes{{ else }}No{{ end }}</td>
+    </tr>
+    <tr>
+      <th>Sub-Device Role</th>
+      <td>{{ .DeviceType.SubDeviceRole }}</td>
+    </tr>
+  </table>
+
+  <h2>Device Bays</h2>
+  {{ if .DeviceType.DeviceBays }}
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Ordinal</th>
+          <th>Default Hardware Slug</th>
+          <th>Allowed Hardware Slugs</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{ range .DeviceType.DeviceBays }}
+        <tr>
+          <td>{{ .Name }}</td>
+          <td>{{ .Ordinal }}</td>
+          <td>{{ if .Default }}{{ .Default.Slug }}{{ else }}N/A{{ end }}</td>
+          <td>
+            {{ if .Allowed }}
+              {{ range $i, $slug := .Allowed.Slug }}
+                {{ if $i }}, {{ end }}{{ $slug }}
+              {{ end }}
+            {{ else }}
+              N/A
+            {{ end }}
+          </td>
+        </tr>
+        {{ end }}
+      </tbody>
+    </table>
+  {{ else }}
+    <p>No Device Bays</p>
+  {{ end }}
+
+  <h2>Identifications</h2>
+  {{ if .DeviceType.Identifications }}
+    <table>
+      <thead>
+        <tr>
+          <th>Manufacturer</th>
+          <th>Model</th>
+          <th>Part Number</th>
+        </tr>
+      </thead>
+      <tbody>
+      {{ range .DeviceType.Identifications }}
+        <tr>
+          <td>{{ .Manufacturer }}</td>
+          <td>{{ .Model }}</td>
+          <td>{{ if .PartNumber }}{{ .PartNumber }}{{ else }}N/A{{ end }}</td>
+        </tr>
+      {{ end }}
+      </tbody>
+    </table>
+  {{ else }}
+    <p>No Identifications</p>
+  {{ end }}
+
+  <h2>Console Ports</h2>
+  {{ if .DeviceType.ConsolePorts }}
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ range .DeviceType.ConsolePorts }}
+      <tr>
+        <td>{{ .Name }}</td>
+        <td>{{ .Type }}</td>
+        <td>{{ .Poe }}</td>
+        <td>{{ .Label }}</td>
+      </tr>
+      {{ end }}
+    </tbody>
+  </table>
+  {{ else }}
+  <p>No console ports defined.</p>
+  {{ end }}
+
+  <h2>Interfaces</h2>
+  {{ if .DeviceType.Interfaces }}
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Management Only</th>
+        <th>PoE Mode</th>
+        <th>PoE Type</th>
+        <th>Label</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ range .DeviceType.Interfaces }}
+      <tr>
+        <td>{{ .Name }}</td>
+        <td>{{ .Type }}</td>
+        <td>{{ .MgmtOnly }}</td>
+        <td>{{ .PoeMode }}</td>
+        <td>{{ .PoeType }}</td>
+        <td>{{ .Label }}</td>
+      </tr>
+      {{ end }}
+    </tbody>
+  </table>
+  {{ else }}
+  <p>No interfaces defined.</p>
+  {{ end }}
+
+  <h2>Power Ports</h2>
+  {{ if .DeviceType.PowerPorts }}
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Allocated Draw</th>
+        <th>Label</th>
+        <th>Maximum Draw</th>
+        <th>Allocated Draw</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ range .DeviceType.PowerPorts }}
+      <tr>
+        <td>{{ .Name }}</td>
+        <td>{{ .Type }}</td>
+        <td>{{ .AllocatedDraw }}</td>
+        <td>{{ .Label }}</td>
+        <td>{{ .MaximumDraw }}</td>
+        <td>{{ .allocated_draw }}</td>
+      </tr>
+      {{ end }}
+    </tbody>
+  </table>
+  {{ else }}
+  <p>No power ports defined.</p>
+  {{ end }}
+
+  <h2>Module Bays</h2>
+  {{ if .DeviceType.ModuleBays }}
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Label</th>
+        <th>Position</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ range .DeviceType.ModuleBays }}
+      <tr>
+        <td>{{ .Name }}</td>
+        <td>{{ .Label }}</td>
+        <td>{{ .Position }}</td>
+      </tr>
+      {{ end }}
+    </tbody>
+  </table>
+  {{ else }}
+  <p>No module bays defined.</p>
+  {{ end }}
+
+  <h2>Provider Defaults</h2>
+  {{ if .DeviceType.ProviderDefaults }}
+    <table>
+      <tr>
+        <th>CSM Class</th>
+        <td>{{ if .DeviceType.ProviderDefaults.CSM }}{{ .DeviceType.ProviderDefaults.CSM.Class }}{{ else }}N/A{{ end }}</td>
+      </tr>
+      <tr>
+        <th>CSM Ordinal</th>
+        <td>{{ if .DeviceType.ProviderDefaults.CSM }}{{ .DeviceType.ProviderDefaults.CSM.Ordinal }}{{ else }}N/A{{ end }}</td>
+      </tr>
+      <tr>
+        <th>CSM Starting HMN VLAN</th>
+        <td>{{ if .DeviceType.ProviderDefaults.CSM }}{{ .DeviceType.ProviderDefaults.CSM.StartingHmnVlan }}{{ else }}N/A{{ end }}</td>
+      </tr>
+      <tr>
+        <th>CSM Ending HMN VLAN</th>
+        <td>{{ if .DeviceType.ProviderDefaults.CSM }}{{ .DeviceType.ProviderDefaults.CSM.EndingHmnVlan }}{{ else }}N/A{{ end }}</td>
+      </tr>
+      <tr>
+        <th>NGSM Ordinal</th>
+        <td>{{ if .DeviceType.ProviderDefaults.NGSM }}{{ .DeviceType.ProviderDefaults.NGSM.Ordinal }}{{ else }}N/A{{ end }}</td>
+      </tr>
+    </table>
+  {{ else }}
+    <p>No Provider Defaults</p>
+  {{ end }}
+
+  <p><a href="/devicetypes">← Back to Device Types</a></p>
+{{ end }}

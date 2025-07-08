@@ -1,0 +1,26 @@
+{{ define "content" }}
+  <h1>Device Types</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>Slug</th>
+        <th>Manufacturer</th>
+        <th>Model</th>
+        <th>Type</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ range $slug, $dt := .DeviceTypes }}
+      <div>{{ $dt.Name }}</div>
+      <tr>
+        <td>
+          <a href="/devicetype/{{ $slug }}">{{ $slug }}</a>
+        </td>
+        <td>{{ $dt.Manufacturer }}</td>
+        <td>{{ $dt.Model }}</td>
+        <td>{{ $dt.Type }}</td>
+      </tr>
+      {{ end }}
+    </tbody>
+  </table>
+{{ end }}

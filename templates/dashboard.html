@@ -1,0 +1,76 @@
+{{ define "content" }}
+  <h1>Dashboard</h1>
+  <style>
+    th.sortable {
+      cursor: pointer;
+    }
+    /* Show up/down arrows on sortable headers */
+    th.sortable:after {
+      content: " \25B2\25BC";
+      font-size: 0.8em;
+      color: #7630EA;
+    }
+  </style>
+  <table id="dashboardTable">
+    <thead>
+      <tr>
+        <th class="sortable">Name</th>
+        <th class="sortable">Model</th>
+        <th class="sortable">ID</th>
+        <th class="sortable">Type</th>
+        <th class="sortable">Vendor</th>
+        <th class="sortable">Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ range $id, $hw := .Inventory.Devices }}
+      <tr>
+        <td><a href="/device/{{ $id }}">{{ $hw.Name }}</a></td>
+        <td>{{ $hw.Model }}</td>
+        <td>{{ $id }}</td>
+        <td>{{ $hw.Type }}</td>
+        <td>{{ $hw.Vendor }}</td>
+        <td>{{ $hw.Status }}</td>
+        <td>
+          {{ if eq $hw.Status "provisioned" }}
+            <a href="/device/maintenance/{{ $id }}">Move to Maintenance</a> / <a href="/device/decommission/{{ $id }}">Decommission</a>
+          {{ else if eq $hw.Status "staged" }}
+            <a href="/device/production/{{ $id }}">Move to Production</a>
+          {{ else }}
+            <!-- Optionally add actions for other states -->
+          {{ end }}
+        </td>
+      </tr>
+      {{ end }}
+    </tbody>
+  </table>
+  <script>
+    // Minimal vanilla JS sorting code
+    document.addEventListener("DOMContentLoaded", function(){
+      // Helper function to get text content of a cell.
+      const getCellValue = (tr, idx) => tr.children[idx].innerText || tr.children[idx].textContent;
+
+      // Comparator that sorts numbers or strings.
+      const comparer = (idx, asc) => (a, b) => {
+        const v1 = getCellValue(asc ? a : b, idx);
+        const v2 = getCellValue(asc ? b : a, idx);
+        // If both values are numeric, compare as numbers.
+        return !isNaN(v1) && !isNaN(v2) 
+          ? v1 - v2 
+          : v1.toString().localeCompare(v2);
+      };
+
+      // Attach click listeners to every sortable th
+      document.querySelectorAll("th.sortable").forEach(th => th.addEventListener("click", function(){
+        const table = th.closest("table");
+        // Toggle sorting order stored on the header element.
+        const asc = !(th.asc);
+        th.asc = asc;
+        Array.from(table.querySelector("tbody").querySelectorAll("tr"))
+          .sort(comparer(Array.from(th.parentNode.children).indexOf(th), asc))
+          .forEach(tr => table.querySelector("tbody").appendChild(tr));
+      }));
+    });
+  </script>
+{{ end }}

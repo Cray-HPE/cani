@@ -1,0 +1,75 @@
+{{ define "base" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NGSM Inventory</title>
+  <!-- Link to extra CSS -->
+  <link rel="stylesheet" type="text/css" href="/docs/extra.css">
+  <!-- Favicon -->
+  <link rel="icon" href="/docs/custom_theme/img/favicon.ico">
+  <style>
+    body {
+      display: flex;
+      margin: 0;
+      font-family: sans-serif;
+    }
+    nav {
+      width: 200px;
+      background: var(--md-primary-fg-color);
+      color: #fff;
+      height: 100vh;
+      padding: 1rem;
+      box-sizing: border-box;
+    }
+    nav img {
+      max-width: 100%;
+      margin-bottom: 1rem;
+    }
+    nav a {
+      color: #fff;
+      text-decoration: none;
+      display: block;
+      margin: .5rem 0;
+    }
+    nav a:hover {
+      color: var(--md-primary-fg-color--dark);
+    }
+    main {
+      flex: 1;
+      padding: 1rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: .5rem;
+      border: 1px solid #ddd;
+    }
+    th {
+      background: #f4f4f4;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+      <!-- Logo / branding -->
+    <img src="/docs/custom_theme/img/hpe_pri_wht_rev_rgb.png" alt="HPE Logo" height="50">
+    <h2>Inventory</h2>
+    <a href="/">Dashboard</a>
+    <a href="/racks">Racks</a>
+    <a href="/devices">Devices</a>
+    <a href="/staged">Maintenance</a>
+    <a href="/devicetypes">Device Types</a>
+    <!-- add more links here -->
+  </nav>
+  <main>
+    {{ block "content" . }}
+      <!-- default/fallback if no page overrides -->
+      <h1>Welcome to the Inventory Dashboard</h1>
+    {{ end }}
+  </main>
+</body>
+</html>
+{{ end }}

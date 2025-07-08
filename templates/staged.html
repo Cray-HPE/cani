@@ -1,0 +1,28 @@
+{{ define "content" }}
+  <h1>Maintenance/Hardware Hospital</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ range $id, $hw := .Inventory.Devices }}
+        {{ if eq $hw.Status "staged" }}
+          <tr>
+            <td>{{ $id }}</td>
+            <td>{{ $hw.Name }}</td>
+            <td>{{ $hw.Status }}</td>
+            <td>
+              <a href="/device/production/{{ $id }}">Move to Production</a>
+            </td>
+          </tr>
+        {{ end }}
+      {{ end }}
+    </tbody>
+  </table>
+  <p><a href="/">← Back to Dashboard</a></p>
+{{ end }}
