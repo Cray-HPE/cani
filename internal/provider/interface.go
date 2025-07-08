@@ -28,126 +28,81 @@ package provider
 import (
 	"fmt"
 
-	"github.com/Cray-HPE/cani/internal/inventory"
+	"github.com/Cray-HPE/cani/internal/config"
+	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
-func Init() {
-	log.Info().Msgf("%+v", "github.com/Cray-HPE/cani/internal/provider.init")
-}
-
 var ErrDataValidationFailure = fmt.Errorf("data validation failure")
 
-// TODO Need to think about how internal data structures should be supplied to the Inventory Provider
-type InventoryProvider interface {
-	// Validate the external services of the inventory provider are correct
-	ValidateExternal(cmd *cobra.Command, args []string) error
+var ActiveProvider Provider
 
-	// Validate the representation of the inventory data into the destination inventory system
-	// is consistent. The default set of checks will verify all currently provided data is valid.
-	// If enableRequiredDataChecks is set to true, additional checks focusing on missing data will be ran.
-	ValidateInternal(cmd *cobra.Command, args []string, datastore inventory.Datastore, enableRequiredDataChecks bool) (map[uuid.UUID]HardwareValidationResult, error)
+type Provider interface {
+	// Extract runs first and lets the provider ensure their external inventory source is valid
+	// This might be simply validating an API is reachable and has expected data
+	// It could also parse a file and set up a queue of devices to be created during Import()
+	// This is the "Extract" step in ETL
+	// A common pattern is to extract data from an external source, such as a REST API or a file,
+	// then add it to the provider structure for later processing in the Transform method.
+	Extract(cmd *cobra.Command, args []string) error
 
-	// Import external inventory data into CANI's inventory format
-	// This initializes the data and replaces the existing data
-	ImportInit(cmd *cobra.Command, args []string, datastore inventory.Datastore) error
+	// Transform runs after Extract
+	// It typically does the "Transform" step in ETL to convert the external source data into CANI's format
+	// CANI will load the existing inventory from the datastore and pass it to Transform in case the provider needs to
+	// check for existing devices or racks.
+	// It should return a map of UUIDs to DeviceType pointers, which will be added to the datastore by CANI
+	Transform(existing devicetypes.Inventory) (map[uuid.UUID]*devicetypes.CaniDeviceType, error)
 
-	// Import external inventory data after initialization
-	// This import should merge the imported data with the existing data
-	Import(cmd *cobra.Command, args []string, datastore inventory.Datastore) error
+	// NewProviderCmd returns a new cobra.Command for the provider
+	// This is used to add provider-specific info the the CLI
+	// This is usually a switch statement that returns a command for each command the provider supports
+	NewProviderCmd(base *cobra.Command) (*cobra.Command, error)
 
-	// Export inventory in various formats
-	Export(cmd *cobra.Command, args []string, datastore inventory.Datastore) error
+	// Add is called when the user runs `cani add <device> <device-type-slug> <args>`
+	// The provider should handle the logic and give back a CaniDeviceType with any additional fields set
+	Add(cmd *cobra.Command, args []string, deviceType devicetypes.DeviceType) (devicesToAdd map[uuid.UUID]*devicetypes.CaniDeviceType, err error)
 
-	// Reconcile CANI's inventory state with the external inventory state and apply required changes
-	Reconcile(cmd *cobra.Command, args []string, datastore inventory.Datastore, dryrun bool, ignoreExternalValidation bool) error
+	// Show is called when the user runs `cani list`
+	Show(cmd *cobra.Command, args []string, devices []*devicetypes.CaniDeviceType) (err error)
 
-	// RecommendHardware returns recommended settings for adding hardware based on the deviceTypeSlug
-	RecommendHardware(inv inventory.Inventory, cmd *cobra.Command, args []string, auto bool) (recommended HardwareRecommendations, err error)
+	// Remove is called when the user runs `cani remove <device> <device-type-slug> <args>`
+	// The provider should handle the logic and return a slice of UUIDs to be removed from the datastore
+	Remove(cmd *cobra.Command, args []string) (ids []uuid.UUID, err error)
 
-	// SetProviderOptions are specific to the Provider. For example, supported Roles and SubRoles
-	SetProviderOptions(cmd *cobra.Command, args []string) error
-
-	// GetProviderOptions gets the options from the provider as an interface
-	// It must be type-asserted and then set at the domain layer
-	GetProviderOptions() (interface{}, error)
-
-	//
-	// Provider Hardware Metadata
-	//
-
-	// Build metadata, and add ito the hardware object
-	// This function could return the data to put into object
-	BuildHardwareMetadata(hw *inventory.Hardware, cmd *cobra.Command, args []string, recommendations HardwareRecommendations) error
-	NewHardwareMetadata(hw *inventory.Hardware, cmd *cobra.Command, args []string) error
-
-	// Return values for the given fields from the hardware's metadata
-	GetFields(hw *inventory.Hardware, fieldNames []string) (values []string, err error)
-
-	// Set fields in the hardware's metadata
-	SetFields(hw *inventory.Hardware, values map[string]string) (result SetFieldsResult, err error)
-
-	// Return metadata about each field
-	GetFieldMetadata() ([]FieldMetadata, error)
-
-	// Print
-	PrintHardware(cmd *cobra.Command, args []string, filtered map[uuid.UUID]inventory.Hardware) error
-	PrintRecommendations(cmd *cobra.Command, args []string, recommendations HardwareRecommendations) error
-
-	// Provider's name
+	// Slug simply returns the provider's slug, which is used to identify it in the system
 	Slug() string
 }
 
-type HardwareValidationResult struct {
-	Hardware inventory.Hardware
-	Errors   []string
+var providers = map[string]Provider{}
+
+// Register makes a plugin available under name.
+// This should be called in the plugin's init() function.
+func Register(name string, p Provider) {
+	providers[name] = p
 }
 
-type HardwareRecommendations struct {
-	CabinetOrdinal   int
-	ChassisOrdinal   int
-	BladeOrdinal     int
-	ProviderMetadata map[string]interface{}
+// GetActiveProvider returns a registered plugin or nil.
+func GetActiveProvider(cmd *cobra.Command, args []string) (err error) {
+	if config.Cfg == nil {
+		return nil
+	}
+	if config.Cfg.ActiveProvider == "" {
+		return nil
+	}
+	ActiveProvider = GetProvider(config.Cfg.ActiveProvider)
+	if ActiveProvider == nil {
+		return fmt.Errorf("no active provider found. Run 'cani session init <provider>' to initialize a session")
+	}
+	return nil
 }
 
-type CsvImportResult struct {
-	Total             int
-	Modified          int
-	ValidationResults map[uuid.UUID]HardwareValidationResult
+// GetProvider returns a registered plugin or nil.
+func GetProvider(name string) Provider {
+	return providers[name]
 }
 
-type SetFieldsResult struct {
-	ModifiedFields []string
-}
-
-type FieldMetadata struct {
-	Name         string
-	Types        string
-	Description  string
-	IsModifiable bool
-}
-
-func (r HardwareRecommendations) Print() {
-	log.Info().Msgf("Suggested cabinet number: %d", r.CabinetOrdinal)
-	log.Info().Msgf("Suggested VLAN ID: %d", r.ProviderMetadata["HMNVlan"])
-}
-
-// ProviderCommands is an interface for the commands that are specific to a provider
-// this isn't usually used directly, but is used to generate the commands with 'makeprovdier'
-type ProviderCommands interface {
-	NewProviderCmd(caniCmd *cobra.Command) (providerCmd *cobra.Command, err error)
-	NewSessionInitCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
-	NewAddCabinetCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
-	NewUpdateCabinetCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
-	NewListCabinetCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
-	NewAddBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
-	NewUpdateBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
-	NewListBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
-	NewAddNodeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
-	NewUpdateNodeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
-	NewListNodeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
-	NewExportCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
-	NewImportCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
+// All returns every registered plugin
+func GetProviders() map[string]Provider {
+	return providers
 }
