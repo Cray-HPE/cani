@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023, 2025 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -38,6 +38,13 @@ import (
 
 // List returns the inventory
 func (d *Domain) List() (inventory.Inventory, error) {
+	if d == nil {
+		return inventory.Inventory{}, fmt.Errorf("domain not initialized - no active session found. Run 'session init' to begin")
+	}
+	if d.datastore == nil {
+		return inventory.Inventory{}, fmt.Errorf("datastore not initialized - no active session found. Run 'session init' to begin")
+	}
+
 	inv, err := d.datastore.List()
 	if err != nil {
 		return inventory.Inventory{}, err
