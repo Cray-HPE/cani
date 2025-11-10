@@ -183,6 +183,26 @@ use_valid_datastore_one_my_custom_cabinet_cabinet(){
   cp "$FIXTURES"/cani/configs/canitestdb_valid_my_custom_cabinet_only.json "$CANI_DS"
 } 
 
+# Create a clean datastore migration test environment by deploying a legacy
+# datastore fixture.  No config is needed — cani creates one on first run.
+# Usage: setup_datastore_migration_env canitestdb_v1alpha1.json
+#shellcheck disable=SC2317
+setup_datastore_migration_env() {
+  rm -rf "$CANI_DIR"
+  mkdir -p "$CANI_DIR"
+  cp "$FIXTURES/cani/legacy/$1" "$CANI_DS"
+}
+
+# Create a clean datastore migration test environment by deploying only a
+# legacy datastore fixture.  No config is copied so cani must create one.
+# Usage: setup_datastore_migration_env canitestdb_v1alpha1.json
+#shellcheck disable=SC2317
+setup_datastore_migration_env() {
+  rm -rf "$CANI_DIR"
+  mkdir -p "$CANI_DIR"
+  cp "$FIXTURES/cani/legacy/$1" "$CANI_DS"
+}
+
 # Custom matcher used to find a string inside of a text containing ANSI escape codes.
 # https://github.com/shellspec/shellspec/issues/278
 match_colored_text() {

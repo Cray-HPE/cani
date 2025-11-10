@@ -1,0 +1,152 @@
+{
+  "SchemaVersion": "v1alpha1",
+  "Provider": "csm",
+  "Hardware": {
+    "00000001-0000-0000-0000-000000000001": {
+      "ID": "00000001-0000-0000-0000-000000000001",
+      "Type": "System",
+      "Parent": "00000000-0000-0000-0000-000000000000",
+      "Children": [
+        "00000001-0000-0000-0000-000000000002"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "00000001-0000-0000-0000-000000000002": {
+      "ID": "00000001-0000-0000-0000-000000000002",
+      "Name": "x3000",
+      "Type": "Cabinet",
+      "DeviceTypeSlug": "hpe-eia-cabinet",
+      "Vendor": "HPE",
+      "Model": "EX2000",
+      "Status": "staged",
+      "ProviderMetadata": {
+        "csm": {
+          "Cabinet": {
+            "HMNVlan": 1513
+          }
+        }
+      },
+      "Parent": "00000001-0000-0000-0000-000000000001",
+      "Children": [
+        "00000001-0000-0000-0000-000000000003"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 3000
+        }
+      ],
+      "LocationOrdinal": 3000
+    },
+    "00000001-0000-0000-0000-000000000003": {
+      "ID": "00000001-0000-0000-0000-000000000003",
+      "Type": "Chassis",
+      "DeviceTypeSlug": "hpe-eia-chassis",
+      "Vendor": "HPE",
+      "Model": "Standard/EIA Chassis",
+      "Status": "staged",
+      "Parent": "00000001-0000-0000-0000-000000000002",
+      "Children": [
+        "00000001-0000-0000-0000-000000000004"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 3000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    },
+    "00000001-0000-0000-0000-000000000004": {
+      "ID": "00000001-0000-0000-0000-000000000004",
+      "Type": "NodeBlade",
+      "DeviceTypeSlug": "hpe-crayex-ex420-compute-blade",
+      "Vendor": "HPE",
+      "Model": "CrayEX EX420 Compute Blade",
+      "Status": "staged",
+      "Parent": "00000001-0000-0000-0000-000000000003",
+      "Children": [
+        "00000001-0000-0000-0000-000000000005"
+      ],
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 3000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 1
+        }
+      ],
+      "LocationOrdinal": 1
+    },
+    "00000001-0000-0000-0000-000000000005": {
+      "ID": "00000001-0000-0000-0000-000000000005",
+      "Type": "Node",
+      "DeviceTypeSlug": "hpe-crayex-ex420-compute-node",
+      "Vendor": "HPE",
+      "Model": "CrayEX EX420 Compute Node",
+      "Status": "staged",
+      "ProviderMetadata": {
+        "csm": {
+          "Node": {
+            "Role": "Compute",
+            "SubRole": "Worker",
+            "Nid": 1001,
+            "Alias": ["nid001001"]
+          }
+        }
+      },
+      "Parent": "00000001-0000-0000-0000-000000000004",
+      "LocationPath": [
+        {
+          "HardwareType": "System",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "Cabinet",
+          "Ordinal": 3000
+        },
+        {
+          "HardwareType": "Chassis",
+          "Ordinal": 0
+        },
+        {
+          "HardwareType": "NodeBlade",
+          "Ordinal": 1
+        },
+        {
+          "HardwareType": "Node",
+          "Ordinal": 0
+        }
+      ],
+      "LocationOrdinal": 0
+    }
+  }
+}
