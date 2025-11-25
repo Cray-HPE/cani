@@ -26,14 +26,16 @@
 package cmd
 
 import (
-	"log"
-
 	"github.com/Cray-HPE/cani/cmd/add"
 	"github.com/Cray-HPE/cani/cmd/alpha"
+	"github.com/Cray-HPE/cani/cmd/classify"
+	"github.com/Cray-HPE/cani/cmd/export"
+	imprt "github.com/Cray-HPE/cani/cmd/import"
+	initcmd "github.com/Cray-HPE/cani/cmd/init"
 	"github.com/Cray-HPE/cani/cmd/remove"
 	"github.com/Cray-HPE/cani/cmd/serve"
-	"github.com/Cray-HPE/cani/cmd/session"
 	"github.com/Cray-HPE/cani/cmd/show"
+	"github.com/Cray-HPE/cani/cmd/update"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/spf13/cobra"
 )
@@ -47,75 +49,43 @@ func Init() {
 	// initialize the root command
 	rootCmd = newRootCommand()
 
+	// add the init command at the root level (not under alpha)
+	initProviderCmd := initcmd.NewCommand()
+	rootCmd.AddCommand(initProviderCmd)
+
 	// build core verbs
-	sessionCmd := session.NewCommand()
+	importCmd := imprt.NewCommand()
 	addCmd := add.NewCommand()
-	removeCmd := remove.NewCommand() // reusing the add package for remove functionality
+	removeCmd := remove.NewCommand()
 	serveCmd := serve.NewCommand()
 	showCmd := show.NewCommand()
+	exportCmd := export.NewCommand()
+	updateCmd := update.NewCommand()
+	classifyCmd := classify.NewCommand()
 
 	// at present, all commands are under the alpha command since this is still a work in progress
 	alphaCmd := alpha.NewCommand()
 	rootCmd.AddCommand(alphaCmd)
 	alphaCmd.AddCommand(
-		sessionCmd,
+		importCmd,
 		addCmd,
 		removeCmd,
 		showCmd,
 		serveCmd,
+		exportCmd,
+		updateCmd,
+		classifyCmd,
 	)
 
-	// now for each verb (except session init), ask each provider to decorate it
-	for _, caniCmd := range rootCmd.Commands() {
+	// for each verb, ask each provider to decorate it
+	for _, caniCmd := range alphaCmd.Commands() {
 		for _, p := range provider.GetProviders() {
-			p := p
 			if providerCmd, err := p.NewProviderCmd(caniCmd); err == nil {
 				if providerCmd == nil {
 					// this provider doesn’t customize that verb
 					continue
 				}
-				// log.Printf("Merging in %s command from %s", providerCmd.Name(), p.Slug())
-				// mergeProviderCommand(caniCmd, providerCmd)
 			}
 		}
-	}
-
-}
-
-// mergeProviderCommand copies metadata, flags, RunE/Args and sub-commands
-// from providerCmd into baseCmd
-func mergeProviderCommand(baseCmd *cobra.Command, providerCmd *cobra.Command) {
-	if providerCmd.Short != "" {
-		baseCmd.Short = providerCmd.Short
-	}
-	if providerCmd.Long != "" {
-		baseCmd.Long = providerCmd.Long
-	}
-	if providerCmd.RunE != nil {
-		baseCmd.RunE = providerCmd.RunE
-	}
-	if providerCmd.Args != nil {
-		baseCmd.Args = providerCmd.Args
-	}
-
-	// merge flags
-	baseCmd.Flags().AddFlagSet(providerCmd.Flags())
-	baseCmd.PersistentFlags().AddFlagSet(providerCmd.PersistentFlags())
-
-	// merge valid args, examples, aliases, annotations
-	baseCmd.ValidArgs = providerCmd.ValidArgs
-	baseCmd.Example = providerCmd.Example
-	baseCmd.Aliases = append(baseCmd.Aliases, providerCmd.Aliases...)
-	if baseCmd.Annotations == nil {
-		baseCmd.Annotations = map[string]string{}
-	}
-	for k, v := range providerCmd.Annotations {
-		baseCmd.Annotations[k] = v
-	}
-
-	// and finally merge any children
-	for _, sc := range providerCmd.Commands() {
-		log.Printf("Merging %s sub-command into %s", sc.Name(), baseCmd.Name())
-		baseCmd.AddCommand(sc)
 	}
 }

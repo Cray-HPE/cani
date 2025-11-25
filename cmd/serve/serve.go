@@ -3,7 +3,6 @@ package serve
 import (
 	"fmt"
 
-	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/spf13/cobra"
 )
 
@@ -19,9 +18,5 @@ func NewCommand() *cobra.Command {
 }
 
 func serve(cmd *cobra.Command, args []string) error {
-	if err := datastores.SetDeviceStore(cmd, args); err != nil {
-		return fmt.Errorf("failed to set device store: %w", err)
-	}
-
-	return fmt.Errorf("not yet implemented")
+	return fmt.Errorf("%s: not yet implemented", cmd.Name())
 }

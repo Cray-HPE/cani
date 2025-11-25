@@ -35,7 +35,7 @@ func NewCommand() *cobra.Command {
 		Use:   "alpha",
 		Short: "Run commands that are considered unstable.",
 		Long:  `Run commands that are considered unstable.`,
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cmd.Help()
 			return nil

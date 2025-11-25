@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2026 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -26,30 +26,19 @@
 package update
 
 import (
-	"github.com/spf13/cobra"
+	"fmt"
+	"strings"
 )
 
-// NewCommand creates the parent "update" command.
-func NewCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "update",
-		Short: "Update items in the inventory.",
-		Long:  `Update items in the inventory.`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cmd.Help()
-			return nil
-		},
+// parseSetFlags splits --set key=value pairs into a map.
+func parseSetFlags(pairs []string) (map[string]string, error) {
+	result := make(map[string]string, len(pairs))
+	for _, p := range pairs {
+		parts := strings.SplitN(p, "=", 2)
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("invalid --set value %q; expected key=value", p)
+		}
+		result[parts[0]] = parts[1]
 	}
-
-	// Add noun-based subcommands
-	cmd.AddCommand(newLocationCommand())
-	cmd.AddCommand(newRackUpdateCommand())
-	cmd.AddCommand(newDeviceCommand())
-	cmd.AddCommand(newModuleCommand())
-	cmd.AddCommand(newCableCommand())
-	cmd.AddCommand(newOrphansCommand())
-
-	cmd.PersistentFlags().StringArray("set", nil, "Set field value as key=value (repeatable)")
-
-	return cmd
+	return result, nil
 }

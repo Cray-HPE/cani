@@ -26,27 +26,28 @@
 package show
 
 import (
+	"encoding/json"
 	"fmt"
-	"sort"
+	"os"
 	"strings"
 
-	"github.com/Cray-HPE/cani/internal/config"
-	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
+	"github.com/Cray-HPE/cani/pkg/visual"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 // Base formats that are always available
 var baseFormats = []string{"json"}
 
-// NewCommand creates the parent "add" command
+// NewCommand creates the parent "show" command.
 func NewCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "show",
-		Short:   "Show items from the inventory",
-		Long:    `Show items from the inventory.`,
-		PreRunE: config.GetActiveProvider,
+		Use:   "show",
+		Short: "Show items from the inventory",
+		Long:  `Show items from the inventory.`,
 		// Args:    cobra.ArbitraryArgs,
 		RunE: show,
 	}
@@ -60,6 +61,20 @@ func NewCommand() *cobra.Command {
 
 	cmd.PersistentFlags().StringP("format", "o", "json", fmt.Sprintf("Output format (%s)", strings.Join(validFormatKeys, ", ")))
 
+	// Visual mode flags
+	cmd.PersistentFlags().BoolP("visual", "v", false, "Display ASCII visualization of rack layout")
+	cmd.PersistentFlags().String("rack", "", "Filter to specific rack by name (used with --visual)")
+	cmd.PersistentFlags().Bool("no-color", false, "Disable colorized output (used with --visual)")
+	cmd.PersistentFlags().StringP("file", "f", "", "Load inventory from YAML file (used with --visual)")
+	cmd.PersistentFlags().Bool("show-cables", false, "Show cable connections in visual output")
+
+	// Compact rack view flags
+	cmd.PersistentFlags().Bool("rack-view", false, "Display compact ASCII rack view with device symbols")
+	cmd.PersistentFlags().Int("columns", 0, "Number of rack columns before wrapping (0=auto, used with --rack-view)")
+	cmd.PersistentFlags().String("cable-type", "", "Filter cables by type (e.g., 'dac', 'cat6', used with --rack-view)")
+	cmd.PersistentFlags().CountP("verbose", "V", "Verbose output: -V shows legend, -VV shows all cables (used with --rack-view)")
+	cmd.PersistentFlags().Bool("show-routing", false, "Display cable routing with branching visualization (1 rack per line)")
+
 	// Add validation
 	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
 
@@ -69,58 +84,103 @@ func NewCommand() *cobra.Command {
 				sortKey, strings.Join(validSortKeys, ", "))
 		}
 
-		// formatKey, _ := cmd.Flags().GetString("format")
-		// if !contains(ValidFormatKeys, formatKey) {
-		// 	return fmt.Errorf("invalid format key '%s'. Valid options: %s",
-		// 		formatKey, strings.Join(ValidFormatKeys, ", "))
-		// }
-		return config.GetActiveProvider(cmd, args)
+		return nil
 	}
+
+	// Add noun-based subcommands
+	cmd.AddCommand(newLocationCommand())
+	cmd.AddCommand(newRackShowCommand())
+	cmd.AddCommand(newDeviceShowCommand())
+	cmd.AddCommand(newModuleCommand())
+	cmd.AddCommand(newCableCommand())
+	cmd.AddCommand(ListCablesCmd)
+	cmd.AddCommand(ListInterfacesCmd)
 
 	return cmd
 }
 
-func show(cmd *cobra.Command, args []string) error {
+// loadInventory loads the inventory from a file or the configured datastore.
+func loadInventory(cmd *cobra.Command, args []string) (*devicetypes.Inventory, error) {
+	filePath, _ := cmd.Flags().GetString("file")
+	visualMode, _ := cmd.Flags().GetBool("visual")
+
+	if filePath != "" && visualMode {
+		return loadInventoryFromFile(filePath)
+	}
+
 	if err := datastores.SetDeviceStore(cmd, args); err != nil {
-		return fmt.Errorf("failed to set device store: %w", err)
+		return nil, fmt.Errorf("failed to set device store: %w", err)
 	}
+	return datastores.Datastore.Load()
+}
 
-	inv, err := datastores.Datastore.Load()
+func show(cmd *cobra.Command, args []string) error {
+	inv, err := loadInventory(cmd, args)
 	if err != nil {
-		return fmt.Errorf("failed to load device store: %w", err)
-	}
-
-	devices := []*devicetypes.CaniDeviceType{}
-	for _, device := range inv.Devices {
-		devices = append(devices, device)
-	}
-
-	if cmd.Flags().Changed("sort") {
-		sort.Slice(devices, func(i, j int) bool {
-			sortKey, _ := cmd.Flags().GetString("sort")
-			switch sortKey {
-			case "name":
-				return devices[i].Name < devices[j].Name
-			case "type":
-				return devices[i].Type < devices[j].Type
-			case "id":
-				return devices[i].ID.String() < devices[j].ID.String()
-			case "status":
-				return devices[i].Status < devices[j].Status
-			case "vendor":
-				return devices[i].Vendor < devices[j].Vendor
-			case "model":
-				return devices[i].Model < devices[j].Model
-			default:
-				return devices[i].Name < devices[j].Name // Default sort by name
-			}
-		})
-	}
-
-	// The provider can print their own list output, which may include other formats
-	if err := provider.ActiveProvider.Show(cmd, args, devices); err != nil {
 		return err
 	}
+
+	// Check for cable routing view mode
+	showRouting, _ := cmd.Flags().GetBool("show-routing")
+	if showRouting {
+		rackFilter, _ := cmd.Flags().GetString("rack")
+		noColor, _ := cmd.Flags().GetBool("no-color")
+		verbose, _ := cmd.Flags().GetCount("verbose")
+		cableType, _ := cmd.Flags().GetString("cable-type")
+
+		opts := visual.CompactRenderOptions{
+			NoColor:    noColor,
+			RackFilter: rackFilter,
+			Verbose:    verbose,
+			CableType:  cableType,
+		}
+
+		return visual.RenderCompactRacksWithCables(inv, opts)
+	}
+
+	// Check for compact rack view mode
+	rackViewMode, _ := cmd.Flags().GetBool("rack-view")
+	if rackViewMode {
+		rackFilter, _ := cmd.Flags().GetString("rack")
+		noColor, _ := cmd.Flags().GetBool("no-color")
+		columns, _ := cmd.Flags().GetInt("columns")
+		verbose, _ := cmd.Flags().GetCount("verbose")
+		cableType, _ := cmd.Flags().GetString("cable-type")
+
+		opts := visual.CompactRenderOptions{
+			NoColor:    noColor,
+			RackFilter: rackFilter,
+			Columns:    columns,
+			Verbose:    verbose,
+			CableType:  cableType,
+		}
+
+		return visual.RenderCompactRacks(inv, opts)
+	}
+
+	// Check for visual mode
+	visualMode, _ := cmd.Flags().GetBool("visual")
+	if visualMode {
+		rackFilter, _ := cmd.Flags().GetString("rack")
+		noColor, _ := cmd.Flags().GetBool("no-color")
+		showCables, _ := cmd.Flags().GetBool("show-cables")
+
+		opts := visual.RenderOptions{
+			NoColor:    noColor,
+			RackFilter: rackFilter,
+			ShowCables: showCables,
+			Inventory:  inv,
+		}
+
+		return visual.RenderAllRacks(inv, opts)
+	}
+
+	// Output full inventory in JSON format
+	output, err := json.MarshalIndent(inv, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal inventory: %w", err)
+	}
+	fmt.Println(string(output))
 
 	return nil
 }
@@ -136,35 +196,59 @@ func contains(slice []string, item string) bool {
 }
 
 func getAllValidFormats() []string {
-	// Start with base formats
 	allFormats := make([]string, len(baseFormats))
-	// copy(allFormats, baseFormats)
-
-	// // Add provider-registered formats
-	// providerFormats := registry.GetValidFormats("show")
-	// allFormats = append(allFormats, providerFormats...)
-
+	copy(allFormats, baseFormats)
 	return allFormats
 }
 
-func validateFlags(cmd *cobra.Command, args []string) error {
-	// Validate sort key (existing code)
-	validSortKeys := []string{"name", "type", "id", "status", "vendor", "model"}
-	sortKey, _ := cmd.Flags().GetString("sort")
+// inventoryYAML is an intermediate struct for YAML parsing with string keys
+type inventoryYAML struct {
+	Devices map[string]*devicetypes.CaniDeviceType `yaml:"devices"`
+	Cables  map[string]*devicetypes.CaniCableType  `yaml:"cables,omitempty"`
+}
 
-	if !contains(validSortKeys, sortKey) {
-		return fmt.Errorf("invalid sort key '%s'. Valid options: %s",
-			sortKey, strings.Join(validSortKeys, ", "))
+// loadInventoryFromFile loads an inventory from a YAML file
+func loadInventoryFromFile(filePath string) (*devicetypes.Inventory, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
-	// Validate format
-	format, _ := cmd.Flags().GetString("format")
-	allFormats := getAllValidFormats()
-
-	if !contains(allFormats, format) {
-		return fmt.Errorf("invalid format '%s'. Valid options: %s",
-			format, strings.Join(allFormats, ", "))
+	// Parse into intermediate struct with string keys
+	rawInv := &inventoryYAML{}
+	if err := yaml.Unmarshal(data, rawInv); err != nil {
+		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
 
-	return config.GetActiveProvider(cmd, args)
+	// Convert to proper Inventory with UUID keys
+	inv := &devicetypes.Inventory{
+		Devices: make(map[uuid.UUID]*devicetypes.CaniDeviceType),
+		Cables:  make(map[uuid.UUID]*devicetypes.CaniCableType),
+	}
+
+	// Convert device string keys to UUIDs
+	for idStr, device := range rawInv.Devices {
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid device UUID %q: %w", idStr, err)
+		}
+		if device != nil {
+			device.ID = id
+		}
+		inv.Devices[id] = device
+	}
+
+	// Convert cable string keys to UUIDs
+	for idStr, cable := range rawInv.Cables {
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid cable UUID %q: %w", idStr, err)
+		}
+		if cable != nil {
+			cable.ID = id
+		}
+		inv.Cables[id] = cable
+	}
+
+	return inv, nil
 }

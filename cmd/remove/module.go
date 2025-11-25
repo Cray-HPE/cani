@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2026 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -26,29 +26,48 @@
 package remove
 
 import (
+	"fmt"
+	"log"
+
+	"github.com/Cray-HPE/cani/internal/util/resolve"
+	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/spf13/cobra"
 )
 
-// NewCommand creates the parent "remove" command.
-func NewCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "remove",
-		Short: "Remove items from the inventory",
-		Long:  `Remove items from the inventory.`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cmd.Help()
-			return nil
-		},
+// newModuleCommand creates the "remove module" subcommand.
+func newModuleCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "module <uuid-or-name>",
+		Short: "Remove a module from the inventory.",
+		Long:  "Remove a module by UUID or name.",
+		Args:  cobra.ExactArgs(1),
+		RunE:  removeModule,
+	}
+}
+
+func removeModule(cmd *cobra.Command, args []string) error {
+	if err := datastores.SetDeviceStore(cmd, args); err != nil {
+		return fmt.Errorf("failed to set device store: %w", err)
 	}
 
-	// Add noun-based subcommands
-	cmd.AddCommand(newLocationCommand())
-	cmd.AddCommand(newRackRemoveCommand())
-	cmd.AddCommand(newDeviceCommand())
-	cmd.AddCommand(newModuleCommand())
-	cmd.AddCommand(newCableCommand())
+	inventory, err := datastores.Datastore.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load inventory: %w", err)
+	}
 
-	cmd.PersistentFlags().BoolP("force", "f", false, "Remove items without confirmation.")
+	id, err := resolve.Module(inventory, args[0])
+	if err != nil {
+		return err
+	}
 
-	return cmd
+	if err := inventory.RemoveModule(id); err != nil {
+		return fmt.Errorf("failed to remove module: %w", err)
+	}
+
+	if err := datastores.Datastore.Save(inventory); err != nil {
+		return fmt.Errorf("failed to save inventory: %w", err)
+	}
+
+	log.Printf("Removed module %s", id)
+	return nil
 }
