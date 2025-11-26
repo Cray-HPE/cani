@@ -1,0 +1,22 @@
+session:
+    domain_options:
+        datastore_path: /tmp/.cani/canidb.json
+        log_file_path: /tmp/.cani/canidb.log
+        provider: csm
+        csm_options:
+            usesimulation: false
+            insecureskipverify: false
+            apigatewaytoken: ""
+            baseurlsls: ""
+            baseurlhsm: ""
+            secretname: ""
+            k8spodscidr: ""
+            k8sservicescidr: ""
+            kubeconfig: ""
+            providerhost: ""
+            cacertpath: ""
+            validroles: []
+            validsubroles: []
+        custom_hardware_types_dir: /tmp/.cani/hardware-types
+    domain: null
+    active: false

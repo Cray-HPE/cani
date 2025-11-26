@@ -108,6 +108,15 @@ teardown_test_env() {
   rm -rf "$CANI_DIR"
 }
 
+# Create a clean migration test environment by deploying a legacy config fixture.
+# Usage: setup_migration_env cani_0.1.x.yml
+#shellcheck disable=SC2317
+setup_migration_env() {
+  rm -rf "$CANI_DIR"
+  mkdir -p "$CANI_DIR"
+  cp "$FIXTURES/cani/configs/$1" "$CANI_CONF"
+}
+
 # Create a clean datastore migration test environment by deploying only a
 # legacy datastore fixture.  No config is copied so cani must create one.
 # Usage: setup_datastore_migration_env canitestdb_v1alpha1.json

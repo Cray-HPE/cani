@@ -258,6 +258,25 @@ func Load(path string) error {
 	if err := decoder.Decode(&root); err != nil {
 		return err
 	}
+
+	// Step 1.5: Migrate legacy config formats (0.1.x–0.5.x) to 0.6.x
+	if isLegacyFormat(&root) {
+		f.Close() // release before rename
+		if err := backupConfig(path); err != nil {
+			return fmt.Errorf("backing up legacy config: %w", err)
+		}
+		newRoot, err := migrateConfig(&root)
+		if err != nil {
+			return fmt.Errorf("migrating legacy config: %w", err)
+		}
+		Cfg.RootNode = newRoot
+		if err := newRoot.Decode(Cfg); err != nil {
+			return err
+		}
+		log.Printf("Migrated legacy config; backup saved to %s.canisave", path)
+		return Save(path)
+	}
+
 	Cfg.RootNode = &root
 
 	// Step 2: Also decode into the Config struct for convenient programmatic access

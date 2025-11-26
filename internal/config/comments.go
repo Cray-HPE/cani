@@ -63,7 +63,12 @@ func applyComments(mapNode *yaml.Node, comments map[string]FieldComment) {
 			keyNode.HeadComment = fc.HeadComment
 		}
 		if fc.LineComment != "" {
-			valNode.LineComment = fc.LineComment
+			// Only apply line comments to scalars or empty inline nodes.
+			// yaml.v3 misplaces line comments on multi-line mapping/sequence
+			// nodes, causing them to float to the next sibling key.
+			if valNode.Kind == yaml.ScalarNode || len(valNode.Content) == 0 {
+				valNode.LineComment = fc.LineComment
+			}
 		}
 		if fc.FootComment != "" {
 			valNode.FootComment = fc.FootComment
