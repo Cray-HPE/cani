@@ -230,6 +230,11 @@ Describe 'session migration:'
 End
 
 Describe 'recreate session:'
+  # These tests require external services (CSM API mock server)
+  # Skip them if SKIP_EXTERNAL_TESTS is set
+  if [ "${SKIP_EXTERNAL_TESTS:-0}" -eq 1 ]; then
+    Skip 'Requires external services (set SKIP_EXTERNAL_TESTS=0 to enable)'
+  fi
 
   # setup the initial state with an active session
   It 'setup for test by initializing the session'
@@ -263,6 +268,7 @@ Describe 'recreate session:'
     The path "$CANI_CONF" should be file
   End
 
+  # Remove the duplicate skip check that was added below
   It 'session init with N answer'
     When call sh -c '\
         echo "N" | \

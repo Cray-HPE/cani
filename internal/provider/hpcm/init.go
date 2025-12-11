@@ -31,6 +31,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	exportFormat string
+)
+
 func init() {
 	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/internal/provider/hpcm.init")
 }
@@ -145,7 +149,7 @@ func NewListBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
 
 func NewExportCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
 	cmd = utils.CloneCommand(caniCmd)
-	cmd.Flags().Bool("hpcm", false, "Export inventory to HPCM format.")
+	cmd.Flags().StringVar(&exportFormat, "format", "openchami", "Format option: [openchami]")
 
 	return cmd, nil
 }

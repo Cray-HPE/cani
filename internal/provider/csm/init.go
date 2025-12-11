@@ -252,7 +252,7 @@ func NewExportCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
 		&csvComponentTypes, "type", "t", "Node,Cabinet", "Comma separated list of the types of components to output")
 	cmd.Flags().BoolVarP(&csvAllTypes, "all", "a", false, "List all components. This overrides the --type option")
 	cmd.Flags().BoolVarP(&csvListOptions, "list-fields", "L", false, "List details about the fields in the CSV")
-	cmd.Flags().StringVar(&exportFormat, "format", "csv", "Format option: [csv, sls-json]")
+	cmd.Flags().StringVar(&exportFormat, "format", "csv", "Format option: [csv, sls-json, openchami]")
 	cmd.Flags().BoolVar(&ignoreValidation, "ignore-validation", false, "Skip validating the sls data. This only applies to the sls-json format.")
 
 	return cmd, nil

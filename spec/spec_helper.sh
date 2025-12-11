@@ -45,6 +45,10 @@ spec_helper_precheck() {
   setenv CANI_LOG="${CANI_DIR:=/tmp/.cani}/canidb.log"
   setenv CANI_CUSTOM_HW_DIR="${CANI_DIR:=/tmp/.cani}/hardware-types"
   setenv CANI_CUSTOM_HW_CONF="${CANI_DIR:=/tmp/.cani}/hardware-types/my_custom_hw.yml"
+  
+  # Skip tests that require external services (CSM API, mock servers, etc.)
+  # Set SKIP_EXTERNAL_TESTS=1 to skip these tests
+  : "${SKIP_EXTERNAL_TESTS:=0}"
 }
 
 # This callback function will be invoked after a specfile has been loaded.
