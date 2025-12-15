@@ -1,7 +1,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2023, 2025 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -45,6 +45,10 @@ spec_helper_precheck() {
   setenv CANI_LOG="${CANI_DIR:=/tmp/.cani}/canidb.log"
   setenv CANI_CUSTOM_HW_DIR="${CANI_DIR:=/tmp/.cani}/hardware-types"
   setenv CANI_CUSTOM_HW_CONF="${CANI_DIR:=/tmp/.cani}/hardware-types/my_custom_hw.yml"
+  
+  # Skip tests that require external services (CSM API, mock servers, etc.)
+  # Set SKIP_EXTERNAL_TESTS=1 to skip these tests
+  : "${SKIP_EXTERNAL_TESTS:=0}"
 }
 
 # This callback function will be invoked after a specfile has been loaded.

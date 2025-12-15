@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2025 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -29,6 +29,10 @@ import (
 	"github.com/Cray-HPE/cani/pkg/utils"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+)
+
+var (
+	exportFormat string
 )
 
 func init() {
@@ -145,7 +149,7 @@ func NewListBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
 
 func NewExportCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
 	cmd = utils.CloneCommand(caniCmd)
-	cmd.Flags().Bool("hpcm", false, "Export inventory to HPCM format.")
+	cmd.Flags().StringVar(&exportFormat, "format", "openchami", "Format option: [openchami]")
 
 	return cmd, nil
 }

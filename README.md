@@ -23,6 +23,33 @@ cani export --format hpcm # export to another inventory format (can also commit 
 cani session apply --commit # apply changes, retaining the CANI format, and optionally posting data to the provider
 ```
 
+## Exporting to OpenCHAMI Format
+
+`cani` can export inventory data to the OpenCHAMI nodes.yaml format. This allows you to migrate hardware inventory from CSM or HPCM systems to OpenCHAMI deployments.
+
+### From CSM
+
+```shell
+cani session init csm
+cani export --format openchami > nodes.yaml
+```
+
+### From HPCM
+
+```shell
+cani session init hpcm
+cani export --format openchami > nodes.yaml
+```
+
+The OpenCHAMI export includes:
+- Hardware inventory with xname identifiers derived from the LocationPath hierarchy
+- Node management IP addresses and MAC addresses
+- Node roles and subroles
+- BMC (Baseboard Management Controller) relationships and configuration
+- Node NID (Node ID) assignments
+
+This format is suitable for import into OpenCHAMI's Hardware State Manager and can be used for infrastructure provisioning and management.
+
 ## Portable Inventory Format
 
 `cani` uses a simple key/value approach where each piece of hardware as a unique identifier.  Any metadata or relationships to other hardware components is self-contained to that entry in the datastore.

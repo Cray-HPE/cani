@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2025 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -252,7 +252,7 @@ func NewExportCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
 		&csvComponentTypes, "type", "t", "Node,Cabinet", "Comma separated list of the types of components to output")
 	cmd.Flags().BoolVarP(&csvAllTypes, "all", "a", false, "List all components. This overrides the --type option")
 	cmd.Flags().BoolVarP(&csvListOptions, "list-fields", "L", false, "List details about the fields in the CSV")
-	cmd.Flags().StringVar(&exportFormat, "format", "csv", "Format option: [csv, sls-json]")
+	cmd.Flags().StringVar(&exportFormat, "format", "csv", "Format option: [csv, sls-json, openchami]")
 	cmd.Flags().BoolVar(&ignoreValidation, "ignore-validation", false, "Skip validating the sls data. This only applies to the sls-json format.")
 
 	return cmd, nil

@@ -1,7 +1,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2021-2024 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2021-2025 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -165,15 +165,22 @@ unittest: bin
 	     github.com/Cray-HPE/cani/internal/provider/csm/validate/common
 
 functional: bin
-	./spec/support/bin/cani_integrate.sh functional
+	SKIP_EXTERNAL_TESTS=1 ./spec/support/bin/cani_integrate.sh functional
 
 integrate: bin
-	./spec/support/bin/cani_integrate.sh integration
+	SKIP_EXTERNAL_TESTS=1 ./spec/support/bin/cani_integrate.sh integration
 
 edge: bin
-	./spec/support/bin/cani_integrate.sh edge
+	SKIP_EXTERNAL_TESTS=1 ./spec/support/bin/cani_integrate.sh edge
 
 test: bin validate-hardware-type-schemas unittest functional integrate edge
+
+# Run tests with external services enabled (requires mock servers)
+# Note: External service tests require a CSM API simulator at localhost:8443
+test-with-external: bin validate-hardware-type-schemas unittest
+	SKIP_EXTERNAL_TESTS=0 ./spec/support/bin/cani_integrate.sh functional
+	SKIP_EXTERNAL_TESTS=0 ./spec/support/bin/cani_integrate.sh integration
+	SKIP_EXTERNAL_TESTS=0 ./spec/support/bin/cani_integrate.sh edge
 
 tools:
 	go install golang.org/x/lint/golint@latest
