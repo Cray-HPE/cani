@@ -1,0 +1,317 @@
+{
+    "apiVersion": "example.fabrica.dev/v1",
+    "kind": "DiscoverySnapshot",
+    "metadata": {
+        "name": "manual-snapshot-02"
+    },
+    "spec": {
+        "rawData": [
+            {
+                "deviceType": "Rack",
+                "serialNumber": "RACK-SN-001",
+                "manufacturer": "APC",
+                "partNumber": "AR3150",
+                "properties": {
+                    "redfish_uri": "/Chassis/Rack001"
+                }
+            },
+            {
+                "deviceType": "Chassis",
+                "serialNumber": "CHS-SN-001",
+                "manufacturer": "HPE",
+                "partNumber": "P14017-B21",
+                "parentSerialNumber": "RACK-SN-001",
+                "properties": {
+                    "redfish_uri": "/Chassis/CHS-SN-001"
+                }
+            },
+            {
+                "deviceType": "Blade",
+                "serialNumber": "BLD-SN-001",
+                "manufacturer": "HPE",
+                "partNumber": "P14018-B21",
+                "parentSerialNumber": "CHS-SN-001",
+                "properties": {
+                    "redfish_uri": "/Chassis/CHS-SN-001/Blades/1"
+                }
+            },
+            {
+                "deviceType": "Blade",
+                "serialNumber": "BLD-SN-002",
+                "manufacturer": "HPE",
+                "partNumber": "P14018-B21",
+                "parentSerialNumber": "CHS-SN-001",
+                "properties": {
+                    "redfish_uri": "/Chassis/CHS-SN-001/Blades/2"
+                }
+            },
+            {
+                "deviceType": "Blade",
+                "serialNumber": "BLD-SN-003",
+                "manufacturer": "HPE",
+                "partNumber": "P14018-B21",
+                "parentSerialNumber": "CHS-SN-001",
+                "properties": {
+                    "redfish_uri": "/Chassis/CHS-SN-001/Blades/3"
+                }
+            },
+            {
+                "deviceType": "Blade",
+                "serialNumber": "BLD-SN-004",
+                "manufacturer": "HPE",
+                "partNumber": "P14018-B21",
+                "parentSerialNumber": "CHS-SN-001",
+                "properties": {
+                    "redfish_uri": "/Chassis/CHS-SN-001/Blades/4"
+                }
+            },
+            {
+                "deviceType": "Node",
+                "serialNumber": "NODE-SN-001",
+                "manufacturer": "HPE",
+                "partNumber": "P43357-B21",
+                "parentSerialNumber": "RACK-SN-001",
+                "properties": {
+                    "redfish_uri": "/Systems/NODE-SN-001"
+                }
+            },
+            {
+                "deviceType": "Node",
+                "serialNumber": "NODE-SN-002",
+                "manufacturer": "HPE",
+                "partNumber": "P43357-B21",
+                "parentSerialNumber": "RACK-SN-001",
+                "properties": {
+                    "redfish_uri": "/Systems/NODE-SN-002"
+                }
+            },
+            {
+                "deviceType": "mgmt-switch",
+                "serialNumber": "MGMT-SW-SN-001",
+                "manufacturer": "Aruba",
+                "partNumber": "JL668A",
+                "parentSerialNumber": "RACK-SN-001",
+                "properties": {
+                    "redfish_uri": "/Chassis/MGMT-SW-SN-001"
+                }
+            },
+            {
+                "deviceType": "hsn-switch",
+                "serialNumber": "HSN-SW-SN-001",
+                "manufacturer": "Mellanox",
+                "partNumber": "MSN2100-CB2F",
+                "parentSerialNumber": "RACK-SN-001",
+                "properties": {
+                    "redfish_uri": "/Chassis/HSN-SW-SN-001"
+                }
+            },
+            {
+                "deviceType": "cabinet-pdu",
+                "serialNumber": "PDU-SN-001",
+                "manufacturer": "APC",
+                "partNumber": "AP7922B",
+                "parentSerialNumber": "RACK-SN-001",
+                "properties": {
+                    "redfish_uri": "/Chassis/PDU-SN-001"
+                }
+            },
+            {
+                "deviceType": "cdu",
+                "serialNumber": "CDU-SN-001",
+                "manufacturer": "Vertiv",
+                "partNumber": "CR020R1-C",
+                "properties": {
+                    "redfish_uri": "/Chassis/CDU-SN-001"
+                }
+            },
+            {
+                "deviceType": "CPU",
+                "serialNumber": "CPU-SN-N001-1",
+                "manufacturer": "Intel",
+                "partNumber": "BX806954314",
+                "parentSerialNumber": "NODE-SN-001",
+                "properties": {
+                    "redfish_uri": "/Systems/NODE-SN-001/Processors/CPU1"
+                }
+            },
+            {
+                "deviceType": "CPU",
+                "serialNumber": "CPU-SN-N001-2",
+                "manufacturer": "Intel",
+                "partNumber": "BX806954314",
+                "parentSerialNumber": "NODE-SN-001",
+                "properties": {
+                    "redfish_uri": "/Systems/NODE-SN-001/Processors/CPU2"
+                }
+            },
+            {
+                "deviceType": "CPU",
+                "serialNumber": "CPU-SN-N002-1",
+                "manufacturer": "AMD",
+                "partNumber": "100-000000053",
+                "parentSerialNumber": "NODE-SN-002",
+                "properties": {
+                    "redfish_uri": "/Systems/NODE-SN-002/Processors/CPU1"
+                }
+            },
+            {
+                "deviceType": "CPU",
+                "serialNumber": "CPU-SN-N002-2",
+                "manufacturer": "AMD",
+                "partNumber": "100-000000053",
+                "parentSerialNumber": "NODE-SN-002",
+                "properties": {
+                    "redfish_uri": "/Systems/NODE-SN-002/Processors/CPU2"
+                }
+            },
+            {
+                "deviceType": "DIMM",
+                "serialNumber": "DIMM-SN-N001-A1",
+                "manufacturer": "Samsung",
+                "partNumber": "M393A4K40DB3-CWE",
+                "parentSerialNumber": "NODE-SN-001",
+                "properties": {
+                    "redfish_uri": "/Systems/NODE-SN-001/Memory/A1"
+                }
+            },
+            {
+                "deviceType": "DIMM",
+                "serialNumber": "DIMM-SN-N001-A2",
+                "manufacturer": "Samsung",
+                "partNumber": "M393A4K40DB3-CWE",
+                "parentSerialNumber": "NODE-SN-001",
+                "properties": {
+                    "redfish_uri": "/Systems/NODE-SN-001/Memory/A2"
+                }
+            },
+            {
+                "deviceType": "DIMM",
+                "serialNumber": "DIMM-SN-N001-B1",
+                "manufacturer": "Samsung",
+                "partNumber": "M393A4K40DB3-CWE",
+                "parentSerialNumber": "NODE-SN-001",
+                "properties": {
+                    "redfish_uri": "/Systems/NODE-SN-001/Memory/B1"
+                }
+            },
+            {
+                "deviceType": "DIMM",
+                "serialNumber": "DIMM-SN-N001-B2",
+                "manufacturer": "Samsung",
+                "partNumber": "M393A4K40DB3-CWE",
+                "parentSerialNumber": "NODE-SN-001",
+                "properties": {
+                    "redfish_uri": "/Systems/NODE-SN-001/Memory/B2"
+                }
+            },
+            {
+                "deviceType": "DIMM",
+                "serialNumber": "DIMM-SN-N002-A1",
+                "manufacturer": "Micron",
+                "partNumber": "MTA36ASF8G72PZ-3G2R",
+                "parentSerialNumber": "NODE-SN-002",
+                "properties": {
+                    "redfish_uri": "/Systems/NODE-SN-002/Memory/A1"
+                }
+            },
+            {
+                "deviceType": "DIMM",
+                "serialNumber": "DIMM-SN-N002-A2",
+                "manufacturer": "Micron",
+                "partNumber": "MTA36ASF8G72PZ-3G2R",
+                "parentSerialNumber": "NODE-SN-002",
+                "properties": {
+                    "redfish_uri": "/Systems/NODE-SN-002/Memory/A2"
+                }
+            },
+            {
+                "deviceType": "GPU",
+                "serialNumber": "GPU-SN-N001-1",
+                "manufacturer": "NVIDIA",
+                "partNumber": "900-21001-0040-000",
+                "parentSerialNumber": "NODE-SN-001",
+                "properties": {
+                    "redfish_uri": "/Systems/NODE-SN-001/Processors/GPU1"
+                }
+            },
+            {
+                "deviceType": "GPU",
+                "serialNumber": "GPU-SN-N001-2",
+                "manufacturer": "NVIDIA",
+                "partNumber": "900-21001-0040-000",
+                "parentSerialNumber": "NODE-SN-001",
+                "properties": {
+                    "redfish_uri": "/Systems/NODE-SN-001/Processors/GPU2"
+                }
+            },
+            {
+                "deviceType": "NIC",
+                "serialNumber": "NIC-SN-N001-1",
+                "manufacturer": "Mellanox",
+                "partNumber": "MCX653106A-HDAT",
+                "parentSerialNumber": "NODE-SN-001",
+                "properties": {
+                    "redfish_uri": "/Systems/NODE-SN-001/NetworkAdapters/NIC1"
+                }
+            },
+            {
+                "deviceType": "NIC",
+                "serialNumber": "NIC-SN-N002-1",
+                "manufacturer": "Mellanox",
+                "partNumber": "MCX653106A-HDAT",
+                "parentSerialNumber": "NODE-SN-002",
+                "properties": {
+                    "redfish_uri": "/Systems/NODE-SN-002/NetworkAdapters/NIC1"
+                }
+            },
+            {
+                "deviceType": "power-supply",
+                "serialNumber": "PSU-SN-N001-1",
+                "manufacturer": "HPE",
+                "partNumber": "P38995-B21",
+                "parentSerialNumber": "NODE-SN-001",
+                "properties": {
+                    "redfish_uri": "/Systems/NODE-SN-001/Power/PowerSupplies/1"
+                }
+            },
+            {
+                "deviceType": "power-supply",
+                "serialNumber": "PSU-SN-N001-2",
+                "manufacturer": "HPE",
+                "partNumber": "P38995-B21",
+                "parentSerialNumber": "NODE-SN-001",
+                "properties": {
+                    "redfish_uri": "/Systems/NODE-SN-001/Power/PowerSupplies/2"
+                }
+            },
+            {
+                "deviceType": "power-supply",
+                "serialNumber": "PSU-SN-N002-1",
+                "manufacturer": "HPE",
+                "partNumber": "P38995-B21",
+                "parentSerialNumber": "NODE-SN-002",
+                "properties": {
+                    "redfish_uri": "/Systems/NODE-SN-002/Power/PowerSupplies/1"
+                }
+            },
+            {
+                "deviceType": "cable",
+                "serialNumber": "CBL-SN-001",
+                "manufacturer": "Mellanox",
+                "partNumber": "MCP1600-C003E30N"
+            },
+            {
+                "deviceType": "cable",
+                "serialNumber": "CBL-SN-002",
+                "manufacturer": "Mellanox",
+                "partNumber": "MCP1600-C003E30N"
+            },
+            {
+                "deviceType": "cable",
+                "serialNumber": "CBL-SN-003",
+                "manufacturer": "Molex",
+                "partNumber": "74547-0101"
+            }
+        ]
+    }
+}

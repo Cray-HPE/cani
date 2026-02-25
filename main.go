@@ -30,6 +30,7 @@ import (
 	_ "github.com/Cray-HPE/cani/pkg/provider/example"  // Example provider
 	_ "github.com/Cray-HPE/cani/pkg/provider/hpcm"     // HPCM provider
 	_ "github.com/Cray-HPE/cani/pkg/provider/nautobot" // Nautobot provider
+	_ "github.com/Cray-HPE/cani/pkg/provider/ochami"   // Ochami provider
 	_ "github.com/Cray-HPE/cani/pkg/provider/redfish"  // Redfish provider
 )
 
