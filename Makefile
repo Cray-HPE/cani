@@ -327,6 +327,45 @@ spec-setup: ## Install shellspec for BDD tests
 	  ln -s "$(shell pwd)"/shellspec/shellspec /usr/local/bin/; \
 	fi
 	$(OK) "shellspec ready"
+# ──────────────────────────────────────────────────────────────────────────────
+#  Nautobot
+# ──────────────────────────────────────────────────────────────────────────────
+
+NAUTOBOT_VERSION ?= latest
+PYTHON_VER       ?= 3.11
+NAUTOBOT_COMPOSE := \
+	-f testdata/fixtures/nautobot/docker-compose.postgres.yml \
+	-f testdata/fixtures/nautobot/docker-compose.base.yml \
+	-f testdata/fixtures/nautobot/docker-compose.local.yml
+
+.PHONY: nautobot-up
+nautobot-up: ## Start Nautobot services
+	$(INFO) "starting Nautobot (version: $(NAUTOBOT_VERSION), Python: $(PYTHON_VER))"
+	NAUTOBOT_VERSION=$(NAUTOBOT_VERSION) PYTHON_VER=$(PYTHON_VER) \
+		docker compose $(NAUTOBOT_COMPOSE) up -d
+	$(OK) "Nautobot running on http://localhost:8081"
+
+.PHONY: nautobot-down
+nautobot-down: ## Stop Nautobot services and remove volumes
+	$(INFO) "stopping Nautobot"
+	NAUTOBOT_VERSION=$(NAUTOBOT_VERSION) PYTHON_VER=$(PYTHON_VER) \
+		docker compose $(NAUTOBOT_COMPOSE) down -v
+	$(OK) "Nautobot stopped"
+
+.PHONY: nautobot-superuser
+nautobot-superuser: ## Create a Nautobot superuser interactively
+	$(INFO) "creating Nautobot superuser"
+	docker compose $(NAUTOBOT_COMPOSE) exec nautobot nautobot-server createsuperuser
+
+.PHONY: nautobot-logs
+nautobot-logs: ## Tail Nautobot service logs
+	$(INFO) "showing Nautobot logs"
+	docker compose $(NAUTOBOT_COMPOSE) logs -f
+
+.PHONY: nautobot-shell
+nautobot-shell: ## Open a bash shell in the Nautobot container
+	$(INFO) "opening Nautobot shell"
+	docker compose $(NAUTOBOT_COMPOSE) exec nautobot bash
 
 .PHONY: load-sls
 load-sls:
