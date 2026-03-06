@@ -23,13 +23,11 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package taxonomy
+package core
 
 import (
 	"path/filepath"
 	"sort"
-
-	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -41,8 +39,8 @@ const (
 	LogFile          = App + "db.log"
 	CfgFile          = App + ".yml"
 	CfgDir           = "." + App
-	ShortDescription = "From subfloor to top-of-rack, manage your HPC cluster's inventory!"
-	LongDescription  = `From subfloor to top-of-rack, manage your HPC cluster's inventory!`
+	ShortDescription = "Continious And Never-ending Inventory"
+	LongDescription  = `Continious And Never-ending Inventory`
 	InitShort        = `Initialize a session and import from the chosen provider.`
 	InitLong         = `Initialize a session. This will perform an import using provider-defined logic.`
 )
@@ -54,6 +52,5 @@ var (
 )
 
 func Init() {
-	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/cmd/taxonomy.init")
 	sort.Strings(SupportedProviders)
 }
