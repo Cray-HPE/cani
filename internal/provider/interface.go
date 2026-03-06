@@ -26,128 +26,83 @@
 package provider
 
 import (
-	"fmt"
-
-	"github.com/Cray-HPE/cani/internal/inventory"
-	"github.com/google/uuid"
-	"github.com/rs/zerolog/log"
+	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/spf13/cobra"
 )
 
-func Init() {
-	log.Info().Msgf("%+v", "github.com/Cray-HPE/cani/internal/provider.init")
-}
+type Provider interface {
+	// Transform runs after Import
+	// It typically does the "Transform" step in ETL to convert the external source data into CANI's format
+	// CANI will load the existing inventory from the datastore and pass it to Transform in case the provider needs to
+	// check for existing devices or racks.
+	// Returns a devicetypes.TransformResult containing devices, racks, and cables (nil maps indicate not applicable)
+	Transform(existing devicetypes.Inventory) (*devicetypes.TransformResult, error)
 
-var ErrDataValidationFailure = fmt.Errorf("data validation failure")
+	// NewProviderCmd returns a new cobra.Command for the provider
+	// This is used to add provider-specific info the the CLI
+	// This is usually a switch statement that returns a command for each command the provider supports
+	NewProviderCmd(base *cobra.Command) (*cobra.Command, error)
 
-// TODO Need to think about how internal data structures should be supplied to the Inventory Provider
-type InventoryProvider interface {
-	// Validate the external services of the inventory provider are correct
-	ValidateExternal(cmd *cobra.Command, args []string) error
-
-	// Validate the representation of the inventory data into the destination inventory system
-	// is consistent. The default set of checks will verify all currently provided data is valid.
-	// If enableRequiredDataChecks is set to true, additional checks focusing on missing data will be ran.
-	ValidateInternal(cmd *cobra.Command, args []string, datastore inventory.Datastore, enableRequiredDataChecks bool) (map[uuid.UUID]HardwareValidationResult, error)
-
-	// Import external inventory data into CANI's inventory format
-	// This initializes the data and replaces the existing data
-	ImportInit(cmd *cobra.Command, args []string, datastore inventory.Datastore) error
-
-	// Import external inventory data after initialization
-	// This import should merge the imported data with the existing data
-	Import(cmd *cobra.Command, args []string, datastore inventory.Datastore) error
-
-	// Export inventory in various formats
-	Export(cmd *cobra.Command, args []string, datastore inventory.Datastore) error
-
-	// Reconcile CANI's inventory state with the external inventory state and apply required changes
-	Reconcile(cmd *cobra.Command, args []string, datastore inventory.Datastore, dryrun bool, ignoreExternalValidation bool) error
-
-	// RecommendHardware returns recommended settings for adding hardware based on the deviceTypeSlug
-	RecommendHardware(inv inventory.Inventory, cmd *cobra.Command, args []string, auto bool) (recommended HardwareRecommendations, err error)
-
-	// SetProviderOptions are specific to the Provider. For example, supported Roles and SubRoles
-	SetProviderOptions(cmd *cobra.Command, args []string) error
-
-	// GetProviderOptions gets the options from the provider as an interface
-	// It must be type-asserted and then set at the domain layer
-	GetProviderOptions() (interface{}, error)
-
-	//
-	// Provider Hardware Metadata
-	//
-
-	// Build metadata, and add ito the hardware object
-	// This function could return the data to put into object
-	BuildHardwareMetadata(hw *inventory.Hardware, cmd *cobra.Command, args []string, recommendations HardwareRecommendations) error
-	NewHardwareMetadata(hw *inventory.Hardware, cmd *cobra.Command, args []string) error
-
-	// Return values for the given fields from the hardware's metadata
-	GetFields(hw *inventory.Hardware, fieldNames []string) (values []string, err error)
-
-	// Set fields in the hardware's metadata
-	SetFields(hw *inventory.Hardware, values map[string]string) (result SetFieldsResult, err error)
-
-	// Return metadata about each field
-	GetFieldMetadata() ([]FieldMetadata, error)
-
-	// Print
-	PrintHardware(cmd *cobra.Command, args []string, filtered map[uuid.UUID]inventory.Hardware) error
-	PrintRecommendations(cmd *cobra.Command, args []string, recommendations HardwareRecommendations) error
-
-	// Provider's name
+	// Slug simply returns the provider's slug, which is used to identify it in the system
 	Slug() string
 }
 
-type HardwareValidationResult struct {
-	Hardware inventory.Hardware
-	Errors   []string
+// Exporter is an optional interface that providers can implement to support
+// syncing the local inventory to an external system (the "Load" step in ETL)
+type Exporter interface {
+	// Export syncs the local inventory to the external system
+	// Returns information about what was created, updated, skipped, or errored
+	Export(cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error
 }
 
-type HardwareRecommendations struct {
-	CabinetOrdinal   int
-	ChassisOrdinal   int
-	BladeOrdinal     int
-	ProviderMetadata map[string]interface{}
+// Exporter is an optional interface that providers can implement to support
+// syncing the local inventory to an external system (the "Load" step in ETL)
+type Importer interface {
+	// Import syncs the local inventory from an external system or source
+	// This usually imports data into the local inventory from files or APIs
+	// and saves it into the provider struct for later processing in Transform()
+	Import(cmd *cobra.Command, args []string, existing *devicetypes.Inventory) error
 }
 
-type CsvImportResult struct {
-	Total             int
-	Modified          int
-	ValidationResults map[uuid.UUID]HardwareValidationResult
+// HasOptions is an optional interface that providers can implement
+// to expose their default configuration options
+type HasOptions interface {
+	// GetDefaultOptions returns the default configuration options for the provider
+	GetDefaultOptions() map[string]any
+
+	// GetOptionsStruct returns the configuration struct instance for comment extraction
+	// This is used during YAML serialization to preserve field ordering and comments
+	GetOptionsStruct() any
 }
 
-type SetFieldsResult struct {
-	ModifiedFields []string
+// HasImportOptions is an optional interface that providers can implement
+// to expose import-specific configuration options that correlate to CLI flags
+type HasImportOptions interface {
+	// GetImportOptionsStruct returns a pointer to the import options struct
+	// This enables reflection over struct fields for field ordering and comments
+	GetImportOptionsStruct() any
+
+	// GetImportDefaults returns the default import configuration options
+	// These are auto-populated in the config file if they do not exist
+	GetImportDefaults() map[string]any
+
+	// BindImportFlags binds CLI flags to Viper for the import command
+	// This enables the precedence: CLI flags > env vars > config file > defaults
+	BindImportFlags(cmd *cobra.Command) error
 }
 
-type FieldMetadata struct {
-	Name         string
-	Types        string
-	Description  string
-	IsModifiable bool
-}
+// HasExportOptions is an optional interface that providers can implement
+// to expose export-specific configuration options that correlate to CLI flags
+type HasExportOptions interface {
+	// GetExportOptionsStruct returns a pointer to the export options struct
+	// This enables reflection over struct fields for field ordering and comments
+	GetExportOptionsStruct() any
 
-func (r HardwareRecommendations) Print() {
-	log.Info().Msgf("Suggested cabinet number: %d", r.CabinetOrdinal)
-	log.Info().Msgf("Suggested VLAN ID: %d", r.ProviderMetadata["HMNVlan"])
-}
+	// GetExportDefaults returns the default export configuration options
+	// These are auto-populated in the config file if they do not exist
+	GetExportDefaults() map[string]any
 
-// ProviderCommands is an interface for the commands that are specific to a provider
-// this isn't usually used directly, but is used to generate the commands with 'makeprovdier'
-type ProviderCommands interface {
-	NewProviderCmd(caniCmd *cobra.Command) (providerCmd *cobra.Command, err error)
-	NewSessionInitCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
-	NewAddCabinetCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
-	NewUpdateCabinetCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
-	NewListCabinetCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
-	NewAddBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
-	NewUpdateBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
-	NewListBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
-	NewAddNodeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
-	NewUpdateNodeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
-	NewListNodeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
-	NewExportCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
-	NewImportCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error)
+	// BindExportFlags binds CLI flags to Viper for the export command
+	// This enables the precedence: CLI flags > env vars > config file > defaults
+	BindExportFlags(cmd *cobra.Command) error
 }
