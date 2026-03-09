@@ -36,19 +36,24 @@ spec_helper_precheck() {
 
   # Fixtures location ./spec/testdata/fixtures
   setenv FIXTURES="$SHELLSPEC_HELPERDIR/testdata/fixtures"
+  # Make the built binary available as 'cani' in all subprocesses
+  setenv PATH="$SHELLSPEC_HELPERDIR/../bin:$PATH"
   # use /tmp for consistent test dir that doesn't conflict with local dev
   # also helpful for cani config fixtures if this is a static, abs path
   setenv CANI_DIR="/tmp/.cani"
   setenv CANI_CONF="${CANI_DIR:=/tmp/.cani}/cani.yml"
-  setenv CANI_CONF_SINGLE="${CANI_DIR:=/tmp/.cani}/cani.yml.single"
   setenv CANI_DS="${CANI_DIR:=/tmp/.cani}/canidb.json"
   setenv CANI_LOG="${CANI_DIR:=/tmp/.cani}/canidb.log"
-  setenv CANI_CUSTOM_HW_DIR="${CANI_DIR:=/tmp/.cani}/hardware-types"
-  setenv CANI_CUSTOM_HW_CONF="${CANI_DIR:=/tmp/.cani}/hardware-types/my_custom_hw.yml"
-  
+
   # Skip tests that require external services (CSM API, mock servers, etc.)
   # Set SKIP_EXTERNAL_TESTS=1 to skip these tests
   : "${SKIP_EXTERNAL_TESTS:=0}"
+	
+  # On macOS, GNU sed (gsed) is required for GNU sed extensions (e.g., 0, address)
+  # A wrapper at spec/support/bin/sed handles this transparently
+  if [ "$(uname -s)" = "Darwin" ] && ! command -v gsed >/dev/null 2>&1; then
+    warn "GNU sed (gsed) not found. Install with: brew install gnu-sed"
+  fi
 }
 
 # This callback function will be invoked after a specfile has been loaded.
@@ -76,121 +81,31 @@ remove_datastore() { rm -f "$CANI_DS"; }
 #shellcheck disable=SC2317
 remove_log() { rm -f "$CANI_LOG"; }
 
-# functions to deploy various fixtures with different scenarios
+# ---------- Test environment helpers ----------
 
-# deploys a config with session.active = true
-use_active_session(){
-  #shellcheck disable=SC2317
-  mkdir -p "$(dirname "$CANI_CONF")"
-  cp "$FIXTURES"/cani/configs/canitest_valid_active.yml "$CANI_CONF"
-}
-
-# deploys a config with session.active = false
-use_inactive_session(){ 
-  mkdir -p "$(dirname "$CANI_CONF")"
-  #shellcheck disable=SC2317
-  cp "$FIXTURES"/cani/configs/canitest_valid_inactive.yml "$CANI_CONF"
-} 
-
-# deploys an older single-provider config
-use_single_provider_session(){
-  #shellcheck disable=SC2317
-  mkdir -p "$(dirname "$CANI_CONF")"
-  cp "$FIXTURES"/cani/configs/valid_single_provider_deprecated.yml "$CANI_CONF"
-}
-
-use_custom_hw_type(){ 
-  mkdir -p "$(dirname "$CANI_CUSTOM_HW_CONF")"
-  #shellcheck disable=SC2317
-  cp "$FIXTURES"/cani/configs/my_custom_hw.yml "$CANI_CUSTOM_HW_CONF"
-} 
-
-# deploys a datastore with one system only
-use_valid_datastore_system_only(){ 
-  mkdir -p "$(dirname "$CANI_DS")"
-  #shellcheck disable=SC2317
-  cp "$FIXTURES"/cani/configs/canitestdb_valid_system_only.json "$CANI_DS"
-}
-
-# deploys a datastore with one eia cabinet (and child hardware)
-use_valid_datastore_one_hpe_eia_cabinet_cabinet(){ 
-  mkdir -p "$(dirname "$CANI_DS")"
-  #shellcheck disable=SC2317
-  cp "$FIXTURES"/cani/configs/canitestdb_valid_eia_only.json "$CANI_DS"
-} 
-
-# deploys a datastore with one eia cabinet (and child hardware) and one blade
-use_valid_datastore_one_hpe_eia_cabinet_cabinet_one_blade(){ 
-  mkdir -p "$(dirname "$CANI_DS")"
-  #shellcheck disable=SC2317
-  cp "$FIXTURES"/cani/configs/canitestdb_valid_eia_only_one_blade.json "$CANI_DS"
-} 
-
-
-# deploys a datastore with one ex2000 cabinet (and child hardware)
-use_valid_datastore_one_hpe_ex2000_cabinet(){ 
-  mkdir -p "$(dirname "$CANI_DS")"
-  #shellcheck disable=SC2317
-  cp "$FIXTURES"/cani/configs/canitestdb_valid_ex2000_only.json "$CANI_DS"
-} 
-
-# deploys a datastore with one ex2000 cabinet (and one blade)
-use_valid_datastore_one_ex2000_one_blade(){ 
-  mkdir -p "$(dirname "$CANI_DS")"
-  #shellcheck disable=SC2317
-  cp "$FIXTURES"/cani/configs/canitestdb_valid_ex2000_one_blade.json "$CANI_DS"
-} 
-
-# deploys a datastore with one hpe_ex2500_1_liquid_cooled_chassis cabinet (and child hardware)
-use_valid_datastore_one_hpe_ex2500_1_liquid_cooled_chassis_cabinet(){ 
-  mkdir -p "$(dirname "$CANI_DS")"
-  #shellcheck disable=SC2317
-  cp "$FIXTURES"/cani/configs/canitestdb_valid_ex2500_1_only.json "$CANI_DS"
-} 
-
-# deploys a datastore with one hpe_ex2500_2_liquid_cooled_chassis cabinet (and child hardware)
-use_valid_datastore_one_hpe_ex2500_2_liquid_cooled_chassis_cabinet(){ 
-  mkdir -p "$(dirname "$CANI_DS")"
-  #shellcheck disable=SC2317
-  cp "$FIXTURES"/cani/configs/canitestdb_valid_ex2500_2_only.json "$CANI_DS"
-} 
-
-# deploys a datastore with one hpe_ex2500_3_liquid_cooled_chassis cabinet (and child hardware)
-use_valid_datastore_one_hpe_ex2500_3_liquid_cooled_chassis_cabinet(){ 
-  mkdir -p "$(dirname "$CANI_DS")"
-  #shellcheck disable=SC2317
-  cp "$FIXTURES"/cani/configs/canitestdb_valid_ex2500_3_only.json "$CANI_DS"
-} 
-
-# deploys a datastore with one hpe_ex3000 cabinet (and child hardware)
-use_valid_datastore_one_hpe_ex3000_cabinet(){ 
-  mkdir -p "$(dirname "$CANI_DS")"
-  #shellcheck disable=SC2317
-  cp "$FIXTURES"/cani/configs/canitestdb_valid_ex3000_only.json "$CANI_DS"
-} 
-
-# deploys a datastore with one hpe_ex4000 cabinet (and child hardware)
-use_valid_datastore_one_hpe_ex4000_cabinet(){ 
-  mkdir -p "$(dirname "$CANI_DS")"
-  #shellcheck disable=SC2317
-  cp "$FIXTURES"/cani/configs/canitestdb_valid_ex4000_only.json "$CANI_DS"
-} 
-
-# deploys a datastore with one hpe_ex4000 cabinet (and child hardware)
-use_valid_datastore_one_my_custom_cabinet_cabinet(){ 
-  mkdir -p "$(dirname "$CANI_DS")"
-  #shellcheck disable=SC2317
-  cp "$FIXTURES"/cani/configs/canitestdb_valid_my_custom_cabinet_only.json "$CANI_DS"
-} 
-
-# Create a clean datastore migration test environment by deploying a legacy
-# datastore fixture.  No config is needed — cani creates one on first run.
-# Usage: setup_datastore_migration_env canitestdb_v1alpha1.json
+# Create a clean test environment with an empty config and datastore.
+# Uses /tmp/.cani to avoid conflicting with the user's local cani config.
 #shellcheck disable=SC2317
-setup_datastore_migration_env() {
+setup_test_env() {
   rm -rf "$CANI_DIR"
   mkdir -p "$CANI_DIR"
-  cp "$FIXTURES/cani/legacy/$1" "$CANI_DS"
+  cp "$FIXTURES/cani/configs/test_config.yml" "$CANI_CONF"
+  cp "$FIXTURES/cani/empty_inventory.json" "$CANI_DS"
+}
+
+# Create a test environment pre-loaded with the populated test-rack inventory.
+#shellcheck disable=SC2317
+setup_populated_env() {
+  rm -rf "$CANI_DIR"
+  mkdir -p "$CANI_DIR"
+  cp "$FIXTURES/cani/configs/test_config.yml" "$CANI_CONF"
+  cp "$FIXTURES/test-rack-inventory.json" "$CANI_DS"
+}
+
+# Remove the entire test directory.
+#shellcheck disable=SC2317
+teardown_test_env() {
+  rm -rf "$CANI_DIR"
 }
 
 # Create a clean datastore migration test environment by deploying only a

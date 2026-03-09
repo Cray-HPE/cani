@@ -126,35 +126,46 @@ help:
 
 clean:
 	go clean -i ./...
-	rm -vf \
-	  $(CURDIR)/build/results/coverage/* \
-	  $(CURDIR)/build/results/unittest/*
-	rm -rf \
-	  bin \
-	  $(BUILD_DIR)
+	rm -rf $(BIN_DIR) $(BUILD_DIR)
+	rm -f $(CURDIR)/build/results/coverage/* $(CURDIR)/build/results/unittest/*
+	$(OK) "clean"
 
-shellspec:
-	go run cmd/shellspec/main.go
+# ──────────────────────────────────────────────────────────────────────────────
+#  Code quality
+# ──────────────────────────────────────────────────────────────────────────────
 
-validate-hardware-type-schemas:
-	go run ./pkg/hardwaretypes/validate pkg/hardwaretypes/hardware-types/schema  pkg/hardwaretypes/hardware-types/
+.PHONY: fmt
+fmt: ## Format Go source files
+	$(INFO) "formatting"
+	@go fmt ./...
+	$(OK) "formatted"
 
-sim-setup:
-	@if ! [ -d hms-simulation-environment ]; then \
-	git clone https://github.com/Cray-HPE/hms-simulation-environment.git; \
-	spec/support/bin/setup_simulator.sh ./hms-simulation-environment ../testdata/fixtures/sls/no_hardware.json; \
-	fi
+.PHONY: vet
+vet: ## Run go vet
+	$(INFO) "vetting"
+	@go vet ./...
+	$(OK) "vetted"
 
-load-sls:
-	spec/support/bin/setup_simulator.sh ./hms-simulation-environment ../testdata/fixtures/sls/no_hardware.json
+.PHONY: lint
+lint: ## Run static analysis
+	$(INFO) "linting"
+	golint -set_exit_status ./cmd/...
+	golint -set_exit_status ./internal/...
+	golint -set_exit_status ./pkg/...
+	$(OK) "linted"
 
-spec-setup:
-	@if ! [ -d ./shellspec ]; then \
-	git clone https://github.com/shellspec/shellspec.git; \
-	ln -s "$(shell pwd)"/shellspec/shellspec /usr/local/bin/; \
-	fi
+# ──────────────────────────────────────────────────────────────────────────────
+#  Testing
+# ──────────────────────────────────────────────────────────────────────────────
 
-unittest: bin
+.PHONY: test
+# Run all tests unit + functional + integration (edge disabled-see below)
+test: utest ftest itest # etest
+	$(OK) "all tests passed"
+
+.PHONY: utest
+utest: bin ## Run unit tests
+	$(INFO) "running unit tests"
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go test -cover \
 	     github.com/Cray-HPE/cani/internal/inventory \
 	     github.com/Cray-HPE/cani/internal/provider/csm \
@@ -170,7 +181,10 @@ functional: bin
 integrate: bin
 	SKIP_EXTERNAL_TESTS=1 ./spec/support/bin/cani_integrate.sh integration
 
-edge: bin
+.PHONY: etest
+# disabled in make test due to EOL CSM and slow nature, but can be run independently with `make etest`
+etest: bin ## Run edge-case tests
+	$(INFO) "running edge tests"
 	SKIP_EXTERNAL_TESTS=1 ./spec/support/bin/cani_integrate.sh edge
 
 test: bin validate-hardware-type-schemas unittest functional integrate edge
@@ -245,32 +259,79 @@ generate-swagger-hpcm-client: bin/swagger-codegen-cli.jar
 	java -jar bin/swagger-codegen-cli.jar generate -i ./pkg/hpcm-client/openapi.yml -l go -o ./pkg/hpcm-client/ -DpackageName=hpcm_client
 	go fmt ./pkg/hpcm-client/...
 	goimports -w ./pkg/hpcm-client
-	
-venv:
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  CSM
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+CSM_CERTS_DIR ?= testdata/fixtures/csm/simulator/nginx/certs
+
+.PHONY: csm-certs
+csm-certs: ## Generate self-signed TLS certs for the CSM API gateway
+	@if [ -f $(CSM_CERTS_DIR)/cert.crt ] && [ -f $(CSM_CERTS_DIR)/cert.key ]; then \
+		echo "  certs already exist at $(CSM_CERTS_DIR), skipping"; \
+	else \
+		mkdir -p $(CSM_CERTS_DIR); \
+		openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+			-subj "/C=US/ST=Minnesota/L=Bloomington/O=HPE/OU=Engineering/CN=hpe.com" \
+			-out $(CSM_CERTS_DIR)/cert.crt \
+			-keyout $(CSM_CERTS_DIR)/cert.key 2>/dev/null; \
+		printf "$(CLR_GREEN) ✔  %s$(CLR_RESET)\n" "generated TLS certs at $(CSM_CERTS_DIR)"; \
+	fi
+
+SLS_FILE ?= testdata/fixtures/csm/sls/valid_hardware_networks.json
+
+.PHONY: csm-up
+csm-up: csm-certs ## Run the CSM simulator
+	$(INFO) "starting CSM simulator (use SLS_FILE=$(SLS_FILE) to specify SLS fixture)"
+	docker compose -f testdata/fixtures/csm/simulator/docker-compose.yml up -d
+	$(INFO) "waiting for api-gateway to become healthy"
+	@until curl -kso /dev/null https://localhost:8443/apis/sls/v1/health 2>/dev/null; do sleep 2; done
+	$(INFO) "loading SLS data from $(SLS_FILE)"
+	curl -k -X POST -F "sls_dump=@$(SLS_FILE)" https://localhost:8443/apis/sls/v1/loadstate -i
+	$(OK) "CSM simulator running with SLS data loaded"
+
+.PHONY: csm-down
+csm-down: ## Run the CSM simulator
+	$(INFO) "stopping CSM simulator"
+	docker compose -f testdata/fixtures/csm/simulator/docker-compose.yml down
+	$(OK) "CSM simulator stopped"
+
+.PHONY: spec-setup
+spec-setup: ## Install shellspec for BDD tests
+	$(INFO) "setting up shellspec"
+	@if ! [ -d ./shellspec ]; then \
+	  git clone https://github.com/shellspec/shellspec.git; \
+	  ln -s "$(shell pwd)"/shellspec/shellspec /usr/local/bin/; \
+	fi
+	$(OK) "shellspec ready"
+
+.PHONY: load-sls
+load-sls:
+	$(INFO) "loading SLS data for simulator tests"
+	spec/support/bin/setup_simulator.sh ./hms-simulation-environment ../testdata/fixtures/sls/no_hardware.json
+	$(OK) "SLS data loaded"
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  Documentation
+# ──────────────────────────────────────────────────────────────────────────────
+
+.PHONY: venv
+venv: ## Create a Python virtualenv for docs
+	$(INFO) "creating virtualenv"
 	virtualenv -p python3 venv
 	source venv/bin/activate
 	pip install -r requirements.txt
+	$(OK) "virtualenv ready"
 
-generate-hardwaretypes-docs-mac:
-	mkdir -p docs/hardware-types
-	generate-schema-doc --config-file docs/generate-schema-doc-config.yml pkg/hardwaretypes/hardware-types/schema/devicetype.json docs/hardware-types/devicetype.md
-	sed -i '' 's/Must be one of:/Must be one of:\n/g' docs/hardware-types/devicetype.md
-
-# this has a stupid hack to make the markdown lists show properly by sed'ing the 
-# resultant file.  this hack also needs a short delay for the generated file to 
-# fully appear so it can be hacked
-generate-hardwaretypes-docs:
-	mkdir -p docs/hardware-types
-	generate-schema-doc --config-file docs/generate-schema-doc-config.yml pkg/hardwaretypes/hardware-types/schema/devicetype.json docs/hardware-types/devicetype.md
-	sed -i 's/Must be one of:/Must be one of:\n/g' docs/hardware-types/devicetype.md
-
-generate: generate-swagger-sls-client generate-swagger-hsm-client generate-go generate-hardwaretypes-docs
-
-serve: venv
+.PHONY: serve
+serve: venv ## Serve docs locally with mkdocs
+	$(INFO) "serving docs"
 	mkdocs serve
 
 license:
-	docker run -it --rm -v ${PWD}:/github/workspace artifactory.algol60.net/csm-docker/stable/license-checker .github/workflows/ cmd/ internal pkg/hardwaretypes pkg/xname spec/ --fix
+	docker run -it --rm -v ${PWD}:/github/workspace artifactory.algol60.net/csm-docker/stable/license-checker .github/workflows/ cmd/ internal pkg/ spec/ --fix
 
 # Jenkins doesn't have java installed, so the generate target fails to run
 bin:

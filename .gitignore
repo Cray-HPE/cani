@@ -23,6 +23,9 @@ go.work
 # vim files
 *.swp
 
+# macos
+.DS_Store
+
 # shellspec
 .shellspec-local
 .shellspec-quick.log
@@ -40,6 +43,9 @@ canitest.yml
 canitestdb.json
 canitestdb.log
 canitest_export.csv
+
+# generated certs
+testdata/fixtures/csm/simulator/nginx/certs/
 
 # support repos
 hms-simulation-environment/

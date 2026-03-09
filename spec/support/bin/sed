@@ -1,0 +1,26 @@
+#!/bin/sh
+#
+# Portable sed wrapper for shellspec
+# Resolves GNU/BSD sed incompatibility (e.g., 0, address range)
+# On macOS, GNU sed (gsed) is required: brew install gnu-sed
+#
+# See: https://github.com/shellspec/shellspec?tab=readme-ov-file#resolve-command-incompatibilities
+#
+
+# shellspec may inject an empty first argument via its interceptor;
+# strip it so gsed/sed receives the correct argument list
+while [ $# -gt 0 ] && [ -z "$1" ]; do
+  shift
+done
+
+case "$(uname -s)" in
+  Darwin)
+    # brew install gnu-sed
+    if command -v gsed >/dev/null 2>&1; then
+      exec gsed "$@"
+    fi
+    echo "Error: GNU sed (gsed) is required on macOS. Install with: brew install gnu-sed" >&2
+    exit 1
+    ;;
+esac
+exec /usr/bin/sed "$@"

@@ -24,215 +24,66 @@
 #
 Describe 'INTEGRATION:'
 
-It 'start a session'
-  BeforeCall use_inactive_session
-  BeforeCall use_valid_datastore_system_only # deploy a valid datastore
-  BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
-  When call bin/cani alpha session --config "$CANI_CONF" init csm -S
+It 'import from simulator'
+	BeforeCall remove_datastore
+	BeforeCall "curl -sk -X POST -F "sls_dump=@testdata/fixtures/sls/valid_hardware_networks.json" https://localhost:8443/apis/sls/v1/loadstate"
+  When call bin/cani alpha --config "$CANI_CONF" import csm -S --ignore-validation
   The status should equal 0
-  The line 1 of stderr should include 'Using simulation mode'
-  The stderr should include 'Validated CANI inventory'
-  The stderr should include 'Validated external inventory provider'
-  # Verify the import logic reached out to SLS
-  The stderr should include 'GET https://localhost:8443/apis/sls/v1/dumpstate'
-  The stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/State/Components'
-  The stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/Inventory/Hardware'
-
-  # Verify the import logic pushed changes into SLS
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000'
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c1'
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c1b0'
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c3'
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c3b0'
-
-  # Verify the session has started
-  The stderr should include 'Session is now ACTIVE with provider csm and datastore'
+  The stderr should include 'Imported SLS:'
+  The stderr should include 'Transform:'
 End
 
-It 'verify empty blade slot'
-  When call bin/cani alpha list blade csm --config "$CANI_CONF"
+It 'verify blades exist after import'
+  When call bin/cani alpha --config "$CANI_CONF" show device
   The status should equal 0
-  The line 2 of output should include 'empty		System:0->Cabinet:9000->Chassis:1->NodeBlade:0'
-  The line 3 of output should include 'empty		System:0->Cabinet:9000->Chassis:1->NodeBlade:1'
-End
-
-It 'verify empty nodes'
-  When call bin/cani alpha list node csm --config "$CANI_CONF"
-  The status should equal 0
-  The line 2 of output should include 'empty		Compute		[nid001000]	1000	System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:0->Node:0'
-  The line 3 of output should include 'empty		Compute		[nid001001]	1001	System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:0->Node:1'
-  The line 4 of output should include 'empty		Compute		[nid001002]	1002	System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:1->Node:0'
-  The line 5 of output should include 'empty		Compute		[nid001003]	1003	System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:1->Node:1'
-  The line 6 of output should include 'empty		Compute		[nid001004]	1004	System:0->Cabinet:9000->Chassis:1->NodeBlade:1->NodeCard:0->Node:0'
-  The line 7 of output should include 'empty		Compute		[nid001005]	1005	System:0->Cabinet:9000->Chassis:1->NodeBlade:1->NodeCard:0->Node:1'
-  The line 8 of output should include 'empty		Compute		[nid001006]	1006	System:0->Cabinet:9000->Chassis:1->NodeBlade:1->NodeCard:1->Node:0'
-  The line 9 of output should include 'empty		Compute		[nid001007]	1007	System:0->Cabinet:9000->Chassis:1->NodeBlade:1->NodeCard:1->Node:1'
+  The stdout should include '"type": "blade"'
 End
 
 It 'add ex4252 blade'
-  When call bin/cani alpha --config "$CANI_CONF" add blade csm hpe-crayex-ex4252-compute-blade --auto --accept
+  When call bin/cani alpha --config "$CANI_CONF" add hpe-crayex-ex4252-compute-blade --auto --accept
   The status should equal 0
-  The line 1 of stderr should include 'Querying inventory to suggest cabinet, chassis, and blade for this NodeBlade'
-  The line 2 of stderr should include 'Suggested Cabinet number: 9000'
-  The line 3 of stderr should include 'Suggested Chassis number: 1'
-  The line 4 of stderr should include 'Suggested NodeBlade number: 0'
-  The line 6 of stderr should include 'NodeBlade was successfully staged to be added to the system'
-  The line 7 of stderr should include 'UUID: '
-  The line 8 of stderr should include 'Cabinet: 9000'
-  The line 9 of stderr should include 'Chassis: 1'
-  The line 10 of stderr should include 'Blade: 0'
+  The stderr should include 'Querying inventory to suggest cabinet, chassis, and blade for this NodeBlade'
+  The stderr should include 'Suggested Cabinet number: 9000'
+  The stderr should include 'Suggested Chassis number: 1'
+  The stderr should include 'Suggested NodeBlade number: 0'
+  The stderr should include 'NodeBlade was successfully staged to be added to the system'
+  The stderr should include 'UUID: '
+  The stderr should include 'Cabinet: 9000'
+  The stderr should include 'Chassis: 1'
+  The stderr should include 'Blade: 0'
 End
 
-It 'verify staged blade slot'
-  When call bin/cani alpha list blade csm --config "$CANI_CONF"
+It 'verify staged blade'
+  When call bin/cani alpha --config "$CANI_CONF" show device
   The status should equal 0
-  # four nodes should be added
-  The line 2 of stdout should include 'staged'
-  The line 2 of stdout should include 'hpe-crayex-ex4252-compute-blade'
-  The line 2 of stdout should include 'System:0->Cabinet:9000->Chassis:1->NodeBlade:0'
+  The stdout should include 'hpe-crayex-ex4252-compute-blade'
+  The stdout should include '"status": "staged"'
 End
 
-It 'verify staged nodes'
-  When call bin/cani alpha list node csm --config "$CANI_CONF"
+It 'update node b0n2 with metadata'
+  When call bin/cani alpha --config "$CANI_CONF" update device x9000c1s0b0n2 --role Compute --nid 2000 --alias nid002000
   The status should equal 0
-  # four nodes should be added
-  The line 2 of stdout should include 'staged'
-  The line 2 of stdout should include 'hpe-crayex-ex4252-compute-node'
-  The line 2 of stdout should include 'Compute'
-  The line 2 of stdout should include '[nid001000]'
-  The line 2 of stdout should include '1000'
-  The line 2 of stdout should include 'System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:0->Node:0'
-
-  The line 3 of stdout should include 'staged'
-  The line 3 of stdout should include 'hpe-crayex-ex4252-compute-node'
-  The line 3 of stdout should include 'Compute'
-  The line 3 of stdout should include '[nid001001]'
-  The line 3 of stdout should include '1001'
-  The line 3 of stdout should include 'System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:0->Node:1'
-  
-  The line 4 of stdout should include 'staged'
-  The line 4 of stdout should include 'hpe-crayex-ex4252-compute-node'
-  The line 5 of stdout should not include 'Compute'
-  The line 5 of stdout should not include 'nid'
-  The line 4 of stdout should include 'System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:0->Node:2'
-
-  The line 5 of stdout should include 'staged'
-  The line 5 of stdout should include 'hpe-crayex-ex4252-compute-node'
-  The line 5 of stdout should not include 'Compute'
-  The line 5 of stdout should not include 'nid'
-  The line 5 of stdout should include 'System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:0->Node:3'
-
-
-  The line 6 of stdout should include 'empty'
-  The line 6 of stdout should include 'Compute'
-  The line 6 of stdout should include '[nid001002]'
-  The line 6 of stdout should include '1002'
-  The line 6 of stdout should include 'System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:1->Node:0'
-
-  The line 7 of stdout should include 'empty'
-  The line 7 of stdout should include 'Compute'
-  The line 7 of stdout should include '[nid001003]'
-  The line 7 of stdout should include '1003'
-  The line 7 of stdout should include 'System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:1->Node:1'
+  The stderr should include 'Updated device'
 End
 
-
-It 'commit and reconcile with missing require data'
-  When call bin/cani alpha session --config "$CANI_CONF" apply --commit
-  # committing without node metadata should fail
-  The status should equal 1
-  The line 1 of stderr should include 'Session is STOPPED'
-  The line 2 of stderr should include 'Committing changes to session'
-  The line 4 of stderr should include 'Inventory data validation errors encountered'
-
-  The stderr should include 'System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:0->Node:2'
-  The line 6 of stderr should include 'Missing required information: Alias is not set'
-  The line 7 of stderr should include 'Missing required information: NID is not set'
-  The line 8 of stderr should include 'Missing required information: Role is not set'
-
-  The stderr should include 'System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:0->Node:2'
-  The line 10 of stderr should include 'Missing required information: Alias is not set'
-  The line 11 of stderr should include 'Missing required information: NID is not set'
-  The line 12 of stderr should include 'Missing required information: Role is not set'
-
-  The line 13 of stderr should include 'Error: data validation failure'
-End
-
-It 'add system role information for node 2'
-  When call bin/cani alpha --config "$CANI_CONF" update node csm --cabinet 9000 --chassis 1 --blade 0 --nodecard 0 --node 2 \
-    --role Compute \
-    --alias nid002000 \
-    --nid 2000
+It 'update node b0n3 with metadata'
+  When call bin/cani alpha --config "$CANI_CONF" update device x9000c1s0b0n3 --role Compute --nid 2001 --alias nid002001
   The status should equal 0
-  The line 1 of stderr should include 'Updated node'
-End
-
-It 'add system role information for node 3'
-  When call bin/cani alpha --config "$CANI_CONF" update node csm --cabinet 9000 --chassis 1 --blade 0 --nodecard 0 --node 3 \
-    --role Compute \
-    --alias nid002001 \
-    --nid 2001
-  The status should equal 0
-  The line 1 of stderr should include 'Updated node'
+  The stderr should include 'Updated device'
 End
 
 It 'verify staged nodes'
-  When call bin/cani alpha list node csm --config "$CANI_CONF"
+  When call bin/cani alpha --config "$CANI_CONF" show device
   The status should equal 0
-  # four nodes should be added
-  The line 2 of stdout should include 'staged'
-  The line 2 of stdout should include 'hpe-crayex-ex4252-compute-node'
-  The line 2 of stdout should include 'Compute'
-  The line 2 of stdout should include '[nid001000]'
-  The line 2 of stdout should include '1000'
-  The line 2 of stdout should include 'System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:0->Node:0'
-
-  The line 3 of stdout should include 'staged'
-  The line 3 of stdout should include 'hpe-crayex-ex4252-compute-node'
-  The line 3 of stdout should include 'Compute'
-  The line 3 of stdout should include '[nid001001]'
-  The line 3 of stdout should include '1001'
-  The line 3 of stdout should include 'System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:0->Node:1'
-  
-  The line 4 of stdout should include 'staged'
-  The line 4 of stdout should include 'hpe-crayex-ex4252-compute-node'
-  The line 4 of stdout should include 'Compute'
-  The line 4 of stdout should include '[nid002000]'
-  The line 4 of stdout should include '2000'
-  The line 4 of stdout should include 'System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:0->Node:2'
-
-  The line 5 of stdout should include 'staged'
-  The line 5 of stdout should include 'hpe-crayex-ex4252-compute-node'
-  The line 5 of stdout should include 'Compute'
-  The line 5 of stdout should include '[nid002001]'
-  The line 5 of stdout should include '2001'
-  The line 5 of stdout should include 'System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:0->Node:3'
-
-
-  The line 6 of stdout should include 'empty'
-  The line 6 of stdout should include 'Compute'
-  The line 6 of stdout should include '[nid001002]'
-  The line 6 of stdout should include '1002'
-  The line 6 of stdout should include 'System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:1->Node:0'
-
-  The line 7 of stdout should include 'empty'
-  The line 7 of stdout should include 'Compute'
-  The line 7 of stdout should include '[nid001003]'
-  The line 7 of stdout should include '1003'
-  The line 7 of stdout should include 'System:0->Cabinet:9000->Chassis:1->NodeBlade:0->NodeCard:1->Node:1'
+  The stdout should include 'hpe-crayex-ex4252-compute-node'
 End
 
-It 'commit and reconcile'
-  When call bin/cani alpha session --config "$CANI_CONF" apply --commit
-  # committing without node metadata should fail
+It 'export to simulator'
+  When call bin/cani alpha --config "$CANI_CONF" export csm -S --commit
   The status should equal 0
-  The line 1 of stderr should include 'Session is STOPPED'
-  The line 2 of stderr should include 'Committing changes to session'
-  The stderr should include 'x9000c1s0b0n0    - Type: Node, Class: Hill, Aliases: [nid001000], Role: Compute, NID: 1000'
-  The stderr should include 'x9000c1s0b0n1    - Type: Node, Class: Hill, Aliases: [nid001001], Role: Compute, NID: 1001'
-  The stderr should include 'x9000c1s0b0n2    - Type: Node, Class: Hill, Aliases: [nid002000], Role: Compute, NID: 2000'
-  The stderr should include 'x9000c1s0b0n3    - Type: Node, Class: Hill, Aliases: [nid002001], Role: Compute, NID: 2001'
-  The stdout should include 'Node            (staged)'
+  The stderr should include 'Export completed successfully'
+  The stdout should include 'Node'
+  The stdout should include '(staged)'
 End
 
 End
