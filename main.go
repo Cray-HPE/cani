@@ -26,8 +26,7 @@ package main
 import (
 	"github.com/Cray-HPE/cani/cmd"
 	_ "github.com/Cray-HPE/cani/pkg/devicetypes"
-	_ "github.com/Cray-HPE/cani/pkg/provider/csm"
-	_ "github.com/Cray-HPE/cani/pkg/provider/ngsm" // NGSM provider
+	_ "github.com/Cray-HPE/cani/pkg/provider/csm" // CSM provider
 )
 
 // Run all package init functions in a specific order
