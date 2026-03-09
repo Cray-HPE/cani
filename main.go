@@ -26,9 +26,10 @@ package main
 import (
 	"github.com/Cray-HPE/cani/cmd"
 	_ "github.com/Cray-HPE/cani/pkg/devicetypes"
-	_ "github.com/Cray-HPE/cani/pkg/provider/csm"     // CSM provider
-	_ "github.com/Cray-HPE/cani/pkg/provider/example" // Example provider
-	_ "github.com/Cray-HPE/cani/pkg/provider/hpcm"    // HPCM provider
+	_ "github.com/Cray-HPE/cani/pkg/provider/csm"      // CSM provider
+	_ "github.com/Cray-HPE/cani/pkg/provider/example"  // Example provider
+	_ "github.com/Cray-HPE/cani/pkg/provider/hpcm"     // HPCM provider
+	_ "github.com/Cray-HPE/cani/pkg/provider/nautobot" // Nautobot provider
 )
 
 // Run all package init functions in a specific order
