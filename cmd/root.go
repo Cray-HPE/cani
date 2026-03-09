@@ -27,50 +27,77 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 
-	"github.com/rs/zerolog/log"
+	"github.com/Cray-HPE/cani/internal/config"
+	"github.com/Cray-HPE/cani/internal/core"
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/spf13/cobra"
-
-	"github.com/Cray-HPE/cani/cmd/config"
-	"github.com/Cray-HPE/cani/cmd/taxonomy"
-	"github.com/Cray-HPE/cani/internal/domain"
-	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
 )
 
-// RootCmd represents the base command when called without any subcommands
-var RootCmd = &cobra.Command{
-	Use:               taxonomy.App,
-	Short:             taxonomy.ShortDescription,
-	Long:              taxonomy.LongDescription,
-	PersistentPreRunE: setupDomain, // the domain object is needed for all provider operations, load it early from root so it is available to all subcommands
-	// RunE:               runRoot,
-	Version:            version(),
-	PersistentPostRunE: WriteSession, // write any changes made back to the config
+func newRootCommand() *cobra.Command {
+	// Create a new root command
+	// This is where you would set up the command's name, usage, and description.
+	cmd := &cobra.Command{
+		Use:               core.App,
+		Short:             core.ShortDescription,
+		Long:              core.LongDescription,
+		PersistentPreRunE: setupDomain, // the domain object is needed for all provider operations, load it early from root so it is available to all subcommands
+		RunE:              runRoot,
+		Version:           version(),
+	}
+	// allow user to override config file path
+	home, _ := os.UserHomeDir()
+	defaultCfg := filepath.Join(home, "."+core.App, core.App+".yml")
+	cmd.PersistentFlags().StringVar(&cfgFile, "config", defaultCfg, "config file")
+	cmd.PersistentFlags().Bool("debug", false, "enable debug mode")
+	cmd.PersistentFlags().String("datastore", "json", "datastore type (json, postgres)")
+
+	return cmd
 }
 
-var (
-	// cfgFile is the global configuration file path (from --config)
-	cfgFile string
-	// Debug is a global flag that enables debug logging
-	Debug bool
-	// Verbose is a global flag that enables verbose logging
-	Verbose bool
-	// This is the active domain being used
-	D *domain.Domain
-	// Conf is everything in the config file (all sessions for all providers)
-	Conf *config.Config
-	// Hardware library should also be accessible globally
-	HwLibrary *hardwaretypes.Library
-	// List of hardware types that are blades
-	CabinetTypes, BladeTypes, NodeTypes, MgmtSwitchTypes, HsnSwitchTypes []hardwaretypes.DeviceType
-)
+func setupDomain(cmd *cobra.Command, args []string) error {
+	// 1) load or create the config
+	if err := config.Load(cfgFile); err != nil {
+		return err
+	}
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the RootCmd.
+	// 2) ensure every registered provider has a key in Conf.Providers
+	for name := range provider.GetProviders() {
+		if _, ok := config.Cfg.Providers[name]; !ok {
+			config.Cfg.Providers[name] = map[string]any{}
+		}
+	}
+	// no active provider? skip merges
+	if config.Cfg.ActiveProvider == "" {
+		return nil
+	}
+
+	// write defaults (in case we injected new maps)
+	if err := config.Save(cfgFile); err != nil {
+		return err
+	}
+
+	// 3) hand each plugin its own section of the map
+	for name, p := range provider.GetProviders() {
+		if cfgSection, ok := config.Cfg.Providers[name]; ok {
+			if c, ok := p.(interface {
+				Configure(map[string]any) error
+			}); ok {
+				if err := c.Configure(cfgSection); err != nil {
+					return fmt.Errorf("configuring provider %s: %w", name, err)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 func Execute() {
-	err := RootCmd.Execute()
-	if err != nil {
+	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }
@@ -81,19 +108,5 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		cmd.Help()
 	}
 
-	return nil
-}
-
-// WriteSession writes the session configuration back to the config file
-func WriteSession(cmd *cobra.Command, args []string) error {
-	if cmd.Parent().Name() == "init" {
-		// Write the configuration back to the file
-		cfgFile := cmd.Root().PersistentFlags().Lookup("config").Value.String()
-		log.Debug().Msgf("Writing session to config %s", cfgFile)
-		err := config.WriteConfig(cfgFile, Conf)
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }

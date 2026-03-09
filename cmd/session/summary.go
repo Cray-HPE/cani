@@ -27,13 +27,7 @@ package session
 
 import (
 	"fmt"
-	"os"
-	"text/tabwriter"
 
-	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/internal/inventory"
-	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -46,60 +40,60 @@ var SessionSummaryCmd = &cobra.Command{
 }
 
 func showSummary(cmd *cobra.Command, args []string) error {
-	// resetup the domain to get fresh info
-	err := root.D.SetupDomain(cmd, args, root.Conf.Session.Domains)
-	if err != nil {
-		return err
-	}
+	// // resetup the domain to get fresh info
+	// err := root.D.SetupDomain(cmd, args, root.Conf.Session.Domains)
+	// if err != nil {
+	// 	return err
+	// }
 
-	// Get the entire inventory
-	inv, err := root.D.List()
-	if err != nil {
-		return err
-	}
+	// // Get the entire inventory
+	// inv, err := root.D.List()
+	// if err != nil {
+	// 	return err
+	// }
 
-	// print a header
-	fmt.Println("Summary:")
-	fmt.Println("--------")
-	tw := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, "ID\tTYPE\tSTATUS")
+	// // print a header
+	// fmt.Println("Summary:")
+	// fmt.Println("--------")
+	// tw := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	// fmt.Fprintln(tw, "ID\tTYPE\tSTATUS")
 
-	staged := inv.FilterHardwareByStatus(inventory.HardwareStatusStaged)
+	// staged := inv.FilterHardwareByStatus(inventory.HardwareStatusStaged)
 
-	// Create the colors you want to use
-	black := color.New(color.FgBlack).FprintfFunc()
-	red := color.New(color.FgRed).FprintfFunc()
-	green := color.New(color.FgGreen).FprintfFunc()
-	yellow := color.New(color.FgYellow).FprintfFunc()
-	blue := color.New(color.FgBlue).FprintfFunc()
-	// magenta := color.New(color.FgMagenta).FprintfFunc()
-	// cyan := color.New(color.FgCyan).FprintfFunc()
+	// // Create the colors you want to use
+	// black := color.New(color.FgBlack).FprintfFunc()
+	// red := color.New(color.FgRed).FprintfFunc()
+	// green := color.New(color.FgGreen).FprintfFunc()
+	// yellow := color.New(color.FgYellow).FprintfFunc()
+	// blue := color.New(color.FgBlue).FprintfFunc()
+	// // magenta := color.New(color.FgMagenta).FprintfFunc()
+	// // cyan := color.New(color.FgCyan).FprintfFunc()
 
-	const format = "%s\t%s\t(%s)\n"
-	// for each new hardware, print some details
-	for i, hw := range staged {
-		// Only show staged hardware
-		// TODO: Better logic as staged hardware could have been added in a different session
-		if hw.Status == inventory.HardwareStatusStaged {
-			switch hw.Type {
-			case hardwaretypes.Cabinet:
-				red(tw, format, i.String(), hw.Type, hw.Status)
-			case hardwaretypes.Chassis:
-				yellow(tw, format, i.String(), hw.Type, hw.Status)
-			case hardwaretypes.NodeBlade:
-				green(tw, format, i.String(), hw.Type, hw.Status)
-			case hardwaretypes.Node:
-				blue(tw, format, i.String(), hw.Type, hw.Status)
-			default:
-				black(tw, format, i.String(), hw.Type, hw.Status)
-			}
-			staged[i] = hw
-		}
-	}
+	// const format = "%s\t%s\t(%s)\n"
+	// // for each new hardware, print some details
+	// for i, hw := range staged {
+	// 	// Only show staged hardware
+	// 	// TODO: Better logic as staged hardware could have been added in a different session
+	// 	if hw.Status == inventory.HardwareStatusStaged {
+	// 		switch hw.Type {
+	// 		case hardwaretypes.Cabinet:
+	// 			red(tw, format, i.String(), hw.Type, hw.Status)
+	// 		case hardwaretypes.Chassis:
+	// 			yellow(tw, format, i.String(), hw.Type, hw.Status)
+	// 		case hardwaretypes.NodeBlade:
+	// 			green(tw, format, i.String(), hw.Type, hw.Status)
+	// 		case hardwaretypes.Node:
+	// 			blue(tw, format, i.String(), hw.Type, hw.Status)
+	// 		default:
+	// 			black(tw, format, i.String(), hw.Type, hw.Status)
+	// 		}
+	// 		staged[i] = hw
+	// 	}
+	// }
 
-	tw.Flush()
+	// tw.Flush()
 
-	fmt.Printf("\n%d new hardware item(s) are in the inventory:\n", len(staged))
+	// fmt.Printf("\n%d new hardware item(s) are in the inventory:\n", len(staged))
 
-	return nil
+	return fmt.Errorf("not yet implemented")
 }

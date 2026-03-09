@@ -23,13 +23,11 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package node
+package show
 
 import (
-	root "github.com/Cray-HPE/cani/cmd"
-	"github.com/Cray-HPE/cani/internal/inventory"
-	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
-	"github.com/google/uuid"
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -44,24 +42,24 @@ var ListNodeCmd = &cobra.Command{
 
 // listNode lists nodes in the inventory
 func listNode(cmd *cobra.Command, args []string) error {
-	// Get the entire inventory
-	inv, err := root.D.List()
-	if err != nil {
-		return err
-	}
+	// // Get the entire inventory
+	// inv, err := root.D.List()
+	// if err != nil {
+	// 	return err
+	// }
 
-	// Filter the inventory to only nodes
-	filtered := make(map[uuid.UUID]inventory.Hardware, 0)
-	for key, hw := range inv.Hardware {
-		if hw.Type == hardwaretypes.Node {
-			filtered[key] = hw
-		}
-	}
+	// // Filter the inventory to only nodes
+	// filtered := make(map[uuid.UUID]inventory.Hardware, 0)
+	// for key, hw := range inv.Hardware {
+	// 	if hw.Type == hardwaretypes.Node {
+	// 		filtered[key] = hw
+	// 	}
+	// }
 
-	err = root.D.PrintHardware(cmd, args, filtered)
-	if err != nil {
-		return err
-	}
+	// err = root.D.PrintHardware(cmd, args, filtered)
+	// if err != nil {
+	// 	return err
+	// }
 
-	return nil
+	return fmt.Errorf("not yet implemented")
 }

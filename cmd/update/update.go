@@ -23,7 +23,7 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package cmd
+package update
 
 import (
 	"github.com/spf13/cobra"

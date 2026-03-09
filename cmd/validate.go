@@ -26,12 +26,8 @@
 package cmd
 
 import (
-	"errors"
-	"sort"
+	"fmt"
 
-	"github.com/Cray-HPE/cani/internal/provider"
-	"github.com/google/uuid"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -44,44 +40,44 @@ var ValidateCmd = &cobra.Command{
 }
 
 func validateInventory(cmd *cobra.Command, args []string) error {
-	log.Warn().Msg("This may fail in the HMS Simulator without Network information.")
-	if D.Active {
+	// log.Warn().Msg("This may fail in the HMS Simulator without Network information.")
+	// if D.Active {
 
-		// Validate the external inventory
-		result, err := D.Validate(cmd, args, true, false)
-		if errors.Is(err, provider.ErrDataValidationFailure) {
-			// TODO the following should probably suggest commands to fix the issue?
-			log.Error().Msgf("Inventory data validation errors encountered")
+	// 	// Validate the external inventory
+	// 	result, err := D.Validate(cmd, args, true, false)
+	// 	if errors.Is(err, provider.ErrDataValidationFailure) {
+	// 		// TODO the following should probably suggest commands to fix the issue?
+	// 		log.Error().Msgf("Inventory data validation errors encountered")
 
-			// Merge datastore and provider validation errors
-			failedValidations := map[uuid.UUID][]string{}
-			locationPathStrings := map[uuid.UUID]string{}
-			for _, result := range result.DatastoreValidationErrors {
-				failedValidations[result.Hardware.ID] = append(failedValidations[result.Hardware.ID], result.Errors...)
+	// 		// Merge datastore and provider validation errors
+	// 		failedValidations := map[uuid.UUID][]string{}
+	// 		locationPathStrings := map[uuid.UUID]string{}
+	// 		for _, result := range result.DatastoreValidationErrors {
+	// 			failedValidations[result.Hardware.ID] = append(failedValidations[result.Hardware.ID], result.Errors...)
 
-				locationPathStrings[result.Hardware.ID] = result.Hardware.LocationPath.String()
-			}
-			for _, result := range result.ProviderValidationErrors {
-				failedValidations[result.Hardware.ID] = append(failedValidations[result.Hardware.ID], result.Errors...)
+	// 			locationPathStrings[result.Hardware.ID] = result.Hardware.LocationPath.String()
+	// 		}
+	// 		for _, result := range result.ProviderValidationErrors {
+	// 			failedValidations[result.Hardware.ID] = append(failedValidations[result.Hardware.ID], result.Errors...)
 
-				locationPathStrings[result.Hardware.ID] = result.Hardware.LocationPath.String()
-			}
+	// 			locationPathStrings[result.Hardware.ID] = result.Hardware.LocationPath.String()
+	// 		}
 
-			// Provider validation errors
-			for id, errorStrings := range failedValidations {
-				log.Error().Msgf("  %s: %s", id, locationPathStrings[id])
-				sort.Strings(errorStrings)
-				for _, validationError := range errorStrings {
-					log.Error().Msgf("    - %s", validationError)
-				}
-			}
+	// 		// Provider validation errors
+	// 		for id, errorStrings := range failedValidations {
+	// 			log.Error().Msgf("  %s: %s", id, locationPathStrings[id])
+	// 			sort.Strings(errorStrings)
+	// 			for _, validationError := range errorStrings {
+	// 				log.Error().Msgf("    - %s", validationError)
+	// 			}
+	// 		}
 
-			return err
-		} else if err != nil {
-			return err
-		}
-	} else {
-		return errors.New("No active session.  Domain options needed to validate inventory.")
-	}
-	return nil
+	// 		return err
+	// 	} else if err != nil {
+	// 		return err
+	// 	}
+	// } else {
+	// 	return errors.New("No active session.  Domain options needed to validate inventory.")
+	// }
+	return fmt.Errorf("not yet implemented")
 }

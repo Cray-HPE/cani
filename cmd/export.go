@@ -26,6 +26,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -44,5 +46,6 @@ var ExportCmd = &cobra.Command{
 
 // export is the main entry point for the update command.
 func export(cmd *cobra.Command, args []string) (err error) {
-	return D.Export(cmd, args)
+	// return D.Export(cmd, args)
+	return fmt.Errorf("not yet implemented")
 }

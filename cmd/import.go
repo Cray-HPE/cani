@@ -26,6 +26,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -43,5 +45,6 @@ var ImportCmd = &cobra.Command{
 }
 
 func importCmd(cmd *cobra.Command, args []string) (err error) {
-	return D.Import(cmd, args)
+	// return D.Import(cmd, args)
+	return fmt.Errorf("not yet implemented")
 }

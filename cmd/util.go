@@ -26,11 +26,6 @@
 package cmd
 
 import (
-	"fmt"
-
-	"github.com/Cray-HPE/cani/internal/domain"
-	"github.com/Cray-HPE/cani/internal/provider"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -49,34 +44,6 @@ func MergeProviderFlags(providerCmd *cobra.Command, caniCmd *cobra.Command) (err
 	if providerCmd != nil {
 		providerCmd.Flags().AddFlagSet(caniFlagset)
 	}
-
-	return nil
-}
-
-// RegisterProviderCommand adds a provider-defined command as a subcommand to a specific cani command
-// this is meant to be run during init() so each provider has their commands available for use
-// TODO: execute subcommand automatically so it is seamless to the user
-// at present, the user must run commands + provider name, like:
-//
-//	cani add cabinet csm
-//	cani list blade ngsm
-//
-// this requires hiding the provider sub command and dynamically executing it, as opposed to making the user type it in
-func RegisterProviderCommand(p provider.InventoryProvider, caniCmd *cobra.Command) (err error) {
-	log.Debug().Msgf("Registering '%s %s' command from %s", caniCmd.Parent().Name(), caniCmd.Name(), p.Slug())
-	// Get the provider-defined command
-	providerCmd, err := domain.NewProviderCmd(caniCmd, p.Slug())
-	if err != nil {
-		return fmt.Errorf("unable to get provider init() command: %v", err)
-	}
-
-	providerCmd.Hidden = false
-	// set the provider command's use to that of the cani command
-	providerCmd.Use = p.Slug()
-	// but add the provider as an alias so it can be keyed off of during command execution
-	providerCmd.Aliases = append(providerCmd.Aliases, caniCmd.Name())
-	// add it as a sub-command the cani command so it can be called during runtime
-	caniCmd.AddCommand(providerCmd)
 
 	return nil
 }

@@ -23,24 +23,29 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package cmd
+package session
 
 import (
 	"github.com/spf13/cobra"
 )
 
-// SessionCmd represents the session command
-var SessionCmd = &cobra.Command{
-	Use:   "session",
-	Short: "Interact with a session.",
-	Long:  `Interact with a session.`,
-	RunE:  runSession,
+// NewCommand creates the parent "session" command
+func NewCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "session",
+		Short: "Interact with a session",
+		Long:  `Interact with a session.`,
+		Args:  cobra.ExactArgs(1),
+		RunE:  session,
+	}
+
+	// Add all subcommands
+	cmd.AddCommand(newInitCommand())
+
+	return cmd
 }
 
-// runSession is the main entrypoint for the cani session command
-func runSession(cmd *cobra.Command, args []string) error {
-	if len(args) == 0 {
-		cmd.Help()
-	}
+// session is the main entry point for the session command.
+func session(cmd *cobra.Command, args []string) error {
 	return nil
 }

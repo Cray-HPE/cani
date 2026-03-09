@@ -23,10 +23,11 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package pdu
+package remove
 
 import (
-	"github.com/rs/zerolog/log"
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -41,7 +42,6 @@ var RemovePduCmd = &cobra.Command{
 
 // removePdu removes a pdu from the inventory.
 func removePdu(cmd *cobra.Command, args []string) error {
-	log.Info().Msgf("Not yet implemented")
 	// for _, arg := range args {
 	// 	// Convert the argument to a UUID
 	// 	u, err := uuid.Parse(arg)
@@ -54,5 +54,5 @@ func removePdu(cmd *cobra.Command, args []string) error {
 	// 		return err
 	// 	}
 	// }
-	return nil
+	return fmt.Errorf("not yet implemented")
 }

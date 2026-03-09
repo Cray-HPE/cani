@@ -23,10 +23,11 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package sw
+package show
 
 import (
-	"github.com/rs/zerolog/log"
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -41,6 +42,5 @@ var ListSwitchCmd = &cobra.Command{
 
 // listSwitch lists switches in the inventory
 func listSwitch(cmd *cobra.Command, args []string) error {
-	log.Info().Msgf("Not yet implemented")
-	return nil
+	return fmt.Errorf("not yet implemented")
 }

@@ -23,24 +23,24 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package chassis
+package add
 
 import (
-	"github.com/rs/zerolog/log"
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
 // AddChassisCmd represents the chassis add command
 var AddChassisCmd = &cobra.Command{
-	Use:     "chassis",
-	Short:   "Add chassis to the inventory.",
-	Long:    `Add chassis to the inventory.`,
-	PreRunE: validHardware, // Hardware can only be valid if defined in the hardware library
-	RunE:    addChassis,    // Add a chassis when this sub-command is called
+	Use:   "chassis",
+	Short: "Add chassis to the inventory.",
+	Long:  `Add chassis to the inventory.`,
+	// PreRunE: validHardware, // Hardware can only be valid if defined in the hardware library
+	RunE: addChassis, // Add a chassis when this sub-command is called
 }
 
 // addChassis adds a chassis to the inventory
 func addChassis(cmd *cobra.Command, args []string) error {
-	log.Info().Msgf("Not yet implemented")
-	return nil
+	return fmt.Errorf("not yet implemented")
 }
