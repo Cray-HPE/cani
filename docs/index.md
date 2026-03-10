@@ -1,32 +1,31 @@
 # CANI
 
-`cani` is a hardware inventory tool.  It provides its own portable inventory format, while retaining compatiblity with external inventory providers.  This makes it possible to use `cani` as either a main inventory source or to migrate from one inventory format to another.  
+`cani` is a hardware inventory tool. It provides its own portable inventory format while retaining compatibility with external inventory providers. This makes it possible to use `cani` as either a main inventory source or to migrate from one inventory format to another.
 
 ## Quickstart
 
-This shows a quick overview of using `cani` to connect to an external inventory provider, add/update hardware in `cani`, and then commit the changes back to the provider.
+This shows a quick overview of using `cani` to import inventory data from an external provider, manipulate it locally, and export the changes back.
 
 ```shell
-# start a session with a provider (CSM in this case)
-# and import data from the provider
-cani alpha session init csm \
-  --csm-keycloak-username username \
-  --csm-keycloak-password password \
-  --csm-api-host api-gw-service-nmn.local
+# Import inventory from a Nautobot instance
+cani alpha import nautobot --url http://localhost:8081 --token $NAUTOBOT_TOKEN
 
-# add a cabinet, accepting recommended values
-cani alpha add cabinet hpe-ex2000 --auto --accept 
+# Add a rack
+cani alpha add rack hpe-48u-800mmx1200mm-g2-enterprise-shock-rack
 
-# add a blade, which also adds a node or nodes
-cani alpha add blade hpe-crayex-ex420-compute-blade --cabinet 9000 --chassis 1 --blade 0
+# Add a device into the rack
+cani alpha add device hpe-crayex-ex420-compute-blade --auto --accept
 
-# validate the data at any time
-cani alpha validate # shows provider-specific errors such as missing roles or aliases
+# Classify any unclassified devices
+cani alpha classify --auto
 
-# update the node or nodes
-cani alpha update node --cabinet 9000 --chassis 1 --blade 0 --nodecard 1 --node 0 --role "Compute" --alias "nid00001" --nid 1
+# Show the current inventory
+cani alpha show device
 
-# stop the session and commit the data to the external inventory provider (CSM's SLS in this example)
-cani alpha session apply
+# Update a device
+cani alpha update device --role Compute --alias nid00001
+
+# Export the changes back to the provider
+cani alpha export nautobot --url http://localhost:8081 --token $NAUTOBOT_TOKEN
 ```
 
