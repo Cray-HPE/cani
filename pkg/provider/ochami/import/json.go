@@ -8,7 +8,14 @@ import (
 )
 
 type Properties struct {
-	RedfishURI string `json:"redfish_uri"`
+	RedfishURI  string   `json:"redfish_uri"`
+	Xname       string   `json:"xname,omitempty"`
+	IP          string   `json:"ip,omitempty"`
+	MAC         string   `json:"mac,omitempty"`
+	BootMAC     string   `json:"boot_mac,omitempty"`
+	NID         *int     `json:"nid,omitempty"`
+	Hostname    string   `json:"hostname,omitempty"`
+	HostAliases []string `json:"host_aliases,omitempty"`
 }
 
 type JSONDeviceRecord struct {

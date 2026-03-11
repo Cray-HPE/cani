@@ -9,9 +9,5 @@ import (
 // Export syncs the local CANI inventory to an external system.
 // This is the "Load" step in ETL.
 func (p *Ochami) Export(cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
-	// Common patterns:
-	//   - Compare local inventory with external system
-	//   - Create/update/delete resources in external system
-	//   - Report what was created, updated, skipped, or errored
-	return export.Export(*inventory)
+	return export.Export(*inventory, cmd.OutOrStdout())
 }

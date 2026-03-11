@@ -26,20 +26,21 @@ func SetProviderGetter(getter func() interface {
 
 // hardwareTypeMap maps ochami deviceType strings to CANI canonical hardware types.
 var hardwareTypeMap = map[string]string{
-	"rack":          "rack",
-	"chassis":       "chassis",
-	"blade":         "blade",
-	"node":          "node",
-	"mgmt-switch":   "mgmt-switch",
-	"hsn-switch":    "hsn-switch",
-	"cabinet-pdu":   "pdu",
-	"cdu":           "cdu",
-	"cpu":           "cpu",
-	"dimm":          "memory",
-	"gpu":           "gpu",
-	"nic":           "nic",
-	"power-supply":  "psu",
-	"cable":         "cable",
+	"rack":         "rack",
+	"chassis":      "chassis",
+	"blade":        "blade",
+	"node":         "node",
+	"mgmt-switch":  "mgmt-switch",
+	"hsn-switch":   "hsn-switch",
+	"cabinet-pdu":  "pdu",
+	"cdu":          "cdu",
+	"cpu":          "cpu",
+	"dimm":         "memory",
+	"gpu":          "gpu",
+	"nic":          "nic",
+	"power-supply": "psu",
+	"cable":        "cable",
+	"bmc":          "bmc",
 }
 
 // normaliseHardwareType maps an ochami deviceType string to a CANI canonical hardware type.
@@ -202,14 +203,34 @@ func populateFromDeviceType(device *devicetypes.CaniDeviceType, dt *devicetypes.
 
 // buildProviderMetadata creates ochami-keyed provider metadata from a record.
 func buildProviderMetadata(rec import_.JSONDeviceRecord) map[string]any {
-	return map[string]any{
-		"ochami": map[string]any{
-			"Source":             commands.JsonFileFlag,
-			"SerialNumber":       rec.SerialNumber,
-			"ParentSerialNumber": rec.ParentSerialNumber,
-			"RedfishURI":         rec.Properties.RedfishURI,
-		},
+	meta := map[string]any{
+		"source":               commands.JsonFileFlag,
+		"serial_number":        rec.SerialNumber,
+		"parent_serial_number": rec.ParentSerialNumber,
+		"redfish_uri":          rec.Properties.RedfishURI,
 	}
+	if rec.Properties.Xname != "" {
+		meta["xname"] = rec.Properties.Xname
+	}
+	if rec.Properties.IP != "" {
+		meta["ip"] = rec.Properties.IP
+	}
+	if rec.Properties.MAC != "" {
+		meta["mac"] = rec.Properties.MAC
+	}
+	if rec.Properties.BootMAC != "" {
+		meta["boot_mac"] = rec.Properties.BootMAC
+	}
+	if rec.Properties.NID != nil {
+		meta["nid"] = *rec.Properties.NID
+	}
+	if rec.Properties.Hostname != "" {
+		meta["hostname"] = rec.Properties.Hostname
+	}
+	if len(rec.Properties.HostAliases) > 0 {
+		meta["host_aliases"] = rec.Properties.HostAliases
+	}
+	return map[string]any{"ochami": meta}
 }
 
 // assignParentRelationships links devices to their parents via ParentSerialNumber.
