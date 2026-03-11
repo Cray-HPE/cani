@@ -24,7 +24,7 @@
 ---
 manufacturer: HPE
 model: EX2000
-hardware-type: Cabinet
+hardware-type: rack
 slug: hpe-ex2000
 
 device-bays:

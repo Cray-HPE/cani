@@ -1,0 +1,112 @@
+#
+# MIT License
+#
+# (C) Copyright 2024-2026 Hewlett Packard Enterprise Development LP
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+manufacturer: HPE
+model: XD670 3600W
+slug: hpe-xd670-3600w
+part_number: P69518-B21
+description: "HPE Cray Supercomputing XD670 3600W DLC CTO Server. 5U GPU server optimized for NVIDIA HGX H200 141GB 8-GPU configuration with 3600W power supply capacity. Supports Intel Xeon Emerald Rapids CPUs and NDR InfiniBand networking. Source: https://buy.hpe.com/us/en/compute/high-performance-computing/high-performance-computing/high-performance-computing-systems/hpe-cray-supercomputing-xd670-server/p/1014870873"
+hardware-type: node
+u_height: 5
+is_full_depth: true
+comments: "5U GPU server with 8x NVIDIA H200 SXM GPUs, Intel Xeon Emerald Rapids CPUs, 3600W PSU configuration"
+console-ports:
+  - name: Serial
+    type: de-9
+  - name: VGA
+    type: other
+module-bays:
+  - name: PSU1
+    position: PSU1
+  - name: PSU2
+    position: PSU2
+  - name: PSU3
+    position: PSU3
+  - name: PSU4
+    position: PSU4
+  - name: PSU5
+    position: PSU5
+  - name: PSU6
+    position: PSU6
+  - name: GPU 0
+    position: GPU0
+  - name: GPU 1
+    position: GPU1
+  - name: GPU 2
+    position: GPU2
+  - name: GPU 3
+    position: GPU3
+  - name: GPU 4
+    position: GPU4
+  - name: GPU 5
+    position: GPU5
+  - name: GPU 6
+    position: GPU6
+  - name: GPU 7
+    position: GPU7
+  - name: CPU 0
+    position: CPU0
+  - name: CPU 1
+    position: CPU1
+  - name: SSD 0
+    position: SSD0
+  - name: SSD 1
+    position: SSD1
+interfaces:
+  # HSN Interfaces - NDR InfiniBand via CX7
+  - name: HSN 0
+    type: 400gbase-x-qsfpdd
+    label: NDR InfiniBand CX7
+  - name: HSN 1
+    type: 400gbase-x-qsfpdd
+    label: NDR InfiniBand CX7
+  - name: HSN 2
+    type: 400gbase-x-qsfpdd
+    label: NDR InfiniBand CX7
+  - name: HSN 3
+    type: 400gbase-x-qsfpdd
+    label: NDR InfiniBand CX7
+  - name: HSN 4
+    type: 400gbase-x-qsfpdd
+    label: NDR InfiniBand CX7
+  - name: HSN 5
+    type: 400gbase-x-qsfpdd
+    label: NDR InfiniBand CX7
+  - name: HSN 6
+    type: 400gbase-x-qsfpdd
+    label: NDR InfiniBand CX7
+  - name: HSN 7
+    type: 400gbase-x-qsfpdd
+    label: NDR InfiniBand CX7
+  # Management Interface - 25GbE
+  - name: MGMT 0
+    type: 25gbase-x-sfp28
+    label: Management NIC
+  - name: MGMT 1
+    type: 25gbase-x-sfp28
+    label: Management NIC
+  # iLO
+  - name: iLO
+    type: 1000base-t
+    mgmt_only: true

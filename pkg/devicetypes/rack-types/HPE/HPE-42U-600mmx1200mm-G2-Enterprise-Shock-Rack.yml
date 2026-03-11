@@ -1,0 +1,219 @@
+---
+manufacturer: HPE
+model: HPE 42U 800mmx1200mm G2 Enterprise Shock Rack
+slug: hpe-42u-800mmx1200mm-g2-enterprise-shock-rack
+hardware-type: rack
+part_number: P9K46A
+is_full_depth: true
+subdevice_role: parent
+width: 19
+u_height: 42 
+starting_unit: 1
+outer_width: 600 
+outer_height: 1200
+outer_depth: 1112 # guess based on similar models
+outer_unit: mm
+mounting_depth: 1075 # guess based on similar models
+weight: 141.5 # guess based on similar models
+max_weight: 1360 # guess based on similar models
+weight_unit: kg
+desc_units: false
+allowed:
+  hardware-types: [blade, chassis, switch, controller, psu]
+module-bays:
+  - name: PS1
+    position: '1'
+    allowed:
+      # Allowed internal module categories that can occupy this bay
+      hardware-types: [power-supply, module]
+      categories: [psu]
+  - name: PS2
+    position: '2'
+    allowed:
+      hardware-types: [power-supply, module]
+      categories: [psu]
+  - name: PS3
+    position: '3'
+    allowed:
+      hardware-types: [power-supply, module]
+      categories: [psu]
+  - name: PS4
+    position: '4'
+    allowed:
+      hardware-types: [power-supply, module]
+      categories: [psu]
+device-bays:
+  - name: TORC bay 1
+    type: "torc"
+    allowed:
+      hardware-types: [controller, appliance]
+  # Reserve the first 4 U's for switches
+  - name: "U1 - Switch Bay 1"
+    type: "switch"
+    allowed:
+      hardware-types: [switch]
+  - name: "U2 - Switch Bay 2"
+    type: "switch"
+    allowed:
+      hardware-types: [switch]
+  - name: "U3 - Switch Bay 3"
+    type: "switch"
+    allowed:
+      hardware-types: [switch]
+  - name: "U4 - Switch Bay 4"
+    type: "switch"
+    allowed:
+      hardware-types: [switch]
+  # The remaining U's for blades
+  - name: "U5 - Blade Bay 1"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U6 - Blade Bay 2"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U7 - Blade Bay 3"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U8 - Blade Bay 4"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U9 - Blade Bay 5"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U10 - Blade Bay 6"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U11 - Blade Bay 7"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U12 - Blade Bay 8"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U13 - Blade Bay 9"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U14 - Blade Bay 10"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U15 - Blade Bay 11"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U16 - Blade Bay 12"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U17 - Blade Bay 13"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U18 - Blade Bay 14"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U19 - Blade Bay 15"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U20 - Blade Bay 16"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U21 - Blade Bay 17"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U22 - Blade Bay 18"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U23 - Blade Bay 19"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U24 - Blade Bay 20"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U25 - Blade Bay 21"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U26 - Blade Bay 22"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U27 - Blade Bay 23"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U28 - Blade Bay 24"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U29 - Blade Bay 25"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U30 - Blade Bay 26"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U31 - Blade Bay 27"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U32 - Blade Bay 28"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U33 - Blade Bay 29"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U34 - Blade Bay 30"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U35 - Blade Bay 31"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U36 - Blade Bay 32"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U37 - Blade Bay 33"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U38 - Blade Bay 34"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U39 - Blade Bay 35"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U40 - Blade Bay 36"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U41 - Blade Bay 37"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]
+  - name: "U42 - Blade Bay 38"
+    type: "blade"
+    allowed:
+      hardware-types: [switch, blade, chassis]

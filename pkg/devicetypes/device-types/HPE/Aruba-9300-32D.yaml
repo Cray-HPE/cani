@@ -26,6 +26,7 @@ manufacturer: HPE
 model: HPE Aruba Networking 9300-32D 32p QSFP-DD 2p 10G SFP+ Back-to-Front 6 Fans 2 AC PSU Bundle
 slug: hpe-aruba-9300-32d
 part_number: R9A30A
+hardware-type: switch
 u_height: 1
 is_full_depth: false
 console-ports:

@@ -24,7 +24,7 @@
 ---
 manufacturer: HPE
 model: EX235A AMD MI200 accelerator blade (Bard Peak)
-hardware-type: NodeBlade
+hardware-type: blade
 slug: hpe-crayex-ex235a-compute-blade
 device-bays:
   - name: Node Card 0
@@ -43,10 +43,13 @@ identifications:
   # In CSM we can learn the type of a node blade based off the contents of the NodeEnclosure
   - manufacturer: HPE
     model: BardPeakNC
+  # HPCM inventory reports the model with a manufacturer prefix
+  - manufacturer: HPE
+    model: HPE CRAY EX235A
 ---
 manufacturer: HPE
 model: EX235A AMD MI200 accelerator blade, Bard Peak Node Card (BPNC)
-hardware-type: NodeCard
+hardware-type: nodecard
 slug: hpe-crayex-ex235a-compute-blade-bard-peak-node-card
 device-bays:
   - name: BMC
@@ -64,7 +67,7 @@ device-bays:
 ---
 manufacturer: HPE
 model: EX235A AMD MI200 accelerator blade, Bard Peak Node BMC
-hardware-type: NodeController
+hardware-type: nodecontroller
 slug: hpe-crayex-ex235a-compute-blade-bard-peak-node-bmc
 interfaces:
   - name: BMC
@@ -73,7 +76,7 @@ interfaces:
 ---
 manufacturer: HPE
 model: EX235A AMD MI200 accelerator compute node
-hardware-type: Node
+hardware-type: node
 slug: hpe-crayex-ex235a-compute-node
 interfaces:
   - name: NMN

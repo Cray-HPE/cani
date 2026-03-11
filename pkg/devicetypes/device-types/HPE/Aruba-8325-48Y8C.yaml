@@ -26,6 +26,7 @@ manufacturer: HPE
 model: HPE Aruba Networking 8325-48Y8C Power-to-Port Airflow 6 Fans 2 Power Supply Units Bundle
 slug: hpe-aruba-8325-48y8c
 part_number: R9F65A
+hardware-type: mgmt-switch
 u_height: 1
 is_full_depth: false
 front_image: true

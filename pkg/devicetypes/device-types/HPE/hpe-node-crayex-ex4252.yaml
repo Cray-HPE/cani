@@ -24,7 +24,7 @@
 ---
 manufacturer: HPE
 model: EX4252 AMD EPYC compute blade (Antero)
-hardware-type: NodeBlade
+hardware-type: blade
 slug: hpe-crayex-ex4252-compute-blade
 device-bays:
   - name: Node Card 0
@@ -43,10 +43,13 @@ identifications:
   - manufacturer: HPE
     model: HSSMEZZCARD
     part-number: P47016-003.A
+  # HPCM inventory reports Sh54p as the product alias
+  - manufacturer: HPE
+    model: Sh54p
 ---
 manufacturer: HPE
 model: EX425 AMD EPYC compute Blade, Antero Node Card (WNC)
-hardware-type: NodeCard
+hardware-type: nodecard
 slug: hpe-crayex-ex4252-compute-blade-antero-node-card
 device-bays:
   - name: BMC
@@ -82,7 +85,7 @@ device-bays:
 ---
 manufacturer: HPE
 model: EX4252 AMD EPYC compute Blade, Antero Node BMC
-hardware-type: NodeController
+hardware-type: nodecontroller
 slug: hpe-crayex-ex4252-compute-blade-antero-node-bmc
 interfaces:
   - name: BMC

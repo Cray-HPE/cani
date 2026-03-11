@@ -24,7 +24,7 @@
 ---
 manufacturer: HPE
 model: EX235N NVIDIA accelerator blade (Grizzly Peak)
-hardware-type: NodeBlade
+hardware-type: blade
 slug: hpe-crayex-ex235n-compute-blade
 device-bays:
   - name: Node Card 0
@@ -36,11 +36,14 @@ device-bays:
 identifications:
   # In CSM we can learn the type of a node blade based off the contents of the NodeEnclosure
   - manufacturer: HPE
-    model: GrizzlyPkNodeCard
+    model: GrizzlyPknodecard
+  # HPCM inventory reports the model with a manufacturer prefix
+  - manufacturer: HPE
+    model: HPE Cray EX235n
 ---
 manufacturer: HPE
 model: EX235N NVIDIA accelerator blade, Grizzly Peak Node Card (GPNC)
-hardware-type: NodeCard
+hardware-type: nodecard
 slug: hpe-crayex-ex235n-compute-blade-grizzly-peak-node-card
 device-bays:
   - name: BMC
@@ -64,7 +67,7 @@ device-bays:
 ---
 manufacturer: HPE
 model: EX235N NVIDIA accelerator blade, Grizzly Peak Node BMC
-hardware-type: NodeController
+hardware-type: nodecontroller
 slug: hpe-crayex-ex235n-compute-blade-grizzly-peak-node-bmc
 interfaces:
   - name: BMC

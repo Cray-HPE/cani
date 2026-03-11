@@ -26,6 +26,7 @@ manufacturer: HPE
 model: HPE Aruba Networking CX 6300M 48G Power-to-Port Airflow 2 Fans 1 Power Supply Unit Bundle
 slug: hpe-aruba-6300m-48g
 part_number: R9F63A
+hardware-type: switch
 u_height: 1
 is_full_depth: false
 console-ports:

@@ -24,7 +24,7 @@
 ---
 manufacturer: HPE
 model: EX3000
-hardware-type: Cabinet
+hardware-type: rack
 slug: hpe-ex3000
 
 device-bays:

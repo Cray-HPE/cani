@@ -24,7 +24,7 @@
 ---
 manufacturer: HPE
 model: EX254N NVIDIA GH200 Grace Hopper blade (Blanca Peak)
-hardware-type: NodeBlade
+hardware-type: blade
 slug: hpe-crayex-ex254n-compute-blade
 device-bays:
   - name: Node Card 0
@@ -46,7 +46,7 @@ identifications:
 ---
 manufacturer: HPE
 model: EX254N NVIDIA GH200 Grace Hopper, Blanca Peak Node Card (BPNC)
-hardware-type: NodeCard
+hardware-type: nodecard
 slug: hpe-crayex-ex254n-compute-blade-blanca-peak-node-card
 device-bays:
   - name: BMC
@@ -64,7 +64,7 @@ device-bays:
 ---
 manufacturer: HPE
 model: EX254N NVIDIA GH200 Grace Hopper, Blanca Peak Node BMC
-hardware-type: NodeController
+hardware-type: nodecontroller
 slug: hpe-crayex-ex254n-compute-blade-blanca-peak-node-bmc
 interfaces:
   - name: BMC

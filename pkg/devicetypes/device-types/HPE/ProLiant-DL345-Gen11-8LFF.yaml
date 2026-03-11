@@ -28,6 +28,7 @@ slug: hpe-proliant-dl345-gen11-8lff
 u_height: 1
 is_full_depth: true
 part_number: P54204-B21
+hardware-type: blade
 console-ports:
   - name: Serial
     type: de-9

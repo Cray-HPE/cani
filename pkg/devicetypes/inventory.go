@@ -23,244 +23,93 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package inventory
+package devicetypes
 
 import (
-	"errors"
 	"fmt"
-	"strings"
 
-	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
-	"github.com/Cray-HPE/cani/pkg/pointers"
 	"github.com/google/uuid"
 )
 
-// Inventory is the top level object that represents the entire inventory
-// This is what cani uses to represent the inventory
-type Inventory struct {
-	SchemaVersion SchemaVersion
-	Provider      Provider
-	Hardware      map[uuid.UUID]Hardware
-}
-
-func (i *Inventory) FilterHardware(filter func(Hardware) (bool, error)) (map[uuid.UUID]Hardware, error) {
-	result := map[uuid.UUID]Hardware{}
-
-	for id, hardware := range i.Hardware {
-		ok, err := filter(hardware)
-		if err != nil {
-			return nil, err
-		}
-
-		if ok {
-			result[id] = hardware
-		}
-	}
-
-	return result, nil
-}
-
-func (i *Inventory) FilterHardwareByType(types ...hardwaretypes.HardwareType) map[uuid.UUID]Hardware {
-	result, _ := i.FilterHardware(func(hardware Hardware) (bool, error) {
-		for _, hadwareType := range types {
-			if hardware.Type == hadwareType {
-				return true, nil
-			}
-		}
-		return false, nil
-	})
-
-	return result
-}
-
-func (i *Inventory) FilterHardwareByStatus(wantedStatus ...HardwareStatus) map[uuid.UUID]Hardware {
-	result, _ := i.FilterHardware(func(hardware Hardware) (bool, error) {
-		for _, status := range wantedStatus {
-			if hardware.Status == status {
-				return true, nil
-			}
-		}
-		return false, nil
-	})
-
-	return result
-}
-
-func (i *Inventory) FilterHardwareByTypeStatus(status HardwareStatus, types ...hardwaretypes.HardwareType) map[uuid.UUID]Hardware {
-	result, _ := i.FilterHardware(func(hardware Hardware) (bool, error) {
-		for _, hardwareType := range types {
-			if hardware.Status == status && hardware.Type == hardwareType {
-				return true, nil
-			}
-		}
-		return false, nil
-	})
-
-	return result
-}
-
-// Hardware is the smallest unit of inventory
-// It has all the potential fields that hardware can have
-type Hardware struct {
-	ID               uuid.UUID                        `json:"ID" yaml:"ID" default:"" usage:"Unique Identifier"`
-	Name             string                           `json:"Name,omitempty" yaml:"Name,omitempty" default:"" usage:"Friendly name"`
-	Type             hardwaretypes.HardwareType       `json:"Type,omitempty" yaml:"Type,omitempty" default:"" usage:"Type"`
-	DeviceTypeSlug   string                           `json:"DeviceTypeSlug,omitempty" yaml:"DeviceTypeSlug,omitempty" default:"" usage:"Hardware Type Library Device slug"`
-	Vendor           string                           `json:"Vendor,omitempty" yaml:"Vendor,omitempty" default:"" usage:"Vendor"`
-	Architecture     string                           `json:"Architecture,omitempty" yaml:"Architecture,omitempty" default:"" usage:"Architecture"`
-	Model            string                           `json:"Model,omitempty" yaml:"Model,omitempty" default:"" usage:"Model"`
-	Status           HardwareStatus                   `json:"Status,omitempty" yaml:"Status,omitempty" default:"Staged" usage:"Hardware can be [staged, provisioned, decomissioned]"`
-	Properties       map[string]interface{}           `json:"Properties,omitempty" yaml:"Properties,omitempty" default:"" usage:"Properties"`
-	ProviderMetadata map[Provider]ProviderMetadataRaw `json:"ProviderMetadata,omitempty" yaml:"ProviderMetadata,omitempty" default:"" usage:"ProviderMetadata"`
-	Parent           uuid.UUID                        `json:"Parent,omitempty" yaml:"Parent,omitempty" default:"00000000-0000-0000-0000-000000000000" usage:"Parent hardware"`
-	Children         []uuid.UUID                      `json:"Children,omitempty" yaml:"Children,omitempty"`         // derived from Parent
-	LocationPath     LocationPath                     `json:"LocationPath,omitempty" yaml:"LocationPath,omitempty"` // derived from Parent
-	LocationOrdinal  *int                             `json:"LocationOrdinal,omitempty" yaml:"LocationOrdinal,omitempty" default:"" usage:"LocationOrdinal"`
-}
-
-func (hardware *Hardware) SetProviderMetadata(provider Provider, metadata map[string]interface{}) {
-	// Initialize ProviderMetadata map if nil
-	if hardware.ProviderMetadata == nil {
-		hardware.ProviderMetadata = map[Provider]ProviderMetadataRaw{}
-	}
-
-	// Set provider metadata
-	hardware.ProviderMetadata[provider] = metadata
-}
-
-func NewHardwareFromBuildOut(hardwareBuildOut HardwareBuildOut, status HardwareStatus) Hardware {
-	return Hardware{
-		ID:             hardwareBuildOut.ID,
-		Parent:         hardwareBuildOut.ParentID,
-		Type:           hardwareBuildOut.DeviceType.HardwareType,
-		DeviceTypeSlug: hardwareBuildOut.DeviceType.Slug,
-		Vendor:         hardwareBuildOut.DeviceType.Manufacturer,
-		Model:          hardwareBuildOut.DeviceType.Model,
-
-		LocationOrdinal: pointers.IntPtr(hardwareBuildOut.DeviceOrdinal),
-
-		Status: status,
-	}
-}
-
-// HardwareStatus is the current state of the hardware
-// Using a status allows for the hardware to be tracked through its lifecycle
-// and allows for historical tracking of the hardware even if it is replaced or removed
-type HardwareStatus string
-
-// SchemaVersion is the version of the inventory schema
-type SchemaVersion string
-
-// Provider is the name of the external inventory provider
-type Provider string
-
+// Schema version constants for the inventory datastore.
 const (
-	// Define constants for lifecyle states
-	HardwareStatusEmpty          = HardwareStatus("empty")
-	HardwareStatusStaged         = HardwareStatus("staged")
-	HardwareStatusProvisioned    = HardwareStatus("provisioned")
-	HardwareStatusDecommissioned = HardwareStatus("decommissioned")
-	// Schema and proivider names are constant
-	SchemaVersionV1Alpha1 = SchemaVersion("v1alpha1")
-	CSMProvider           = Provider("csm")
+	SchemaVersionV1Alpha1 = "v1alpha1"
+	SchemaVersionV1Alpha2 = "v1alpha2"
 )
 
-// ProviderMetadataRaw stores the metadata from a provider in a generic map.
-type ProviderMetadataRaw map[string]interface{}
+// Inventory represents the entire inventory of devices, racks, locations, etc.
+// This is the structure stored in datastore.
+type Inventory struct {
+	SchemaVersion string `json:"schemaVersion" yaml:"schema_version"`
+	Provider      string `json:"provider,omitempty" yaml:"provider,omitempty"`
 
-type LocationToken struct {
-	HardwareType hardwaretypes.HardwareType
-	Ordinal      int
+	Locations  map[uuid.UUID]*CaniLocationType  `json:"locations"  yaml:"locations"`
+	Racks      map[uuid.UUID]*CaniRackType      `json:"racks"      yaml:"racks"`
+	Devices    map[uuid.UUID]*CaniDeviceType    `json:"devices"    yaml:"devices"`
+	Modules    map[uuid.UUID]*CaniModuleType    `json:"modules"    yaml:"modules"`
+	Cables     map[uuid.UUID]*CaniCableType     `json:"cables"     yaml:"cables"`
+	Frus       map[uuid.UUID]*CaniFruType       `json:"frus"       yaml:"frus"`
+	Interfaces map[uuid.UUID]*InterfaceInstance `json:"interfaces" yaml:"interfaces"`
+
+	// pkIndex is a transient (non-serialized) provider-key lookup cache.
+	// Maps [provider][key][value] → device UUID for O(1) dedup lookups.
+	// Rebuilt by RebuildProviderKeyIndex after datastore load.
+	pkIndex providerKeyIndex `yaml:"-" json:"-"`
 }
 
-func (lt *LocationToken) String() string {
-	return fmt.Sprintf("%s:%d", lt.HardwareType, lt.Ordinal)
+// TransformResult holds the combined output of the Transform step.
+// Nil maps indicate the provider does not produce that type.
+type TransformResult struct {
+	Locations map[uuid.UUID]*CaniLocationType
+	Racks     map[uuid.UUID]*CaniRackType
+	Devices   map[uuid.UUID]*CaniDeviceType
+	Modules   map[uuid.UUID]*CaniModuleType
+	Cables    map[uuid.UUID]*CaniCableType
+	Frus      map[uuid.UUID]*CaniFruType
 }
 
-type LocationPath []LocationToken
-
-// String returns a string representation of the location path
-func (lp LocationPath) String() string {
-	tokens := []string{}
-
-	for _, token := range lp {
-		tokens = append(tokens, token.String())
+// EnsureUniqueDeviceNames detects duplicate names within the transform
+// result and appends an incrementing number to make each name unique.
+// This runs before the result is merged into the inventory so that the
+// provider never introduces collisions.
+func (tr *TransformResult) EnsureUniqueDeviceNames() {
+	if len(tr.Devices) == 0 {
+		return
 	}
 
-	return strings.Join(tokens, "->")
-}
-
-func (lp LocationPath) GetOrdinal(hardwareType hardwaretypes.HardwareType) (ordinal int, found bool) {
-	for _, token := range lp {
-		if token.HardwareType == hardwareType {
-			return token.Ordinal, true
+	// Count how many times each name appears.
+	nameCount := make(map[string]int)
+	for _, d := range tr.Devices {
+		if d != nil && d.Name != "" {
+			nameCount[d.Name]++
 		}
 	}
 
-	return -1, false
-}
-
-// GetHardwareTypePath returns the hardware type path of the location path
-func (lp LocationPath) GetHardwareTypePath() hardwaretypes.HardwareTypePath {
-	result := hardwaretypes.HardwareTypePath{}
-	for _, token := range lp {
-		result = append(result, token.HardwareType)
-	}
-
-	return result
-}
-
-// GetUUID returns the UUID of the location path
-func (lp LocationPath) GetUUID(ds Datastore) (uuid.UUID, error) {
-	hw, err := ds.GetAtLocation(lp)
-	if err == nil {
-		// Hardware found
-		return hw.ID, nil
-	} else if errors.Is(err, ErrHardwareNotFound) {
-		// Hardware not found
-		return uuid.Nil, ErrHardwareNotFound
-	} else {
-		// Oops something happened
-		return uuid.Nil, err
+	// For every duplicated name, assign an incrementing suffix.
+	nameSeq := make(map[string]int) // next sequence number per base name
+	for _, d := range tr.Devices {
+		if d == nil || d.Name == "" {
+			continue
+		}
+		if nameCount[d.Name] <= 1 {
+			continue
+		}
+		nameSeq[d.Name]++
+		d.Name = fmt.Sprintf("%s-%d", d.Name, nameSeq[d.Name])
 	}
 }
 
-// Get returns the Hardware at the location path
-func (lp LocationPath) Get(ds Datastore) (Hardware, error) {
-	hw, err := ds.GetAtLocation(lp)
-	if err == nil {
-		// Hardware found
-		return hw, nil
-	} else if errors.Is(err, ErrHardwareNotFound) {
-		// Hardware not found
-		return Hardware{}, ErrHardwareNotFound
-	} else {
-		// Oops something happened
-		return Hardware{}, err
-	}
-}
-
-// GetOrdinalPath returns the ordinal of the location path
-func (lp LocationPath) GetOrdinalPath() []int {
-	result := []int{}
-	for _, token := range lp {
-		result = append(result, token.Ordinal)
-	}
-
-	return result
-}
-
-// Exists returns true if the hardware exists in the datastore
-func (lp LocationPath) Exists(ds Datastore) (bool, error) {
-	_, err := ds.GetAtLocation(lp)
-	if err == nil {
-		// Hardware found
-		return true, nil
-	} else if errors.Is(err, ErrHardwareNotFound) {
-		// Hardware not found
-		return false, nil
-	} else {
-		// Oops something happened
-		return false, err
+// NewInventory creates an Inventory with all maps initialized.
+func NewInventory() *Inventory {
+	return &Inventory{
+		SchemaVersion: SchemaVersionV1Alpha2,
+		Locations:     make(map[uuid.UUID]*CaniLocationType),
+		Racks:         make(map[uuid.UUID]*CaniRackType),
+		Devices:       make(map[uuid.UUID]*CaniDeviceType),
+		Modules:       make(map[uuid.UUID]*CaniModuleType),
+		Cables:        make(map[uuid.UUID]*CaniCableType),
+		Frus:          make(map[uuid.UUID]*CaniFruType),
+		Interfaces:    make(map[uuid.UUID]*InterfaceInstance),
+		pkIndex:       make(providerKeyIndex),
 	}
 }
