@@ -21,35 +21,20 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
-name: Check Licenses
-
+name: Unit Tests
 on:
+  push:
   pull_request:
-
+  workflow_dispatch:
 jobs:
-  license-check:
+  utest:
     runs-on: ubuntu-latest
-
-    container:
-      image: artifactory.algol60.net/csm-docker/stable/license-checker:latest
-      credentials:
-          username: ${{ secrets.ARTIFACTORY_ALGOL60_READONLY_USERNAME }}
-          password: ${{ secrets.ARTIFACTORY_ALGOL60_READONLY_TOKEN }}
-
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - uses: actions/checkout@v4
 
-    - name: Get changed files
-      id: changed-files
-      run: |
-        CHANGED_FILES=$(git diff --name-only --diff-filter=ACMRT \
-          ${{ github.event.pull_request.base.sha }} \
-          ${{ github.event.pull_request.head.sha }} \
-          | tr '\n' ' ')
-        echo "all_changed_files=$CHANGED_FILES" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
 
-    - name: License Check
-      if: ${{ steps.changed-files.outputs.all_changed_files }}
-      run: /usr/local/bin/python3 /license_check/license_check.py ${{ steps.changed-files.outputs.all_changed_files }}
+      - name: run unit tests
+        run: make utest

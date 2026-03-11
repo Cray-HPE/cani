@@ -420,8 +420,12 @@ rpm_build:
 # ──────────────────────────────────────────────────────────────────────────────
 
 .PHONY: license
-license: ## Run the license checker
-	docker run -it --rm -v $(PWD):/github/workspace artifactory.algol60.net/csm-docker/stable/license-checker .github/workflows/ cmd/ internal pkg/hardwaretypes pkg/xname spec/ --fix
+license: ## Run the license checker (interactive)
+	docker run -it --rm -v $(PWD):/github/workspace artifactory.algol60.net/csm-docker/stable/license-checker .github/workflows/ cmd/ internal pkg/devicetypes pkg/provider/csm pkg/provider/example pkg/provider/redfish pkg/xname spec/ --fix
+
+.PHONY: license-check
+license-check: ## Run the license checker (CI, non-interactive)
+	docker run -i --rm -v $(PWD):/github/workspace artifactory.algol60.net/csm-docker/stable/license-checker .github/workflows/ cmd/ internal pkg/devicetypes pkg/provider/csm pkg/provider/example pkg/provider/redfish pkg/xname spec/
 
 .PHONY: env
 env: ## Print Go environment

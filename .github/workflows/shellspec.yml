@@ -37,7 +37,7 @@ jobs:
           fetch-depth: 0
 
       - name: checkout hms-simulation-environment
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: hms-simulation-environment
           repository: Cray-HPE/hms-simulation-environment
@@ -45,7 +45,7 @@ jobs:
           fetch-depth: 0
 
       - name: checkout shellspec
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: shellspec
           repository: shellspec/shellspec
@@ -54,7 +54,7 @@ jobs:
       - name: set up python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: install python dependencies
         run: pip3 install -r requirements.txt
@@ -69,7 +69,7 @@ jobs:
           while ! /Applications/Docker.app/Contents/Resources/bin/docker info &>/dev/null; do sleep 1; done
 
       - name: login to algol60 container registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: artifactory.algol60.net
           username: ${{ secrets.ARTIFACTORY_ALGOL60_USERNAME }}
@@ -86,5 +86,7 @@ jobs:
         shell: bash
         run: |
           ln -s "$PWD"/shellspec/shellspec /usr/local/bin/
-          make test
+          make ftest
+          make itest
 
+        
