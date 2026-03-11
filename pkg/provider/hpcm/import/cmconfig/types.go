@@ -23,11 +23,14 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package hpcm
 
-// Discover represents an entry in the [discover] section in the hpcm.config
-// The fields here can vary widly and are sometimes duplicated with those in Templates/Attributes
-// TODO: de-dupe these fields into re-useable structs
+// Package cmconfig defines the data types parsed from an HPCM cm.config INI file.
+// Moving these into a sub-package avoids name collisions with the CMDB types
+// (e.g. Network, NicTemplate) and mirrors the cmdb sub-package pattern.
+package cmconfig
+
+// Discover represents an entry in the [discover] section in the hpcm.config.
+// The fields here can vary widely and are sometimes duplicated with those in Templates/Attributes.
 type Discover struct {
 	Hostname1                string   `json:"hostname1" yaml:"hostname1,omitempty"`
 	InternalName             string   `json:"internal_name" yaml:"internal_name,omitempty"`
@@ -92,9 +95,8 @@ type Discover struct {
 	PduProtocol              string   `json:"pdu_protocol,omitempty" yaml:"pdu_protocol,omitempty"`
 }
 
-// Template represents an entry in the [template] section in the hpcm.config
-// The fields here can vary widly and are sometimes duplicated with those in Discover/Attributes
-// TODO: de-dupe these fields into re-useable structs
+// Template represents an entry in the [template] section in the hpcm.config.
+// The fields here can vary widely and are sometimes duplicated with those in Discover/Attributes.
 type Template struct {
 	Name                 string   `json:"name,omitempty" yaml:"name,omitempty"`
 	MgmtBmcNetName       string   `json:"mgmt_bmc_net_name,omitempty" yaml:"mgmt_bmc_net_name,omitempty"`
@@ -137,26 +139,25 @@ type Template struct {
 	MdMetadata           string   `json:"md_metadata,omitempty" yaml:"md_metadata,omitempty"`
 }
 
-// NicTemplate represents an entry in the [network] section in the hpcm.config
+// NicTemplate represents an entry in the [nic_templates] section in the hpcm.config.
 type NicTemplate struct {
 	Template      string   `json:"template,omitempty" yaml:"template,omitempty"`
 	Network       string   `json:"network,omitempty" yaml:"network,omitempty"`
 	BondingMaster string   `json:"bonding_master,omitempty" yaml:"bonding_master,omitempty"`
 	BondingMode   string   `json:"bonding_mode,omitempty" yaml:"bonding_mode,omitempty"`
 	NetIfs        []string `json:"net_ifs,omitempty" yaml:"net_ifs,omitempty"`
-	BrNane        string   `json:"br_name,omitempty" yaml:"br_name,omitempty"`
+	BrName        string   `json:"br_name,omitempty" yaml:"br_name,omitempty"`
 }
 
-// Dns represents the [dns] section in the hpcm.config
+// Dns represents the [dns] section in the hpcm.config.
 type Dns struct {
 	ClusterDomain string `json:"cluster_domain,omitempty" yaml:"cluster_domain,omitempty"`
 	Nameserver1   string `json:"nameserver1,omitempty" yaml:"nameserver1,omitempty"`
 	Nameserver2   string `json:"nameserver2,omitempty" yaml:"nameserver2,omitempty"`
 }
 
-// Attributes represents the [attributes] section in the hpcm.config
-// The fields here can vary widly and are sometimes duplicated with those in Discover/Templates
-// TODO: de-dupe these fields into re-useable structs
+// Attributes represents the [attributes] section in the hpcm.config.
+// The fields here can vary widely and are sometimes duplicated with those in Discover/Templates.
 type Attributes struct {
 	AdminHouseInterface            string   `json:"admin_house_interface,omitempty" yaml:"admin_house_interface,omitempty"`
 	AdminManagementInterfaces      []string `json:"admin_mgmt_interfaces,omitempty" yaml:"admin_mgmt_interfaces,omitempty"`
@@ -208,7 +209,7 @@ type Attributes struct {
 	MgmtNetAliasSelection          string   `json:"mgmt_net_alias_selection,omitempty" yaml:"mgmt_net_alias_selection,omitempty"`
 }
 
-// Network represents an entry in the [network] section in the hpcm.config
+// Network represents an entry in the [network] section in the hpcm.config.
 type Network struct {
 	Name        string `json:"name,omitempty" yaml:"name,omitempty"`
 	Type        string `json:"type,omitempty" yaml:"type,omitempty"`
@@ -218,17 +219,7 @@ type Network struct {
 	Gateway     string `json:"gateway,omitempty" yaml:"gateway,omitempty"`
 }
 
-// Images represents the [images] section in the hpcm.config
+// Images represents the [images] section in the hpcm.config.
 type Images struct {
 	ImageTypes []string `json:"image_types,omitempty" yaml:"image_types"`
-}
-
-type HpcmConfig struct {
-	Templates    map[string]Template    `json:"templates,omitempty" yaml:"templates,omitempty"`
-	NicTemplates map[string]NicTemplate `json:"nic_templates,omitempty" yaml:"nic_templates,omitempty"`
-	Discover     map[string]Discover    `json:"discover,omitempty" yaml:"discover,omitempty"`
-	Dns          map[string]Dns         `json:"dns,omitempty" yaml:"dns,omitempty"`
-	Attributes   Attributes             `json:"attributes,omitempty" yaml:"attributes,omitempty"`
-	Networks     map[string]Network     `json:"networks,omitempty" yaml:"networks,omitempty"`
-	Images       []Images               `json:"images,omitempty" yaml:"images,omitempty" toml:"images,omitempty"`
 }

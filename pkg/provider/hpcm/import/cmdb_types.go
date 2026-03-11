@@ -23,15 +23,22 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package hpcm
+package import_
 
 import (
-	"github.com/Cray-HPE/cani/internal/inventory"
-	"github.com/rs/zerolog/log"
-	"github.com/spf13/cobra"
+	"github.com/Cray-HPE/cani/pkg/provider/hpcm/import/cmdb"
 )
 
-func (hpcm *Hpcm) Reconcile(cmd *cobra.Command, args []string, datastore inventory.Datastore, dryrun bool, ignoreExternalValidation bool) error {
-	log.Warn().Msgf("Reconcile not yet implemented")
-	return nil
+// Cmdb holds the full set of resources fetched from the HPCM CMDB REST API.
+type Cmdb struct {
+	Controllers     []cmdb.Group          `json:"controllers,omitempty"`
+	CustomGroups    []cmdb.Group          `json:"customGroups,omitempty"`
+	ImageGroups     []cmdb.Group          `json:"imageGroups,omitempty"`
+	ManagementCards []cmdb.ManagementCard `json:"managementCards,omitempty"`
+	NetworkGroups   []cmdb.Group          `json:"networkGroups,omitempty"`
+	Networks        []cmdb.Network        `json:"networks,omitempty"`
+	Nics            []cmdb.Nic            `json:"nics,omitempty"`
+	NodeTemplates   []cmdb.NodeTemplate   `json:"nodeTemplates,omitempty"`
+	Nodes           []cmdb.Node           `json:"nodes,omitempty"`
+	SystemGroups    []cmdb.Group          `json:"systemGroups,omitempty"`
 }

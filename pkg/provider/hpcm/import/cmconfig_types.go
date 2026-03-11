@@ -23,39 +23,19 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package hpcm
+package import_
 
 import (
-	"github.com/spf13/cobra"
+	"github.com/Cray-HPE/cani/pkg/provider/hpcm/import/cmconfig"
 )
 
-// ValidateExternal validates the CMDB, a config, or runs a [non]interactive survey
-func (hpcm *Hpcm) ValidateExternal(cmd *cobra.Command, args []string) (err error) {
-	err = hpcm.siteSurvey(cmd, args)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// siteSurvey checks the flags passed in during 'session init' and validates
-// the appropriate data source.  It adds the validated data to the *Hpcm object
-func (hpcm *Hpcm) siteSurvey(cmd *cobra.Command, args []string) error {
-	// [non]interactively get the hpcm cluster config file if one is passed in
-	if cmd.Flags().Changed("cm-config") {
-		f, _ := cmd.Flags().GetString("cm-config")
-		cm, err := LoadCmConfig(f)
-		if err != nil {
-			return err
-		}
-		hpcm.CmConfig = cm
-		// by default, import from the CMDB if no flags were passed
-	} else {
-		err := hpcm.dumpCmdb(cmd, args)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+// CmConfig holds the parsed sections of an HPCM cm.config file.
+type CmConfig struct {
+	Templates    map[string]cmconfig.Template    `json:"templates,omitempty" yaml:"templates,omitempty"`
+	NicTemplates map[string]cmconfig.NicTemplate `json:"nic_templates,omitempty" yaml:"nic_templates,omitempty"`
+	Discover     map[string]cmconfig.Discover    `json:"discover,omitempty" yaml:"discover,omitempty"`
+	Dns          map[string]cmconfig.Dns         `json:"dns,omitempty" yaml:"dns,omitempty"`
+	Attributes   cmconfig.Attributes             `json:"attributes,omitempty" yaml:"attributes,omitempty"`
+	Networks     map[string]cmconfig.Network     `json:"networks,omitempty" yaml:"networks,omitempty"`
+	Images       []cmconfig.Images               `json:"images,omitempty" yaml:"images,omitempty" toml:"images,omitempty"`
 }

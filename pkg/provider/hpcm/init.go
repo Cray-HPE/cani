@@ -26,135 +26,62 @@
 package hpcm
 
 import (
-	"github.com/Cray-HPE/cani/pkg/utils"
-	"github.com/rs/zerolog/log"
+	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/Cray-HPE/cani/pkg/provider/hpcm/commands"
+	import_ "github.com/Cray-HPE/cani/pkg/provider/hpcm/import"
+	"github.com/Cray-HPE/cani/pkg/provider/hpcm/transform"
 	"github.com/spf13/cobra"
 )
 
-var (
-	exportFormat string
-)
+// instance is the singleton provider instance
+var instance *Hpcm
 
 func init() {
-	log.Trace().Msgf("%+v", "github.com/Cray-HPE/cani/internal/provider/hpcm.init")
+	instance = New()
+	provider.Register("hpcm", instance)
+
+	// Register the provider getter with the import package to break import cycle.
+	import_.SetProviderGetter(func() interface {
+		ClearNodes()
+		SetNodes(nodes []import_.Node)
+	} {
+		return instance
+	})
+
+	// Register the provider getter with the transform package to break import cycle.
+	transform.SetProviderGetter(func() interface {
+		GetNodes() []import_.Node
+	} {
+		return instance
+	})
 }
 
-// NewProviderCmd returns the appropriate command to the cmd layer
-func NewProviderCmd(caniCmd *cobra.Command) (providerCmd *cobra.Command, err error) {
-	// first, choose the right command
-	switch caniCmd.Name() {
-	case "init":
-		providerCmd, err = NewSessionInitCommand(caniCmd)
-	case "cabinet":
-		switch caniCmd.Parent().Name() {
-		case "add":
-			providerCmd, err = NewAddCabinetCommand(caniCmd)
-		case "update":
-			providerCmd, err = NewUpdateCabinetCommand(caniCmd)
-		case "list":
-			providerCmd, err = NewListCabinetCommand(caniCmd)
-		}
-	case "blade":
-		switch caniCmd.Parent().Name() {
-		case "add":
-			providerCmd, err = NewAddBladeCommand(caniCmd)
-		case "update":
-			providerCmd, err = NewUpdateBladeCommand(caniCmd)
-		case "list":
-			providerCmd, err = NewListBladeCommand(caniCmd)
-		}
-	case "node":
-		// check for add/update variants
-		switch caniCmd.Parent().Name() {
-		case "add":
-			providerCmd, err = NewAddNodeCommand(caniCmd)
-		case "update":
-			providerCmd, err = NewUpdateNodeCommand(caniCmd)
-		case "list":
-			providerCmd, err = NewListNodeCommand(caniCmd)
-		}
-	case "export":
-		providerCmd, err = NewExportCommand(caniCmd)
+// NewProviderCmd returns provider-specific CLI commands.
+// This is called for each base command (import, add, show, etc.) to allow
+// the provider to customize or extend the command.
+func (p *Hpcm) NewProviderCmd(base *cobra.Command) (*cobra.Command, error) {
+	// Switch on the base command name to provide customizations
+	switch base.Name() {
 	case "import":
-		providerCmd, err = NewImportCommand(caniCmd)
+		return commands.NewImportCommand(base)
+
+	case "export":
+		return commands.NewExportCommand(base)
+
+	case "show":
+		return commands.NewShowCommand(base)
+
+	case "add":
+		return commands.NewAddCommand(base)
+
+	case "remove":
+		return commands.NewRemoveCommand(base)
+
+	case "update":
+		return commands.NewUpdateCommand(base)
+
 	default:
-		log.Info().Msgf("Command not implemented by provider: %s %s", caniCmd.Parent().Name(), caniCmd.Name())
+		// No customization for this command
+		return base, nil
 	}
-	if err != nil {
-		return providerCmd, err
-	}
-
-	return providerCmd, nil
-}
-
-func NewSessionInitCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
-	cmd = utils.CloneCommand(caniCmd)
-	cmd.Short = `Validate and import from the HPCM CMDB`
-	cmd.Long = `Validate and import from the HPCM CMDB`
-	cmd.Use = "hpcm"
-	// Session init flags
-	cmd.Flags().String("cmdb-url", "cmu/v1", "Base URL for the CMDB")
-	cmd.Flags().String("host", "localhost:8080", "Host or FQDN for APIs")
-	cmd.Flags().String("cacert", "", "Path to the CA certificate file")
-	cmd.Flags().String("token", "", "API token")
-	cmd.Flags().StringP("cm-config", "C", "", "Path to a HPCM config file/cluster manager file/cluster definition file")
-	return cmd, nil
-}
-
-func NewAddCabinetCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
-	cmd = utils.CloneCommand(caniCmd)
-	return cmd, nil
-}
-
-func NewUpdateCabinetCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
-	cmd = utils.CloneCommand(caniCmd)
-	return cmd, nil
-}
-
-func NewListCabinetCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
-	cmd = utils.CloneCommand(caniCmd)
-	return cmd, nil
-}
-
-func NewAddNodeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
-	cmd = utils.CloneCommand(caniCmd)
-	return cmd, nil
-}
-
-func NewUpdateNodeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
-	cmd = utils.CloneCommand(caniCmd)
-	return cmd, nil
-}
-
-// NewListNodeCommand implements the NewListNodeCommand method of the InventoryProvider interface
-func NewListNodeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
-	cmd = utils.CloneCommand(caniCmd)
-	return cmd, nil
-}
-
-func NewAddBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
-	cmd = utils.CloneCommand(caniCmd)
-	return cmd, nil
-}
-
-func NewUpdateBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
-	cmd = utils.CloneCommand(caniCmd)
-	return cmd, nil
-}
-
-func NewListBladeCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
-	cmd = utils.CloneCommand(caniCmd)
-	return cmd, nil
-}
-
-func NewExportCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
-	cmd = utils.CloneCommand(caniCmd)
-	cmd.Flags().StringVar(&exportFormat, "format", "openchami", "Format option: [openchami]")
-
-	return cmd, nil
-}
-
-func NewImportCommand(caniCmd *cobra.Command) (cmd *cobra.Command, err error) {
-	cmd = utils.CloneCommand(caniCmd)
-	return cmd, nil
 }
