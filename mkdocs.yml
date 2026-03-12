@@ -32,21 +32,21 @@ theme:
   name: material
   custom_dir: docs/custom_theme
   logo: custom_theme/img/HPE_logo_full-clr_rev_rgb.png
-  locale: en
+  language: en
   favicon: custom_theme/img/favicon.ico
   palette:
     # Palette toggle for light mode
     - scheme: default
+      primary: teal
+      accent: indigo
       toggle:
-        primary: teal
-        accent: indigo
         icon: material/toggle-switch-off-outline
         name: cani use dark mode?
     # Palette toggle for dark mode
     - scheme: slate
+      primary: teal
+      accent: indigo
       toggle:
-        primary: teal
-        accent: indigo
         icon: material/toggle-switch
         name: cani use light mode?
 # HPE branding
