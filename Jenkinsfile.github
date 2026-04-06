@@ -48,7 +48,7 @@ pipeline {
         NAME = getRepoName()
         GO_VERSION = sh(returnStdout: true, script: 'grep -Eo "^go .*" go.mod | cut -d " " -f2').trim()
         VERSION = sh(returnStdout: true, script: "git describe --tags | tr -s '-' '~' | sed 's/^v//'").trim()
-        
+
     }
 
     stages {
@@ -82,7 +82,7 @@ pipeline {
                             docker {
                                 label 'docker'
                                 reuseNode true
-                                image "${goImage}:${env.GO_VERSION}-SLES15.4"
+                                image "${goImage}:${env.GO_VERSION}-SLES15.5"
                             }
                         }
                         steps {
@@ -97,7 +97,7 @@ pipeline {
                             docker {
                                 label 'docker'
                                 reuseNode true
-                                image "${goImage}:${env.GO_VERSION}-SLES15.4"
+                                image "${goImage}:${env.GO_VERSION}-SLES15.5"
                             }
                         }
                         steps {
