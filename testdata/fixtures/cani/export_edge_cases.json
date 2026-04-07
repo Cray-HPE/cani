@@ -1,9 +1,10 @@
 {
-  "Locations": {
+  "schemaVersion": "v1alpha2",
+  "locations": {
     "00000000-0000-0000-0000-000000000001": {
       "id": "00000000-0000-0000-0000-000000000001",
       "name": "HQ-Site",
-      "locationType": "Site",
+      "locationType": "dc",
       "status": "Active",
       "facility": "FAC-001",
       "description": "Main headquarters site",
@@ -17,13 +18,18 @@
       "timeZone": "America/Chicago",
       "comments": "Primary data center site",
       "tenant": "engineering",
-      "tags": ["datacenter", "prod"],
-      "customFields": {"region": "us-south"}
+      "tags": [
+        "datacenter",
+        "prod"
+      ],
+      "customFields": {
+        "region": "us-south"
+      }
     },
     "00000000-0000-0000-0000-000000000002": {
       "id": "00000000-0000-0000-0000-000000000002",
       "name": "HQ-Building-A",
-      "locationType": "Building",
+      "locationType": "level",
       "parent": "00000000-0000-0000-0000-000000000001",
       "status": "Active",
       "description": "Building A on main campus"
@@ -31,7 +37,7 @@
     "00000000-0000-0000-0000-000000000003": {
       "id": "00000000-0000-0000-0000-000000000003",
       "name": "HQ-Room-101",
-      "locationType": "Room",
+      "locationType": "section",
       "parent": "00000000-0000-0000-0000-000000000002",
       "status": "Active",
       "description": "Server room 101"
@@ -41,11 +47,10 @@
       "name": "Empty-Type-Location",
       "locationType": "",
       "status": "Active",
-      "description": "Bug #15: empty locationType exercises default 'Site' fallback"
+      "description": "Bug #15: empty locationType must error — no fallback"
     }
   },
-
-  "Racks": {
+  "racks": {
     "00000000-0000-0000-0000-000000000010": {
       "id": "00000000-0000-0000-0000-000000000010",
       "name": "Rack-A01",
@@ -70,8 +75,13 @@
       "descUnits": false,
       "comments": "Bug #17: serial, assetTag, rackType, facilityId, width, role, tenant, tags all dropped in createRackFromCaniRack",
       "tenant": "engineering",
-      "tags": ["production", "compute"],
-      "customFields": {"power_circuit": "PDU-A"}
+      "tags": [
+        "production",
+        "compute"
+      ],
+      "customFields": {
+        "power_circuit": "PDU-A"
+      }
     },
     "00000000-0000-0000-0000-000000000011": {
       "id": "00000000-0000-0000-0000-000000000011",
@@ -96,8 +106,7 @@
       "description": "Wall-mounted cabinet; classified as CategoryRack via 'cabinet' hardwareType"
     }
   },
-
-  "Devices": {
+  "devices": {
     "00000000-0000-0000-0000-000000000020": {
       "id": "00000000-0000-0000-0000-000000000020",
       "name": "Chassis-01",
@@ -121,18 +130,54 @@
       "rackPosition": 1,
       "face": "front",
       "interfaces": [
-        {"name": "mgmt0", "type": "1000base-t", "mgmt_only": true},
-        {"name": "eth0", "type": "25gbase-x-sfp28"}
+        {
+          "name": "mgmt0",
+          "type": "1000base-t",
+          "mgmt_only": true
+        },
+        {
+          "name": "eth0",
+          "type": "25gbase-x-sfp28"
+        }
       ],
-      "consolePorts": [{"name": "console0", "type": "rj-45"}],
-      "powerPorts": [{"name": "psu0", "type": "iec-60320-c14"}],
-      "moduleBays": [{"name": "slot-0", "position": "0"}, {"name": "slot-1", "position": "1"}],
+      "consolePorts": [
+        {
+          "name": "console0",
+          "type": "rj-45"
+        }
+      ],
+      "powerPorts": [
+        {
+          "name": "psu0",
+          "type": "iec-60320-c14"
+        }
+      ],
+      "moduleBays": [
+        {
+          "name": "slot-0",
+          "position": "0"
+        },
+        {
+          "name": "slot-1",
+          "position": "1"
+        }
+      ],
       "tenant": "engineering",
-      "tags": ["production", "chassis"],
-      "customFields": {"warranty_end": "2028-12-31"},
+      "tags": [
+        "production",
+        "chassis"
+      ],
+      "customFields": {
+        "warranty_end": "2028-12-31"
+      },
       "providerMetadata": {
-        "nautobot": {"location": "HQ-Room-101", "role": "compute"},
-        "csm": {"xname": "x1000c0"}
+        "nautobot": {
+          "location": "HQ-Room-101",
+          "role": "compute"
+        },
+        "csm": {
+          "xname": "x1000c0"
+        }
       }
     },
     "00000000-0000-0000-0000-000000000021": {
@@ -184,8 +229,14 @@
       "rackPosition": 2,
       "face": "front",
       "interfaces": [
-        {"name": "eth0", "type": "25gbase-x-sfp28"},
-        {"name": "eth1", "type": "25gbase-x-sfp28"}
+        {
+          "name": "eth0",
+          "type": "25gbase-x-sfp28"
+        },
+        {
+          "name": "eth1",
+          "type": "25gbase-x-sfp28"
+        }
       ],
       "description": "Child blade in Chassis-01; exercises parent device FK resolution"
     },
@@ -200,12 +251,13 @@
       "role": "compute",
       "description": "Bug #3: location UUID empty; ProviderMetadata['location'] used instead of Location FK",
       "providerMetadata": {
-        "nautobot": {"location": "HQ-Room-101"}
+        "nautobot": {
+          "location": "HQ-Room-101"
+        }
       }
     }
   },
-
-  "Modules": {
+  "modules": {
     "00000000-0000-0000-0000-000000000030": {
       "id": "00000000-0000-0000-0000-000000000030",
       "name": "GPU-Module-0",
@@ -222,11 +274,19 @@
       "status": "Active",
       "role": "accelerator",
       "interfaces": [
-        {"name": "nvlink0", "type": "virtual"}
+        {
+          "name": "nvlink0",
+          "type": "virtual"
+        }
       ],
       "tenant": "engineering",
-      "tags": ["gpu", "compute"],
-      "customFields": {"vram_gb": 80}
+      "tags": [
+        "gpu",
+        "compute"
+      ],
+      "customFields": {
+        "vram_gb": 80
+      }
     },
     "00000000-0000-0000-0000-000000000031": {
       "id": "00000000-0000-0000-0000-000000000031",
@@ -256,8 +316,7 @@
       "location": "00000000-0000-0000-0000-000000000003"
     }
   },
-
-  "Cables": {
+  "cables": {
     "00000000-0000-0000-0000-000000000040": {
       "id": "00000000-0000-0000-0000-000000000040",
       "slug": "cat6a-copper",
@@ -317,8 +376,7 @@
       "description": "Incomplete cable: missing termination devices; exercises skip path in createCaniCableType"
     }
   },
-
-  "Frus": {
+  "frus": {
     "00000000-0000-0000-0000-000000000050": {
       "id": "00000000-0000-0000-0000-000000000050",
       "name": "DIMM-Slot-A1",
@@ -334,8 +392,13 @@
       "status": "Active",
       "device": "00000000-0000-0000-0000-000000000020",
       "discovered": true,
-      "tags": ["memory", "compute"],
-      "customFields": {"capacity_gb": 64}
+      "tags": [
+        "memory",
+        "compute"
+      ],
+      "customFields": {
+        "capacity_gb": 64
+      }
     },
     "00000000-0000-0000-0000-000000000051": {
       "id": "00000000-0000-0000-0000-000000000051",
@@ -371,8 +434,7 @@
       "description": "Bug #21: role/status/hardwareType have no InventoryItem equivalents; Bug #22: model set but partNumber empty, so model name lost in export"
     }
   },
-
-  "Interfaces": {
+  "interfaces": {
     "00000000-0000-0000-0000-000000000060": {
       "id": "00000000-0000-0000-0000-000000000060",
       "name": "standalone-mgmt0",

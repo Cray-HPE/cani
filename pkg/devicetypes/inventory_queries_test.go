@@ -31,6 +31,12 @@
 // | LocationExists                        | TestLocationExistsTrue                            | TestLocationExistsFalse                           |
 // | FindRackByName                        | TestFindRackByNameFound                          | TestFindRackByNameNotFound                       |
 // | RackExists                            | TestRackExistsTrue                                | TestRackExistsFalse                               |
+// | RacksByLocation                       | TestRacksByLocation                              | TestRacksByLocationEmpty                         |
+// | FindLocationByNameOrID                | TestFindLocationByNameOrIDByUUID                 | TestFindLocationByNameOrIDNotFound               |
+// | FindDeviceByNameOrID                  | TestFindDeviceByNameOrIDByUUID                   | TestFindDeviceByNameOrIDNotFound                 |
+// | DevicesBySlug                         | TestDevicesBySlugFound                           | TestDevicesBySlugEmpty                           |
+// | OccupiedModuleBays                    | TestOccupiedModuleBaysFound                      | TestOccupiedModuleBaysEmpty                      |
+// | AvailableModuleBays                   | TestAvailableModuleBaysFound                     | TestAvailableModuleBaysAllOccupied               |
 // | FindModuleByName                      | TestFindModuleByNameFound                        | TestFindModuleByNameNotFound                     |
 // | ModuleExists                          | TestModuleExistsTrue                              | TestModuleExistsFalse                             |
 // | FindFruByName                         | TestFindFruByNameFound                           | TestFindFruByNameNotFound                        |
@@ -759,5 +765,226 @@ func TestParentExistsFalse(t *testing.T) {
 
 	if inv.parentExists(uuid.New()) {
 		t.Error("expected parentExists to return false for unknown UUID")
+	}
+}
+
+// --- RacksByLocation ---
+
+func TestRacksByLocation(t *testing.T) {
+	inv := NewInventory()
+	locID := uuid.New()
+	otherLocID := uuid.New()
+
+	id1 := uuid.New()
+	id2 := uuid.New()
+	id3 := uuid.New()
+	inv.Racks[id1] = &CaniRackType{ID: id1, Name: "z-rack", Location: locID}
+	inv.Racks[id2] = &CaniRackType{ID: id2, Name: "a-rack", Location: locID}
+	inv.Racks[id3] = &CaniRackType{ID: id3, Name: "other-rack", Location: otherLocID}
+
+	result := inv.RacksByLocation(locID)
+	if len(result) != 2 {
+		t.Fatalf("expected 2 racks, got %d", len(result))
+	}
+	if result[0].Name != "a-rack" || result[1].Name != "z-rack" {
+		t.Errorf("expected sorted [a-rack, z-rack], got [%s, %s]", result[0].Name, result[1].Name)
+	}
+}
+
+func TestRacksByLocationEmpty(t *testing.T) {
+	inv := NewInventory()
+	result := inv.RacksByLocation(uuid.New())
+	if len(result) != 0 {
+		t.Fatalf("expected 0 racks, got %d", len(result))
+	}
+}
+
+// --- FindLocationByNameOrID ---
+
+func TestFindLocationByNameOrIDByUUID(t *testing.T) {
+	inv := NewInventory()
+	id := uuid.New()
+	inv.Locations[id] = &CaniLocationType{ID: id, Name: "my-site"}
+
+	got := inv.FindLocationByNameOrID(id.String())
+	if got == nil || got.ID != id {
+		t.Fatal("expected to find location by UUID")
+	}
+}
+
+func TestFindLocationByNameOrIDByName(t *testing.T) {
+	inv := NewInventory()
+	id := uuid.New()
+	inv.Locations[id] = &CaniLocationType{ID: id, Name: "NON-MSFT"}
+
+	got := inv.FindLocationByNameOrID("NON-MSFT")
+	if got == nil || got.ID != id {
+		t.Fatal("expected to find location by name")
+	}
+}
+
+func TestFindLocationByNameOrIDNotFound(t *testing.T) {
+	inv := NewInventory()
+	got := inv.FindLocationByNameOrID("ghost")
+	if got != nil {
+		t.Errorf("expected nil, got %+v", got)
+	}
+}
+
+// --- FindDeviceByNameOrID ---
+
+func TestFindDeviceByNameOrIDByUUID(t *testing.T) {
+	inv := NewInventory()
+	id := uuid.New()
+	inv.Devices[id] = &CaniDeviceType{ID: id, Name: "dev-1"}
+
+	got := inv.FindDeviceByNameOrID(id.String())
+	if got == nil || got.ID != id {
+		t.Fatal("expected to find device by UUID")
+	}
+}
+
+func TestFindDeviceByNameOrIDByName(t *testing.T) {
+	inv := NewInventory()
+	id := uuid.New()
+	inv.Devices[id] = &CaniDeviceType{ID: id, Name: "gh-x3701u1"}
+
+	got := inv.FindDeviceByNameOrID("gh-x3701u1")
+	if got == nil || got.ID != id {
+		t.Fatal("expected to find device by name")
+	}
+}
+
+func TestFindDeviceByNameOrIDNotFound(t *testing.T) {
+	inv := NewInventory()
+	got := inv.FindDeviceByNameOrID("ghost")
+	if got != nil {
+		t.Errorf("expected nil, got %+v", got)
+	}
+}
+
+// --- DevicesBySlug ---
+
+func TestDevicesBySlugFound(t *testing.T) {
+	inv := NewInventory()
+	id1, id2 := uuid.New(), uuid.New()
+	inv.Devices[id1] = &CaniDeviceType{ID: id1, Name: "b-dev", Slug: "hpe-xd670"}
+	inv.Devices[id2] = &CaniDeviceType{ID: id2, Name: "a-dev", Slug: "hpe-xd670"}
+
+	got := inv.DevicesBySlug("hpe-xd670")
+	if len(got) != 2 {
+		t.Fatalf("expected 2 devices, got %d", len(got))
+	}
+	if got[0].Name != "a-dev" {
+		t.Errorf("expected sorted by name, first=%q", got[0].Name)
+	}
+}
+
+func TestDevicesBySlugCaseInsensitive(t *testing.T) {
+	inv := NewInventory()
+	id := uuid.New()
+	inv.Devices[id] = &CaniDeviceType{ID: id, Slug: "hpe-xd670"}
+
+	got := inv.DevicesBySlug("HPE-XD670")
+	if len(got) != 1 {
+		t.Fatalf("expected 1 device, got %d", len(got))
+	}
+}
+
+func TestDevicesBySlugEmpty(t *testing.T) {
+	inv := NewInventory()
+	got := inv.DevicesBySlug("nonexistent")
+	if len(got) != 0 {
+		t.Errorf("expected 0 devices, got %d", len(got))
+	}
+}
+
+// --- OccupiedModuleBays ---
+
+func TestOccupiedModuleBaysFound(t *testing.T) {
+	inv := NewInventory()
+	devID := uuid.New()
+	modID := uuid.New()
+	inv.Modules[modID] = &CaniModuleType{
+		ID: modID, ParentDevice: devID, ModuleBayName: "GPU 0",
+	}
+
+	got := inv.OccupiedModuleBays(devID)
+	if len(got) != 1 {
+		t.Fatalf("expected 1 occupied bay, got %d", len(got))
+	}
+	if got["GPU 0"] != modID {
+		t.Errorf("expected bay 'GPU 0' occupied by %s", modID)
+	}
+}
+
+func TestOccupiedModuleBaysEmpty(t *testing.T) {
+	inv := NewInventory()
+	got := inv.OccupiedModuleBays(uuid.New())
+	if len(got) != 0 {
+		t.Errorf("expected 0 occupied bays, got %d", len(got))
+	}
+}
+
+// --- AvailableModuleBays ---
+
+func TestAvailableModuleBaysFound(t *testing.T) {
+	inv := NewInventory()
+	devID := uuid.New()
+	inv.Devices[devID] = &CaniDeviceType{
+		ID: devID,
+		ModuleBays: []ModuleBaySpec{
+			{Name: "GPU 0", Position: "GPU0"},
+			{Name: "GPU 1", Position: "GPU1"},
+			{Name: "PSU1", Position: "PSU1"},
+		},
+	}
+	modID := uuid.New()
+	inv.Modules[modID] = &CaniModuleType{
+		ID: modID, ParentDevice: devID, ModuleBayName: "GPU 0",
+	}
+
+	got := inv.AvailableModuleBays(devID, "gpu")
+	if len(got) != 1 {
+		t.Fatalf("expected 1 available GPU bay, got %d", len(got))
+	}
+	if got[0].Name != "GPU 1" {
+		t.Errorf("expected GPU 1, got %s", got[0].Name)
+	}
+}
+
+func TestAvailableModuleBaysNoFilter(t *testing.T) {
+	inv := NewInventory()
+	devID := uuid.New()
+	inv.Devices[devID] = &CaniDeviceType{
+		ID: devID,
+		ModuleBays: []ModuleBaySpec{
+			{Name: "GPU 0", Position: "GPU0"},
+			{Name: "PSU1", Position: "PSU1"},
+		},
+	}
+
+	got := inv.AvailableModuleBays(devID, "")
+	if len(got) != 2 {
+		t.Fatalf("expected 2 available bays, got %d", len(got))
+	}
+}
+
+func TestAvailableModuleBaysAllOccupied(t *testing.T) {
+	inv := NewInventory()
+	devID := uuid.New()
+	inv.Devices[devID] = &CaniDeviceType{
+		ID: devID,
+		ModuleBays: []ModuleBaySpec{
+			{Name: "GPU 0", Position: "GPU0"},
+		},
+	}
+	inv.Modules[uuid.New()] = &CaniModuleType{
+		ID: uuid.New(), ParentDevice: devID, ModuleBayName: "GPU 0",
+	}
+
+	got := inv.AvailableModuleBays(devID, "")
+	if len(got) != 0 {
+		t.Errorf("expected 0 available bays, got %d", len(got))
 	}
 }

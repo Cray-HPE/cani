@@ -93,6 +93,9 @@ func gitClone(repoURL, target string) error {
 
 // gitPull fetches and merges the latest changes in an existing clone.
 func gitPull(repoDir string) error {
+	// Invalidate the types cache so it is rebuilt after the pull.
+	removeDirCache(repoDir)
+
 	if Debug {
 		log.Printf("Pulling latest types from %s", repoDir)
 	}

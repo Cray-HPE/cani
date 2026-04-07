@@ -38,8 +38,8 @@ func TestNewCableCreatesValidCable(t *testing.T) {
 	if c.Label != "Cat6a Patch" {
 		t.Errorf("label = %q, want %q", c.Label, "Cat6a Patch")
 	}
-	if c.Status != "connected" {
-		t.Errorf("status = %q, want %q", c.Status, "connected")
+	if c.Status != "Connected" {
+		t.Errorf("status = %q, want %q", c.Status, "Connected")
 	}
 }
 
@@ -143,8 +143,8 @@ func TestGetTypeAlwaysCable(t *testing.T) {
 
 func TestGetStatusReturnsStatus(t *testing.T) {
 	c := NewCable("cat6a", "Cat6a")
-	if c.GetStatus() != "connected" {
-		t.Errorf("GetStatus() = %q, want %q", c.GetStatus(), "connected")
+	if c.GetStatus() != "Connected" {
+		t.Errorf("GetStatus() = %q, want %q", c.GetStatus(), "Connected")
 	}
 }
 

@@ -78,7 +78,7 @@ func TestInterfaceInstanceJSONRoundTrip(t *testing.T) {
 		Name:           "eth1",
 		InterfaceType:  InterfacesElemTypeA25GbaseXSfp28,
 		DeviceID:       uuid.New(),
-		Status:         "active",
+		ObjectMeta:     ObjectMeta{Status: "Active"},
 		MgmtOnly:       false,
 		Label:          "Management",
 		ConnectedCable: &cable,
@@ -119,7 +119,7 @@ func TestInterfaceInstanceJSONRoundTrip(t *testing.T) {
 }
 
 func TestInterfaceInstanceUnmarshalInvalidID(t *testing.T) {
-	data := []byte(`{"id":"bad-uuid","name":"eth1","interfaceType":"10gbase-t","deviceId":"also-bad","status":"active"}`)
+	data := []byte(`{"id":"bad-uuid","name":"eth1","interfaceType":"10gbase-t","deviceId":"also-bad","status":"Active"}`)
 	var inst InterfaceInstance
 	if err := json.Unmarshal(data, &inst); err == nil {
 		t.Fatal("expected error for invalid UUID in id field, got nil")

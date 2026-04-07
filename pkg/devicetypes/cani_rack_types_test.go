@@ -19,6 +19,10 @@ package devicetypes
 // | addDevice            | TestAddDeviceHappyPath                 | TestAddDeviceDuplicate                  |
 // | FindNextAvailableSlot| TestFindNextAvailableSlotHappyPath     | TestFindNextAvailableSlotFull           |
 // | MigrateLegacySlots   | TestMigrateLegacySlotsHappyPath        | TestMigrateLegacySlotsEmpty             |
+// | GetSlotOccupant      | TestGetSlotOccupantHappyPath           | TestGetSlotOccupantEmpty                |
+// | GetDeviceFace        | TestGetDeviceFaceHappyPath             | TestGetDeviceFaceNil                    |
+// | GetDeviceHeight      | TestGetDeviceHeightHappyPath           | TestGetDeviceHeightNil                  |
+// | SwapDevices          | TestSwapDevicesHappyPath               | TestSwapDevicesNil                      |
 
 import (
 	"testing"
@@ -110,9 +114,9 @@ func TestGetTypeRackNil(t *testing.T) {
 // --- GetStatus ---
 
 func TestGetStatusRackHappyPath(t *testing.T) {
-	r := &CaniRackType{Status: "active"}
-	if got := r.GetStatus(); got != "active" {
-		t.Fatalf("expected active, got %s", got)
+	r := &CaniRackType{ObjectMeta: ObjectMeta{Status: "Active"}}
+	if got := r.GetStatus(); got != "Active" {
+		t.Fatalf("expected Active, got %s", got)
 	}
 }
 
@@ -317,5 +321,85 @@ func TestMigrateLegacySlotsEmpty(t *testing.T) {
 	}
 	if len(r.OccupiedSlots) != 0 {
 		t.Fatalf("expected 0 occupied slots, got %d", len(r.OccupiedSlots))
+	}
+}
+
+// --- GetSlotOccupant ---
+
+func TestGetSlotOccupantHappyPath(t *testing.T) {
+	devID := uuid.New()
+	r := &CaniRackType{UHeight: 42}
+	r.PlaceDevice(devID, 5, 1, FaceFront, false)
+	if got := r.GetSlotOccupant(5, FaceFront); got != devID {
+		t.Fatalf("expected %v, got %v", devID, got)
+	}
+}
+
+func TestGetSlotOccupantEmpty(t *testing.T) {
+	r := &CaniRackType{UHeight: 42}
+	if got := r.GetSlotOccupant(1, FaceFront); got != uuid.Nil {
+		t.Fatalf("expected uuid.Nil for empty slot, got %v", got)
+	}
+}
+
+// --- GetDeviceFace ---
+
+func TestGetDeviceFaceHappyPath(t *testing.T) {
+	devID := uuid.New()
+	r := &CaniRackType{UHeight: 42}
+	r.PlaceDevice(devID, 3, 1, FaceRear, false)
+	if got := r.GetDeviceFace(devID); got != FaceRear {
+		t.Fatalf("expected %s, got %s", FaceRear, got)
+	}
+}
+
+func TestGetDeviceFaceNil(t *testing.T) {
+	var r *CaniRackType
+	if got := r.GetDeviceFace(uuid.New()); got != "" {
+		t.Fatalf("expected empty string for nil receiver, got %s", got)
+	}
+}
+
+// --- GetDeviceHeight ---
+
+func TestGetDeviceHeightHappyPath(t *testing.T) {
+	devID := uuid.New()
+	r := &CaniRackType{UHeight: 42}
+	r.PlaceDevice(devID, 1, 4, FaceFront, false)
+	if got := r.GetDeviceHeight(devID); got != 4 {
+		t.Fatalf("expected height 4, got %d", got)
+	}
+}
+
+func TestGetDeviceHeightNil(t *testing.T) {
+	var r *CaniRackType
+	if got := r.GetDeviceHeight(uuid.New()); got != 0 {
+		t.Fatalf("expected 0 for nil receiver, got %d", got)
+	}
+}
+
+// --- SwapDevices ---
+
+func TestSwapDevicesHappyPath(t *testing.T) {
+	devA := uuid.New()
+	devB := uuid.New()
+	r := &CaniRackType{UHeight: 42}
+	r.PlaceDevice(devA, 1, 1, FaceFront, false)
+	r.PlaceDevice(devB, 2, 1, FaceFront, false)
+	if err := r.SwapDevices(devA, devB); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if got := r.GetDeviceStartU(devA); got != 2 {
+		t.Fatalf("expected devA at U2 after swap, got U%d", got)
+	}
+	if got := r.GetDeviceStartU(devB); got != 1 {
+		t.Fatalf("expected devB at U1 after swap, got U%d", got)
+	}
+}
+
+func TestSwapDevicesNil(t *testing.T) {
+	var r *CaniRackType
+	if err := r.SwapDevices(uuid.New(), uuid.New()); err == nil {
+		t.Fatal("expected error for nil receiver")
 	}
 }

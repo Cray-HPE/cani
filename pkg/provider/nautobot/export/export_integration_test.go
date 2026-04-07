@@ -52,7 +52,7 @@ func skipUnlessNautobot(t *testing.T) {
 // fixtureDir returns the path to testdata/fixtures/cani.
 func fixtureDir() string {
 	_, thisFile, _, _ := runtime.Caller(0)
-	return filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "testdata", "fixtures", "cani")
+	return filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "..", "testdata", "fixtures", "cani")
 }
 
 // loadSpineLeafInventory reads and unmarshals the spine-leaf fixture.

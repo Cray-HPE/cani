@@ -52,6 +52,13 @@ func (inv *Inventory) AddRack(rack *CaniRackType) error {
 	if _, exists := inv.Racks[rack.ID]; exists {
 		return fmt.Errorf("rack %s already exists", rack.ID)
 	}
+	if rack.Location != uuid.Nil {
+		if loc, ok := inv.Locations[rack.Location]; ok {
+			if err := loc.ValidateContentType("rack"); err != nil {
+				return err
+			}
+		}
+	}
 	inv.Racks[rack.ID] = rack
 	inv.VerifyParentChildRelationships()
 	return nil

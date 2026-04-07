@@ -24,6 +24,9 @@ var (
 
 	//go:embed rack-types
 	embeddedRackTypes embed.FS
+
+	//go:embed location-types
+	embeddedLocationTypes embed.FS
 )
 
 const sourceBuiltin = "builtin"
@@ -63,6 +66,9 @@ func loadAllEmbedded() error {
 	if err := loadEmbeddedRackTypes(); err != nil {
 		return err
 	}
+	if err := loadEmbeddedLocationTypes(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -79,16 +85,18 @@ func loadEmbeddedDeviceTypes() error {
 			log.Printf("Warning: failed to read embedded device type %s: %v", path, err)
 			return nil
 		}
-		var dt CaniDeviceType
-		if err := yaml.Unmarshal(data, &dt); err != nil {
-			log.Printf("Warning: failed to parse embedded device type %s: %v", path, err)
-			return nil
-		}
-		if dt.Slug == "" {
-			return nil
-		}
-		dt.Source = sourceBuiltin
-		RegisterDeviceType(dt)
+		forEachYAMLDoc(data, func(doc []byte) {
+			var dt CaniDeviceType
+			if err := yaml.Unmarshal(doc, &dt); err != nil {
+				log.Printf("Warning: failed to parse embedded device type %s: %v", path, err)
+				return
+			}
+			if dt.Slug == "" {
+				return
+			}
+			dt.Source = sourceBuiltin
+			RegisterDeviceType(dt)
+		})
 		return nil
 	})
 }
@@ -170,6 +178,33 @@ func loadEmbeddedRackTypes() error {
 		}
 		rt.Source = sourceBuiltin
 		RegisterRackType(rt)
+		return nil
+	})
+}
+
+func loadEmbeddedLocationTypes() error {
+	return fs.WalkDir(embeddedLocationTypes, "location-types", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() || !isYAML(path) {
+			return nil
+		}
+		data, err := embeddedLocationTypes.ReadFile(path)
+		if err != nil {
+			log.Printf("Warning: failed to read embedded location type %s: %v", path, err)
+			return nil
+		}
+		var lt LocationTypeDefinition
+		if err := yaml.Unmarshal(data, &lt); err != nil {
+			log.Printf("Warning: failed to parse embedded location type %s: %v", path, err)
+			return nil
+		}
+		if lt.Slug == "" {
+			return nil
+		}
+		lt.Source = sourceBuiltin
+		RegisterLocationType(lt)
 		return nil
 	})
 }

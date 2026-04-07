@@ -73,3 +73,51 @@ func TestNewInventoryMapsAreEmpty(t *testing.T) {
 		t.Errorf("expected 0 interfaces, got %d", len(inv.Interfaces))
 	}
 }
+
+// ---------- EnsureUniqueDeviceNames ----------
+
+func TestEnsureUniqueDeviceNamesSuffixes(t *testing.T) {
+	tr := &TransformResult{
+		Devices: map[uuid.UUID]*CaniDeviceType{
+			uuid.New(): {Name: "server"},
+			uuid.New(): {Name: "server"},
+			uuid.New(): {Name: "server"},
+		},
+	}
+
+	tr.EnsureUniqueDeviceNames()
+
+	seen := make(map[string]bool)
+	for _, d := range tr.Devices {
+		if seen[d.Name] {
+			t.Errorf("duplicate name after EnsureUniqueDeviceNames: %q", d.Name)
+		}
+		seen[d.Name] = true
+	}
+	if len(seen) != 3 {
+		t.Errorf("expected 3 unique names, got %d", len(seen))
+	}
+}
+
+func TestEnsureUniqueDeviceNamesNoDuplicates(t *testing.T) {
+	tr := &TransformResult{
+		Devices: map[uuid.UUID]*CaniDeviceType{
+			uuid.New(): {Name: "alpha"},
+			uuid.New(): {Name: "bravo"},
+			uuid.New(): {Name: "charlie"},
+		},
+	}
+
+	tr.EnsureUniqueDeviceNames()
+
+	// Names should be unchanged when all unique.
+	names := make(map[string]bool)
+	for _, d := range tr.Devices {
+		names[d.Name] = true
+	}
+	for _, want := range []string{"alpha", "bravo", "charlie"} {
+		if !names[want] {
+			t.Errorf("expected name %q to remain unchanged", want)
+		}
+	}
+}

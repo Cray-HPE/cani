@@ -15,6 +15,7 @@ var (
 	rackTypesByPartNum   = make(map[string]CaniRackType)
 	allFruTypes          = make(map[string]CaniFruType)
 	fruTypesByPartNum    = make(map[string]CaniFruType)
+	allLocationTypes     = make(map[string]LocationTypeDefinition)
 	allTypes             []Type
 )
 
@@ -192,6 +193,14 @@ func ListAllAvailableTypes() []TypeEntry {
 			PartNumber: ft.PartNumber,
 			Category:   ft.HardwareType,
 			Source:     ft.Source,
+		})
+	}
+	for _, lt := range allLocationTypes {
+		entries = append(entries, TypeEntry{
+			Name:     lt.Name,
+			Slug:     lt.Slug,
+			Category: "location-type",
+			Source:   lt.Source,
 		})
 	}
 	return entries

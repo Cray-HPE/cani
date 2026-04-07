@@ -24,7 +24,7 @@ func TestValidateLocationHappyPath(t *testing.T) {
 		ID:           uuid.New(),
 		Name:         "Building-A",
 		LocationType: "building",
-		Status:       "active",
+		ObjectMeta:   ObjectMeta{Status: "Active"},
 	}
 	if err := loc.Validate(); err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -78,9 +78,9 @@ func TestGetSlugLocationNilReceiver(t *testing.T) {
 // --- GetStatus ---
 
 func TestGetStatusLocationHappyPath(t *testing.T) {
-	loc := CaniLocationType{LocationType: "floor", Status: "active"}
-	if got := loc.GetStatus(); got != "active" {
-		t.Fatalf("expected %q, got %q", "active", got)
+	loc := CaniLocationType{LocationType: "floor", ObjectMeta: ObjectMeta{Status: "Active"}}
+	if got := loc.GetStatus(); got != "Active" {
+		t.Fatalf("expected %q, got %q", "Active", got)
 	}
 }
 

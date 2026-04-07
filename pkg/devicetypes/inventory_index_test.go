@@ -51,12 +51,12 @@ func TestRebuildIndexPopulatesFromDevices(t *testing.T) {
 	inv.Devices[id] = &CaniDeviceType{
 		ID:   id,
 		Name: "server1",
-		ProviderMetadata: map[string]any{
+		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
 			"redfish": map[string]any{
 				"redfish_uuid": "abc-123",
 				"bmc_fqdn":     "bmc1.example.com",
 			},
-		},
+		}},
 	}
 
 	inv.RebuildProviderKeyIndex()
@@ -90,9 +90,9 @@ func TestLookupProviderKeyFindsMatch(t *testing.T) {
 	inv.Devices[id] = &CaniDeviceType{
 		ID:   id,
 		Name: "node1",
-		ProviderMetadata: map[string]any{
+		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
 			"csm": map[string]any{"xname": "x1000c0s0b0n0"},
-		},
+		}},
 	}
 	inv.RebuildProviderKeyIndex()
 
@@ -120,9 +120,9 @@ func TestIndexDeviceAddsEntries(t *testing.T) {
 	dev := &CaniDeviceType{
 		ID:   id,
 		Name: "test",
-		ProviderMetadata: map[string]any{
+		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
 			"hpcm": map[string]any{"hpcm_uuid": "hpcm-111"},
-		},
+		}},
 	}
 
 	inv.indexDevice(id, dev)
@@ -139,9 +139,9 @@ func TestUnindexDeviceRemovesEntries(t *testing.T) {
 	dev := &CaniDeviceType{
 		ID:   id,
 		Name: "test",
-		ProviderMetadata: map[string]any{
+		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
 			"hpcm": map[string]any{"hpcm_uuid": "hpcm-222"},
-		},
+		}},
 	}
 	inv.indexDevice(id, dev)
 	inv.unindexDevice(id, dev)
@@ -192,9 +192,9 @@ func TestFindDeviceByProviderKeyUsesIndex(t *testing.T) {
 	dev := &CaniDeviceType{
 		ID:   id,
 		Name: "indexed-server",
-		ProviderMetadata: map[string]any{
+		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
 			"redfish": map[string]any{"redfish_uuid": "rf-indexed"},
-		},
+		}},
 	}
 	inv.Devices[id] = dev
 	inv.RebuildProviderKeyIndex()
@@ -214,9 +214,9 @@ func TestFindDeviceByProviderKeyFallsBack(t *testing.T) {
 	dev := &CaniDeviceType{
 		ID:   id,
 		Name: "fallback-server",
-		ProviderMetadata: map[string]any{
+		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
 			"redfish": map[string]any{"redfish_uuid": "rf-fallback"},
-		},
+		}},
 	}
 	inv.Devices[id] = dev
 	// Don't build the index — forces fallback to linear scan.
@@ -241,9 +241,9 @@ func TestMergeDevicesStrictMaintainsIndex(t *testing.T) {
 	dev := &CaniDeviceType{
 		ID:   id,
 		Name: "merge-test",
-		ProviderMetadata: map[string]any{
+		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
 			"csm": map[string]any{"xname": "x3000c0s0b0n0"},
-		},
+		}},
 	}
 	inv.MergeDevicesStrict(map[uuid.UUID]*CaniDeviceType{id: dev}, false)
 
@@ -260,9 +260,9 @@ func TestMergeDevicesStrictMaintainsIndex(t *testing.T) {
 	updated := &CaniDeviceType{
 		ID:   id,
 		Name: "merge-test",
-		ProviderMetadata: map[string]any{
+		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
 			"csm": map[string]any{"xname": "x3000c0s1b0n0"},
-		},
+		}},
 	}
 	inv.MergeDevicesStrict(map[uuid.UUID]*CaniDeviceType{id: updated}, false)
 
@@ -276,5 +276,39 @@ func TestMergeDevicesStrictMaintainsIndex(t *testing.T) {
 	newDev := inv.FindDeviceByProviderKey("csm", "xname", "x3000c0s1b0n0")
 	if newDev == nil {
 		t.Fatal("new xname should match after update")
+	}
+}
+
+// ---------- indexDeviceMetadata ----------
+
+func TestIndexDeviceMetadataPopulates(t *testing.T) {
+	idx := make(providerKeyIndex)
+	id := uuid.New()
+	meta := map[string]any{
+		"csm": map[string]any{"xname": "x1000c0s0b0n0", "class": "Mountain"},
+	}
+
+	indexDeviceMetadata(idx, id, meta)
+
+	if idx["csm"]["xname"]["x1000c0s0b0n0"] != id {
+		t.Error("expected xname to be indexed")
+	}
+	if idx["csm"]["class"]["Mountain"] != id {
+		t.Error("expected class to be indexed")
+	}
+}
+
+func TestIndexDeviceMetadataSkipsNonMap(t *testing.T) {
+	idx := make(providerKeyIndex)
+	id := uuid.New()
+	// Top-level value is a string, not a sub-map — should be skipped.
+	meta := map[string]any{
+		"plain_key": "plain_value",
+	}
+
+	indexDeviceMetadata(idx, id, meta)
+
+	if len(idx) != 0 {
+		t.Errorf("expected empty index for non-map metadata, got %v", idx)
 	}
 }

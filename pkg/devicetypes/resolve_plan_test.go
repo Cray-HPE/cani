@@ -194,3 +194,41 @@ func TestPlanFileRoundTrip(t *testing.T) {
 		t.Errorf("parent ID mismatch: got %s, want %s", loaded.Assignments[0].ParentID, rackID)
 	}
 }
+
+// ---------- PlaceDeviceInRack ----------
+
+func TestPlaceDeviceInRackAutoSlot(t *testing.T) {
+	inv := NewInventory()
+
+	rackID := uuid.New()
+	rack := &CaniRackType{ID: rackID, Name: "rack-place", UHeight: 42}
+	inv.Racks[rackID] = rack
+
+	devID := uuid.New()
+	dev := &CaniDeviceType{ID: devID, Name: "server-auto", UHeight: 2}
+
+	PlaceDeviceInRack(dev, devID, rack, 0, "")
+
+	if dev.RackPosition <= 0 {
+		t.Errorf("expected positive RackPosition, got %d", dev.RackPosition)
+	}
+	if dev.Face != FaceFront {
+		t.Errorf("Face = %q, want %q", dev.Face, FaceFront)
+	}
+}
+
+func TestPlaceDeviceInRackExplicitSlot(t *testing.T) {
+	rack := &CaniRackType{ID: uuid.New(), Name: "rack-explicit", UHeight: 42}
+
+	devID := uuid.New()
+	dev := &CaniDeviceType{ID: devID, Name: "server-explicit", UHeight: 1}
+
+	PlaceDeviceInRack(dev, devID, rack, 10, FaceRear)
+
+	if dev.RackPosition != 10 {
+		t.Errorf("RackPosition = %d, want 10", dev.RackPosition)
+	}
+	if dev.Face != FaceRear {
+		t.Errorf("Face = %q, want %q", dev.Face, FaceRear)
+	}
+}

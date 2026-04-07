@@ -27,6 +27,7 @@ package devicetypes
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/google/uuid"
@@ -52,6 +53,22 @@ func (inv *Inventory) LocationExists(name string) bool {
 	return inv.FindLocationByName(name) != nil
 }
 
+// --- Location helpers ---
+
+// FindLocationByNameOrID tries to parse ref as a UUID; if that fails it
+// falls back to a name lookup. Returns nil if nothing matches.
+func (inv *Inventory) FindLocationByNameOrID(ref string) *CaniLocationType {
+	if inv == nil || ref == "" {
+		return nil
+	}
+	if id, err := uuid.Parse(ref); err == nil {
+		if loc, ok := inv.Locations[id]; ok {
+			return loc
+		}
+	}
+	return inv.FindLocationByName(ref)
+}
+
 // --- Rack lookups ---
 
 // FindRackByName returns the first rack matching the given name, or nil.
@@ -70,6 +87,42 @@ func (inv *Inventory) FindRackByName(name string) *CaniRackType {
 // RackExists returns true if a rack with the given name exists.
 func (inv *Inventory) RackExists(name string) bool {
 	return inv.FindRackByName(name) != nil
+}
+
+// RacksByLocation returns all racks at the given location, sorted
+// alphabetically by name for deterministic ordering.
+func (inv *Inventory) RacksByLocation(locationID uuid.UUID) []*CaniRackType {
+	if inv == nil {
+		return nil
+	}
+	var result []*CaniRackType
+	for _, rack := range inv.Racks {
+		if rack != nil && rack.Location == locationID {
+			result = append(result, rack)
+		}
+	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Name < result[j].Name
+	})
+	return result
+}
+
+// AllRacks returns every rack in the inventory, sorted alphabetically
+// by name for deterministic ordering.
+func (inv *Inventory) AllRacks() []*CaniRackType {
+	if inv == nil {
+		return nil
+	}
+	result := make([]*CaniRackType, 0, len(inv.Racks))
+	for _, rack := range inv.Racks {
+		if rack != nil {
+			result = append(result, rack)
+		}
+	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Name < result[j].Name
+	})
+	return result
 }
 
 // --- Module lookups ---
@@ -372,6 +425,92 @@ func (inv *Inventory) Validate() error {
 		return fmt.Errorf("inventory validation failed:\n  %s", strings.Join(errs, "\n  "))
 	}
 	return nil
+}
+
+// --- Device lookups ---
+
+// FindDeviceByNameOrID tries to parse ref as a UUID; if that fails it
+// falls back to a name lookup. Returns nil if nothing matches.
+func (inv *Inventory) FindDeviceByNameOrID(ref string) *CaniDeviceType {
+	if inv == nil || ref == "" {
+		return nil
+	}
+	if id, err := uuid.Parse(ref); err == nil {
+		if dev, ok := inv.Devices[id]; ok {
+			return dev
+		}
+	}
+	for _, dev := range inv.Devices {
+		if dev != nil && dev.Name == ref {
+			return dev
+		}
+	}
+	return nil
+}
+
+// DevicesBySlug returns all inventory devices matching the given slug,
+// sorted by name for deterministic ordering.
+func (inv *Inventory) DevicesBySlug(slug string) []*CaniDeviceType {
+	if inv == nil || slug == "" {
+		return nil
+	}
+	lower := strings.ToLower(slug)
+	var result []*CaniDeviceType
+	for _, dev := range inv.Devices {
+		if dev != nil && strings.ToLower(dev.Slug) == lower {
+			result = append(result, dev)
+		}
+	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Name < result[j].Name
+	})
+	return result
+}
+
+// --- Module bay occupancy ---
+
+// OccupiedModuleBays returns a map of bay-name → module-ID for all modules
+// installed in the given device. This mirrors how Nautobot tracks module
+// bay occupancy: each Module references a ModuleBay (by name) on a
+// parent Device, and occupancy is implicit from the Module records.
+func (inv *Inventory) OccupiedModuleBays(deviceID uuid.UUID) map[string]uuid.UUID {
+	result := make(map[string]uuid.UUID)
+	if inv == nil {
+		return result
+	}
+	for _, mod := range inv.Modules {
+		if mod != nil && mod.ParentDevice == deviceID && mod.ModuleBayName != "" {
+			result[mod.ModuleBayName] = mod.ID
+		}
+	}
+	return result
+}
+
+// AvailableModuleBays returns the device's module-bay specs that are not
+// yet occupied by a module. If bayFilter is non-empty, only bays whose
+// name contains the filter string (case-insensitive) are returned.
+func (inv *Inventory) AvailableModuleBays(deviceID uuid.UUID, bayFilter string) []ModuleBaySpec {
+	if inv == nil {
+		return nil
+	}
+	dev, ok := inv.Devices[deviceID]
+	if !ok || dev == nil {
+		return nil
+	}
+	occupied := inv.OccupiedModuleBays(deviceID)
+	filter := strings.ToLower(bayFilter)
+
+	var result []ModuleBaySpec
+	for _, bay := range dev.ModuleBays {
+		if _, taken := occupied[bay.Name]; taken {
+			continue
+		}
+		if filter != "" && !strings.Contains(strings.ToLower(bay.Name), filter) {
+			continue
+		}
+		result = append(result, bay)
+	}
+	return result
 }
 
 // parentExists checks if a UUID exists as a device, rack, or location.

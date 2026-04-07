@@ -474,3 +474,50 @@ func TestLookupScoredFMN(t *testing.T) {
 		t.Errorf("LookupScored(\"fmn\") score = %d, want >= 30", score)
 	}
 }
+
+// ---------- LookupModuleScored ----------
+
+func TestLookupModuleScoredReturnsScore(t *testing.T) {
+	RegisterModuleType(CaniModuleType{
+		Slug:         "test-scored-module",
+		Model:        "Test Scored Module",
+		Manufacturer: "TestCo",
+		PartNumber:   "TSM-001",
+	})
+	defer func() { delete(allModuleTypes, "test-scored-module") }()
+
+	mt, score := LookupModuleScored("TSM-001")
+	if score < 100 {
+		t.Errorf("LookupModuleScored(\"TSM-001\") score = %d, want >= 100", score)
+	}
+	if mt.Slug != "test-scored-module" {
+		t.Errorf("slug = %q, want test-scored-module", mt.Slug)
+	}
+}
+
+func TestLookupModuleScoredNoMatch(t *testing.T) {
+	_, score := LookupModuleScored("zzz-no-such-module-zzz")
+	if score != 0 {
+		t.Errorf("expected score 0 for no match, got %d", score)
+	}
+}
+
+// ---------- tokenizeCamelNum ----------
+
+func TestTokenizeCamelNumSplitsLetterDigit(t *testing.T) {
+	tokens := tokenizeCamelNum("dl360gen11")
+	want := map[string]bool{"dl360": true, "gen11": true}
+	for _, tok := range tokens {
+		delete(want, tok)
+	}
+	if len(want) != 0 {
+		t.Errorf("tokenizeCamelNum(\"dl360gen11\") missing tokens: %v, got %v", want, tokens)
+	}
+}
+
+func TestTokenizeCamelNumPlainToken(t *testing.T) {
+	tokens := tokenizeCamelNum("blade")
+	if len(tokens) != 1 || tokens[0] != "blade" {
+		t.Errorf("tokenizeCamelNum(\"blade\") = %v, want [blade]", tokens)
+	}
+}

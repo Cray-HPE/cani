@@ -72,9 +72,9 @@ func TestModuleGetSlugReturnsEmptyForNil(t *testing.T) {
 // --- GetStatus ---
 
 func TestModuleGetStatusReturnsStatus(t *testing.T) {
-	m := &CaniModuleType{Status: "active"}
-	if got := m.GetStatus(); got != "active" {
-		t.Fatalf("expected active, got %s", got)
+	m := &CaniModuleType{ObjectMeta: ObjectMeta{Status: "Active"}}
+	if got := m.GetStatus(); got != "Active" {
+		t.Fatalf("expected Active, got %s", got)
 	}
 }
 

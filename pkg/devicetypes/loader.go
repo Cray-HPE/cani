@@ -50,6 +50,14 @@ func LoadAll(typesDirs, typesRepos []string, typesRepoClone, typesRepoPull bool)
 // (device-types, module-types, cable-types, rack-types, inventory-types)
 // and registers any YAML types found. Existing slugs are not overwritten.
 func LoadFromDir(root, source string) error {
+	// Fast path: load from a pre-built JSON cache when available.
+	cachePath := filepath.Join(root, cacheFileName)
+	if cache, err := readDirCache(cachePath); err == nil {
+		registerCachedTypes(cache, source)
+		return nil
+	}
+
+	// Slow path: walk YAML files and register types.
 	subDirs := []struct {
 		name string
 		load func(dir, source string) error
@@ -59,6 +67,7 @@ func LoadFromDir(root, source string) error {
 		{"cable-types", loadCableTypesFromDir},
 		{"rack-types", loadRackTypesFromDir},
 		{"inventory-types", loadFruTypesFromDir},
+		{"location-types", loadLocationTypesFromDir},
 	}
 	for _, sd := range subDirs {
 		dir := filepath.Join(root, sd.name)
@@ -69,27 +78,32 @@ func LoadFromDir(root, source string) error {
 			return fmt.Errorf("loading %s from %s: %w", sd.name, root, err)
 		}
 	}
+
+	// Persist cache for next invocation.
+	writeDirCache(cachePath, collectTypesFromSource(source))
 	return nil
 }
 
 func loadDeviceTypesFromDir(dir, source string) error {
 	return walkYAMLFiles(dir, func(data []byte, path string) {
-		var dt CaniDeviceType
-		if err := yaml.Unmarshal(data, &dt); err != nil {
-			log.Printf("Warning: failed to parse device type %s: %v", path, err)
-			return
-		}
-		if dt.Slug == "" {
-			return
-		}
-		if _, exists := allDeviceTypes[dt.Slug]; exists {
-			return
-		}
-		dt.Source = source
-		RegisterDeviceType(dt)
-		if Debug {
-			log.Printf("Loaded device type: %s [%s]", dt.Slug, source)
-		}
+		forEachYAMLDoc(data, func(doc []byte) {
+			var dt CaniDeviceType
+			if err := yaml.Unmarshal(doc, &dt); err != nil {
+				log.Printf("Warning: failed to parse device type %s: %v", path, err)
+				return
+			}
+			if dt.Slug == "" {
+				return
+			}
+			if _, exists := allDeviceTypes[dt.Slug]; exists {
+				return
+			}
+			dt.Source = source
+			RegisterDeviceType(dt)
+			if Debug {
+				log.Printf("Loaded device type: %s [%s]", dt.Slug, source)
+			}
+		})
 	})
 }
 
@@ -177,6 +191,27 @@ func loadFruTypesFromDir(dir, source string) error {
 	})
 }
 
+func loadLocationTypesFromDir(dir, source string) error {
+	return walkYAMLFiles(dir, func(data []byte, path string) {
+		var lt LocationTypeDefinition
+		if err := yaml.Unmarshal(data, &lt); err != nil {
+			log.Printf("Warning: failed to parse location type %s: %v", path, err)
+			return
+		}
+		if lt.Slug == "" {
+			return
+		}
+		if _, exists := allLocationTypes[lt.Slug]; exists {
+			return
+		}
+		lt.Source = source
+		RegisterLocationType(lt)
+		if Debug {
+			log.Printf("Loaded location type: %s [%s]", lt.Slug, source)
+		}
+	})
+}
+
 // walkYAMLFiles walks a directory tree and calls fn for every YAML file found.
 func walkYAMLFiles(dir string, fn func(data []byte, path string)) error {
 	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
@@ -212,4 +247,21 @@ func sanitizeRepoName(url string) string {
 	// Replace path separators and special chars with dashes
 	r := strings.NewReplacer("/", "-", ":", "-", ".git", "")
 	return r.Replace(name)
+}
+
+// forEachYAMLDoc splits multi-document YAML data (separated by "---")
+// and calls fn for each document. Single-document files work as well.
+func forEachYAMLDoc(data []byte, fn func(doc []byte)) {
+	dec := yaml.NewDecoder(strings.NewReader(string(data)))
+	for {
+		var node yaml.Node
+		if err := dec.Decode(&node); err != nil {
+			break // io.EOF or parse error — stop iteration
+		}
+		doc, err := yaml.Marshal(&node)
+		if err != nil {
+			continue
+		}
+		fn(doc)
+	}
 }

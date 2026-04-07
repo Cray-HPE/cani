@@ -19,7 +19,7 @@ import (
 
 func TestCaniTypeValidatePassesForValidInstance(t *testing.T) {
 	id := uuid.New()
-	var ct CaniType = &CaniDeviceType{ID: id, Slug: "test-device", Status: "staged"}
+	var ct CaniType = &CaniDeviceType{ID: id, Slug: "test-device", ObjectMeta: ObjectMeta{Status: "Staged"}}
 	if err := ct.Validate(); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -68,9 +68,9 @@ func TestCaniTypeGetSlugReturnsEmptyForNilReceiver(t *testing.T) {
 // --- GetStatus ---
 
 func TestCaniTypeGetStatusReturnsExpectedStatus(t *testing.T) {
-	var ct CaniType = &CaniDeviceType{Status: "active"}
-	if got := ct.GetStatus(); got != "active" {
-		t.Fatalf("expected active, got %s", got)
+	var ct CaniType = &CaniDeviceType{ObjectMeta: ObjectMeta{Status: "Active"}}
+	if got := ct.GetStatus(); got != "Active" {
+		t.Fatalf("expected Active, got %s", got)
 	}
 }
 

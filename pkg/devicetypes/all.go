@@ -102,6 +102,22 @@ func RegisterCableType(ct CaniCableType) {
 	}
 }
 
+// AllLocationTypes returns all loaded location type definitions.
+func AllLocationTypes() map[string]LocationTypeDefinition {
+	return allLocationTypes
+}
+
+// GetLocationTypeBySlug looks up a location type definition by its slug.
+func GetLocationTypeBySlug(slug string) (LocationTypeDefinition, bool) {
+	lt, ok := allLocationTypes[slug]
+	return lt, ok
+}
+
+// RegisterLocationType adds a location type definition to the in-memory registry.
+func RegisterLocationType(lt LocationTypeDefinition) {
+	allLocationTypes[lt.Slug] = lt
+}
+
 // RegisterDeviceType adds a device type to the in-memory registry.
 func RegisterDeviceType(dt CaniDeviceType) {
 	allDeviceTypes[dt.Slug] = dt

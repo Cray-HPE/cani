@@ -63,8 +63,8 @@ func TestNewDefaultLocationSetsDefaults(t *testing.T) {
 	if loc.LocationType != "site" {
 		t.Errorf("expected location type %q, got %q", "site", loc.LocationType)
 	}
-	if loc.Status != "active" {
-		t.Errorf("expected status %q, got %q", "active", loc.Status)
+	if loc.Status != "Active" {
+		t.Errorf("expected status %q, got %q", "Active", loc.Status)
 	}
 }
 
@@ -113,8 +113,8 @@ func TestNewDeviceFromSlugHappyPath(t *testing.T) {
 	if dev.ID == uuid.Nil {
 		t.Error("expected non-nil UUID")
 	}
-	if dev.Status != "staged" {
-		t.Errorf("expected status %q, got %q", "staged", dev.Status)
+	if dev.Status != "Staged" {
+		t.Errorf("expected status %q, got %q", "Staged", dev.Status)
 	}
 	if !strings.HasPrefix(dev.Name, "cani-device-") {
 		t.Errorf("expected generated name with prefix, got %q", dev.Name)
@@ -157,8 +157,8 @@ func TestNewDeviceFromPartNumberHappyPath(t *testing.T) {
 	if dev.ID == uuid.Nil {
 		t.Error("expected non-nil UUID")
 	}
-	if dev.Status != "staged" {
-		t.Errorf("expected status %q, got %q", "staged", dev.Status)
+	if dev.Status != "Staged" {
+		t.Errorf("expected status %q, got %q", "Staged", dev.Status)
 	}
 	if !strings.HasPrefix(dev.Name, "cani-device-") {
 		t.Errorf("expected generated name with prefix, got %q", dev.Name)
@@ -197,8 +197,8 @@ func TestNewRackFromSlugHappyPath(t *testing.T) {
 	if rack.ID == uuid.Nil {
 		t.Error("expected non-nil UUID")
 	}
-	if rack.Status != "active" {
-		t.Errorf("expected status %q, got %q", "active", rack.Status)
+	if rack.Status != "Active" {
+		t.Errorf("expected status %q, got %q", "Active", rack.Status)
 	}
 	if rack.OccupiedSlots == nil {
 		t.Error("expected OccupiedSlots map to be initialized")
@@ -240,8 +240,8 @@ func TestNewRackFromPartNumberHappyPath(t *testing.T) {
 	if rack.ID == uuid.Nil {
 		t.Error("expected non-nil UUID")
 	}
-	if rack.Status != "active" {
-		t.Errorf("expected status %q, got %q", "active", rack.Status)
+	if rack.Status != "Active" {
+		t.Errorf("expected status %q, got %q", "Active", rack.Status)
 	}
 	if rack.OccupiedSlots == nil {
 		t.Error("expected OccupiedSlots map to be initialized")
@@ -281,8 +281,8 @@ func TestNewModuleFromSlugHappyPath(t *testing.T) {
 	if mod.ID == uuid.Nil {
 		t.Error("expected non-nil UUID")
 	}
-	if mod.Status != "active" {
-		t.Errorf("expected status %q, got %q", "active", mod.Status)
+	if mod.Status != "Active" {
+		t.Errorf("expected status %q, got %q", "Active", mod.Status)
 	}
 	if mod.Name != "PSU-1600W" {
 		t.Errorf("expected name %q from model, got %q", "PSU-1600W", mod.Name)
@@ -322,8 +322,8 @@ func TestNewModuleFromPartNumberHappyPath(t *testing.T) {
 	if mod.ID == uuid.Nil {
 		t.Error("expected non-nil UUID")
 	}
-	if mod.Status != "active" {
-		t.Errorf("expected status %q, got %q", "active", mod.Status)
+	if mod.Status != "Active" {
+		t.Errorf("expected status %q, got %q", "Active", mod.Status)
 	}
 	if mod.Name != "NIC-25G" {
 		t.Errorf("expected name %q from model, got %q", "NIC-25G", mod.Name)
@@ -362,8 +362,8 @@ func TestNewCableFromSlugHappyPath(t *testing.T) {
 	if cable.ID == uuid.Nil {
 		t.Error("expected non-nil UUID")
 	}
-	if cable.Status != "connected" {
-		t.Errorf("expected status %q, got %q", "connected", cable.Status)
+	if cable.Status != "Connected" {
+		t.Errorf("expected status %q, got %q", "Connected", cable.Status)
 	}
 }
 
@@ -399,8 +399,8 @@ func TestNewCableFromPartNumberHappyPath(t *testing.T) {
 	if cable.ID == uuid.Nil {
 		t.Error("expected non-nil UUID")
 	}
-	if cable.Status != "connected" {
-		t.Errorf("expected status %q, got %q", "connected", cable.Status)
+	if cable.Status != "Connected" {
+		t.Errorf("expected status %q, got %q", "Connected", cable.Status)
 	}
 }
 
@@ -436,8 +436,8 @@ func TestNewFruFromSlugHappyPath(t *testing.T) {
 	if fru.ID == uuid.Nil {
 		t.Error("expected non-nil UUID")
 	}
-	if fru.Status != "active" {
-		t.Errorf("expected status %q, got %q", "active", fru.Status)
+	if fru.Status != "Active" {
+		t.Errorf("expected status %q, got %q", "Active", fru.Status)
 	}
 }
 
@@ -473,8 +473,8 @@ func TestNewFruFromPartNumberHappyPath(t *testing.T) {
 	if fru.ID == uuid.Nil {
 		t.Error("expected non-nil UUID")
 	}
-	if fru.Status != "active" {
-		t.Errorf("expected status %q, got %q", "active", fru.Status)
+	if fru.Status != "Active" {
+		t.Errorf("expected status %q, got %q", "Active", fru.Status)
 	}
 }
 

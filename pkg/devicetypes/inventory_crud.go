@@ -252,7 +252,9 @@ type ProviderKeyCheck struct {
 // --- Rack merge ---
 
 // MergeRacks merges incoming racks by UUID match, then name match, then insert.
-func (inv *Inventory) MergeRacks(incoming map[uuid.UUID]*CaniRackType) {
+// Returns a remap map from incoming UUID to existing UUID for name-matched racks.
+func (inv *Inventory) MergeRacks(incoming map[uuid.UUID]*CaniRackType) map[uuid.UUID]uuid.UUID {
+	remap := make(map[uuid.UUID]uuid.UUID)
 	if inv.Racks == nil {
 		inv.Racks = make(map[uuid.UUID]*CaniRackType)
 	}
@@ -270,9 +272,10 @@ func (inv *Inventory) MergeRacks(incoming map[uuid.UUID]*CaniRackType) {
 
 		// Name match — keep UUID, update fields
 		found := false
-		for _, existing := range inv.Racks {
+		for existingID, existing := range inv.Racks {
 			if existing != nil && existing.Name == rack.Name {
 				mergeRackProperties(existing, rack)
+				remap[id] = existingID
 				found = true
 				break
 			}
@@ -282,6 +285,7 @@ func (inv *Inventory) MergeRacks(incoming map[uuid.UUID]*CaniRackType) {
 			inv.Racks[id] = rack
 		}
 	}
+	return remap
 }
 
 // mergeRackProperties copies non-empty fields from incoming into existing.
@@ -364,7 +368,9 @@ func (inv *Inventory) MergeCables(incoming map[uuid.UUID]*CaniCableType) {
 // --- Location merge ---
 
 // MergeLocations merges incoming locations by UUID match, then name match, then insert.
-func (inv *Inventory) MergeLocations(incoming map[uuid.UUID]*CaniLocationType) {
+// Returns a remap map from incoming UUID to existing UUID for name-matched locations.
+func (inv *Inventory) MergeLocations(incoming map[uuid.UUID]*CaniLocationType) map[uuid.UUID]uuid.UUID {
+	remap := make(map[uuid.UUID]uuid.UUID)
 	if inv.Locations == nil {
 		inv.Locations = make(map[uuid.UUID]*CaniLocationType)
 	}
@@ -382,9 +388,10 @@ func (inv *Inventory) MergeLocations(incoming map[uuid.UUID]*CaniLocationType) {
 
 		// Name match — keep UUID, update fields
 		found := false
-		for _, existing := range inv.Locations {
+		for existingID, existing := range inv.Locations {
 			if existing != nil && existing.Name == loc.Name {
 				mergeLocationProperties(existing, loc)
+				remap[id] = existingID
 				found = true
 				break
 			}
@@ -394,6 +401,7 @@ func (inv *Inventory) MergeLocations(incoming map[uuid.UUID]*CaniLocationType) {
 			inv.Locations[id] = loc
 		}
 	}
+	return remap
 }
 
 // mergeLocationProperties copies non-empty fields from incoming into existing.
@@ -544,6 +552,7 @@ func (inv *Inventory) VerifyParentChildRelationships() *RelationshipResult {
 	result.merge(inv.validateModuleRelationships())
 	result.merge(inv.rebuildInterfaceRelationships())
 	result.merge(inv.rebuildFruRelationships())
+	result.merge(inv.rebuildCableRelationships())
 	result.merge(inv.validateCableRelationships())
 	result.merge(inv.detectCircularLocationRefs())
 	result.merge(inv.detectCircularDeviceRefs())

@@ -69,9 +69,9 @@ func TestFruGetSlugReturnsEmptyForNil(t *testing.T) {
 // --- GetStatus ---
 
 func TestFruGetStatusReturnsStatus(t *testing.T) {
-	f := &CaniFruType{Status: "active"}
-	if got := f.GetStatus(); got != "active" {
-		t.Fatalf("expected active, got %s", got)
+	f := &CaniFruType{ObjectMeta: ObjectMeta{Status: "Active"}}
+	if got := f.GetStatus(); got != "Active" {
+		t.Fatalf("expected Active, got %s", got)
 	}
 }
 

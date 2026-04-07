@@ -28,19 +28,15 @@ type CaniModuleType struct {
 	Interfaces []InterfaceSpec `json:"interfaces,omitempty" yaml:"interfaces,omitempty"`
 
 	// Inventory state
-	ParentDevice  uuid.UUID   `json:"parentDevice,omitempty" yaml:"parent_device,omitempty"`
-	ModuleBayName string      `json:"moduleBayName,omitempty" yaml:"module_bay_name,omitempty"`
-	Serial        string      `json:"serial,omitempty" yaml:"serial,omitempty"`
-	AssetTag      string      `json:"assetTag,omitempty" yaml:"asset_tag,omitempty"`
-	Status        string      `json:"status" yaml:"status,omitempty"`
-	Role          string      `json:"role,omitempty" yaml:"role,omitempty"`
-	Location      uuid.UUID   `json:"location,omitempty" yaml:"location,omitempty"` // optional; inherits from parent device if unset
-	Frus          []uuid.UUID `json:"frus,omitempty" yaml:"frus,omitempty"`
+	ParentDevice  uuid.UUID `json:"parentDevice,omitempty" yaml:"parent_device,omitempty"`
+	ModuleBayName string    `json:"moduleBayName,omitempty" yaml:"module_bay_name,omitempty"`
+	Serial        string    `json:"serial,omitempty" yaml:"serial,omitempty"`
+	AssetTag      string    `json:"assetTag,omitempty" yaml:"asset_tag,omitempty"`
+	// Shared metadata (status, role, tags, tenant, custom fields, external IDs, provider metadata)
+	ObjectMeta `yaml:",inline"`
 
-	// Multi-tenancy and metadata
-	Tenant       string         `json:"tenant,omitempty" yaml:"tenant,omitempty"`
-	Tags         []string       `json:"tags,omitempty" yaml:"tags,omitempty"`
-	CustomFields map[string]any `json:"customFields,omitempty" yaml:"custom_fields,omitempty"`
+	Location uuid.UUID   `json:"location,omitempty" yaml:"location,omitempty"` // optional; inherits from parent device if unset
+	Frus     []uuid.UUID `json:"frus,omitempty" yaml:"frus,omitempty"`
 
 	// Source tracks where this type was loaded from (e.g. "builtin", "local:/path", "git:url").
 	Source string `json:"-" yaml:"-"`
@@ -113,7 +109,7 @@ func (m *CaniModuleType) InstantiateInterfaces() []InterfaceInstance {
 			Name:          iface.Name,
 			InterfaceType: iface.Type,
 			DeviceID:      m.ID,
-			Status:        "active",
+			ObjectMeta:    ObjectMeta{Status: string(StatusActive)},
 			MgmtOnly:      mgmtOnly,
 		})
 	}

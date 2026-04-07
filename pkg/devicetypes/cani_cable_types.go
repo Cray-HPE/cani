@@ -30,8 +30,10 @@ type CaniCableType struct {
 	WeightUnit    string   `json:"weightUnit,omitempty" yaml:"weight_unit,omitempty"`
 	Color         string   `json:"color,omitempty" yaml:"color,omitempty"`
 
+	// Shared metadata (status, role, tags, tenant, custom fields, external IDs, provider metadata)
+	ObjectMeta `yaml:",inline"`
+
 	// Inventory state
-	Status           string    `json:"status" yaml:"status,omitempty"`
 	TerminationA     uuid.UUID `json:"terminationA,omitempty" yaml:"termination_a,omitempty"`
 	TerminationAType string    `json:"terminationAType,omitempty" yaml:"termination_a_type,omitempty"`
 	TerminationB     uuid.UUID `json:"terminationB,omitempty" yaml:"termination_b,omitempty"`
@@ -43,10 +45,6 @@ type CaniCableType struct {
 	TerminationAPort   string    `json:"terminationAPort,omitempty" yaml:"termination_a_port,omitempty"`
 	TerminationBPort   string    `json:"terminationBPort,omitempty" yaml:"termination_b_port,omitempty"`
 
-	// Multi-tenancy and metadata
-	Tags         []string       `json:"tags,omitempty" yaml:"tags,omitempty"`
-	CustomFields map[string]any `json:"customFields,omitempty" yaml:"custom_fields,omitempty"`
-
 	// Source tracks where this type was loaded from (e.g. "builtin", "local:/path", "git:url").
 	Source string `json:"-" yaml:"-"`
 }
@@ -54,10 +52,10 @@ type CaniCableType struct {
 // NewCable creates a new CaniCableType with a generated UUID.
 func NewCable(cableType, label string) *CaniCableType {
 	return &CaniCableType{
-		ID:     uuid.New(),
-		Slug:   cableType,
-		Label:  label,
-		Status: "connected",
+		ID:         uuid.New(),
+		Slug:       cableType,
+		Label:      label,
+		ObjectMeta: ObjectMeta{Status: string(StatusConnected)},
 	}
 }
 
