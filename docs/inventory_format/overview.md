@@ -18,6 +18,8 @@ type Inventory struct {
     Cables     map[uuid.UUID]*CaniCableType
     Frus       map[uuid.UUID]*CaniFruType
     Interfaces map[uuid.UUID]*InterfaceInstance
+
+    Metadata   *InventoryMetadata // catalog of roles, statuses, tags
 }
 ```
 
@@ -99,12 +101,14 @@ Items reference each other by UUID:
 
 ## Common Fields
 
-Most types share a set of common fields:
+All types embed `ObjectMeta`, providing a uniform set of metadata fields:
 
 - `id` — unique UUID identifier
 - `name` — human-readable name
 - `status` — lifecycle state (`staged`, `active`, `planned`, etc.)
+- `role` — functional role (e.g. `Compute`, `Spine Switch`)
 - `tags` — arbitrary string labels
+- `tenant` — tenant or ownership group
 - `customFields` — free-form key/value map
 - `externalIDs` — maps a provider name to that provider's remote UUID
 - `providerMetadata` — provider-specific data (see [Metadata](metadata.md))
