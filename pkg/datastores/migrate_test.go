@@ -87,8 +87,8 @@ func TestMigrateSystemBecomesLocation(t *testing.T) {
 	if loc.LocationType != "system" {
 		t.Errorf("Location type = %q, want %q", loc.LocationType, "system")
 	}
-	if loc.Status != "active" {
-		t.Errorf("Location status = %q, want %q", loc.Status, "active")
+	if loc.Status != "Active" {
+		t.Errorf("Location status = %q, want %q", loc.Status, "Active")
 	}
 }
 
@@ -386,5 +386,69 @@ func TestLoadMigratesLegacyDatastore(t *testing.T) {
 	}
 	if isLegacyDatastore(reread) {
 		t.Error("on-disk file should no longer be detected as legacy")
+	}
+}
+
+// ---------- migrateInventoryMetadata ----------
+
+func TestMigrateInventoryMetadataFromOldFormat(t *testing.T) {
+	raw := []byte(`{
+		"schemaVersion": "v1alpha2",
+		"providerMetadata": {
+			"nautobot": {
+				"roles": [{"name": "ComputeNode", "contentTypes": ["dcim.device"]}],
+				"statuses": [{"name": "Active", "color": "green"}],
+				"tags": [{"name": "gpu-node"}]
+			}
+		},
+		"devices": {}
+	}`)
+
+	inv := devicetypes.NewInventory()
+	if err := json.Unmarshal(raw, inv); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+
+	if !migrateInventoryMetadata(raw, inv) {
+		t.Fatal("expected migration to occur")
+	}
+
+	if len(inv.Metadata.Roles) != 1 || inv.Metadata.Roles[0].Name != "ComputeNode" {
+		t.Errorf("roles = %+v, want [ComputeNode]", inv.Metadata.Roles)
+	}
+	if len(inv.Metadata.Statuses) != 1 || inv.Metadata.Statuses[0].Name != "Active" {
+		t.Errorf("statuses = %+v, want [Active]", inv.Metadata.Statuses)
+	}
+	if len(inv.Metadata.Tags) != 1 || inv.Metadata.Tags[0].Name != "gpu-node" {
+		t.Errorf("tags = %+v, want [gpu-node]", inv.Metadata.Tags)
+	}
+}
+
+func TestMigrateInventoryMetadataNoOp(t *testing.T) {
+	raw := []byte(`{"schemaVersion": "v1alpha2", "devices": {}}`)
+	inv := devicetypes.NewInventory()
+	if migrateInventoryMetadata(raw, inv) {
+		t.Error("expected no migration when providerMetadata is absent")
+	}
+}
+
+func TestMigrateInventoryMetadataSkipsWhenTypedExists(t *testing.T) {
+	raw := []byte(`{
+		"schemaVersion": "v1alpha2",
+		"providerMetadata": {"nautobot": {"roles": [{"name": "Old"}]}},
+		"metadata": {"roles": [{"name": "Existing"}]},
+		"devices": {}
+	}`)
+
+	inv := devicetypes.NewInventory()
+	if err := json.Unmarshal(raw, inv); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+
+	if migrateInventoryMetadata(raw, inv) {
+		t.Error("expected no migration when typed Metadata already has entries")
+	}
+	if inv.Metadata.Roles[0].Name != "Existing" {
+		t.Errorf("existing role should be preserved, got %q", inv.Metadata.Roles[0].Name)
 	}
 }
