@@ -198,6 +198,12 @@ func RenderRackASCII(w io.Writer, rv *RackView, opts RenderOptions) error {
 		}
 		return ColorYellow + s + ColorReset
 	}
+	red := func(s string) string {
+		if opts.NoColor {
+			return s
+		}
+		return ColorRed + s + ColorReset
+	}
 	bold := func(s string) string {
 		if opts.NoColor {
 			return s
@@ -237,7 +243,7 @@ func RenderRackASCII(w io.Writer, rv *RackView, opts RenderOptions) error {
 			content = gray(fmt.Sprintf("%s [EMPTY]", markerEmpty))
 		} else if slot.IsContinued {
 			// Continuation of multi-U device
-			content = green(fmt.Sprintf("%s (continued)", markerContinued))
+			content = colorizeDevice(fmt.Sprintf("%s (continued)", markerContinued), slot.Device, red, green, yellow, cyan)
 		} else {
 			// Start of device
 			deviceName := truncateString(slot.Device.Name, contentWidth-10)
@@ -246,9 +252,9 @@ func RenderRackASCII(w io.Writer, rv *RackView, opts RenderOptions) error {
 				uHeight = 1
 			}
 			if uHeight > 1 {
-				content = green(fmt.Sprintf("%s %s (%dU)", markerOccupied, deviceName, uHeight))
+				content = colorizeDevice(fmt.Sprintf("%s %s (%dU)", markerOccupied, deviceName, uHeight), slot.Device, red, green, yellow, cyan)
 			} else {
-				content = green(fmt.Sprintf("%s %s", markerOccupied, deviceName))
+				content = colorizeDevice(fmt.Sprintf("%s %s", markerOccupied, deviceName), slot.Device, red, green, yellow, cyan)
 			}
 		}
 

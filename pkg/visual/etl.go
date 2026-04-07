@@ -62,16 +62,17 @@ const (
 const maxRawDataLen = 80
 
 // colorFuncs returns closures for coloring text based on NoColor option
-func (opts ETLOptions) colorFuncs() (cyan, yellow, green, gray, bold func(string) string) {
+func (opts ETLOptions) colorFuncs() (cyan, yellow, green, gray, bold, red func(string) string) {
 	if opts.NoColor {
 		identity := func(s string) string { return s }
-		return identity, identity, identity, identity, identity
+		return identity, identity, identity, identity, identity, identity
 	}
 	cyan = func(s string) string { return ColorCyan + s + ColorReset }
 	yellow = func(s string) string { return ColorYellow + s + ColorReset }
 	green = func(s string) string { return ColorGreen + s + ColorReset }
 	gray = func(s string) string { return ColorGray + s + ColorReset }
 	bold = func(s string) string { return ColorBold + s + ColorReset }
+	red = func(s string) string { return ColorRed + s + ColorReset }
 	return
 }
 
@@ -86,7 +87,7 @@ func (opts ETLOptions) getWriter() io.Writer {
 // PrintPhaseHeader prints a boxed header for an ETL phase
 func PrintPhaseHeader(phase string, opts ETLOptions) {
 	w := opts.getWriter()
-	cyan, _, _, _, bold := opts.colorFuncs()
+	cyan, _, _, _, bold, _ := opts.colorFuncs()
 
 	phase = strings.ToUpper(phase)
 	width := len(phase) + 4
@@ -105,7 +106,7 @@ func PrintPhaseHeader(phase string, opts ETLOptions) {
 // PrintPhaseComplete prints a completion marker for an ETL phase
 func PrintPhaseComplete(phase string, opts ETLOptions) {
 	w := opts.getWriter()
-	_, _, green, _, _ := opts.colorFuncs()
+	_, _, green, _, _, _ := opts.colorFuncs()
 
 	phase = strings.ToUpper(phase)
 	fmt.Fprintf(w, "%s %s phase complete\n\n", green("✓"), phase)
@@ -114,7 +115,7 @@ func PrintPhaseComplete(phase string, opts ETLOptions) {
 // PrintCaniOperation prints a cani framework operation message (cyan)
 func PrintCaniOperation(msg string, opts ETLOptions) {
 	w := opts.getWriter()
-	cyan, _, _, _, _ := opts.colorFuncs()
+	cyan, _, _, _, _, _ := opts.colorFuncs()
 
 	fmt.Fprintf(w, "%s %s\n", cyan("│"), msg)
 }
@@ -122,7 +123,7 @@ func PrintCaniOperation(msg string, opts ETLOptions) {
 // PrintProviderOperation prints a provider-specific operation message (yellow)
 func PrintProviderOperation(msg string, opts ETLOptions) {
 	w := opts.getWriter()
-	_, yellow, _, _, _ := opts.colorFuncs()
+	_, yellow, _, _, _, _ := opts.colorFuncs()
 
 	fmt.Fprintf(w, "%s %s\n", yellow("│"), msg)
 }
@@ -130,7 +131,7 @@ func PrintProviderOperation(msg string, opts ETLOptions) {
 // PrintStepItem prints details about an item being processed (for step-through)
 func PrintStepItem(itemDesc string, opts ETLOptions) {
 	w := opts.getWriter()
-	_, yellow, _, gray, _ := opts.colorFuncs()
+	_, yellow, _, gray, _, _ := opts.colorFuncs()
 
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "%s %s\n", yellow("→"), itemDesc)
@@ -160,7 +161,7 @@ func truncateRawData(s string, maxLen int) string {
 // PrintCSVRowStep prints enhanced step info for a CSV row with raw data and tally
 func PrintCSVRowStep(rowNum, totalRows int, rawData string, parsed string, tally StepTally, opts ETLOptions) {
 	w := opts.getWriter()
-	_, yellow, _, gray, bold := opts.colorFuncs()
+	_, yellow, _, gray, bold, _ := opts.colorFuncs()
 
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "%s %s\n", yellow("─────────────────────────────────────────────────────────────"), "")
@@ -188,7 +189,7 @@ func PrintCSVRowStep(rowNum, totalRows int, rawData string, parsed string, tally
 // PrintCSVRowStepRaw prints step info for a raw CSV row without tally (for extract phase)
 func PrintCSVRowStepRaw(rowNum, totalRows int, rawData string, parsed string, opts ETLOptions) {
 	w := opts.getWriter()
-	_, yellow, _, gray, _ := opts.colorFuncs()
+	_, yellow, _, gray, _, _ := opts.colorFuncs()
 
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "%s %s\n", yellow("─────────────────────────────────────────────────────────────"), "")
@@ -210,7 +211,7 @@ func PrintCSVRowStepRaw(rowNum, totalRows int, rawData string, parsed string, op
 // identifier is an optional line (e.g. hostname or serial) shown in gray below the header.
 func PrintRecordStepRaw(rowNum, totalRows int, rawData string, parsed string, identifier string, opts ETLOptions) {
 	w := opts.getWriter()
-	_, yellow, _, gray, _ := opts.colorFuncs()
+	_, yellow, _, gray, _, _ := opts.colorFuncs()
 
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "%s %s\n", yellow("─────────────────────────────────────────────────────────────"), "")
@@ -266,7 +267,7 @@ func PromptCSVRowStep(rowNum, totalRows int, rawData string, parsed string, tall
 // Direct copies show "→", derived/computed fields show "→→".
 func PrintFieldMappings(mappings []FieldMapping, opts ETLOptions) {
 	w := opts.getWriter()
-	cyan, _, green, gray, _ := opts.colorFuncs()
+	cyan, _, green, gray, _, _ := opts.colorFuncs()
 
 	if len(mappings) == 0 {
 		return
@@ -333,7 +334,7 @@ func PromptFieldMappingStep(rowNum, totalRows int, hwType string, mappings []Fie
 // PromptTransformStep prints detailed transform step info with quantity and created items.
 func PromptTransformStep(rowNum, totalRows int, info TransformStepInfo, tally StepTally, opts ETLOptions) error {
 	w := opts.getWriter()
-	cyan, yellow, green, gray, bold := opts.colorFuncs()
+	cyan, yellow, green, gray, bold, _ := opts.colorFuncs()
 
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "%s %s\n", yellow("─────────────────────────────────────────────────────────────"), "")
@@ -394,7 +395,7 @@ type CableSummary struct {
 // PrintImportSummary prints a summary of imported items and their relationships
 func PrintImportSummary(summary ImportSummary, opts ETLOptions, stepMode bool) {
 	w := opts.getWriter()
-	cyan, _, green, gray, bold := opts.colorFuncs()
+	cyan, _, green, gray, bold, _ := opts.colorFuncs()
 
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "%s\n", cyan("════════════════════════════════════════════════════════════"))
@@ -455,7 +456,7 @@ func PrintImportSummary(summary ImportSummary, opts ETLOptions, stepMode bool) {
 // PrintWarning prints a warning message
 func PrintWarning(msg string, opts ETLOptions) {
 	w := opts.getWriter()
-	_, yellow, _, _, _ := opts.colorFuncs()
+	_, yellow, _, _, _, _ := opts.colorFuncs()
 
 	fmt.Fprintf(w, "%s %s\n", yellow("⚠"), msg)
 }
@@ -463,8 +464,7 @@ func PrintWarning(msg string, opts ETLOptions) {
 // PrintError prints an error message
 func PrintError(msg string, opts ETLOptions) {
 	w := opts.getWriter()
-	// Use yellow since we don't have red defined
-	_, yellow, _, _, _ := opts.colorFuncs()
+	_, _, _, _, _, red := opts.colorFuncs()
 
-	fmt.Fprintf(w, "%s %s\n", yellow("✗"), msg)
+	fmt.Fprintf(w, "%s %s\n", red("✗"), msg)
 }

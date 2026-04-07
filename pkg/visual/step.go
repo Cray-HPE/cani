@@ -96,7 +96,7 @@ type NodeStepInfo struct {
 // types. Includes per-node field mappings and a running tally.
 func PrintNodeTransformStep(info NodeStepInfo, tally StepTally, opts ETLOptions) {
 	w := opts.getWriter()
-	_, yellow, _, gray, bold := opts.colorFuncs()
+	_, yellow, _, gray, bold, _ := opts.colorFuncs()
 
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "%s %s\n", yellow("─────────────────────────────────────────────────────────────"), "")
