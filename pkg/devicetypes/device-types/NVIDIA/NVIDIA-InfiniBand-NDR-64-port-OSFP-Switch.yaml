@@ -28,7 +28,7 @@ slug: nvidia-infiniband-ndr-64-port-osfp-switch
 part_number: P45692-B21
 description: "NVIDIA InfiniBand NDR 64-port OSFP Managed Power to Connector Airflow Switch. Quantum-2 QM9700 with 64 NDR (400 Gbps) ports. 51.2 Tb/s bidirectional throughput. Source: https://buy.hpe.com/us/en/networking/infiniband-adapters-and-cables/infiniband-switches/infiniband-switches/nvidia-infiniband-switches/nvidia-infiniband-ndr-64-port-osfp-managed-power-to-connector-airflow-switch/p/P45692-B21"
 hardware-type: hsn-switch
-u_height: 2
+u_height: 1
 is_full_depth: true
 weight: 22.0
 weight_unit: kg

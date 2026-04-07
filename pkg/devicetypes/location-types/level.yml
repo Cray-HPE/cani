@@ -1,0 +1,7 @@
+---
+name: Level
+slug: level
+description: "A second-level location type representing a level or floor within a data center. This location type is typically nested under a data center and can contain other location types such as sections."
+nestable: true
+parent: dc
+content_types: []
