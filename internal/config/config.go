@@ -38,18 +38,18 @@ import (
 )
 
 type Config struct {
-	Providers     map[string]map[string]any `yaml:"providers" head_comment:"A map of settings for each provider"`
-	Path          string                    `yaml:"-"`
-	Datastore     string                    `yaml:"datastore" line_comment:"Path to the datastore file"`
-	Debug         bool                      `yaml:"debug" line_comment:"Enable debug logging"`
-	Strict        bool                      `yaml:"strict" line_comment:"Require resolved device type (slug) for all devices"`
-	TypesDirs     []string                  `yaml:"types_dirs" head_comment:"Local directories with extra hardware types"`
+	Providers      map[string]map[string]any `yaml:"providers" head_comment:"A map of settings for each provider"`
+	Path           string                    `yaml:"-"`
+	Datastore      string                    `yaml:"datastore" line_comment:"Path to the datastore file"`
+	Debug          bool                      `yaml:"debug" line_comment:"Enable debug logging"`
+	Strict         bool                      `yaml:"strict" line_comment:"Require resolved device type (slug) for all devices"`
+	TypesDirs      []string                  `yaml:"types_dirs" head_comment:"Local directories with extra hardware types"`
 	TypesRepos     []string                  `yaml:"types_repos" head_comment:"Remote git repos with extra hardware types"`
 	TypesRepoClone bool                      `yaml:"types_repo_clone" line_comment:"Clone types repos that are not yet cached locally"`
 	TypesRepoPull  bool                      `yaml:"types_repo_pull" line_comment:"Pull latest from types repos on startup"`
-	StepMode      bool                      `yaml:"-"`
-	NoColor       bool                      `yaml:"-"`
-	RootNode      *yaml.Node                `yaml:"-"`
+	StepMode       bool                      `yaml:"-"`
+	NoColor        bool                      `yaml:"-"`
+	RootNode       *yaml.Node                `yaml:"-"`
 }
 
 // DefaultTypesRepo is the netbox-community device type library, used as the
