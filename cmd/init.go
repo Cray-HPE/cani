@@ -77,13 +77,17 @@ func Init() {
 		classifyCmd,
 	)
 
-	// for each verb, ask each provider to decorate it
+	// Let providers decorate import and export commands only.
+	// Normal CRUD operations (add, remove, update, show) use
+	// cmd/ + pkg/devicetypes + pkg/datastores without provider hooks.
 	for _, caniCmd := range alphaCmd.Commands() {
-		for _, p := range provider.GetProviders() {
-			if providerCmd, err := p.NewProviderCmd(caniCmd); err == nil {
-				if providerCmd == nil {
-					// this provider doesn’t customize that verb
-					continue
+		switch caniCmd.Name() {
+		case "import", "export":
+			for _, p := range provider.GetProviders() {
+				if providerCmd, err := p.NewProviderCmd(caniCmd); err == nil {
+					if providerCmd == nil {
+						continue
+					}
 				}
 			}
 		}

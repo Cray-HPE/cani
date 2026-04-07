@@ -45,6 +45,10 @@ spec_helper_precheck() {
   setenv CANI_DS="${CANI_DIR:=/tmp/.cani}/canidb.json"
   setenv CANI_LOG="${CANI_DIR:=/tmp/.cani}/canidb.log"
 
+  # Nautobot integration test settings (must match cani_0.6.x.yml)
+  setenv NAUTOBOT_URL="http://localhost:8081/api"
+  setenv NAUTOBOT_TOKEN="0123456789abcdef0123456789abcdef01234567"
+
   # Skip tests that require external services (CSM API, mock servers, etc.)
   # Set SKIP_EXTERNAL_TESTS=1 to skip these tests
   : "${SKIP_EXTERNAL_TESTS:=0}"

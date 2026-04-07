@@ -26,20 +26,20 @@
 package show
 
 import (
-	"encoding/json"
-	"fmt"
 	"sort"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
+	"github.com/Cray-HPE/cani/pkg/visual"
 	"github.com/spf13/cobra"
 )
 
 // newLocationCommand creates the "show location" subcommand.
 func newLocationCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "location",
+		Use:   "location [name|uuid]",
 		Short: "List locations in the inventory.",
-		Long:  "List locations in the inventory.",
+		Long:  "List locations, or show a single location by name or UUID.",
+		Args:  cobra.MaximumNArgs(1),
 		RunE:  showLocations,
 	}
 }
@@ -50,6 +50,10 @@ func showLocations(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if len(args) == 1 {
+		return showSingleLocation(cmd, inv, args[0])
+	}
+
 	locations := make([]*devicetypes.CaniLocationType, 0, len(inv.Locations))
 	for _, loc := range inv.Locations {
 		locations = append(locations, loc)
@@ -57,15 +61,47 @@ func showLocations(cmd *cobra.Command, args []string) error {
 	sort.Slice(locations, func(i, j int) bool {
 		return locations[i].Name < locations[j].Name
 	})
-	return marshalAndPrint(locations)
+
+	format, _ := cmd.Flags().GetString("format")
+	switch format {
+	case "table":
+		printLocationTable(locations, inv)
+		return nil
+	case "tree":
+		nodes := buildLocationTree(inv)
+		renderTreeOutput(nodes)
+		return nil
+	default:
+		return marshalAndPrint(locations)
+	}
+}
+
+func showSingleLocation(cmd *cobra.Command, inv *devicetypes.Inventory, arg string) error {
+	loc, err := findLocationByNameOrUUID(arg, inv)
+	if err != nil {
+		return err
+	}
+	format, _ := cmd.Flags().GetString("format")
+	switch format {
+	case "table":
+		printLocationTable([]*devicetypes.CaniLocationType{loc}, inv)
+		return nil
+	case "tree":
+		nodes := []visual.TreeNode{locationToTreeNode(loc, inv)}
+		renderTreeOutput(nodes)
+		return nil
+	default:
+		return marshalAndPrint(loc)
+	}
 }
 
 // newRackShowCommand creates the "show rack" subcommand.
 func newRackShowCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "rack",
+		Use:   "rack [name|uuid]",
 		Short: "List racks in the inventory.",
-		Long:  "List racks in the inventory.",
+		Long:  "List racks, or show a single rack by name or UUID.\nWhen a rack is specified, the default output is a visual rack view.",
+		Args:  cobra.MaximumNArgs(1),
 		RunE:  showRacks,
 	}
 }
@@ -76,6 +112,21 @@ func showRacks(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if len(args) == 1 {
+		return showSingleRack(cmd, inv, args[0])
+	}
+
+	visualMode, _ := cmd.Flags().GetBool("visual")
+	if visualMode {
+		noColor, _ := cmd.Flags().GetBool("no-color")
+		opts := visual.CompactRenderOptions{
+			NoColor:   noColor,
+			Detail:    true,
+			Inventory: inv,
+		}
+		return visual.RenderMinimapDetailAll(inv, opts)
+	}
+
 	racks := make([]*devicetypes.CaniRackType, 0, len(inv.Racks))
 	for _, rack := range inv.Racks {
 		racks = append(racks, rack)
@@ -83,15 +134,28 @@ func showRacks(cmd *cobra.Command, args []string) error {
 	sort.Slice(racks, func(i, j int) bool {
 		return racks[i].Name < racks[j].Name
 	})
-	return marshalAndPrint(racks)
+
+	format, _ := cmd.Flags().GetString("format")
+	switch format {
+	case "table":
+		printRackTable(racks, inv)
+		return nil
+	case "tree":
+		nodes := buildRackTree(racks, inv)
+		renderTreeOutput(nodes)
+		return nil
+	default:
+		return marshalAndPrint(racks)
+	}
 }
 
 // newDeviceShowCommand creates the "show device" subcommand.
 func newDeviceShowCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "device",
+		Use:   "device [name|uuid]",
 		Short: "List devices in the inventory.",
-		Long:  "List devices in the inventory.",
+		Long:  "List devices, or show a single device by name or UUID.",
+		Args:  cobra.MaximumNArgs(1),
 		RunE:  showDevices,
 	}
 }
@@ -100,6 +164,10 @@ func showDevices(cmd *cobra.Command, args []string) error {
 	inv, err := loadInventory(cmd, args)
 	if err != nil {
 		return err
+	}
+
+	if len(args) == 1 {
+		return showSingleDevice(cmd, inv, args[0])
 	}
 
 	devices := make([]*devicetypes.CaniDeviceType, 0, len(inv.Devices))
@@ -124,15 +192,47 @@ func showDevices(cmd *cobra.Command, args []string) error {
 			return devices[i].Name < devices[j].Name
 		}
 	})
-	return marshalAndPrint(devices)
+
+	format, _ := cmd.Flags().GetString("format")
+	switch format {
+	case "table":
+		printDeviceTable(devices, inv)
+		return nil
+	case "tree":
+		nodes := buildDeviceTree(devices, inv)
+		renderTreeOutput(nodes)
+		return nil
+	default:
+		return marshalAndPrint(devices)
+	}
+}
+
+func showSingleDevice(cmd *cobra.Command, inv *devicetypes.Inventory, arg string) error {
+	dev, err := findDeviceByNameOrUUID(arg, inv)
+	if err != nil {
+		return err
+	}
+	format, _ := cmd.Flags().GetString("format")
+	switch format {
+	case "table":
+		printDeviceTable([]*devicetypes.CaniDeviceType{dev}, inv)
+		return nil
+	case "tree":
+		nodes := []visual.TreeNode{deviceToTreeNode(dev, inv)}
+		renderTreeOutput(nodes)
+		return nil
+	default:
+		return marshalAndPrint(dev)
+	}
 }
 
 // newModuleCommand creates the "show module" subcommand.
 func newModuleCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "module",
+		Use:   "module [name|uuid]",
 		Short: "List modules in the inventory.",
-		Long:  "List modules in the inventory.",
+		Long:  "List modules, or show a single module by name or UUID.",
+		Args:  cobra.MaximumNArgs(1),
 		RunE:  showModules,
 	}
 }
@@ -143,6 +243,10 @@ func showModules(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if len(args) == 1 {
+		return showSingleModule(cmd, inv, args[0])
+	}
+
 	modules := make([]*devicetypes.CaniModuleType, 0, len(inv.Modules))
 	for _, mod := range inv.Modules {
 		modules = append(modules, mod)
@@ -150,41 +254,36 @@ func showModules(cmd *cobra.Command, args []string) error {
 	sort.Slice(modules, func(i, j int) bool {
 		return modules[i].Name < modules[j].Name
 	})
-	return marshalAndPrint(modules)
-}
 
-// newCableCommand creates the "show cable" subcommand (replaces show cables).
-func newCableCommand() *cobra.Command {
-	return &cobra.Command{
-		Use:   "cable",
-		Short: "List cables in the inventory.",
-		Long:  "List cables in the inventory.",
-		RunE:  showCables,
+	format, _ := cmd.Flags().GetString("format")
+	switch format {
+	case "table":
+		printModuleTable(modules, inv)
+		return nil
+	case "tree":
+		nodes := buildModuleTree(modules, inv)
+		renderTreeOutput(nodes)
+		return nil
+	default:
+		return marshalAndPrint(modules)
 	}
 }
 
-func showCables(cmd *cobra.Command, args []string) error {
-	inv, err := loadInventory(cmd, args)
+func showSingleModule(cmd *cobra.Command, inv *devicetypes.Inventory, arg string) error {
+	mod, err := findModuleByNameOrUUID(arg, inv)
 	if err != nil {
 		return err
 	}
-
-	cables := make([]*devicetypes.CaniCableType, 0, len(inv.Cables))
-	for _, cable := range inv.Cables {
-		cables = append(cables, cable)
+	format, _ := cmd.Flags().GetString("format")
+	switch format {
+	case "table":
+		printModuleTable([]*devicetypes.CaniModuleType{mod}, inv)
+		return nil
+	case "tree":
+		nodes := []visual.TreeNode{moduleToTreeNode(mod, inv)}
+		renderTreeOutput(nodes)
+		return nil
+	default:
+		return marshalAndPrint(mod)
 	}
-	sort.Slice(cables, func(i, j int) bool {
-		return cables[i].Label < cables[j].Label
-	})
-	return marshalAndPrint(cables)
-}
-
-// marshalAndPrint encodes v as indented JSON and writes it to stdout.
-func marshalAndPrint(v any) error {
-	output, err := json.MarshalIndent(v, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal output: %w", err)
-	}
-	fmt.Println(string(output))
-	return nil
 }

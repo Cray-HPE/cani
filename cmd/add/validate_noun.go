@@ -98,11 +98,12 @@ func validSlugOrPartNumber(noun Noun) func(cmd *cobra.Command, args []string) er
 
 // lookupResult is a discriminated union returned by lookupBySlugOrPart.
 type lookupResult struct {
-	Noun   Noun
-	Device *devicetypes.CaniDeviceType
-	Rack   *devicetypes.CaniRackType
-	Module *devicetypes.CaniModuleType
-	Cable  *devicetypes.CaniCableType
+	Noun     Noun
+	Device   *devicetypes.CaniDeviceType
+	Rack     *devicetypes.CaniRackType
+	Module   *devicetypes.CaniModuleType
+	Cable    *devicetypes.CaniCableType
+	Location *devicetypes.CaniLocationType
 }
 
 // lookupBySlugOrPart finds a hardware type by slug, falling back to part number.
@@ -145,7 +146,10 @@ func lookupBySlugOrPart(noun Noun, key string) (*lookupResult, error) {
 		return nil, fmt.Errorf("unknown cable slug or part number: %s", key)
 
 	case NounLocation:
-		// Locations have no hardware-type registry; slug is optional.
+		if l, err := devicetypes.NewLocationFromSlug(key); err == nil {
+			return &lookupResult{Noun: noun, Location: l}, nil
+		}
+		// Fall back to untyped location (created via flags).
 		return &lookupResult{Noun: noun}, nil
 
 	default:
@@ -193,10 +197,7 @@ func listTypesForNoun(cmd *cobra.Command, noun Noun) error {
 			})
 		}
 	case NounLocation:
-		cmd.Println("Locations do not use hardware-type slugs.")
-		cmd.Println("Use --type to specify the location type (site, building, floor, room).")
-		os.Exit(0)
-		return nil
+		return listLocationTypes(cmd)
 	}
 
 	cmd.SetOut(os.Stderr)

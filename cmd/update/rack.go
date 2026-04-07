@@ -31,6 +31,7 @@ import (
 	"strconv"
 
 	"github.com/Cray-HPE/cani/internal/util/resolve"
+	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/spf13/cobra"
@@ -77,7 +78,12 @@ func updateRack(cmd *cobra.Command, args []string) error {
 		rack.Name, _ = cmd.Flags().GetString("name")
 	}
 	if cmd.Flags().Changed("status") {
-		rack.Status, _ = cmd.Flags().GetString("status")
+		s, _ := cmd.Flags().GetString("status")
+		normalized, err := validate.Status(s)
+		if err != nil {
+			return err
+		}
+		rack.Status = normalized
 	}
 	if cmd.Flags().Changed("role") {
 		rack.Role, _ = cmd.Flags().GetString("role")
@@ -95,6 +101,16 @@ func updateRack(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("resolving location: %w", lerr)
 		}
 		rack.Location = locID
+	}
+	if cmd.Flags().Changed("tag") {
+		tags, _ := cmd.Flags().GetStringArray("tag")
+		rack.Tags = tags
+	}
+	if cmd.Flags().Changed("metadata") {
+		pairs, _ := cmd.Flags().GetStringArray("metadata")
+		if err := applyProviderMetadata(&rack.ProviderMetadata, pairs); err != nil {
+			return err
+		}
 	}
 
 	if err := applySetToRack(cmd, rack); err != nil {
@@ -126,7 +142,11 @@ func applySetToRack(cmd *cobra.Command, rack *devicetypes.CaniRackType) error {
 		case "name":
 			rack.Name = v
 		case "status":
-			rack.Status = v
+			normalized, err := validate.Status(v)
+			if err != nil {
+				return err
+			}
+			rack.Status = normalized
 		case "role":
 			rack.Role = v
 		case "description":
@@ -137,6 +157,8 @@ func applySetToRack(cmd *cobra.Command, rack *devicetypes.CaniRackType) error {
 				return fmt.Errorf("invalid u_height value: %s", v)
 			}
 			rack.UHeight = n
+		case "tag":
+			rack.Tags = append(rack.Tags, v)
 		case "location":
 			return fmt.Errorf("use --location flag instead of --set location=...")
 		default:

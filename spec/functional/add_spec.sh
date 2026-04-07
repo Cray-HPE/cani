@@ -248,6 +248,12 @@ Describe 'cani alpha add'
       The status should equal 1
       The stderr should include 'accepts 1 arg(s), received 0'
     End
+
+    It 'add location with unknown slug fails'
+      When call bin/cani alpha add location nonexistent-slug
+      The status should equal 1
+      The stderr should include 'unknown location type slug'
+    End
   End
 
   # ── CRUD: add location ──────────────────────────────────────────
@@ -255,7 +261,7 @@ Describe 'cani alpha add'
   Describe 'CRUD'
 
     It 'adds a location successfully'
-      When call bin/cani alpha add location CrudTestSite --config "$CANI_CONF"
+      When call bin/cani alpha add location dc --name CrudTestSite --config "$CANI_CONF"
       The status should equal 0
       The stderr should include 'Added location'
       The stderr should include 'CrudTestSite'

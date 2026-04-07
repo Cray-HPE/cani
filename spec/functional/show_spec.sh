@@ -185,41 +185,41 @@ Describe 'cani alpha show'
     It 'show location exits 0'
       When call bin/cani alpha show location --config "$CANI_CONF"
       The status should equal 0
-      The stdout should include '['
+      The stdout should include 'Total:'
     End
 
     It 'show rack exits 0'
       When call bin/cani alpha show rack --config "$CANI_CONF"
       The status should equal 0
-      The stdout should include '['
+      The stdout should include 'Total:'
     End
 
     It 'show device exits 0'
       When call bin/cani alpha show device --config "$CANI_CONF"
       The status should equal 0
-      The stdout should include '['
+      The stdout should include 'Total:'
     End
 
     It 'show module exits 0'
       When call bin/cani alpha show module --config "$CANI_CONF"
       The status should equal 0
-      The stdout should include '['
+      The stdout should include 'Total:'
     End
 
     It 'show cable exits 0'
       When call bin/cani alpha show cable --config "$CANI_CONF"
       The status should equal 0
-      The stdout should include '['
+      The stdout should include 'Total:'
     End
   End
 
   # ── CRUD: show with empty inventory ─────────────────────────────
 
   Describe 'CRUD'
-    It 'shows inventory as JSON'
+    It 'shows inventory summary'
       When call bin/cani alpha show --config "$CANI_CONF"
       The status should equal 0
-      The stdout should include '{'
+      The stdout should include 'Total:'
     End
   End
 

@@ -168,7 +168,7 @@ Describe 'cani alpha remove'
   Describe 'CRUD'
     It 'removes a location by name'
       # first add a location
-      bin/cani alpha add location RemoveTestSite --config "$CANI_CONF" >/dev/null 2>&1
+      bin/cani alpha add location dc --name RemoveTestSite --config "$CANI_CONF" >/dev/null 2>&1
       When call bin/cani alpha remove location RemoveTestSite --config "$CANI_CONF"
       The status should equal 0
       The stderr should include 'Removed location'

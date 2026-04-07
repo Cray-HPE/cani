@@ -50,6 +50,8 @@ func NewCommand() *cobra.Command {
 	cmd.AddCommand(newOrphansCommand())
 
 	cmd.PersistentFlags().StringArray("set", nil, "Set field value as key=value (repeatable)")
+	cmd.PersistentFlags().StringArray("tag", nil, "Tag(s) to apply to the item (repeatable)")
+	cmd.PersistentFlags().StringArray("metadata", nil, "Provider metadata key=value pairs (repeatable)")
 
 	return cmd
 }

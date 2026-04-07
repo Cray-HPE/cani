@@ -1,6 +1,7 @@
 package add
 
 import (
+	"os"
 	"sort"
 	"strings"
 
@@ -130,4 +131,54 @@ func pad(s string, n int) string {
 		return s
 	}
 	return s + strings.Repeat(" ", n-len(s))
+}
+
+const maxDescLen = 60
+
+// listLocationTypes prints a table of registered location types and exits.
+func listLocationTypes(cmd *cobra.Command) error {
+	types := devicetypes.AllLocationTypes()
+	if len(types) == 0 {
+		cmd.Println("No location types available.")
+		os.Exit(0)
+		return nil
+	}
+
+	// Collect and sort by slug.
+	sorted := make([]devicetypes.LocationTypeDefinition, 0, len(types))
+	for _, lt := range types {
+		sorted = append(sorted, lt)
+	}
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].Slug < sorted[j].Slug
+	})
+
+	cmd.SetOut(os.Stderr)
+	header := pad("NAME", maxNameLen) + "  " +
+		pad("SLUG", maxSlugLen) + "  " +
+		pad("NESTABLE", 8) + "  " +
+		pad("DESCRIPTION", maxDescLen)
+	sep := strings.Repeat("-", maxNameLen) + "  " +
+		strings.Repeat("-", maxSlugLen) + "  " +
+		strings.Repeat("-", 8) + "  " +
+		strings.Repeat("-", maxDescLen)
+
+	cmd.Printf("\nlocation-type (%d):\n", len(sorted))
+	cmd.Println(header)
+	cmd.Println(sep)
+	for _, lt := range sorted {
+		nestStr := "no"
+		if lt.Nestable {
+			nestStr = "yes"
+		}
+		cmd.Printf("%s  %s  %s  %s\n",
+			pad(truncate(lt.Name, maxNameLen), maxNameLen),
+			pad(truncate(lt.Slug, maxSlugLen), maxSlugLen),
+			pad(nestStr, 8),
+			truncate(lt.Description, maxDescLen),
+		)
+	}
+	cmd.Println()
+	os.Exit(0)
+	return nil
 }
