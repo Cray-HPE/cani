@@ -99,8 +99,8 @@ func TestCreateRack(t *testing.T) {
 	if rack.Manufacturer != "APC" {
 		t.Errorf("Manufacturer = %q, want %q", rack.Manufacturer, "APC")
 	}
-	if rack.Status != "active" {
-		t.Errorf("Status = %q, want %q", rack.Status, "active")
+	if rack.Status != "Active" {
+		t.Errorf("Status = %q, want %q", rack.Status, "Active")
 	}
 	if rack.UHeight < 1 {
 		t.Errorf("UHeight = %d, want >= 1", rack.UHeight)
@@ -131,8 +131,8 @@ func TestCreateDevice(t *testing.T) {
 	if device.HardwareType != "node" {
 		t.Errorf("HardwareType = %q, want %q", device.HardwareType, "node")
 	}
-	if device.Status != "staged" {
-		t.Errorf("Status = %q, want %q", device.Status, "staged")
+	if device.Status != "Staged" {
+		t.Errorf("Status = %q, want %q", device.Status, "Staged")
 	}
 }
 

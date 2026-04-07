@@ -291,11 +291,11 @@ func TestIdempotentNoMatchGeneratesNewID(t *testing.T) {
 	// Existing inventory with a different device (different redfish_uuid).
 	other := devicetypes.CaniDeviceType{
 		ID: uuid.New(),
-		ProviderMetadata: map[string]any{
+		ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{
 			"redfish": map[string]any{
 				"redfish_uuid": "00000000-0000-0000-0000-000000000000",
 			},
-		},
+		}},
 	}
 	existing := &devicetypes.Inventory{
 		Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{

@@ -42,9 +42,9 @@ func buildExpectedHardware(
 			// Device exists in CANI but not in SLS.  Build a new
 			// SLS entry for staged hardware so the export can push them.
 			switch {
-			case dev.Status == "staged" && dev.GetType() == devicetypes.TypeNode:
+			case strings.EqualFold(dev.Status, "staged") && dev.GetType() == devicetypes.TypeNode:
 				hw = buildNewNodeEntry(dev, xname)
-			case dev.Status == "staged" && dev.GetType() == devicetypes.TypeCabinet:
+			case strings.EqualFold(dev.Status, "staged") && dev.GetType() == devicetypes.TypeCabinet:
 				hw = buildNewCabinetEntry(dev, xname)
 				// Also generate chassis and chassis-BMC children.
 				for _, child := range buildCabinetChildren(dev, xname) {
@@ -127,7 +127,7 @@ func caniStatus(dev *devicetypes.CaniDeviceType) string {
 		return "empty"
 	}
 	if dev.GetType() == devicetypes.TypeNode {
-		if dev.Status == "staged" {
+		if strings.EqualFold(dev.Status, "staged") {
 			return "provisioned"
 		}
 		return "empty"

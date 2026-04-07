@@ -257,8 +257,10 @@ func buildDeviceFromNode(node import_.Node, cl Classification, existing *devicet
 		Name:         node.Name,
 		Type:         cl.DeviceTypeHint,
 		HardwareType: node.Type,
-		ProviderMetadata: map[string]any{
-			"hpcm": hpcmMeta,
+		ObjectMeta: devicetypes.ObjectMeta{
+			ProviderMetadata: map[string]any{
+				"hpcm": hpcmMeta,
+			},
 		},
 		Parent:          uuid.Nil,
 		AllowedChildren: allowedChildrenForType(cl.DeviceTypeHint),
@@ -278,8 +280,7 @@ func buildModuleFromNode(node import_.Node, cl Classification, chassisByLoc, cha
 		ID:           uuid.New(),
 		Name:         node.Name,
 		HardwareType: node.Type,
-		Status:       "active",
-		CustomFields: make(map[string]any),
+		ObjectMeta:   devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), CustomFields: make(map[string]any)},
 	}
 
 	if node.UUID != "" {
@@ -344,8 +345,7 @@ func buildLocationFromNode(node import_.Node) devicetypes.CaniLocationType {
 		ID:           uuid.New(),
 		Name:         node.Name,
 		LocationType: "site",
-		Status:       "active",
-		CustomFields: map[string]any{"hpcm_uuid": node.UUID},
+		ObjectMeta:   devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), CustomFields: map[string]any{"hpcm_uuid": node.UUID}},
 	}
 }
 
@@ -678,12 +678,11 @@ func buildRack(node import_.Node, racksByNumber map[int32]uuid.UUID, existing *d
 	id := resolveExistingRackID(name, existing)
 
 	rack := &devicetypes.CaniRackType{
-		ID:               id,
-		Name:             name,
-		HardwareType:     string(devicetypes.TypeRack),
-		Status:           "active",
-		UHeight:          42,
-		ProviderMetadata: map[string]any{"rack_number": rackNum},
+		ID:           id,
+		Name:         name,
+		HardwareType: string(devicetypes.TypeRack),
+		ObjectMeta:   devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), ProviderMetadata: map[string]any{"rack_number": rackNum}},
+		UHeight:      42,
 	}
 	racksByNumber[rackNum] = rack.ID
 	return rack
@@ -752,9 +751,8 @@ func buildCaniFru(parentName, groupID string, entries []kvEntry) devicetypes.Can
 		ID:           uuid.New(),
 		Name:         fmt.Sprintf("%s-%s", parentName, groupID),
 		HardwareType: hwType,
-		Status:       "active",
+		ObjectMeta:   devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), CustomFields: make(map[string]any)},
 		Discovered:   true,
-		CustomFields: make(map[string]any),
 	}
 
 	for _, e := range entries {

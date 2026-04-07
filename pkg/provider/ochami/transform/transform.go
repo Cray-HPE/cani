@@ -153,16 +153,15 @@ func createRack(rec import_.JSONDeviceRecord) *devicetypes.CaniRackType {
 	}
 
 	return &devicetypes.CaniRackType{
-		ID:               id,
-		Name:             rec.SerialNumber,
-		Slug:             slug,
-		Serial:           rec.SerialNumber,
-		Manufacturer:     rec.Manufacturer,
-		PartNumber:       rec.PartNumber,
-		UHeight:          uHeight,
-		Status:           "active",
-		Devices:          []uuid.UUID{},
-		ProviderMetadata: buildProviderMetadata(rec),
+		ID:           id,
+		Name:         rec.SerialNumber,
+		Slug:         slug,
+		Serial:       rec.SerialNumber,
+		Manufacturer: rec.Manufacturer,
+		PartNumber:   rec.PartNumber,
+		UHeight:      uHeight,
+		ObjectMeta:   devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), ProviderMetadata: buildProviderMetadata(rec)},
+		Devices:      []uuid.UUID{},
 	}
 }
 
@@ -172,15 +171,14 @@ func createDevice(rec import_.JSONDeviceRecord) *devicetypes.CaniDeviceType {
 	hwType := normaliseHardwareType(rec.DeviceType)
 
 	device := &devicetypes.CaniDeviceType{
-		ID:               id,
-		Name:             rec.SerialNumber,
-		Slug:             slugify(rec.DeviceType),
-		Serial:           rec.SerialNumber,
-		Manufacturer:     rec.Manufacturer,
-		PartNumber:       rec.PartNumber,
-		HardwareType:     hwType,
-		Status:           "staged",
-		ProviderMetadata: buildProviderMetadata(rec),
+		ID:           id,
+		Name:         rec.SerialNumber,
+		Slug:         slugify(rec.DeviceType),
+		Serial:       rec.SerialNumber,
+		Manufacturer: rec.Manufacturer,
+		PartNumber:   rec.PartNumber,
+		HardwareType: hwType,
+		ObjectMeta:   devicetypes.ObjectMeta{Status: string(devicetypes.StatusStaged), ProviderMetadata: buildProviderMetadata(rec)},
 	}
 
 	if dt, ok := devicetypes.GetByPartNumber(rec.PartNumber); ok {

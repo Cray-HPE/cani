@@ -31,13 +31,11 @@ func processNodes(
 		}
 
 		result.Devices[devID] = &devicetypes.CaniDeviceType{
-			ID:               devID,
-			Name:             name,
-			Type:             devicetypes.TypeNode,
-			Status:           "active",
-			Role:             meta.Role,
-			Parent:           parentID,
-			ProviderMetadata: map[string]any{"csm": toProviderMetadata(meta)},
+			ID:         devID,
+			Name:       name,
+			Type:       devicetypes.TypeNode,
+			ObjectMeta: devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), Role: meta.Role, ProviderMetadata: map[string]any{"csm": toProviderMetadata(meta)}},
+			Parent:     parentID,
 		}
 		if slug := resolveSlug(cl); slug != "" {
 			_ = devicetypes.ApplyDeviceType(result.Devices[devID], slug)
@@ -158,12 +156,11 @@ func newDevice(
 ) *devicetypes.CaniDeviceType {
 	meta := CsmMetadata{Xname: cl.Xname.Raw, Class: cl.Hardware.Class}
 	dev := &devicetypes.CaniDeviceType{
-		ID:               id,
-		Name:             cl.Xname.Raw,
-		Type:             cl.CaniType,
-		Status:           "active",
-		Parent:           byXname[cl.Xname.Parent()],
-		ProviderMetadata: map[string]any{"csm": toProviderMetadata(meta)},
+		ID:         id,
+		Name:       cl.Xname.Raw,
+		Type:       cl.CaniType,
+		ObjectMeta: devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), ProviderMetadata: map[string]any{"csm": toProviderMetadata(meta)}},
+		Parent:     byXname[cl.Xname.Parent()],
 	}
 	if slug := resolveSlug(cl); slug != "" {
 		_ = devicetypes.ApplyDeviceType(dev, slug)
@@ -212,12 +209,11 @@ func ensureImplicitParent(
 	byXname[xname] = devID
 	meta := CsmMetadata{Xname: xname, Class: class}
 	result.Devices[devID] = &devicetypes.CaniDeviceType{
-		ID:               devID,
-		Name:             xname,
-		Type:             expectedType,
-		Status:           "active",
-		Parent:           gpID,
-		ProviderMetadata: map[string]any{"csm": toProviderMetadata(meta)},
+		ID:         devID,
+		Name:       xname,
+		Type:       expectedType,
+		ObjectMeta: devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), ProviderMetadata: map[string]any{"csm": toProviderMetadata(meta)}},
+		Parent:     gpID,
 	}
 	// Resolve a default slug for the implicit parent.
 	implicitCl := CsmClassification{

@@ -50,7 +50,7 @@ func printSummary(w io.Writer, inventory devicetypes.Inventory, stats reconcileS
 		if dev == nil {
 			continue
 		}
-		if dev.Status == "staged" {
+		if strings.EqualFold(dev.Status, "staged") {
 			newItems = append(newItems, entry{
 				id:     dev.ID.String(),
 				hwtype: capitalizeType(string(dev.GetType())),

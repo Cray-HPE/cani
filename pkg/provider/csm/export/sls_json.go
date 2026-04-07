@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strings"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	import_ "github.com/Cray-HPE/cani/pkg/provider/csm/import"
@@ -30,7 +31,7 @@ func validateSLSHardware(
 			// have been included in the expected map.  Implicit
 			// parents from the import are not expected to exist
 			// in SLS.
-			if dev.Status == "staged" {
+			if strings.EqualFold(dev.Status, "staged") {
 				return fmt.Errorf("validation failed: device %s (xname %s) not found in SLS", dev.ID, xname)
 			}
 			continue

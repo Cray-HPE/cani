@@ -281,13 +281,12 @@ func createRack(
 	}
 
 	rack := &devicetypes.CaniRackType{
-		ID:               id,
-		Name:             name,
-		Slug:             slug,
-		UHeight:          uHeight,
-		Status:           "active",
-		Devices:          []uuid.UUID{},
-		ProviderMetadata: buildProviderMetadata(rec),
+		ID:         id,
+		Name:       name,
+		Slug:       slug,
+		UHeight:    uHeight,
+		ObjectMeta: devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), ProviderMetadata: buildProviderMetadata(rec)},
+		Devices:    []uuid.UUID{},
 	}
 	inventory.Racks[id] = rack
 	if rec.ConfigGroup != "" {
@@ -317,13 +316,12 @@ func createDevice(
 // buildDeviceFromRecord creates a CaniDeviceType from a CSV record.
 func buildDeviceFromRecord(id uuid.UUID, name string, rec import_.CsvRecord, hwType string) *devicetypes.CaniDeviceType {
 	device := &devicetypes.CaniDeviceType{
-		ID:               id,
-		Name:             name,
-		Slug:             slugify(rec.Description),
-		PartNumber:       rec.PartNumber,
-		HardwareType:     hwType,
-		Status:           "staged",
-		ProviderMetadata: buildProviderMetadata(rec),
+		ID:           id,
+		Name:         name,
+		Slug:         slugify(rec.Description),
+		PartNumber:   rec.PartNumber,
+		HardwareType: hwType,
+		ObjectMeta:   devicetypes.ObjectMeta{Status: string(devicetypes.StatusStaged), ProviderMetadata: buildProviderMetadata(rec)},
 	}
 
 	// Look up device type from library by part number

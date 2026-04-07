@@ -126,14 +126,13 @@ func mergeYAMLInventory(dst *devicetypes.Inventory, src *yamlInventory) error {
 			}
 			// Convert yamlRackType to CaniRackType with migration
 			rack := &devicetypes.CaniRackType{
-				ID:               v.ID,
-				Name:             v.Name,
-				Slug:             v.Slug,
-				Location:         v.Location,
-				UHeight:          v.UHeight,
-				Status:           v.Status,
-				Devices:          v.Devices,
-				ProviderMetadata: v.ProviderMetadata,
+				ID:         v.ID,
+				Name:       v.Name,
+				Slug:       v.Slug,
+				Location:   v.Location,
+				UHeight:    v.UHeight,
+				ObjectMeta: devicetypes.ObjectMeta{Status: v.Status, ProviderMetadata: v.ProviderMetadata},
+				Devices:    v.Devices,
 			}
 			// Migrate legacy OccupiedSlots to face-aware format
 			if v.OccupiedSlots != nil {

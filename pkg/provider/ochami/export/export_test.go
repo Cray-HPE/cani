@@ -17,7 +17,7 @@ func TestExportFullMetadata(t *testing.T) {
 		ID:           nodeID,
 		Name:         "node-fallback",
 		HardwareType: "node",
-		ProviderMetadata: map[string]any{
+		ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{
 			"ochami": map[string]any{
 				"xname":        "x3000c0s1b0n0",
 				"ip":           "10.1.0.1",
@@ -26,7 +26,7 @@ func TestExportFullMetadata(t *testing.T) {
 				"hostname":     "nid000042",
 				"host_aliases": []string{"compute-1", "worker-1"},
 			},
-		},
+		}},
 	}
 
 	bmcID := uuid.New()
@@ -34,13 +34,13 @@ func TestExportFullMetadata(t *testing.T) {
 		ID:           bmcID,
 		Name:         "bmc-fallback",
 		HardwareType: "bmc",
-		ProviderMetadata: map[string]any{
+		ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{
 			"ochami": map[string]any{
 				"xname": "x3000c0s1b0",
 				"ip":    "10.1.0.100",
 				"mac":   "aa:bb:cc:dd:ee:ff",
 			},
-		},
+		}},
 	}
 
 	var buf bytes.Buffer
@@ -76,11 +76,11 @@ func TestExportPartialMetadata(t *testing.T) {
 		ID:           nodeID,
 		Name:         "node-1",
 		HardwareType: "node",
-		ProviderMetadata: map[string]any{
+		ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{
 			"ochami": map[string]any{
 				"xname": "x3000c0s2b0n0",
 			},
-		},
+		}},
 	}
 
 	var buf bytes.Buffer
@@ -105,11 +105,11 @@ func TestExportFallbackToName(t *testing.T) {
 		ID:           nodeID,
 		Name:         "my-node-name",
 		HardwareType: "node",
-		ProviderMetadata: map[string]any{
+		ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{
 			"ochami": map[string]any{
 				"ip": "10.0.0.1",
 			},
-		},
+		}},
 	}
 
 	var buf bytes.Buffer
@@ -148,9 +148,9 @@ func TestExportSorting(t *testing.T) {
 		inv.Devices[id] = &devicetypes.CaniDeviceType{
 			ID:           id,
 			HardwareType: "node",
-			ProviderMetadata: map[string]any{
+			ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{
 				"ochami": map[string]any{"xname": xname},
-			},
+			}},
 		}
 	}
 
@@ -159,9 +159,9 @@ func TestExportSorting(t *testing.T) {
 		inv.Devices[id] = &devicetypes.CaniDeviceType{
 			ID:           id,
 			HardwareType: "bmc",
-			ProviderMetadata: map[string]any{
+			ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{
 				"ochami": map[string]any{"xname": xname},
-			},
+			}},
 		}
 	}
 
@@ -189,14 +189,14 @@ func TestExportCsmFallback(t *testing.T) {
 		ID:           nodeID,
 		Name:         "nid001000",
 		HardwareType: "node",
-		ProviderMetadata: map[string]any{
+		ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{
 			"csm": map[string]any{
 				"xname":   "x9000c1s0b0n0",
 				"nid":     1000,
 				"role":    "Compute",
 				"aliases": []string{"nid001000"},
 			},
-		},
+		}},
 	}
 
 	var buf bytes.Buffer
@@ -227,7 +227,7 @@ func TestExportOchamiOverridesCsm(t *testing.T) {
 		ID:           nodeID,
 		Name:         "fallback",
 		HardwareType: "node",
-		ProviderMetadata: map[string]any{
+		ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{
 			"csm": map[string]any{
 				"xname":   "x9000c1s0b0n0",
 				"nid":     1000,
@@ -239,7 +239,7 @@ func TestExportOchamiOverridesCsm(t *testing.T) {
 				"hostname":     "custom-host",
 				"host_aliases": []string{"custom-alias"},
 			},
-		},
+		}},
 	}
 
 	var buf bytes.Buffer
@@ -273,9 +273,9 @@ func TestExportSkipsNonNodeNonBMC(t *testing.T) {
 		ID:           chassisID,
 		Name:         "chassis-1",
 		HardwareType: "chassis",
-		ProviderMetadata: map[string]any{
+		ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{
 			"ochami": map[string]any{"xname": "x3000c0"},
-		},
+		}},
 	}
 
 	var buf bytes.Buffer

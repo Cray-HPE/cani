@@ -89,13 +89,13 @@ func buildDeviceFromRoot(root import_.ServiceRoot, existing *devicetypes.Invento
 	id := resolveExistingID(root, existing)
 
 	dev := devicetypes.CaniDeviceType{
-		ID:               id,
-		Name:             root.Product,
-		Manufacturer:     root.Vendor,
-		Type:             devicetypes.TypeNode,
-		HardwareType:     "server",
-		AllowedChildren:  []string{"cpu", "dimm", "disk", "gpu", "nic", "power-supply"},
-		ProviderMetadata: buildProviderMetadata(root),
+		ID:              id,
+		Name:            root.Product,
+		Manufacturer:    root.Vendor,
+		Type:            devicetypes.TypeNode,
+		HardwareType:    "server",
+		AllowedChildren: []string{"cpu", "dimm", "disk", "gpu", "nic", "power-supply"},
+		ObjectMeta:      devicetypes.ObjectMeta{ProviderMetadata: buildProviderMetadata(root)},
 	}
 
 	// Set import source from the --root flag value.
