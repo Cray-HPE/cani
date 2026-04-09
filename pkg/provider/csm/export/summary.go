@@ -58,6 +58,20 @@ func printSummary(w io.Writer, inventory devicetypes.Inventory, stats reconcileS
 			})
 		}
 	}
+	// Also include staged racks (cabinets added via "add" flow).
+	for _, rack := range inventory.Racks {
+		if rack == nil {
+			continue
+		}
+		if strings.EqualFold(rack.Status, "staged") {
+			hwtype := "Cabinet"
+			newItems = append(newItems, entry{
+				id:     rack.ID.String(),
+				hwtype: hwtype,
+				status: rack.Status,
+			})
+		}
+	}
 
 	sort.Slice(newItems, func(i, j int) bool {
 		return newItems[i].id < newItems[j].id

@@ -24,6 +24,14 @@ var csvAllowedHeaders = map[string]string{
 	"nid":     "Nid",
 }
 
+// csvEntry holds the data needed to produce a single CSV row.
+// It unifies devices and racks for deterministic sorting.
+type csvEntry struct {
+	typeName string
+	id       uuid.UUID
+	row      []string
+}
+
 // ExportCSV writes the inventory as CSV to w, filtered by headers and types.
 func ExportCSV(w io.Writer, inv devicetypes.Inventory, headers []string, types []string) error {
 	normalizedHeaders, err := normalizeHeaders(headers)
@@ -33,19 +41,49 @@ func ExportCSV(w io.Writer, inv devicetypes.Inventory, headers []string, types [
 
 	typeSet := buildTypeSet(types)
 
-	// Collect and sort device UUIDs for deterministic output.
-	keys := sortedDeviceKeys(inv)
+	var entries []csvEntry
 
-	cw := csv.NewWriter(w)
-	cw.Write(normalizedHeaders)
-
-	for _, id := range keys {
-		dev := inv.Devices[id]
+	// Collect device entries.
+	for id, dev := range inv.Devices {
 		if !matchesType(dev, typeSet) {
 			continue
 		}
-		row := getFields(dev, normalizedHeaders)
-		cw.Write(row)
+		entries = append(entries, csvEntry{
+			typeName: string(dev.Type),
+			id:       id,
+			row:      getFields(dev, normalizedHeaders),
+		})
+	}
+
+	// Collect rack entries (exported as Cabinet type), skipping racks
+	// that already have a corresponding cabinet device (to avoid
+	// duplicates from SLS imports which create both).
+	if matchesTypeStr(string(devicetypes.TypeCabinet), typeSet) {
+		coveredRacks := racksCoveredByDevices(inv)
+		for id, rack := range inv.Racks {
+			if coveredRacks[id] {
+				continue
+			}
+			entries = append(entries, csvEntry{
+				typeName: string(devicetypes.TypeCabinet),
+				id:       id,
+				row:      getRackFields(rack, normalizedHeaders),
+			})
+		}
+	}
+
+	// Sort by type then ID for deterministic output.
+	sort.Slice(entries, func(i, j int) bool {
+		if entries[i].typeName != entries[j].typeName {
+			return entries[i].typeName < entries[j].typeName
+		}
+		return entries[i].id.String() < entries[j].id.String()
+	})
+
+	cw := csv.NewWriter(w)
+	cw.Write(normalizedHeaders)
+	for _, e := range entries {
+		cw.Write(e.row)
 	}
 	cw.Flush()
 	return cw.Error()
@@ -111,6 +149,28 @@ func matchesType(dev *devicetypes.CaniDeviceType, typeSet map[string]struct{}) b
 	}
 	_, ok := typeSet[string(dev.Type)]
 	return ok
+}
+
+// matchesTypeStr returns true if the type string passes the filter.
+// An empty filter set matches all types.
+func matchesTypeStr(typeName string, typeSet map[string]struct{}) bool {
+	if len(typeSet) == 0 {
+		return true
+	}
+	_, ok := typeSet[typeName]
+	return ok
+}
+
+// racksCoveredByDevices returns the set of rack UUIDs that are already
+// represented by a cabinet-type device (Parent field links device to rack).
+func racksCoveredByDevices(inv devicetypes.Inventory) map[uuid.UUID]bool {
+	covered := make(map[uuid.UUID]bool)
+	for _, dev := range inv.Devices {
+		if dev.Type == devicetypes.TypeCabinet && dev.Parent != uuid.Nil {
+			covered[dev.Parent] = true
+		}
+	}
+	return covered
 }
 
 // sortedDeviceKeys returns device UUIDs sorted by Type then ID for
@@ -206,7 +266,52 @@ func canonicalTypeName(t devicetypes.Type) string {
 
 // getCSMMetaString returns a string value from the csm provider metadata.
 func getCSMMetaString(dev *devicetypes.CaniDeviceType, key string) string {
-	sub, ok := dev.GetProviderSubMap("csm")
+	return metaString(&dev.ObjectMeta, key)
+}
+
+// getCSMMetaFirstAlias returns the first alias from csm metadata.
+func getCSMMetaFirstAlias(dev *devicetypes.CaniDeviceType) string {
+	return metaFirstAlias(&dev.ObjectMeta)
+}
+
+// getRackFields extracts field values from a rack for the given headers.
+func getRackFields(rack *devicetypes.CaniRackType, headers []string) []string {
+	values := make([]string, len(headers))
+	for i, h := range headers {
+		values[i] = getRackField(rack, h)
+	}
+	return values
+}
+
+// getRackField returns a single field value from a rack.
+func getRackField(rack *devicetypes.CaniRackType, header string) string {
+	switch header {
+	case "ID":
+		return rack.ID.String()
+	case "Name":
+		return rack.Name
+	case "Type":
+		return canonicalTypeName(devicetypes.TypeCabinet)
+	case "Status":
+		return rack.Status
+	case "Vlan":
+		return metaString(&rack.ObjectMeta, "hmnVlan")
+	case "Role":
+		return metaString(&rack.ObjectMeta, "role")
+	case "SubRole":
+		return metaString(&rack.ObjectMeta, "subRole")
+	case "Nid":
+		return metaString(&rack.ObjectMeta, "nid")
+	case "Alias":
+		return metaFirstAlias(&rack.ObjectMeta)
+	default:
+		return ""
+	}
+}
+
+// metaString returns a string value from csm provider metadata.
+func metaString(meta *devicetypes.ObjectMeta, key string) string {
+	sub, ok := meta.GetProviderSubMap("csm")
 	if !ok {
 		return ""
 	}
@@ -217,9 +322,9 @@ func getCSMMetaString(dev *devicetypes.CaniDeviceType, key string) string {
 	return fmt.Sprintf("%v", v)
 }
 
-// getCSMMetaFirstAlias returns the first alias from csm metadata.
-func getCSMMetaFirstAlias(dev *devicetypes.CaniDeviceType) string {
-	sub, ok := dev.GetProviderSubMap("csm")
+// metaFirstAlias returns the first alias from csm provider metadata.
+func metaFirstAlias(meta *devicetypes.ObjectMeta) string {
+	sub, ok := meta.GetProviderSubMap("csm")
 	if !ok {
 		return ""
 	}

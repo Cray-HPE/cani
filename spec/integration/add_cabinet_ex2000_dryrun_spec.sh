@@ -46,7 +46,7 @@ It 'export to simulator'
   When call bin/cani alpha --config "$CANI_CONF" export csm -S --commit --dryrun
   The status should equal 0
   The stderr should include 'Performing dryrun no changes will be applied to the system!'
-  The stdout should include 'Cabinet                         (staged)'
+  The stdout should include 'Cabinet                         (Staged)'
   The stderr should include 'Dryrun enabled, no changes performed!'
 End
 

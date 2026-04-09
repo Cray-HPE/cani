@@ -69,7 +69,16 @@ func importCSVFromReader(reader *csv.Reader, inventory *devicetypes.Inventory) (
 
 		dev, ok := inventory.Devices[id]
 		if !ok {
-			return modified, total, fmt.Errorf("could not find device with UUID %s", id)
+			// Check if it's a rack (cabinet added via "add rack").
+			rack, rok := inventory.Racks[id]
+			if !rok {
+				return modified, total, fmt.Errorf("could not find device with UUID %s", id)
+			}
+			if setRackFields(rack, rowMap) {
+				log.Printf("Updated %s", id)
+				modified++
+			}
+			continue
 		}
 
 		changed := setDeviceFields(dev, rowMap)
@@ -287,5 +296,53 @@ func setCSMMetaVlan(dev *devicetypes.CaniDeviceType, value string) bool {
 	}
 
 	dev.SetProviderMeta("csm", "hmnVlan", vlan)
+	return true
+}
+
+// setRackFields updates the CSM provider metadata on a rack
+// from CSV values. Returns true if any field was modified.
+func setRackFields(rack *devicetypes.CaniRackType, values map[string]string) bool {
+	changed := false
+
+	if v, ok := values["Vlan"]; ok {
+		if setRackMetaVlan(rack, v) {
+			changed = true
+		}
+	}
+
+	return changed
+}
+
+// setRackMetaVlan sets the hmnVlan field on a rack, parsing as integer.
+func setRackMetaVlan(rack *devicetypes.CaniRackType, value string) bool {
+	sub, _ := rack.GetProviderSubMap("csm")
+
+	if value == "" {
+		old := sub["hmnVlan"]
+		if old == nil {
+			return false
+		}
+		rack.SetProviderMeta("csm", "hmnVlan", nil)
+		return true
+	}
+
+	vlan, err := strconv.Atoi(value)
+	if err != nil {
+		return false
+	}
+
+	oldVal := sub["hmnVlan"]
+	switch v := oldVal.(type) {
+	case float64:
+		if int(v) == vlan {
+			return false
+		}
+	case int:
+		if v == vlan {
+			return false
+		}
+	}
+
+	rack.SetProviderMeta("csm", "hmnVlan", vlan)
 	return true
 }

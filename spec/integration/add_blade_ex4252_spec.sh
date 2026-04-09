@@ -51,7 +51,7 @@ It 'verify staged blade'
   When call bin/cani alpha --config "$CANI_CONF" show device -o json
   The status should equal 0
   The stdout should include 'hpe-crayex-ex4252-compute-blade'
-  The stdout should include '"status": "staged"'
+  The stdout should include '"status": "Staged"'
 End
 
 It 'update node b0n2 with metadata'
@@ -77,7 +77,7 @@ It 'export to simulator'
   The status should equal 0
   The stderr should include 'Export completed successfully'
   The stdout should include 'Node'
-  The stdout should include '(staged)'
+  The stdout should include '(Staged)'
 End
 
 End

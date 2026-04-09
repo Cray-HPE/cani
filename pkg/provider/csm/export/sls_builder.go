@@ -42,9 +42,9 @@ func buildExpectedHardware(
 			// Device exists in CANI but not in SLS.  Build a new
 			// SLS entry for staged hardware so the export can push them.
 			switch {
-			case strings.EqualFold(dev.Status, "staged") && dev.GetType() == devicetypes.TypeNode:
+			case strings.EqualFold(dev.Status, "staged") && strings.EqualFold(string(dev.GetType()), string(devicetypes.TypeNode)):
 				hw = buildNewNodeEntry(dev, xname)
-			case strings.EqualFold(dev.Status, "staged") && dev.GetType() == devicetypes.TypeCabinet:
+			case strings.EqualFold(dev.Status, "staged") && strings.EqualFold(string(dev.GetType()), string(devicetypes.TypeCabinet)):
 				hw = buildNewCabinetEntry(dev, xname)
 				// Also generate chassis and chassis-BMC children.
 				for _, child := range buildCabinetChildren(dev, xname) {
@@ -64,7 +64,35 @@ func buildExpectedHardware(
 		expected[xname] = hw
 	}
 
-	// Second pass: inject CANI metadata into SLS-only entries whose
+	// Second pass: process staged racks (cabinets added via "add" flow).
+	for _, rack := range inventory.Racks {
+		if rack == nil {
+			continue
+		}
+		xname := extractRackXname(rack)
+		if xname == "" {
+			continue
+		}
+		if _, exists := expected[xname]; exists {
+			continue // already handled by device pass or SLS baseline
+		}
+		if !strings.EqualFold(rack.Status, "staged") {
+			continue
+		}
+		hw := buildNewCabinetEntryFromRack(rack, xname)
+		for _, child := range buildCabinetChildrenFromRack(rack, xname) {
+			child.ExtraProperties = injectCaniMetadata(
+				child.ExtraProperties, rack.ID.String(), "provisioned",
+			)
+			expected[child.Xname] = child
+		}
+		hw.ExtraProperties = injectCaniMetadata(
+			hw.ExtraProperties, rack.ID.String(), "provisioned",
+		)
+		expected[xname] = hw
+	}
+
+	// Third pass: inject CANI metadata into SLS-only entries whose
 	// parent device is in the inventory.  This covers ChassisBMC and
 	// similar entries that the transform skips but SLS still carries.
 	for xname, hw := range expected {
@@ -126,7 +154,7 @@ func caniStatus(dev *devicetypes.CaniDeviceType) string {
 	if dev == nil {
 		return "empty"
 	}
-	if dev.GetType() == devicetypes.TypeNode {
+	if strings.EqualFold(string(dev.GetType()), string(devicetypes.TypeNode)) {
 		if strings.EqualFold(dev.Status, "staged") {
 			return "provisioned"
 		}
@@ -332,4 +360,70 @@ func marshalHardware(hw import_.SlsHardware) ([]byte, error) {
 		return nil, fmt.Errorf("marshaling SLS hardware %s: %w", hw.Xname, err)
 	}
 	return data, nil
+}
+
+// extractRackXname retrieves the xname from a rack's CSM provider metadata.
+func extractRackXname(rack *devicetypes.CaniRackType) string {
+	if rack == nil {
+		return ""
+	}
+	sub, ok := rack.GetProviderSubMap("csm")
+	if !ok {
+		return ""
+	}
+	xname, _ := sub["xname"].(string)
+	return xname
+}
+
+// buildNewCabinetEntryFromRack creates an SLS Cabinet entry from a
+// staged rack that has CSM provider metadata.
+func buildNewCabinetEntryFromRack(
+	rack *devicetypes.CaniRackType,
+	xname string,
+) import_.SlsHardware {
+	sub, _ := rack.GetProviderSubMap("csm")
+	class, _ := sub["class"].(string)
+
+	return import_.SlsHardware{
+		Xname:           xname,
+		Parent:          "s0",
+		Type:            "comptype_cabinet",
+		TypeString:      "Cabinet",
+		Class:           class,
+		ExtraProperties: make(map[string]any),
+	}
+}
+
+// buildCabinetChildrenFromRack generates chassis and chassis-BMC SLS
+// entries for a new cabinet rack based on its rack-type definition.
+func buildCabinetChildrenFromRack(
+	rack *devicetypes.CaniRackType,
+	cabinetXname string,
+) []import_.SlsHardware {
+	sub, _ := rack.GetProviderSubMap("csm")
+	class, _ := sub["class"].(string)
+
+	ordinals := chassisOrdinalsForSlug(rack.Slug)
+
+	var children []import_.SlsHardware
+	for _, ord := range ordinals {
+		chassis := fmt.Sprintf("%sc%d", cabinetXname, ord)
+		children = append(children, import_.SlsHardware{
+			Xname:      chassis,
+			Parent:     cabinetXname,
+			Type:       "comptype_chassis",
+			TypeString: "Chassis",
+			Class:      class,
+		})
+
+		bmc := fmt.Sprintf("%sb0", chassis)
+		children = append(children, import_.SlsHardware{
+			Xname:      bmc,
+			Parent:     chassis,
+			Type:       "comptype_chassis_bmc",
+			TypeString: "ChassisBMC",
+			Class:      class,
+		})
+	}
+	return children
 }
