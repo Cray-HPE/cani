@@ -394,6 +394,9 @@ serve: venv ## Serve docs locally with mkdocs
 #  RPM packaging
 # ────────────────────────────────────────────
 
+rpm: rpm_prepare rpm_package_source rpm_build_source rpm_build ## Build RPM package
+	$(OK) "RPM package built in $(BUILD_DIR)/RPMS/$(ARCH)/"
+
 rpm_prepare:
 	$(INFO) "preparing RPM workspace"
 	rm -rf $(BUILD_DIR)
