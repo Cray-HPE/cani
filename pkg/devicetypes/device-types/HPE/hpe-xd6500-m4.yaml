@@ -25,7 +25,7 @@
 manufacturer: HPE
 model: Cray XD6500 M4
 slug: hpe-xd6500-m4
-hardware-type: node
+type: node
 u_height: 4
 is_full_depth: true
 identifications:

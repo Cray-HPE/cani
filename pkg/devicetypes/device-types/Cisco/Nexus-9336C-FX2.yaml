@@ -27,7 +27,7 @@ model: Nexus 9336C-FX2
 slug: cisco-nexus-9336c-fx2
 part_number: N9K-C9336C-FX2
 description: "Cisco Nexus 9336C-FX2 1RU 36-port 40/100G QSFP28 managed switch"
-hardware-type: mgmt-switch
+type: mgmt-switch
 u_height: 1
 is_full_depth: true
 weight: 8.5

@@ -22,7 +22,7 @@ func Export(inventory devicetypes.Inventory, w io.Writer) error {
 		}
 		meta := effectiveMeta(dev)
 
-		switch dev.HardwareType {
+		switch string(dev.Type) {
 		case "node":
 			payload.Nodes = append(payload.Nodes, buildNode(dev, meta))
 		case "bmc":

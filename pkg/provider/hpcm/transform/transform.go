@@ -222,18 +222,6 @@ func logUnmatched(nodes []UnmatchedNode) {
 	}
 }
 
-// allowedChildrenForType returns the allowed children list based on type.
-func allowedChildrenForType(hint devicetypes.Type) []string {
-	switch hint {
-	case devicetypes.TypeChassis:
-		return []string{"blade", "node", "cdu", "power-supply"}
-	case devicetypes.TypeMgmtSwitch:
-		return []string{"nic", "power-supply"}
-	default:
-		return []string{"cpu", "dimm", "disk", "gpu", "nic", "power-supply"}
-	}
-}
-
 // ── Builders ────────────────────────────────────────────────────────
 
 // buildDeviceFromNode creates a CaniDeviceType from a classified node.
@@ -253,17 +241,15 @@ func buildDeviceFromNode(node import_.Node, cl Classification, existing *devicet
 	id := resolveExistingDeviceID(node.Name, node.UUID, existing)
 
 	dev := devicetypes.CaniDeviceType{
-		ID:           id,
-		Name:         node.Name,
-		Type:         cl.DeviceTypeHint,
-		HardwareType: node.Type,
+		ID:   id,
+		Name: node.Name,
+		Type: cl.DeviceTypeHint,
 		ObjectMeta: devicetypes.ObjectMeta{
 			ProviderMetadata: map[string]any{
 				"hpcm": hpcmMeta,
 			},
 		},
-		Parent:          uuid.Nil,
-		AllowedChildren: allowedChildrenForType(cl.DeviceTypeHint),
+		Parent: uuid.Nil,
 	}
 
 	// Set import source from the --node-json-file flag value.
@@ -277,10 +263,10 @@ func buildDeviceFromNode(node import_.Node, cl Classification, existing *devicet
 // chassisByXname provides fallback parent lookup via geoloc xnames.
 func buildModuleFromNode(node import_.Node, cl Classification, chassisByLoc, chassisByXname map[string]uuid.UUID) (devicetypes.CaniModuleType, []devicetypes.CaniFruType) {
 	mod := devicetypes.CaniModuleType{
-		ID:           uuid.New(),
-		Name:         node.Name,
-		HardwareType: node.Type,
-		ObjectMeta:   devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), CustomFields: make(map[string]any)},
+		ID:         uuid.New(),
+		Name:       node.Name,
+		Type:       devicetypes.Type(node.Type),
+		ObjectMeta: devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), CustomFields: make(map[string]any)},
 	}
 
 	if node.UUID != "" {
@@ -636,10 +622,8 @@ func applyDeviceDefaults(dev *devicetypes.CaniDeviceType, lib devicetypes.CaniDe
 	if dev.UHeight == 0 {
 		dev.UHeight = lib.UHeight
 	}
-	if dev.HardwareType == "" || dev.HardwareType == string(dev.Type) {
-		if lib.HardwareType != "" {
-			dev.HardwareType = lib.HardwareType
-		}
+	if dev.Type == "" {
+		dev.Type = lib.Type
 	}
 }
 
@@ -657,8 +641,8 @@ func applyModuleDefaults(mod *devicetypes.CaniModuleType, lib devicetypes.CaniMo
 	if mod.Description == "" {
 		mod.Description = lib.Description
 	}
-	if mod.HardwareType == "" {
-		mod.HardwareType = lib.HardwareType
+	if mod.Type == "" {
+		mod.Type = lib.Type
 	}
 }
 
@@ -678,11 +662,11 @@ func buildRack(node import_.Node, racksByNumber map[int32]uuid.UUID, existing *d
 	id := resolveExistingRackID(name, existing)
 
 	rack := &devicetypes.CaniRackType{
-		ID:           id,
-		Name:         name,
-		HardwareType: string(devicetypes.TypeRack),
-		ObjectMeta:   devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), ProviderMetadata: map[string]any{"rack_number": rackNum}},
-		UHeight:      42,
+		ID:         id,
+		Name:       name,
+		Type:       devicetypes.TypeRack,
+		ObjectMeta: devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), ProviderMetadata: map[string]any{"rack_number": rackNum}},
+		UHeight:    42,
 	}
 	racksByNumber[rackNum] = rack.ID
 	return rack
@@ -748,11 +732,11 @@ func splitInventoryKey(key string) (string, string) {
 func buildCaniFru(parentName, groupID string, entries []kvEntry) devicetypes.CaniFruType {
 	hwType := strings.SplitN(groupID, ".", 2)[0]
 	fru := devicetypes.CaniFruType{
-		ID:           uuid.New(),
-		Name:         fmt.Sprintf("%s-%s", parentName, groupID),
-		HardwareType: hwType,
-		ObjectMeta:   devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), CustomFields: make(map[string]any)},
-		Discovered:   true,
+		ID:         uuid.New(),
+		Name:       fmt.Sprintf("%s-%s", parentName, groupID),
+		Type:       devicetypes.Type(hwType),
+		ObjectMeta: devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), CustomFields: make(map[string]any)},
+		Discovered: true,
 	}
 
 	for _, e := range entries {

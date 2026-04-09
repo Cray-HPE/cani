@@ -18,7 +18,7 @@ type CaniCableType struct {
 	Manufacturer string    `json:"manufacturer,omitempty" yaml:"manufacturer,omitempty"`
 	Model        string    `json:"model,omitempty" yaml:"model,omitempty"`
 	Description  string    `json:"description,omitempty" yaml:"description,omitempty"`
-	HardwareType string    `json:"hardwareType,omitempty" yaml:"hardware-type,omitempty"`
+	Type         Type      `json:"type,omitempty" yaml:"type,omitempty"`
 
 	// Cable specifics
 	CableCategory string   `json:"cableCategory,omitempty" yaml:"cable_category,omitempty"`

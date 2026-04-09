@@ -27,7 +27,7 @@ model: r10000
 slug: f5-networks-r10000
 part_number: F5-BIG-r10000
 description: "F5 rSeries r10000 1RU application delivery controller"
-hardware-type: mgmt-switch
+type: mgmt-switch
 u_height: 1
 is_full_depth: true
 weight: 13.6

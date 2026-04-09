@@ -160,7 +160,7 @@ func countDeviceModules(inv *devicetypes.Inventory, deviceID uuid.UUID, totalBay
 			continue
 		}
 		populated++
-		hwType := strings.ToLower(mod.HardwareType)
+		hwType := strings.ToLower(string(mod.Type))
 		if hwType == "" {
 			hwType = "module"
 		}

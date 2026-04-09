@@ -27,7 +27,7 @@ model: FortiGate 4401F
 slug: fortinet-fortigate-4401f
 part_number: FG-4401F
 description: "Fortinet FortiGate 4401F 2RU next-generation firewall with 800 Gbps firewall throughput"
-hardware-type: mgmt-switch
+type: mgmt-switch
 u_height: 2
 is_full_depth: true
 weight: 14.3

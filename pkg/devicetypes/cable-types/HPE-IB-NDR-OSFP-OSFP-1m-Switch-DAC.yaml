@@ -27,7 +27,7 @@ model: HPE InfiniBand NDR OSFP to OSFP 1m Switch-Switch DAC Cable
 slug: hpe-ib-ndr-osfp-osfp-1m-switch-dac
 part_number: P45696-B22
 description: "HPE InfiniBand NDR OSFP to OSFP 1m Switch-Switch DAC Cable. Direct attach copper cable for NDR InfiniBand switch-to-switch connections. Source: https://buy.hpe.com/us/en/networking/infiniband-adapters-and-cables/infiniband-cables/infiniband-cables/hpe-infiniband-ndr-osfp-to-osfp-dac-cables/p/P45696-B22"
-hardware-type: cable
+type: cable
 
 cable_category: dac
 connector_type: osfp

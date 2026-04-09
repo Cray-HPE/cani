@@ -106,8 +106,8 @@ func rackToTreeNode(rack *devicetypes.CaniRackType, inv *devicetypes.Inventory) 
 // deviceToTreeNode converts a device and its modules/children into a tree node.
 func deviceToTreeNode(dev *devicetypes.CaniDeviceType, inv *devicetypes.Inventory) visual.TreeNode {
 	var details []string
-	if dev.HardwareType != "" {
-		details = append(details, dev.HardwareType)
+	if dev.Type != "" {
+		details = append(details, string(dev.Type))
 	}
 	if dev.RackPosition > 0 {
 		details = append(details, fmt.Sprintf("U%d", dev.RackPosition))
@@ -158,8 +158,8 @@ func deviceToTreeNode(dev *devicetypes.CaniDeviceType, inv *devicetypes.Inventor
 // moduleToTreeNode converts a module into a tree node with its interfaces and FRUs.
 func moduleToTreeNode(mod *devicetypes.CaniModuleType, inv *devicetypes.Inventory) visual.TreeNode {
 	var details []string
-	if mod.HardwareType != "" {
-		details = append(details, mod.HardwareType)
+	if mod.Type != "" {
+		details = append(details, string(mod.Type))
 	}
 	if mod.ModuleBayName != "" {
 		details = append(details, "bay:"+mod.ModuleBayName)
@@ -204,8 +204,8 @@ func interfaceToTreeNode(iface devicetypes.InterfaceSpec) visual.TreeNode {
 // fruToTreeNode converts a FRU into a tree leaf.
 func fruToTreeNode(fru *devicetypes.CaniFruType) visual.TreeNode {
 	var details []string
-	if fru.HardwareType != "" {
-		details = append(details, fru.HardwareType)
+	if fru.Type != "" {
+		details = append(details, string(fru.Type))
 	}
 	if fru.PartNumber != "" {
 		details = append(details, fru.PartNumber)

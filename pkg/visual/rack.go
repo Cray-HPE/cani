@@ -71,8 +71,8 @@ func BuildRackVisualization(inv *devicetypes.Inventory, rackID uuid.UUID) (*Rack
 		return nil, fmt.Errorf("rack %s not found in inventory", rackID)
 	}
 
-	if rack.HardwareType != string(devicetypes.Rack) {
-		return nil, fmt.Errorf("device %s is not a rack (type: %s)", rack.Name, rack.HardwareType)
+	if rack.Type != devicetypes.Rack {
+		return nil, fmt.Errorf("device %s is not a rack (type: %s)", rack.Name, rack.Type)
 	}
 
 	// Determine rack height
@@ -88,7 +88,7 @@ func BuildRackVisualization(inv *devicetypes.Inventory, rackID uuid.UUID) (*Rack
 		}
 
 		// Skip nested racks
-		if device.HardwareType == string(devicetypes.Rack) {
+		if device.Type == devicetypes.Rack {
 			continue
 		}
 
@@ -113,7 +113,7 @@ func BuildRackVisualization(inv *devicetypes.Inventory, rackID uuid.UUID) (*Rack
 func FindAllRacks(inv *devicetypes.Inventory) []*devicetypes.CaniDeviceType {
 	var racks []*devicetypes.CaniDeviceType
 	for _, device := range inv.Devices {
-		if device != nil && device.HardwareType == string(devicetypes.Rack) {
+		if device != nil && device.Type == devicetypes.Rack {
 			racks = append(racks, device)
 		}
 	}
@@ -507,7 +507,7 @@ func RenderRacklessInventory(w io.Writer, inv *devicetypes.Inventory, opts Rende
 		if device == nil {
 			continue
 		}
-		typeCounts[device.HardwareType]++
+		typeCounts[string(device.Type)]++
 
 		// Collect top-level devices (no parent or parent is nil UUID)
 		if device.Parent == uuid.Nil {
@@ -528,7 +528,7 @@ func RenderRacklessInventory(w io.Writer, inv *devicetypes.Inventory, opts Rende
 	if len(topLevelDevices) > 0 {
 		fmt.Fprintf(w, "\n  %s (%d devices):\n", cyan("Top-Level Devices"), len(topLevelDevices))
 		for _, device := range topLevelDevices {
-			hwType := device.HardwareType
+			hwType := string(device.Type)
 			if hwType == "" {
 				hwType = "device"
 			}

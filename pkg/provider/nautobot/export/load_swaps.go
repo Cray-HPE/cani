@@ -126,7 +126,7 @@ func (e *Exporter) collectPendingMoves(
 		if device == nil || device.Name == "" {
 			continue
 		}
-		category := devicetypes.ClassifyForNautobot(device.HardwareType)
+		category := devicetypes.ClassifyForNautobot(string(device.Type))
 		if category != devicetypes.CategoryDevice {
 			continue
 		}

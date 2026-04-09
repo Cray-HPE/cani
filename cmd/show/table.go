@@ -188,7 +188,7 @@ func printDeviceTable(devices []*devicetypes.CaniDeviceType, inv *devicetypes.In
 		}
 		fmt.Println(
 			col(d.Name, colName) + "  " +
-				col(d.HardwareType, colType) + "  " +
+				col(string(d.Type), colType) + "  " +
 				col(d.Model, colModel) + "  " +
 				col(d.Status, colStatus) + "  " +
 				col(rackName, colRack) + "  " +
@@ -219,7 +219,7 @@ func printModuleTable(modules []*devicetypes.CaniModuleType, inv *devicetypes.In
 		devName := resolveDeviceName(m.ParentDevice, inv)
 		fmt.Println(
 			col(m.Name, colName) + "  " +
-				col(m.HardwareType, colType) + "  " +
+				col(string(m.Type), colType) + "  " +
 				col(m.Model, colModel) + "  " +
 				col(m.Status, colStatus) + "  " +
 				col(devName, colDevice) + "  " +

@@ -177,7 +177,7 @@ func createDevice(rec import_.JSONDeviceRecord) *devicetypes.CaniDeviceType {
 		Serial:       rec.SerialNumber,
 		Manufacturer: rec.Manufacturer,
 		PartNumber:   rec.PartNumber,
-		HardwareType: hwType,
+		Type:         devicetypes.Type(hwType),
 		ObjectMeta:   devicetypes.ObjectMeta{Status: string(devicetypes.StatusStaged), ProviderMetadata: buildProviderMetadata(rec)},
 	}
 
@@ -193,8 +193,8 @@ func populateFromDeviceType(device *devicetypes.CaniDeviceType, dt *devicetypes.
 	device.Slug = dt.Slug
 	device.Manufacturer = dt.Manufacturer
 	device.Model = dt.Model
-	if dt.HardwareType != "" {
-		device.HardwareType = dt.HardwareType
+	if dt.Type != "" {
+		device.Type = dt.Type
 	}
 	device.Interfaces = dt.Interfaces
 }

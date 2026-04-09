@@ -27,7 +27,7 @@ model: HPE InfiniBand NDR/Ethernet 2x400Gb OSFP Multi-mode 50m Switch-side Trans
 slug: hpe-ib-ndr-2x400gb-osfp-mm-50m-switch-xcvr
 part_number: P49762-B21
 description: "HPE InfiniBand NDR/Ethernet 2x400Gb OSFP Multi-mode 50m Switch-side Transceiver. Dual 400Gb/s ports, multimode fiber, 50m reach. Source: https://buy.hpe.com/us/en/networking/infiniband-adapters-and-cables/infiniband-transceivers/infiniband-transceivers/hpe-infiniband-ndr-ethernet-2x400gb-osfp-multi-mode-50m-switch-side-transceiver/p/P49762-B21"
-hardware-type: transceiver
+type: transceiver
 interfaces:
   - name: Port 1
     type: 400gbase-x-osfp

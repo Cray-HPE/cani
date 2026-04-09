@@ -183,7 +183,7 @@ func TestExportSpineLeafDryRun(t *testing.T) {
 		if device == nil || device.Name == "" {
 			continue
 		}
-		category := devicetypes.ClassifyForNautobot(device.HardwareType)
+		category := devicetypes.ClassifyForNautobot(string(device.Type))
 		if category != devicetypes.CategoryDevice {
 			continue
 		}
@@ -327,7 +327,7 @@ func TestExportSpineLeafLive(t *testing.T) {
 		if device == nil || device.Name == "" {
 			continue
 		}
-		category := devicetypes.ClassifyForNautobot(device.HardwareType)
+		category := devicetypes.ClassifyForNautobot(string(device.Type))
 		if category != devicetypes.CategoryDevice {
 			continue
 		}

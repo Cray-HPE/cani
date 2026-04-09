@@ -31,7 +31,7 @@ type CaniRackType struct {
 	Manufacturer string    `json:"manufacturer,omitempty" yaml:"manufacturer,omitempty"`
 	Model        string    `json:"model,omitempty" yaml:"model,omitempty"`
 	Description  string    `json:"description,omitempty" yaml:"description,omitempty"`
-	HardwareType string    `json:"hardwareType,omitempty" yaml:"hardware-type,omitempty"`
+	Type         Type      `json:"type,omitempty" yaml:"type,omitempty"`
 
 	// Physical
 	UHeight          int             `json:"uHeight" yaml:"u_height,omitempty"`
@@ -110,8 +110,8 @@ func (r *CaniRackType) GetType() Type {
 	if r == nil {
 		return ""
 	}
-	if r.HardwareType != "" {
-		return Type(r.HardwareType)
+	if r.Type != "" {
+		return r.Type
 	}
 	return TypeRack
 }

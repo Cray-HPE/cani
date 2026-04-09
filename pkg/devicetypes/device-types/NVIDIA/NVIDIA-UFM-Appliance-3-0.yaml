@@ -26,7 +26,7 @@ manufacturer: NVIDIA
 model: UFM Appliance 3.0
 slug: nvidia-ufm-appliance-3-0
 description: "NVIDIA UFM Appliance 3.0 InfiniBand fabric management platform"
-hardware-type: mgmt-switch
+type: mgmt-switch
 u_height: 1
 is_full_depth: true
 

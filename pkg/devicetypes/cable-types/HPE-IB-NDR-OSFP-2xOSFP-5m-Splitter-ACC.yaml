@@ -27,7 +27,7 @@ model: HPE InfiniBand NDR/Ethernet OSFP to 2xOSFP 5m Splitter Active Copper Cabl
 slug: hpe-ib-ndr-osfp-2xosfp-5m-splitter-acc
 part_number: P50396-B22
 description: "HPE InfiniBand NDR/Ethernet OSFP to 2xOSFP 5m Splitter Active Copper Cable. Active copper cable for NDR InfiniBand/Ethernet. Source: https://buy.hpe.com/us/en/networking/infiniband-adapters-and-cables/infiniband-cables/infiniband-cables/hpe-infiniband-ndr-ethernet-osfp-to-2xosfp-splitter-active-copper-cables/p/P50396-B22"
-hardware-type: cable
+type: cable
 
 cable_category: acc
 connector_type: osfp-2xosfp

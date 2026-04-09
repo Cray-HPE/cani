@@ -26,7 +26,7 @@ manufacturer: NetApp
 model: FAS8300 Controller
 slug: netapp-fas8300-controller
 description: "NetApp FAS8300 rear-mounted HA storage controller module"
-hardware-type: nic
+type: nic
 
 console-ports:
   - name: Console

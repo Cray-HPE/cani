@@ -101,7 +101,7 @@ func TestFruGetVendorReturnsEmptyForNil(t *testing.T) {
 // --- GetType ---
 
 func TestFruGetTypeReturnsExplicitType(t *testing.T) {
-	f := &CaniFruType{HardwareType: string(TypeNode)}
+	f := &CaniFruType{Type: TypeNode}
 	if got := f.GetType(); got != TypeNode {
 		t.Fatalf("expected %s, got %s", TypeNode, got)
 	}

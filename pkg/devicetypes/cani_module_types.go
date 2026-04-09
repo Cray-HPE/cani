@@ -17,7 +17,7 @@ type CaniModuleType struct {
 	Manufacturer string    `json:"manufacturer,omitempty" yaml:"manufacturer,omitempty"`
 	Model        string    `json:"model,omitempty" yaml:"model,omitempty"`
 	Description  string    `json:"description,omitempty" yaml:"description,omitempty"`
-	HardwareType string    `json:"hardwareType,omitempty" yaml:"hardware-type,omitempty"`
+	Type         Type      `json:"type,omitempty" yaml:"type,omitempty"`
 
 	// Physical
 	Weight     float64 `json:"weight,omitempty" yaml:"weight,omitempty"`
@@ -87,8 +87,8 @@ func (m *CaniModuleType) GetType() Type {
 	if m == nil {
 		return ""
 	}
-	if m.HardwareType != "" {
-		return Type(m.HardwareType)
+	if m.Type != "" {
+		return m.Type
 	}
 	return TypeModule
 }

@@ -139,7 +139,7 @@ func addDeviceStrategy(cmd *cobra.Command, result *lookupResult, qty int, nameAr
 		return fmt.Errorf("no racks found at location %q", locationArg)
 	}
 
-	entries, err := placement.Plan(racks, result.Device.UHeight, face, result.Device.IsFullDepth, qty, strategy, zone, result.Device.HardwareType)
+	entries, err := placement.Plan(racks, result.Device.UHeight, face, result.Device.IsFullDepth, qty, strategy, zone, string(result.Device.Type))
 	if err != nil {
 		return err
 	}

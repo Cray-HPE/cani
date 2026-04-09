@@ -1,3 +1,9 @@
+## Critical (non-negotiable)
+
+- provider-specific rack/device staging logic belongs here, not in `cmd/`
+- CSM uses the term "cabinet" which maps to cani's "rack" (`CaniRackType`)
+- providers implement optional interfaces from `internal/provider/` to hook into the generic command layer (e.g. `RackPostAddHook` for post-add rack logic)
+
 ## Do
 
 ### Keep Extract, Transform, and Load operations distinctly separate

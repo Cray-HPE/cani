@@ -32,7 +32,7 @@ description: >-
   16896 FP32 CUDA cores, 528 Tensor Cores, 132 streaming multiprocessors.
   Fourth-generation NVLink at 900 GB/s, PCIe Gen5.
   FP8 Tensor Core performance up to 3958 TFLOPS with sparsity.
-hardware-type: gpu
+type: gpu
 interfaces:
   - name: NVLink 4.0
     type: nvlink

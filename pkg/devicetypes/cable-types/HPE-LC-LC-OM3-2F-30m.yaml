@@ -27,7 +27,7 @@ model: HPE LC to LC Multi-mode OM3 2-Fiber 30.0m Fiber Optic Cable
 slug: hpe-lc-lc-om3-2f-30m
 part_number: AJ838A
 description: "HPE LC to LC Multi-mode OM3 2-Fiber 30.0m 1-Pack Fiber Optic Cable. OM3 multimode fiber for 10GbE and Fibre Channel connectivity. Source: https://buy.hpe.com/us/en/networking/networking-cables/networking-cables/networking-cables/hpe-premier-flex-fiber-optic-cables/p/AJ838A"
-hardware-type: cable
+type: cable
 cable_category: fiber-om3
 connector_type: lc
 length: 30

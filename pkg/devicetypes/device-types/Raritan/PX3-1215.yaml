@@ -27,7 +27,7 @@ model: PX3-1215
 slug: raritan-px3-1215
 part_number: PX3-1215
 description: "Raritan PX3-1215 intelligent rack PDU, single-phase 120V 20A with 12 outlets"
-hardware-type: pdu
+type: cabinet-pdu
 u_height: 0
 is_full_depth: false
 

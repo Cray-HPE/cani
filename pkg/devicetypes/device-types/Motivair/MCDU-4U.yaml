@@ -26,7 +26,7 @@ manufacturer: Motivair
 model: MCDU-4U
 slug: motivair-mcdu-4u
 description: "Motivair MCDU-4U 4U coolant distribution unit"
-hardware-type: cdu
+type: cdu
 u_height: 4
 is_full_depth: true
 

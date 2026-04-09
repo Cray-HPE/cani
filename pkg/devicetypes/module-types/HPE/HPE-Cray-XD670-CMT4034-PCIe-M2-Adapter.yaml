@@ -27,4 +27,4 @@ model: HPE Cray XD670 CMT4034 PCIe M.2 Adapter for HPC
 slug: hpe-cray-xd670-cmt4034-pcie-m2-adapter
 part_number: P60995-B21
 description: "HPE Cray XD670 CMT4034 PCIe M.2 Adapter for HPC. PCIe carrier for M.2 NVMe SSDs in HPE Cray XD670 servers. Source: https://buy.hpe.com/us/en/compute/high-performance-computing/high-performance-computing/high-performance-computing-systems/hpe-cray-supercomputing-xd670-server/p/1014870873"
-hardware-type: adapter
+type: adapter

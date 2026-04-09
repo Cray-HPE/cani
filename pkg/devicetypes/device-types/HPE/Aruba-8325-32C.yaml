@@ -27,7 +27,7 @@ model: HPE Aruba Networking CX 8325-32C Port-to-Power Airflow 6 Fans 2 Power Sup
 slug: hpe-aruba-8325-32c
 part_number: JL627A
 description: "HPE Aruba Networking CX 8325-32C 32p 100G QSFP+/QSFP28 Back-to-Front 6 Fans 2 Power Supply Bundle. 32-port 100G QSFP+/QSFP28 data center switch with 6.4 Tbps switching capacity. Source: https://buy.hpe.com/us/en/networking/switches/fixed-port-l3-managed-ethernet-switches/hpe-aruba-networking-cx-8325-switch-series/aruba-8325-32c-32p-100g-qsfp-qsfp28-back-to-front-6-fans-2-psu-bundle/p/JL627A"
-hardware-type: switch
+type: switch
 u_height: 1
 is_full_depth: false
 front_image: true

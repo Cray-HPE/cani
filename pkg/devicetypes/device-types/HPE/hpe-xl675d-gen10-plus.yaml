@@ -25,7 +25,7 @@
 manufacturer: HPE
 model: XL675d Gen10 Plus
 slug: hpe-xl675d-gen10-plus
-hardware-type: blade
+type: blade
 u_height: 6
 is_full_depth: true
 comments: "6U GPU server with 8x NVIDIA H100 PCIe GPUs, AMD EPYC Milan CPUs"

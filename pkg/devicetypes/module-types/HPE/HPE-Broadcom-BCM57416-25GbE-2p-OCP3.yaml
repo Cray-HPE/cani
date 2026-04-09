@@ -27,7 +27,7 @@ model: HPE Broadcom BCM57416 1/10/25GbE 2-port OCP3 Adapter
 slug: hpe-broadcom-bcm57416-25gbe-2p-ocp3
 part_number: P23666-B21
 description: "HPE Broadcom BCM57416 Ethernet 10/25Gb 2-port BASE-T OCP3 Adapter for Gen10 Plus and Gen11 servers."
-hardware-type: nic
+type: nic
 interfaces:
   - name: Port 1
     type: 25gbase-x-sfp28

@@ -26,7 +26,7 @@ manufacturer: NetApp
 model: DS460C
 slug: netapp-ds460c
 description: "NetApp DS460C 60-drive high-density disk shelf, 4U"
-hardware-type: blade
+type: blade
 u_height: 4
 is_full_depth: true
 weight: 113.0

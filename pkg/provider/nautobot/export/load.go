@@ -72,7 +72,7 @@ func generateDeviceNames(inventory *devicetypes.Inventory) {
 		if device == nil || device.Name != "" {
 			continue
 		}
-		category := devicetypes.ClassifyForNautobot(device.HardwareType)
+		category := devicetypes.ClassifyForNautobot(string(device.Type))
 		if category != devicetypes.CategoryDevice {
 			continue
 		}
@@ -107,7 +107,7 @@ func disambiguateDeviceNames(inventory *devicetypes.Inventory) {
 		if device == nil || device.Name == "" {
 			continue
 		}
-		category := devicetypes.ClassifyForNautobot(device.HardwareType)
+		category := devicetypes.ClassifyForNautobot(string(device.Type))
 		if category != devicetypes.CategoryDevice {
 			continue
 		}
@@ -248,7 +248,7 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 			continue
 		}
 
-		category := devicetypes.ClassifyForNautobot(device.HardwareType)
+		category := devicetypes.ClassifyForNautobot(string(device.Type))
 		if category != devicetypes.CategoryRack {
 			continue
 		}
@@ -290,7 +290,7 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 			continue
 		}
 
-		category := devicetypes.ClassifyForNautobot(device.HardwareType)
+		category := devicetypes.ClassifyForNautobot(string(device.Type))
 		if category != devicetypes.CategoryDevice {
 			continue
 		}
@@ -727,7 +727,7 @@ func getDeviceInterfaceSpecs(device *devicetypes.CaniDeviceType) []interfaceSpec
 	}
 
 	// Fallback: Determine interface set based on hardware type and model
-	switch devicetypes.Type(device.HardwareType) {
+	switch devicetypes.Type(string(device.Type)) {
 	case devicetypes.Blade, devicetypes.Node:
 		// ProLiant servers typically have iLO + 4 Ethernet + optional IB
 		specs = append(specs, interfaceSpec{Name: "iLO", Type: "1000base-t", Speed: 1000000})

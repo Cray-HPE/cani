@@ -27,7 +27,7 @@ model: ProLiant DL380 Gen11 8SFF
 slug: hpe-proliant-dl380-gen11-8sff
 part_number: P52534-B21
 description: "HPE ProLiant DL380 Gen11 8SFF Configure-to-order Server. 2U server with Intel 4th/5th Gen Xeon. Supports up to 8 SFF drives. Source: https://buy.hpe.com/us/en/compute/rack-servers/proliant-dl300-servers/proliant-dl380-server/hpe-proliant-dl380-gen11/p/1014815016"
-hardware-type: blade
+type: blade
 u_height: 2
 is_full_depth: true
 weight: 19.0

@@ -52,7 +52,7 @@ func ValidateInventory(inv *devicetypes.Inventory) error {
 		if device == nil || device.Name == "" {
 			continue
 		}
-		if device.Type == "system" || device.HardwareType == "system" {
+		if device.Type == "system" {
 			continue
 		}
 		validCount++

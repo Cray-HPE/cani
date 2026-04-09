@@ -128,8 +128,8 @@ func TestCreateDevice(t *testing.T) {
 	if device.Serial != "NODE-SN-001" {
 		t.Errorf("Serial = %q, want %q", device.Serial, "NODE-SN-001")
 	}
-	if device.HardwareType != "node" {
-		t.Errorf("HardwareType = %q, want %q", device.HardwareType, "node")
+	if device.Type != "node" {
+		t.Errorf("HardwareType = %q, want %q", device.Type, "node")
 	}
 	if device.Status != "Staged" {
 		t.Errorf("Status = %q, want %q", device.Status, "Staged")

@@ -26,7 +26,7 @@ manufacturer: NetApp
 model: FAS8300
 slug: netapp-fas8300
 description: "NetApp FAS8300 hybrid flash storage system, 4U dual-controller shelf"
-hardware-type: blade
+type: blade
 u_height: 4
 is_full_depth: true
 weight: 54.5

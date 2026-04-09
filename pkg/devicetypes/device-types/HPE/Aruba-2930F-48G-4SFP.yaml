@@ -27,7 +27,7 @@ model: HPE Aruba Networking 2930F 48G 4SFP+ Switch
 slug: hpe-aruba-2930f-48g-4sfp
 part_number: JL254A
 description: "HPE Aruba Networking 2930F 48G 4SFP+ Switch. Layer 3 stackable switch with 48x 1GbE ports and 4x SFP+ uplinks. Source: https://buy.hpe.com/us/en/networking/switches/fixed-port-l3-managed-ethernet-switches/aruba-2930f-switch-series/aruba-2930f-48g-4sfp-switch/p/JL254A"
-hardware-type: mgmt-switch
+type: mgmt-switch
 u_height: 1
 is_full_depth: false
 weight: 4.66

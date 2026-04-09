@@ -27,7 +27,7 @@ model: Metered 3-Phase Rack PDU
 slug: hpe-metered-3ph-rack-pdu
 part_number: 880463-B21
 description: "HPE Metered 63A 380-415V 3-Phase International Rack PDU (0U)"
-hardware-type: pdu
+type: cabinet-pdu
 u_height: 0
 is_full_depth: false
 

@@ -129,8 +129,10 @@ func addAnyRack(cmd *cobra.Command, args []string, rack *devicetypes.CaniRackTyp
 		applyTagsToRack(&r, tags)
 		applyProviderMetadataToRack(&r, provMeta)
 
-		// Apply CSM cabinet defaults when the rack type has them.
-		applyCabinetDefaults(&r, inventory)
+		// Let registered providers apply post-add logic.
+		if err := runRackPostAddHooks(&r, inventory); err != nil {
+			return fmt.Errorf("provider hook failed: %w", err)
+		}
 
 		if err := inventory.AddRack(&r); err != nil {
 			return fmt.Errorf("failed to add rack: %w", err)

@@ -98,7 +98,7 @@ func TestGetVendorRackNil(t *testing.T) {
 // --- GetType ---
 
 func TestGetTypeRackHappyPath(t *testing.T) {
-	r := &CaniRackType{HardwareType: "custom-rack"}
+	r := &CaniRackType{Type: "custom-rack"}
 	if got := r.GetType(); got != Type("custom-rack") {
 		t.Fatalf("expected custom-rack, got %s", got)
 	}

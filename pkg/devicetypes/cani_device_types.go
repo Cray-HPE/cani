@@ -23,10 +23,8 @@ type CaniDeviceType struct {
 	AssetTag     string    `json:"assetTag,omitempty" yaml:"asset_tag,omitempty"`
 
 	// Classification
-	Type            Type     `json:"type,omitempty" yaml:"type,omitempty"`
-	HardwareType    string   `json:"hardwareType" yaml:"hardware-type,omitempty"`
-	AllowedChildren []string `json:"allowedChildren,omitempty" yaml:"allowed_children,omitempty"`
-	SubdeviceRole   string   `json:"subdeviceRole,omitempty" yaml:"subdevice_role,omitempty"` // parent or child (chassis/blade)
+	Type          Type   `json:"type,omitempty" yaml:"type,omitempty"`
+	SubdeviceRole string `json:"subdeviceRole,omitempty" yaml:"subdevice_role,omitempty"` // parent or child (chassis/blade)
 
 	// Physical
 	UHeight     int     `json:"uHeight,omitempty" yaml:"u_height,omitempty"`
@@ -70,7 +68,7 @@ func (c *CaniDeviceType) IsCable() bool {
 	if c == nil {
 		return false
 	}
-	return c.HardwareType == string(TypeCable) || c.Type == TypeCable
+	return c.Type == TypeCable
 }
 
 // GetVendor returns the vendor name, falling back to Manufacturer.
@@ -89,10 +87,7 @@ func (c *CaniDeviceType) GetType() Type {
 	if c == nil {
 		return ""
 	}
-	if c.Type != "" {
-		return c.Type
-	}
-	return Type(c.HardwareType)
+	return c.Type
 }
 
 // MergeProperties merges non-empty properties from another CaniDeviceType into this one.
@@ -121,10 +116,6 @@ func (c *CaniDeviceType) MergeProperties(other *CaniDeviceType) bool {
 	}
 	if other.Status != "" && c.Status != other.Status {
 		c.Status = other.Status
-		changed = true
-	}
-	if other.HardwareType != "" && c.HardwareType != other.HardwareType {
-		c.HardwareType = other.HardwareType
 		changed = true
 	}
 	if other.Type != "" && c.Type != other.Type {

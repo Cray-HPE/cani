@@ -258,8 +258,8 @@ func TestFruOrphanFields(t *testing.T) {
 	if fru.Role == "" {
 		t.Error("fixture setup error: expected non-empty Role")
 	}
-	if fru.HardwareType == "" {
-		t.Error("fixture setup error: expected non-empty HardwareType")
+	if fru.Type == "" {
+		t.Error("fixture setup error: expected non-empty Type")
 	}
 	if fru.Model == "" {
 		t.Error("fixture setup error: expected non-empty Model")

@@ -37,7 +37,7 @@ func TestVerifyPopulatesOrphans(t *testing.T) {
 	// Orphan device
 	orphanDevID := uuid.New()
 	inv.Devices[orphanDevID] = &CaniDeviceType{
-		ID: orphanDevID, Name: "orphan-dev", HardwareType: "blade",
+		ID: orphanDevID, Name: "orphan-dev", Type: "blade",
 	}
 
 	result := inv.VerifyParentChildRelationships()
@@ -83,7 +83,7 @@ func TestReparentDeviceViaParentField(t *testing.T) {
 	// Start as orphan
 	devID := uuid.New()
 	inv.Devices[devID] = &CaniDeviceType{
-		ID: devID, Name: "blade1", HardwareType: "blade",
+		ID: devID, Name: "blade1", Type: "blade",
 	}
 
 	// First verify: device is orphan

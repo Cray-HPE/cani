@@ -115,7 +115,7 @@ func (inv *Inventory) MergeDevicesStrict(incoming map[uuid.UUID]*CaniDeviceType,
 			skipped = append(skipped, UnclassifiedDevice{
 				ID:           id,
 				Name:         device.Name,
-				HardwareType: device.HardwareType,
+				DeviceType:   string(device.Type),
 				Model:        device.Model,
 				Manufacturer: device.Manufacturer,
 			})
@@ -308,8 +308,8 @@ func mergeRackProperties(existing, incoming *CaniRackType) {
 	if incoming.Serial != "" {
 		existing.Serial = incoming.Serial
 	}
-	if incoming.HardwareType != "" {
-		existing.HardwareType = incoming.HardwareType
+	if incoming.Type != "" {
+		existing.Type = incoming.Type
 	}
 	if len(incoming.ProviderMetadata) > 0 {
 		if existing.ProviderMetadata == nil {
@@ -472,8 +472,8 @@ func mergeModuleProperties(existing, incoming *CaniModuleType) {
 	if incoming.Model != "" {
 		existing.Model = incoming.Model
 	}
-	if incoming.HardwareType != "" {
-		existing.HardwareType = incoming.HardwareType
+	if incoming.Type != "" {
+		existing.Type = incoming.Type
 	}
 }
 

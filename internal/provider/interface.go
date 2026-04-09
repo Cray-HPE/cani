@@ -123,3 +123,13 @@ type RackStager interface {
 	// staged rack matching the slug's class. Returns true if created.
 	StageNewInRack(inv *devicetypes.Inventory, slug string) bool
 }
+
+// RackPostAddHook is an optional interface that providers can implement
+// to run provider-specific logic after a rack is added to the inventory.
+// For example, CSM uses this to assign cabinet numbers and VLANs.
+type RackPostAddHook interface {
+	// OnRackAdded is called after a rack has been created but before
+	// the inventory is saved.  Providers may set provider-specific
+	// metadata, status, or name on the rack.
+	OnRackAdded(rack *devicetypes.CaniRackType, inventory *devicetypes.Inventory) error
+}

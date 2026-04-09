@@ -131,7 +131,7 @@ func addModuleStrategy(cmd *cobra.Command, result *lookupResult, qty int, nameAr
 		return fmt.Errorf("no devices found for module placement")
 	}
 
-	bayFilter := resolveBayFilter(bayFilterArg, result.Module.HardwareType)
+	bayFilter := resolveBayFilter(bayFilterArg, string(result.Module.Type))
 
 	entries, err := placement.PlanModules(devices, inventory, bayFilter, qty, strategy)
 	if err != nil {
@@ -216,7 +216,7 @@ func addModuleLiteral(cmd *cobra.Command, result *lookupResult, qty int, nameArg
 	// delegate to strategy-like flow using FILL.
 	if len(devices) > 1 {
 		isTemplate := nameexpand.IsTemplate(nameArg)
-		bayFilter := resolveBayFilter(bayFilterArg, result.Module.HardwareType)
+		bayFilter := resolveBayFilter(bayFilterArg, string(result.Module.Type))
 
 		entries, planErr := placement.PlanModules(devices, inventory, bayFilter, qty, placement.StrategyFill)
 		if planErr != nil {

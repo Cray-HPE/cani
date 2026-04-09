@@ -27,7 +27,7 @@ model: HPE InfiniBand NDR 1x400Gb OSFP Transceiver
 slug: hpe-ib-ndr-1x400gb-osfp-transceiver
 part_number: P51185-B21
 description: "HPE InfiniBand NDR/Ethernet 1x400Gb OSFP Transceiver. Single 400Gb/s port OSFP optical transceiver for NDR InfiniBand or 400GbE connectivity. Supports both multimode and singlemode fiber options. Source: https://buy.hpe.com/us/en/networking/infiniband-adapters-and-cables/infiniband-transceivers/infiniband-transceivers"
-hardware-type: transceiver
+type: transceiver
 interfaces:
   - name: Port 1
     type: 400gbase-x-osfp

@@ -27,7 +27,7 @@ model: NVIDIA ConnectX-7 NDR InfiniBand QSFP-DD PCIe5 Adapter
 slug: nvidia-connectx-7-ndr-infiniband-qsfpdd-pcie5
 part_number: MCX75310AAS-HEAT
 description: "NVIDIA ConnectX-7 NDR400 InfiniBand single-port QSFP-DD PCIe Gen5 x16 Adapter. 400Gb/s InfiniBand connectivity."
-hardware-type: nic
+type: nic
 interfaces:
   - name: Port 1
     type: 400gbase-x-qsfpdd

@@ -26,7 +26,7 @@ manufacturer: HPE
 model: Cray XD2000 Chassis
 slug: cray-xd2000-chassis
 part_number: P49953-B21
-hardware-type: blade
+type: blade
 u_height: 2
 is_full_depth: true
 subdevice_role: parent

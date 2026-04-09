@@ -51,8 +51,8 @@ func PromptForParent(inv *Inventory, orphan OrphanItem, suggestions []ParentSugg
 	fmt.Fprintf(w, "%s\n", bold("─── Orphan "+orphan.Kind+" ───"))
 	fmt.Fprintf(w, "  Name:          %s\n", cyan(orphan.Name))
 	fmt.Fprintf(w, "  ID:            %s\n", gray(orphan.ID.String()))
-	if orphan.HardwareType != "" {
-		fmt.Fprintf(w, "  HardwareType:  %s\n", orphan.HardwareType)
+	if orphan.DeviceType != "" {
+		fmt.Fprintf(w, "  Type:          %s\n", orphan.DeviceType)
 	}
 	if orphan.Model != "" {
 		fmt.Fprintf(w, "  Model:         %s\n", orphan.Model)

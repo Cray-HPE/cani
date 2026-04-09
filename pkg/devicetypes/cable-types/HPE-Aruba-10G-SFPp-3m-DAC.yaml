@@ -27,7 +27,7 @@ model: HPE Aruba Networking 10G SFP+ to SFP+ 3m Direct Attach Copper Cable
 slug: hpe-aruba-10g-sfpp-3m-dac
 part_number: J9283D
 description: "HPE Aruba Networking 10G SFP+ to SFP+ 3m Direct Attach Copper Cable. Source: https://buy.hpe.com/us/en/options/cables/direct-attach-cables/direct-attach-cables/aruba-10g-sfp-to-sfp-3m-direct-attach-copper-cable/p/J9283D"
-hardware-type: cable
+type: cable
 cable_category: dac
 connector_type: sfpp-sfpp
 length: 3

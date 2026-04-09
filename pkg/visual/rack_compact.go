@@ -475,7 +475,7 @@ func getDeviceSymbol(device *devicetypes.CaniDeviceType) rune {
 		return SymEmpty
 	}
 
-	hwType := strings.ToLower(device.HardwareType)
+	hwType := strings.ToLower(string(device.Type))
 	switch {
 	case strings.Contains(hwType, "switch") || hwType == "hsn-switch" || hwType == "mgmt-switch":
 		return SymSwitch

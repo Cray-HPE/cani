@@ -8,7 +8,7 @@ When editing or reviewing this file, enforce these rules:
 ## Required Fields
 - `slug` must be non-empty, lowercase kebab-case, and unique across the category
 - `manufacturer` must match the parent directory name
-- `hardware-type` must be a known value: blade, hsn-switch, mgmt-switch, pdu, cec, bmc, gpu, nic, transceiver, psu, cable, rack, Cabinet
+- `type` must be a known value: blade, node, nodecard, chassis, switch, mgmt-switch, hsn-switch, cabinet-pdu, cdu, cec, cmm, nodecontroller, gpu, nic, adapter, transceiver, power-supply, cable, rack, cabinet
 
 ## License Header
 - File must begin with the MIT license comment block (lines starting with `#`)

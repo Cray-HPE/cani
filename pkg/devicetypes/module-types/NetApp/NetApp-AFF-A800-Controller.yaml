@@ -27,7 +27,7 @@ model: AFF A800 Controller (AFF-A800A-201-U-C)
 slug: netapp-aff-a800-controller
 part_number: AFF-A800A-201-U-C
 description: "NetApp AFF A800 rear-mounted HA storage controller module"
-hardware-type: nic
+type: nic
 
 console-ports:
   - name: Console

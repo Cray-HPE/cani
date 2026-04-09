@@ -26,7 +26,7 @@ manufacturer: NetApp
 model: AFF A800
 slug: netapp-aff-a800
 description: "NetApp AFF A800 all-flash NVMe storage system, 4U dual-controller shelf"
-hardware-type: blade
+type: blade
 u_height: 4
 is_full_depth: true
 weight: 54.5

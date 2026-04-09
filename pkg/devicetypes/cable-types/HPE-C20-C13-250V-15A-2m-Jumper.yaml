@@ -27,7 +27,7 @@ model: HPE C20 - C13 WW 250V 15Amp 2.0m Jumper Cord
 slug: hpe-c20-c13-250v-15a-2m-jumper
 part_number: AF590A
 description: "HPE C20 - C13 WW 250V 15Amp 2.0m Jumper Cord. Source: https://buy.hpe.com/us/en/options/power-cables-cable-kits/power-cords/power-cords/hpe-power-cords/hpe-c20-c13-ww-250v-15amp-2-0m-jumper-cord/p/AF590A"
-hardware-type: cable
+type: cable
 length: 2.0
 length_unit: m
 cable_category: power

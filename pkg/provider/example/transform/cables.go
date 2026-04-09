@@ -299,7 +299,7 @@ func autoConnectCables(inventory *devicetypes.Inventory, cablesByGroup map[strin
 		// Find hub devices (switches) and spoke devices (servers, nodes)
 		var hubs, spokes []*devicetypes.CaniDeviceType
 		for _, dev := range devices {
-			if dev.HardwareType == "switch" || dev.HardwareType == "mgmt-switch" || dev.HardwareType == "hsn-switch" {
+			if dev.Type == "switch" || dev.Type == "mgmt-switch" || dev.Type == "hsn-switch" {
 				hubs = append(hubs, dev)
 			} else {
 				spokes = append(spokes, dev)

@@ -41,8 +41,7 @@ Every type needs at minimum:
 - **manufacturer** — company name (matches directory name)
 - **model** — full product name
 - **slug** — lowercase-kebab-case unique identifier (convention: `manufacturer-model-variant`)
-- **hardware-type** — category tag (see [field reference](./references/fields.md))
-
+- **type** — classification tag matching a Type constant (blade, node, chassis, switch, mgmt-switch, hsn-switch, cabinet-pdu, cdu, cec, cmm, gpu, nic, adapter, transceiver, power-supply, cable, rack, cabinet, nodecard, nodecontroller)
 ### 3. Choose the Filename
 
 Convention: `<Model-Name-With-Dashes>.yaml`
@@ -103,7 +102,7 @@ model: <Full Model Name>
 slug: <manufacturer-model-variant>
 part_number: <part-number>
 description: "<one-line description>"
-hardware-type: <blade|hsn-switch|mgmt-switch|pdu|cec|bmc|...>
+type: <blade|node|chassis|switch|mgmt-switch|hsn-switch|cabinet-pdu|cdu|cec|cmm|...>
 u_height: <int>
 is_full_depth: <true|false>
 weight: <float>
@@ -151,7 +150,7 @@ model: <Full Model Name>
 slug: <manufacturer-model-variant>
 part_number: <part-number>
 description: "<one-line or multi-line description>"
-hardware-type: <gpu|nic|transceiver|psu|memory|...>
+type: <gpu|nic|adapter|transceiver|power-supply|memory|...>
 weight: <float>
 weight_unit: <kg|lb>
 
@@ -166,7 +165,7 @@ interfaces:
 manufacturer: <Manufacturer>
 model: <Full Model Name>
 slug: <manufacturer-model-variant>
-hardware-type: <Cabinet|rack>
+type: <cabinet|rack>
 
 device-bays:
   - name: <bay-name>
@@ -192,7 +191,7 @@ model: <Full Model Name>
 slug: <manufacturer-model-variant>
 part_number: <part-number>
 description: "<description>"
-hardware-type: cable
+type: cable
 cable_category: <dac|aoc|fiber|copper>
 connector_type: <qsfp28|qsfp56|qsfpdd|osfp|sfp28|...>
 length: <number>

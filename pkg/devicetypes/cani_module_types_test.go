@@ -104,7 +104,7 @@ func TestModuleGetVendorReturnsEmptyForNil(t *testing.T) {
 // --- GetType ---
 
 func TestModuleGetTypeReturnsExplicitType(t *testing.T) {
-	m := &CaniModuleType{HardwareType: string(TypeChassis)}
+	m := &CaniModuleType{Type: TypeChassis}
 	if got := m.GetType(); got != TypeChassis {
 		t.Fatalf("expected %s, got %s", TypeChassis, got)
 	}

@@ -58,9 +58,6 @@ func TestBuildDeviceFromRoot(t *testing.T) {
 	if dev.Manufacturer != "HPE" {
 		t.Errorf("Manufacturer = %q, want %q", dev.Manufacturer, "HPE")
 	}
-	if dev.HardwareType != "server" {
-		t.Errorf(hwTypeErrFmt, dev.HardwareType, "server")
-	}
 	if dev.Type != devicetypes.TypeNode {
 		t.Errorf("Type = %q, want %q", dev.Type, devicetypes.TypeNode)
 	}
@@ -165,7 +162,7 @@ func TestApplyDeviceDefaults(t *testing.T) {
 	dev := &devicetypes.CaniDeviceType{
 		Name:         "test",
 		Manufacturer: "HPE",
-		HardwareType: "server",
+		Type:         devicetypes.Type("server"),
 	}
 	lib := devicetypes.CaniDeviceType{
 		Slug:         wantSlug,
@@ -174,7 +171,7 @@ func TestApplyDeviceDefaults(t *testing.T) {
 		Description:  "HPE " + wantProduct,
 		UHeight:      1,
 		Manufacturer: "Hewlett Packard Enterprise",
-		HardwareType: "node",
+		Type:         devicetypes.Type("node"),
 	}
 	applyDeviceDefaults(dev, lib)
 	if dev.Slug != wantSlug {
@@ -192,8 +189,8 @@ func TestApplyDeviceDefaults(t *testing.T) {
 	if dev.UHeight != 1 {
 		t.Errorf("UHeight = %d, want %d", dev.UHeight, 1)
 	}
-	if dev.HardwareType != "node" {
-		t.Errorf(hwTypeErrFmt, dev.HardwareType, "node")
+	if dev.Type != "node" {
+		t.Errorf(hwTypeErrFmt, dev.Type, "node")
 	}
 }
 

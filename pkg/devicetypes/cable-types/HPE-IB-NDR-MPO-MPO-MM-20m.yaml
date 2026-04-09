@@ -27,7 +27,7 @@ model: HPE InfiniBand NDR 8 Fiber MPO to 8 Fiber MPO Multi-mode 20m Cable
 slug: hpe-ib-ndr-mpo-mpo-mm-20m
 part_number: P49765-B25
 description: "HPE InfiniBand NDR 8 Fiber MPO to 8 Fiber MPO Multi-mode 20m Cable. Multi-mode fiber cable for NDR InfiniBand. Source: https://buy.hpe.com/us/en/networking/infiniband-adapters-and-cables/infiniband-cables/infiniband-cables/hpe-infiniband-ndr-mpo-to-mpo-multi-mode-cables/p/P49765-B25"
-hardware-type: cable
+type: cable
 cable_category: fiber-mm
 connector_type: mpo
 length: 20

@@ -27,7 +27,7 @@ model: HPE Aruba Networking 100G QSFP28 to QSFP28 15m Active Optical Cable
 slug: hpe-aruba-100g-qsfp28-15m-aoc
 part_number: R0Z28A
 description: "HPE Aruba Networking 100G QSFP28 to QSFP28 15m Active Optical Cable. Source: https://buy.hpe.com/us/en/options/cables/active-optical-cables/active-optical-cables/aruba-100g-qsfp28-to-qsfp28-15m-active-optical-cable/p/R0Z28A"
-hardware-type: cable
+type: cable
 cable_category: aoc
 connector_type: qsfp28-qsfp28
 length: 15

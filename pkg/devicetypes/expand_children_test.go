@@ -55,6 +55,6 @@ func TestExpandChildrenEX235A(t *testing.T) {
 
 	t.Logf("Created %d children from blade", len(children))
 	for _, c := range children {
-		t.Logf("  %s slug=%s type=%s parent=%s", c.ID, c.Slug, c.HardwareType, c.Parent)
+		t.Logf("  %s slug=%s type=%s parent=%s", c.ID, c.Slug, c.Type, c.Parent)
 	}
 }

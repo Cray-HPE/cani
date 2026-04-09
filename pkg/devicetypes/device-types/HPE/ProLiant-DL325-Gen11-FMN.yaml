@@ -26,7 +26,7 @@ manufacturer: HPE
 model: ProLiant DL325 Gen11 FMN
 slug: hpe-proliant-dl325-gen11-fmn
 part_number: S2E06A
-hardware-type: blade
+type: blade
 u_height: 1
 is_full_depth: true
 console-ports:

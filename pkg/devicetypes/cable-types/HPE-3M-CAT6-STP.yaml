@@ -27,7 +27,7 @@ model: HPE 3.0M Blue CAT6 STP Cable
 slug: hpe-3m-cat6-stp
 part_number: AF595A
 description: "HPE 3.0M Blue CAT6 STP Cable Data. Shielded Cat6 Ethernet cable for data center networking. Source: https://buy.hpe.com/us/en/networking/networking-cables/networking-cables/networking-cables/hpe-cat6-cables/p/AF595A"
-hardware-type: cable
+type: cable
 cable_category: cat6
 connector_type: rj45
 length: 3

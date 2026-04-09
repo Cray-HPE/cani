@@ -25,7 +25,7 @@
 manufacturer: Cray Gigabyte
 model: R272-Z30-00
 slug: cray-gigabyte-r272-z30-00
-hardware-type: blade
+type: blade
 u_height: 2
 is_full_depth: true
 comments: "2U Service node with AMD EPYC Rome CPUs"

@@ -52,8 +52,8 @@ func PromptForDeviceType(device UnclassifiedDevice, opts ClassifyOptions) (strin
 	if device.Role != "" {
 		fmt.Fprintf(w, "  Role:          %s\n", device.Role)
 	}
-	if device.HardwareType != "" {
-		fmt.Fprintf(w, "  HardwareType:  %s\n", device.HardwareType)
+	if device.DeviceType != "" {
+		fmt.Fprintf(w, "  Type:          %s\n", device.DeviceType)
 	}
 	if device.Model != "" {
 		fmt.Fprintf(w, "  Model:         %s\n", device.Model)
