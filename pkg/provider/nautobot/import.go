@@ -10,43 +10,50 @@ import (
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/provider/nautobot/export"
-	imprt "github.com/Cray-HPE/cani/pkg/provider/nautobot/import"
+	import_ "github.com/Cray-HPE/cani/pkg/provider/nautobot/import"
 	"github.com/spf13/cobra"
 )
 
-// Import delegates to the import sub-package.
-func (p *Nautobot) Import(cmd *cobra.Command, args []string) (importedDevices []devicetypes.CaniDeviceType, err error) {
-	return imprt.Import(cmd, args)
+// Import implements the provider.Importer interface.
+// It delegates to the import subpackage to fetch all entity types from
+// the Nautobot API and stores the raw responses for later use by Transform().
+func (p *Nautobot) Import(cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+	if err := import_.Import(cmd, args, inventory); err != nil {
+		return fmt.Errorf("nautobot import failed: %w", err)
+	}
+
+	clog.Detail("  Fetched %d locations", len(p.rawLocations))
+	clog.Detail("  Fetched %d racks", len(p.rawRacks))
+	clog.Detail("  Fetched %d devices", len(p.rawDevices))
+	clog.Detail("  Fetched %d device types", len(p.rawDeviceTypes))
+	clog.Detail("  Fetched %d interfaces", len(p.rawInterfaces))
+	clog.Detail("  Fetched %d modules", len(p.rawModules))
+	clog.Detail("  Fetched %d module bays", len(p.rawModuleBays))
+	clog.Detail("  Fetched %d cables", len(p.rawCables))
+	clog.Detail("  Fetched %d inventory items", len(p.rawInventoryItems))
+
+	return nil
 }
 
 // importNautobot is the RunE handler for "cani import nautobot".
+// It creates the API client, tests the connection, and prompts for
+// defaults if they were not supplied via CLI flags.
 func (p *Nautobot) importNautobot(cmd *cobra.Command, args []string) error {
 	clog.Info("Importing via Nautobot provider...")
 
-	url, _ := cmd.Flags().GetString("url")
-	token, _ := cmd.Flags().GetString("token")
-	defaultLocation, _ := cmd.Flags().GetString("default-location")
-	defaultRole, _ := cmd.Flags().GetString("default-role")
-	defaultStatus, _ := cmd.Flags().GetString("default-status")
-	merge, _ := cmd.Flags().GetBool("merge")
-	dryRun, _ := cmd.Flags().GetBool("dry-run")
-
-	if url == "" {
-		return fmt.Errorf("--url is required")
+	if err := p.loadOptionsFromConfig(); err != nil {
+		return fmt.Errorf("failed to load nautobot config: %w", err)
 	}
-	if token == "" {
-		return fmt.Errorf("--token is required")
+	p.applyFlagOverrides(cmd)
+
+	if p.Options.URL == "" {
+		return fmt.Errorf("nautobot URL not configured; set nautobot.url in the config file")
+	}
+	if p.Options.Token == "" {
+		return fmt.Errorf("nautobot token not configured; set nautobot.token in the config file")
 	}
 
-	p.Options.URL = url
-	p.Options.Token = token
-	if p.Options.Export == nil {
-		p.Options.Export = &NautobotExportOpts{}
-	}
-	p.Options.Export.Merge = merge
-	p.Options.Export.DryRun = dryRun
-
-	client, err := export.NewNautobotClient(url, token)
+	client, err := export.NewNautobotClient(p.Options.URL, p.Options.Token)
 	if err != nil {
 		return fmt.Errorf("failed to create Nautobot client: %w", err)
 	}
@@ -60,51 +67,10 @@ func (p *Nautobot) importNautobot(cmd *cobra.Command, args []string) error {
 	cache := export.NewLookupCache(client)
 	cache.SetContext(ctx)
 
-	if defaultLocation == "" {
-		location, err := promptForSelection("location", func() ([]*export.CachedItem, error) {
-			return cache.ListLocations()
-		})
-		if err != nil {
-			return fmt.Errorf("failed to select location: %w", err)
-		}
-		defaultLocation = location
-	}
-	if p.Options.Import == nil {
-		p.Options.Import = &NautobotImportOpts{}
-	}
-	p.Options.DefaultLocation = defaultLocation
-
-	if defaultRole == "" {
-		role, err := promptForSelection("role", func() ([]*export.CachedItem, error) {
-			return cache.ListRoles()
-		})
-		if err != nil {
-			return fmt.Errorf("failed to select role: %w", err)
-		}
-		defaultRole = role
-	}
-	p.Options.DefaultRole = defaultRole
-
-	if defaultStatus == "" {
-		status, err := promptForSelection("status", func() ([]*export.CachedItem, error) {
-			return cache.ListStatuses()
-		})
-		if err != nil {
-			return fmt.Errorf("failed to select status: %w", err)
-		}
-		defaultStatus = status
-	}
-	p.Options.DefaultStatus = defaultStatus
-
-	clog.Warn("WARNING: API token will be stored in config file. Use --token to override at runtime.")
-
-	clog.Detail("Nautobot provider initialized with:")
-	clog.Detail("  URL: %s", url)
-	clog.Detail("  Default Location: %s", defaultLocation)
-	clog.Detail("  Default Role: %s", defaultRole)
-	clog.Detail("  Default Status: %s", defaultStatus)
-	clog.Detail("  Merge: %v", merge)
-	clog.Detail("  Dry Run: %v", dryRun)
+	// Store on provider for use by Import().
+	p.ctx = ctx
+	p.client = client
+	p.cache = cache
 
 	return nil
 }

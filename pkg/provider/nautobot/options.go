@@ -63,12 +63,14 @@ type NautobotImportOpts struct {
 
 // NautobotExportOpts holds options specific to the export command
 type NautobotExportOpts struct {
-	CreateDeviceTypes bool `yaml:"create_device_types" json:"create_device_types" line_comment:"Create missing device types in Nautobot"`
-	CreateLocations   bool `yaml:"create_locations" json:"create_locations" line_comment:"Create missing locations in Nautobot"`
-	CreateStatuses    bool `yaml:"create_statuses" json:"create_statuses" line_comment:"Create missing statuses in Nautobot"`
-	CreateRoles       bool `yaml:"create_roles" json:"create_roles" line_comment:"Create missing roles in Nautobot"`
-	Merge             bool `yaml:"merge" json:"merge" line_comment:"Merge with existing devices instead of skipping conflicts"`
-	DryRun            bool `yaml:"dry_run" json:"dry_run" line_comment:"Log planned actions without making API calls"`
+	CreateDeviceTypes   bool `yaml:"create_device_types" json:"create_device_types" line_comment:"Create missing device types in Nautobot"`
+	CreateLocationTypes bool `yaml:"create_location_types" json:"create_location_types" line_comment:"Create missing location types in Nautobot"`
+	CreateModuleTypes   bool `yaml:"create_module_types" json:"create_module_types" line_comment:"Create missing module types in Nautobot"`
+	CreateLocations     bool `yaml:"create_locations" json:"create_locations" line_comment:"Create missing locations in Nautobot"`
+	CreateStatuses      bool `yaml:"create_statuses" json:"create_statuses" line_comment:"Create missing statuses in Nautobot"`
+	CreateRoles         bool `yaml:"create_roles" json:"create_roles" line_comment:"Create missing roles in Nautobot"`
+	Merge               bool `yaml:"merge" json:"merge" line_comment:"Merge with existing devices instead of skipping conflicts"`
+	DryRun              bool `yaml:"dry_run" json:"dry_run" line_comment:"Log planned actions without making API calls"`
 }
 
 // --- HasOptions interface implementation ---
@@ -116,18 +118,22 @@ func (p *Nautobot) GetExportOptionsStruct() interface{} {
 // GetExportDefaults returns the default export configuration options
 func (p *Nautobot) GetExportDefaults() map[string]any {
 	return provider.StructToMapAll(&NautobotExportOpts{
-		CreateDeviceTypes: true,
-		CreateLocations:   true,
-		CreateStatuses:    true,
-		CreateRoles:       true,
-		Merge:             false,
-		DryRun:            false,
+		CreateDeviceTypes:   true,
+		CreateLocationTypes: true,
+		CreateModuleTypes:   true,
+		CreateLocations:     true,
+		CreateStatuses:      true,
+		CreateRoles:         true,
+		Merge:               false,
+		DryRun:              false,
 	})
 }
 
 // BindExportFlags binds CLI flags to Viper for the export command
 func (p *Nautobot) BindExportFlags(cmd *cobra.Command) error {
 	_ = viper.BindPFlag("nautobot.export.create_device_types", cmd.Flags().Lookup("create-device-types"))
+	_ = viper.BindPFlag("nautobot.export.create_location_types", cmd.Flags().Lookup("create-location-types"))
+	_ = viper.BindPFlag("nautobot.export.create_module_types", cmd.Flags().Lookup("create-module-types"))
 	_ = viper.BindPFlag("nautobot.export.create_locations", cmd.Flags().Lookup("create-locations"))
 	_ = viper.BindPFlag("nautobot.export.create_statuses", cmd.Flags().Lookup("create-statuses"))
 	_ = viper.BindPFlag("nautobot.export.create_roles", cmd.Flags().Lookup("create-roles"))
@@ -178,6 +184,8 @@ func (p *Nautobot) loadExportOptsFromViper() {
 		p.Options.Export = &NautobotExportOpts{}
 	}
 	p.Options.Export.CreateDeviceTypes = viper.GetBool("nautobot.export.create_device_types")
+	p.Options.Export.CreateLocationTypes = viper.GetBool("nautobot.export.create_location_types")
+	p.Options.Export.CreateModuleTypes = viper.GetBool("nautobot.export.create_module_types")
 	p.Options.Export.CreateLocations = viper.GetBool("nautobot.export.create_locations")
 	p.Options.Export.CreateStatuses = viper.GetBool("nautobot.export.create_statuses")
 	p.Options.Export.CreateRoles = viper.GetBool("nautobot.export.create_roles")
@@ -270,6 +278,16 @@ func (p *Nautobot) loadExportOptsFromConfig() {
 	if val, ok := config.GetNestedValue("nautobot", "export", "create_roles"); ok {
 		if b, ok := val.(bool); ok {
 			p.Options.Export.CreateRoles = b
+		}
+	}
+	if val, ok := config.GetNestedValue("nautobot", "export", "create_location_types"); ok {
+		if b, ok := val.(bool); ok {
+			p.Options.Export.CreateLocationTypes = b
+		}
+	}
+	if val, ok := config.GetNestedValue("nautobot", "export", "create_module_types"); ok {
+		if b, ok := val.(bool); ok {
+			p.Options.Export.CreateModuleTypes = b
 		}
 	}
 }

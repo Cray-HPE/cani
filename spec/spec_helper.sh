@@ -94,7 +94,7 @@ setup_test_env() {
   rm -rf "$CANI_DIR"
   mkdir -p "$CANI_DIR"
   cp "$FIXTURES/cani/configs/test_config.yml" "$CANI_CONF"
-  cp "$FIXTURES/cani/empty_inventory.json" "$CANI_DS"
+  # Load() returns an empty inventory when the file is missing.
 }
 
 # Create a test environment pre-loaded with the populated test-rack inventory.
@@ -129,6 +129,60 @@ setup_datastore_migration_env() {
   rm -rf "$CANI_DIR"
   mkdir -p "$CANI_DIR"
   cp "$FIXTURES/cani/legacy/$1" "$CANI_DS"
+}
+
+# ---------- Nautobot integration helpers ----------
+
+# Create a test environment configured for the Nautobot provider.
+#shellcheck disable=SC2317
+setup_nautobot_env() {
+  rm -rf "$CANI_DIR"
+  mkdir -p "$CANI_DIR"
+  cp "$FIXTURES/cani/configs/cani_0.6.x.yml" "$CANI_CONF"
+  # cp "$FIXTURES/cani/empty_inventory.json" "$CANI_DS"
+}
+
+# Wait for the Nautobot API to become healthy (up to ~60s).
+#shellcheck disable=SC2317
+wait_for_nautobot() {
+  _tries=0
+  while [ "$_tries" -lt 30 ]; do
+    if curl -sf -H "Authorization: Token ${NAUTOBOT_TOKEN}" \
+       "${NAUTOBOT_URL}/status/" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 2
+    _tries=$(( _tries + 1 ))
+  done
+  printf "ERROR: Nautobot did not become healthy\n" >&2
+  return 1
+}
+
+# Create a Nautobot object via POST.
+# Usage: nb_create <path> '<json>'
+# Example: nb_create dcim/locations/ '{"name":"Site-A","status":{"id":"..."}}'
+#shellcheck disable=SC2317
+nb_create() {
+  curl -sf -X POST \
+    -H "Authorization: Token ${NAUTOBOT_TOKEN}" \
+    -H "Content-Type: application/json" \
+    -d "$2" \
+    "${NAUTOBOT_URL}/$1"
+}
+
+# Fetch a list of Nautobot objects.
+# Usage: nb_list <path>
+# Example: nb_list dcim/devices/
+#shellcheck disable=SC2317
+nb_list() {
+  curl -sf -H "Authorization: Token ${NAUTOBOT_TOKEN}" "${NAUTOBOT_URL}/$1"
+}
+
+# Fetch a single field from a Nautobot list result.
+# Usage: nb_list_field <path> <jq-filter>
+#shellcheck disable=SC2317
+nb_list_field() {
+  nb_list "$1" | python3 -c "import sys,json; data=json.load(sys.stdin); $2"
 }
 
 # Custom matcher used to find a string inside of a text containing ANSI escape codes.

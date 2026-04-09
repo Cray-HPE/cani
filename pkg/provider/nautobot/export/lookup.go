@@ -89,10 +89,11 @@ type LookupCache struct {
 	devicesLoaded     bool
 
 	// Options for auto-creation
-	createDeviceTypes bool
-	createStatuses    bool
-	createRoles       bool
-	createLocations   bool
+	createDeviceTypes   bool
+	createLocationTypes bool
+	createStatuses      bool
+	createRoles         bool
+	createLocations     bool
 }
 
 // NewLookupCache creates a new lookup cache for the given client
@@ -134,6 +135,17 @@ func (c *LookupCache) SetCreateRoles(create bool) {
 // SetCreateLocations enables or disables auto-creation of locations
 func (c *LookupCache) SetCreateLocations(create bool) {
 	c.createLocations = create
+}
+
+// SetCreateLocationTypes enables or disables auto-creation of location types
+func (c *LookupCache) SetCreateLocationTypes(create bool) {
+	c.createLocationTypes = create
+}
+
+// SetCreateModuleTypes enables or disables auto-creation of module types
+func (c *LookupCache) SetCreateModuleTypes(create bool) {
+	// Module type creation is gated at the Exporter.Options level,
+	// but this setter is provided for symmetry with the other flags.
 }
 
 // GetDeviceType looks up a device type by model/slug and returns its ID
@@ -272,6 +284,43 @@ func (c *LookupCache) GetLocation(name string) (*CachedItem, error) {
 	return nil, fmt.Errorf("location not found: %s", name)
 }
 
+// LookupLocation checks whether a location already exists in Nautobot by name.
+// Unlike GetLocation, it never auto-creates. Returns nil, nil when not found.
+func (c *LookupCache) LookupLocation(name string) (*CachedItem, error) {
+	c.locationsMu.RLock()
+	if item, ok := c.locations[name]; ok {
+		c.locationsMu.RUnlock()
+		return item, nil
+	}
+	c.locationsMu.RUnlock()
+
+	nameFilter := []string{name}
+	resp, err := c.client.DcimLocationsListWithResponse(c.ctx, &nautobotapi.DcimLocationsListParams{
+		Name: &nameFilter,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to lookup location %s: %w", name, err)
+	}
+	if resp.StatusCode() != http.StatusOK {
+		return nil, fmt.Errorf("failed to lookup location %s: status %d", name, resp.StatusCode())
+	}
+
+	if resp.JSON200 != nil && resp.JSON200.Results != nil && len(resp.JSON200.Results) > 0 {
+		loc := (resp.JSON200.Results)[0]
+		item := &CachedItem{
+			ID:      toUUID(loc.Id),
+			Name:    loc.Name,
+			Display: *loc.Display,
+		}
+		c.locationsMu.Lock()
+		c.locations[name] = item
+		c.locationsMu.Unlock()
+		return item, nil
+	}
+
+	return nil, nil
+}
+
 // GetStatus looks up a status by name and returns its ID
 // If createStatuses is enabled and the status is not found, it will create it.
 func (c *LookupCache) GetStatus(name string) (*CachedItem, error) {
@@ -305,18 +354,26 @@ func (c *LookupCache) GetStatus(name string) (*CachedItem, error) {
 	if resp.JSON200 != nil && resp.JSON200.Results != nil && len(resp.JSON200.Results) > 0 {
 		st := (resp.JSON200.Results)[0]
 
-		// Ensure the status covers dcim.module; patch if missing.
-		if c.createStatuses {
-			hasModule := false
-			for _, ct := range st.ContentTypes {
-				if ct == "dcim.module" {
-					hasModule = true
-					break
+		// For custom (non-predefined) statuses, ensure they cover
+		// dcim.device and dcim.module; patch if missing.
+		if c.createStatuses && !devicetypes.IsValidStatus(name) {
+			required := []string{"dcim.device", "dcim.module"}
+			var missing []string
+			for _, req := range required {
+				found := false
+				for _, ct := range st.ContentTypes {
+					if ct == req {
+						found = true
+						break
+					}
+				}
+				if !found {
+					missing = append(missing, req)
 				}
 			}
-			if !hasModule {
-				clog.Detail("[nautobot] Status '%s' exists but lacks dcim.module content type, updating...", name)
-				updated := append(st.ContentTypes, "dcim.module")
+			if len(missing) > 0 {
+				clog.Detail("[nautobot] Custom status '%s' missing content types %v, updating...", name, missing)
+				updated := append(st.ContentTypes, missing...)
 				c.statusesMu.Unlock()
 				updatedItem, err := c.UpdateStatusContentTypes(toUUID(st.Id), name, updated)
 				c.statusesMu.Lock()
@@ -969,70 +1026,24 @@ func (c *LookupCache) CreateRole(name string) (*CachedItem, error) {
 	return nil, fmt.Errorf("failed to create role %s: no response body", name)
 }
 
-// CreateLocation creates a new location in Nautobot
-// It first looks up or creates a default location type called "Site"
+// CreateLocation creates a new location in Nautobot.
+// The caller must ensure the location type already exists; this method does
+// not fall back to a hard-coded type.
 func (c *LookupCache) CreateLocation(name string) (*CachedItem, error) {
 	clog.Detail("[nautobot] Creating location: %s", name)
 
-	// First, we need a location type - look for "Site" or create one
-	locationType, err := c.GetOrCreateLocationType("Site")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get location type for %s: %w", name, err)
-	}
-
-	// Get a valid status for the location
-	status, err := c.GetStatus("Active")
-	if err != nil {
-		// Try "active" lowercase
-		status, err = c.GetStatus("active")
-		if err != nil {
-			return nil, fmt.Errorf("failed to get status for location %s: no 'Active' status found", name)
-		}
-	}
-
-	// Create the location
-	statusRef := nautobotapi.BulkWritableCableRequestStatus{}
-	statusID := nautobotapi.BulkWritableCableRequestStatusId{}
-	statusID.FromBulkWritableCableRequestStatusId0(status.ID)
-	statusRef.Id = &statusID
-
-	locTypeRef := nautobotapi.BulkWritableCableRequestStatus{}
-	locTypeID := nautobotapi.BulkWritableCableRequestStatusId{}
-	locTypeID.FromBulkWritableCableRequestStatusId0(locationType.ID)
-	locTypeRef.Id = &locTypeID
-
-	createResp, err := c.client.DcimLocationsCreateWithResponse(c.ctx,
-		&nautobotapi.DcimLocationsCreateParams{},
-		nautobotapi.LocationRequest{
-			Name:         name,
-			Status:       statusRef,
-			LocationType: locTypeRef,
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create location %s: %w", name, err)
-	}
-	if createResp.StatusCode() != http.StatusCreated {
-		clog.Error("[nautobot] Location create failed for %s: %s", name, string(createResp.Body))
-		return nil, fmt.Errorf("failed to create location %s: status %d: %s", name, createResp.StatusCode(), string(createResp.Body))
-	}
-
-	if createResp.JSON201 != nil {
-		item := &CachedItem{
-			ID:      toUUID(createResp.JSON201.Id),
-			Name:    createResp.JSON201.Name,
-			Display: *createResp.JSON201.Display,
-		}
-		c.locations[name] = item
-		clog.Created("[nautobot] Created location: %s (ID: %s)", name, item.ID)
-		return item, nil
-	}
-
-	return nil, fmt.Errorf("failed to create location %s: no response body", name)
+	return nil, fmt.Errorf("cannot create location %q: no location type specified (use createLocationFromCani with an explicit locationType)", name)
 }
 
-// GetOrCreateLocationType gets or creates a location type by name
-func (c *LookupCache) GetOrCreateLocationType(name string) (*CachedItem, error) {
+// GetOrCreateLocationType gets or creates a location type by name.
+// When def is non-nil, its Nestable, ContentTypes, and Parent fields are used
+// when creating the LocationType in Nautobot. When nil, defaults are applied.
+func (c *LookupCache) GetOrCreateLocationType(name string, def *devicetypes.LocationTypeDefinition) (*CachedItem, error) {
+	// Prefer the display name from the YAML definition over the raw slug.
+	if def != nil && def.Name != "" {
+		name = def.Name
+	}
+
 	// Try to find existing location type
 	nameFilter := []string{name}
 	resp, err := c.client.DcimLocationTypesListWithResponse(c.ctx, &nautobotapi.DcimLocationTypesListParams{
@@ -1050,16 +1061,44 @@ func (c *LookupCache) GetOrCreateLocationType(name string) (*CachedItem, error) 
 		}, nil
 	}
 
-	// Create the location type
+	if !c.createLocationTypes {
+		return nil, fmt.Errorf("location type %q not found in Nautobot (enable create_location_types)", name)
+	}
+
+	return c.createLocationType(name, def)
+}
+
+// createLocationType creates a new LocationType in Nautobot.
+func (c *LookupCache) createLocationType(name string, def *devicetypes.LocationTypeDefinition) (*CachedItem, error) {
 	clog.Detail("[nautobot] Creating location type: %s", name)
-	contentTypes := []string{"dcim.device", "dcim.rack"}
+
+	req := nautobotapi.LocationTypeRequest{
+		Name: name,
+	}
+
+	if def != nil {
+		req.Nestable = &def.Nestable
+		if def.Description != "" {
+			req.Description = &def.Description
+		}
+		if len(def.ContentTypes) > 0 {
+			nbCT := toNautobotContentTypes(def.ContentTypes)
+			req.ContentTypes = &nbCT
+		}
+		if def.Parent != "" {
+			parentItem, perr := c.GetOrCreateLocationType(def.Parent, parentDef(def.Parent))
+			if perr == nil && parentItem != nil {
+				req.Parent = makeTenantRef(parentItem.ID)
+			}
+		}
+	} else {
+		contentTypes := []string{"dcim.device", "dcim.rack"}
+		req.ContentTypes = &contentTypes
+	}
 
 	createResp, err := c.client.DcimLocationTypesCreateWithResponse(c.ctx,
 		&nautobotapi.DcimLocationTypesCreateParams{},
-		nautobotapi.LocationTypeRequest{
-			Name:         name,
-			ContentTypes: &contentTypes,
-		},
+		req,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create location type %s: %w", name, err)
@@ -1080,6 +1119,34 @@ func (c *LookupCache) GetOrCreateLocationType(name string) (*CachedItem, error) 
 	}
 
 	return nil, fmt.Errorf("failed to create location type %s: no response body", name)
+}
+
+// parentDef looks up a LocationTypeDefinition by slug for use as a parent.
+func parentDef(slug string) *devicetypes.LocationTypeDefinition {
+	lt, ok := devicetypes.GetLocationTypeBySlug(slug)
+	if !ok {
+		return nil
+	}
+	return &lt
+}
+
+// toNautobotContentTypes converts short content type names ("device", "rack",
+// "module") to their fully-qualified Nautobot equivalents ("dcim.device", etc.).
+func toNautobotContentTypes(types []string) []string {
+	out := make([]string, 0, len(types))
+	for _, t := range types {
+		switch t {
+		case "device":
+			out = append(out, "dcim.device")
+		case "rack":
+			out = append(out, "dcim.rack")
+		case "module":
+			out = append(out, "dcim.module")
+		default:
+			out = append(out, t)
+		}
+	}
+	return out
 }
 
 // UpdateStatusContentTypes updates an existing status to include additional content types.

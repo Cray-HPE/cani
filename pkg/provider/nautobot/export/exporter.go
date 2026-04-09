@@ -27,16 +27,18 @@ package export
 
 // ExporterOpts holds export-specific runtime options.
 type ExporterOpts struct {
-	DefaultLocation   string
-	DefaultRole       string
-	DefaultStatus     string
-	Merge             bool
-	DryRun            bool
-	Strict            bool
-	CreateDeviceTypes bool
-	CreateLocations   bool
-	CreateStatuses    bool
-	CreateRoles       bool
+	DefaultLocation     string
+	DefaultRole         string
+	DefaultStatus       string
+	Merge               bool
+	DryRun              bool
+	Strict              bool
+	CreateDeviceTypes   bool
+	CreateLocationTypes bool
+	CreateModuleTypes   bool
+	CreateLocations     bool
+	CreateStatuses      bool
+	CreateRoles         bool
 }
 
 // Exporter orchestrates the Nautobot export pipeline.

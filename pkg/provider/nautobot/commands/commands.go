@@ -52,6 +52,8 @@ func NewExportCommand(base *cobra.Command) (*cobra.Command, error) {
 	cmd := &cobra.Command{}
 
 	cmd.Flags().Bool("create-device-types", true, "Create missing device types in Nautobot")
+	cmd.Flags().Bool("create-location-types", true, "Create missing location types in Nautobot")
+	cmd.Flags().Bool("create-module-types", true, "Create missing module types in Nautobot")
 	cmd.Flags().Bool("create-locations", true, "Create missing locations in Nautobot")
 	cmd.Flags().Bool("create-statuses", true, "Create missing statuses in Nautobot")
 	cmd.Flags().Bool("create-roles", true, "Create missing roles in Nautobot")
@@ -59,6 +61,8 @@ func NewExportCommand(base *cobra.Command) (*cobra.Command, error) {
 	cmd.Flags().Bool("dry-run", false, "Log planned actions without making API calls")
 
 	_ = viper.BindPFlag("nautobot.export.create_device_types", cmd.Flags().Lookup("create-device-types"))
+	_ = viper.BindPFlag("nautobot.export.create_location_types", cmd.Flags().Lookup("create-location-types"))
+	_ = viper.BindPFlag("nautobot.export.create_module_types", cmd.Flags().Lookup("create-module-types"))
 	_ = viper.BindPFlag("nautobot.export.create_locations", cmd.Flags().Lookup("create-locations"))
 	_ = viper.BindPFlag("nautobot.export.create_statuses", cmd.Flags().Lookup("create-statuses"))
 	_ = viper.BindPFlag("nautobot.export.create_roles", cmd.Flags().Lookup("create-roles"))
