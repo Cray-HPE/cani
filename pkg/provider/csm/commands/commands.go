@@ -76,27 +76,7 @@ func NewShowCommand(base *cobra.Command) (*cobra.Command, error) {
 }
 
 func NewAddCommand(base *cobra.Command) (*cobra.Command, error) {
-	// Wrap the parent "add" command (handles "add <slug>" resolving to rack)
-	wrapWithCabinetHook(base)
-	// Wrap with blade hook so blade slugs get slot-suggestion + node staging.
-	wrapWithBladeHook(base)
-
-	// Wrap the "rack" subcommand (handles "add rack <slug>")
-	for _, sub := range base.Commands() {
-		if sub.Name() == "rack" {
-			wrapWithCabinetHook(sub)
-			break
-		}
-	}
-
-	// Wrap the "device" subcommand for blade handling.
-	for _, sub := range base.Commands() {
-		if sub.Name() == "device" {
-			wrapWithBladeHook(sub)
-			break
-		}
-	}
-
+	// TODO: Add add-specific flags or subcommands
 	return nil, nil
 }
 
@@ -106,14 +86,6 @@ func NewRemoveCommand(base *cobra.Command) (*cobra.Command, error) {
 }
 
 func NewUpdateCommand(base *cobra.Command) (*cobra.Command, error) {
-	// Add CSM-specific flags to the "device" subcommand.
-	for _, sub := range base.Commands() {
-		if sub.Name() == "device" {
-			sub.Flags().Int("nid", 0, "Node ID")
-			sub.Flags().String("alias", "", "Node alias")
-			wrapWithDeviceUpdateHook(sub)
-			break
-		}
-	}
+	// Provider-specific logic belongs in import/export only.
 	return nil, nil
 }

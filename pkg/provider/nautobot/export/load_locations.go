@@ -29,6 +29,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sort"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
@@ -58,15 +59,9 @@ func (e *Exporter) loadLocations(
 			continue
 		}
 
-		// If we already have a stored Nautobot UUID, reuse it.
-		if nid, ok := loc.ExternalIDs["nautobot"]; ok && nid != uuid.Nil {
-			created[loc.ID] = nid
-			result.LocationsSkipped = append(result.LocationsSkipped, loc.Name)
-			continue
-		}
-
-		// Skip if already exists in Nautobot.
-		existing, err := e.Cache.GetLocation(loc.Name)
+		// Always verify against Nautobot rather than trusting cached
+		// ExternalIDs, which may be stale after a Nautobot reset.
+		existing, err := e.Cache.LookupLocation(loc.Name)
 		if err == nil && existing != nil {
 			created[loc.ID] = existing.ID
 			setExternalID(&loc.ExternalIDs, "nautobot", existing.ID)
@@ -94,12 +89,12 @@ func (e *Exporter) createLocationFromCani(
 	createdMap map[uuid.UUID]uuid.UUID,
 	result *LoadResult,
 ) (uuid.UUID, error) {
-	// Resolve LocationType from the CaniLocationType field, default to "Site".
+	// Resolve LocationType from the CaniLocationType field.
 	locTypeName := loc.LocationType
 	if locTypeName == "" {
-		locTypeName = "Site"
+		return uuid.Nil, fmt.Errorf("location %q has no locationType set", loc.Name)
 	}
-	locType, err := e.Cache.GetOrCreateLocationType(locTypeName)
+	locType, err := e.Cache.GetOrCreateLocationType(locTypeName, parentDef(locTypeName))
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("failed to resolve location type %q: %w", locTypeName, err)
 	}
@@ -129,10 +124,12 @@ func (e *Exporter) createLocationFromCani(
 
 	// Map parent FK if present.
 	if loc.Parent != uuid.Nil {
-		if parentNautobotID, ok := createdMap[loc.Parent]; ok {
-			parentRef := makeTenantRef(parentNautobotID)
-			req.Parent = parentRef
+		parentNautobotID, ok := createdMap[loc.Parent]
+		if !ok {
+			return uuid.Nil, fmt.Errorf("parent %s not yet created in Nautobot (ordering bug?)", loc.Parent)
 		}
+		parentRef := makeTenantRef(parentNautobotID)
+		req.Parent = parentRef
 	}
 
 	// Map optional fields.
@@ -183,6 +180,8 @@ func (e *Exporter) createLocationFromCani(
 	if e.Options.DryRun {
 		clog.DryRun("Would create location: %s (type: %s)", loc.Name, locTypeName)
 		result.LocationsCreated = append(result.LocationsCreated, loc.Name+" (dry-run)")
+		// Cache so downstream phases (racks, devices) can find the location by name.
+		e.Cache.CacheLocation(loc.Name, &CachedItem{Name: loc.Name})
 		return uuid.Nil, nil
 	}
 
@@ -214,6 +213,7 @@ func (e *Exporter) createLocationFromCani(
 
 // topologicalSortLocations returns locations ordered so that parents come
 // before children, enabling parent FK resolution during sequential creation.
+// Roots and siblings are sorted by name for deterministic output.
 func topologicalSortLocations(locs map[uuid.UUID]*devicetypes.CaniLocationType) []*devicetypes.CaniLocationType {
 	// Build child → parent and parent → children maps.
 	children := make(map[uuid.UUID][]uuid.UUID)
@@ -227,6 +227,19 @@ func topologicalSortLocations(locs map[uuid.UUID]*devicetypes.CaniLocationType) 
 		} else {
 			children[loc.Parent] = append(children[loc.Parent], id)
 		}
+	}
+
+	// Sort roots by location name for deterministic ordering.
+	sort.Slice(roots, func(i, j int) bool {
+		return locs[roots[i]].Name < locs[roots[j]].Name
+	})
+
+	// Sort each child list by name so siblings are deterministic.
+	for parentID, kids := range children {
+		sort.Slice(kids, func(i, j int) bool {
+			return locs[kids[i]].Name < locs[kids[j]].Name
+		})
+		children[parentID] = kids
 	}
 
 	// BFS from roots.

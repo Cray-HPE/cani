@@ -1,9 +1,10 @@
 {
-  "Locations": {
+  "schemaVersion": "v1alpha2",
+  "locations": {
     "a0000001-0000-0000-0000-000000000001": {
       "id": "a0000001-0000-0000-0000-000000000001",
       "name": "HPC-DataCenter",
-      "locationType": "Site",
+      "locationType": "dc",
       "status": "Active",
       "description": "Primary HPC data center facility",
       "physicalAddress": "1 Infinite Loop, Cupertino, CA 95014",
@@ -21,7 +22,7 @@
     "a0000001-0000-0000-0000-000000000002": {
       "id": "a0000001-0000-0000-0000-000000000002",
       "name": "HPC-Room-A",
-      "locationType": "Room",
+      "locationType": "section",
       "parent": "a0000001-0000-0000-0000-000000000001",
       "status": "Active",
       "description": "Primary compute room",
@@ -31,8 +32,7 @@
       ]
     }
   },
-
-  "Racks": {
+  "racks": {
     "b0000001-0000-0000-0000-000000000001": {
       "id": "b0000001-0000-0000-0000-000000000001",
       "name": "Rack-A01",
@@ -84,15 +84,14 @@
       ]
     }
   },
-
-  "Devices": {
+  "devices": {
     "c0000001-0000-0000-0000-000000000001": {
       "id": "c0000001-0000-0000-0000-000000000001",
       "name": "spine-sw-01",
       "slug": "hpe-aruba-6300m-48g-4sfp56",
       "manufacturer": "HPE",
       "model": "Aruba 6300M-48G-4SFP56",
-      "hardwareType": "switch",
+      "type": "switch",
       "type": "Switch",
       "status": "Active",
       "role": "Spine Switch",
@@ -106,23 +105,73 @@
       "assetTag": "HPE-SW-001",
       "description": "Spine switch 01 - top of Rack-A01",
       "interfaces": [
-        {"name": "1/1/1", "type": "1000base-t"},
-        {"name": "1/1/2", "type": "1000base-t"},
-        {"name": "1/1/3", "type": "1000base-t"},
-        {"name": "1/1/4", "type": "1000base-t"},
-        {"name": "1/1/5", "type": "1000base-t"},
-        {"name": "1/1/6", "type": "1000base-t"},
-        {"name": "1/1/7", "type": "1000base-t"},
-        {"name": "1/1/8", "type": "1000base-t"},
-        {"name": "1/1/49", "type": "50gbase-x-sfp56", "label": "SFP56 Uplink 1"},
-        {"name": "1/1/50", "type": "50gbase-x-sfp56", "label": "SFP56 Uplink 2"},
-        {"name": "1/1/51", "type": "50gbase-x-sfp56", "label": "SFP56 Uplink 3"},
-        {"name": "1/1/52", "type": "50gbase-x-sfp56", "label": "SFP56 Uplink 4"},
-        {"name": "mgmt", "type": "1000base-t", "mgmt_only": true}
+        {
+          "name": "1/1/1",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/2",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/3",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/4",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/5",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/6",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/7",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/8",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/49",
+          "type": "50gbase-x-sfp56",
+          "label": "SFP56 Uplink 1"
+        },
+        {
+          "name": "1/1/50",
+          "type": "50gbase-x-sfp56",
+          "label": "SFP56 Uplink 2"
+        },
+        {
+          "name": "1/1/51",
+          "type": "50gbase-x-sfp56",
+          "label": "SFP56 Uplink 3"
+        },
+        {
+          "name": "1/1/52",
+          "type": "50gbase-x-sfp56",
+          "label": "SFP56 Uplink 4"
+        },
+        {
+          "name": "mgmt",
+          "type": "1000base-t",
+          "mgmt_only": true
+        }
       ],
       "moduleBays": [
-        {"name": "PS1", "position": "1"},
-        {"name": "PS2", "position": "2"}
+        {
+          "name": "PS1",
+          "position": "1"
+        },
+        {
+          "name": "PS2",
+          "position": "2"
+        }
       ],
       "providerMetadata": {
         "role": "Spine Switch"
@@ -134,7 +183,7 @@
       "slug": "hpe-aruba-6300m-48g-4sfp56",
       "manufacturer": "HPE",
       "model": "Aruba 6300M-48G-4SFP56",
-      "hardwareType": "switch",
+      "type": "switch",
       "type": "Switch",
       "status": "Active",
       "role": "Spine Switch",
@@ -148,23 +197,73 @@
       "assetTag": "HPE-SW-002",
       "description": "Spine switch 02 - top of Rack-A02",
       "interfaces": [
-        {"name": "1/1/1", "type": "1000base-t"},
-        {"name": "1/1/2", "type": "1000base-t"},
-        {"name": "1/1/3", "type": "1000base-t"},
-        {"name": "1/1/4", "type": "1000base-t"},
-        {"name": "1/1/5", "type": "1000base-t"},
-        {"name": "1/1/6", "type": "1000base-t"},
-        {"name": "1/1/7", "type": "1000base-t"},
-        {"name": "1/1/8", "type": "1000base-t"},
-        {"name": "1/1/49", "type": "50gbase-x-sfp56", "label": "SFP56 Uplink 1"},
-        {"name": "1/1/50", "type": "50gbase-x-sfp56", "label": "SFP56 Uplink 2"},
-        {"name": "1/1/51", "type": "50gbase-x-sfp56", "label": "SFP56 Uplink 3"},
-        {"name": "1/1/52", "type": "50gbase-x-sfp56", "label": "SFP56 Uplink 4"},
-        {"name": "mgmt", "type": "1000base-t", "mgmt_only": true}
+        {
+          "name": "1/1/1",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/2",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/3",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/4",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/5",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/6",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/7",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/8",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/49",
+          "type": "50gbase-x-sfp56",
+          "label": "SFP56 Uplink 1"
+        },
+        {
+          "name": "1/1/50",
+          "type": "50gbase-x-sfp56",
+          "label": "SFP56 Uplink 2"
+        },
+        {
+          "name": "1/1/51",
+          "type": "50gbase-x-sfp56",
+          "label": "SFP56 Uplink 3"
+        },
+        {
+          "name": "1/1/52",
+          "type": "50gbase-x-sfp56",
+          "label": "SFP56 Uplink 4"
+        },
+        {
+          "name": "mgmt",
+          "type": "1000base-t",
+          "mgmt_only": true
+        }
       ],
       "moduleBays": [
-        {"name": "PS1", "position": "1"},
-        {"name": "PS2", "position": "2"}
+        {
+          "name": "PS1",
+          "position": "1"
+        },
+        {
+          "name": "PS2",
+          "position": "2"
+        }
       ],
       "providerMetadata": {
         "role": "Spine Switch"
@@ -176,7 +275,7 @@
       "slug": "hpe-aruba-6200f-48g-4sfpp",
       "manufacturer": "HPE",
       "model": "Aruba 6200F-48G-4SFP+",
-      "hardwareType": "switch",
+      "type": "switch",
       "type": "MgmtSwitch",
       "status": "Active",
       "role": "Leaf Switch",
@@ -190,15 +289,45 @@
       "assetTag": "HPE-SW-003",
       "description": "Leaf/mgmt switch 01 - Rack-A01",
       "interfaces": [
-        {"name": "1/1/1", "type": "1000base-t"},
-        {"name": "1/1/2", "type": "1000base-t"},
-        {"name": "1/1/3", "type": "1000base-t"},
-        {"name": "1/1/4", "type": "1000base-t"},
-        {"name": "1/1/5", "type": "1000base-t"},
-        {"name": "1/1/6", "type": "1000base-t"},
-        {"name": "1/1/49", "type": "10gbase-x-sfpp", "label": "SFP+ Uplink 1"},
-        {"name": "1/1/50", "type": "10gbase-x-sfpp", "label": "SFP+ Uplink 2"},
-        {"name": "mgmt", "type": "1000base-t", "mgmt_only": true}
+        {
+          "name": "1/1/1",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/2",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/3",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/4",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/5",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/6",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/49",
+          "type": "10gbase-x-sfpp",
+          "label": "SFP+ Uplink 1"
+        },
+        {
+          "name": "1/1/50",
+          "type": "10gbase-x-sfpp",
+          "label": "SFP+ Uplink 2"
+        },
+        {
+          "name": "mgmt",
+          "type": "1000base-t",
+          "mgmt_only": true
+        }
       ],
       "providerMetadata": {
         "role": "Leaf Switch"
@@ -210,7 +339,7 @@
       "slug": "hpe-aruba-6200f-48g-4sfpp",
       "manufacturer": "HPE",
       "model": "Aruba 6200F-48G-4SFP+",
-      "hardwareType": "switch",
+      "type": "switch",
       "type": "MgmtSwitch",
       "status": "Active",
       "role": "Leaf Switch",
@@ -224,15 +353,45 @@
       "assetTag": "HPE-SW-004",
       "description": "Leaf/mgmt switch 02 - Rack-A02",
       "interfaces": [
-        {"name": "1/1/1", "type": "1000base-t"},
-        {"name": "1/1/2", "type": "1000base-t"},
-        {"name": "1/1/3", "type": "1000base-t"},
-        {"name": "1/1/4", "type": "1000base-t"},
-        {"name": "1/1/5", "type": "1000base-t"},
-        {"name": "1/1/6", "type": "1000base-t"},
-        {"name": "1/1/49", "type": "10gbase-x-sfpp", "label": "SFP+ Uplink 1"},
-        {"name": "1/1/50", "type": "10gbase-x-sfpp", "label": "SFP+ Uplink 2"},
-        {"name": "mgmt", "type": "1000base-t", "mgmt_only": true}
+        {
+          "name": "1/1/1",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/2",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/3",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/4",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/5",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/6",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/49",
+          "type": "10gbase-x-sfpp",
+          "label": "SFP+ Uplink 1"
+        },
+        {
+          "name": "1/1/50",
+          "type": "10gbase-x-sfpp",
+          "label": "SFP+ Uplink 2"
+        },
+        {
+          "name": "mgmt",
+          "type": "1000base-t",
+          "mgmt_only": true
+        }
       ],
       "providerMetadata": {
         "role": "Leaf Switch"
@@ -244,7 +403,7 @@
       "slug": "hpe-proliant-dl360-gen11",
       "manufacturer": "HPE",
       "model": "ProLiant DL360 Gen11",
-      "hardwareType": "node",
+      "type": "node",
       "type": "Node",
       "status": "Active",
       "role": "Server",
@@ -258,14 +417,33 @@
       "assetTag": "HPE-DL360-001",
       "description": "Compute node - DL360 Gen11 in Rack-A01 U1",
       "interfaces": [
-        {"name": "iLO", "type": "1000base-t", "mgmt_only": true},
-        {"name": "Gig-E 1", "type": "1000base-t"},
-        {"name": "Gig-E 2", "type": "1000base-t"}
+        {
+          "name": "iLO",
+          "type": "1000base-t",
+          "mgmt_only": true
+        },
+        {
+          "name": "Gig-E 1",
+          "type": "1000base-t"
+        },
+        {
+          "name": "Gig-E 2",
+          "type": "1000base-t"
+        }
       ],
       "moduleBays": [
-        {"name": "PSU1", "position": "PSU1"},
-        {"name": "PSU2", "position": "PSU2"},
-        {"name": "FlexLOM", "position": "FlexLOM"}
+        {
+          "name": "PSU1",
+          "position": "PSU1"
+        },
+        {
+          "name": "PSU2",
+          "position": "PSU2"
+        },
+        {
+          "name": "FlexLOM",
+          "position": "FlexLOM"
+        }
       ],
       "providerMetadata": {
         "role": "Server"
@@ -277,7 +455,7 @@
       "slug": "hpe-proliant-dl360-gen11",
       "manufacturer": "HPE",
       "model": "ProLiant DL360 Gen11",
-      "hardwareType": "node",
+      "type": "node",
       "type": "Node",
       "status": "Active",
       "role": "Server",
@@ -291,14 +469,33 @@
       "assetTag": "HPE-DL360-002",
       "description": "Compute node - DL360 Gen11 in Rack-A01 U2",
       "interfaces": [
-        {"name": "iLO", "type": "1000base-t", "mgmt_only": true},
-        {"name": "Gig-E 1", "type": "1000base-t"},
-        {"name": "Gig-E 2", "type": "1000base-t"}
+        {
+          "name": "iLO",
+          "type": "1000base-t",
+          "mgmt_only": true
+        },
+        {
+          "name": "Gig-E 1",
+          "type": "1000base-t"
+        },
+        {
+          "name": "Gig-E 2",
+          "type": "1000base-t"
+        }
       ],
       "moduleBays": [
-        {"name": "PSU1", "position": "PSU1"},
-        {"name": "PSU2", "position": "PSU2"},
-        {"name": "FlexLOM", "position": "FlexLOM"}
+        {
+          "name": "PSU1",
+          "position": "PSU1"
+        },
+        {
+          "name": "PSU2",
+          "position": "PSU2"
+        },
+        {
+          "name": "FlexLOM",
+          "position": "FlexLOM"
+        }
       ],
       "providerMetadata": {
         "role": "Server"
@@ -310,7 +507,7 @@
       "slug": "hpe-proliant-dl360-gen11",
       "manufacturer": "HPE",
       "model": "ProLiant DL360 Gen11",
-      "hardwareType": "node",
+      "type": "node",
       "type": "Node",
       "status": "Active",
       "role": "Server",
@@ -324,14 +521,33 @@
       "assetTag": "HPE-DL360-003",
       "description": "Compute node - DL360 Gen11 in Rack-A02 U1",
       "interfaces": [
-        {"name": "iLO", "type": "1000base-t", "mgmt_only": true},
-        {"name": "Gig-E 1", "type": "1000base-t"},
-        {"name": "Gig-E 2", "type": "1000base-t"}
+        {
+          "name": "iLO",
+          "type": "1000base-t",
+          "mgmt_only": true
+        },
+        {
+          "name": "Gig-E 1",
+          "type": "1000base-t"
+        },
+        {
+          "name": "Gig-E 2",
+          "type": "1000base-t"
+        }
       ],
       "moduleBays": [
-        {"name": "PSU1", "position": "PSU1"},
-        {"name": "PSU2", "position": "PSU2"},
-        {"name": "FlexLOM", "position": "FlexLOM"}
+        {
+          "name": "PSU1",
+          "position": "PSU1"
+        },
+        {
+          "name": "PSU2",
+          "position": "PSU2"
+        },
+        {
+          "name": "FlexLOM",
+          "position": "FlexLOM"
+        }
       ],
       "providerMetadata": {
         "role": "Server"
@@ -343,7 +559,7 @@
       "slug": "hpe-proliant-dl360-gen11",
       "manufacturer": "HPE",
       "model": "ProLiant DL360 Gen11",
-      "hardwareType": "node",
+      "type": "node",
       "type": "Node",
       "status": "Active",
       "role": "Server",
@@ -357,14 +573,33 @@
       "assetTag": "HPE-DL360-004",
       "description": "Compute node - DL360 Gen11 in Rack-A02 U2",
       "interfaces": [
-        {"name": "iLO", "type": "1000base-t", "mgmt_only": true},
-        {"name": "Gig-E 1", "type": "1000base-t"},
-        {"name": "Gig-E 2", "type": "1000base-t"}
+        {
+          "name": "iLO",
+          "type": "1000base-t",
+          "mgmt_only": true
+        },
+        {
+          "name": "Gig-E 1",
+          "type": "1000base-t"
+        },
+        {
+          "name": "Gig-E 2",
+          "type": "1000base-t"
+        }
       ],
       "moduleBays": [
-        {"name": "PSU1", "position": "PSU1"},
-        {"name": "PSU2", "position": "PSU2"},
-        {"name": "FlexLOM", "position": "FlexLOM"}
+        {
+          "name": "PSU1",
+          "position": "PSU1"
+        },
+        {
+          "name": "PSU2",
+          "position": "PSU2"
+        },
+        {
+          "name": "FlexLOM",
+          "position": "FlexLOM"
+        }
       ],
       "providerMetadata": {
         "role": "Server"
@@ -376,7 +611,7 @@
       "slug": "hpe-proliant-dl380-gen11",
       "manufacturer": "HPE",
       "model": "ProLiant DL380 Gen11",
-      "hardwareType": "node",
+      "type": "node",
       "type": "Node",
       "status": "Active",
       "role": "Storage Server",
@@ -390,13 +625,29 @@
       "assetTag": "HPE-DL380-001",
       "description": "Storage node - DL380 Gen11 in Rack-A01 U3-4",
       "interfaces": [
-        {"name": "iLO", "type": "1000base-t", "mgmt_only": true}
+        {
+          "name": "iLO",
+          "type": "1000base-t",
+          "mgmt_only": true
+        }
       ],
       "moduleBays": [
-        {"name": "PSU1", "position": "PSU1"},
-        {"name": "PSU2", "position": "PSU2"},
-        {"name": "OCP1", "position": "OCP1"},
-        {"name": "PCIe1", "position": "PCIe1"}
+        {
+          "name": "PSU1",
+          "position": "PSU1"
+        },
+        {
+          "name": "PSU2",
+          "position": "PSU2"
+        },
+        {
+          "name": "OCP1",
+          "position": "OCP1"
+        },
+        {
+          "name": "PCIe1",
+          "position": "PCIe1"
+        }
       ],
       "providerMetadata": {
         "role": "Storage Server"
@@ -408,7 +659,7 @@
       "slug": "hpe-proliant-dl380-gen11",
       "manufacturer": "HPE",
       "model": "ProLiant DL380 Gen11",
-      "hardwareType": "node",
+      "type": "node",
       "type": "Node",
       "status": "Active",
       "role": "Storage Server",
@@ -422,13 +673,29 @@
       "assetTag": "HPE-DL380-002",
       "description": "Storage node - DL380 Gen11 in Rack-A02 U3-4",
       "interfaces": [
-        {"name": "iLO", "type": "1000base-t", "mgmt_only": true}
+        {
+          "name": "iLO",
+          "type": "1000base-t",
+          "mgmt_only": true
+        }
       ],
       "moduleBays": [
-        {"name": "PSU1", "position": "PSU1"},
-        {"name": "PSU2", "position": "PSU2"},
-        {"name": "OCP1", "position": "OCP1"},
-        {"name": "PCIe1", "position": "PCIe1"}
+        {
+          "name": "PSU1",
+          "position": "PSU1"
+        },
+        {
+          "name": "PSU2",
+          "position": "PSU2"
+        },
+        {
+          "name": "OCP1",
+          "position": "OCP1"
+        },
+        {
+          "name": "PCIe1",
+          "position": "PCIe1"
+        }
       ],
       "providerMetadata": {
         "role": "Storage Server"
@@ -440,7 +707,7 @@
       "slug": "hpe-proliant-dl385-gen11",
       "manufacturer": "HPE",
       "model": "ProLiant DL385 Gen11",
-      "hardwareType": "node",
+      "type": "node",
       "type": "Node",
       "status": "Active",
       "role": "GPU Node",
@@ -454,14 +721,33 @@
       "assetTag": "HPE-DL385-001",
       "description": "GPU-accelerated node - DL385 Gen11 in Rack-A01 U5-6",
       "interfaces": [
-        {"name": "iLO", "type": "1000base-t", "mgmt_only": true}
+        {
+          "name": "iLO",
+          "type": "1000base-t",
+          "mgmt_only": true
+        }
       ],
       "moduleBays": [
-        {"name": "PSU1", "position": "PSU1"},
-        {"name": "PSU2", "position": "PSU2"},
-        {"name": "OCP1", "position": "OCP1"},
-        {"name": "PCIe1", "position": "PCIe1"},
-        {"name": "PCIe2", "position": "PCIe2"}
+        {
+          "name": "PSU1",
+          "position": "PSU1"
+        },
+        {
+          "name": "PSU2",
+          "position": "PSU2"
+        },
+        {
+          "name": "OCP1",
+          "position": "OCP1"
+        },
+        {
+          "name": "PCIe1",
+          "position": "PCIe1"
+        },
+        {
+          "name": "PCIe2",
+          "position": "PCIe2"
+        }
       ],
       "providerMetadata": {
         "role": "GPU Node"
@@ -473,7 +759,7 @@
       "slug": "hpe-proliant-dl385-gen11",
       "manufacturer": "HPE",
       "model": "ProLiant DL385 Gen11",
-      "hardwareType": "node",
+      "type": "node",
       "type": "Node",
       "status": "Active",
       "role": "GPU Node",
@@ -487,22 +773,40 @@
       "assetTag": "HPE-DL385-002",
       "description": "GPU-accelerated node - DL385 Gen11 in Rack-A02 U5-6",
       "interfaces": [
-        {"name": "iLO", "type": "1000base-t", "mgmt_only": true}
+        {
+          "name": "iLO",
+          "type": "1000base-t",
+          "mgmt_only": true
+        }
       ],
       "moduleBays": [
-        {"name": "PSU1", "position": "PSU1"},
-        {"name": "PSU2", "position": "PSU2"},
-        {"name": "OCP1", "position": "OCP1"},
-        {"name": "PCIe1", "position": "PCIe1"},
-        {"name": "PCIe2", "position": "PCIe2"}
+        {
+          "name": "PSU1",
+          "position": "PSU1"
+        },
+        {
+          "name": "PSU2",
+          "position": "PSU2"
+        },
+        {
+          "name": "OCP1",
+          "position": "OCP1"
+        },
+        {
+          "name": "PCIe1",
+          "position": "PCIe1"
+        },
+        {
+          "name": "PCIe2",
+          "position": "PCIe2"
+        }
       ],
       "providerMetadata": {
         "role": "GPU Node"
       }
     }
   },
-
-  "Modules": {
+  "modules": {
     "d0000001-0000-0000-0000-000000000001": {
       "id": "d0000001-0000-0000-0000-000000000001",
       "name": "dl385-r01-pcie1",
@@ -582,8 +886,7 @@
       "serial": "PSU-SN-002"
     }
   },
-
-  "Cables": {
+  "cables": {
     "e0000001-0000-0000-0000-000000000001": {
       "id": "e0000001-0000-0000-0000-000000000001",
       "slug": "spine-isl-1",
@@ -851,8 +1154,7 @@
       "description": "GPU node dl385-r02-u05 mgmt uplink to leaf-sw-02"
     }
   },
-
-  "Frus": {
+  "frus": {
     "f0000001-0000-0000-0000-000000000001": {
       "id": "f0000001-0000-0000-0000-000000000001",
       "name": "DIMM-A1",
@@ -964,6 +1266,5 @@
       "discovered": true
     }
   },
-
-  "Interfaces": {}
+  "interfaces": {}
 }

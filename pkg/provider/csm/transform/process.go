@@ -89,11 +89,10 @@ func processCabinets(
 		meta.HMNVlan = extractCabinetHMNVlan(cl.Hardware.ExtraProperties)
 
 		result.Devices[devID] = &devicetypes.CaniDeviceType{
-			ID:               devID,
-			Name:             cl.Xname.Raw,
-			Type:             devicetypes.TypeCabinet,
-			Status:           "active",
-			ProviderMetadata: map[string]any{"csm": toProviderMetadata(meta)},
+			ID:         devID,
+			Name:       cl.Xname.Raw,
+			Type:       devicetypes.TypeCabinet,
+			ObjectMeta: devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), ProviderMetadata: map[string]any{"csm": toProviderMetadata(meta)}},
 		}
 		slug := resolveSlug(cl)
 		if slug != "" {
@@ -104,11 +103,10 @@ func processCabinets(
 
 		rackID := resolveExistingRackID(cl.Xname.Raw, existing)
 		result.Racks[rackID] = &devicetypes.CaniRackType{
-			ID:               rackID,
-			Name:             cl.Xname.Raw,
-			UHeight:          cabinetUHeight(cl.Hardware.Class),
-			Status:           "active",
-			ProviderMetadata: map[string]any{"csm": toProviderMetadata(meta)},
+			ID:         rackID,
+			Name:       cl.Xname.Raw,
+			UHeight:    cabinetUHeight(cl.Hardware.Class),
+			ObjectMeta: devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), ProviderMetadata: map[string]any{"csm": toProviderMetadata(meta)}},
 		}
 		result.Devices[devID].Parent = rackID
 	}

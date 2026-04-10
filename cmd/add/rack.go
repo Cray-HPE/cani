@@ -29,6 +29,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Cray-HPE/cani/internal/util/nameexpand"
+	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
@@ -45,6 +47,7 @@ func newRackAddCommand() *cobra.Command {
 	}
 
 	cmd.Flags().String("location", "", "Parent location UUID or name")
+	cmd.Flags().String("name", "", "Rack name")
 
 	return cmd
 }
@@ -60,13 +63,20 @@ func addRack(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	locationArg, _ := cmd.Flags().GetString("location")
-	var locationID uuid.UUID
-	if locationArg != "" {
-		if pid, perr := uuid.Parse(locationArg); perr == nil {
-			locationID = pid
-		}
+	statusArg, _ := cmd.Flags().GetString("status")
+	serialArg, _ := cmd.Flags().GetString("serial")
+
+	nameArg, _ := cmd.Flags().GetString("name")
+	prefix, _ := cmd.Flags().GetString("prefix")
+	start, _ := cmd.Flags().GetInt("start")
+	padWidth, _ := cmd.Flags().GetInt("pad-width")
+
+	names, err := nameexpand.ResolveNames(nameArg, prefix, start, padWidth, qty)
+	if err != nil {
+		return fmt.Errorf("name resolution failed: %w", err)
 	}
+
+	locationArg, _ := cmd.Flags().GetString("location")
 
 	if err := datastores.SetDeviceStore(cmd, args); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
@@ -77,17 +87,42 @@ func addRack(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to load inventory: %w", err)
 	}
 
-	if locationID == uuid.Nil {
-		locationID = inventory.EnsureLocation()
+	if statusArg != "" {
+		normalized, verr := validate.StatusWithInventory(statusArg, inventory)
+		if verr != nil {
+			return verr
+		}
+		statusArg = normalized
 	}
 
-	for range qty {
+	locationID := resolveLocation(inventory, locationArg)
+
+	tags, _ := cmd.Flags().GetStringArray("tag")
+	provMeta := collectProviderMetadata(cmd)
+
+	for i := range qty {
 		rack := *result.Rack // shallow copy
 		rack.ID = uuid.New()
 		rack.Location = locationID
-		if rack.Name == "" && rack.Model != "" {
+		if names != nil {
+			rack.Name = names[i]
+		} else if rack.Name == "" && rack.Model != "" {
 			rack.Name = rack.Model
 		}
+		if statusArg != "" {
+			rack.Status = statusArg
+		}
+		if serialArg != "" {
+			rack.Serial = serialArg
+		}
+		applyTagsToRack(&rack, tags)
+		applyProviderMetadataToRack(&rack, provMeta)
+
+		// Let registered providers apply post-add logic.
+		if err := runRackPostAddHooks(&rack, inventory); err != nil {
+			return fmt.Errorf("provider hook failed: %w", err)
+		}
+
 		if err := inventory.AddRack(&rack); err != nil {
 			return fmt.Errorf("failed to add rack: %w", err)
 		}

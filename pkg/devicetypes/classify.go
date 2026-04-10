@@ -21,10 +21,9 @@ func ErrSlugNotFound(slug string) error {
 type UnclassifiedDevice struct {
 	ID               uuid.UUID
 	Name             string
-	HardwareType     string
+	DeviceType       string // e.g. node, blade, chassis, nodecard
 	Model            string
 	Manufacturer     string
-	DeviceType       string // e.g. node, blade, chassis, nodecard
 	Status           string
 	Role             string
 	ChildrenCount    int
@@ -58,8 +57,8 @@ func SuggestTypes(device UnclassifiedDevice, maxResults int) []MatchResult {
 
 	// Hardware-type fallback: if we have fewer than maxResults, append
 	// device types with a matching HardwareType at low confidence.
-	if len(seen) < maxResults && device.HardwareType != "" {
-		hwFallback := hardwareTypeFallback(device.HardwareType, maxResults-len(seen))
+	if len(seen) < maxResults && device.DeviceType != "" {
+		hwFallback := hardwareTypeFallback(device.DeviceType, maxResults-len(seen))
 		for _, slug := range hwFallback {
 			if _, ok := seen[slug]; !ok {
 				seen[slug] = 15 // low-confidence fallback
@@ -92,9 +91,8 @@ func collectQueries(device UnclassifiedDevice) []string {
 	candidates := []string{
 		device.Name,
 		device.Model,
-		device.HardwareType,
-		device.Manufacturer,
 		device.DeviceType,
+		device.Manufacturer,
 		device.Role,
 	}
 	seen := make(map[string]bool)
@@ -202,10 +200,9 @@ func FindUnclassifiedDevices(inv *Inventory) []UnclassifiedDevice {
 		result = append(result, UnclassifiedDevice{
 			ID:               device.ID,
 			Name:             device.Name,
-			HardwareType:     device.HardwareType,
+			DeviceType:       string(device.Type),
 			Model:            device.Model,
 			Manufacturer:     device.Manufacturer,
-			DeviceType:       string(device.Type),
 			Status:           device.Status,
 			Role:             device.Role,
 			ChildrenCount:    len(device.Children),
@@ -244,9 +241,6 @@ func ApplyDeviceType(device *CaniDeviceType, slug string) error {
 	if device.Type == "" {
 		device.Type = tmpl.Type
 	}
-	if device.HardwareType == "" {
-		device.HardwareType = tmpl.HardwareType
-	}
 	if device.SubdeviceRole == "" {
 		device.SubdeviceRole = tmpl.SubdeviceRole
 	}
@@ -273,9 +267,6 @@ func ApplyDeviceType(device *CaniDeviceType, slug string) error {
 	}
 	if len(device.Identifications) == 0 {
 		device.Identifications = tmpl.Identifications
-	}
-	if len(device.AllowedChildren) == 0 {
-		device.AllowedChildren = tmpl.AllowedChildren
 	}
 	return nil
 }

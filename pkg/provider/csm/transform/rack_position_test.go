@@ -17,18 +17,18 @@ func TestAssignRackPositions_SwitchesAtTop(t *testing.T) {
 		Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
 			sw1ID: {
 				ID: sw1ID, Name: "sw-leaf-bmc-001", Type: devicetypes.TypeMgmtSwitch,
-				UHeight:          1,
-				ProviderMetadata: map[string]any{"csm": map[string]any{"xname": "x3000c0w1"}},
+				UHeight:    1,
+				ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{"csm": map[string]any{"xname": "x3000c0w1"}}},
 			},
 			sw2ID: {
 				ID: sw2ID, Name: "sw-leaf-bmc-002", Type: devicetypes.TypeMgmtSwitch,
-				UHeight:          1,
-				ProviderMetadata: map[string]any{"csm": map[string]any{"xname": "x3000c0w2"}},
+				UHeight:    1,
+				ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{"csm": map[string]any{"xname": "x3000c0w2"}}},
 			},
 			sw3ID: {
 				ID: sw3ID, Name: "sw-spine-001", Type: devicetypes.TypeSwitch,
-				UHeight:          1,
-				ProviderMetadata: map[string]any{"csm": map[string]any{"xname": "x3000c0h1s1"}},
+				UHeight:    1,
+				ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{"csm": map[string]any{"xname": "x3000c0h1s1"}}},
 			},
 		},
 		Racks: map[uuid.UUID]*devicetypes.CaniRackType{
@@ -66,18 +66,18 @@ func TestAssignRackPositions_BladesAtBottom(t *testing.T) {
 		Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
 			b1: {
 				ID: b1, Name: "x3000c0s1", Type: devicetypes.TypeBlade,
-				UHeight:          2,
-				ProviderMetadata: map[string]any{"csm": map[string]any{"xname": "x3000c0s1"}},
+				UHeight:    2,
+				ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{"csm": map[string]any{"xname": "x3000c0s1"}}},
 			},
 			b2: {
 				ID: b2, Name: "x3000c0s2", Type: devicetypes.TypeBlade,
-				UHeight:          2,
-				ProviderMetadata: map[string]any{"csm": map[string]any{"xname": "x3000c0s2"}},
+				UHeight:    2,
+				ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{"csm": map[string]any{"xname": "x3000c0s2"}}},
 			},
 			b3: {
 				ID: b3, Name: "x3000c0s3", Type: devicetypes.TypeBlade,
-				UHeight:          2,
-				ProviderMetadata: map[string]any{"csm": map[string]any{"xname": "x3000c0s3"}},
+				UHeight:    2,
+				ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{"csm": map[string]any{"xname": "x3000c0s3"}}},
 			},
 		},
 		Racks: map[uuid.UUID]*devicetypes.CaniRackType{
@@ -114,11 +114,11 @@ func TestAssignRackPositions_NoPositionForInternal(t *testing.T) {
 		Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
 			nodeID: {
 				ID: nodeID, Name: "x3000c0s1b0n0", Type: devicetypes.TypeNode,
-				ProviderMetadata: map[string]any{"csm": map[string]any{"xname": "x3000c0s1b0n0"}},
+				ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{"csm": map[string]any{"xname": "x3000c0s1b0n0"}}},
 			},
 			ncID: {
 				ID: ncID, Name: "x3000c0s1b0", Type: devicetypes.TypeNodeCard,
-				ProviderMetadata: map[string]any{"csm": map[string]any{"xname": "x3000c0s1b0"}},
+				ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{"csm": map[string]any{"xname": "x3000c0s1b0"}}},
 			},
 		},
 		Racks: map[uuid.UUID]*devicetypes.CaniRackType{
@@ -138,9 +138,9 @@ func TestAssignRackPositions_NoPositionForInternal(t *testing.T) {
 
 func TestCabinetForDevice_ExtractsCabinet(t *testing.T) {
 	dev := &devicetypes.CaniDeviceType{
-		ProviderMetadata: map[string]any{
+		ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{
 			"csm": map[string]any{"xname": "x3000c0s5b0"},
-		},
+		}},
 	}
 	got := cabinetForDevice(dev)
 	if got != "x3000" {

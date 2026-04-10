@@ -225,11 +225,16 @@ itest: bin ## Run integration tests
 
 .PHONY: etest
 # disabled in make test due to EOL CSM and slow nature, but can be run independently with `make etest`
-etest: bin ## Run edge-case tests
+etest: bin venv ## Run edge-case tests
 	$(INFO) "running edge tests"
 	SKIP_EXTERNAL_TESTS=1 ./spec/support/bin/cani_integrate.sh edge
 	$(OK) "edge tests passed"
 
+cover:
+	$(INFO) "running tests with coverage"
+	go test -coverprofile=coverage.out ./... || true
+	go tool cover -html=coverage.out -o coverage.html
+	$(OK) "coverage report generated: coverage.html"
 # ──────────────────────────────────────────────────────────────────────────────
 #  Dependencies
 # ──────────────────────────────────────────────────────────────────────────────
@@ -298,7 +303,7 @@ csm-certs: ## Generate self-signed TLS certs for the CSM API gateway
 			-subj "/C=US/ST=Minnesota/L=Bloomington/O=HPE/OU=Engineering/CN=hpe.com" \
 			-out $(CSM_CERTS_DIR)/cert.crt \
 			-keyout $(CSM_CERTS_DIR)/cert.key 2>/dev/null; \
-		printf "$(CLR_GREEN) ✔  %s$(CLR_RESET)\n" "generated TLS certs at $(CSM_CERTS_DIR)"; \
+		echo  "$(CLR_GREEN) ✔  %s$(CLR_RESET)\n" "generated TLS certs at $(CSM_CERTS_DIR)"; \
 	fi
 
 SLS_FILE ?= testdata/fixtures/csm/sls/valid_hardware_networks.json
@@ -380,9 +385,17 @@ load-sls:
 .PHONY: venv
 venv: ## Create a Python virtualenv for docs
 	$(INFO) "creating virtualenv"
-	virtualenv -p python3 venv
-	source venv/bin/activate
-	pip install -r requirements.txt
+	if [ -d venv ]; then \
+		echo "venv already exists, skipping"; \
+	else \
+		command -v virtualenv >/dev/null 2>&1 || { \
+			echo "virtualenv is required but not installed. Please install it and try again."; \
+			exit 1; \
+		}; \
+		echo "creating virtualenv with python$(PYTHON_VER)"; \
+		virtualenv -p python$(PYTHON_VER) venv; \
+		. venv/bin/activate && pip install --upgrade pip setuptools wheel && pip install -r requirements.txt; \
+	fi
 	$(OK) "virtualenv ready"
 
 .PHONY: serve
@@ -423,12 +436,8 @@ rpm_build:
 # ──────────────────────────────────────────────────────────────────────────────
 
 .PHONY: license
-license: ## Run the license checker (interactive)
-	docker run -it --rm -v $(PWD):/github/workspace artifactory.algol60.net/csm-docker/stable/license-checker .github/workflows/ cmd/ internal pkg/devicetypes pkg/provider/csm pkg/provider/example pkg/provider/redfish pkg/xname spec/ --fix
-
-.PHONY: license-check
-license-check: ## Run the license checker (CI, non-interactive)
-	docker run -i --rm -v $(PWD):/github/workspace artifactory.algol60.net/csm-docker/stable/license-checker .github/workflows/ cmd/ internal pkg/devicetypes pkg/provider/csm pkg/provider/example pkg/provider/redfish pkg/xname spec/
+license: ## Run the license checker
+	docker run -it --rm -v $(PWD):/github/workspace artifactory.algol60.net/csm-docker/stable/license-checker .github/workflows/ cmd/ internal pkg/hardwaretypes pkg/xname spec/ --fix
 
 .PHONY: env
 env: ## Print Go environment

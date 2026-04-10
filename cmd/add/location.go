@@ -28,6 +28,7 @@ package add
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
@@ -35,38 +36,49 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const flagContentTypes = "content-types"
+
 // newLocationCommand creates the "add location" subcommand.
 func newLocationCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "location [name]",
+		Use:   "location <slug>",
 		Short: "Add a location to the inventory.",
-		Long:  "Add a location (site, building, floor, room) to the inventory.",
-		Args:  cobra.ExactArgs(1),
-		RunE:  addLocation,
+		Long: `Add a location to the inventory using a registered location type slug.
+
+Examples:
+  cani alpha add location dc --name "Green Nitrogen"
+  cani alpha add location level --name "Level 1"
+  cani alpha add location section --name "Section A"
+
+Use -L to list available location type slugs.`,
+		Args: func(cmd *cobra.Command, args []string) error {
+			if cmd.Flags().Changed("list-supported-types") {
+				return nil
+			}
+			if len(args) != 1 {
+				return fmt.Errorf("accepts 1 arg(s), received %d", len(args))
+			}
+			return nil
+		},
+		RunE: addLocation,
 	}
 
-	cmd.Flags().String("type", "site", "Location type (site, building, floor, room)")
+	cmd.Flags().String("name", "", "Location name (required)")
 	cmd.Flags().String("parent", "", "Parent location UUID or name")
+	cmd.Flags().String("description", "", "Location description")
+	cmd.Flags().String(flagContentTypes, "", "Comma-separated content types (e.g. device,module,rack)")
 
 	return cmd
 }
 
 func addLocation(cmd *cobra.Command, args []string) error {
-	name := args[0]
-	locType, _ := cmd.Flags().GetString("type")
-
-	loc := &devicetypes.CaniLocationType{
-		ID:           uuid.New(),
-		Name:         name,
-		LocationType: locType,
-		Status:       "active",
+	if cmd.Flags().Changed("list-supported-types") {
+		return listTypesForNoun(cmd, NounLocation)
 	}
 
-	parentArg, _ := cmd.Flags().GetString("parent")
-	if parentArg != "" {
-		if pid, err := uuid.Parse(parentArg); err == nil {
-			loc.Parent = pid
-		}
+	loc, err := buildLocation(cmd, args)
+	if err != nil {
+		return err
 	}
 
 	if err := datastores.SetDeviceStore(cmd, args); err != nil {
@@ -78,6 +90,8 @@ func addLocation(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to load inventory: %w", err)
 	}
 
+	resolveParent(cmd, loc, inventory)
+
 	if err := inventory.AddLocation(loc); err != nil {
 		return fmt.Errorf("failed to add location: %w", err)
 	}
@@ -88,4 +102,55 @@ func addLocation(cmd *cobra.Command, args []string) error {
 
 	log.Printf("Added location %s (%s, type=%s)", loc.ID, loc.Name, loc.LocationType)
 	return nil
+}
+
+// buildLocation creates a CaniLocationType from a slug and required --name flag.
+func buildLocation(cmd *cobra.Command, args []string) (*devicetypes.CaniLocationType, error) {
+	result, _ := lookupBySlugOrPart(NounLocation, args[0])
+	if result == nil || result.Location == nil {
+		return nil, fmt.Errorf("unknown location type slug: %s (use -L to list available types)", args[0])
+	}
+	loc := result.Location
+
+	name, _ := cmd.Flags().GetString("name")
+	if name == "" {
+		return nil, fmt.Errorf("--name is required")
+	}
+	loc.Name = name
+
+	applyLocationFlags(cmd, loc)
+	return loc, nil
+}
+
+// applyLocationFlags overrides location fields from CLI flags when set.
+func applyLocationFlags(cmd *cobra.Command, loc *devicetypes.CaniLocationType) {
+	if cmd.Flags().Changed("description") {
+		loc.Description, _ = cmd.Flags().GetString("description")
+	}
+	if cmd.Flags().Changed(flagContentTypes) {
+		raw, _ := cmd.Flags().GetString(flagContentTypes)
+		if raw != "" {
+			loc.ContentTypes = strings.Split(raw, ",")
+		}
+	}
+}
+
+// resolveParent sets the parent UUID from the --parent flag.
+// Accepts a UUID directly or looks up a location by name.
+func resolveParent(cmd *cobra.Command, loc *devicetypes.CaniLocationType, inv *devicetypes.Inventory) {
+	parentArg, _ := cmd.Flags().GetString("parent")
+	if parentArg == "" {
+		return
+	}
+	if pid, err := uuid.Parse(parentArg); err == nil {
+		loc.Parent = pid
+		return
+	}
+	// Try name lookup.
+	for _, existing := range inv.Locations {
+		if existing.Name == parentArg {
+			loc.Parent = existing.ID
+			return
+		}
+	}
 }

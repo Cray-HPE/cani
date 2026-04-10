@@ -40,7 +40,7 @@ import (
 )
 
 // Base formats that are always available
-var baseFormats = []string{"json"}
+var baseFormats = []string{"table", "json", "tree"}
 
 // NewCommand creates the parent "show" command.
 func NewCommand() *cobra.Command {
@@ -59,7 +59,7 @@ func NewCommand() *cobra.Command {
 	// Get all valid formats (base + provider-registered)
 	validFormatKeys := getAllValidFormats()
 
-	cmd.PersistentFlags().StringP("format", "o", "json", fmt.Sprintf("Output format (%s)", strings.Join(validFormatKeys, ", ")))
+	cmd.PersistentFlags().StringP("format", "o", "table", fmt.Sprintf("Output format (%s)", strings.Join(validFormatKeys, ", ")))
 
 	// Visual mode flags
 	cmd.PersistentFlags().BoolP("visual", "v", false, "Display ASCII visualization of rack layout")
@@ -74,6 +74,7 @@ func NewCommand() *cobra.Command {
 	cmd.PersistentFlags().String("cable-type", "", "Filter cables by type (e.g., 'dac', 'cat6', used with --rack-view)")
 	cmd.PersistentFlags().CountP("verbose", "V", "Verbose output: -V shows legend, -VV shows all cables (used with --rack-view)")
 	cmd.PersistentFlags().Bool("show-routing", false, "Display cable routing with branching visualization (1 rack per line)")
+	cmd.PersistentFlags().Bool("detail", false, "Show single-rack detail with annotations (used with --rack-view)")
 
 	// Add validation
 	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
@@ -82,6 +83,12 @@ func NewCommand() *cobra.Command {
 		if !contains(validSortKeys, sortKey) {
 			return fmt.Errorf("invalid sort key '%s'. Valid options: %s",
 				sortKey, strings.Join(validSortKeys, ", "))
+		}
+
+		formatKey, _ := cmd.Flags().GetString("format")
+		if !contains(validFormatKeys, formatKey) {
+			return fmt.Errorf("invalid format '%s'. Valid options: %s",
+				formatKey, strings.Join(validFormatKeys, ", "))
 		}
 
 		return nil
@@ -93,6 +100,9 @@ func NewCommand() *cobra.Command {
 	cmd.AddCommand(newDeviceShowCommand())
 	cmd.AddCommand(newModuleCommand())
 	cmd.AddCommand(newCableCommand())
+	cmd.AddCommand(newFruCommand())
+	cmd.AddCommand(newInterfaceCommand())
+	cmd.AddCommand(newMetadataCommand())
 	cmd.AddCommand(ListCablesCmd)
 	cmd.AddCommand(ListInterfacesCmd)
 
@@ -146,6 +156,7 @@ func show(cmd *cobra.Command, args []string) error {
 		columns, _ := cmd.Flags().GetInt("columns")
 		verbose, _ := cmd.Flags().GetCount("verbose")
 		cableType, _ := cmd.Flags().GetString("cable-type")
+		detail, _ := cmd.Flags().GetBool("detail")
 
 		opts := visual.CompactRenderOptions{
 			NoColor:    noColor,
@@ -153,9 +164,14 @@ func show(cmd *cobra.Command, args []string) error {
 			Columns:    columns,
 			Verbose:    verbose,
 			CableType:  cableType,
+			Detail:     detail,
+			Inventory:  inv,
 		}
 
-		return visual.RenderCompactRacks(inv, opts)
+		if detail {
+			return visual.RenderMinimapDetailAll(inv, opts)
+		}
+		return visual.RenderMinimapRacks(inv, opts)
 	}
 
 	// Check for visual mode
@@ -175,14 +191,24 @@ func show(cmd *cobra.Command, args []string) error {
 		return visual.RenderAllRacks(inv, opts)
 	}
 
-	// Output full inventory in JSON format
-	output, err := json.MarshalIndent(inv, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal inventory: %w", err)
+	// Dispatch on --format flag
+	format, _ := cmd.Flags().GetString("format")
+	switch format {
+	case "table":
+		printAllTables(inv)
+		return nil
+	case "tree":
+		nodes := buildFullTree(inv)
+		renderTreeOutput(nodes)
+		return nil
+	default:
+		output, err := json.MarshalIndent(inv, "", "  ")
+		if err != nil {
+			return fmt.Errorf("failed to marshal inventory: %w", err)
+		}
+		fmt.Println(string(output))
+		return nil
 	}
-	fmt.Println(string(output))
-
-	return nil
 }
 
 // Helper function

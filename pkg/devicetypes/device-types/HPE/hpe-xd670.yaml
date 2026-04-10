@@ -27,7 +27,7 @@ model: XD670
 slug: hpe-xd670
 part_number: P67287-B21
 description: "HPE Cray Supercomputing XD670 DLC CTO Server. Source: https://buy.hpe.com/us/en/compute/high-performance-computing/high-performance-computing/high-performance-computing-systems/hpe-cray-supercomputing-xd670-server/p/1014870873"
-hardware-type: blade
+type: blade
 u_height: 5
 is_full_depth: true
 comments: "5U GPU server with 8x NVIDIA H100 SXM GPUs, Intel Xeon Sapphire Rapids CPUs"

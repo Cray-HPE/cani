@@ -208,8 +208,8 @@ func (e *Exporter) getOrCreateModuleType(
 	}
 
 	// Not found — create if allowed.
-	if !e.Options.CreateDeviceTypes {
-		return nil, fmt.Errorf("module type %q not in Nautobot (enable create_device_types)", model)
+	if !e.Options.CreateModuleTypes {
+		return nil, fmt.Errorf("module type %q not in Nautobot (enable create_module_types)", model)
 	}
 
 	manufacturer, err := e.Cache.GetOrCreateManufacturer(module.Manufacturer)

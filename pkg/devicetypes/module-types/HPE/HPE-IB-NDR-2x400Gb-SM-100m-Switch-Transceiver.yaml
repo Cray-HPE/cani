@@ -27,7 +27,7 @@ model: HPE InfiniBand NDR/Ethernet 2x400Gb OSFP Single-mode 100m Switch-side Tra
 slug: hpe-ib-ndr-2x400gb-osfp-sm-100m-switch-xcvr
 part_number: P45693-B21
 description: "HPE InfiniBand NDR/Ethernet 2x400Gb OSFP Single-mode 100m Switch-side Transceiver. Dual 400Gb/s ports, single-mode fiber, 100m reach. Source: https://buy.hpe.com/us/en/networking/infiniband-adapters-and-cables/infiniband-transceivers/infiniband-transceivers/hpe-infiniband-ndr-ethernet-2x400gb-osfp-single-mode-100m-switch-side-transceiver/p/P45693-B21"
-hardware-type: transceiver
+type: transceiver
 interfaces:
   - name: Port 1
     type: 400gbase-x-osfp

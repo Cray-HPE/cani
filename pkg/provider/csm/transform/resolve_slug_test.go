@@ -129,3 +129,97 @@ func TestDefaultSlugForClass_Hill(t *testing.T) {
 		t.Errorf("resolveSlug(Hill cabinet) = %q, want %q", slug, "hpe-ex2000")
 	}
 }
+
+func TestDefaultSlugForClass_HillBlade(t *testing.T) {
+	cl := CsmClassification{
+		CaniType: devicetypes.TypeBlade,
+		Xname:    ParseXname("x9000c1s0"),
+		Hardware: import_.SlsHardware{Xname: "x9000c1s0", Class: "Hill"},
+	}
+	slug := resolveSlug(cl)
+	// Hill blades should use Mountain (CrayEX) defaults, not River.
+	if slug != "hpe-crayex-ex235a-compute-blade" {
+		t.Errorf("resolveSlug(Hill blade) = %q, want %q", slug, "hpe-crayex-ex235a-compute-blade")
+	}
+}
+
+func TestDefaultSlugForClass_HillNodeCard(t *testing.T) {
+	cl := CsmClassification{
+		CaniType: devicetypes.TypeNodeCard,
+		Xname:    ParseXname("x9000c1s0b0"),
+		Hardware: import_.SlsHardware{Xname: "x9000c1s0b0", Class: "Hill"},
+	}
+	slug := resolveSlug(cl)
+	if slug != "hpe-crayex-ex235a-compute-blade-bard-peak-node-card" {
+		t.Errorf("resolveSlug(Hill nodecard) = %q, want %q", slug, "hpe-crayex-ex235a-compute-blade-bard-peak-node-card")
+	}
+}
+
+func TestDefaultSlugForClass_HillNode(t *testing.T) {
+	cl := CsmClassification{
+		CaniType: devicetypes.TypeNode,
+		Xname:    ParseXname("x9000c1s0b0n0"),
+		Hardware: import_.SlsHardware{Xname: "x9000c1s0b0n0", Class: "Hill"},
+	}
+	slug := resolveSlug(cl)
+	if slug != "hpe-crayex-ex235a-compute-node" {
+		t.Errorf("resolveSlug(Hill node) = %q, want %q", slug, "hpe-crayex-ex235a-compute-node")
+	}
+}
+
+func TestClassesForSlug_DefaultSlug(t *testing.T) {
+	classes := ClassesForSlug("hpe-crayex-ex235a-compute-blade")
+	if !classes[ClassMountain] {
+		t.Error("expected Mountain for EX235A")
+	}
+	if !classes[ClassHill] {
+		t.Error("expected Hill for EX235A (inherits from Mountain)")
+	}
+	if classes[ClassRiver] {
+		t.Error("unexpected River for EX235A")
+	}
+}
+
+func TestClassesForSlug_NonDefaultSlug(t *testing.T) {
+	// EX235N is not in defaultSlugs but shares the "hpe-crayex" family.
+	classes := ClassesForSlug("hpe-crayex-ex235n-compute-blade")
+	if !classes[ClassMountain] {
+		t.Error("expected Mountain for EX235N (family match)")
+	}
+	if !classes[ClassHill] {
+		t.Error("expected Hill for EX235N (inherits from Mountain)")
+	}
+	if classes[ClassRiver] {
+		t.Error("unexpected River for EX235N")
+	}
+}
+
+func TestClassesForSlug_RiverSlug(t *testing.T) {
+	classes := ClassesForSlug("hpe-dl380-gen-11")
+	if !classes[ClassRiver] {
+		t.Error("expected River for DL380")
+	}
+	if classes[ClassMountain] {
+		t.Error("unexpected Mountain for DL380")
+	}
+}
+
+func TestSlugFamily(t *testing.T) {
+	tests := []struct {
+		slug string
+		want string
+	}{
+		{"hpe-crayex-ex235a-compute-blade", "hpe-crayex"},
+		{"hpe-crayex-ex235n-compute-blade", "hpe-crayex"},
+		{"hpe-dl380-gen-11", "hpe-dl380"},
+		{"hpe-aruba-8325-32c", "hpe-aruba"},
+		{"cray-xd225v", "cray-xd225v"},
+		{"hpe-ex2000", "hpe-ex2000"},
+	}
+	for _, tt := range tests {
+		got := slugFamily(tt.slug)
+		if got != tt.want {
+			t.Errorf("slugFamily(%q) = %q, want %q", tt.slug, got, tt.want)
+		}
+	}
+}

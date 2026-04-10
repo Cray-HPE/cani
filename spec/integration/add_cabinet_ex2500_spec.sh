@@ -66,7 +66,7 @@ It 'export to simulator'
   When call bin/cani alpha --config "$CANI_CONF" export csm -S --commit
   The status should equal 0
   The stderr should include 'Export completed successfully'
-  The stdout should include 'Cabinet                         (staged)'
+  The stdout should include 'Cabinet                         (Staged)'
 End
 
 End

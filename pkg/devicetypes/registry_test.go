@@ -62,9 +62,9 @@ func TestListCaniDeviceTypesMatchesHardwareType(t *testing.T) {
 	}()
 
 	allDeviceTypes = map[string]CaniDeviceType{
-		"chassis-a": {Slug: "chassis-a", Model: "Chassis A", HardwareType: string(TypeChassis)},
-		"blade-b":   {Slug: "blade-b", Model: "Blade B", HardwareType: string(TypeBlade)},
-		"node-c":    {Slug: "node-c", Model: "Node C", HardwareType: string(TypeNode)},
+		"chassis-a": {Slug: "chassis-a", Model: "Chassis A", Type: TypeChassis},
+		"blade-b":   {Slug: "blade-b", Model: "Blade B", Type: TypeBlade},
+		"node-c":    {Slug: "node-c", Model: "Node C", Type: TypeNode},
 	}
 
 	result := ListCaniDeviceTypes(TypeChassis, TypeBlade)
@@ -92,7 +92,7 @@ func TestListCaniDeviceTypesNoMatch(t *testing.T) {
 	}()
 
 	allDeviceTypes = map[string]CaniDeviceType{
-		"blade-x": {Slug: "blade-x", Model: "Blade X", HardwareType: string(TypeBlade)},
+		"blade-x": {Slug: "blade-x", Model: "Blade X", Type: TypeBlade},
 	}
 
 	result := ListCaniDeviceTypes(TypeCDU)
@@ -110,29 +110,32 @@ func TestListAllAvailableTypesReturnsAllRegistered(t *testing.T) {
 	origCables := allCableTypes
 	origRacks := allRackTypes
 	origFrus := allFruTypes
+	origLocations := allLocationTypes
 	defer func() {
 		allDeviceTypes = origDevices
 		allModuleTypes = origModules
 		allCableTypes = origCables
 		allRackTypes = origRacks
 		allFruTypes = origFrus
+		allLocationTypes = origLocations
 	}()
 
 	allDeviceTypes = map[string]CaniDeviceType{
-		"dev1": {Model: "Dev1", Slug: "dev1", PartNumber: "PN-D1", HardwareType: "chassis", Source: "test"},
+		"dev1": {Model: "Dev1", Slug: "dev1", PartNumber: "PN-D1", Type: "chassis", Source: "test"},
 	}
 	allModuleTypes = map[string]CaniModuleType{
-		"mod1": {Model: "Mod1", Slug: "mod1", PartNumber: "PN-M1", HardwareType: "gpu", Source: "test"},
+		"mod1": {Model: "Mod1", Slug: "mod1", PartNumber: "PN-M1", Type: "gpu", Source: "test"},
 	}
 	allCableTypes = map[string]CaniCableType{
-		"cab1": {Model: "Cab1", Slug: "cab1", PartNumber: "PN-C1", HardwareType: "cable", Source: "test"},
+		"cab1": {Model: "Cab1", Slug: "cab1", PartNumber: "PN-C1", Type: "cable", Source: "test"},
 	}
 	allRackTypes = map[string]CaniRackType{
-		"rack1": {Model: "Rack1", Slug: "rack1", PartNumber: "PN-R1", HardwareType: "rack", Source: "test"},
+		"rack1": {Model: "Rack1", Slug: "rack1", PartNumber: "PN-R1", Type: "rack", Source: "test"},
 	}
 	allFruTypes = map[string]CaniFruType{
-		"fru1": {Model: "Fru1", Slug: "fru1", PartNumber: "PN-F1", HardwareType: "fru", Source: "test"},
+		"fru1": {Model: "Fru1", Slug: "fru1", PartNumber: "PN-F1", Type: "fru", Source: "test"},
 	}
+	allLocationTypes = map[string]LocationTypeDefinition{}
 
 	entries := ListAllAvailableTypes()
 	if len(entries) != 5 {
@@ -156,12 +159,14 @@ func TestListAllAvailableTypesEmptyRegistries(t *testing.T) {
 	origCables := allCableTypes
 	origRacks := allRackTypes
 	origFrus := allFruTypes
+	origLocations := allLocationTypes
 	defer func() {
 		allDeviceTypes = origDevices
 		allModuleTypes = origModules
 		allCableTypes = origCables
 		allRackTypes = origRacks
 		allFruTypes = origFrus
+		allLocationTypes = origLocations
 	}()
 
 	allDeviceTypes = map[string]CaniDeviceType{}
@@ -169,6 +174,7 @@ func TestListAllAvailableTypesEmptyRegistries(t *testing.T) {
 	allCableTypes = map[string]CaniCableType{}
 	allRackTypes = map[string]CaniRackType{}
 	allFruTypes = map[string]CaniFruType{}
+	allLocationTypes = map[string]LocationTypeDefinition{}
 
 	entries := ListAllAvailableTypes()
 	if len(entries) != 0 {

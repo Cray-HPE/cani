@@ -23,10 +23,8 @@ type CaniDeviceType struct {
 	AssetTag     string    `json:"assetTag,omitempty" yaml:"asset_tag,omitempty"`
 
 	// Classification
-	Type            Type     `json:"type,omitempty" yaml:"type,omitempty"`
-	HardwareType    string   `json:"hardwareType" yaml:"hardware-type,omitempty"`
-	AllowedChildren []string `json:"allowedChildren,omitempty" yaml:"allowed_children,omitempty"`
-	SubdeviceRole   string   `json:"subdeviceRole,omitempty" yaml:"subdevice_role,omitempty"` // parent or child (chassis/blade)
+	Type          Type   `json:"type,omitempty" yaml:"type,omitempty"`
+	SubdeviceRole string `json:"subdeviceRole,omitempty" yaml:"subdevice_role,omitempty"` // parent or child (chassis/blade)
 
 	// Physical
 	UHeight     int     `json:"uHeight,omitempty" yaml:"u_height,omitempty"`
@@ -43,14 +41,14 @@ type CaniDeviceType struct {
 	DeviceBays      []DeviceBaySpec   `json:"deviceBays,omitempty" yaml:"device-bays,omitempty"`
 	Identifications []Identification  `json:"identifications,omitempty" yaml:"identifications,omitempty"`
 
+	// Shared metadata (status, role, tags, tenant, custom fields, external IDs, provider metadata)
+	ObjectMeta `yaml:",inline"`
+
 	// Inventory state
-	Status           string         `json:"status" yaml:"status,omitempty"`
-	Role             string         `json:"role,omitempty" yaml:"role,omitempty"`
-	Platform         string         `json:"platform,omitempty" yaml:"platform,omitempty"` // OS/firmware platform
-	ProviderMetadata map[string]any `json:"providerMetadata,omitempty" yaml:"provider_metadata,omitempty"`
-	Parent           uuid.UUID      `json:"parent" yaml:"parent,omitempty"`
-	Children         []uuid.UUID    `json:"children,omitempty" yaml:"children,omitempty"`
-	Frus             []uuid.UUID    `json:"frus,omitempty" yaml:"frus,omitempty"`
+	Platform string      `json:"platform,omitempty" yaml:"platform,omitempty"` // OS/firmware platform
+	Parent   uuid.UUID   `json:"parent" yaml:"parent,omitempty"`
+	Children []uuid.UUID `json:"children,omitempty" yaml:"children,omitempty"`
+	Frus     []uuid.UUID `json:"frus,omitempty" yaml:"frus,omitempty"`
 
 	// Explicit FK fields for Nautobot export (derived from Parent at load time)
 	Rack         uuid.UUID `json:"rack,omitempty" yaml:"rack,omitempty"`                  // FK to CaniRackType
@@ -61,12 +59,6 @@ type CaniDeviceType struct {
 	RackPosition int    `json:"rackPosition,omitempty" yaml:"rack_position,omitempty"`
 	Face         string `json:"face,omitempty" yaml:"face,omitempty"`
 
-	// Multi-tenancy and metadata
-	Tenant       string               `json:"tenant,omitempty" yaml:"tenant,omitempty"`
-	Tags         []string             `json:"tags,omitempty" yaml:"tags,omitempty"`
-	CustomFields map[string]any       `json:"customFields,omitempty" yaml:"custom_fields,omitempty"`
-	ExternalIDs  map[string]uuid.UUID `json:"externalIDs,omitempty" yaml:"external_ids,omitempty"` // provider name → remote UUID
-
 	// Source tracks where this type was loaded from (e.g. "builtin", "local:/path", "git:url").
 	Source string `json:"-" yaml:"-"`
 }
@@ -76,7 +68,7 @@ func (c *CaniDeviceType) IsCable() bool {
 	if c == nil {
 		return false
 	}
-	return c.HardwareType == string(TypeCable) || c.Type == TypeCable
+	return c.Type == TypeCable
 }
 
 // GetVendor returns the vendor name, falling back to Manufacturer.
@@ -95,10 +87,7 @@ func (c *CaniDeviceType) GetType() Type {
 	if c == nil {
 		return ""
 	}
-	if c.Type != "" {
-		return c.Type
-	}
-	return Type(c.HardwareType)
+	return c.Type
 }
 
 // MergeProperties merges non-empty properties from another CaniDeviceType into this one.
@@ -129,10 +118,6 @@ func (c *CaniDeviceType) MergeProperties(other *CaniDeviceType) bool {
 		c.Status = other.Status
 		changed = true
 	}
-	if other.HardwareType != "" && c.HardwareType != other.HardwareType {
-		c.HardwareType = other.HardwareType
-		changed = true
-	}
 	if other.Type != "" && c.Type != other.Type {
 		c.Type = other.Type
 		changed = true
@@ -143,6 +128,32 @@ func (c *CaniDeviceType) MergeProperties(other *CaniDeviceType) bool {
 	}
 	if other.RackPosition != 0 && c.RackPosition != other.RackPosition {
 		c.RackPosition = other.RackPosition
+		changed = true
+	}
+	if other.Face != "" && c.Face != other.Face {
+		c.Face = other.Face
+		changed = true
+	}
+	// Nautobot requires rack, position, and face to be set together;
+	// default face to "front" when a position is present.
+	if c.RackPosition > 0 && c.Face == "" {
+		c.Face = "front"
+		changed = true
+	}
+	if other.Parent != uuid.Nil && c.Parent != other.Parent {
+		c.Parent = other.Parent
+		changed = true
+	}
+	if other.Role != "" && c.Role != other.Role {
+		c.Role = other.Role
+		changed = true
+	}
+	if other.Serial != "" && c.Serial != other.Serial {
+		c.Serial = other.Serial
+		changed = true
+	}
+	if other.Description != "" && c.Description != other.Description {
+		c.Description = other.Description
 		changed = true
 	}
 
@@ -230,7 +241,7 @@ func (c *CaniDeviceType) InstantiateInterfaces() []InterfaceInstance {
 			Name:          iface.Name,
 			InterfaceType: iface.Type,
 			DeviceID:      c.ID,
-			Status:        "active",
+			ObjectMeta:    ObjectMeta{Status: string(StatusActive)},
 			MgmtOnly:      mgmtOnly,
 		})
 	}

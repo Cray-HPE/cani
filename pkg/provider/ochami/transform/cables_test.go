@@ -93,8 +93,8 @@ func TestCreateCable_Pass(t *testing.T) {
 	if cable.PartNumber != "UNKNOWN-PN-999" {
 		t.Errorf("PartNumber = %q, want %q", cable.PartNumber, "UNKNOWN-PN-999")
 	}
-	if cable.Status != "connected" {
-		t.Errorf("Status = %q, want %q", cable.Status, "connected")
+	if cable.Status != "Connected" {
+		t.Errorf("Status = %q, want %q", cable.Status, "Connected")
 	}
 }
 
@@ -119,7 +119,7 @@ func TestCreateCable_EmptyFields(t *testing.T) {
 	if cable.PartNumber != "" {
 		t.Errorf("PartNumber = %q, want empty string", cable.PartNumber)
 	}
-	if cable.Status != "connected" {
-		t.Errorf("Status = %q, want %q", cable.Status, "connected")
+	if cable.Status != "Connected" {
+		t.Errorf("Status = %q, want %q", cable.Status, "Connected")
 	}
 }

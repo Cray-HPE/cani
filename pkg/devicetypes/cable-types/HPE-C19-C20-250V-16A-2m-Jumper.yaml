@@ -27,7 +27,7 @@ model: HPE C19 - C20 WW 250V 16Amp Flint Gray 2.0m Jumper Cord
 slug: hpe-c19-c20-250v-16a-2m-jumper
 part_number: AF574A
 description: "HPE C19 - C20 WW 250V 16Amp Flint Gray 2.0m Jumper Cord. Power jumper cord for PDU to server connections. Source: https://buy.hpe.com/us/en/options/power-options/power-cables/power-cables/hpe-power-cords/p/AF574A"
-hardware-type: cable
+type: cable
 cable_category: power
 connector_type: c19-c20
 length: 2

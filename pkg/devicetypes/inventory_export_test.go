@@ -258,8 +258,8 @@ func TestFruOrphanFields(t *testing.T) {
 	if fru.Role == "" {
 		t.Error("fixture setup error: expected non-empty Role")
 	}
-	if fru.HardwareType == "" {
-		t.Error("fixture setup error: expected non-empty HardwareType")
+	if fru.Type == "" {
+		t.Error("fixture setup error: expected non-empty Type")
 	}
 	if fru.Model == "" {
 		t.Error("fixture setup error: expected non-empty Model")
@@ -375,7 +375,7 @@ func TestValidateNoOp(t *testing.T) {
 	t.Log("BUG #12: Validate() on Device/Module/FRU only checks for nil receiver — no field validation")
 }
 
-// ---------- bug #15: empty LocationType fallback ----------
+// ---------- bug #15: empty LocationType is now rejected ----------
 
 func TestLocationTypeEmptyFallback(t *testing.T) {
 	inv := loadFixture(t)
@@ -390,14 +390,12 @@ func TestLocationTypeEmptyFallback(t *testing.T) {
 		t.Fatalf("fixture setup error: expected empty LocationType, got %q", loc.LocationType)
 	}
 
-	// loadLocations defaults empty LocationType to "Site".
-	// CaniLocationType.Validate() would reject this, but Load never calls Validate.
+	// Validate must reject an empty LocationType.
 	err := loc.Validate()
 	if err == nil {
 		t.Fatal("expected Validate() to reject empty LocationType")
 	}
 	t.Logf("Validate correctly rejects empty LocationType: %v", err)
-	t.Log("BUG #1+15: Load() never calls Validate(); export silently defaults empty LocationType to 'Site'")
 }
 
 // ---------- spine-leaf fixture ----------

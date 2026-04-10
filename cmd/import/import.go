@@ -317,8 +317,10 @@ func displayTransformSummary(ctx *etlContext, result *devicetypes.TransformResul
 // mergeTransformResult merges all transformed entities into ctx.inventory.
 func mergeTransformResult(ctx *etlContext, result *devicetypes.TransformResult) {
 	result.EnsureUniqueDeviceNames()
-	mergeLocations(ctx, result.Locations)
-	mergeRacks(ctx, result.Racks)
+	locationRemap := mergeLocations(ctx, result.Locations)
+	rackRemap := mergeRacks(ctx, result.Racks)
+	remapDeviceParents(result.Devices, locationRemap, rackRemap)
+	printImportDiff(ctx, result.Devices)
 	mergeDevices(ctx, result.Devices)
 	mergeModules(ctx, result.Modules)
 	mergeCables(ctx, result.Cables)
@@ -330,26 +332,121 @@ func mergeTransformResult(ctx *etlContext, result *devicetypes.TransformResult) 
 	ctx.inventory.VerifyParentChildRelationships()
 }
 
-// mergeLocations adds transformed locations to the inventory.
-func mergeLocations(ctx *etlContext, locations map[uuid.UUID]*devicetypes.CaniLocationType) {
-	if len(locations) == 0 {
+// remapDeviceParents rewrites device Parent fields using the UUID remap
+// maps returned by MergeLocations and MergeRacks. This ensures devices
+// point to existing inventory UUIDs rather than ephemeral transform UUIDs.
+func remapDeviceParents(
+	devices map[uuid.UUID]*devicetypes.CaniDeviceType,
+	locationRemap, rackRemap map[uuid.UUID]uuid.UUID,
+) {
+	for _, dev := range devices {
+		if dev == nil || dev.Parent == uuid.Nil {
+			continue
+		}
+		if mapped, ok := rackRemap[dev.Parent]; ok {
+			dev.Parent = mapped
+		} else if mapped, ok := locationRemap[dev.Parent]; ok {
+			dev.Parent = mapped
+		}
+	}
+}
+
+// printImportDiff prints a summary of fields that will change when incoming
+// devices are merged into the existing inventory.
+func printImportDiff(ctx *etlContext, incoming map[uuid.UUID]*devicetypes.CaniDeviceType) {
+	type fieldDiff struct {
+		field  string
+		oldVal string
+		newVal string
+	}
+
+	var changedDevices []struct {
+		name  string
+		diffs []fieldDiff
+	}
+
+	for _, dev := range incoming {
+		if dev == nil || dev.Name == "" {
+			continue
+		}
+		// Find the existing device by name.
+		var existing *devicetypes.CaniDeviceType
+		for _, e := range ctx.inventory.Devices {
+			if e != nil && e.Name == dev.Name {
+				existing = e
+				break
+			}
+		}
+		if existing == nil {
+			continue
+		}
+
+		var diffs []fieldDiff
+		if dev.RackPosition != 0 && dev.RackPosition != existing.RackPosition {
+			diffs = append(diffs, fieldDiff{"position", fmt.Sprintf("%d", existing.RackPosition), fmt.Sprintf("%d", dev.RackPosition)})
+		}
+		if dev.Status != "" && dev.Status != existing.Status {
+			diffs = append(diffs, fieldDiff{"status", existing.Status, dev.Status})
+		}
+		if dev.Role != "" && dev.Role != existing.Role {
+			diffs = append(diffs, fieldDiff{"role", existing.Role, dev.Role})
+		}
+		if dev.Model != "" && dev.Model != existing.Model {
+			diffs = append(diffs, fieldDiff{"model", existing.Model, dev.Model})
+		}
+		if dev.Parent != uuid.Nil && dev.Parent != existing.Parent {
+			diffs = append(diffs, fieldDiff{"parent", existing.Parent.String(), dev.Parent.String()})
+		}
+		if dev.Face != "" && dev.Face != existing.Face {
+			diffs = append(diffs, fieldDiff{"face", existing.Face, dev.Face})
+		}
+		if dev.Serial != "" && dev.Serial != existing.Serial {
+			diffs = append(diffs, fieldDiff{"serial", existing.Serial, dev.Serial})
+		}
+
+		if len(diffs) > 0 {
+			changedDevices = append(changedDevices, struct {
+				name  string
+				diffs []fieldDiff
+			}{dev.Name, diffs})
+		}
+	}
+
+	if len(changedDevices) == 0 {
 		return
+	}
+
+	log.Println()
+	log.Println("=== Devices with pending changes ===")
+	for _, cd := range changedDevices {
+		log.Printf("  %s: %d field(s) changed:", cd.name, len(cd.diffs))
+		for _, d := range cd.diffs {
+			log.Printf("      %s: %s --> %s", d.field, d.oldVal, d.newVal)
+		}
+	}
+	log.Println()
+}
+
+// mergeLocations adds transformed locations to the inventory.
+func mergeLocations(ctx *etlContext, locations map[uuid.UUID]*devicetypes.CaniLocationType) map[uuid.UUID]uuid.UUID {
+	if len(locations) == 0 {
+		return nil
 	}
 	if ctx.debug {
 		visual.PrintCaniOperation(fmt.Sprintf("Merging %d locations into inventory", len(locations)), ctx.opts)
 	}
-	ctx.inventory.MergeLocations(locations)
+	return ctx.inventory.MergeLocations(locations)
 }
 
 // mergeRacks adds transformed racks to the inventory.
-func mergeRacks(ctx *etlContext, racks map[uuid.UUID]*devicetypes.CaniRackType) {
+func mergeRacks(ctx *etlContext, racks map[uuid.UUID]*devicetypes.CaniRackType) map[uuid.UUID]uuid.UUID {
 	if len(racks) == 0 {
-		return
+		return nil
 	}
 	if ctx.debug {
 		visual.PrintCaniOperation(fmt.Sprintf("Merging %d racks into inventory", len(racks)), ctx.opts)
 	}
-	ctx.inventory.MergeRacks(racks)
+	return ctx.inventory.MergeRacks(racks)
 }
 
 // mergeDevices adds transformed devices to the inventory.

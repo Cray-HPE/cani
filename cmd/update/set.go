@@ -42,3 +42,23 @@ func parseSetFlags(pairs []string) (map[string]string, error) {
 	}
 	return result, nil
 }
+
+// applyProviderMetadata merges key=value pairs into a ProviderMetadata["nautobot"] map.
+func applyProviderMetadata(pm *map[string]any, pairs []string) error {
+	parsed, err := parseSetFlags(pairs)
+	if err != nil {
+		return fmt.Errorf("invalid --metadata: %w", err)
+	}
+	if *pm == nil {
+		*pm = make(map[string]any)
+	}
+	existing, _ := (*pm)["nautobot"].(map[string]any)
+	if existing == nil {
+		existing = make(map[string]any)
+	}
+	for k, v := range parsed {
+		existing[k] = v
+	}
+	(*pm)["nautobot"] = existing
+	return nil
+}

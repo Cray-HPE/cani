@@ -27,7 +27,7 @@ model: HPE Aruba Networking 100G QSFP28 to QSFP28 3m Direct Attach Copper Cable
 slug: hpe-aruba-100g-qsfp28-3m-dac
 part_number: JL307A
 description: "HPE Aruba Networking 100G QSFP28 to QSFP28 3m Direct Attach Copper Cable. Source: https://buy.hpe.com/us/en/options/cables/direct-attach-cables/direct-attach-cables/aruba-100g-qsfp28-to-qsfp28-3m-direct-attach-copper-cable/p/JL307A"
-hardware-type: cable
+type: cable
 cable_category: dac
 connector_type: qsfp28-qsfp28
 length: 3

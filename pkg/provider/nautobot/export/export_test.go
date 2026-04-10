@@ -46,7 +46,7 @@ func TestValidateInventory(t *testing.T) {
 			name: "valid inventory with exportable device",
 			inv: &devicetypes.Inventory{
 				Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
-					deviceID: {Name: "server-01", HardwareType: "node"},
+					deviceID: {Name: "server-01", Type: devicetypes.Type("node")},
 				},
 			},
 			expectErr: false,
@@ -69,7 +69,7 @@ func TestValidateInventory(t *testing.T) {
 			name: "only system devices returns error",
 			inv: &devicetypes.Inventory{
 				Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
-					deviceID: {Name: "sys-root", HardwareType: "system"},
+					deviceID: {Name: "sys-root", Type: devicetypes.Type("system")},
 				},
 			},
 			expectErr: true,

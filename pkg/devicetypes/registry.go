@@ -15,6 +15,7 @@ var (
 	rackTypesByPartNum   = make(map[string]CaniRackType)
 	allFruTypes          = make(map[string]CaniFruType)
 	fruTypesByPartNum    = make(map[string]CaniFruType)
+	allLocationTypes     = make(map[string]LocationTypeDefinition)
 	allTypes             []Type
 )
 
@@ -22,48 +23,58 @@ var (
 type Type string
 
 const (
-	TypeRack        Type = "rack"
-	TypeCabinet     Type = "cabinet"
-	TypeChassis     Type = "chassis"
-	TypeBlade       Type = "blade"
-	TypeNode        Type = "node"
-	TypeNodeCard    Type = "nodecard"
-	TypeSwitch      Type = "switch"
-	TypeMgmtSwitch  Type = "mgmt-switch"
-	TypeHsnSwitch   Type = "hsn-switch"
-	TypeCabinetPDU  Type = "cabinet-pdu"
-	TypeCDU         Type = "cdu"
-	TypeModule      Type = "module"
-	TypeNIC         Type = "nic"
-	TypeGPU         Type = "gpu"
-	TypeCPU         Type = "cpu"
-	TypeMemory      Type = "memory"
-	TypePowerSupply Type = "power-supply"
-	TypeCable       Type = "cable"
-	TypeFru         Type = "fru"
+	TypeRack           Type = "rack"
+	TypeCabinet        Type = "cabinet"
+	TypeChassis        Type = "chassis"
+	TypeBlade          Type = "blade"
+	TypeNode           Type = "node"
+	TypeNodeCard       Type = "nodecard"
+	TypeSwitch         Type = "switch"
+	TypeMgmtSwitch     Type = "mgmt-switch"
+	TypeHsnSwitch      Type = "hsn-switch"
+	TypeCabinetPDU     Type = "cabinet-pdu"
+	TypeCDU            Type = "cdu"
+	TypeModule         Type = "module"
+	TypeNIC            Type = "nic"
+	TypeGPU            Type = "gpu"
+	TypeCPU            Type = "cpu"
+	TypeMemory         Type = "memory"
+	TypePowerSupply    Type = "power-supply"
+	TypeCable          Type = "cable"
+	TypeFru            Type = "fru"
+	TypeCEC            Type = "cec"
+	TypeCMM            Type = "cmm"
+	TypeNodeController Type = "nodecontroller"
+	TypeAdapter        Type = "adapter"
+	TypeTransceiver    Type = "transceiver"
 )
 
 // Hardware type aliases for backwards compatibility.
 const (
-	Rack        = TypeRack
-	Cabinet     = TypeCabinet
-	Chassis     = TypeChassis
-	Blade       = TypeBlade
-	Node        = TypeNode
-	NodeCard    = TypeNodeCard
-	Switch      = TypeSwitch
-	MgmtSwitch  = TypeMgmtSwitch
-	HSNSwitch   = TypeHsnSwitch
-	CabinetPDU  = TypeCabinetPDU
-	CDU         = TypeCDU
-	Module      = TypeModule
-	NIC         = TypeNIC
-	GPU         = TypeGPU
-	CPU         = TypeCPU
-	Memory      = TypeMemory
-	PowerSupply = TypePowerSupply
-	Cable       = TypeCable
-	Fru         = TypeFru
+	Rack           = TypeRack
+	Cabinet        = TypeCabinet
+	Chassis        = TypeChassis
+	Blade          = TypeBlade
+	Node           = TypeNode
+	NodeCard       = TypeNodeCard
+	Switch         = TypeSwitch
+	MgmtSwitch     = TypeMgmtSwitch
+	HSNSwitch      = TypeHsnSwitch
+	CabinetPDU     = TypeCabinetPDU
+	CDU            = TypeCDU
+	Module         = TypeModule
+	NIC            = TypeNIC
+	GPU            = TypeGPU
+	CPU            = TypeCPU
+	Memory         = TypeMemory
+	PowerSupply    = TypePowerSupply
+	Cable          = TypeCable
+	Fru            = TypeFru
+	CEC            = TypeCEC
+	CMM            = TypeCMM
+	NodeController = TypeNodeController
+	Adapter        = TypeAdapter
+	Transceiver    = TypeTransceiver
 )
 
 // Category represents a classification category.
@@ -120,13 +131,13 @@ func ClassifyForNautobot(hardwareType string) Category {
 	}
 }
 
-// ListCaniDeviceTypes returns all device types whose HardwareType matches
+// ListCaniDeviceTypes returns all device types whose Type matches
 // any of the given types.
 func ListCaniDeviceTypes(types ...Type) map[string]CaniDeviceType {
 	result := make(map[string]CaniDeviceType)
 	for slug, dt := range allDeviceTypes {
 		for _, t := range types {
-			if dt.HardwareType == string(t) {
+			if dt.Type == t {
 				result[slug] = dt
 				break
 			}
@@ -154,7 +165,7 @@ func ListAllAvailableTypes() []TypeEntry {
 			Name:       dt.Model,
 			Slug:       dt.Slug,
 			PartNumber: dt.PartNumber,
-			Category:   dt.HardwareType,
+			Category:   string(dt.Type),
 			Source:     dt.Source,
 		})
 	}
@@ -163,7 +174,7 @@ func ListAllAvailableTypes() []TypeEntry {
 			Name:       mt.Model,
 			Slug:       mt.Slug,
 			PartNumber: mt.PartNumber,
-			Category:   mt.HardwareType,
+			Category:   string(mt.Type),
 			Source:     mt.Source,
 		})
 	}
@@ -172,7 +183,7 @@ func ListAllAvailableTypes() []TypeEntry {
 			Name:       ct.Model,
 			Slug:       ct.Slug,
 			PartNumber: ct.PartNumber,
-			Category:   ct.HardwareType,
+			Category:   string(ct.Type),
 			Source:     ct.Source,
 		})
 	}
@@ -181,7 +192,7 @@ func ListAllAvailableTypes() []TypeEntry {
 			Name:       rt.Model,
 			Slug:       rt.Slug,
 			PartNumber: rt.PartNumber,
-			Category:   rt.HardwareType,
+			Category:   string(rt.Type),
 			Source:     rt.Source,
 		})
 	}
@@ -190,8 +201,16 @@ func ListAllAvailableTypes() []TypeEntry {
 			Name:       ft.Model,
 			Slug:       ft.Slug,
 			PartNumber: ft.PartNumber,
-			Category:   ft.HardwareType,
+			Category:   string(ft.Type),
 			Source:     ft.Source,
+		})
+	}
+	for _, lt := range allLocationTypes {
+		entries = append(entries, TypeEntry{
+			Name:     lt.Name,
+			Slug:     lt.Slug,
+			Category: "location-type",
+			Source:   lt.Source,
 		})
 	}
 	return entries

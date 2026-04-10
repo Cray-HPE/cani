@@ -94,13 +94,13 @@ func listInterfaces(cmd *cobra.Command, args []string) error {
 		}
 
 		// Skip cables and modules - only show interfaces for devices
-		category := devicetypes.ClassifyForNautobot(device.HardwareType)
+		category := devicetypes.ClassifyForNautobot(string(device.Type))
 		if category == devicetypes.CategoryModule {
 			continue
 		}
 
 		// Generate expected interfaces for this device type
-		deviceInterfaces := getExpectedInterfaces(device.HardwareType, device.Name)
+		deviceInterfaces := getExpectedInterfaces(string(device.Type), device.Name)
 
 		for _, iface := range deviceInterfaces {
 			// Apply type filter

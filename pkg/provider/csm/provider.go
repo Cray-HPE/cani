@@ -1,6 +1,7 @@
 package csm
 
 import (
+	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/provider/csm/client"
 	import_ "github.com/Cray-HPE/cani/pkg/provider/csm/import"
 )
@@ -46,6 +47,18 @@ func (p *Csm) GetSmd() *import_.SmdComponentList {
 
 func (p *Csm) Slug() string {
 	return "csm"
+}
+
+// StageExisting implements provider.DeviceStager.
+// It delegates to the package-level StageExisting which uses xname
+// ordering to pick the first eligible device deterministically.
+func (p *Csm) StageExisting(inv *devicetypes.Inventory, slug string) bool {
+	return StageExisting(inv, slug, devicetypes.GetBySlug, devicetypes.ApplyDeviceType, devicetypes.NewDeviceFromSlug)
+}
+
+// StageNewInRack creates a new device hierarchy under a staged rack.
+func (p *Csm) StageNewInRack(inv *devicetypes.Inventory, slug string) bool {
+	return StageNewInRack(inv, slug, devicetypes.GetBySlug, devicetypes.NewDeviceFromSlug)
 }
 
 // SetClient stores an authenticated API client on the provider.

@@ -100,7 +100,7 @@ func runExport(cmd *cobra.Command, args []string, p provider.Provider) error {
 		return fmt.Errorf("failed to load inventory: %w", err)
 	}
 
-	if inv == nil || len(inv.Devices) == 0 {
+	if inv == nil || (len(inv.Locations) == 0 && len(inv.Racks) == 0 && len(inv.Devices) == 0 && len(inv.Modules) == 0 && len(inv.Cables) == 0 && len(inv.Frus) == 0) {
 		return fmt.Errorf("inventory is empty, nothing to export")
 	}
 
@@ -110,7 +110,8 @@ func runExport(cmd *cobra.Command, args []string, p provider.Provider) error {
 		return fmt.Errorf("provider '%s' does not support export", p.Slug())
 	}
 
-	log.Printf("Exporting %d devices to %s...", len(inv.Devices), p.Slug())
+	log.Printf("Exporting inventory to %s (locations=%d, racks=%d, devices=%d, modules=%d)...",
+		p.Slug(), len(inv.Locations), len(inv.Racks), len(inv.Devices), len(inv.Modules))
 
 	// Call the provider's Export method to sync to external system
 	if err := exporter.Export(cmd, args, inv); err != nil {

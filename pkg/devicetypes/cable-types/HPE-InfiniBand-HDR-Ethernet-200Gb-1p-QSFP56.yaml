@@ -27,7 +27,7 @@ model: HPE InfiniBand HDR/Ethernet 200Gb 1-port QSFP56 Adapter
 slug: hpe-infiniband-hdr-ethernet-200gb-1p-qsfp56
 part_number: P51181-B21
 description: "HPE InfiniBand HDR/Ethernet 200Gb 1-port QSFP56 PCIe4 x16 Adapter for Gen10 Plus and Gen11 servers."
-hardware-type: nic
+type: nic
 interfaces:
   - name: Port 1
     type: 200gbase-x-qsfp56

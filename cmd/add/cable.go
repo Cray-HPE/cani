@@ -29,6 +29,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Cray-HPE/cani/internal/util/nameexpand"
+	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
@@ -50,6 +52,7 @@ func newCableCommand() *cobra.Command {
 	cmd.Flags().String("b-port", "", "Termination B port name")
 	cmd.Flags().String("label", "", "Cable label")
 	cmd.Flags().String("color", "", "Cable color")
+	cmd.Flags().String("name", "", "Cable name or expansion pattern")
 
 	return cmd
 }
@@ -71,6 +74,16 @@ func addCable(cmd *cobra.Command, args []string) error {
 	bPort, _ := cmd.Flags().GetString("b-port")
 	label, _ := cmd.Flags().GetString("label")
 	color, _ := cmd.Flags().GetString("color")
+	statusArg, _ := cmd.Flags().GetString("status")
+	nameArg, _ := cmd.Flags().GetString("name")
+	prefix, _ := cmd.Flags().GetString("prefix")
+	start, _ := cmd.Flags().GetInt("start")
+	padWidth, _ := cmd.Flags().GetInt("pad-width")
+
+	names, err := nameexpand.ResolveNames(nameArg, prefix, start, padWidth, qty)
+	if err != nil {
+		return fmt.Errorf("name resolution failed: %w", err)
+	}
 
 	if err := datastores.SetDeviceStore(cmd, args); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
@@ -81,11 +94,21 @@ func addCable(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to load inventory: %w", err)
 	}
 
-	for range qty {
+	if statusArg != "" {
+		normalized, verr := validate.StatusWithInventory(statusArg, inventory)
+		if verr != nil {
+			return verr
+		}
+		statusArg = normalized
+	}
+
+	for i := range qty {
 		cable := *result.Cable
 		cable.ID = uuid.New()
 
-		if label != "" {
+		if names != nil {
+			cable.Label = names[i]
+		} else if label != "" {
 			cable.Label = label
 		}
 		if color != "" {
@@ -105,6 +128,10 @@ func addCable(cmd *cobra.Command, args []string) error {
 			}
 		}
 		cable.TerminationBPort = bPort
+
+		if statusArg != "" {
+			cable.Status = statusArg
+		}
 
 		if err := inventory.AddCable(&cable); err != nil {
 			return fmt.Errorf("failed to add cable: %w", err)

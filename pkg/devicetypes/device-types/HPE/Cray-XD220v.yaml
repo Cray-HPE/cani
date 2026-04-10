@@ -25,7 +25,7 @@
 manufacturer: HPE
 model: Cray XD220v Node
 slug: cray-xd220v
-hardware-type: node
+type: node
 u_height: 1
 is_full_depth: true
 subdevice_role: child

@@ -152,7 +152,6 @@ This type conflates **template fields** (from the YAML library, used to auto-cre
 | `Vendor` | `string` | — | Cani-Internal | Cani-specific (vendor ≠ manufacturer) |
 | `Type` | `Type` | — | Cani-Internal | Classification enum |
 | `HardwareType` | `string` | — | Cani-Internal | Used by `ClassifyForNautobot()` |
-| `AllowedChildren` | `[]string` | — | Cani-Internal | Validation only |
 | `Children` | `[]uuid.UUID` | — | Cani-Internal | Rebuilt from `Parent` at load time |
 | `Weight` / `WeightUnit` | `float64` / `string` | — | Cani-Internal | No Nautobot device weight |
 | `Identifications` | `[]Identification` | — | Cani-Internal | Alternate manufacturer/model IDs |

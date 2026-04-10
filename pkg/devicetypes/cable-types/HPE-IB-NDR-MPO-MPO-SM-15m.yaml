@@ -27,7 +27,7 @@ model: HPE InfiniBand NDR 8 Fiber MPO to 8 Fiber MPO Single-mode 15m Cable
 slug: hpe-ib-ndr-mpo-mpo-sm-15m
 part_number: P45731-B24
 description: "HPE InfiniBand NDR 8 Fiber MPO to 8 Fiber MPO Single-mode 15m Cable. Single-mode fiber cable for NDR InfiniBand. Source: https://buy.hpe.com/us/en/networking/infiniband-adapters-and-cables/infiniband-cables/infiniband-cables/hpe-infiniband-ndr-mpo-to-mpo-single-mode-cables/p/P45731-B24"
-hardware-type: cable
+type: cable
 
 cable_category: fiber-sm
 connector_type: mpo

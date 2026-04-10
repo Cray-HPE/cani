@@ -27,7 +27,7 @@ model: HPE InfiniBand NDR/Ethernet OSFP to 2xOSFP 2.5m Splitter DAC Cable
 slug: hpe-ib-ndr-osfp-2xosfp-2-5m-splitter-dac
 part_number: P45697-B25
 description: "HPE InfiniBand NDR/Ethernet OSFP to 2xOSFP 2.5m Splitter DAC Cable. Direct attach copper cable for NDR InfiniBand/Ethernet. Source: https://buy.hpe.com/us/en/networking/infiniband-adapters-and-cables/infiniband-cables/infiniband-cables/hpe-infiniband-ndr-osfp-to-2xosfp-splitter-dac-cables/p/P45697-B25"
-hardware-type: cable
+type: cable
 
 cable_category: dac
 connector_type: osfp-2xosfp

@@ -52,7 +52,7 @@ func skipUnlessNautobot(t *testing.T) {
 // fixtureDir returns the path to testdata/fixtures/cani.
 func fixtureDir() string {
 	_, thisFile, _, _ := runtime.Caller(0)
-	return filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "testdata", "fixtures", "cani")
+	return filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "..", "testdata", "fixtures", "cani")
 }
 
 // loadSpineLeafInventory reads and unmarshals the spine-leaf fixture.
@@ -83,6 +83,7 @@ func newTestProvider(t *testing.T) *Exporter {
 	cache := NewLookupCache(client)
 	cache.SetContext(ctx)
 	cache.SetCreateDeviceTypes(true)
+	cache.SetCreateLocationTypes(true)
 	cache.SetCreateLocations(true)
 	cache.SetCreateStatuses(true)
 	cache.SetCreateRoles(true)
@@ -91,15 +92,17 @@ func newTestProvider(t *testing.T) *Exporter {
 		Client: client,
 		Cache:  cache,
 		Options: &ExporterOpts{
-			DefaultLocation:   "HPC-DataCenter",
-			DefaultRole:       "Generic",
-			DefaultStatus:     "Active",
-			CreateDeviceTypes: true,
-			CreateLocations:   true,
-			CreateStatuses:    true,
-			CreateRoles:       true,
-			Merge:             false,
-			DryRun:            false,
+			DefaultLocation:     "HPC-DataCenter",
+			DefaultRole:         "Generic",
+			DefaultStatus:       "Active",
+			CreateDeviceTypes:   true,
+			CreateLocationTypes: true,
+			CreateModuleTypes:   true,
+			CreateLocations:     true,
+			CreateStatuses:      true,
+			CreateRoles:         true,
+			Merge:               false,
+			DryRun:              false,
 		},
 	}
 }
@@ -180,7 +183,7 @@ func TestExportSpineLeafDryRun(t *testing.T) {
 		if device == nil || device.Name == "" {
 			continue
 		}
-		category := devicetypes.ClassifyForNautobot(device.HardwareType)
+		category := devicetypes.ClassifyForNautobot(string(device.Type))
 		if category != devicetypes.CategoryDevice {
 			continue
 		}
@@ -211,17 +214,10 @@ func TestExportSpineLeafDryRun(t *testing.T) {
 	// informational and only count them for the summary.
 	var downstreamErrs int
 
-	// Phase 3: Interfaces
-	for deviceName, nautobotID := range createdDeviceIDs {
-		for _, device := range inv.Devices {
-			if device.Name == deviceName {
-				if err := e.createDeviceInterfaces(ctx, nautobotID, device, result); err != nil {
-					t.Logf("phase 3 iface %s: %v", device.Name, err)
-					downstreamErrs++
-				}
-				break
-			}
-		}
+	// Phase 3: Interfaces (bulk)
+	if err := e.loadInterfaces(ctx, inv, createdDeviceIDs, result); err != nil {
+		t.Logf("phase 3 iface: %v", err)
+		downstreamErrs++
 	}
 
 	// Phase 4: Modules
@@ -331,7 +327,7 @@ func TestExportSpineLeafLive(t *testing.T) {
 		if device == nil || device.Name == "" {
 			continue
 		}
-		category := devicetypes.ClassifyForNautobot(device.HardwareType)
+		category := devicetypes.ClassifyForNautobot(string(device.Type))
 		if category != devicetypes.CategoryDevice {
 			continue
 		}
@@ -350,16 +346,9 @@ func TestExportSpineLeafLive(t *testing.T) {
 		}
 	}
 
-	// Phase 3: Interfaces
-	for deviceName, nautobotID := range createdDeviceIDs {
-		for _, device := range inv.Devices {
-			if device.Name == deviceName {
-				if err := e.createDeviceInterfaces(ctx, nautobotID, device, result); err != nil {
-					result.Errors = append(result.Errors, device.Name+": iface: "+err.Error())
-				}
-				break
-			}
-		}
+	// Phase 3: Interfaces (bulk)
+	if err := e.loadInterfaces(ctx, inv, createdDeviceIDs, result); err != nil {
+		result.Errors = append(result.Errors, "interfaces: "+err.Error())
 	}
 
 	// Phase 4: Modules

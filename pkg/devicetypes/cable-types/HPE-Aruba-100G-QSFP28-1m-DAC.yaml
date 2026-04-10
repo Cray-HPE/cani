@@ -27,7 +27,7 @@ model: HPE Aruba Networking 100G QSFP28 to QSFP28 1m Direct Attach Copper Cable
 slug: hpe-aruba-100g-qsfp28-1m-dac
 part_number: R0Z25A
 description: "HPE Aruba Networking 100G QSFP28 to QSFP28 1m Direct Attach Copper Cable. Source: https://buy.hpe.com/us/en/options/cables/direct-attach-cables/direct-attach-cables/aruba-100g-qsfp28-to-qsfp28-1m-direct-attach-copper-cable/p/R0Z25A"
-hardware-type: cable
+type: cable
 cable_category: dac
 connector_type: qsfp28-qsfp28
 length: 1

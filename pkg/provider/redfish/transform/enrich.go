@@ -94,9 +94,9 @@ func applyDeviceDefaults(dev *devicetypes.CaniDeviceType, lib devicetypes.CaniDe
 	if dev.UHeight == 0 {
 		dev.UHeight = lib.UHeight
 	}
-	if dev.HardwareType == "" || dev.HardwareType == "server" {
-		if lib.HardwareType != "" {
-			dev.HardwareType = lib.HardwareType
+	if dev.Type == "" || dev.Type == "server" {
+		if lib.Type != "" {
+			dev.Type = lib.Type
 		}
 	}
 }

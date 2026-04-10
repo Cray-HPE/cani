@@ -27,7 +27,7 @@ model: HPE Premier Flex LC/LC Multi-mode OM4 2 Fiber 5m Cable
 slug: hpe-premier-flex-lc-lc-om4-5m
 part_number: QK734A
 description: "HPE Premier Flex LC/LC Multi-mode OM4 2 Fiber 5m Cable. Source: https://buy.hpe.com/us/en/options/cables-cable-kits/fiber-cables/hpe-premier-flex-cables/p/QK734A"
-hardware-type: cable
+type: cable
 cable_category: om4
 connector_type: lc-lc
 length: 5

@@ -34,7 +34,7 @@ It 'import from simulator'
 End
 
 It 'verify blades exist after import'
-  When call bin/cani alpha --config "$CANI_CONF" show device
+  When call bin/cani alpha --config "$CANI_CONF" show device -o json
   The status should equal 0
   The stdout should include '"type": "blade"'
 End
@@ -42,26 +42,20 @@ End
 It 'add ex235n blade'
   When call bin/cani alpha --config "$CANI_CONF" add hpe-crayex-ex235n-compute-blade --auto --accept
   The status should equal 0
-  The stderr should include 'Querying inventory to suggest cabinet, chassis, and blade for this NodeBlade'
-  The stderr should include 'Suggested Cabinet number: 9000'
-  The stderr should include 'Suggested Chassis number: 1'
-  The stderr should include 'Suggested NodeBlade number: 0'
-  The stderr should include 'NodeBlade was successfully staged to be added to the system'
-  The stderr should include 'UUID: '
-  The stderr should include 'Cabinet: 9000'
-  The stderr should include 'Chassis: 1'
-  The stderr should include 'Blade: 0'
+  The stderr should include 'Resolved "hpe-crayex-ex235n-compute-blade" as device'
+  The stderr should include 'Added device'
+  The stderr should include '1 device(s) added'
 End
 
 It 'verify staged blade'
-  When call bin/cani alpha --config "$CANI_CONF" show device
+  When call bin/cani alpha --config "$CANI_CONF" show device -o json
   The status should equal 0
   The stdout should include 'hpe-crayex-ex235n-compute-blade'
-  The stdout should include '"status": "staged"'
+  The stdout should include '"status": "Staged"'
 End
 
 It 'verify staged nodes'
-  When call bin/cani alpha --config "$CANI_CONF" show device
+  When call bin/cani alpha --config "$CANI_CONF" show device -o json
   The status should equal 0
   The stdout should include 'hpe-crayex-ex235n-compute-node'
 End
@@ -71,7 +65,7 @@ It 'export to simulator'
   The status should equal 0
   The stderr should include 'Export completed successfully'
   The stdout should include 'Node'
-  The stdout should include '(staged)'
+  The stdout should include '(Staged)'
 End
 
 End

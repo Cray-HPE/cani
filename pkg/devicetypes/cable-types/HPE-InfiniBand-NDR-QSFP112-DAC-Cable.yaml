@@ -27,6 +27,6 @@ model: HPE InfiniBand NDR QSFP112 DAC Cable
 slug: hpe-ib-ndr-qsfp112-dac-cable
 part_number: P49767-Bxx
 description: "HPE InfiniBand NDR QSFP112 Direct Attach Copper Cable family. 400Gb/s NDR InfiniBand connectivity using QSFP112 form factor for legacy switch/HCA compatibility. Available in multiple lengths. Part numbers: P49767-B21 (0.5m), P49767-B22 (1m). Source: https://buy.hpe.com/us/en/networking/infiniband-adapters-and-cables/infiniband-cables/infiniband-cables"
-hardware-type: cable
+type: cable
 cable_category: dac
 connector_type: qsfp112

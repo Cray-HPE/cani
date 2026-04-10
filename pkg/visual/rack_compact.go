@@ -55,11 +55,13 @@ const (
 
 // CompactRenderOptions controls compact rack visualization
 type CompactRenderOptions struct {
-	NoColor    bool   // Disable ANSI colors
-	RackFilter string // Filter to specific rack name
-	Columns    int    // Number of rack columns before wrapping (0 = auto)
-	Verbose    int    // 0 = no legend, 1 = legend, 2 = all cables
-	CableType  string // Filter cables by type (e.g., "dac", "cat6")
+	NoColor    bool                   // Disable ANSI colors
+	RackFilter string                 // Filter to specific rack name
+	Columns    int                    // Number of rack columns before wrapping (0 = auto)
+	Verbose    int                    // 0 = no legend, 1 = legend, 2 = all cables
+	CableType  string                 // Filter cables by type (e.g., "dac", "cat6")
+	Detail     bool                   // Show single-rack detail with annotations
+	Inventory  *devicetypes.Inventory // Full inventory for module/cable lookups
 }
 
 // CompactRackView holds pre-computed rack data for compact rendering
@@ -281,6 +283,7 @@ func renderCompactRow(racks []*CompactRackView, cables []InterRackCable, maxHeig
 	cyan := func(s string) string { return s }
 	gray := func(s string) string { return s }
 	bold := func(s string) string { return s }
+	red := func(s string) string { return s }
 
 	if !opts.NoColor {
 		green = func(s string) string { return ColorGreen + s + ColorReset }
@@ -288,6 +291,7 @@ func renderCompactRow(racks []*CompactRackView, cables []InterRackCable, maxHeig
 		cyan = func(s string) string { return ColorCyan + s + ColorReset }
 		gray = func(s string) string { return ColorGray + s + ColorReset }
 		bold = func(s string) string { return ColorBold + s + ColorReset }
+		red = func(s string) string { return ColorRed + s + ColorReset }
 	}
 
 	// Build cable map: for each U, track which rack pairs have cables
@@ -341,8 +345,7 @@ func renderCompactRow(racks []*CompactRackView, cables []InterRackCable, maxHeig
 				// Device starts at this U - show symbol
 				sym := getDeviceSymbol(device)
 				content = string(sym)
-				content = colorizeDevice(content, device, green, yellow, cyan)
-				// Add cable indicator if intra-rack cable present
+				content = colorizeDevice(content, device, red, green, yellow, cyan)
 				if hasIntraCable {
 					content = content + cyan("│") + strings.Repeat(" ", contentWidth-2)
 				} else {
@@ -362,7 +365,7 @@ func renderCompactRow(racks []*CompactRackView, cables []InterRackCable, maxHeig
 					if startU < u && u < startU+uHeight {
 						sym := getDeviceSymbol(dev)
 						content = string(sym)
-						content = colorizeDevice(content, dev, green, yellow, cyan)
+						content = colorizeDevice(content, dev, red, green, yellow, cyan)
 						if hasIntraCable {
 							content = content + cyan("│") + strings.Repeat(" ", contentWidth-2)
 						} else {
@@ -472,7 +475,7 @@ func getDeviceSymbol(device *devicetypes.CaniDeviceType) rune {
 		return SymEmpty
 	}
 
-	hwType := strings.ToLower(device.HardwareType)
+	hwType := strings.ToLower(string(device.Type))
 	switch {
 	case strings.Contains(hwType, "switch") || hwType == "hsn-switch" || hwType == "mgmt-switch":
 		return SymSwitch
@@ -491,17 +494,17 @@ func getDeviceSymbol(device *devicetypes.CaniDeviceType) rune {
 	}
 }
 
-// colorizeDevice applies color based on device status
-func colorizeDevice(s string, device *devicetypes.CaniDeviceType, green, yellow, cyan func(string) string) string {
-	if device == nil {
+// colorizeDevice applies color based on device status.
+func colorizeDevice(s string, dev *devicetypes.CaniDeviceType, red, green, yellow, cyan func(string) string) string {
+	if dev == nil {
 		return s
 	}
-
-	status := strings.ToLower(device.Status)
-	switch {
-	case status == "active" || status == "installed":
+	switch StatusColor(dev.Status) {
+	case "red":
+		return red(s)
+	case "green":
 		return green(s)
-	case status == "staged" || status == "planned":
+	case "yellow":
 		return yellow(s)
 	default:
 		return cyan(s)
@@ -514,16 +517,18 @@ func printCompactLegend(opts CompactRenderOptions) {
 	yellow := func(s string) string { return s }
 	cyan := func(s string) string { return s }
 	gray := func(s string) string { return s }
+	red := func(s string) string { return s }
 
 	if !opts.NoColor {
 		green = func(s string) string { return ColorGreen + s + ColorReset }
 		yellow = func(s string) string { return ColorYellow + s + ColorReset }
 		cyan = func(s string) string { return ColorCyan + s + ColorReset }
 		gray = func(s string) string { return ColorGray + s + ColorReset }
+		red = func(s string) string { return ColorRed + s + ColorReset }
 	}
 
 	fmt.Println(" .-- Device type: " + green("S") + "=switch " + green("N") + "=node " + green("B") + "=blade " + yellow("P") + "=pdu " + cyan("C") + "=cdu " + gray("#") + "=chassis")
-	fmt.Println("/ .- Status: " + green("green") + "=active " + yellow("yellow") + "=staged " + cyan("cyan") + "=other")
+	fmt.Println("/ .- Status: " + green("green") + "=active " + yellow("yellow") + "=staged " + red("red") + "=decommissioned " + cyan("cyan") + "=other")
 	fmt.Println("||  Cable: " + cyan("───") + " inter-rack  " + cyan("│") + " intra-rack")
 	if opts.Verbose >= 2 {
 		fmt.Println("||  (showing all cables)")
@@ -674,6 +679,7 @@ func renderRackWithCables(rv *CompactRackView, cables map[int][]CableEndpoint, o
 	cyan := func(s string) string { return s }
 	gray := func(s string) string { return s }
 	bold := func(s string) string { return s }
+	red := func(s string) string { return s }
 
 	if !opts.NoColor {
 		green = func(s string) string { return ColorGreen + s + ColorReset }
@@ -681,6 +687,7 @@ func renderRackWithCables(rv *CompactRackView, cables map[int][]CableEndpoint, o
 		cyan = func(s string) string { return ColorCyan + s + ColorReset }
 		gray = func(s string) string { return ColorGray + s + ColorReset }
 		bold = func(s string) string { return ColorBold + s + ColorReset }
+		red = func(s string) string { return ColorRed + s + ColorReset }
 	}
 
 	rackWidth := 12
@@ -696,7 +703,7 @@ func renderRackWithCables(rv *CompactRackView, cables map[int][]CableEndpoint, o
 
 		if device != nil {
 			sym := getDeviceSymbol(device)
-			content = colorizeDevice(string(sym), device, green, yellow, cyan)
+			content = colorizeDevice(string(sym), device, red, green, yellow, cyan)
 			content = content + strings.Repeat(" ", contentWidth-1)
 		} else {
 			found := false
@@ -710,7 +717,7 @@ func renderRackWithCables(rv *CompactRackView, cables map[int][]CableEndpoint, o
 				}
 				if startU < u && u < startU+uHeight {
 					sym := getDeviceSymbol(dev)
-					content = colorizeDevice(string(sym), dev, green, yellow, cyan)
+					content = colorizeDevice(string(sym), dev, red, green, yellow, cyan)
 					content = content + strings.Repeat(" ", contentWidth-1)
 					found = true
 					break
@@ -834,16 +841,19 @@ func printCableLegend(opts CompactRenderOptions) {
 	yellow := func(s string) string { return s }
 	cyan := func(s string) string { return s }
 	gray := func(s string) string { return s }
+	red := func(s string) string { return s }
 
 	if !opts.NoColor {
 		green = func(s string) string { return ColorGreen + s + ColorReset }
 		yellow = func(s string) string { return ColorYellow + s + ColorReset }
 		cyan = func(s string) string { return ColorCyan + s + ColorReset }
 		gray = func(s string) string { return ColorGray + s + ColorReset }
+		red = func(s string) string { return ColorRed + s + ColorReset }
 	}
 
 	fmt.Println(" .-- Device: " + green("S") + "=switch " + green("N") + "=node " + green("B") + "=blade " + yellow("P") + "=pdu " + cyan("C") + "=cdu " + gray("#") + "=chassis")
-	fmt.Println("/ .- Cable: " + cyan("─") + " horiz  " + cyan("/") + " up  " + cyan("\\") + " down  " + cyan("│") + " pass-through")
+	fmt.Println("/ .- Status: " + green("green") + "=active " + yellow("yellow") + "=staged " + red("red") + "=decommissioned " + cyan("cyan") + "=other")
+	fmt.Println("||  Cable: " + cyan("─") + " horiz  " + cyan("/") + " up  " + cyan("\\") + " down  " + cyan("│") + " pass-through")
 	if opts.Verbose >= 2 {
 		fmt.Println("||  (showing all cables)")
 	} else {

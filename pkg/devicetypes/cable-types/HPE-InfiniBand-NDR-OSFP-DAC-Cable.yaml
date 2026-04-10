@@ -27,7 +27,7 @@ model: HPE InfiniBand NDR OSFP DAC Cable
 slug: hpe-ib-ndr-osfp-dac-cable
 part_number: P55188-Bxx
 description: "HPE InfiniBand NDR OSFP Direct Attach Copper Cable family. 400Gb/s NDR InfiniBand connectivity for switch-to-switch and server-to-switch connections. Available in multiple lengths. Part numbers: P55188-B21 (0.5m), P55188-B22 (1m), P55188-B26 (3m). Source: https://buy.hpe.com/us/en/networking/infiniband-adapters-and-cables/infiniband-cables/infiniband-cables"
-hardware-type: cable
+type: cable
 
 cable_category: dac
 connector_type: osfp

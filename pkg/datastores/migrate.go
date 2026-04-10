@@ -156,7 +156,7 @@ func migrateSystem(inv *devicetypes.Inventory, hw legacyHardware) {
 		ID:           hw.ID,
 		Name:         "System",
 		LocationType: "system",
-		Status:       "active",
+		ObjectMeta:   devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive)},
 	}
 	inv.Locations[hw.ID] = loc
 }
@@ -173,11 +173,10 @@ func migrateCabinet(inv *devicetypes.Inventory, hw legacyHardware) {
 
 	rackID := uuid.New()
 	rack := &devicetypes.CaniRackType{
-		ID:               rackID,
-		Name:             hw.Name,
-		Status:           statusOrDefault(hw.Status),
-		UHeight:          cabinetUHeight(md),
-		ProviderMetadata: map[string]any{"csm": md},
+		ID:         rackID,
+		Name:       hw.Name,
+		ObjectMeta: devicetypes.ObjectMeta{Status: statusOrDefault(hw.Status), ProviderMetadata: map[string]any{"csm": md}},
+		UHeight:    cabinetUHeight(md),
 	}
 	if hw.Vendor != "" {
 		rack.Manufacturer = hw.Vendor
@@ -202,13 +201,13 @@ func migrateDevice(inv *devicetypes.Inventory, hw legacyHardware) {
 // baseDevice creates a CaniDeviceType with identity fields copied from legacy hardware.
 func baseDevice(hw legacyHardware) *devicetypes.CaniDeviceType {
 	dev := &devicetypes.CaniDeviceType{
-		ID:     hw.ID,
-		Name:   hw.Name,
-		Slug:   hw.DeviceTypeSlug,
-		Vendor: hw.Vendor,
-		Model:  hw.Model,
-		Status: statusOrDefault(hw.Status),
-		Parent: hw.Parent,
+		ID:         hw.ID,
+		Name:       hw.Name,
+		Slug:       hw.DeviceTypeSlug,
+		Vendor:     hw.Vendor,
+		Model:      hw.Model,
+		ObjectMeta: devicetypes.ObjectMeta{Status: statusOrDefault(hw.Status)},
+		Parent:     hw.Parent,
 	}
 	return dev
 }
@@ -274,12 +273,13 @@ func cabinetUHeight(md map[string]any) int {
 	return 42
 }
 
-// statusOrDefault returns the status string, defaulting to "staged".
+// statusOrDefault returns the status string, defaulting to "Staged".
+// If the input is a known Nautobot status, it is normalized to Title case.
 func statusOrDefault(s string) string {
 	if s == "" {
-		return "staged"
+		return string(devicetypes.StatusStaged)
 	}
-	return strings.ToLower(s)
+	return devicetypes.NormalizeStatus(s)
 }
 
 // mapLegacyType maps a legacy HardwareType string to the new devicetypes.Type.
@@ -322,4 +322,43 @@ func mapLegacyType(legacyType string) devicetypes.Type {
 	default:
 		return devicetypes.Type(strings.ToLower(legacyType))
 	}
+}
+
+// migrateInventoryMetadata detects the old inventory-level "providerMetadata"
+// key (used by intermediate builds before the ObjectMeta refactor) and
+// converts it to the typed Metadata field. Returns true if migration occurred.
+func migrateInventoryMetadata(raw []byte, inv *devicetypes.Inventory) bool {
+	var probe struct {
+		ProviderMeta map[string]json.RawMessage `json:"providerMetadata"`
+	}
+	if err := json.Unmarshal(raw, &probe); err != nil || len(probe.ProviderMeta) == 0 {
+		return false
+	}
+
+	// Already has typed metadata — nothing to do.
+	if inv.Metadata != nil && (len(inv.Metadata.Roles) > 0 || len(inv.Metadata.Statuses) > 0 || len(inv.Metadata.Tags) > 0) {
+		return false
+	}
+
+	if inv.Metadata == nil {
+		inv.Metadata = &devicetypes.InventoryMetadata{}
+	}
+
+	// The old format stored entries under a provider key (e.g. "nautobot")
+	// with sub-keys "roles", "statuses", "tags". Merge all providers.
+	for _, providerRaw := range probe.ProviderMeta {
+		var bucket struct {
+			Roles    []devicetypes.MetadataEntry `json:"roles"`
+			Statuses []devicetypes.MetadataEntry `json:"statuses"`
+			Tags     []devicetypes.MetadataEntry `json:"tags"`
+		}
+		if err := json.Unmarshal(providerRaw, &bucket); err != nil {
+			continue
+		}
+		inv.Metadata.Roles = append(inv.Metadata.Roles, bucket.Roles...)
+		inv.Metadata.Statuses = append(inv.Metadata.Statuses, bucket.Statuses...)
+		inv.Metadata.Tags = append(inv.Metadata.Tags, bucket.Tags...)
+	}
+
+	return len(inv.Metadata.Roles) > 0 || len(inv.Metadata.Statuses) > 0 || len(inv.Metadata.Tags) > 0
 }

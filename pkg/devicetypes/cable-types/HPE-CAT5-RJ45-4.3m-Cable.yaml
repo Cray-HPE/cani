@@ -27,7 +27,7 @@ model: HPE 4.3m/14ft CAT5 RJ45 M/M Ethernet Cable
 slug: hpe-cat5-rj45-4-3m-cable
 part_number: C7536A
 description: "HPE 4.3m/14ft CAT5 RJ45 M/M Ethernet Cable. Source: https://buy.hpe.com/us/en/options/cables-cable-kits/cat5-cables/hpe-cat5e-networking-and-telecom-connectivity-cable/p/C7536A"
-hardware-type: cable
+type: cable
 cable_category: cat5
 connector_type: rj45-rj45
 length: 4.3

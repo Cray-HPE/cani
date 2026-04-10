@@ -44,11 +44,11 @@ func TestSortDevicesByRackPriority(t *testing.T) {
 	bladeID := uuid.New()
 	cduID := uuid.New()
 
-	inv.Devices[switchID] = &devicetypes.CaniDeviceType{ID: switchID, HardwareType: "switch"}
-	inv.Devices[nodeID] = &devicetypes.CaniDeviceType{ID: nodeID, HardwareType: "node"}
-	inv.Devices[pduID] = &devicetypes.CaniDeviceType{ID: pduID, HardwareType: "pdu"}
-	inv.Devices[bladeID] = &devicetypes.CaniDeviceType{ID: bladeID, HardwareType: "blade"}
-	inv.Devices[cduID] = &devicetypes.CaniDeviceType{ID: cduID, HardwareType: "cdu"}
+	inv.Devices[switchID] = &devicetypes.CaniDeviceType{ID: switchID, Type: devicetypes.Type("switch")}
+	inv.Devices[nodeID] = &devicetypes.CaniDeviceType{ID: nodeID, Type: devicetypes.Type("node")}
+	inv.Devices[pduID] = &devicetypes.CaniDeviceType{ID: pduID, Type: devicetypes.Type("pdu")}
+	inv.Devices[bladeID] = &devicetypes.CaniDeviceType{ID: bladeID, Type: devicetypes.Type("blade")}
+	inv.Devices[cduID] = &devicetypes.CaniDeviceType{ID: cduID, Type: devicetypes.Type("cdu")}
 
 	ids := []uuid.UUID{switchID, nodeID, pduID, bladeID, cduID}
 	sortDevicesByRackPriority(inv, ids)
@@ -56,13 +56,13 @@ func TestSortDevicesByRackPriority(t *testing.T) {
 	// PDUs/CDUs should come first, then nodes/blades, then switches
 	for i, id := range ids {
 		dev := inv.Devices[id]
-		pri := deviceTypePriority(dev.HardwareType)
+		pri := deviceTypePriority(string(dev.Type))
 		if i > 0 {
 			prevDev := inv.Devices[ids[i-1]]
-			prevPri := deviceTypePriority(prevDev.HardwareType)
+			prevPri := deviceTypePriority(string(prevDev.Type))
 			if pri < prevPri {
 				t.Errorf("device at index %d (%s, priority %d) sorted before index %d (%s, priority %d)",
-					i, dev.HardwareType, pri, i-1, prevDev.HardwareType, prevPri)
+					i, dev.Type, pri, i-1, prevDev.Type, prevPri)
 			}
 		}
 	}
@@ -70,15 +70,15 @@ func TestSortDevicesByRackPriority(t *testing.T) {
 	// Verify first two are pdu/cdu (priority 0)
 	for _, id := range ids[:2] {
 		dev := inv.Devices[id]
-		if deviceTypePriority(dev.HardwareType) != 0 {
-			t.Errorf("expected pdu/cdu in first two positions, got %q", dev.HardwareType)
+		if deviceTypePriority(string(dev.Type)) != 0 {
+			t.Errorf("expected pdu/cdu in first two positions, got %q", dev.Type)
 		}
 	}
 
 	// Verify last is switch (priority 2)
 	lastDev := inv.Devices[ids[len(ids)-1]]
-	if deviceTypePriority(lastDev.HardwareType) != 2 {
-		t.Errorf("expected switch in last position, got %q", lastDev.HardwareType)
+	if deviceTypePriority(string(lastDev.Type)) != 2 {
+		t.Errorf("expected switch in last position, got %q", lastDev.Type)
 	}
 }
 
@@ -92,10 +92,10 @@ func TestGroupDevicesByZone(t *testing.T) {
 	nodeID := uuid.New()
 	switchID := uuid.New()
 
-	inv.Devices[pduID] = &devicetypes.CaniDeviceType{ID: pduID, HardwareType: "pdu"}
-	inv.Devices[cduID] = &devicetypes.CaniDeviceType{ID: cduID, HardwareType: "cdu"}
-	inv.Devices[nodeID] = &devicetypes.CaniDeviceType{ID: nodeID, HardwareType: "node"}
-	inv.Devices[switchID] = &devicetypes.CaniDeviceType{ID: switchID, HardwareType: "switch"}
+	inv.Devices[pduID] = &devicetypes.CaniDeviceType{ID: pduID, Type: devicetypes.Type("pdu")}
+	inv.Devices[cduID] = &devicetypes.CaniDeviceType{ID: cduID, Type: devicetypes.Type("cdu")}
+	inv.Devices[nodeID] = &devicetypes.CaniDeviceType{ID: nodeID, Type: devicetypes.Type("node")}
+	inv.Devices[switchID] = &devicetypes.CaniDeviceType{ID: switchID, Type: devicetypes.Type("switch")}
 
 	ids := []uuid.UUID{pduID, cduID, nodeID, switchID}
 	bottom, middle, top := groupDevicesByZone(inv, ids)
@@ -132,9 +132,9 @@ func TestRackPositionOrdering(t *testing.T) {
 	nodeID := uuid.New()
 	pduID := uuid.New()
 
-	inv.Devices[switchID] = &devicetypes.CaniDeviceType{ID: switchID, HardwareType: "switch", Slug: "switch-1u"}
-	inv.Devices[nodeID] = &devicetypes.CaniDeviceType{ID: nodeID, HardwareType: "node", Slug: "node-1u"}
-	inv.Devices[pduID] = &devicetypes.CaniDeviceType{ID: pduID, HardwareType: "pdu", Slug: "pdu-1u"}
+	inv.Devices[switchID] = &devicetypes.CaniDeviceType{ID: switchID, Type: devicetypes.Type("switch"), Slug: "switch-1u"}
+	inv.Devices[nodeID] = &devicetypes.CaniDeviceType{ID: nodeID, Type: devicetypes.Type("node"), Slug: "node-1u"}
+	inv.Devices[pduID] = &devicetypes.CaniDeviceType{ID: pduID, Type: devicetypes.Type("pdu"), Slug: "pdu-1u"}
 
 	racksByGroup := map[string][]uuid.UUID{
 		"0100": {rackID},
@@ -188,11 +188,11 @@ func TestRackZonesFillCorrectly(t *testing.T) {
 	sw2 := uuid.New()
 	node1 := uuid.New()
 
-	inv.Devices[pdu1] = &devicetypes.CaniDeviceType{ID: pdu1, HardwareType: "pdu"}
-	inv.Devices[pdu2] = &devicetypes.CaniDeviceType{ID: pdu2, HardwareType: "cdu"}
-	inv.Devices[sw1] = &devicetypes.CaniDeviceType{ID: sw1, HardwareType: "switch"}
-	inv.Devices[sw2] = &devicetypes.CaniDeviceType{ID: sw2, HardwareType: "mgmt-switch"}
-	inv.Devices[node1] = &devicetypes.CaniDeviceType{ID: node1, HardwareType: "node"}
+	inv.Devices[pdu1] = &devicetypes.CaniDeviceType{ID: pdu1, Type: devicetypes.Type("pdu")}
+	inv.Devices[pdu2] = &devicetypes.CaniDeviceType{ID: pdu2, Type: devicetypes.Type("cdu")}
+	inv.Devices[sw1] = &devicetypes.CaniDeviceType{ID: sw1, Type: devicetypes.Type("switch")}
+	inv.Devices[sw2] = &devicetypes.CaniDeviceType{ID: sw2, Type: devicetypes.Type("mgmt-switch")}
+	inv.Devices[node1] = &devicetypes.CaniDeviceType{ID: node1, Type: devicetypes.Type("node")}
 
 	racksByGroup := map[string][]uuid.UUID{"0100": {rackID}}
 	devicesByGroup := map[string][]uuid.UUID{

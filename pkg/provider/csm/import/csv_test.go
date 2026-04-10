@@ -12,7 +12,9 @@ import (
 // newTestDevice creates a CaniDeviceType with an initialised ProviderMetadata map.
 func newTestDevice() *devicetypes.CaniDeviceType {
 	return &devicetypes.CaniDeviceType{
-		ProviderMetadata: make(map[string]any),
+		ObjectMeta: devicetypes.ObjectMeta{
+			ProviderMetadata: make(map[string]any),
+		},
 	}
 }
 

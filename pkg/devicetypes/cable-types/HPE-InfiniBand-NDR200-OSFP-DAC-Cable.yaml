@@ -27,6 +27,6 @@ model: HPE InfiniBand NDR200 OSFP DAC Cable
 slug: hpe-ib-ndr200-osfp-dac-cable
 part_number: P55189-Bxx
 description: "HPE InfiniBand NDR200 OSFP Direct Attach Copper Cable family. 400Gb/s NDR200 InfiniBand connectivity for GPU-to-switch connections in HPC clusters. Available in multiple lengths (0.5m, 1m, 1.5m, 2m, 3m). Part numbers: P55189-B21 (0.5m), P55189-B22 (1m), P55189-B23 (1.5m), P55189-B26 (3m). Source: https://buy.hpe.com/us/en/networking/infiniband-adapters-and-cables/infiniband-cables/infiniband-cables"
-hardware-type: cable
+type: cable
 cable_category: dac
 connector_type: osfp

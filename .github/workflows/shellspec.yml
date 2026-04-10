@@ -84,6 +84,8 @@ jobs:
 
       - name: Run shellspec
         shell: bash
+        env:
+          SKIP_EXTERNAL_TESTS: "1"
         run: |
           ln -s "$PWD"/shellspec/shellspec /usr/local/bin/
           make ftest

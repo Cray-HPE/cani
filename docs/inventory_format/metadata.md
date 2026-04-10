@@ -1,5 +1,66 @@
 # Metadata
 
+## ObjectMeta
+
+Every inventory type (device, rack, location, module, cable, FRU, interface) embeds the same `ObjectMeta` struct. This provides a uniform set of metadata fields across all hardware:
+
+```go
+type ObjectMeta struct {
+    Status           string
+    Role             string
+    Tags             []string
+    Tenant           string
+    CustomFields     map[string]any
+    ExternalIDs      map[string]uuid.UUID
+    ProviderMetadata map[string]any
+}
+```
+
+Because `ObjectMeta` is embedded in Go, these fields appear directly on each type. In JSON they are serialized as flat fields:
+
+```json
+{
+  "id": "f7448392-...",
+  "name": "nid000001",
+  "status": "active",
+  "role": "Compute",
+  "tags": ["production", "gpu-node"],
+  "tenant": "HPC-East",
+  "providerMetadata": {
+    "csm": { "xname": "x3000c0s3b0n0", "nid": 1 }
+  }
+}
+```
+
+## Inventory Metadata Catalog
+
+The inventory carries a top-level `metadata` field that stores the global catalog of roles, statuses, and tags available for assignment:
+
+```json
+{
+  "schemaVersion": "v1alpha2",
+  "metadata": {
+    "roles": [
+      { "name": "ComputeNode", "contentTypes": ["dcim.device"], "weight": 1000 }
+    ],
+    "statuses": [
+      { "name": "Active", "color": "green" }
+    ],
+    "tags": [
+      { "name": "gpu-node", "description": "Nodes with GPUs" }
+    ]
+  }
+}
+```
+
+Add entries with the CLI:
+
+```shell
+cani alpha add metadata role ComputeNode --content-types dcim.device
+cani alpha add metadata status Active --color green
+cani alpha add metadata tag gpu-node --description "Nodes with GPUs"
+```
+
 ## ProviderMetadata
 
 Devices and racks carry a `providerMetadata` field: a `map[string]any` keyed by provider name. Each provider stores its own arbitrary data under its key, so multiple providers can coexist without colliding.

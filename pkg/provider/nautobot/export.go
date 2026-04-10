@@ -53,10 +53,10 @@ func (p *Nautobot) setupExportFromConfig(cmd *cobra.Command) error {
 	p.applyFlagOverrides(cmd)
 
 	if p.Options.URL == "" {
-		return fmt.Errorf("nautobot URL not configured. Use --url flag or run 'cani alpha session init nautobot' first")
+		return fmt.Errorf("nautobot URL not configured; set nautobot.url in the config file")
 	}
 	if p.Options.Token == "" {
-		return fmt.Errorf("nautobot token not configured. Use --token flag or run 'cani alpha session init nautobot' first")
+		return fmt.Errorf("nautobot token not configured; set nautobot.token in the config file")
 	}
 
 	client, err := export.NewNautobotClient(p.Options.URL, p.Options.Token)
@@ -80,16 +80,18 @@ func (p *Nautobot) setupExportFromConfig(cmd *cobra.Command) error {
 	}
 
 	p.exporter = export.NewExporter(client, cache, &export.ExporterOpts{
-		DefaultLocation:   p.Options.DefaultLocation,
-		DefaultRole:       p.Options.DefaultRole,
-		DefaultStatus:     p.Options.DefaultStatus,
-		Merge:             p.Options.Export.Merge,
-		DryRun:            p.Options.Export.DryRun,
-		Strict:            false,
-		CreateDeviceTypes: p.Options.Export.CreateDeviceTypes,
-		CreateLocations:   p.Options.Export.CreateLocations,
-		CreateStatuses:    p.Options.Export.CreateStatuses,
-		CreateRoles:       p.Options.Export.CreateRoles,
+		DefaultLocation:     p.Options.DefaultLocation,
+		DefaultRole:         p.Options.DefaultRole,
+		DefaultStatus:       p.Options.DefaultStatus,
+		Merge:               p.Options.Export.Merge,
+		DryRun:              p.Options.Export.DryRun,
+		Strict:              false,
+		CreateDeviceTypes:   p.Options.Export.CreateDeviceTypes,
+		CreateLocationTypes: p.Options.Export.CreateLocationTypes,
+		CreateModuleTypes:   p.Options.Export.CreateModuleTypes,
+		CreateLocations:     p.Options.Export.CreateLocations,
+		CreateStatuses:      p.Options.Export.CreateStatuses,
+		CreateRoles:         p.Options.Export.CreateRoles,
 	})
 
 	return nil
@@ -97,12 +99,6 @@ func (p *Nautobot) setupExportFromConfig(cmd *cobra.Command) error {
 
 // applyFlagOverrides applies command-line flag overrides to Options.
 func (p *Nautobot) applyFlagOverrides(cmd *cobra.Command) {
-	if cmd.Flags().Changed("url") {
-		p.Options.URL, _ = cmd.Flags().GetString("url")
-	}
-	if cmd.Flags().Changed("token") {
-		p.Options.Token, _ = cmd.Flags().GetString("token")
-	}
 	if cmd.Flags().Changed("default-location") {
 		p.Options.DefaultLocation, _ = cmd.Flags().GetString("default-location")
 	}
@@ -130,6 +126,9 @@ func (p *Nautobot) applyCacheFlags(cmd *cobra.Command, cache *export.LookupCache
 		if p.Options.Export.CreateDeviceTypes {
 			cache.SetCreateDeviceTypes(true)
 		}
+		if p.Options.Export.CreateLocationTypes {
+			cache.SetCreateLocationTypes(true)
+		}
 		if p.Options.Export.CreateLocations {
 			cache.SetCreateLocations(true)
 		}
@@ -147,6 +146,11 @@ func (p *Nautobot) applyCacheFlags(cmd *cobra.Command, cache *export.LookupCache
 			cache.SetCreateDeviceTypes(true)
 		}
 	}
+	if cmd.Flags().Changed("create-location-types") {
+		if v, _ := cmd.Flags().GetBool("create-location-types"); v {
+			cache.SetCreateLocationTypes(true)
+		}
+	}
 	if cmd.Flags().Changed("create-statuses") {
 		if v, _ := cmd.Flags().GetBool("create-statuses"); v {
 			cache.SetCreateStatuses(true)
@@ -160,6 +164,11 @@ func (p *Nautobot) applyCacheFlags(cmd *cobra.Command, cache *export.LookupCache
 	if cmd.Flags().Changed("create-locations") {
 		if v, _ := cmd.Flags().GetBool("create-locations"); v {
 			cache.SetCreateLocations(true)
+		}
+	}
+	if cmd.Flags().Changed("create-module-types") {
+		if v, _ := cmd.Flags().GetBool("create-module-types"); v {
+			cache.SetCreateModuleTypes(true)
 		}
 	}
 }

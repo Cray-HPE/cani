@@ -27,7 +27,7 @@ model: HPE 2-port 25GbE PCIe NIC
 slug: hpe-2p-25gbe-pcie-nic
 part_number: P42351-B21
 description: "HPE 2-port 25GbE SFP28 PCIe3 x8 Network Interface Card for HPE Cray XD systems. Provides management network connectivity with 2x 25GbE ports. PCIe Gen3 x8 interface. Source: https://buy.hpe.com/us/en/networking/network-adapters/server-network-adapters/server-network-adapters"
-hardware-type: nic
+type: nic
 interfaces:
   - name: Port 1
     type: 25gbase-x-sfp28

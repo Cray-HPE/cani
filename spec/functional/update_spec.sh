@@ -88,29 +88,19 @@ Describe 'cani alpha update'
       The stdout should include '--name'
     End
 
-    It 'has --status flag'
+    It 'has --content-types flag'
       When call bin/cani alpha update location --help
-      The stdout should include '--status'
+      The stdout should include '--content-types'
     End
 
-    It 'has --type flag'
+    It 'has --parent flag'
       When call bin/cani alpha update location --help
-      The stdout should include '--type'
+      The stdout should include '--parent'
     End
 
     It 'has --description flag'
       When call bin/cani alpha update location --help
       The stdout should include '--description'
-    End
-
-    It 'has --facility flag'
-      When call bin/cani alpha update location --help
-      The stdout should include '--facility'
-    End
-
-    It 'has --address flag'
-      When call bin/cani alpha update location --help
-      The stdout should include '--address'
     End
   End
 
@@ -293,7 +283,7 @@ Describe 'cani alpha update'
   Describe 'CRUD'
     It 'updates a location name'
       # first add a location
-      bin/cani alpha add location UpdateTestSite --config "$CANI_CONF" >/dev/null 2>&1
+      bin/cani alpha add location dc --name UpdateTestSite --config "$CANI_CONF" >/dev/null 2>&1
       When call bin/cani alpha update location UpdateTestSite --name RenamedSite --config "$CANI_CONF"
       The status should equal 0
       The stderr should include 'Updated location'

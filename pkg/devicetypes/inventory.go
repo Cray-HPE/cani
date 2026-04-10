@@ -51,6 +51,10 @@ type Inventory struct {
 	Frus       map[uuid.UUID]*CaniFruType       `json:"frus"       yaml:"frus"`
 	Interfaces map[uuid.UUID]*InterfaceInstance `json:"interfaces" yaml:"interfaces"`
 
+	// Metadata stores the catalog of metadata definitions (roles,
+	// statuses, tags) that individual inventory items reference.
+	Metadata *InventoryMetadata `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+
 	// pkIndex is a transient (non-serialized) provider-key lookup cache.
 	// Maps [provider][key][value] → device UUID for O(1) dedup lookups.
 	// Rebuilt by RebuildProviderKeyIndex after datastore load.
@@ -110,6 +114,7 @@ func NewInventory() *Inventory {
 		Cables:        make(map[uuid.UUID]*CaniCableType),
 		Frus:          make(map[uuid.UUID]*CaniFruType),
 		Interfaces:    make(map[uuid.UUID]*InterfaceInstance),
+		Metadata:      &InventoryMetadata{},
 		pkIndex:       make(providerKeyIndex),
 	}
 }

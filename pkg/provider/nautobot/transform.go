@@ -30,14 +30,26 @@ import (
 	"github.com/Cray-HPE/cani/pkg/provider/nautobot/transform"
 )
 
-// Transform transforms devices in the queue into CANI's format.
-// Nautobot does not produce racks or cables during transform.
+// Transform transforms raw Nautobot data into CANI's format.
+// When raw data has been fetched (via Import()), it is passed to the
+// transform package for full entity mapping.  Otherwise the legacy
+// copy-existing-devices path is used.
 func (p *Nautobot) Transform(existing devicetypes.Inventory) (*devicetypes.TransformResult, error) {
-	devices, err := transform.Transform(existing)
-	if err != nil {
-		return nil, err
+	var raw *transform.RawData
+	if len(p.rawDevices) > 0 || len(p.rawLocations) > 0 {
+		raw = &transform.RawData{
+			Locations:      p.rawLocations,
+			Racks:          p.rawRacks,
+			Devices:        p.rawDevices,
+			DeviceTypes:    p.rawDeviceTypes,
+			Interfaces:     p.rawInterfaces,
+			Modules:        p.rawModules,
+			ModuleBays:     p.rawModuleBays,
+			Cables:         p.rawCables,
+			InventoryItems: p.rawInventoryItems,
+			Statuses:       p.rawStatuses,
+			Roles:          p.rawRoles,
+		}
 	}
-	return &devicetypes.TransformResult{
-		Devices: devices,
-	}, nil
+	return transform.Transform(existing, raw)
 }

@@ -48,7 +48,7 @@ func TestGenerateDeviceNames(t *testing.T) {
 						id: {
 							ID:           id,
 							Name:         "",
-							HardwareType: "node",
+							Type: devicetypes.Type("node"),
 							Serial:       "SN123",
 						},
 					},
@@ -66,7 +66,7 @@ func TestGenerateDeviceNames(t *testing.T) {
 						id: {
 							ID:           id,
 							Name:         "my-server",
-							HardwareType: "node",
+							Type: devicetypes.Type("node"),
 						},
 					},
 				}
@@ -93,8 +93,8 @@ func TestDisambiguateDeviceNames(t *testing.T) {
 		id2 := uuid.New()
 		inv := &devicetypes.Inventory{
 			Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
-				id1: {ID: id1, Name: "server", HardwareType: "node", Serial: "SN-A"},
-				id2: {ID: id2, Name: "server", HardwareType: "node", Serial: "SN-B"},
+				id1: {ID: id1, Name: "server", Type: devicetypes.Type("node"), Serial: "SN-A"},
+				id2: {ID: id2, Name: "server", Type: devicetypes.Type("node"), Serial: "SN-B"},
 			},
 		}
 
@@ -111,7 +111,7 @@ func TestDisambiguateDeviceNames(t *testing.T) {
 		id1 := uuid.New()
 		inv := &devicetypes.Inventory{
 			Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
-				id1: {ID: id1, Name: "unique-server", HardwareType: "node"},
+				id1: {ID: id1, Name: "unique-server", Type: devicetypes.Type("node")},
 			},
 		}
 
@@ -288,7 +288,7 @@ func TestGetSpeedForType(t *testing.T) {
 func TestGetDeviceInterfaceSpecs(t *testing.T) {
 	t.Run("device with explicit interfaces uses those", func(t *testing.T) {
 		device := &devicetypes.CaniDeviceType{
-			HardwareType: "node",
+			Type: devicetypes.Type("node"),
 			Interfaces: []devicetypes.InterfaceSpec{
 				{Name: "eth0", Type: "1000base-t"},
 				{Name: "eth1", Type: "10gbase-x-sfpp"},
@@ -310,7 +310,7 @@ func TestGetDeviceInterfaceSpecs(t *testing.T) {
 
 	t.Run("PDU device without interfaces gets defaults", func(t *testing.T) {
 		device := &devicetypes.CaniDeviceType{
-			HardwareType: "cabinet-pdu",
+			Type: devicetypes.Type("cabinet-pdu"),
 		}
 
 		specs := getDeviceInterfaceSpecs(device)

@@ -27,7 +27,7 @@ model: HPE Aruba 10G SFP+ LC SR 300m MMF Transceiver
 slug: hpe-aruba-10g-sfpp-lc-sr-300m-mmf
 part_number: J9150D
 description: "HPE Aruba 10G SFP+ LC SR 300m MMF Transceiver. 10GbE short-reach multimode fiber transceiver for Aruba switches."
-hardware-type: transceiver
+type: transceiver
 interfaces:
   - name: SFP+ Port
     type: 10gbase-x-sfpp

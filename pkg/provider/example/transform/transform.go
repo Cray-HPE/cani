@@ -61,8 +61,8 @@ func classifyRecords(records []import_.CsvRecord) (*classifiedRecords, error) {
 		// Try device type library lookup by part number first (authoritative)
 		var hwType string
 		if rec.PartNumber != "" {
-			if dt, ok := devicetypes.GetByPartNumber(rec.PartNumber); ok && dt.HardwareType != "" {
-				hwType = dt.HardwareType
+			if dt, ok := devicetypes.GetByPartNumber(rec.PartNumber); ok && dt.Type != "" {
+				hwType = string(dt.Type)
 			}
 		}
 
@@ -151,8 +151,8 @@ func Transform(existing devicetypes.Inventory) (*devicetypes.TransformResult, er
 		// Try device type library lookup by part number first (authoritative)
 		var hwType string
 		if rec.PartNumber != "" {
-			if dt, ok := devicetypes.GetByPartNumber(rec.PartNumber); ok && dt.HardwareType != "" {
-				hwType = dt.HardwareType
+			if dt, ok := devicetypes.GetByPartNumber(rec.PartNumber); ok && dt.Type != "" {
+				hwType = string(dt.Type)
 			}
 		}
 
@@ -281,13 +281,12 @@ func createRack(
 	}
 
 	rack := &devicetypes.CaniRackType{
-		ID:               id,
-		Name:             name,
-		Slug:             slug,
-		UHeight:          uHeight,
-		Status:           "active",
-		Devices:          []uuid.UUID{},
-		ProviderMetadata: buildProviderMetadata(rec),
+		ID:         id,
+		Name:       name,
+		Slug:       slug,
+		UHeight:    uHeight,
+		ObjectMeta: devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), ProviderMetadata: buildProviderMetadata(rec)},
+		Devices:    []uuid.UUID{},
 	}
 	inventory.Racks[id] = rack
 	if rec.ConfigGroup != "" {
@@ -317,13 +316,12 @@ func createDevice(
 // buildDeviceFromRecord creates a CaniDeviceType from a CSV record.
 func buildDeviceFromRecord(id uuid.UUID, name string, rec import_.CsvRecord, hwType string) *devicetypes.CaniDeviceType {
 	device := &devicetypes.CaniDeviceType{
-		ID:               id,
-		Name:             name,
-		Slug:             slugify(rec.Description),
-		PartNumber:       rec.PartNumber,
-		HardwareType:     hwType,
-		Status:           "staged",
-		ProviderMetadata: buildProviderMetadata(rec),
+		ID:         id,
+		Name:       name,
+		Slug:       slugify(rec.Description),
+		PartNumber: rec.PartNumber,
+		Type:       devicetypes.Type(hwType),
+		ObjectMeta: devicetypes.ObjectMeta{Status: string(devicetypes.StatusStaged), ProviderMetadata: buildProviderMetadata(rec)},
 	}
 
 	// Look up device type from library by part number
@@ -339,8 +337,8 @@ func populateFromDeviceType(device *devicetypes.CaniDeviceType, dt *devicetypes.
 	device.Slug = dt.Slug
 	device.Manufacturer = dt.Manufacturer
 	device.Model = dt.Model
-	if dt.HardwareType != "" {
-		device.HardwareType = dt.HardwareType
+	if dt.Type != "" {
+		device.Type = dt.Type
 	}
 	device.Interfaces = dt.Interfaces
 }
@@ -443,10 +441,10 @@ func sortDevicesByRackPriority(inventory *devicetypes.Inventory, deviceIDs []uui
 		dj := inventory.Devices[deviceIDs[j]]
 		var pi, pj int
 		if di != nil {
-			pi = deviceTypePriority(di.HardwareType)
+			pi = deviceTypePriority(string(di.Type))
 		}
 		if dj != nil {
-			pj = deviceTypePriority(dj.HardwareType)
+			pj = deviceTypePriority(string(dj.Type))
 		}
 		return pi < pj
 	})
@@ -463,7 +461,7 @@ func groupDevicesByZone(
 			middle = append(middle, id)
 			continue
 		}
-		switch deviceRackZone(dev.HardwareType) {
+		switch deviceRackZone(string(dev.Type)) {
 		case zoneBottom:
 			bottom = append(bottom, id)
 		case zoneTop:

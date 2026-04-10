@@ -23,7 +23,7 @@ func TestExport(t *testing.T) {
 			testName: "TestExport passing test",
 			inv: devicetypes.Inventory{
 				Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
-					deviceID: {Name: "server-01", HardwareType: "server"},
+					deviceID: {Name: "server-01", Type: devicetypes.Type("server")},
 				},
 			},
 			contains:    "Summary: 0 locations, 0 racks, 1 devices, 0 modules, 0 cables",
@@ -232,7 +232,7 @@ func TestPrintDevice(t *testing.T) {
 			testName: "Passing test",
 			device: &devicetypes.CaniDeviceType{
 				Name:         "server-01",
-				HardwareType: "server",
+				Type: devicetypes.Type("server"),
 				Model:        "ProLiant DL360",
 			},
 			inv:      &devicetypes.Inventory{},

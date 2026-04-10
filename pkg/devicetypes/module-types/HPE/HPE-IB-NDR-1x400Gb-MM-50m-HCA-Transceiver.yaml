@@ -27,7 +27,7 @@ model: HPE InfiniBand NDR/Ethernet 1x400Gb OSFP Multi-mode 50m HCA-side Transcei
 slug: hpe-ib-ndr-1x400gb-osfp-mm-50m-hca-xcvr
 part_number: P49764-B21
 description: "HPE InfiniBand NDR/Ethernet 1x400Gb OSFP Multi-mode 50m HCA-side Transceiver. Single 400Gb/s port, multimode fiber, 50m reach. Source: https://buy.hpe.com/us/en/networking/infiniband-adapters-and-cables/infiniband-transceivers/infiniband-transceivers/hpe-infiniband-ndr-ethernet-1x400gb-osfp-multi-mode-50m-hca-side-transceiver/p/P49764-B21"
-hardware-type: transceiver
+type: transceiver
 interfaces:
   - name: Port 1
     type: 400gbase-x-osfp

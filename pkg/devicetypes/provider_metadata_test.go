@@ -8,13 +8,13 @@ import (
 
 func TestGetProviderMeta(t *testing.T) {
 	dev := &CaniDeviceType{
-		ProviderMetadata: map[string]any{
+		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
 			"redfish": map[string]any{
 				"import_source": "test.json",
 				"redfish_uuid":  "abc-123",
 				"bmc_fqdn":      "host.example.com",
 			},
-		},
+		}},
 	}
 
 	// Nested import_source key.
@@ -32,20 +32,20 @@ func TestGetProviderMeta(t *testing.T) {
 		t.Error("GetProviderMeta(nonexistent) should return false")
 	}
 
-	// Nil device.
-	var nilDev *CaniDeviceType
-	if _, ok := nilDev.GetProviderMeta("anything"); ok {
-		t.Error("nil device should return false")
+	// Nil ObjectMeta.
+	var nilMeta *ObjectMeta
+	if _, ok := nilMeta.GetProviderMeta("anything"); ok {
+		t.Error("nil ObjectMeta should return false")
 	}
 }
 
 func TestGetProviderSubMap(t *testing.T) {
 	dev := &CaniDeviceType{
-		ProviderMetadata: map[string]any{
+		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
 			"csm": map[string]any{
 				"xname": "x3000c0s1b0n0",
 			},
-		},
+		}},
 	}
 
 	sub, ok := dev.GetProviderSubMap("csm")
@@ -108,13 +108,13 @@ func TestSetImportSource(t *testing.T) {
 
 func TestFlattenProviderMetadata(t *testing.T) {
 	dev := &CaniDeviceType{
-		ProviderMetadata: map[string]any{
+		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
 			"redfish": map[string]any{
 				"import_source": "test.json",
 				"redfish_uuid":  "abc-123",
 				"vendor":        "HPE",
 			},
-		},
+		}},
 	}
 
 	flat := dev.FlattenProviderMetadata()
@@ -129,6 +129,14 @@ func TestFlattenProviderMetadata(t *testing.T) {
 	}
 }
 
+func TestFlattenProviderMetadataEmpty(t *testing.T) {
+	var m *ObjectMeta
+	flat := m.FlattenProviderMetadata()
+	if flat != nil {
+		t.Errorf("expected nil for nil ObjectMeta, got %v", flat)
+	}
+}
+
 func TestFindDeviceByProviderKey(t *testing.T) {
 	id1 := uuid.New()
 	id2 := uuid.New()
@@ -137,22 +145,22 @@ func TestFindDeviceByProviderKey(t *testing.T) {
 			id1: {
 				ID:   id1,
 				Name: "server1",
-				ProviderMetadata: map[string]any{
+				ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
 					"redfish": map[string]any{
 						"redfish_uuid": "uuid-aaa",
 						"bmc_fqdn":     "server1.example.com",
 					},
-				},
+				}},
 			},
 			id2: {
 				ID:   id2,
 				Name: "server2",
-				ProviderMetadata: map[string]any{
+				ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
 					"redfish": map[string]any{
 						"redfish_uuid": "uuid-bbb",
 						"bmc_fqdn":     "server2.example.com",
 					},
-				},
+				}},
 			},
 		},
 	}
@@ -189,12 +197,12 @@ func TestFindDeviceByProviderKeys(t *testing.T) {
 			id: {
 				ID:   id,
 				Name: "server1",
-				ProviderMetadata: map[string]any{
+				ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
 					"redfish": map[string]any{
 						"redfish_uuid": "uuid-aaa",
 						"bmc_fqdn":     "server1.example.com",
 					},
-				},
+				}},
 			},
 		},
 	}
@@ -224,24 +232,24 @@ func TestMergePropertiesWithMetadata(t *testing.T) {
 	existing := &CaniDeviceType{
 		ID:   uuid.New(),
 		Name: "old-name",
-		ProviderMetadata: map[string]any{
+		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
 			"redfish": map[string]any{
 				"import_source": "old.json",
 				"redfish_uuid":  "uuid-aaa",
 				"bmc_firmware":  "1.50",
 			},
-		},
+		}},
 	}
 	incoming := &CaniDeviceType{
 		Name: "new-name",
-		ProviderMetadata: map[string]any{
+		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
 			"redfish": map[string]any{
 				"import_source": "new.json",
 				"redfish_uuid":  "uuid-aaa",
 				"bmc_firmware":  "1.61",
 				"bmc_fqdn":      "host.example.com",
 			},
-		},
+		}},
 	}
 
 	changed := existing.MergeProperties(incoming)

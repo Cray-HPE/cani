@@ -26,13 +26,35 @@
 package nautobot
 
 import (
+	"context"
+
+	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/Cray-HPE/cani/pkg/provider/nautobot/export"
+	imprt "github.com/Cray-HPE/cani/pkg/provider/nautobot/import"
 )
 
 // Nautobot is the struct for the Nautobot provider
 type Nautobot struct {
 	Options  *NautobotOpts
 	exporter *export.Exporter
+
+	// ctx and client are populated during importNautobot() setup.
+	ctx    context.Context
+	client *export.NautobotClient
+	cache  *export.LookupCache
+
+	// Raw API responses stored during Import() for use by Transform().
+	rawLocations      []nautobotapi.Location
+	rawRacks          []nautobotapi.Rack
+	rawDevices        []nautobotapi.Device
+	rawDeviceTypes    []nautobotapi.DeviceType
+	rawInterfaces     []nautobotapi.Interface
+	rawModules        []nautobotapi.Module
+	rawModuleBays     []nautobotapi.ModuleBay
+	rawCables         []nautobotapi.Cable
+	rawInventoryItems []nautobotapi.InventoryItem
+	rawStatuses       []nautobotapi.Status
+	rawRoles          []nautobotapi.Role
 }
 
 // New creates a new instance of the Nautobot provider
@@ -49,4 +71,44 @@ func New() *Nautobot {
 // Slug returns the slug for the CANI provider
 func (p *Nautobot) Slug() string {
 	return "nautobot"
+}
+
+// ClearRawData resets the raw data storage for a fresh import.
+func (p *Nautobot) ClearRawData() {
+	p.rawLocations = nil
+	p.rawRacks = nil
+	p.rawDevices = nil
+	p.rawDeviceTypes = nil
+	p.rawInterfaces = nil
+	p.rawModules = nil
+	p.rawModuleBays = nil
+	p.rawCables = nil
+	p.rawInventoryItems = nil
+	p.rawStatuses = nil
+	p.rawRoles = nil
+}
+
+// SetRawData stores fetched raw data from the import phase.
+func (p *Nautobot) SetRawData(d imprt.RawData) {
+	p.rawLocations = d.Locations
+	p.rawRacks = d.Racks
+	p.rawDevices = d.Devices
+	p.rawDeviceTypes = d.DeviceTypes
+	p.rawInterfaces = d.Interfaces
+	p.rawModules = d.Modules
+	p.rawModuleBays = d.ModuleBays
+	p.rawCables = d.Cables
+	p.rawInventoryItems = d.InventoryItems
+	p.rawStatuses = d.Statuses
+	p.rawRoles = d.Roles
+}
+
+// GetClient returns the Nautobot API client for the import subpackage.
+func (p *Nautobot) GetClient() *nautobotapi.ClientWithResponses {
+	return p.client.ClientWithResponses
+}
+
+// GetContext returns the context for the import subpackage.
+func (p *Nautobot) GetContext() context.Context {
+	return p.ctx
 }

@@ -1,0 +1,6 @@
+---
+name: Data Center
+slug: dc
+description: "A top-level location type representing a data center facility. This is the highest level of the location hierarchy and can contain other location types such as levels and sections."
+nestable: true
+content_types: []

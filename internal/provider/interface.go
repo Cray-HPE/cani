@@ -106,3 +106,30 @@ type HasExportOptions interface {
 	// This enables the precedence: CLI flags > env vars > config file > defaults
 	BindExportFlags(cmd *cobra.Command) error
 }
+
+// DeviceStager is an optional interface that providers can implement to
+// support auto-staging existing devices during the add workflow.
+type DeviceStager interface {
+	// StageExisting finds the first eligible device matching slug in the
+	// inventory, sets it to Staged, and recursively stages children
+	// according to device-bay defaults.  Returns true if a device was staged.
+	StageExisting(inv *devicetypes.Inventory, slug string) bool
+}
+
+// RackStager is an optional interface for creating new devices under
+// staged racks when no existing device can be re-staged.
+type RackStager interface {
+	// StageNewInRack creates a new device hierarchy under the first
+	// staged rack matching the slug's class. Returns true if created.
+	StageNewInRack(inv *devicetypes.Inventory, slug string) bool
+}
+
+// RackPostAddHook is an optional interface that providers can implement
+// to run provider-specific logic after a rack is added to the inventory.
+// For example, CSM uses this to assign cabinet numbers and VLANs.
+type RackPostAddHook interface {
+	// OnRackAdded is called after a rack has been created but before
+	// the inventory is saved.  Providers may set provider-specific
+	// metadata, status, or name on the rack.
+	OnRackAdded(rack *devicetypes.CaniRackType, inventory *devicetypes.Inventory) error
+}

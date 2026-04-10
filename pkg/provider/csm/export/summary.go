@@ -50,11 +50,25 @@ func printSummary(w io.Writer, inventory devicetypes.Inventory, stats reconcileS
 		if dev == nil {
 			continue
 		}
-		if dev.Status == "staged" {
+		if strings.EqualFold(dev.Status, "staged") {
 			newItems = append(newItems, entry{
 				id:     dev.ID.String(),
 				hwtype: capitalizeType(string(dev.GetType())),
 				status: dev.Status,
+			})
+		}
+	}
+	// Also include staged racks (cabinets added via "add" flow).
+	for _, rack := range inventory.Racks {
+		if rack == nil {
+			continue
+		}
+		if strings.EqualFold(rack.Status, "staged") {
+			hwtype := "Cabinet"
+			newItems = append(newItems, entry{
+				id:     rack.ID.String(),
+				hwtype: hwtype,
+				status: rack.Status,
 			})
 		}
 	}

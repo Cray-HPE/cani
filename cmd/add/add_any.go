@@ -28,7 +28,13 @@ package add
 import (
 	"fmt"
 	"log"
+	"regexp"
+	"strconv"
+	"strings"
 
+	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/Cray-HPE/cani/internal/util/nameexpand"
+	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
@@ -68,6 +74,21 @@ func addAny(cmd *cobra.Command, args []string) error {
 
 // addAnyRack adds rack(s) using the resolved rack type.
 func addAnyRack(cmd *cobra.Command, args []string, rack *devicetypes.CaniRackType, qty int) error {
+	statusArg, _ := cmd.Flags().GetString("status")
+	serialArg, _ := cmd.Flags().GetString("serial")
+
+	nameArg, _ := cmd.Flags().GetString("name")
+	prefix, _ := cmd.Flags().GetString("prefix")
+	start, _ := cmd.Flags().GetInt("start")
+	padWidth, _ := cmd.Flags().GetInt("pad-width")
+
+	names, err := nameexpand.ResolveNames(nameArg, prefix, start, padWidth, qty)
+	if err != nil {
+		return fmt.Errorf("name resolution failed: %w", err)
+	}
+
+	locationArg, _ := cmd.Flags().GetString("location")
+
 	if err := datastores.SetDeviceStore(cmd, args); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
 	}
@@ -77,15 +98,42 @@ func addAnyRack(cmd *cobra.Command, args []string, rack *devicetypes.CaniRackTyp
 		return fmt.Errorf("failed to load inventory: %w", err)
 	}
 
-	locationID := inventory.EnsureLocation()
+	if statusArg != "" {
+		normalized, verr := validate.StatusWithInventory(statusArg, inventory)
+		if verr != nil {
+			return verr
+		}
+		statusArg = normalized
+	}
 
-	for range qty {
+	locationID := resolveLocation(inventory, locationArg)
+
+	tags, _ := cmd.Flags().GetStringArray("tag")
+	provMeta := collectProviderMetadata(cmd)
+
+	for i := range qty {
 		r := *rack
 		r.ID = uuid.New()
 		r.Location = locationID
-		if r.Name == "" && r.Model != "" {
+		if names != nil {
+			r.Name = names[i]
+		} else if r.Name == "" && r.Model != "" {
 			r.Name = r.Model
 		}
+		if statusArg != "" {
+			r.Status = statusArg
+		}
+		if serialArg != "" {
+			r.Serial = serialArg
+		}
+		applyTagsToRack(&r, tags)
+		applyProviderMetadataToRack(&r, provMeta)
+
+		// Let registered providers apply post-add logic.
+		if err := runRackPostAddHooks(&r, inventory); err != nil {
+			return fmt.Errorf("provider hook failed: %w", err)
+		}
+
 		if err := inventory.AddRack(&r); err != nil {
 			return fmt.Errorf("failed to add rack: %w", err)
 		}
@@ -105,6 +153,18 @@ func addAnyRack(cmd *cobra.Command, args []string, rack *devicetypes.CaniRackTyp
 // addAnyDevice adds device(s) using the resolved device type.
 func addAnyDevice(cmd *cobra.Command, args []string, device *devicetypes.CaniDeviceType, qty int) error {
 	parentArg, _ := cmd.Flags().GetString("parent")
+	statusArg, _ := cmd.Flags().GetString("status")
+	serialArg, _ := cmd.Flags().GetString("serial")
+	nameArg, _ := cmd.Flags().GetString("name")
+	prefix, _ := cmd.Flags().GetString("prefix")
+	start, _ := cmd.Flags().GetInt("start")
+	padWidth, _ := cmd.Flags().GetInt("pad-width")
+	auto, _ := cmd.Flags().GetBool("auto")
+
+	names, err := nameexpand.ResolveNames(nameArg, prefix, start, padWidth, qty)
+	if err != nil {
+		return fmt.Errorf("name resolution failed: %w", err)
+	}
 
 	if err := datastores.SetDeviceStore(cmd, args); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
@@ -118,8 +178,66 @@ func addAnyDevice(cmd *cobra.Command, args []string, device *devicetypes.CaniDev
 	locationID := inventory.EnsureLocation()
 	inventory.AssignRacksToLocation(locationID)
 
+	// When --auto is set, try to stage existing imported devices
+	// that match the requested slug instead of creating new ones.
+	// Delegate to the first registered provider that implements DeviceStager.
+	if auto && device.Slug != "" {
+		// Snapshot which devices are already staged before staging.
+		alreadyStaged := make(map[uuid.UUID]bool)
+		for id, d := range inventory.Devices {
+			if strings.EqualFold(d.Status, string(devicetypes.StatusStaged)) {
+				alreadyStaged[id] = true
+			}
+		}
+
+		staged := 0
+		for _, p := range provider.GetProviders() {
+			// First try staging under a staged rack (new cabinet).
+			if rs, ok := p.(provider.RackStager); ok {
+				for range qty {
+					if rs.StageNewInRack(inventory, device.Slug) {
+						staged++
+					}
+				}
+			}
+			if staged > 0 {
+				break
+			}
+			// Fall back to re-staging existing devices.
+			if stager, ok := p.(provider.DeviceStager); ok {
+				for range qty {
+					if stager.StageExisting(inventory, device.Slug) {
+						staged++
+					}
+				}
+			}
+			if staged > 0 {
+				break
+			}
+		}
+		if staged > 0 {
+			if err := datastores.Datastore.Save(inventory); err != nil {
+				return fmt.Errorf("failed to save inventory: %w", err)
+			}
+			logStagedDevices(inventory, alreadyStaged)
+			log.Printf("%d device(s) added", staged)
+			return nil
+		}
+	}
+
+	if statusArg != "" {
+		normalized, verr := validate.StatusWithInventory(statusArg, inventory)
+		if verr != nil {
+			return verr
+		}
+		statusArg = normalized
+	}
+
+	tags, _ := cmd.Flags().GetStringArray("tag")
+	provMeta := collectProviderMetadata(cmd)
+
 	devicesToAdd := make(map[uuid.UUID]*devicetypes.CaniDeviceType)
-	for range qty {
+	for i := range qty {
 		d := *device
 		d.ID = uuid.New()
 
@@ -129,7 +247,24 @@ func addAnyDevice(cmd *cobra.Command, args []string, device *devicetypes.CaniDev
 			}
 		}
 
+		if names != nil {
+			d.Name = names[i]
+		}
+		if statusArg != "" {
+			d.Status = statusArg
+		}
+		if serialArg != "" {
+			d.Serial = serialArg
+		}
+		applyTagsToDevice(&d, tags)
+		applyProviderMetadataToDevice(&d, provMeta)
+
 		devicesToAdd[d.ID] = &d
+
+		// Expand child devices from device-bay defaults.
+		for cid, child := range devicetypes.ExpandChildren(&d) {
+			devicesToAdd[cid] = child
+		}
 	}
 
 	if err := inventory.AddDevices(devicesToAdd); err != nil {
@@ -150,6 +285,17 @@ func addAnyDevice(cmd *cobra.Command, args []string, device *devicetypes.CaniDev
 // addAnyModule adds module(s) using the resolved module type.
 func addAnyModule(cmd *cobra.Command, args []string, mod *devicetypes.CaniModuleType, qty int) error {
 	parentArg, _ := cmd.Flags().GetString("parent")
+	statusArg, _ := cmd.Flags().GetString("status")
+	serialArg, _ := cmd.Flags().GetString("serial")
+	nameArg, _ := cmd.Flags().GetString("name")
+	prefix, _ := cmd.Flags().GetString("prefix")
+	start, _ := cmd.Flags().GetInt("start")
+	padWidth, _ := cmd.Flags().GetInt("pad-width")
+
+	names, err := nameexpand.ResolveNames(nameArg, prefix, start, padWidth, qty)
+	if err != nil {
+		return fmt.Errorf("name resolution failed: %w", err)
+	}
 
 	if err := datastores.SetDeviceStore(cmd, args); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
@@ -160,7 +306,15 @@ func addAnyModule(cmd *cobra.Command, args []string, mod *devicetypes.CaniModule
 		return fmt.Errorf("failed to load inventory: %w", err)
 	}
 
-	for range qty {
+	if statusArg != "" {
+		normalized, verr := validate.StatusWithInventory(statusArg, inventory)
+		if verr != nil {
+			return verr
+		}
+		statusArg = normalized
+	}
+
+	for i := range qty {
 		m := *mod
 		m.ID = uuid.New()
 
@@ -168,6 +322,16 @@ func addAnyModule(cmd *cobra.Command, args []string, mod *devicetypes.CaniModule
 			if did, derr := uuid.Parse(parentArg); derr == nil {
 				m.ParentDevice = did
 			}
+		}
+
+		if names != nil {
+			m.Name = names[i]
+		}
+		if statusArg != "" {
+			m.Status = statusArg
+		}
+		if serialArg != "" {
+			m.Serial = serialArg
 		}
 
 		if err := inventory.AddModule(&m); err != nil {
@@ -186,6 +350,17 @@ func addAnyModule(cmd *cobra.Command, args []string, mod *devicetypes.CaniModule
 
 // addAnyCable adds cable(s) using the resolved cable type.
 func addAnyCable(cmd *cobra.Command, args []string, cable *devicetypes.CaniCableType, qty int) error {
+	statusArg, _ := cmd.Flags().GetString("status")
+	nameArg, _ := cmd.Flags().GetString("name")
+	prefix, _ := cmd.Flags().GetString("prefix")
+	start, _ := cmd.Flags().GetInt("start")
+	padWidth, _ := cmd.Flags().GetInt("pad-width")
+
+	names, err := nameexpand.ResolveNames(nameArg, prefix, start, padWidth, qty)
+	if err != nil {
+		return fmt.Errorf("name resolution failed: %w", err)
+	}
+
 	if err := datastores.SetDeviceStore(cmd, args); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
 	}
@@ -195,9 +370,24 @@ func addAnyCable(cmd *cobra.Command, args []string, cable *devicetypes.CaniCable
 		return fmt.Errorf("failed to load inventory: %w", err)
 	}
 
-	for range qty {
+	if statusArg != "" {
+		normalized, verr := validate.StatusWithInventory(statusArg, inventory)
+		if verr != nil {
+			return verr
+		}
+		statusArg = normalized
+	}
+
+	for i := range qty {
 		c := *cable
 		c.ID = uuid.New()
+
+		if names != nil {
+			c.Label = names[i]
+		}
+		if statusArg != "" {
+			c.Status = statusArg
+		}
 
 		if err := inventory.AddCable(&c); err != nil {
 			return fmt.Errorf("failed to add cable: %w", err)
@@ -211,4 +401,73 @@ func addAnyCable(cmd *cobra.Command, args []string, cable *devicetypes.CaniCable
 
 	log.Printf("%d cable(s) added", qty)
 	return nil
+}
+
+// logStagedDevices logs detailed staging info for devices that were
+// newly staged (not in alreadyStaged). It prints the display type,
+// UUID, and xname components (Cabinet, Chassis, Blade) for each.
+func logStagedDevices(inv *devicetypes.Inventory, alreadyStaged map[uuid.UUID]bool) {
+	for id, dev := range inv.Devices {
+		if alreadyStaged[id] {
+			continue
+		}
+		if !strings.EqualFold(dev.Status, string(devicetypes.StatusStaged)) {
+			continue
+		}
+		log.Printf("Added device %s (%s)", id, dev.Name)
+		typeName := displayTypeName(dev.GetType())
+		log.Printf("%s was successfully staged to be added to the system", typeName)
+		log.Printf("UUID: %s", id)
+		sub, ok := dev.GetProviderSubMap("csm")
+		if ok {
+			if xn, _ := sub["xname"].(string); xn != "" {
+				cab, chas, slot := parseXnameParts(xn)
+				log.Printf("Cabinet: %d", cab)
+				log.Printf("Chassis: %d", chas)
+				log.Printf("Blade: %d", slot)
+			}
+		}
+	}
+}
+
+// displayTypeName returns a human-friendly name for a device type.
+func displayTypeName(t devicetypes.Type) string {
+	switch devicetypes.Type(strings.ToLower(string(t))) {
+	case devicetypes.TypeCabinet:
+		return "Cabinet"
+	case devicetypes.TypeChassis, devicetypes.TypeRack:
+		return "Chassis"
+	case devicetypes.TypeBlade:
+		return "Blade"
+	case devicetypes.TypeNode:
+		return "Node"
+	case devicetypes.TypeNodeCard:
+		return "NodeBlade"
+	default:
+		s := string(t)
+		if len(s) == 0 {
+			return s
+		}
+		return strings.ToUpper(s[:1]) + s[1:]
+	}
+}
+
+// xnameRe matches xname strings like x8000, x8000c0, x8000c0s0, etc.
+var xnameRe = regexp.MustCompile(`^x(\d+)(?:c(\d+))?(?:s(\d+))?`)
+
+// parseXnameParts extracts cabinet, chassis, and slot numbers from an
+// xname string. Returns (0, 0, 0) for unrecognised formats.
+func parseXnameParts(xn string) (cabinet, chassis, slot int) {
+	m := xnameRe.FindStringSubmatch(xn)
+	if m == nil {
+		return 0, 0, 0
+	}
+	cabinet, _ = strconv.Atoi(m[1])
+	if m[2] != "" {
+		chassis, _ = strconv.Atoi(m[2])
+	}
+	if m[3] != "" {
+		slot, _ = strconv.Atoi(m[3])
+	}
+	return cabinet, chassis, slot
 }

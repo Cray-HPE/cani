@@ -25,7 +25,7 @@
 manufacturer: HPE
 model: DL380 Gen 11
 slug: hpe-dl380-gen-11
-hardware-type: blade
+type: blade
 u_height: 2
 is_full_depth: true
 comments: "2U Service node with Intel Xeon Sapphire Rapids CPUs"

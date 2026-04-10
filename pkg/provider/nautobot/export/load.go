@@ -72,7 +72,7 @@ func generateDeviceNames(inventory *devicetypes.Inventory) {
 		if device == nil || device.Name != "" {
 			continue
 		}
-		category := devicetypes.ClassifyForNautobot(device.HardwareType)
+		category := devicetypes.ClassifyForNautobot(string(device.Type))
 		if category != devicetypes.CategoryDevice {
 			continue
 		}
@@ -107,7 +107,7 @@ func disambiguateDeviceNames(inventory *devicetypes.Inventory) {
 		if device == nil || device.Name == "" {
 			continue
 		}
-		category := devicetypes.ClassifyForNautobot(device.HardwareType)
+		category := devicetypes.ClassifyForNautobot(string(device.Type))
 		if category != devicetypes.CategoryDevice {
 			continue
 		}
@@ -248,7 +248,7 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 			continue
 		}
 
-		category := devicetypes.ClassifyForNautobot(device.HardwareType)
+		category := devicetypes.ClassifyForNautobot(string(device.Type))
 		if category != devicetypes.CategoryRack {
 			continue
 		}
@@ -277,13 +277,20 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 	generateDeviceNames(inventory)
 	disambiguateDeviceNames(inventory)
 
+	// Pre-Phase 2b: Detect and resolve position swaps so that per-device
+	// PATCH calls do not violate Nautobot's unique (rack, position, face)
+	// constraint.
+	if err := e.resolvePositionSwaps(ctx, inventory); err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("position swap resolution: %v", err))
+	}
+
 	// Phase 2: Create devices
 	for id, device := range inventory.Devices {
 		if device == nil || device.Name == "" {
 			continue
 		}
 
-		category := devicetypes.ClassifyForNautobot(device.HardwareType)
+		category := devicetypes.ClassifyForNautobot(string(device.Type))
 		if category != devicetypes.CategoryDevice {
 			continue
 		}
@@ -293,6 +300,15 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 			createdDeviceIDs[device.Name] = nid
 
 			if e.Options.Merge {
+				// Only update if there are actual field differences.
+				var diffs []FieldDiff
+				if fullDevice, err := e.fetchFullDeviceByID(ctx, nid); err == nil {
+					diffs = compareDeviceFields(device, fullDevice, mapper)
+				}
+				if len(diffs) == 0 {
+					result.Skipped = append(result.Skipped, device.Name)
+					continue
+				}
 				if err := e.updateDevice(ctx, device, nid, mapper, result); err != nil {
 					if errors.Is(err, ErrDeviceUnclassified) {
 						clog.Skipped("  ~ %s: skipped (unclassified, no device type slug)", device.Name)
@@ -336,6 +352,15 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 			setExternalID(&device.ExternalIDs, "nautobot", existing.ID)
 
 			if e.Options.Merge {
+				// Only update if there are actual field differences.
+				var diffs []FieldDiff
+				if fullDevice, err := e.fetchFullDeviceByID(ctx, existing.ID); err == nil {
+					diffs = compareDeviceFields(device, fullDevice, mapper)
+				}
+				if len(diffs) == 0 {
+					result.Skipped = append(result.Skipped, device.Name)
+					continue
+				}
 				if err := e.updateDevice(ctx, device, existing.ID, mapper, result); err != nil {
 					if errors.Is(err, ErrDeviceUnclassified) {
 						clog.Skipped("  ~ %s: skipped (unclassified, no device type slug)", device.Name)
@@ -376,18 +401,9 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 		}
 	}
 
-	// Phase 3: Create interfaces for devices (if interface data is available)
-	// This would be called if we have interface information in the inventory
-	for deviceName, nautobotID := range createdDeviceIDs {
-		// Look up the device to get interface info from metadata
-		for _, device := range inventory.Devices {
-			if device.Name == deviceName {
-				if err := e.createDeviceInterfaces(ctx, nautobotID, device, result); err != nil {
-					result.Errors = append(result.Errors, fmt.Sprintf("%s: interface create error: %v", device.Name, err))
-				}
-				break
-			}
-		}
+	// Phase 3: Create interfaces for devices (bulk batched)
+	if err := e.loadInterfaces(ctx, inventory, createdDeviceIDs, result); err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("interface phase error: %v", err))
 	}
 
 	// Phase 4: Create modules from inventory.Modules
@@ -445,7 +461,11 @@ func (e *Exporter) createDevice(ctx context.Context, device *devicetypes.CaniDev
 	}
 
 	if resp.StatusCode() != http.StatusCreated && resp.StatusCode() != http.StatusOK {
-		return fmt.Errorf("unexpected status %d: %s", resp.StatusCode(), string(resp.Body))
+		body := string(resp.Body)
+		if resp.StatusCode() == http.StatusBadRequest && strings.Contains(body, "status") && strings.Contains(body, "Related object not found") {
+			return fmt.Errorf("status '%s' does not support dcim.device content type in Nautobot — use a status like Active or Planned instead", device.Status)
+		}
+		return fmt.Errorf("unexpected status %d: %s", resp.StatusCode(), body)
 	}
 
 	clog.Created("Created device: %s", device.Name)
@@ -661,7 +681,11 @@ func (e *Exporter) createDeviceWithID(ctx context.Context, device *devicetypes.C
 	}
 
 	if resp.StatusCode() != http.StatusCreated && resp.StatusCode() != http.StatusOK {
-		return uuid.Nil, fmt.Errorf("unexpected status %d: %s", resp.StatusCode(), string(resp.Body))
+		body := string(resp.Body)
+		if resp.StatusCode() == http.StatusBadRequest && strings.Contains(body, "status") && strings.Contains(body, "Related object not found") {
+			return uuid.Nil, fmt.Errorf("status '%s' does not support dcim.device content type in Nautobot — use a status like Active or Planned instead", device.Status)
+		}
+		return uuid.Nil, fmt.Errorf("unexpected status %d: %s", resp.StatusCode(), body)
 	}
 
 	// Parse response to get the created device's ID
@@ -673,42 +697,6 @@ func (e *Exporter) createDeviceWithID(ctx context.Context, device *devicetypes.C
 	clog.Created("Created device: %s (ID: %s)", device.Name, nautobotID)
 	result.Created = append(result.Created, device.Name)
 	return nautobotID, nil
-}
-
-// createDeviceInterfaces creates interfaces for a device in Nautobot.
-// It checks if each interface already exists before creating, and updates if --merge is set.
-func (e *Exporter) createDeviceInterfaces(ctx context.Context, deviceID uuid.UUID, device *devicetypes.CaniDeviceType, result *LoadResult) error {
-	// Get interface specifications based on device type
-	interfaces := getDeviceInterfaceSpecs(device)
-
-	for _, iface := range interfaces {
-		// Check if interface already exists on this device
-		existing, err := e.Cache.GetInterfaceByDeviceAndName(deviceID, iface.Name)
-		if err != nil {
-			clog.Warn("Warning: failed to lookup interface %s on %s: %v", iface.Name, device.Name, err)
-			// Continue to try creating it
-		}
-
-		if existing != nil {
-			// Interface already exists
-			if e.Options.Merge {
-				// Update the existing interface
-				if err := e.updateInterface(ctx, existing.ID, deviceID, iface, result); err != nil {
-					clog.Warn("Warning: failed to update interface %s on %s: %v", iface.Name, device.Name, err)
-				}
-			}
-			// If not merging, silently skip (interface already exists)
-			continue
-		}
-
-		// Create new interface
-		if err := e.createInterface(ctx, deviceID, iface, result); err != nil {
-			clog.Warn("Warning: failed to create interface %s on %s: %v", iface.Name, device.Name, err)
-			// Continue with other interfaces
-		}
-	}
-
-	return nil
 }
 
 // interfaceSpec describes an interface to create
@@ -739,7 +727,7 @@ func getDeviceInterfaceSpecs(device *devicetypes.CaniDeviceType) []interfaceSpec
 	}
 
 	// Fallback: Determine interface set based on hardware type and model
-	switch devicetypes.Type(device.HardwareType) {
+	switch devicetypes.Type(string(device.Type)) {
 	case devicetypes.Blade, devicetypes.Node:
 		// ProLiant servers typically have iLO + 4 Ethernet + optional IB
 		specs = append(specs, interfaceSpec{Name: "iLO", Type: "1000base-t", Speed: 1000000})
@@ -1041,9 +1029,9 @@ func (e *Exporter) createCaniCableType(ctx context.Context, cableID uuid.UUID, c
 	}
 
 	// Build cable status reference
-	statusName := "Connected"
-	if cable.Status == "planned" {
-		statusName = "Planned"
+	statusName := string(devicetypes.StatusConnected)
+	if strings.EqualFold(cable.Status, "planned") {
+		statusName = string(devicetypes.StatusPlanned)
 	}
 	statusItem, err := e.Cache.GetStatus(statusName)
 	if err != nil {

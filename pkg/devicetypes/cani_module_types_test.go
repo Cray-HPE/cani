@@ -72,9 +72,9 @@ func TestModuleGetSlugReturnsEmptyForNil(t *testing.T) {
 // --- GetStatus ---
 
 func TestModuleGetStatusReturnsStatus(t *testing.T) {
-	m := &CaniModuleType{Status: "active"}
-	if got := m.GetStatus(); got != "active" {
-		t.Fatalf("expected active, got %s", got)
+	m := &CaniModuleType{ObjectMeta: ObjectMeta{Status: "Active"}}
+	if got := m.GetStatus(); got != "Active" {
+		t.Fatalf("expected Active, got %s", got)
 	}
 }
 
@@ -104,7 +104,7 @@ func TestModuleGetVendorReturnsEmptyForNil(t *testing.T) {
 // --- GetType ---
 
 func TestModuleGetTypeReturnsExplicitType(t *testing.T) {
-	m := &CaniModuleType{HardwareType: string(TypeChassis)}
+	m := &CaniModuleType{Type: TypeChassis}
 	if got := m.GetType(); got != TypeChassis {
 		t.Fatalf("expected %s, got %s", TypeChassis, got)
 	}

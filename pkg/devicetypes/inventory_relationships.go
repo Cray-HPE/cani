@@ -167,7 +167,7 @@ func (inv *Inventory) rebuildRackRelationships() *RelationshipResult {
 				ID:               rack.ID,
 				Name:             rack.Name,
 				Kind:             "rack",
-				HardwareType:     rack.HardwareType,
+				DeviceType:       string(rack.Type),
 				Model:            rack.Model,
 				Manufacturer:     rack.Manufacturer,
 				ProviderMetadata: rack.ProviderMetadata,
@@ -217,6 +217,7 @@ func (inv *Inventory) clearDeviceReverseLists() {
 	for _, rack := range inv.Racks {
 		if rack != nil {
 			rack.Devices = nil
+			rack.OccupiedSlots = nil
 		}
 	}
 	for _, device := range inv.Devices {
@@ -239,6 +240,16 @@ func (inv *Inventory) linkDeviceToRack(id uuid.UUID, device *CaniDeviceType) (bo
 	rack.addDevice(id)
 	device.Rack = device.Parent
 	device.Location = rack.Location
+
+	// Rebuild OccupiedSlots from the device's stored position.
+	if device.RackPosition > 0 {
+		height := device.UHeight
+		if height < 1 {
+			height = 1
+		}
+		rack.PlaceDevice(id, device.RackPosition, height, device.Face, device.IsFullDepth)
+	}
+
 	return true, fmt.Sprintf("device %q added to rack %q", device.Name, rack.Name)
 }
 
@@ -327,6 +338,34 @@ func (inv *Inventory) rebuildDeviceRelationships() *RelationshipResult {
 		}
 	}
 
+	// Phase 2b: link devices whose parent is an orphan device (no rack
+	// ancestor). This handles device-bay hierarchies added without a
+	// rack placement — children still need ParentDevice set so they
+	// are not reported as errors.
+	for {
+		progress := false
+		for id, device := range inv.Devices {
+			if device == nil || device.Parent == uuid.Nil {
+				continue
+			}
+			if inv.deviceAlreadyLinked(device) {
+				continue
+			}
+			parent, ok := inv.Devices[device.Parent]
+			if !ok || parent == nil {
+				continue
+			}
+			device.ParentDevice = device.Parent
+			if !containsUUID(parent.Children, id) {
+				parent.Children = append(parent.Children, id)
+			}
+			progress = true
+		}
+		if !progress {
+			break
+		}
+	}
+
 	// Phase 3: report only actual changes and problems.
 	for id, device := range inv.Devices {
 		if device == nil {
@@ -340,7 +379,7 @@ func (inv *Inventory) rebuildDeviceRelationships() *RelationshipResult {
 				ID:               device.ID,
 				Name:             device.Name,
 				Kind:             "device",
-				HardwareType:     device.HardwareType,
+				DeviceType:       string(device.Type),
 				Model:            device.Model,
 				Manufacturer:     device.Manufacturer,
 				ProviderMetadata: device.ProviderMetadata,
@@ -462,6 +501,84 @@ func (inv *Inventory) rebuildFruRelationships() *RelationshipResult {
 	return res
 }
 
+// rebuildCableRelationships resolves cable TerminationA/B interface UUIDs
+// from device + port name and removes cables whose device references are
+// invalid (e.g. after a device was removed).
+//
+// Must run AFTER rebuildInterfaceRelationships (needs the rebuilt interface
+// index) and BEFORE validateCableRelationships (which validates the resolved
+// UUIDs).
+func (inv *Inventory) rebuildCableRelationships() *RelationshipResult {
+	res := &RelationshipResult{}
+	for cableID, cable := range inv.Cables {
+		if cable == nil {
+			continue
+		}
+
+		// Remove cables whose device references are invalid.
+		aDeviceOK := cable.TerminationADevice == uuid.Nil || inv.Devices[cable.TerminationADevice] != nil
+		bDeviceOK := cable.TerminationBDevice == uuid.Nil || inv.Devices[cable.TerminationBDevice] != nil
+		if !aDeviceOK || !bDeviceOK {
+			res.Fixed = append(res.Fixed,
+				fmt.Sprintf("cable %q (%s): removed (endpoint device deleted)",
+					cable.Label, cableID))
+			delete(inv.Cables, cableID)
+			continue
+		}
+
+		// Resolve TerminationA interface UUID from device + port name.
+		if cable.TerminationADevice != uuid.Nil && cable.TerminationAPort != "" {
+			if ifaceID := inv.findInterfaceIDByPort(cable.TerminationADevice, cable.TerminationAPort); ifaceID != uuid.Nil {
+				if cable.TerminationA != ifaceID {
+					cable.TerminationA = ifaceID
+					res.Fixed = append(res.Fixed,
+						fmt.Sprintf("cable %q (%s): resolved termination A interface for port %q",
+							cable.Label, cableID, cable.TerminationAPort))
+				}
+			}
+		}
+
+		// Resolve TerminationB interface UUID from device + port name.
+		if cable.TerminationBDevice != uuid.Nil && cable.TerminationBPort != "" {
+			if ifaceID := inv.findInterfaceIDByPort(cable.TerminationBDevice, cable.TerminationBPort); ifaceID != uuid.Nil {
+				if cable.TerminationB != ifaceID {
+					cable.TerminationB = ifaceID
+					res.Fixed = append(res.Fixed,
+						fmt.Sprintf("cable %q (%s): resolved termination B interface for port %q",
+							cable.Label, cableID, cable.TerminationBPort))
+				}
+			}
+		}
+	}
+	return res
+}
+
+// findInterfaceIDByPort finds an interface UUID on a device (or its modules)
+// by matching the port name. Returns uuid.Nil if not found.
+func (inv *Inventory) findInterfaceIDByPort(deviceID uuid.UUID, portName string) uuid.UUID {
+	device := inv.Devices[deviceID]
+	if device == nil {
+		return uuid.Nil
+	}
+	for i := range device.Interfaces {
+		if device.Interfaces[i].Name == portName {
+			return device.Interfaces[i].ID
+		}
+	}
+	// Fall back to module interfaces.
+	for _, mod := range inv.Modules {
+		if mod == nil || mod.ParentDevice != deviceID {
+			continue
+		}
+		for i := range mod.Interfaces {
+			if mod.Interfaces[i].Name == portName {
+				return mod.Interfaces[i].ID
+			}
+		}
+	}
+	return uuid.Nil
+}
+
 // validateCableRelationships verifies cable termination devices and
 // interface references exist.
 func (inv *Inventory) validateCableRelationships() *RelationshipResult {
@@ -529,7 +646,7 @@ func (inv *Inventory) rebuildInterfaceRelationships() *RelationshipResult {
 				Name:          iface.Name,
 				InterfaceType: iface.Type,
 				DeviceID:      deviceID,
-				Status:        "active",
+				ObjectMeta:    ObjectMeta{Status: string(StatusActive)},
 				MgmtOnly:      iface.MgmtOnly != nil && *iface.MgmtOnly,
 			}
 			inv.Interfaces[iface.ID] = inst
@@ -552,7 +669,7 @@ func (inv *Inventory) rebuildInterfaceRelationships() *RelationshipResult {
 				Name:          iface.Name,
 				InterfaceType: iface.Type,
 				DeviceID:      mod.ParentDevice,
-				Status:        "active",
+				ObjectMeta:    ObjectMeta{Status: string(StatusActive)},
 				MgmtOnly:      iface.MgmtOnly != nil && *iface.MgmtOnly,
 			}
 			inv.Interfaces[iface.ID] = inst

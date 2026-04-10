@@ -116,15 +116,64 @@ func defaultSlugForClass(cl CsmClassification) string {
 		}
 	}
 
-	// Hill: try River defaults, then Mountain.
+	// Hill: try Mountain defaults first (Hill uses CrayEX chassis like
+	// Mountain), then River for management infrastructure.
 	if class == ClassHill {
-		if slug, ok := defaultSlugs[ClassRiver][cl.CaniType]; ok {
+		if slug, ok := defaultSlugs[ClassMountain][cl.CaniType]; ok {
 			return slug
 		}
-		if slug, ok := defaultSlugs[ClassMountain][cl.CaniType]; ok {
+		if slug, ok := defaultSlugs[ClassRiver][cl.CaniType]; ok {
 			return slug
 		}
 	}
 
 	return ""
+}
+
+// ClassesForSlug returns the set of CSM hardware classes whose default
+// slug maps contain the given slug.  Hill is included whenever Mountain
+// matches because Hill falls through to Mountain defaults.
+//
+// When the slug is not an exact match in defaultSlugs, ClassesForSlug
+// checks whether the slug shares a naming family with any class's
+// default slug (e.g. "hpe-crayex-ex235n-*" matches the Mountain
+// default "hpe-crayex-ex235a-*" via the shared "hpe-crayex" prefix).
+func ClassesForSlug(slug string) map[string]bool {
+	classes := make(map[string]bool)
+	for class, slugs := range defaultSlugs {
+		for _, s := range slugs {
+			if s == slug {
+				classes[class] = true
+			}
+		}
+	}
+	// If no exact match, fall back to slug family comparison.
+	if len(classes) == 0 {
+		family := slugFamily(slug)
+		for class, slugs := range defaultSlugs {
+			for _, s := range slugs {
+				if slugFamily(s) == family {
+					classes[class] = true
+					break
+				}
+			}
+		}
+	}
+	// Hill falls through to Mountain, so include it when Mountain matches.
+	if classes[ClassMountain] {
+		classes[ClassHill] = true
+	}
+	return classes
+}
+
+// slugFamily returns the manufacturer-family prefix of a slug
+// (the first two hyphen-separated segments, e.g. "hpe-crayex").
+// For slugs with fewer than three segments (like "cray-xd225v")
+// the full slug is returned as the family identifier.
+func slugFamily(slug string) string {
+	parts := strings.SplitN(slug, "-", 4)
+	if len(parts) >= 3 {
+		return parts[0] + "-" + parts[1]
+	}
+	return slug
 }

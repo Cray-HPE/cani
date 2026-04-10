@@ -1,5 +1,11 @@
 # AGENTS.md
 
+## Critical (non-negotiable)
+
+- the `cmd/` layer MUST NOT contain provider-specific logic; it orchestrates generic `devicetypes` operations only
+- provider-specific logic (CSM, HPCM, Redfish, etc.) belongs in `pkg/provider/<name>/`
+- providers hook into the command layer via interfaces defined in `internal/provider/`
+
 ## Do
 
 - use the Standard Go Project Layout
@@ -14,6 +20,7 @@
 
 - do not use third-party libraries
 - do not hard code variables
+- do not import provider packages from `cmd/`
 
 ## File Organization
 

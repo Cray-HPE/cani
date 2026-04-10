@@ -36,7 +36,7 @@ type OrphanItem struct {
 	ID               uuid.UUID
 	Name             string
 	Kind             string // "device" or "rack"
-	HardwareType     string
+	DeviceType       string
 	Model            string
 	Manufacturer     string
 	ProviderMetadata map[string]any
@@ -54,7 +54,7 @@ func (inv *Inventory) OrphanDevices() []OrphanItem {
 			ID:               d.ID,
 			Name:             d.Name,
 			Kind:             "device",
-			HardwareType:     d.HardwareType,
+			DeviceType:       string(d.Type),
 			Model:            d.Model,
 			Manufacturer:     d.Manufacturer,
 			ProviderMetadata: d.ProviderMetadata,
@@ -78,7 +78,7 @@ func (inv *Inventory) OrphanRacks() []OrphanItem {
 			ID:               r.ID,
 			Name:             r.Name,
 			Kind:             "rack",
-			HardwareType:     r.HardwareType,
+			DeviceType:       string(r.Type),
 			Model:            r.Model,
 			Manufacturer:     r.Manufacturer,
 			ProviderMetadata: r.ProviderMetadata,

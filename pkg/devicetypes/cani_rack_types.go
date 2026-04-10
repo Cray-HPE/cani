@@ -2,6 +2,7 @@ package devicetypes
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 )
@@ -30,23 +31,26 @@ type CaniRackType struct {
 	Manufacturer string    `json:"manufacturer,omitempty" yaml:"manufacturer,omitempty"`
 	Model        string    `json:"model,omitempty" yaml:"model,omitempty"`
 	Description  string    `json:"description,omitempty" yaml:"description,omitempty"`
-	HardwareType string    `json:"hardwareType,omitempty" yaml:"hardware-type,omitempty"`
+	Type         Type      `json:"type,omitempty" yaml:"type,omitempty"`
 
 	// Physical
-	UHeight    int             `json:"uHeight" yaml:"u_height,omitempty"`
-	OuterWidth int             `json:"outerWidth,omitempty" yaml:"outer_width,omitempty"`
-	OuterDepth int             `json:"outerDepth,omitempty" yaml:"outer_depth,omitempty"`
-	OuterUnit  string          `json:"outerUnit,omitempty" yaml:"outer_unit,omitempty"` // mm or in
-	Width      string          `json:"width,omitempty" yaml:"width,omitempty"`          // Nautobot WidthEnum (10/19/21/23 inch)
-	Weight     float64         `json:"weight,omitempty" yaml:"weight,omitempty"`
-	WeightUnit string          `json:"weightUnit,omitempty" yaml:"weight_unit,omitempty"`
-	DeviceBays []DeviceBaySpec `json:"deviceBays,omitempty" yaml:"device-bays,omitempty"`
-	ModuleBays []ModuleBaySpec `json:"moduleBays,omitempty" yaml:"module-bays,omitempty"`
+	UHeight          int             `json:"uHeight" yaml:"u_height,omitempty"`
+	OuterWidth       int             `json:"outerWidth,omitempty" yaml:"outer_width,omitempty"`
+	OuterDepth       int             `json:"outerDepth,omitempty" yaml:"outer_depth,omitempty"`
+	OuterUnit        string          `json:"outerUnit,omitempty" yaml:"outer_unit,omitempty"` // mm or in
+	Width            string          `json:"width,omitempty" yaml:"width,omitempty"`          // Nautobot WidthEnum (10/19/21/23 inch)
+	Weight           float64         `json:"weight,omitempty" yaml:"weight,omitempty"`
+	WeightUnit       string          `json:"weightUnit,omitempty" yaml:"weight_unit,omitempty"`
+	DeviceBays       []DeviceBaySpec `json:"deviceBays,omitempty" yaml:"device-bays,omitempty"`
+	ModuleBays       []ModuleBaySpec `json:"moduleBays,omitempty" yaml:"module-bays,omitempty"`
+	TopZoneHeight    int             `json:"topZoneHeight,omitempty" yaml:"top_zone_height,omitempty"`
+	BottomZoneHeight int             `json:"bottomZoneHeight,omitempty" yaml:"bottom_zone_height,omitempty"`
+
+	// Shared metadata (status, role, tags, tenant, custom fields, external IDs, provider metadata)
+	ObjectMeta `yaml:",inline"`
 
 	// Inventory state
 	Location      uuid.UUID                    `json:"location,omitempty" yaml:"location,omitempty"`
-	Status        string                       `json:"status" yaml:"status,omitempty"`
-	Role          string                       `json:"role,omitempty" yaml:"role,omitempty"`
 	RackType      string                       `json:"rackType,omitempty" yaml:"rack_type,omitempty"` // Nautobot enum: 2-post-frame, 4-post-cabinet, etc.
 	Serial        string                       `json:"serial,omitempty" yaml:"serial,omitempty"`
 	AssetTag      string                       `json:"assetTag,omitempty" yaml:"asset_tag,omitempty"`
@@ -55,13 +59,6 @@ type CaniRackType struct {
 	Comments      string                       `json:"comments,omitempty" yaml:"comments,omitempty"`
 	Devices       []uuid.UUID                  `json:"devices,omitempty" yaml:"devices,omitempty"`              // rebuilt from CaniDeviceType.Rack at load time
 	OccupiedSlots map[int]map[string]uuid.UUID `json:"occupiedSlots,omitempty" yaml:"occupied_slots,omitempty"` // rebuilt from CaniDeviceType.RackPosition + .Face at load time
-
-	// Multi-tenancy and metadata
-	Tenant           string               `json:"tenant,omitempty" yaml:"tenant,omitempty"`
-	Tags             []string             `json:"tags,omitempty" yaml:"tags,omitempty"`
-	CustomFields     map[string]any       `json:"customFields,omitempty" yaml:"custom_fields,omitempty"`
-	ProviderMetadata map[string]any       `json:"providerMetadata,omitempty" yaml:"provider_metadata,omitempty"`
-	ExternalIDs      map[string]uuid.UUID `json:"externalIDs,omitempty" yaml:"external_ids,omitempty"` // provider name → remote UUID
 
 	// ProviderDefaults holds provider-specific defaults from the hardware
 	// type YAML (e.g. CSM class, starting ordinal, VLAN ranges).
@@ -113,8 +110,8 @@ func (r *CaniRackType) GetType() Type {
 	if r == nil {
 		return ""
 	}
-	if r.HardwareType != "" {
-		return Type(r.HardwareType)
+	if r.Type != "" {
+		return r.Type
 	}
 	return TypeRack
 }
@@ -226,6 +223,87 @@ func (r *CaniRackType) RemoveDevice(deviceID uuid.UUID) {
 	}
 }
 
+// SwapDevices atomically swaps the rack positions of two devices.
+// Each device is placed at the other's former startU, preserving each device's
+// own height and face. Returns an error if either placement would fail.
+func (r *CaniRackType) SwapDevices(idA, idB uuid.UUID) error {
+	if r == nil {
+		return errors.New("cannot swap on nil rack")
+	}
+	// Capture current placement for both devices.
+	startA := r.GetDeviceStartU(idA)
+	heightA := r.GetDeviceHeight(idA)
+	faceA := r.GetDeviceFace(idA)
+
+	startB := r.GetDeviceStartU(idB)
+	heightB := r.GetDeviceHeight(idB)
+	faceB := r.GetDeviceFace(idB)
+
+	if startA == 0 || startB == 0 {
+		return errors.New("both devices must be placed in the rack to swap")
+	}
+
+	isFullA := faceA == FaceFull
+	isFullB := faceB == FaceFull
+
+	// Remove both devices so their slots are free.
+	r.RemoveDevice(idA)
+	r.RemoveDevice(idB)
+
+	// Place each device at the other's former position.
+	if !r.PlaceDevice(idA, startB, heightA, faceA, isFullA) {
+		// Rollback: restore both to original positions.
+		r.PlaceDevice(idA, startA, heightA, faceA, isFullA)
+		r.PlaceDevice(idB, startB, heightB, faceB, isFullB)
+		return fmt.Errorf("cannot place device A at U%d after swap", startB)
+	}
+	if !r.PlaceDevice(idB, startA, heightB, faceB, isFullB) {
+		// Rollback: undo A's placement, restore originals.
+		r.RemoveDevice(idA)
+		r.PlaceDevice(idA, startA, heightA, faceA, isFullA)
+		r.PlaceDevice(idB, startB, heightB, faceB, isFullB)
+		return fmt.Errorf("cannot place device B at U%d after swap", startA)
+	}
+	return nil
+}
+
+// GetSlotOccupant returns the device UUID occupying the given U-position and face,
+// or uuid.Nil if the slot is empty. Also matches full-depth occupants.
+func (r *CaniRackType) GetSlotOccupant(u int, face string) uuid.UUID {
+	if r == nil {
+		return uuid.Nil
+	}
+	slot := r.OccupiedSlots[u]
+	if slot == nil {
+		return uuid.Nil
+	}
+	if face == "" {
+		face = FaceFront
+	}
+	if id, ok := slot[FaceFull]; ok {
+		return id
+	}
+	if id, ok := slot[face]; ok {
+		return id
+	}
+	return uuid.Nil
+}
+
+// GetDeviceFace returns the face string stored for a device, or "" if not found.
+func (r *CaniRackType) GetDeviceFace(deviceID uuid.UUID) string {
+	if r == nil {
+		return ""
+	}
+	for _, faces := range r.OccupiedSlots {
+		for face, id := range faces {
+			if id == deviceID {
+				return face
+			}
+		}
+	}
+	return ""
+}
+
 // GetDeviceStartU returns the starting U-position for a device, or 0 if not found.
 func (r *CaniRackType) GetDeviceStartU(deviceID uuid.UUID) int {
 	if r == nil {
@@ -242,6 +320,22 @@ func (r *CaniRackType) GetDeviceStartU(deviceID uuid.UUID) int {
 		}
 	}
 	return minU
+}
+
+// GetDeviceHeight returns the number of U-slots occupied by a device, or 0 if not found.
+func (r *CaniRackType) GetDeviceHeight(deviceID uuid.UUID) int {
+	if r == nil {
+		return 0
+	}
+	count := 0
+	for _, faces := range r.OccupiedSlots {
+		for _, id := range faces {
+			if id == deviceID {
+				count++
+			}
+		}
+	}
+	return count
 }
 
 // addDevice adds a device UUID to the devices list if not already present.

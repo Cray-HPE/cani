@@ -27,7 +27,7 @@ model: HPE RJ45 to RJ45 Cat5e Black M/M 7.6ft 1-pack Data Cable
 slug: hpe-cat5e-rj45-2-3m-cable
 part_number: C7535A
 description: "HPE RJ45 to RJ45 Cat5e Black M/M 7.6ft 1-pack Data Cable. Source: https://buy.hpe.com/us/en/options/cables-cable-kits/cat5-cables/hpe-cat5e-networking-and-telecom-connectivity-cable/p/C7535A"
-hardware-type: cable
+type: cable
 cable_category: cat5e
 connector_type: rj45-rj45
 length: 2.32

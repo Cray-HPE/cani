@@ -90,6 +90,15 @@ func (s *JSONStore) Load() (*devicetypes.Inventory, error) {
 		inventory.SchemaVersion = devicetypes.SchemaVersionV1Alpha2
 	}
 
+	// Migrate legacy inventory-level providerMetadata to the typed
+	// Metadata field if the old JSON key is present.
+	if migrateInventoryMetadata(data, inventory) {
+		if err := s.Save(inventory); err != nil {
+			return nil, fmt.Errorf("saving metadata-migrated datastore: %w", err)
+		}
+		log.Printf("Migrated inventory-level providerMetadata to metadata")
+	}
+
 	inventory.RebuildProviderKeyIndex()
 
 	return inventory, nil

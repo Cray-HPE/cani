@@ -26,7 +26,7 @@ manufacturer: HPE
 model: ProLiant XL225n Gen10 Plus
 slug: hpe-xl225n-gen10-plus
 part_number: P21163-B21
-hardware-type: node
+type: node
 u_height: 1
 is_full_depth: true
 subdevice_role: child

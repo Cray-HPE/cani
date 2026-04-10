@@ -25,7 +25,7 @@
 manufacturer: HPE
 model: XD685
 slug: hpe-xd685
-hardware-type: blade
+type: blade
 u_height: 5
 is_full_depth: true
 comments: "5U GPU server with 8x NVIDIA H200/B200 SXM GPUs, AMD EPYC Turin CPUs"

@@ -98,11 +98,12 @@ func validSlugOrPartNumber(noun Noun) func(cmd *cobra.Command, args []string) er
 
 // lookupResult is a discriminated union returned by lookupBySlugOrPart.
 type lookupResult struct {
-	Noun   Noun
-	Device *devicetypes.CaniDeviceType
-	Rack   *devicetypes.CaniRackType
-	Module *devicetypes.CaniModuleType
-	Cable  *devicetypes.CaniCableType
+	Noun     Noun
+	Device   *devicetypes.CaniDeviceType
+	Rack     *devicetypes.CaniRackType
+	Module   *devicetypes.CaniModuleType
+	Cable    *devicetypes.CaniCableType
+	Location *devicetypes.CaniLocationType
 }
 
 // lookupBySlugOrPart finds a hardware type by slug, falling back to part number.
@@ -145,7 +146,10 @@ func lookupBySlugOrPart(noun Noun, key string) (*lookupResult, error) {
 		return nil, fmt.Errorf("unknown cable slug or part number: %s", key)
 
 	case NounLocation:
-		// Locations have no hardware-type registry; slug is optional.
+		if l, err := devicetypes.NewLocationFromSlug(key); err == nil {
+			return &lookupResult{Noun: noun, Location: l}, nil
+		}
+		// Fall back to untyped location (created via flags).
 		return &lookupResult{Noun: noun}, nil
 
 	default:
@@ -164,7 +168,7 @@ func listTypesForNoun(cmd *cobra.Command, noun Noun) error {
 		for _, d := range devices {
 			entries = append(entries, devicetypes.TypeEntry{
 				Name: d.Model, Slug: d.Slug,
-				PartNumber: d.PartNumber, Category: d.HardwareType,
+				PartNumber: d.PartNumber, Category: string(d.Type),
 				Source: d.Source,
 			})
 		}
@@ -172,7 +176,7 @@ func listTypesForNoun(cmd *cobra.Command, noun Noun) error {
 		for _, r := range devicetypes.AllRackTypes() {
 			entries = append(entries, devicetypes.TypeEntry{
 				Name: r.Model, Slug: r.Slug,
-				PartNumber: r.PartNumber, Category: r.HardwareType,
+				PartNumber: r.PartNumber, Category: string(r.Type),
 				Source: r.Source,
 			})
 		}
@@ -180,7 +184,7 @@ func listTypesForNoun(cmd *cobra.Command, noun Noun) error {
 		for _, m := range devicetypes.AllModules() {
 			entries = append(entries, devicetypes.TypeEntry{
 				Name: m.Model, Slug: m.Slug,
-				PartNumber: m.PartNumber, Category: m.HardwareType,
+				PartNumber: m.PartNumber, Category: string(m.Type),
 				Source: m.Source,
 			})
 		}
@@ -188,15 +192,12 @@ func listTypesForNoun(cmd *cobra.Command, noun Noun) error {
 		for _, c := range devicetypes.AllCables() {
 			entries = append(entries, devicetypes.TypeEntry{
 				Name: c.Model, Slug: c.Slug,
-				PartNumber: c.PartNumber, Category: c.HardwareType,
+				PartNumber: c.PartNumber, Category: string(c.Type),
 				Source: c.Source,
 			})
 		}
 	case NounLocation:
-		cmd.Println("Locations do not use hardware-type slugs.")
-		cmd.Println("Use --type to specify the location type (site, building, floor, room).")
-		os.Exit(0)
-		return nil
+		return listLocationTypes(cmd)
 	}
 
 	cmd.SetOut(os.Stderr)

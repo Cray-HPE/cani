@@ -2,6 +2,7 @@ package devicetypes
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 )
@@ -12,11 +13,18 @@ type CaniLocationType struct {
 	// Identity
 	ID           uuid.UUID   `json:"id" yaml:"id"`
 	Name         string      `json:"name" yaml:"name"`
+	Slug         string      `json:"slug,omitempty" yaml:"slug,omitempty"`
 	LocationType string      `json:"locationType" yaml:"location_type"` // site, building, floor, room, etc.
 	Parent       uuid.UUID   `json:"parent,omitempty" yaml:"parent,omitempty"`
 	Children     []uuid.UUID `json:"children,omitempty" yaml:"children,omitempty"` // child locations; rebuilt from Parent at load time
 	Racks        []uuid.UUID `json:"racks,omitempty" yaml:"racks,omitempty"`       // racks at this location; rebuilt from CaniRackType.Location at load time
-	Status       string      `json:"status" yaml:"status"`
+
+	// Shared metadata (status, role, tags, tenant, custom fields, external IDs, provider metadata)
+	ObjectMeta `yaml:",inline"`
+
+	Nestable     bool     `json:"nestable,omitempty" yaml:"nestable,omitempty"`
+	ContentTypes []string `json:"contentTypes,omitempty" yaml:"content_types,omitempty"`
+	Source       string   `json:"source,omitempty" yaml:"-"`
 
 	// Nautobot-equivalent fields
 	Facility        string `json:"facility,omitempty" yaml:"facility,omitempty"`
@@ -31,12 +39,6 @@ type CaniLocationType struct {
 	TimeZone        string `json:"timeZone,omitempty" yaml:"time_zone,omitempty"`
 	Asn             *int64 `json:"asn,omitempty" yaml:"asn,omitempty"`
 	Comments        string `json:"comments,omitempty" yaml:"comments,omitempty"`
-
-	// Multi-tenancy and metadata
-	Tenant       string               `json:"tenant,omitempty" yaml:"tenant,omitempty"`
-	Tags         []string             `json:"tags,omitempty" yaml:"tags,omitempty"`
-	CustomFields map[string]any       `json:"customFields,omitempty" yaml:"custom_fields,omitempty"`
-	ExternalIDs  map[string]uuid.UUID `json:"externalIDs,omitempty" yaml:"external_ids,omitempty"` // provider name → remote UUID
 }
 
 // Validate checks the location for internal consistency.
@@ -72,6 +74,21 @@ func (l *CaniLocationType) GetStatus() string {
 		return ""
 	}
 	return l.Status
+}
+
+// ValidateContentType checks whether the given content type is allowed.
+// An empty ContentTypes list permits everything (backwards compatibility).
+func (l *CaniLocationType) ValidateContentType(ct string) error {
+	if l == nil || len(l.ContentTypes) == 0 {
+		return nil
+	}
+	for _, allowed := range l.ContentTypes {
+		if allowed == ct {
+			return nil
+		}
+	}
+	return fmt.Errorf("content type %q is not permitted at location %s (%s); allowed: %v",
+		ct, l.Name, l.LocationType, l.ContentTypes)
 }
 
 // AddRack adds a rack UUID to this location's rack list.

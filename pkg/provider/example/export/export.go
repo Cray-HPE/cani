@@ -108,9 +108,9 @@ func printRack(rack *devicetypes.CaniRackType, inv *devicetypes.Inventory, inden
 		if uHeight == 1 {
 			uRange = fmt.Sprintf("U%02d    ", dp.startU)
 		}
-		hwType := dp.device.HardwareType
+		hwType := string(dp.device.Type)
 		if hwType == "" {
-			hwType = string(dp.device.Type)
+			hwType = "device"
 		}
 		fmt.Printf("%s  │ %s │ %-12s │ %-20s │\n", prefix, uRange, dp.device.Name, hwType)
 	}
@@ -185,9 +185,9 @@ func printDevice(device *devicetypes.CaniDeviceType, inv *devicetypes.Inventory,
 	}
 	prefix := strings.Repeat("  ", indent)
 
-	hwType := device.HardwareType
+	hwType := string(device.Type)
 	if hwType == "" {
-		hwType = string(device.Type)
+		hwType = "device"
 	}
 	fmt.Printf("%s🖥️  %s (%s) - %s\n", prefix, device.Name, hwType, device.Model)
 

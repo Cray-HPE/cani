@@ -29,7 +29,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
@@ -69,17 +68,24 @@ to a specific type; subcommands reject slugs that do not match their type.`,
 	cmd.AddCommand(newDeviceCommand())
 	cmd.AddCommand(newModuleCommand())
 	cmd.AddCommand(newCableCommand())
+	cmd.AddCommand(newMetadataCommand())
 
 	cmd.PersistentFlags().BoolP("auto", "a", false, "Automatically recommend values for parent hardware")
 	cmd.PersistentFlags().BoolP("accept", "y", false, "Automatically accept recommended values.")
 	cmd.PersistentFlags().BoolP("list-supported-types", "L", false, "List supported hardware types.")
 	cmd.PersistentFlags().IntP("qty", "q", 1, "Quantity of items to add.")
 	cmd.PersistentFlags().StringP("parent", "p", uuid.Nil.String(), "Parent item UUID.")
+	cmd.PersistentFlags().String("prefix", "", "Name prefix for sequential naming (used with --qty).")
+	cmd.PersistentFlags().Int("start", 1, "Starting number for sequential names (used with --prefix).")
+	cmd.PersistentFlags().Int("pad-width", 0, "Zero-pad width for sequential names (0 = auto).")
+	cmd.PersistentFlags().StringArray("tag", nil, "Tag(s) to apply to the item (repeatable)")
+	cmd.PersistentFlags().StringArray("metadata", nil, "Provider metadata key=value pairs (repeatable)")
+	cmd.PersistentFlags().String("status", "", "Status (Active, Available, Connected, Decommissioned, Decommissioning, Deprecated, Deprovisioning, Down, End-of-Life, Extended Support, Failed, Inventory, Maintenance, Offline, Planned, Primary, Provisioning, Reserved, Retired, Secondary, Staging, or any custom status)")
+	cmd.PersistentFlags().String("serial", "", "Serial number")
 
-	// Let registered providers decorate the add command tree.
-	for _, p := range provider.GetProviders() {
-		p.NewProviderCmd(cmd)
-	}
+	// Flags for slug-based adds (not persistent – subcommands define their own).
+	cmd.Flags().String("location", "", "Parent location UUID or name")
+	cmd.Flags().String("name", "", "Name for the added item")
 
 	return cmd
 }

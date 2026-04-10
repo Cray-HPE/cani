@@ -214,7 +214,7 @@ func (m *DeviceMapper) MapToWritableDeviceRequest(device *devicetypes.CaniDevice
 				// Use actual Face value, defaulting to "front" if unset
 				req.Face = resolveFace(device.Face)
 			}
-		} else if parentDevice := m.inventory.Devices[rackID]; parentDevice != nil && parentDevice.HardwareType == "rack" {
+		} else if parentDevice := m.inventory.Devices[rackID]; parentDevice != nil && parentDevice.Type == devicetypes.Rack {
 			// Fallback: check if parent is a rack-type device in Devices collection (legacy)
 			rack, err := m.cache.GetRackByName(parentDevice.Name)
 			if err == nil && rack != nil {
@@ -321,7 +321,7 @@ func (m *DeviceMapper) MapToPatchRequest(device *devicetypes.CaniDeviceType, exi
 
 				req.Face = resolveFace(device.Face)
 			}
-		} else if parentDevice := m.inventory.Devices[device.Parent]; parentDevice != nil && parentDevice.HardwareType == "rack" {
+		} else if parentDevice := m.inventory.Devices[device.Parent]; parentDevice != nil && parentDevice.Type == devicetypes.Rack {
 			// Fallback: check if parent is a rack-type device in Devices collection (legacy)
 			rack, err := m.cache.GetRackByName(parentDevice.Name)
 			if err == nil && rack != nil {

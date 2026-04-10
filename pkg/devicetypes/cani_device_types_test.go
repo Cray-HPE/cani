@@ -139,9 +139,9 @@ func TestDeviceTypeGetSlugReturnsEmptyForNil(t *testing.T) {
 // --- GetStatus ---
 
 func TestDeviceTypeGetStatusReturnsStatus(t *testing.T) {
-	d := &CaniDeviceType{Status: "active"}
-	if got := d.GetStatus(); got != "active" {
-		t.Fatalf("expected active, got %s", got)
+	d := &CaniDeviceType{ObjectMeta: ObjectMeta{Status: "Active"}}
+	if got := d.GetStatus(); got != "Active" {
+		t.Fatalf("expected Active, got %s", got)
 	}
 }
 

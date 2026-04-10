@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/provider/csm/client"
@@ -60,6 +61,37 @@ func enrichCabinetNetworks(
 		setNetworkMetadata(&hw, hmnSub, nmnSub, hmnVlan, nmnVlan)
 		expected[xname] = hw
 	}
+
+	// Also process staged racks (cabinets added via "add" flow).
+	for _, rack := range inventory.Racks {
+		if rack == nil || !strings.EqualFold(rack.Status, "staged") {
+			continue
+		}
+		xname := extractRackXname(rack)
+		hw, ok := expected[xname]
+		if !ok {
+			continue
+		}
+		sub, _ := rack.GetProviderSubMap("csm")
+		hmnVlan := intFromMeta(sub, "hmnVlan")
+		if hmnVlan == 0 {
+			continue
+		}
+
+		nmnVlan := deriveNMNVlan(hmnVlan, &hmnNet, &nmnNet)
+
+		hmnSub, err := computeSubnet(&hmnNet, hmnVlan, xname)
+		if err != nil {
+			continue
+		}
+		nmnSub, err := computeSubnet(&nmnNet, nmnVlan, xname)
+		if err != nil {
+			continue
+		}
+
+		setNetworkMetadata(&hw, hmnSub, nmnSub, hmnVlan, nmnVlan)
+		expected[xname] = hw
+	}
 }
 
 // reconcileNetworks pushes updated SLS network definitions when new
@@ -80,11 +112,19 @@ func reconcileNetworks(
 		if hw.TypeString != "Cabinet" {
 			continue
 		}
+
+		// Look for CSM metadata on devices first, then on racks.
+		var sub map[string]any
 		dev := findDeviceByXname(hw.Xname, inventory)
-		if dev == nil {
-			continue
+		if dev != nil {
+			sub, _ = dev.GetProviderSubMap("csm")
+		} else {
+			rack := findRackByXname(hw.Xname, inventory)
+			if rack == nil {
+				continue
+			}
+			sub, _ = rack.GetProviderSubMap("csm")
 		}
-		sub, _ := dev.GetProviderSubMap("csm")
 		hmnVlan := intFromMeta(sub, "hmnVlan")
 		if hmnVlan == 0 {
 			continue
@@ -301,6 +341,19 @@ func findDeviceByXname(
 	for _, dev := range inventory.Devices {
 		if extractXname(dev) == xname {
 			return dev
+		}
+	}
+	return nil
+}
+
+// findRackByXname locates a rack in the inventory by its CSM xname.
+func findRackByXname(
+	xname string,
+	inventory devicetypes.Inventory,
+) *devicetypes.CaniRackType {
+	for _, rack := range inventory.Racks {
+		if extractRackXname(rack) == xname {
+			return rack
 		}
 	}
 	return nil

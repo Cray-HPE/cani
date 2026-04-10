@@ -27,7 +27,7 @@ model: HPE 100Gb QSFP28 to QSFP28 3m Direct Attach Copper Cable
 slug: hpe-100gb-qsfp28-qsfp28-3m-dac
 part_number: 845406-B21
 description: "HPE 100Gb QSFP28 to QSFP28 3m Direct Attach Copper Cable. 100GbE DAC for high-speed Ethernet connectivity. Source: https://buy.hpe.com/us/en/networking/networking-cables/networking-cables/networking-cables/hpe-100gb-qsfp28-to-qsfp28-direct-attach-copper-cables/p/845406-B21"
-hardware-type: cable
+type: cable
 cable_category: dac
 connector_type: qsfp28
 length: 3

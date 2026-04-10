@@ -44,8 +44,28 @@ func NewDefaultLocation() *CaniLocationType {
 		ID:           uuid.New(),
 		Name:         "default-cani",
 		LocationType: "site",
-		Status:       "active",
+		ObjectMeta:   ObjectMeta{Status: string(StatusActive)},
 	}
+}
+
+// NewLocationFromSlug creates a CaniLocationType from a registered LocationTypeDefinition.
+func NewLocationFromSlug(slug string) (*CaniLocationType, error) {
+	lt, ok := GetLocationTypeBySlug(slug)
+	if !ok {
+		return nil, fmt.Errorf("location type slug %q not found in library", slug)
+	}
+	loc := &CaniLocationType{
+		ID:           uuid.New(),
+		Name:         lt.Name,
+		Slug:         lt.Slug,
+		LocationType: lt.Slug,
+		ObjectMeta:   ObjectMeta{Status: string(StatusActive)},
+		Nestable:     lt.Nestable,
+		ContentTypes: lt.ContentTypes,
+		Description:  lt.Description,
+		Source:       lt.Source,
+	}
+	return loc, nil
 }
 
 // generateCaniName returns a random placeholder name for new devices.
@@ -62,7 +82,7 @@ func NewDeviceFromSlug(slug string) (*CaniDeviceType, error) {
 	device := dt // shallow copy
 	device.ID = uuid.New()
 	device.Name = generateCaniName()
-	device.Status = "staged"
+	device.Status = string(StatusStaged)
 	return &device, nil
 }
 
@@ -75,7 +95,7 @@ func NewDeviceFromPartNumber(partNumber string) (*CaniDeviceType, error) {
 	device := dt
 	device.ID = uuid.New()
 	device.Name = generateCaniName()
-	device.Status = "staged"
+	device.Status = string(StatusStaged)
 	return &device, nil
 }
 
@@ -87,7 +107,7 @@ func NewRackFromSlug(slug string) (*CaniRackType, error) {
 	}
 	rack := rt
 	rack.ID = uuid.New()
-	rack.Status = "active"
+	rack.Status = string(StatusActive)
 	rack.OccupiedSlots = make(map[int]map[string]uuid.UUID)
 	return &rack, nil
 }
@@ -100,7 +120,7 @@ func NewRackFromPartNumber(partNumber string) (*CaniRackType, error) {
 	}
 	rack := rt
 	rack.ID = uuid.New()
-	rack.Status = "active"
+	rack.Status = string(StatusActive)
 	rack.OccupiedSlots = make(map[int]map[string]uuid.UUID)
 	return &rack, nil
 }
@@ -114,7 +134,7 @@ func NewModuleFromSlug(slug string) (*CaniModuleType, error) {
 	mod := mt
 	mod.ID = uuid.New()
 	mod.Name = mt.Model
-	mod.Status = "active"
+	mod.Status = string(StatusActive)
 	return &mod, nil
 }
 
@@ -127,7 +147,7 @@ func NewModuleFromPartNumber(partNumber string) (*CaniModuleType, error) {
 	mod := mt
 	mod.ID = uuid.New()
 	mod.Name = mt.Model
-	mod.Status = "active"
+	mod.Status = string(StatusActive)
 	return &mod, nil
 }
 
@@ -139,7 +159,7 @@ func NewCableFromSlug(slug string) (*CaniCableType, error) {
 	}
 	cable := ct
 	cable.ID = uuid.New()
-	cable.Status = "connected"
+	cable.Status = string(StatusConnected)
 	return &cable, nil
 }
 
@@ -151,7 +171,7 @@ func NewCableFromPartNumber(partNumber string) (*CaniCableType, error) {
 	}
 	cable := ct
 	cable.ID = uuid.New()
-	cable.Status = "connected"
+	cable.Status = string(StatusConnected)
 	return &cable, nil
 }
 
@@ -163,7 +183,7 @@ func NewFruFromSlug(slug string) (*CaniFruType, error) {
 	}
 	fru := ft
 	fru.ID = uuid.New()
-	fru.Status = "active"
+	fru.Status = string(StatusActive)
 	return &fru, nil
 }
 
@@ -175,6 +195,6 @@ func NewFruFromPartNumber(partNumber string) (*CaniFruType, error) {
 	}
 	fru := ft
 	fru.ID = uuid.New()
-	fru.Status = "active"
+	fru.Status = string(StatusActive)
 	return &fru, nil
 }

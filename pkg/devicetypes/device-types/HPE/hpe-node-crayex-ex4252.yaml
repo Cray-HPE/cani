@@ -24,7 +24,7 @@
 ---
 manufacturer: HPE
 model: EX4252 AMD EPYC compute blade (Antero)
-hardware-type: blade
+type: blade
 slug: hpe-crayex-ex4252-compute-blade
 device-bays:
   - name: Node Card 0
@@ -49,7 +49,7 @@ identifications:
 ---
 manufacturer: HPE
 model: EX425 AMD EPYC compute Blade, Antero Node Card (WNC)
-hardware-type: nodecard
+type: nodecard
 slug: hpe-crayex-ex4252-compute-blade-antero-node-card
 device-bays:
   - name: BMC
@@ -85,7 +85,7 @@ device-bays:
 ---
 manufacturer: HPE
 model: EX4252 AMD EPYC compute Blade, Antero Node BMC
-hardware-type: nodecontroller
+type: nodecontroller
 slug: hpe-crayex-ex4252-compute-blade-antero-node-bmc
 interfaces:
   - name: BMC
@@ -94,7 +94,7 @@ interfaces:
 ---
 manufacturer: HPE
 model: EX4252 AMD EPYC compute node (Antero)
-hardware-type: Node
+type: node
 slug: hpe-crayex-ex4252-compute-node
 interfaces:
   - name: NMN

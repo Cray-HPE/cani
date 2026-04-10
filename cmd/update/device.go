@@ -53,7 +53,10 @@ func newDeviceCommand() *cobra.Command {
 	cmd.Flags().String("description", "", "Description")
 	cmd.Flags().Int("position", 0, "Rack U position")
 	cmd.Flags().String("face", "", "Rack face (front, rear)")
+	cmd.Flags().Bool("swap", false, "Swap position with the device occupying the target slot")
 	cmd.Flags().String("parent", "", "Parent UUID or name (rack or device)")
+	cmd.Flags().Int("nid", 0, "Node ID (CSM provider)")
+	cmd.Flags().String("alias", "", "Node alias (CSM provider)")
 
 	return cmd
 }
@@ -87,11 +90,24 @@ func updateDevice(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("description") {
 		device.Description, _ = cmd.Flags().GetString("description")
 	}
-	if cmd.Flags().Changed("position") {
-		device.RackPosition, _ = cmd.Flags().GetInt("position")
-	}
-	if cmd.Flags().Changed("face") {
-		device.Face, _ = cmd.Flags().GetString("face")
+	if cmd.Flags().Changed("position") || cmd.Flags().Changed("face") {
+		newPos := device.RackPosition
+		newFace := device.Face
+		if cmd.Flags().Changed("position") {
+			newPos, _ = cmd.Flags().GetInt("position")
+		}
+		if cmd.Flags().Changed("face") {
+			newFace, _ = cmd.Flags().GetString("face")
+		}
+		// device.Rack is a derived field; look up the rack via Parent.
+		rack := findDeviceRack(inventory, device)
+		if rack == nil {
+			return fmt.Errorf("device %s is not assigned to a rack", id)
+		}
+		doSwap, _ := cmd.Flags().GetBool("swap")
+		if err := moveOrSwap(rack, inventory, id, device, newPos, newFace, doSwap); err != nil {
+			return err
+		}
 	}
 	if cmd.Flags().Changed("parent") {
 		parentRef, _ := cmd.Flags().GetString("parent")
@@ -100,6 +116,24 @@ func updateDevice(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("resolving parent: %w", perr)
 		}
 		device.Parent = parentID
+	}
+	if cmd.Flags().Changed("tag") {
+		tags, _ := cmd.Flags().GetStringArray("tag")
+		device.Tags = tags
+	}
+	if cmd.Flags().Changed("metadata") {
+		pairs, _ := cmd.Flags().GetStringArray("metadata")
+		if err := applyProviderMetadata(&device.ProviderMetadata, pairs); err != nil {
+			return err
+		}
+	}
+	if cmd.Flags().Changed("nid") {
+		nid, _ := cmd.Flags().GetInt("nid")
+		device.SetProviderMeta("csm", "nid", nid)
+	}
+	if cmd.Flags().Changed("alias") {
+		alias, _ := cmd.Flags().GetString("alias")
+		device.SetProviderMeta("csm", "aliases", []string{alias})
 	}
 
 	if err := applySetToDevice(cmd, device); err != nil {
@@ -132,6 +166,94 @@ func resolveParent(inv *devicetypes.Inventory, ref string) (uuid.UUID, error) {
 	return uuid.Nil, fmt.Errorf("%q not found as rack or device", ref)
 }
 
+// findDeviceRack walks up from device.Parent (and ancestor devices)
+// to find the containing rack. Returns nil if the device has no rack.
+func findDeviceRack(inv *devicetypes.Inventory, device *devicetypes.CaniDeviceType) *devicetypes.CaniRackType {
+	cur := device.Parent
+	for i := 0; i < 10; i++ {
+		if rack, ok := inv.Racks[cur]; ok {
+			return rack
+		}
+		parent, ok := inv.Devices[cur]
+		if !ok || parent == nil {
+			return nil
+		}
+		cur = parent.Parent
+	}
+	return nil
+}
+
+// moveOrSwap places a device at newPos/newFace. If the target slot is occupied
+// and swap is true, it atomically swaps the two devices' positions. If the slot
+// is occupied and swap is false, it returns an error suggesting --swap.
+func moveOrSwap(
+	rack *devicetypes.CaniRackType,
+	inv *devicetypes.Inventory,
+	id uuid.UUID,
+	device *devicetypes.CaniDeviceType,
+	newPos int,
+	newFace string,
+	swap bool,
+) error {
+	if newFace == "" {
+		newFace = devicetypes.FaceFront
+	}
+	occupant := rack.GetSlotOccupant(newPos, newFace)
+	if occupant != uuid.Nil && occupant != id {
+		if !swap {
+			name := occupant.String()
+			if d, ok := inv.Devices[occupant]; ok && d.Name != "" {
+				name = d.Name
+			}
+			return fmt.Errorf("cannot place device at U%d (occupied by %s); use --swap to swap positions", newPos, name)
+		}
+		return doSwapDevices(rack, inv, id, device, occupant, newPos, newFace)
+	}
+	// Target is free — simple move.
+	rack.RemoveDevice(id)
+	height := device.UHeight
+	if height < 1 {
+		height = 1
+	}
+	if !rack.PlaceDevice(id, newPos, height, newFace, device.IsFullDepth) {
+		return fmt.Errorf("cannot place device at U%d (slot occupied or out of bounds)", newPos)
+	}
+	device.RackPosition = newPos
+	device.Face = newFace
+	return nil
+}
+
+// doSwapDevices performs the atomic position swap between two devices.
+func doSwapDevices(
+	rack *devicetypes.CaniRackType,
+	inv *devicetypes.Inventory,
+	id uuid.UUID,
+	device *devicetypes.CaniDeviceType,
+	occupantID uuid.UUID,
+	newPos int,
+	newFace string,
+) error {
+	occupantDev := inv.Devices[occupantID]
+	if occupantDev == nil {
+		return fmt.Errorf("occupant device %s not found in inventory", occupantID)
+	}
+	oldPos := device.RackPosition
+	oldFace := device.Face
+	if oldFace == "" {
+		oldFace = devicetypes.FaceFront
+	}
+	if err := rack.SwapDevices(id, occupantID); err != nil {
+		return fmt.Errorf("swap failed: %w", err)
+	}
+	device.RackPosition = newPos
+	device.Face = newFace
+	occupantDev.RackPosition = oldPos
+	occupantDev.Face = oldFace
+	log.Printf("Swapped positions: %s (%s) → U%d, %s (%s) → U%d",
+		id, device.Name, newPos, occupantID, occupantDev.Name, oldPos)
+	return nil
+}
+
 func applySetToDevice(cmd *cobra.Command, device *devicetypes.CaniDeviceType) error {
 	sets, _ := cmd.Flags().GetStringArray("set")
 	pairs, err := parseSetFlags(sets)
@@ -160,6 +282,8 @@ func applySetToDevice(cmd *cobra.Command, device *devicetypes.CaniDeviceType) er
 			device.Serial = v
 		case "asset_tag":
 			device.AssetTag = v
+		case "tag":
+			device.Tags = append(device.Tags, v)
 		case "parent":
 			return fmt.Errorf("use --parent flag instead of --set parent=...")
 		default:

@@ -27,34 +27,94 @@ package transform
 
 import (
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
+	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/Cray-HPE/cani/pkg/provider/nautobot/logcolor"
 	"github.com/google/uuid"
 )
 
 var clog = logcolor.New("[nautobot] ", false)
 
-// Transform transforms devices in the queue into CANI's format
-func Transform(existing devicetypes.Inventory) (transformed map[uuid.UUID]*devicetypes.CaniDeviceType, err error) {
-	transformed, err = transform(existing)
-	if err != nil {
-		return nil, err
-	}
-	return transformed, nil
+// RawData holds all raw API responses fetched during Import.
+type RawData struct {
+	Locations      []nautobotapi.Location
+	Racks          []nautobotapi.Rack
+	Devices        []nautobotapi.Device
+	DeviceTypes    []nautobotapi.DeviceType
+	Interfaces     []nautobotapi.Interface
+	Modules        []nautobotapi.Module
+	ModuleBays     []nautobotapi.ModuleBay
+	Cables         []nautobotapi.Cable
+	InventoryItems []nautobotapi.InventoryItem
+	Statuses       []nautobotapi.Status
+	Roles          []nautobotapi.Role
 }
 
-// extractDevicesFromBom extracts devices from the BOM files into CANI's inventory format
-func transform(existing devicetypes.Inventory) (transformed map[uuid.UUID]*devicetypes.CaniDeviceType, err error) {
-	transformed = make(map[uuid.UUID]*devicetypes.CaniDeviceType)
+// Transform converts raw Nautobot API data into a TransformResult.
+// When raw is nil (legacy path), it falls back to copying existing
+// devices from the inventory.
+func Transform(existing devicetypes.Inventory, raw *RawData) (*devicetypes.TransformResult, error) {
+	if raw == nil {
+		return transformLegacy(existing)
+	}
+	return transformRaw(raw)
+}
 
+// transformRaw runs all entity mappers against raw API data.
+func transformRaw(raw *RawData) (*devicetypes.TransformResult, error) {
+	// 1. Locations – also produces Nautobot→CANI UUID map.
+	locations, locationMap := MapLocations(raw.Locations)
+	clog.Detail("  Transformed %d locations", len(locations))
+
+	// 2. Racks.
+	racks, rackMap := MapRacks(raw.Racks, locationMap)
+	clog.Detail("  Transformed %d racks", len(racks))
+
+	// 3. Pre-build lookup tables needed by devices, cables, modules.
+	ifacesByDevice := GroupInterfacesByDevice(raw.Interfaces)
+	deviceTypeMap := BuildDeviceTypeMap(raw.DeviceTypes)
+	ifaceMap := BuildInterfaceMap(raw.Interfaces)
+	moduleBayMap := BuildModuleBayMap(raw.ModuleBays)
+	statusNameMap := BuildStatusNameMap(raw.Statuses)
+	roleNameMap := BuildRoleNameMap(raw.Roles)
+
+	// 4. Devices.
+	devices, deviceMap := MapDevices(raw.Devices, rackMap, locationMap, deviceTypeMap, ifacesByDevice, statusNameMap, roleNameMap)
+	clog.Detail("  Transformed %d devices", len(devices))
+
+	// 5. Cables.
+	cables := MapCables(raw.Cables, deviceMap, ifaceMap)
+	clog.Detail("  Transformed %d cables", len(cables))
+
+	// 6. Modules.
+	modules := MapModules(raw.Modules, moduleBayMap, deviceMap)
+	clog.Detail("  Transformed %d modules", len(modules))
+
+	// 7. FRUs (inventory items).
+	frus := MapFrus(raw.InventoryItems, deviceMap)
+	clog.Detail("  Transformed %d FRUs", len(frus))
+
+	return &devicetypes.TransformResult{
+		Locations: locations,
+		Racks:     racks,
+		Devices:   devices,
+		Modules:   modules,
+		Cables:    cables,
+		Frus:      frus,
+	}, nil
+}
+
+// transformLegacy is the original path: copy existing devices.
+func transformLegacy(existing devicetypes.Inventory) (*devicetypes.TransformResult, error) {
+	transformed := make(map[uuid.UUID]*devicetypes.CaniDeviceType, len(existing.Devices))
 	for _, device := range existing.Devices {
-		d := device // create a copy of d for this iteration
+		d := device
 		transformed[d.ID] = d
 	}
 
-	clog.Plain("")
 	clog.Detail("  %d devices existing in current inventory", len(existing.Devices))
 	clog.Detail("  %d devices Transformed (not yet Loaded)", len(transformed))
-	clog.Plain("")
 
-	return transformed, nil
+	return &devicetypes.TransformResult{
+		Devices: transformed,
+	}, nil
 }

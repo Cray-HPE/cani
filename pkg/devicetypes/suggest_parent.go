@@ -124,8 +124,8 @@ func rackDetail(inv *Inventory, rack *CaniRackType) string {
 	var parts []string
 	if rack.Model != "" {
 		parts = append(parts, rack.Model)
-	} else if rack.HardwareType != "" {
-		parts = append(parts, rack.HardwareType)
+	} else if rack.Type != "" {
+		parts = append(parts, string(rack.Type))
 	}
 	if rack.UHeight > 0 {
 		used := len(rack.Devices)

@@ -15,15 +15,18 @@ type InterfaceSpec struct {
 
 // InterfaceInstance represents an instantiated interface on a specific device.
 type InterfaceInstance struct {
-	ID             uuid.UUID          `json:"id" yaml:"id"`
-	Name           string             `json:"name" yaml:"name"`
-	InterfaceType  InterfacesElemType `json:"interfaceType" yaml:"interface_type"`
-	DeviceID       uuid.UUID          `json:"deviceId" yaml:"device_id"`
-	Status         string             `json:"status" yaml:"status"`
-	MgmtOnly       bool               `json:"mgmtOnly,omitempty" yaml:"mgmt_only,omitempty"`
-	Label          string             `json:"label,omitempty" yaml:"label,omitempty"`
-	ConnectedCable *uuid.UUID         `json:"connectedCable,omitempty" yaml:"connected_cable,omitempty"`
-	ContentType    string             `json:"contentType,omitempty" yaml:"content_type,omitempty"` // For cable terminations (e.g., "dcim.interface")
+	ID            uuid.UUID          `json:"id" yaml:"id"`
+	Name          string             `json:"name" yaml:"name"`
+	InterfaceType InterfacesElemType `json:"interfaceType" yaml:"interface_type"`
+	DeviceID      uuid.UUID          `json:"deviceId" yaml:"device_id"`
+
+	// Shared metadata (status, role, tags, tenant, custom fields, external IDs, provider metadata)
+	ObjectMeta `yaml:",inline"`
+
+	MgmtOnly       bool       `json:"mgmtOnly,omitempty" yaml:"mgmt_only,omitempty"`
+	Label          string     `json:"label,omitempty" yaml:"label,omitempty"`
+	ConnectedCable *uuid.UUID `json:"connectedCable,omitempty" yaml:"connected_cable,omitempty"`
+	ContentType    string     `json:"contentType,omitempty" yaml:"content_type,omitempty"` // For cable terminations (e.g., "dcim.interface")
 }
 
 // ConsolePortSpec defines a console port in a device type.
@@ -46,12 +49,54 @@ type ModuleBaySpec struct {
 	Position string `yaml:"position,omitempty" json:"position,omitempty"`
 }
 
-// DeviceBaySpec defines a device bay (U-slot) in a rack type.
+// DeviceBaySlugRef is a slug or list of slugs used in allowed/default device-bay fields.
+type DeviceBaySlugRef struct {
+	Slug  interface{} `yaml:"slug" json:"slug"`
+	Types interface{} `yaml:"types,omitempty" json:"types,omitempty"`
+}
+
+// Slugs returns the referenced slugs as a string slice.
+func (r DeviceBaySlugRef) Slugs() []string {
+	switch v := r.Slug.(type) {
+	case string:
+		return []string{v}
+	case []interface{}:
+		out := make([]string, 0, len(v))
+		for _, item := range v {
+			if s, ok := item.(string); ok {
+				out = append(out, s)
+			}
+		}
+		return out
+	}
+	return nil
+}
+
+// AllowedTypes returns the allowed hardware-type strings as a slice.
+func (r DeviceBaySlugRef) AllowedTypes() []string {
+	switch v := r.Types.(type) {
+	case string:
+		return []string{v}
+	case []interface{}:
+		out := make([]string, 0, len(v))
+		for _, item := range v {
+			if s, ok := item.(string); ok {
+				out = append(out, s)
+			}
+		}
+		return out
+	}
+	return nil
+}
+
+// DeviceBaySpec defines a device bay (U-slot) in a rack or device type.
 // Provider-specific YAML keys (e.g. "ordinal") are captured in Extra.
 type DeviceBaySpec struct {
-	Name     string         `yaml:"name" json:"name"`
-	Position string         `yaml:"position,omitempty" json:"position,omitempty"`
-	Extra    map[string]any `yaml:",inline" json:"extra,omitempty"`
+	Name     string            `yaml:"name" json:"name"`
+	Position string            `yaml:"position,omitempty" json:"position,omitempty"`
+	Allowed  *DeviceBaySlugRef `yaml:"allowed,omitempty" json:"allowed,omitempty"`
+	Default  *DeviceBaySlugRef `yaml:"default,omitempty" json:"default,omitempty"`
+	Extra    map[string]any    `yaml:",inline" json:"extra,omitempty"`
 }
 
 // Identification provides alternate manufacturer/model combinations for lookup.

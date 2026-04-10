@@ -11,15 +11,15 @@ func TestSuggestTypesCompoundName(t *testing.T) {
 		Slug:         "test-dl360-gen11-8sff",
 		Model:        "ProLiant DL360 Gen11 8SFF",
 		Manufacturer: "HPE",
-		HardwareType: "blade",
+		Type:         "blade",
 	})
 	defer func() {
 		delete(allDeviceTypes, "test-dl360-gen11-8sff")
 	}()
 
 	device := UnclassifiedDevice{
-		Name:         "dl360gen11",
-		HardwareType: "compute",
+		Name:       "dl360gen11",
+		DeviceType: "compute",
 	}
 	results := SuggestTypes(device, 8)
 	if len(results) == 0 {
@@ -47,7 +47,7 @@ func TestSuggestTypesMgmtSwitchFallback(t *testing.T) {
 		Slug:         "test-aruba-2930f",
 		Model:        "Aruba 2930F 48G 4SFP+",
 		Manufacturer: "HPE",
-		HardwareType: "mgmt-switch",
+		Type:         "mgmt-switch",
 	})
 	defer func() {
 		delete(allDeviceTypes, "test-aruba-2930f")
@@ -56,8 +56,8 @@ func TestSuggestTypesMgmtSwitchFallback(t *testing.T) {
 	// "mgmtsw0" has no direct text match but HardwareType "mgmt_switch"
 	// should trigger the hardware-type fallback.
 	device := UnclassifiedDevice{
-		Name:         "mgmtsw0",
-		HardwareType: "mgmt_switch",
+		Name:       "mgmtsw0",
+		DeviceType: "mgmt_switch",
 	}
 	results := SuggestTypes(device, 8)
 	if len(results) == 0 {
@@ -82,15 +82,15 @@ func TestSuggestTypesFMN(t *testing.T) {
 		Slug:         "test-proliant-dl325-gen11-fmn",
 		Model:        "ProLiant DL325 Gen11 FMN",
 		Manufacturer: "HPE",
-		HardwareType: "blade",
+		Type:         "blade",
 	})
 	defer func() {
 		delete(allDeviceTypes, "test-proliant-dl325-gen11-fmn")
 	}()
 
 	device := UnclassifiedDevice{
-		Name:         "fmn",
-		HardwareType: "compute",
+		Name:       "fmn",
+		DeviceType: "compute",
 	}
 	results := SuggestTypes(device, 8)
 
@@ -130,8 +130,8 @@ func TestNormalizeHardwareType(t *testing.T) {
 
 func TestCollectQueriesDecomposition(t *testing.T) {
 	device := UnclassifiedDevice{
-		Name:         "dl360gen11",
-		HardwareType: "compute",
+		Name:       "dl360gen11",
+		DeviceType: "compute",
 	}
 	queries := collectQueries(device)
 
@@ -172,5 +172,33 @@ func TestRelatedHardwareTypes(t *testing.T) {
 		if len(got) < tt.want {
 			t.Errorf("relatedHardwareTypes(%q) returned %d types, want >= %d", tt.input, len(got), tt.want)
 		}
+	}
+}
+
+// ---------- hardwareTypeFallback ----------
+
+func TestHardwareTypeFallbackReturns(t *testing.T) {
+	// Register a device with matching HardwareType so the fallback has data.
+	RegisterDeviceType(CaniDeviceType{
+		Slug:         "test-hwfb-blade",
+		Model:        "Test Blade",
+		Manufacturer: "TestCo",
+		Type:         TypeBlade,
+	})
+	defer func() {
+		delete(allDeviceTypes, "test-hwfb-blade")
+		delete(deviceTypesByPartNum, "")
+	}()
+
+	slugs := hardwareTypeFallback("blade", 10)
+	if len(slugs) == 0 {
+		t.Error("hardwareTypeFallback(\"blade\", 10) returned 0 slugs, want > 0")
+	}
+}
+
+func TestHardwareTypeFallbackZeroMax(t *testing.T) {
+	slugs := hardwareTypeFallback("blade", 0)
+	if len(slugs) != 0 {
+		t.Errorf("expected 0 slugs with max=0, got %d", len(slugs))
 	}
 }

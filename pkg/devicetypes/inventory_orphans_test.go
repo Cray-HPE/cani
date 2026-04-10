@@ -23,7 +23,7 @@ func TestOrphanDevices(t *testing.T) {
 
 	orphanID2 := uuid.New()
 	inv.Devices[orphanID2] = &CaniDeviceType{
-		ID: orphanID2, Name: "blade2", HardwareType: "blade",
+		ID: orphanID2, Name: "blade2", Type: "blade",
 	}
 
 	orphans := inv.OrphanDevices()
@@ -38,8 +38,8 @@ func TestOrphanDevices(t *testing.T) {
 	if orphans[1].Name != "blade2" {
 		t.Errorf("expected second orphan 'blade2', got %q", orphans[1].Name)
 	}
-	if orphans[1].HardwareType != "blade" {
-		t.Errorf("expected HardwareType 'blade', got %q", orphans[1].HardwareType)
+	if orphans[1].DeviceType != "blade" {
+		t.Errorf("expected HardwareType 'blade', got %q", orphans[1].DeviceType)
 	}
 	for _, o := range orphans {
 		if o.Kind != "device" {

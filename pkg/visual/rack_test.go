@@ -419,13 +419,13 @@ func TestDeviceWithoutPosition(t *testing.T) {
 			rackID: {
 				ID:           rackID,
 				Name:         "Test-Rack",
-				HardwareType: "rack",
+				Type: devicetypes.Type("rack"),
 				Children:     []uuid.UUID{serverID},
 			},
 			serverID: {
 				ID:           serverID,
 				Name:         "Unpositioned-Server",
-				HardwareType: "server",
+				Type: devicetypes.Type("server"),
 				Parent:       rackID,
 				// No RackPosition set
 			},

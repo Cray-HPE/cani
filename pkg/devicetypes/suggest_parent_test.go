@@ -43,18 +43,18 @@ func TestSuggestParentsDevicesOnlySuggestRacks(t *testing.T) {
 	// Chassis device exists but must NOT appear as a suggestion.
 	chassisID := uuid.New()
 	inv.Devices[chassisID] = &CaniDeviceType{
-		ID:           chassisID,
-		Name:         "chassis1",
-		HardwareType: "Chassis",
-		Parent:       rackID,
-		Rack:         rackID,
+		ID:     chassisID,
+		Name:   "chassis1",
+		Type:   "Chassis",
+		Parent: rackID,
+		Rack:   rackID,
 	}
 
 	orphan := OrphanItem{
-		ID:           uuid.New(),
-		Name:         "blade1",
-		Kind:         "device",
-		HardwareType: "blade",
+		ID:         uuid.New(),
+		Name:       "blade1",
+		Kind:       "device",
+		DeviceType: "blade",
 	}
 
 	suggestions := SuggestParents(inv, orphan, 10)
@@ -136,7 +136,7 @@ func TestSearchParentCandidates(t *testing.T) {
 	// Chassis device exists but must NOT appear in device search.
 	chassisID := uuid.New()
 	inv.Devices[chassisID] = &CaniDeviceType{
-		ID: chassisID, Name: "alpha-chassis", HardwareType: "Chassis",
+		ID: chassisID, Name: "alpha-chassis", Type: "Chassis",
 	}
 
 	// Search for device parents (racks only).

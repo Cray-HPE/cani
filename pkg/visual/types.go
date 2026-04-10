@@ -33,11 +33,13 @@ import (
 // ANSI color codes
 const (
 	ColorReset  = "\033[0m"
+	ColorRed    = "\033[31m"
 	ColorGreen  = "\033[32m"
 	ColorGray   = "\033[90m"
 	ColorYellow = "\033[33m"
 	ColorCyan   = "\033[36m"
 	ColorBold   = "\033[1m"
+	ColorWhite  = "\033[97m"
 )
 
 // RackSlot represents a single U position in a rack

@@ -28,10 +28,12 @@ package update
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/Cray-HPE/cani/internal/util/resolve"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
@@ -46,11 +48,9 @@ func newLocationCommand() *cobra.Command {
 	}
 
 	cmd.Flags().String("name", "", "New name")
-	cmd.Flags().String("status", "", "New status")
-	cmd.Flags().String("type", "", "Location type (site, building, floor, room)")
+	cmd.Flags().String("parent", "", "Parent location UUID or name")
 	cmd.Flags().String("description", "", "Description")
-	cmd.Flags().String("facility", "", "Facility name")
-	cmd.Flags().String("address", "", "Physical address")
+	cmd.Flags().String("content-types", "", "Comma-separated content types (e.g. device,module,rack)")
 
 	return cmd
 }
@@ -76,20 +76,22 @@ func updateLocation(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("name") {
 		loc.Name, _ = cmd.Flags().GetString("name")
 	}
-	if cmd.Flags().Changed("status") {
-		loc.Status, _ = cmd.Flags().GetString("status")
-	}
-	if cmd.Flags().Changed("type") {
-		loc.LocationType, _ = cmd.Flags().GetString("type")
+	if cmd.Flags().Changed("parent") {
+		parentArg, _ := cmd.Flags().GetString("parent")
+		if pid, err := uuid.Parse(parentArg); err == nil {
+			loc.Parent = pid
+		} else if pid, err := resolve.Location(inventory, parentArg); err == nil {
+			loc.Parent = pid
+		}
 	}
 	if cmd.Flags().Changed("description") {
 		loc.Description, _ = cmd.Flags().GetString("description")
 	}
-	if cmd.Flags().Changed("facility") {
-		loc.Facility, _ = cmd.Flags().GetString("facility")
-	}
-	if cmd.Flags().Changed("address") {
-		loc.PhysicalAddress, _ = cmd.Flags().GetString("address")
+	if cmd.Flags().Changed("content-types") {
+		raw, _ := cmd.Flags().GetString("content-types")
+		if raw != "" {
+			loc.ContentTypes = strings.Split(raw, ",")
+		}
 	}
 
 	// Apply generic --set pairs
@@ -115,16 +117,10 @@ func applySetToLocation(cmd *cobra.Command, loc *devicetypes.CaniLocationType) e
 		switch k {
 		case "name":
 			loc.Name = v
-		case "status":
-			loc.Status = v
-		case "location_type":
-			loc.LocationType = v
 		case "description":
 			loc.Description = v
-		case "facility":
-			loc.Facility = v
-		case "physical_address":
-			loc.PhysicalAddress = v
+		case "content_types":
+			loc.ContentTypes = strings.Split(v, ",")
 		default:
 			return fmt.Errorf("unknown location field: %s", k)
 		}

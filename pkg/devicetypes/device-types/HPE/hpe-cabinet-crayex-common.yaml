@@ -24,7 +24,7 @@
 ---
 manufacturer: HPE
 model: CrayEX Cabinet Environmental Controller
-hardware-type: cec
+type: cec
 slug: hpe-crayex-cabinet-environmental-controller
 interfaces:
   - name: Ethernet
@@ -33,7 +33,7 @@ interfaces:
 ---
 manufacturer: HPE
 model: CrayEX liquid-cooled cabinet chassis
-hardware-type: rack
+type: rack
 slug: hpe-crayex-chassis
 
 device-bays:
@@ -113,7 +113,7 @@ device-bays:
 ---
 manufacturer: HPE
 model: CrayEX Chassis Management Module
-hardware-type: cmm
+type: cmm
 slug: hpe-crayex-chassis-management-module
 interfaces:
   - name: Ethernet A

@@ -24,7 +24,7 @@
 ---
 manufacturer: HPE
 model: EX2000
-hardware-type: Cabinet
+type: cabinet
 slug: hpe-eia-cabinet
 
 device-bays:
@@ -45,7 +45,7 @@ provider_defaults:
 ---
 manufacturer: HPE
 model: Standard/EIA Chassis
-hardware-type: Chassis
+type: chassis
 slug: hpe-eia-chassis
 
 provider_defaults:

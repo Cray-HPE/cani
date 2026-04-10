@@ -24,7 +24,7 @@
 ---
 manufacturer: HPE
 model: EX4000
-hardware-type: rack
+type: rack
 slug: hpe-ex4000
 
 device-bays:
