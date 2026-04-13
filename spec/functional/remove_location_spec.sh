@@ -23,28 +23,24 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 
-# ── import command ──────────────────────────────────────────────────
+# ── remove location ────────────────────────────────────────────────
 
-Describe 'cani alpha import'
+Describe 'cani alpha remove location'
+  Before 'setup_crud_env'
 
-  Describe '--help'
-    It 'exits 0 and describes importing assets'
-      When call bin/cani alpha import --help
+  Describe 'valid name'
+    It 'removes a location by name'
+      When call bin/cani alpha remove location removable-location --force --config "$CANI_CONF"
       The status should equal 0
-      The stdout should include 'Import assets into the inventory'
+      The stderr should include 'Removed location'
     End
+  End
 
-    Describe 'flags'
-      Parameters:value --phase --no-color --step
-      It "has $1 flag"
-        When call bin/cani alpha import --help
-        The stdout should include "$1"
-      End
-    End
-
-    It 'lists provider subcommands'
-      When call bin/cani alpha import --help
-      The stdout should include 'example'
+  Describe 'invalid name'
+    It 'rejects an unknown name'
+      When call bin/cani alpha remove location nonexistent-name --force --config "$CANI_CONF"
+      The status should equal 1
+      The stderr should include 'no item found matching'
     End
   End
 

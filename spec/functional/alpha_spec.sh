@@ -2,7 +2,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2023, 2026 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -34,39 +34,12 @@ Describe 'cani alpha'
       The stdout should include 'unstable'
     End
 
-    It 'lists the add subcommand'
-      When call bin/cani alpha --help
-      The stdout should include 'add'
-    End
-
-    It 'lists the remove subcommand'
-      When call bin/cani alpha --help
-      The stdout should include 'remove'
-    End
-
-    It 'lists the update subcommand'
-      When call bin/cani alpha --help
-      The stdout should include 'update'
-    End
-
-    It 'lists the show subcommand'
-      When call bin/cani alpha --help
-      The stdout should include 'show'
-    End
-
-    It 'lists the import subcommand'
-      When call bin/cani alpha --help
-      The stdout should include 'import'
-    End
-
-    It 'lists the export subcommand'
-      When call bin/cani alpha --help
-      The stdout should include 'export'
-    End
-
-    It 'lists the serve subcommand'
-      When call bin/cani alpha --help
-      The stdout should include 'serve'
+    Describe 'subcommands'
+      Parameters:value add remove update show import export serve classify
+      It "lists the $1 subcommand"
+        When call bin/cani alpha --help
+        The stdout should include "$1"
+      End
     End
   End
 

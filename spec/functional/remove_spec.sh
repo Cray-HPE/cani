@@ -2,7 +2,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2023, 2026 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -36,30 +36,12 @@ Describe 'cani alpha remove'
       The stdout should include 'Remove items from the inventory'
     End
 
-    # subcommands
-    It 'lists the location subcommand'
-      When call bin/cani alpha remove --help
-      The stdout should include 'location'
-    End
-
-    It 'lists the rack subcommand'
-      When call bin/cani alpha remove --help
-      The stdout should include 'rack'
-    End
-
-    It 'lists the device subcommand'
-      When call bin/cani alpha remove --help
-      The stdout should include 'device'
-    End
-
-    It 'lists the module subcommand'
-      When call bin/cani alpha remove --help
-      The stdout should include 'module'
-    End
-
-    It 'lists the cable subcommand'
-      When call bin/cani alpha remove --help
-      The stdout should include 'cable'
+    Describe 'subcommands'
+      Parameters:value location rack device module cable
+      It "lists the $1 subcommand"
+        When call bin/cani alpha remove --help
+        The stdout should include "$1"
+      End
     End
 
     # persistent flags
@@ -132,32 +114,9 @@ Describe 'cani alpha remove'
   # ── argument validation ─────────────────────────────────────────
 
   Describe 'argument validation'
-    It 'remove location with no arg fails'
-      When call bin/cani alpha remove location
-      The status should equal 1
-      The stderr should include 'accepts 1 arg(s), received 0'
-    End
-
-    It 'remove rack with no arg fails'
-      When call bin/cani alpha remove rack
-      The status should equal 1
-      The stderr should include 'accepts 1 arg(s), received 0'
-    End
-
-    It 'remove device with no arg fails'
-      When call bin/cani alpha remove device
-      The status should equal 1
-      The stderr should include 'accepts 1 arg(s), received 0'
-    End
-
-    It 'remove module with no arg fails'
-      When call bin/cani alpha remove module
-      The status should equal 1
-      The stderr should include 'accepts 1 arg(s), received 0'
-    End
-
-    It 'remove cable with no arg fails'
-      When call bin/cani alpha remove cable
+    Parameters:value location rack device module cable
+    It "remove $1 with no arg fails"
+      When call bin/cani alpha remove "$1"
       The status should equal 1
       The stderr should include 'accepts 1 arg(s), received 0'
     End

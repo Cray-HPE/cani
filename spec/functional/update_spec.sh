@@ -2,7 +2,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2023, 2026 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -36,36 +36,20 @@ Describe 'cani alpha update'
       The stdout should include 'Update items in the inventory'
     End
 
-    # subcommands
-    It 'lists the location subcommand'
-      When call bin/cani alpha update --help
-      The stdout should include 'location'
+    Describe 'subcommands'
+      Parameters:value location rack device module cable orphans
+      It "lists the $1 subcommand"
+        When call bin/cani alpha update --help
+        The stdout should include "$1"
+      End
     End
 
-    It 'lists the rack subcommand'
-      When call bin/cani alpha update --help
-      The stdout should include 'rack'
-    End
-
-    It 'lists the device subcommand'
-      When call bin/cani alpha update --help
-      The stdout should include 'device'
-    End
-
-    It 'lists the module subcommand'
-      When call bin/cani alpha update --help
-      The stdout should include 'module'
-    End
-
-    It 'lists the cable subcommand'
-      When call bin/cani alpha update --help
-      The stdout should include 'cable'
-    End
-
-    # persistent flags
-    It 'has --set flag'
-      When call bin/cani alpha update --help
-      The stdout should include '--set'
+    Describe 'persistent flags'
+      Parameters:value --set --tag --metadata
+      It "has $1 flag"
+        When call bin/cani alpha update --help
+        The stdout should include "$1"
+      End
     End
   End
 
@@ -83,24 +67,12 @@ Describe 'cani alpha update'
       The stdout should include '<uuid-or-name>'
     End
 
-    It 'has --name flag'
-      When call bin/cani alpha update location --help
-      The stdout should include '--name'
-    End
-
-    It 'has --content-types flag'
-      When call bin/cani alpha update location --help
-      The stdout should include '--content-types'
-    End
-
-    It 'has --parent flag'
-      When call bin/cani alpha update location --help
-      The stdout should include '--parent'
-    End
-
-    It 'has --description flag'
-      When call bin/cani alpha update location --help
-      The stdout should include '--description'
+    Describe 'flags'
+      Parameters:value --name --content-types --parent --description
+      It "has $1 flag"
+        When call bin/cani alpha update location --help
+        The stdout should include "$1"
+      End
     End
   End
 
@@ -113,29 +85,12 @@ Describe 'cani alpha update'
       The stdout should include 'Update a rack'
     End
 
-    It 'has --name flag'
-      When call bin/cani alpha update rack --help
-      The stdout should include '--name'
-    End
-
-    It 'has --status flag'
-      When call bin/cani alpha update rack --help
-      The stdout should include '--status'
-    End
-
-    It 'has --role flag'
-      When call bin/cani alpha update rack --help
-      The stdout should include '--role'
-    End
-
-    It 'has --description flag'
-      When call bin/cani alpha update rack --help
-      The stdout should include '--description'
-    End
-
-    It 'has --u-height flag'
-      When call bin/cani alpha update rack --help
-      The stdout should include '--u-height'
+    Describe 'flags'
+      Parameters:value --name --status --role --description --u-height --location
+      It "has $1 flag"
+        When call bin/cani alpha update rack --help
+        The stdout should include "$1"
+      End
     End
   End
 
@@ -148,34 +103,12 @@ Describe 'cani alpha update'
       The stdout should include 'Update a device'
     End
 
-    It 'has --name flag'
-      When call bin/cani alpha update device --help
-      The stdout should include '--name'
-    End
-
-    It 'has --status flag'
-      When call bin/cani alpha update device --help
-      The stdout should include '--status'
-    End
-
-    It 'has --role flag'
-      When call bin/cani alpha update device --help
-      The stdout should include '--role'
-    End
-
-    It 'has --description flag'
-      When call bin/cani alpha update device --help
-      The stdout should include '--description'
-    End
-
-    It 'has --position flag'
-      When call bin/cani alpha update device --help
-      The stdout should include '--position'
-    End
-
-    It 'has --face flag'
-      When call bin/cani alpha update device --help
-      The stdout should include '--face'
+    Describe 'flags'
+      Parameters:value --name --status --role --description --position --face --swap --parent --nid --alias
+      It "has $1 flag"
+        When call bin/cani alpha update device --help
+        The stdout should include "$1"
+      End
     End
   End
 
@@ -188,29 +121,12 @@ Describe 'cani alpha update'
       The stdout should include 'Update a module'
     End
 
-    It 'has --name flag'
-      When call bin/cani alpha update module --help
-      The stdout should include '--name'
-    End
-
-    It 'has --status flag'
-      When call bin/cani alpha update module --help
-      The stdout should include '--status'
-    End
-
-    It 'has --role flag'
-      When call bin/cani alpha update module --help
-      The stdout should include '--role'
-    End
-
-    It 'has --description flag'
-      When call bin/cani alpha update module --help
-      The stdout should include '--description'
-    End
-
-    It 'has --bay flag'
-      When call bin/cani alpha update module --help
-      The stdout should include '--bay'
+    Describe 'flags'
+      Parameters:value --name --status --role --description --bay
+      It "has $1 flag"
+        When call bin/cani alpha update module --help
+        The stdout should include "$1"
+      End
     End
   End
 
@@ -223,56 +139,41 @@ Describe 'cani alpha update'
       The stdout should include 'Update a cable'
     End
 
-    It 'has --label flag'
-      When call bin/cani alpha update cable --help
-      The stdout should include '--label'
+    Describe 'flags'
+      Parameters:value --label --status --color --description
+      It "has $1 flag"
+        When call bin/cani alpha update cable --help
+        The stdout should include "$1"
+      End
+    End
+  End
+
+  # ── update orphans help & flags ─────────────────────────────────
+
+  Describe 'orphans --help'
+    It 'exits 0 and describes assigning orphans'
+      When call bin/cani alpha update orphans --help
+      The status should equal 0
+      The stdout should include 'orphan'
     End
 
-    It 'has --status flag'
-      When call bin/cani alpha update cable --help
-      The stdout should include '--status'
+    It 'has --dry-run flag'
+      When call bin/cani alpha update orphans --help
+      The stdout should include '--dry-run'
     End
 
-    It 'has --color flag'
-      When call bin/cani alpha update cable --help
-      The stdout should include '--color'
-    End
-
-    It 'has --description flag'
-      When call bin/cani alpha update cable --help
-      The stdout should include '--description'
+    It 'has --apply-plan flag'
+      When call bin/cani alpha update orphans --help
+      The stdout should include '--apply-plan'
     End
   End
 
   # ── argument validation ─────────────────────────────────────────
 
   Describe 'argument validation'
-    It 'update location with no arg fails'
-      When call bin/cani alpha update location
-      The status should equal 1
-      The stderr should include 'accepts 1 arg(s), received 0'
-    End
-
-    It 'update rack with no arg fails'
-      When call bin/cani alpha update rack
-      The status should equal 1
-      The stderr should include 'accepts 1 arg(s), received 0'
-    End
-
-    It 'update device with no arg fails'
-      When call bin/cani alpha update device
-      The status should equal 1
-      The stderr should include 'accepts 1 arg(s), received 0'
-    End
-
-    It 'update module with no arg fails'
-      When call bin/cani alpha update module
-      The status should equal 1
-      The stderr should include 'accepts 1 arg(s), received 0'
-    End
-
-    It 'update cable with no arg fails'
-      When call bin/cani alpha update cable
+    Parameters:value location rack device module cable
+    It "update $1 with no arg fails"
+      When call bin/cani alpha update "$1"
       The status should equal 1
       The stderr should include 'accepts 1 arg(s), received 0'
     End

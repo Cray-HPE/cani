@@ -200,7 +200,7 @@ utest: bin ## Run unit tests
 .PHONY: ftest
 ftest: bin ## Run functional tests
 	$(INFO) "running functional tests"
-	./spec/support/bin/cani_integrate.sh functional
+	shellspec ./spec/functional -f tap
 	$(OK) "functional tests passed"
 
 .PHONY: itest

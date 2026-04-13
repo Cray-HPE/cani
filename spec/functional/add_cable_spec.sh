@@ -23,28 +23,24 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 
-# ── import command ──────────────────────────────────────────────────
+# ── add cable ───────────────────────────────────────────────────────
 
-Describe 'cani alpha import'
+Describe 'cani alpha add cable'
 
-  Describe '--help'
-    It 'exits 0 and describes importing assets'
-      When call bin/cani alpha import --help
+  Describe 'valid slug'
+    It 'adds a cable with a known slug'
+      When call bin/cani alpha add cable hpe-cat5-rj45-4-3m-cable --config "$CANI_CONF"
       The status should equal 0
-      The stdout should include 'Import assets into the inventory'
+      The stderr should include 'Added cable'
+      The stderr should include '1 cable(s) added'
     End
+  End
 
-    Describe 'flags'
-      Parameters:value --phase --no-color --step
-      It "has $1 flag"
-        When call bin/cani alpha import --help
-        The stdout should include "$1"
-      End
-    End
-
-    It 'lists provider subcommands'
-      When call bin/cani alpha import --help
-      The stdout should include 'example'
+  Describe 'invalid slug'
+    It 'rejects an unknown slug'
+      When call bin/cani alpha add cable nonexistent-slug
+      The status should equal 1
+      The stderr should include 'unknown cable slug or part number'
     End
   End
 

@@ -1,0 +1,63 @@
+# A map of settings for each provider
+providers:
+  example:
+    import: {}
+    export: {}
+  ochami:
+    import: {}
+    export: {}
+  redfish:
+    import:
+      root: ""
+    export: {}
+  csm:
+    # Path to PEM-encoded CA certificate
+    ca_cert: ""
+    # Disable TLS certificate verification
+    insecure: false
+    # CIDR used by Kubernetes for pods
+    k8s_pods_cidr: 10.32.0.0/12
+    # CIDR used by Kubernetes for services
+    k8s_services_cidr: 10.16.0.0/12
+    # FQDN or host:port of the API gateway
+    provider_host: ""
+    # Kubernetes secret name for auth credentials
+    secret_name: admin-client-auth
+    # Use simulation mode (localhost:8443, no auth)
+    use_simulation: false
+    import:
+      sls_file: ""
+      smd_file: ""
+    export: {}
+  hpcm:
+    import:
+      # Path to HPCM cm.config file
+      cm_config_file: ""
+      # Path to HPCM node JSON file
+      node_json_file: ""
+    export: {}
+  nautobot:
+    default_location: "" # Default location for devices
+    default_role: "" # Default role for devices
+    default_status: "" # Default status for devices
+    token: "" # API token for authentication (use --token to override)
+    url: http://localhost:8081/api # Base URL of the Nautobot instance
+    import: {} # Import command options
+    export:
+      create_device_types: true # Create missing device types in Nautobot
+      create_location_types: true # Create missing location types in Nautobot
+      create_locations: true # Create missing locations in Nautobot
+      create_module_types: true # Create missing module types in Nautobot
+      create_roles: true # Create missing roles in Nautobot
+      create_statuses: true # Create missing statuses in Nautobot
+      dry_run: false # Log planned actions without making API calls
+      merge: false # Merge with existing devices instead of skipping conflicts
+datastore: .cani/canidb.json # Path to the datastore file
+debug: false # Enable debug logging
+# Local directories with extra hardware types
+types_dirs: []
+# Remote git repos with extra hardware types
+types_repos:
+  - https://github.com/netbox-community/devicetype-library.git
+types_repo_clone: false # Clone types repos that are not yet cached locally
+types_repo_pull: false # Pull latest from types repos on startup
