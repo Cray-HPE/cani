@@ -262,9 +262,11 @@ func TestGetCSMMetaString(t *testing.T) {
 		{
 			name: "passing test with valid key",
 			dev: &devicetypes.CaniDeviceType{
-				ProviderMetadata: map[string]any{
-					"csm": map[string]any{
-						"role": "Compute",
+				ObjectMeta: devicetypes.ObjectMeta{
+					ProviderMetadata: map[string]any{
+						"csm": map[string]any{
+							"role": "Compute",
+						},
 					},
 				},
 			},
