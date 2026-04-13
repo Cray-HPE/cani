@@ -51,9 +51,11 @@ func TestPrintSummary(t *testing.T) {
 			inv: devicetypes.Inventory{
 				Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
 					deviceID: {
-						ID:     deviceID,
-						Type:   devicetypes.TypeNode,
-						Status: "staged",
+						ID:   deviceID,
+						Type: devicetypes.TypeNode,
+						ObjectMeta: devicetypes.ObjectMeta{
+							Status: "staged",
+						},
 					},
 				},
 			},

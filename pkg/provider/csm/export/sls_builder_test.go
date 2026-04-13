@@ -18,9 +18,11 @@ func TestExtractXname(t *testing.T) {
 		{
 			name: "passing test with valid xname",
 			dev: &devicetypes.CaniDeviceType{
-				ProviderMetadata: map[string]any{
-					"csm": map[string]any{
-						"xname": "x9000c1s0b0n0",
+				ObjectMeta: devicetypes.ObjectMeta{
+					ProviderMetadata: map[string]any{
+						"csm": map[string]any{
+							"xname": "x9000c1s0b0n0",
+						},
 					},
 				},
 			},
@@ -52,16 +54,20 @@ func TestCaniStatus(t *testing.T) {
 		{
 			name: "passing test staged node returns provisioned",
 			dev: &devicetypes.CaniDeviceType{
-				Type:   devicetypes.TypeNode,
-				Status: "staged",
+				Type: devicetypes.TypeNode,
+				ObjectMeta: devicetypes.ObjectMeta{
+					Status: "staged",
+				},
 			},
 			expected: "provisioned",
 		},
 		{
 			name: "failing test non-staged node returns empty",
 			dev: &devicetypes.CaniDeviceType{
-				Type:   devicetypes.TypeNode,
-				Status: "active",
+				Type: devicetypes.TypeNode,
+				ObjectMeta: devicetypes.ObjectMeta{
+					Status: "active",
+				},
 			},
 			expected: "empty",
 		},
@@ -288,16 +294,18 @@ func TestBuildNewNodeEntry(t *testing.T) {
 		{
 			name: "passing test builds node entry with class",
 			dev: &devicetypes.CaniDeviceType{
-				Type:   devicetypes.TypeNode,
-				Status: "staged",
-				Role:   "Compute",
-				ProviderMetadata: map[string]any{
-					"csm": map[string]any{
-						"xname":   "x9000c1s0b0n0",
-						"class":   "Mountain",
-						"nid":     42,
-						"role":    "Compute",
-						"aliases": []string{"nid001"},
+				Type: devicetypes.TypeNode,
+				ObjectMeta: devicetypes.ObjectMeta{
+					Status: "staged",
+					Role:   "Compute",
+					ProviderMetadata: map[string]any{
+						"csm": map[string]any{
+							"xname":   "x9000c1s0b0n0",
+							"class":   "Mountain",
+							"nid":     42,
+							"role":    "Compute",
+							"aliases": []string{"nid001"},
+						},
 					},
 				},
 			},
@@ -308,11 +316,13 @@ func TestBuildNewNodeEntry(t *testing.T) {
 		{
 			name: "failing test builds entry with empty class",
 			dev: &devicetypes.CaniDeviceType{
-				Type:   devicetypes.TypeNode,
-				Status: "staged",
-				ProviderMetadata: map[string]any{
-					"csm": map[string]any{
-						"xname": "x9000c1s0b0n0",
+				Type: devicetypes.TypeNode,
+				ObjectMeta: devicetypes.ObjectMeta{
+					Status: "staged",
+					ProviderMetadata: map[string]any{
+						"csm": map[string]any{
+							"xname": "x9000c1s0b0n0",
+						},
 					},
 				},
 			},
@@ -350,12 +360,14 @@ func TestBuildNewCabinetEntry(t *testing.T) {
 		{
 			name: "passing test builds cabinet entry",
 			dev: &devicetypes.CaniDeviceType{
-				Type:   devicetypes.TypeCabinet,
-				Status: "staged",
-				ProviderMetadata: map[string]any{
-					"csm": map[string]any{
-						"xname": "x9000",
-						"class": "Mountain",
+				Type: devicetypes.TypeCabinet,
+				ObjectMeta: devicetypes.ObjectMeta{
+					Status: "staged",
+					ProviderMetadata: map[string]any{
+						"csm": map[string]any{
+							"xname": "x9000",
+							"class": "Mountain",
+						},
 					},
 				},
 			},
@@ -366,11 +378,13 @@ func TestBuildNewCabinetEntry(t *testing.T) {
 		{
 			name: "failing test builds cabinet with empty class",
 			dev: &devicetypes.CaniDeviceType{
-				Type:   devicetypes.TypeCabinet,
-				Status: "staged",
-				ProviderMetadata: map[string]any{
-					"csm": map[string]any{
-						"xname": "x9000",
+				Type: devicetypes.TypeCabinet,
+				ObjectMeta: devicetypes.ObjectMeta{
+					Status: "staged",
+					ProviderMetadata: map[string]any{
+						"csm": map[string]any{
+							"xname": "x9000",
+						},
 					},
 				},
 			},
@@ -401,10 +415,10 @@ func TestFindParentDevice(t *testing.T) {
 	deviceID := uuid.New()
 
 	tests := []struct {
-		name     string
-		xname    string
-		inv      devicetypes.Inventory
-		wantNil  bool
+		name    string
+		xname   string
+		inv     devicetypes.Inventory
+		wantNil bool
 	}{
 		{
 			name:  "passing test finds parent by xname prefix",
@@ -413,9 +427,11 @@ func TestFindParentDevice(t *testing.T) {
 				Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
 					deviceID: {
 						ID: deviceID,
-						ProviderMetadata: map[string]any{
-							"csm": map[string]any{
-								"xname": "x9000c1",
+						ObjectMeta: devicetypes.ObjectMeta{
+							ProviderMetadata: map[string]any{
+								"csm": map[string]any{
+									"xname": "x9000c1",
+								},
 							},
 						},
 					},
