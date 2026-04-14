@@ -417,16 +417,16 @@ func TestDeviceWithoutPosition(t *testing.T) {
 	inv := &devicetypes.Inventory{
 		Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
 			rackID: {
-				ID:           rackID,
-				Name:         "Test-Rack",
-				Type: devicetypes.Type("rack"),
-				Children:     []uuid.UUID{serverID},
+				ID:       rackID,
+				Name:     "Test-Rack",
+				Type:     devicetypes.Type("rack"),
+				Children: []uuid.UUID{serverID},
 			},
 			serverID: {
-				ID:           serverID,
-				Name:         "Unpositioned-Server",
-				Type: devicetypes.Type("server"),
-				Parent:       rackID,
+				ID:     serverID,
+				Name:   "Unpositioned-Server",
+				Type:   devicetypes.Type("server"),
+				Parent: rackID,
 				// No RackPosition set
 			},
 		},

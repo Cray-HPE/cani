@@ -231,9 +231,9 @@ func TestPrintDevice(t *testing.T) {
 		{
 			testName: "Passing test",
 			device: &devicetypes.CaniDeviceType{
-				Name:         "server-01",
-				Type: devicetypes.Type("server"),
-				Model:        "ProLiant DL360",
+				Name:  "server-01",
+				Type:  devicetypes.Type("server"),
+				Model: "ProLiant DL360",
 			},
 			inv:      &devicetypes.Inventory{},
 			expected: "🖥️  server-01 (server) - ProLiant DL360",

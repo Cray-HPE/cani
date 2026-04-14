@@ -30,11 +30,13 @@ func TestValidateSLSHardware(t *testing.T) {
 			inv: devicetypes.Inventory{
 				Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
 					deviceID: {
-						ID:     deviceID,
-						Status: "staged",
-						ProviderMetadata: map[string]any{
-							"csm": map[string]any{
-								"xname": "x9000c1s0b0n0",
+						ID: deviceID,
+						ObjectMeta: devicetypes.ObjectMeta{
+							Status: "staged",
+							ProviderMetadata: map[string]any{
+								"csm": map[string]any{
+									"xname": "x9000c1s0b0n0",
+								},
 							},
 						},
 					},
@@ -48,11 +50,13 @@ func TestValidateSLSHardware(t *testing.T) {
 			inv: devicetypes.Inventory{
 				Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
 					deviceID: {
-						ID:     deviceID,
-						Status: "staged",
-						ProviderMetadata: map[string]any{
-							"csm": map[string]any{
-								"xname": "x9000c1s0b0n0",
+						ID: deviceID,
+						ObjectMeta: devicetypes.ObjectMeta{
+							Status: "staged",
+							ProviderMetadata: map[string]any{
+								"csm": map[string]any{
+									"xname": "x9000c1s0b0n0",
+								},
 							},
 						},
 					},

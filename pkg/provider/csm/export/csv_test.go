@@ -28,9 +28,11 @@ func TestExportCSV(t *testing.T) {
 						ID:   deviceID,
 						Name: "nid001",
 						Type: devicetypes.TypeNode,
-						ProviderMetadata: map[string]any{
-							"csm": map[string]any{
-								"role": "Compute",
+						ObjectMeta: devicetypes.ObjectMeta{
+							ProviderMetadata: map[string]any{
+								"csm": map[string]any{
+									"role": "Compute",
+								},
 							},
 						},
 					},
@@ -260,9 +262,11 @@ func TestGetCSMMetaString(t *testing.T) {
 		{
 			name: "passing test with valid key",
 			dev: &devicetypes.CaniDeviceType{
-				ProviderMetadata: map[string]any{
-					"csm": map[string]any{
-						"role": "Compute",
+				ObjectMeta: devicetypes.ObjectMeta{
+					ProviderMetadata: map[string]any{
+						"csm": map[string]any{
+							"role": "Compute",
+						},
 					},
 				},
 			},
@@ -296,9 +300,11 @@ func TestGetCSMMetaFirstAlias(t *testing.T) {
 		{
 			name: "passing test with string slice aliases",
 			dev: &devicetypes.CaniDeviceType{
-				ProviderMetadata: map[string]any{
-					"csm": map[string]any{
-						"aliases": []string{"nid001", "nid002"},
+				ObjectMeta: devicetypes.ObjectMeta{
+					ProviderMetadata: map[string]any{
+						"csm": map[string]any{
+							"aliases": []string{"nid001", "nid002"},
+						},
 					},
 				},
 			},

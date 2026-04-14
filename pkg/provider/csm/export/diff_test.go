@@ -8,11 +8,11 @@ import (
 
 func TestDiffHardware(t *testing.T) {
 	tests := []struct {
-		name          string
-		expected      map[string]import_.SlsHardware
-		current       map[string]import_.SlsHardware
-		wantAdded     int
-		wantChanged   int
+		name        string
+		expected    map[string]import_.SlsHardware
+		current     map[string]import_.SlsHardware
+		wantAdded   int
+		wantChanged int
 	}{
 		{
 			name: "passing test adds new entry with CANI metadata",

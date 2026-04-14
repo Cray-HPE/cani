@@ -14,8 +14,8 @@ func TestExportFullMetadata(t *testing.T) {
 
 	nodeID := uuid.New()
 	inv.Devices[nodeID] = &devicetypes.CaniDeviceType{
-		ID:           nodeID,
-		Name:         "node-fallback",
+		ID:   nodeID,
+		Name: "node-fallback",
 		Type: devicetypes.Type("node"),
 		ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{
 			"ochami": map[string]any{
@@ -31,8 +31,8 @@ func TestExportFullMetadata(t *testing.T) {
 
 	bmcID := uuid.New()
 	inv.Devices[bmcID] = &devicetypes.CaniDeviceType{
-		ID:           bmcID,
-		Name:         "bmc-fallback",
+		ID:   bmcID,
+		Name: "bmc-fallback",
 		Type: devicetypes.Type("bmc"),
 		ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{
 			"ochami": map[string]any{
@@ -73,8 +73,8 @@ func TestExportPartialMetadata(t *testing.T) {
 
 	nodeID := uuid.New()
 	inv.Devices[nodeID] = &devicetypes.CaniDeviceType{
-		ID:           nodeID,
-		Name:         "node-1",
+		ID:   nodeID,
+		Name: "node-1",
 		Type: devicetypes.Type("node"),
 		ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{
 			"ochami": map[string]any{
@@ -102,8 +102,8 @@ func TestExportFallbackToName(t *testing.T) {
 
 	nodeID := uuid.New()
 	inv.Devices[nodeID] = &devicetypes.CaniDeviceType{
-		ID:           nodeID,
-		Name:         "my-node-name",
+		ID:   nodeID,
+		Name: "my-node-name",
 		Type: devicetypes.Type("node"),
 		ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{
 			"ochami": map[string]any{
@@ -146,7 +146,7 @@ func TestExportSorting(t *testing.T) {
 	for _, xname := range []string{"x3000c0s3b0n0", "x3000c0s1b0n0", "x3000c0s2b0n0"} {
 		id := uuid.New()
 		inv.Devices[id] = &devicetypes.CaniDeviceType{
-			ID:           id,
+			ID:   id,
 			Type: devicetypes.Type("node"),
 			ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{
 				"ochami": map[string]any{"xname": xname},
@@ -157,7 +157,7 @@ func TestExportSorting(t *testing.T) {
 	for _, xname := range []string{"x3000c0s3b0", "x3000c0s1b0", "x3000c0s2b0"} {
 		id := uuid.New()
 		inv.Devices[id] = &devicetypes.CaniDeviceType{
-			ID:           id,
+			ID:   id,
 			Type: devicetypes.Type("bmc"),
 			ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{
 				"ochami": map[string]any{"xname": xname},
@@ -186,8 +186,8 @@ func TestExportCsmFallback(t *testing.T) {
 	// Node with only CSM metadata — no ochami sub-map.
 	nodeID := uuid.New()
 	inv.Devices[nodeID] = &devicetypes.CaniDeviceType{
-		ID:           nodeID,
-		Name:         "nid001000",
+		ID:   nodeID,
+		Name: "nid001000",
 		Type: devicetypes.Type("node"),
 		ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{
 			"csm": map[string]any{
@@ -224,8 +224,8 @@ func TestExportOchamiOverridesCsm(t *testing.T) {
 	// Node with both CSM and ochami metadata — ochami should win.
 	nodeID := uuid.New()
 	inv.Devices[nodeID] = &devicetypes.CaniDeviceType{
-		ID:           nodeID,
-		Name:         "fallback",
+		ID:   nodeID,
+		Name: "fallback",
 		Type: devicetypes.Type("node"),
 		ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{
 			"csm": map[string]any{
@@ -270,8 +270,8 @@ func TestExportSkipsNonNodeNonBMC(t *testing.T) {
 
 	chassisID := uuid.New()
 	inv.Devices[chassisID] = &devicetypes.CaniDeviceType{
-		ID:           chassisID,
-		Name:         "chassis-1",
+		ID:   chassisID,
+		Name: "chassis-1",
 		Type: devicetypes.Type("chassis"),
 		ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{
 			"ochami": map[string]any{"xname": "x3000c0"},

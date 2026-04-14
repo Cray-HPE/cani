@@ -345,9 +345,11 @@ func TestFindDeviceByXname(t *testing.T) {
 				Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
 					deviceID: {
 						ID: deviceID,
-						ProviderMetadata: map[string]any{
-							"csm": map[string]any{
-								"xname": "x9000",
+						ObjectMeta: devicetypes.ObjectMeta{
+							ProviderMetadata: map[string]any{
+								"csm": map[string]any{
+									"xname": "x9000",
+								},
 							},
 						},
 					},

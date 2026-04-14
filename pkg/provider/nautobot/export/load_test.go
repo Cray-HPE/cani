@@ -46,10 +46,10 @@ func TestGenerateDeviceNames(t *testing.T) {
 				return &devicetypes.Inventory{
 					Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
 						id: {
-							ID:           id,
-							Name:         "",
-							Type: devicetypes.Type("node"),
-							Serial:       "SN123",
+							ID:     id,
+							Name:   "",
+							Type:   devicetypes.Type("node"),
+							Serial: "SN123",
 						},
 					},
 				}
@@ -64,8 +64,8 @@ func TestGenerateDeviceNames(t *testing.T) {
 				return &devicetypes.Inventory{
 					Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
 						id: {
-							ID:           id,
-							Name:         "my-server",
+							ID:   id,
+							Name: "my-server",
 							Type: devicetypes.Type("node"),
 						},
 					},

@@ -194,21 +194,7 @@ test: utest ftest itest # etest
 .PHONY: utest
 utest: bin ## Run unit tests
 	$(INFO) "running unit tests"
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go test -cover \
-	    $(MODULE)/internal/config \
-	    $(MODULE)/pkg/datastores \
-	    $(MODULE)/pkg/devicetypes \
-	    $(MODULE)/pkg/provider/csm/client \
-			$(MODULE)/pkg/provider/csm/import \
-  		$(MODULE)/pkg/provider/csm/transform \
-	    $(MODULE)/pkg/provider/example/export \
-	    $(MODULE)/pkg/provider/example/import \
-	    $(MODULE)/pkg/provider/example/transform \
-	    $(MODULE)/pkg/provider/nautobot/export \
-	    $(MODULE)/pkg/provider/ochami/transform \
-	    $(MODULE)/pkg/provider/redfish/import \
-	    $(MODULE)/pkg/provider/redfish/transform \
-	    $(MODULE)/pkg/visual
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go test -cover ./...
 	$(OK) "unit tests passed"
 
 .PHONY: ftest
