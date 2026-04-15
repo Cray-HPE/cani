@@ -23,28 +23,25 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 
-# ── import command ──────────────────────────────────────────────────
+# ── classify command ────────────────────────────────────────────────
 
-Describe 'cani alpha import'
+Describe 'cani alpha classify'
+
+  # ── help & flags ────────────────────────────────────────────────
 
   Describe '--help'
-    It 'exits 0 and describes importing assets'
-      When call bin/cani alpha import --help
+    It 'exits 0 and shows the description'
+      When call bin/cani alpha classify --help
       The status should equal 0
-      The stdout should include 'Import assets into the inventory'
+      The stdout should include 'classify'
     End
 
     Describe 'flags'
-      Parameters:value --phase --no-color --step
+      Parameters:value --auto --auto-score --filter
       It "has $1 flag"
-        When call bin/cani alpha import --help
+        When call bin/cani alpha classify --help
         The stdout should include "$1"
       End
-    End
-
-    It 'lists provider subcommands'
-      When call bin/cani alpha import --help
-      The stdout should include 'example'
     End
   End
 

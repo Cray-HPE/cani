@@ -23,28 +23,24 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 
-# ── import command ──────────────────────────────────────────────────
+# ── add device ──────────────────────────────────────────────────────
 
-Describe 'cani alpha import'
+Describe 'cani alpha add device'
 
-  Describe '--help'
-    It 'exits 0 and describes importing assets'
-      When call bin/cani alpha import --help
+  Describe 'valid slug'
+    It 'adds a device with a known slug'
+      When call bin/cani alpha add device cray-xd225v --config "$CANI_CONF"
       The status should equal 0
-      The stdout should include 'Import assets into the inventory'
+      The stderr should include 'Added device'
+      The stderr should include 'device(s) added'
     End
+  End
 
-    Describe 'flags'
-      Parameters:value --phase --no-color --step
-      It "has $1 flag"
-        When call bin/cani alpha import --help
-        The stdout should include "$1"
-      End
-    End
-
-    It 'lists provider subcommands'
-      When call bin/cani alpha import --help
-      The stdout should include 'example'
+  Describe 'invalid slug'
+    It 'rejects an unknown slug'
+      When call bin/cani alpha add device nonexistent-slug
+      The status should equal 1
+      The stderr should include 'unknown device slug or part number: nonexistent-slug'
     End
   End
 

@@ -106,6 +106,17 @@ setup_populated_env() {
   cp "$FIXTURES/test-rack-inventory.json" "$CANI_DS"
 }
 
+# Create a test environment pre-loaded with the CRUD inventory fixture.
+# Contains: test-site (location), removable-location, test-rack, test-device,
+#           test-module, test-cable, and an interface.
+#shellcheck disable=SC2317
+setup_crud_env() {
+  rm -rf "$CANI_DIR"
+  mkdir -p "$CANI_DIR"
+  cp "$FIXTURES/cani/configs/test_config.yml" "$CANI_CONF"
+  cp "$FIXTURES/cani/crud_inventory.json" "$CANI_DS"
+}
+
 # Remove the entire test directory.
 #shellcheck disable=SC2317
 teardown_test_env() {

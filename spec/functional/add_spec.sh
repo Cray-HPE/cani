@@ -2,7 +2,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2023, 2026 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -36,56 +36,20 @@ Describe 'cani alpha add'
       The stdout should include 'Add items to the inventory'
     End
 
-    # subcommands
-    It 'lists the location subcommand'
-      When call bin/cani alpha add --help
-      The stdout should include 'location'
+    Describe 'subcommands'
+      Parameters:value location rack device module cable metadata
+      It "lists the $1 subcommand"
+        When call bin/cani alpha add --help
+        The stdout should include "$1"
+      End
     End
 
-    It 'lists the rack subcommand'
-      When call bin/cani alpha add --help
-      The stdout should include 'rack'
-    End
-
-    It 'lists the device subcommand'
-      When call bin/cani alpha add --help
-      The stdout should include 'device'
-    End
-
-    It 'lists the module subcommand'
-      When call bin/cani alpha add --help
-      The stdout should include 'module'
-    End
-
-    It 'lists the cable subcommand'
-      When call bin/cani alpha add --help
-      The stdout should include 'cable'
-    End
-
-    # persistent flags
-    It 'has --auto / -a flag'
-      When call bin/cani alpha add --help
-      The stdout should include '--auto'
-    End
-
-    It 'has --accept / -y flag'
-      When call bin/cani alpha add --help
-      The stdout should include '--accept'
-    End
-
-    It 'has --list-supported-types / -L flag'
-      When call bin/cani alpha add --help
-      The stdout should include '--list-supported-types'
-    End
-
-    It 'has --qty / -q flag'
-      When call bin/cani alpha add --help
-      The stdout should include '--qty'
-    End
-
-    It 'has --parent / -p flag'
-      When call bin/cani alpha add --help
-      The stdout should include '--parent'
+    Describe 'persistent flags'
+      Parameters:value --auto --accept --list-supported-types --qty --parent --prefix --start --pad-width --tag --metadata --status --serial
+      It "has $1 flag"
+        When call bin/cani alpha add --help
+        The stdout should include "$1"
+      End
     End
   End
 
@@ -98,14 +62,12 @@ Describe 'cani alpha add'
       The stdout should include 'Add a location'
     End
 
-    It 'has --type flag'
-      When call bin/cani alpha add location --help
-      The stdout should include '--type'
-    End
-
-    It 'has --parent flag'
-      When call bin/cani alpha add location --help
-      The stdout should include '--parent'
+    Describe 'flags'
+      Parameters:value --type --parent --description --content-types
+      It "has $1 flag"
+        When call bin/cani alpha add location --help
+        The stdout should include "$1"
+      End
     End
   End
 
@@ -133,19 +95,12 @@ Describe 'cani alpha add'
       The stdout should include 'Add one or more devices'
     End
 
-    It 'has --rack flag'
-      When call bin/cani alpha add device --help
-      The stdout should include '--rack'
-    End
-
-    It 'has --position flag'
-      When call bin/cani alpha add device --help
-      The stdout should include '--position'
-    End
-
-    It 'has --face flag'
-      When call bin/cani alpha add device --help
-      The stdout should include '--face'
+    Describe 'flags'
+      Parameters:value --rack --position --face --zone --dry-run --location
+      It "has $1 flag"
+        When call bin/cani alpha add device --help
+        The stdout should include "$1"
+      End
     End
   End
 
@@ -158,14 +113,12 @@ Describe 'cani alpha add'
       The stdout should include 'Add one or more modules'
     End
 
-    It 'has --device flag'
-      When call bin/cani alpha add module --help
-      The stdout should include '--device'
-    End
-
-    It 'has --bay flag'
-      When call bin/cani alpha add module --help
-      The stdout should include '--bay'
+    Describe 'flags'
+      Parameters:value --device --bay --bay-filter --dry-run --location
+      It "has $1 flag"
+        When call bin/cani alpha add module --help
+        The stdout should include "$1"
+      End
     End
   End
 
@@ -178,34 +131,49 @@ Describe 'cani alpha add'
       The stdout should include 'Add one or more cables'
     End
 
-    It 'has --a-device flag'
-      When call bin/cani alpha add cable --help
-      The stdout should include '--a-device'
+    Describe 'flags'
+      Parameters:value --a-device --a-port --b-device --b-port --label --color
+      It "has $1 flag"
+        When call bin/cani alpha add cable --help
+        The stdout should include "$1"
+      End
+    End
+  End
+
+  # ── add metadata help & flags ────────────────────────────────────
+
+  Describe 'metadata --help'
+    It 'exits 0 and describes creating metadata definitions'
+      When call bin/cani alpha add metadata --help
+      The status should equal 0
+      The stdout should include 'metadata definitions'
     End
 
-    It 'has --a-port flag'
-      When call bin/cani alpha add cable --help
-      The stdout should include '--a-port'
+    Describe 'subcommands'
+      Parameters:value role status tag
+      It "lists the $1 subcommand"
+        When call bin/cani alpha add metadata --help
+        The stdout should include "$1"
+      End
     End
 
-    It 'has --b-device flag'
-      When call bin/cani alpha add cable --help
-      The stdout should include '--b-device'
+    Describe 'flags'
+      Parameters:value --content-types --color --description
+      It "has $1 flag"
+        When call bin/cani alpha add metadata --help
+        The stdout should include "$1"
+      End
     End
+  End
 
-    It 'has --b-port flag'
-      When call bin/cani alpha add cable --help
-      The stdout should include '--b-port'
-    End
+  # ── add metadata noun help ──────────────────────────────────────
 
-    It 'has --label flag'
-      When call bin/cani alpha add cable --help
-      The stdout should include '--label'
-    End
-
-    It 'has --color flag'
-      When call bin/cani alpha add cable --help
-      The stdout should include '--color'
+  Describe 'metadata noun help'
+    Parameters:value role status tag
+    It "metadata $1 --help exits 0"
+      When call bin/cani alpha add metadata "$1" --help
+      The status should equal 0
+      The stdout should include "$1"
     End
   End
 
@@ -253,6 +221,24 @@ Describe 'cani alpha add'
       When call bin/cani alpha add location nonexistent-slug
       The status should equal 1
       The stderr should include 'unknown location type slug'
+    End
+
+    It 'add metadata role with no arg fails'
+      When call bin/cani alpha add metadata role
+      The status should equal 1
+      The stderr should include 'accepts 1 arg(s), received 0'
+    End
+
+    It 'add metadata status with no arg fails'
+      When call bin/cani alpha add metadata status
+      The status should equal 1
+      The stderr should include 'accepts 1 arg(s), received 0'
+    End
+
+    It 'add metadata tag with no arg fails'
+      When call bin/cani alpha add metadata tag
+      The status should equal 1
+      The stderr should include 'accepts 1 arg(s), received 0'
     End
   End
 

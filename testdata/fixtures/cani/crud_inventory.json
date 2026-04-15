@@ -1,0 +1,183 @@
+{
+  "schemaVersion": "v1alpha2",
+  "locations": {
+    "0249b742-abc6-4326-b521-de2e758d3216": {
+      "id": "0249b742-abc6-4326-b521-de2e758d3216",
+      "name": "removable-location",
+      "slug": "dc",
+      "locationType": "dc",
+      "parent": "00000000-0000-0000-0000-000000000000",
+      "status": "Active",
+      "nestable": true,
+      "source": "builtin",
+      "description": "A top-level location type representing a data center facility. This is the highest level of the location hierarchy and can contain other location types such as levels and sections."
+    },
+    "f9e5d985-376f-4bb1-8249-a7e82647b7f9": {
+      "id": "f9e5d985-376f-4bb1-8249-a7e82647b7f9",
+      "name": "test-site",
+      "locationType": "site",
+      "parent": "00000000-0000-0000-0000-000000000000",
+      "racks": [
+        "58f00e62-0b30-4435-9c78-98f5aa3649f1"
+      ],
+      "status": "Active"
+    }
+  },
+  "racks": {
+    "58f00e62-0b30-4435-9c78-98f5aa3649f1": {
+      "id": "58f00e62-0b30-4435-9c78-98f5aa3649f1",
+      "name": "test-rack",
+      "slug": "hpe-eia-cabinet",
+      "manufacturer": "HPE",
+      "model": "EX2000",
+      "type": "cabinet",
+      "uHeight": 0,
+      "deviceBays": [
+        {
+          "name": "Chassis 0",
+          "allowed": {
+            "slug": [
+              "hpe-eia-chassis"
+            ]
+          },
+          "default": {
+            "slug": "hpe-eia-chassis"
+          },
+          "extra": {
+            "ordinal": 0
+          }
+        }
+      ],
+      "status": "Staged",
+      "providerMetadata": {
+        "csm": {
+          "class": "River",
+          "hmnVlan": 1513,
+          "xname": "x3000"
+        }
+      },
+      "location": "f9e5d985-376f-4bb1-8249-a7e82647b7f9",
+      "providerDefaults": {
+        "csm": {
+          "Class": "River",
+          "EndingHmnVlan": 1769,
+          "Ordinal": 3000,
+          "StartingHmnVlan": 1513
+        }
+      }
+    }
+  },
+  "devices": {
+    "16e4c62b-237e-4977-8426-aaec65db017b": {
+      "id": "16e4c62b-237e-4977-8426-aaec65db017b",
+      "name": "test-device",
+      "slug": "cray-xd225v",
+      "partNumber": "P52183-B21",
+      "manufacturer": "HPE",
+      "model": "Cray XD225v Node",
+      "type": "node",
+      "subdeviceRole": "child",
+      "uHeight": 1,
+      "isFullDepth": true,
+      "interfaces": [
+        {
+          "id": "00000000-0000-0000-0000-000000000000",
+          "name": "Management",
+          "type": "100base-tx",
+          "mgmt_only": true
+        },
+        {
+          "id": "00000000-0000-0000-0000-000000000000",
+          "name": "GigabitEthernet0/0/1",
+          "type": "1000base-t"
+        }
+      ],
+      "consolePorts": [
+        {
+          "name": "console",
+          "type": "rj-45-console"
+        },
+        {
+          "name": "console usb3",
+          "type": "usb-a"
+        },
+        {
+          "name": "VGA",
+          "type": "other"
+        }
+      ],
+      "powerPorts": [
+        {
+          "name": "PSU1",
+          "type": "iec-60320-c14",
+          "maximum_draw": 105,
+          "allocated_draw": 67
+        }
+      ],
+      "moduleBays": [
+        {
+          "name": "PCIe1",
+          "position": "PCIe1"
+        },
+        {
+          "name": "PCIe2",
+          "position": "PCIe2"
+        }
+      ],
+      "status": "Staged",
+      "parent": "00000000-0000-0000-0000-000000000000",
+      "rack": "00000000-0000-0000-0000-000000000000",
+      "location": "00000000-0000-0000-0000-000000000000",
+      "parentDevice": "00000000-0000-0000-0000-000000000000"
+    }
+  },
+  "modules": {
+    "aa13b10a-b217-4642-86c1-5359733d1009": {
+      "id": "aa13b10a-b217-4642-86c1-5359733d1009",
+      "name": "test-module",
+      "slug": "hpe-1600w-flex-slot-platinum-hot-plug-psu",
+      "partNumber": "P38997-B21",
+      "manufacturer": "HPE",
+      "model": "HPE 1600W Flex Slot Platinum Hot Plug Power Supply",
+      "description": "HPE 1600W Flex Slot Platinum Hot Plug Low Halogen Power Supply Kit for ProLiant Gen10 Plus and Gen11 servers.",
+      "type": "power-supply",
+      "weight": 1.8,
+      "weightUnit": "kg",
+      "parentDevice": "00000000-0000-0000-0000-000000000000",
+      "status": "Active",
+      "location": "00000000-0000-0000-0000-000000000000"
+    }
+  },
+  "cables": {
+    "6b2d3c9e-79c4-4cef-9a63-04e6c387266f": {
+      "id": "6b2d3c9e-79c4-4cef-9a63-04e6c387266f",
+      "slug": "hpe-cat5-rj45-4-3m-cable",
+      "label": "test-cable",
+      "partNumber": "C7536A",
+      "manufacturer": "HPE",
+      "model": "HPE 4.3m/14ft CAT5 RJ45 M/M Ethernet Cable",
+      "description": "HPE 4.3m/14ft CAT5 RJ45 M/M Ethernet Cable. Source: https://buy.hpe.com/us/en/options/cables-cable-kits/cat5-cables/hpe-cat5e-networking-and-telecom-connectivity-cable/p/C7536A",
+      "type": "cable",
+      "cableCategory": "cat5",
+      "connectorType": "rj45-rj45",
+      "length": 4.3,
+      "lengthUnit": "m",
+      "status": "Connected",
+      "terminationA": "00000000-0000-0000-0000-000000000000",
+      "terminationB": "00000000-0000-0000-0000-000000000000",
+      "terminationADevice": "00000000-0000-0000-0000-000000000000",
+      "terminationBDevice": "00000000-0000-0000-0000-000000000000"
+    }
+  },
+  "frus": {},
+  "interfaces": {
+    "00000000-0000-0000-0000-000000000000": {
+      "id": "00000000-0000-0000-0000-000000000000",
+      "name": "GigabitEthernet0/0/1",
+      "interfaceType": "1000base-t",
+      "deviceId": "16e4c62b-237e-4977-8426-aaec65db017b",
+      "status": "Active"
+    }
+  },
+  "metadata": {}
+}

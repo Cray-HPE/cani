@@ -2,7 +2,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2023, 2026 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -34,44 +34,20 @@ Describe 'cani'
       The stdout should include 'Continious And Never-ending Inventory'
     End
 
-    It 'lists the alpha subcommand'
-      When call bin/cani --help
-      The stdout should include 'alpha'
+    Describe 'subcommands'
+      Parameters:value alpha init
+      It "lists the $1 subcommand"
+        When call bin/cani --help
+        The stdout should include "$1"
+      End
     End
 
-    It 'lists the init subcommand'
-      When call bin/cani --help
-      The stdout should include 'init'
-    End
-
-    It 'lists the --config flag'
-      When call bin/cani --help
-      The stdout should include '--config'
-    End
-
-    It 'lists the --debug flag'
-      When call bin/cani --help
-      The stdout should include '--debug'
-    End
-
-    It 'lists the --datastore flag'
-      When call bin/cani --help
-      The stdout should include '--datastore'
-    End
-
-    It 'lists the --types-dirs flag'
-      When call bin/cani --help
-      The stdout should include '--types-dirs'
-    End
-
-    It 'lists the --types-repos flag'
-      When call bin/cani --help
-      The stdout should include '--types-repos'
-    End
-
-    It 'lists the --version / -v flag'
-      When call bin/cani --help
-      The stdout should include '--version'
+    Describe 'flags'
+      Parameters:value --config --debug --datastore --types-dirs --types-repos --types-repo-clone --types-repo-pull --strict --version
+      It "has $1 flag"
+        When call bin/cani --help
+        The stdout should include "$1"
+      End
     End
   End
 

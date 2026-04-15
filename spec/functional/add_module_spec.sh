@@ -23,28 +23,24 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 
-# ── import command ──────────────────────────────────────────────────
+# ── add module ──────────────────────────────────────────────────────
 
-Describe 'cani alpha import'
+Describe 'cani alpha add module'
 
-  Describe '--help'
-    It 'exits 0 and describes importing assets'
-      When call bin/cani alpha import --help
+  Describe 'valid slug'
+    It 'adds a module with a known slug'
+      When call bin/cani alpha add module hpe-1600w-flex-slot-platinum-hot-plug-psu --config "$CANI_CONF"
       The status should equal 0
-      The stdout should include 'Import assets into the inventory'
+      The stderr should include 'Added module'
+      The stderr should include '1 module(s) added'
     End
+  End
 
-    Describe 'flags'
-      Parameters:value --phase --no-color --step
-      It "has $1 flag"
-        When call bin/cani alpha import --help
-        The stdout should include "$1"
-      End
-    End
-
-    It 'lists provider subcommands'
-      When call bin/cani alpha import --help
-      The stdout should include 'example'
+  Describe 'invalid slug'
+    It 'rejects an unknown slug'
+      When call bin/cani alpha add module nonexistent-slug
+      The status should equal 1
+      The stderr should include 'unknown module slug or part number'
     End
   End
 
