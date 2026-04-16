@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
+	"github.com/Cray-HPE/cani/pkg/provider/example/commands"
+	import_ "github.com/Cray-HPE/cani/pkg/provider/example/import"
 	"github.com/google/uuid"
 )
 
@@ -220,5 +222,534 @@ func TestRackZonesFillCorrectly(t *testing.T) {
 	}
 	if inv.Devices[sw2].RackPosition != 9 {
 		t.Errorf("sw2 position = %d, want 9", inv.Devices[sw2].RackPosition)
+	}
+}
+
+func TestClassifyRecords(t *testing.T) {
+	tests := []struct {
+		name        string
+		records     []import_.CsvRecord
+		wantRacks   int
+		wantDevices int
+		wantCables  int
+		wantErr     bool
+	}{
+		{
+			name:    "empty records",
+			records: nil,
+		},
+		{
+			name: "rack by description",
+			records: []import_.CsvRecord{
+				{PartNumber: "X", Description: "HPE 48U 800mmx1200mm G2 Enterprise Shock Rack", Quantity: 1},
+			},
+			wantRacks: 1,
+		},
+		{
+			name: "cable by explicit endpoints",
+			records: []import_.CsvRecord{
+				{Description: "link", Quantity: 1, SourceDevice: "sw1", DestDevice: "srv1"},
+			},
+			wantCables: 1,
+		},
+		{
+			name: "cable by description pattern",
+			records: []import_.CsvRecord{
+				{PartNumber: "X", Description: "HPE Cat6 RJ45 M/M 2m", Quantity: 1},
+			},
+			wantCables: 1,
+		},
+		{
+			name: "switch by description",
+			records: []import_.CsvRecord{
+				{PartNumber: "X", Description: "HPE Aruba Networking 8360-48Y6C", Quantity: 1},
+			},
+			wantDevices: 1,
+		},
+		{
+			name: "node by description",
+			records: []import_.CsvRecord{
+				{PartNumber: "X", Description: "HPE ProLiant DL380 Gen11", Quantity: 1},
+			},
+			wantDevices: 1,
+		},
+		{
+			name: "unclassifiable returns error",
+			records: []import_.CsvRecord{
+				{PartNumber: "X", Description: "HPE 64GB DDR5 Memory Kit", Quantity: 1},
+			},
+			wantErr: true,
+		},
+		{
+			name: "mixed record types",
+			records: []import_.CsvRecord{
+				{PartNumber: "R", Description: "HPE 48U Rack", Quantity: 1},
+				{PartNumber: "S", Description: "HPE Aruba Switch", Quantity: 1},
+				{PartNumber: "C", Description: "HPE Cat6 Cable 2m", Quantity: 1},
+			},
+			wantRacks:   1,
+			wantDevices: 1,
+			wantCables:  1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := classifyRecords(tt.records)
+			if tt.wantErr {
+				if err == nil {
+					t.Error("expected error but got none")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if len(got.racks) != tt.wantRacks {
+				t.Errorf("racks = %d, want %d", len(got.racks), tt.wantRacks)
+			}
+			if len(got.devices) != tt.wantDevices {
+				t.Errorf("devices = %d, want %d", len(got.devices), tt.wantDevices)
+			}
+			if len(got.cables) != tt.wantCables {
+				t.Errorf("cables = %d, want %d", len(got.cables), tt.wantCables)
+			}
+		})
+	}
+}
+
+func TestGenerateName(t *testing.T) {
+	tests := []struct {
+		name        string
+		description string
+		index       int
+		total       int
+		want        string
+	}{
+		{"single item", "HPE Server", 0, 1, "HPE Server"},
+		{"first of three", "HPE Server", 0, 3, "HPE Server-001"},
+		{"second of three", "HPE Server", 1, 3, "HPE Server-002"},
+		{"truncates long name single", "HPE ProLiant DL380 Gen11 High Performance Server", 0, 1, "HPE ProLiant DL380 Gen11 High "},
+		{"truncates long name multi", "HPE ProLiant DL380 Gen11 High Performance Server", 0, 2, "HPE ProLiant DL380 Gen11 High -001"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := generateName(tt.description, tt.index, tt.total)
+			if got != tt.want {
+				t.Errorf("generateName(%q, %d, %d) = %q, want %q",
+					tt.description, tt.index, tt.total, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSlugify(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"HPE Cat6 Cable", "hpe-cat6-cable"},
+		{"Simple", "simple"},
+		{"ALLCAPS", "allcaps"},
+		{"with-dashes", "with-dashes"},
+		{"Special!@#$Characters", "specialcharacters"},
+		{"", ""},
+		{"spaces  and   tabs", "spaces--and---tabs"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			got := slugify(tt.input)
+			if got != tt.want {
+				t.Errorf("slugify(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTruncateName(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"short string", "Hello", "Hello"},
+		{"exactly 30 chars", "123456789012345678901234567890", "123456789012345678901234567890"},
+		{"over 30 chars", "1234567890123456789012345678901", "123456789012345678901234567890"},
+		{"empty", "", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := truncateName(tt.input)
+			if got != tt.want {
+				t.Errorf("truncateName(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestInitInventoryMaps(t *testing.T) {
+	t.Run("initializes nil maps", func(t *testing.T) {
+		inv := devicetypes.Inventory{}
+		initInventoryMaps(&inv)
+		if inv.Racks == nil {
+			t.Error("expected Racks map to be initialized")
+		}
+		if inv.Devices == nil {
+			t.Error("expected Devices map to be initialized")
+		}
+		if inv.Cables == nil {
+			t.Error("expected Cables map to be initialized")
+		}
+	})
+
+	t.Run("preserves existing maps", func(t *testing.T) {
+		rackID := uuid.New()
+		inv := devicetypes.Inventory{
+			Racks: map[uuid.UUID]*devicetypes.CaniRackType{
+				rackID: {Name: "existing"},
+			},
+		}
+		initInventoryMaps(&inv)
+		if _, ok := inv.Racks[rackID]; !ok {
+			t.Error("initInventoryMaps overwrote existing Racks map")
+		}
+	})
+}
+
+func TestBuildProviderMetadata(t *testing.T) {
+	commands.CsvFlag = "test.csv"
+	t.Cleanup(func() { commands.CsvFlag = "" })
+
+	rec := import_.CsvRecord{
+		PartNumber:  "P12345",
+		ConfigGroup: "0200",
+	}
+	meta := buildProviderMetadata(rec)
+
+	example, ok := meta["example"].(map[string]any)
+	if !ok {
+		t.Fatal("expected 'example' key in metadata")
+	}
+	if example["Source"] != "test.csv" {
+		t.Errorf("Source = %v, want %q", example["Source"], "test.csv")
+	}
+	if example["PartNumber"] != "P12345" {
+		t.Errorf("PartNumber = %v, want %q", example["PartNumber"], "P12345")
+	}
+	if example["ConfigGroup"] != "0200" {
+		t.Errorf("ConfigGroup = %v, want %q", example["ConfigGroup"], "0200")
+	}
+}
+
+func TestFindParentRackIDs(t *testing.T) {
+	rack1 := uuid.New()
+	rack2 := uuid.New()
+	device1 := uuid.New()
+
+	tests := []struct {
+		name         string
+		racksByGroup map[string][]uuid.UUID
+		wantLen      int
+	}{
+		{
+			name:         "empty map",
+			racksByGroup: map[string][]uuid.UUID{},
+			wantLen:      0,
+		},
+		{
+			name:         "racks in 01XX group",
+			racksByGroup: map[string][]uuid.UUID{"0100": {rack1, rack2}},
+			wantLen:      2,
+		},
+		{
+			name:         "racks in non-01XX group only",
+			racksByGroup: map[string][]uuid.UUID{"0200": {device1}},
+			wantLen:      0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := findParentRackIDs(tt.racksByGroup)
+			if len(got) != tt.wantLen {
+				t.Errorf("findParentRackIDs() returned %d IDs, want %d", len(got), tt.wantLen)
+			}
+		})
+	}
+}
+
+func TestShouldLinkToRacks(t *testing.T) {
+	tests := []struct {
+		group string
+		want  bool
+	}{
+		{"0100", false},
+		{"0200", true},
+		{"0300", true},
+		{"0900", true},
+		{"1", false},
+		{"", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.group, func(t *testing.T) {
+			got := shouldLinkToRacks(tt.group)
+			if got != tt.want {
+				t.Errorf("shouldLinkToRacks(%q) = %t, want %t", tt.group, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGetConfigGroupPrefixTransform(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"0100", "01"},
+		{"0200", "02"},
+		{"0315", "03"},
+		{"1", ""},
+		{"", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			got := getConfigGroupPrefix(tt.input)
+			if got != tt.want {
+				t.Errorf("getConfigGroupPrefix(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCreateItemsFromRecord(t *testing.T) {
+	t.Run("creates rack items", func(t *testing.T) {
+		inv := &devicetypes.Inventory{
+			Racks:   make(map[uuid.UUID]*devicetypes.CaniRackType),
+			Devices: make(map[uuid.UUID]*devicetypes.CaniDeviceType),
+		}
+		racksByGroup := make(map[string][]uuid.UUID)
+		devicesByGroup := make(map[string][]uuid.UUID)
+
+		rec := import_.CsvRecord{
+			PartNumber:  "TEST-RACK",
+			Description: "Test Rack",
+			Quantity:    2,
+			ConfigGroup: "0100",
+		}
+
+		result := createItemsFromRecord(inv, rec, "rack", racksByGroup, devicesByGroup)
+
+		if len(result.Racks) != 2 {
+			t.Errorf("expected 2 racks, got %d", len(result.Racks))
+		}
+		if len(result.Devices) != 0 {
+			t.Errorf("expected 0 devices, got %d", len(result.Devices))
+		}
+		if len(inv.Racks) != 2 {
+			t.Errorf("expected 2 racks in inventory, got %d", len(inv.Racks))
+		}
+		if len(racksByGroup["0100"]) != 2 {
+			t.Errorf("expected 2 racks in group 0100, got %d", len(racksByGroup["0100"]))
+		}
+	})
+
+	t.Run("creates device items", func(t *testing.T) {
+		inv := &devicetypes.Inventory{
+			Racks:   make(map[uuid.UUID]*devicetypes.CaniRackType),
+			Devices: make(map[uuid.UUID]*devicetypes.CaniDeviceType),
+		}
+		racksByGroup := make(map[string][]uuid.UUID)
+		devicesByGroup := make(map[string][]uuid.UUID)
+
+		rec := import_.CsvRecord{
+			PartNumber:  "TEST-NODE",
+			Description: "Test Server",
+			Quantity:    3,
+			ConfigGroup: "0200",
+		}
+
+		result := createItemsFromRecord(inv, rec, "node", racksByGroup, devicesByGroup)
+
+		if len(result.Devices) != 3 {
+			t.Errorf("expected 3 devices, got %d", len(result.Devices))
+		}
+		if len(result.Racks) != 0 {
+			t.Errorf("expected 0 racks, got %d", len(result.Racks))
+		}
+		if len(inv.Devices) != 3 {
+			t.Errorf("expected 3 devices in inventory, got %d", len(inv.Devices))
+		}
+		if len(devicesByGroup["0200"]) != 3 {
+			t.Errorf("expected 3 devices in group 0200, got %d", len(devicesByGroup["0200"]))
+		}
+	})
+
+	t.Run("no config group skips grouping", func(t *testing.T) {
+		inv := &devicetypes.Inventory{
+			Racks:   make(map[uuid.UUID]*devicetypes.CaniRackType),
+			Devices: make(map[uuid.UUID]*devicetypes.CaniDeviceType),
+		}
+		racksByGroup := make(map[string][]uuid.UUID)
+		devicesByGroup := make(map[string][]uuid.UUID)
+
+		rec := import_.CsvRecord{
+			PartNumber:  "TEST",
+			Description: "Standalone Device",
+			Quantity:    1,
+		}
+
+		createItemsFromRecord(inv, rec, "node", racksByGroup, devicesByGroup)
+
+		if len(devicesByGroup) != 0 {
+			t.Errorf("expected no config group entries, got %d", len(devicesByGroup))
+		}
+	})
+}
+
+func TestBuildDeviceFromRecord(t *testing.T) {
+	id := uuid.New()
+	rec := import_.CsvRecord{
+		PartNumber:  "TEST-FAKE-PN",
+		Description: "HPE ProLiant DL380",
+		ConfigGroup: "0200",
+	}
+
+	device := buildDeviceFromRecord(id, "DL380-001", rec, "node")
+
+	if device.ID != id {
+		t.Errorf("ID = %v, want %v", device.ID, id)
+	}
+	if device.Name != "DL380-001" {
+		t.Errorf("Name = %q, want %q", device.Name, "DL380-001")
+	}
+	if device.PartNumber != "TEST-FAKE-PN" {
+		t.Errorf("PartNumber = %q, want %q", device.PartNumber, "TEST-FAKE-PN")
+	}
+	if device.Type != devicetypes.Type("node") {
+		t.Errorf("Type = %q, want %q", device.Type, "node")
+	}
+}
+
+func TestPopulateFromDeviceType(t *testing.T) {
+	t.Run("copies all fields", func(t *testing.T) {
+		device := &devicetypes.CaniDeviceType{
+			Name: "original",
+			Slug: "old-slug",
+		}
+		dt := &devicetypes.CaniDeviceType{
+			Slug:         "new-slug",
+			Manufacturer: "HPE",
+			Model:        "DL380 Gen11",
+			Type:         devicetypes.Type("node"),
+			Interfaces:   []devicetypes.InterfaceSpec{{Name: "eth0"}},
+		}
+
+		populateFromDeviceType(device, dt)
+
+		if device.Slug != "new-slug" {
+			t.Errorf("Slug = %q, want %q", device.Slug, "new-slug")
+		}
+		if device.Manufacturer != "HPE" {
+			t.Errorf("Manufacturer = %q, want %q", device.Manufacturer, "HPE")
+		}
+		if device.Model != "DL380 Gen11" {
+			t.Errorf("Model = %q, want %q", device.Model, "DL380 Gen11")
+		}
+		if device.Type != devicetypes.Type("node") {
+			t.Errorf("Type = %q, want %q", device.Type, "node")
+		}
+		if len(device.Interfaces) != 1 {
+			t.Errorf("Interfaces len = %d, want 1", len(device.Interfaces))
+		}
+	})
+
+	t.Run("does not overwrite type when empty", func(t *testing.T) {
+		device := &devicetypes.CaniDeviceType{
+			Type: devicetypes.Type("switch"),
+		}
+		dt := &devicetypes.CaniDeviceType{
+			Slug: "new-slug",
+			Type: "",
+		}
+
+		populateFromDeviceType(device, dt)
+
+		if device.Type != devicetypes.Type("switch") {
+			t.Errorf("Type = %q, want %q (should not overwrite with empty)", device.Type, "switch")
+		}
+	})
+}
+
+func TestBuildTransformSummary(t *testing.T) {
+	rackID := uuid.New()
+	deviceID := uuid.New()
+
+	inv := &devicetypes.Inventory{
+		Racks: map[uuid.UUID]*devicetypes.CaniRackType{
+			rackID: {ID: rackID, Name: "Rack-001"},
+		},
+		Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
+			deviceID: {ID: deviceID, Name: "Server-001", Parent: rackID},
+		},
+	}
+
+	summary := BuildTransformSummary(inv)
+
+	if len(summary.RackNames) != 1 {
+		t.Errorf("RackNames len = %d, want 1", len(summary.RackNames))
+	}
+	if devices, ok := summary.DevicesByRack["Rack-001"]; !ok || len(devices) != 1 {
+		t.Errorf("expected 1 device in Rack-001, got %v", summary.DevicesByRack)
+	}
+}
+
+func TestBuildNewItemsSummary(t *testing.T) {
+	rackID := uuid.New()
+
+	inv := &devicetypes.Inventory{
+		Racks: map[uuid.UUID]*devicetypes.CaniRackType{
+			rackID: {ID: rackID, Name: "Rack-001"},
+		},
+	}
+
+	created := CreatedItems{
+		Racks: []*devicetypes.CaniRackType{
+			{ID: rackID, Name: "Rack-001"},
+		},
+		Devices: []*devicetypes.CaniDeviceType{
+			{Name: "Server-001", Parent: rackID},
+		},
+	}
+
+	summary := buildNewItemsSummary(created, inv)
+
+	if len(summary.RackNames) != 1 || summary.RackNames[0] != "Rack-001" {
+		t.Errorf("RackNames = %v, want [Rack-001]", summary.RackNames)
+	}
+	if devices, ok := summary.DevicesByRack["Rack-001"]; !ok || len(devices) != 1 {
+		t.Errorf("expected 1 device in Rack-001, got %v", summary.DevicesByRack)
+	}
+}
+
+func TestBuildNewItemsSummaryOrphanDevice(t *testing.T) {
+	inv := &devicetypes.Inventory{
+		Racks: map[uuid.UUID]*devicetypes.CaniRackType{},
+	}
+
+	created := CreatedItems{
+		Devices: []*devicetypes.CaniDeviceType{
+			{Name: "Orphan-001"},
+		},
+	}
+
+	summary := buildNewItemsSummary(created, inv)
+
+	if devices, ok := summary.DevicesByRack[""]; !ok || len(devices) != 1 {
+		t.Errorf("expected 1 orphan device under empty key, got %v", summary.DevicesByRack)
 	}
 }

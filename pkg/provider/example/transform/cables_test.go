@@ -2,6 +2,11 @@ package transform
 
 import (
 	"testing"
+
+	"github.com/Cray-HPE/cani/pkg/devicetypes"
+	import_ "github.com/Cray-HPE/cani/pkg/provider/example/import"
+	"github.com/Cray-HPE/cani/pkg/visual"
+	"github.com/google/uuid"
 )
 
 func TestInferHardwareType(t *testing.T) {
@@ -126,4 +131,431 @@ func TestGenerateCableLabel(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestParseCableLength(t *testing.T) {
+	tests := []struct {
+		name       string
+		input      string
+		wantLength float64
+		wantUnit   string
+	}{
+		{"meters", "3m", 3, "m"},
+		{"feet", "10ft", 10, "ft"},
+		{"decimal", "1.5m", 1.5, "m"},
+		{"no unit defaults to m", "5", 5, "m"},
+		{"empty string", "", 0, ""},
+		{"non-numeric", "abc", 0, ""},
+		{"with spaces", " 3m ", 3, "m"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			length, unit := parseCableLength(tt.input)
+			if length != tt.wantLength {
+				t.Errorf("parseCableLength(%q) length = %v, want %v", tt.input, length, tt.wantLength)
+			}
+			if unit != tt.wantUnit {
+				t.Errorf("parseCableLength(%q) unit = %q, want %q", tt.input, unit, tt.wantUnit)
+			}
+		})
+	}
+}
+
+func TestInferCableType(t *testing.T) {
+	tests := []struct {
+		name      string
+		ifaceType devicetypes.InterfacesElemType
+		want      string
+	}{
+		{"1000base-t", devicetypes.InterfacesElemTypeA1000BaseT, cableTypeCat6},
+		{"10gbase-t", devicetypes.InterfacesElemTypeA10GbaseT, cableTypeCat6a},
+		{"10gbase-x-sfpp", devicetypes.InterfacesElemTypeA10GbaseXSfpp, cableTypeDacPassive},
+		{"25gbase-x-sfp28", devicetypes.InterfacesElemTypeA25GbaseXSfp28, cableTypeDacPassive},
+		{"40gbase-x-qsfpp", devicetypes.InterfacesElemTypeA40GbaseXQsfpp, cableTypeDacPassive},
+		{"100gbase-x-qsfp28", devicetypes.InterfacesElemTypeA100GbaseXQsfp28, cableTypeDacPassive},
+		{"400gbase-x-qsfpdd", devicetypes.InterfacesElemTypeA400GbaseXQsfpdd, cableTypeDacPassive},
+		{"unknown type", devicetypes.InterfacesElemType("unknown"), cableTypeOther},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := inferCableType(tt.ifaceType)
+			if got != tt.want {
+				t.Errorf("inferCableType(%q) = %q, want %q", tt.ifaceType, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFindDeviceByName(t *testing.T) {
+	deviceID := uuid.New()
+	inv := &devicetypes.Inventory{
+		Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
+			deviceID: {ID: deviceID, Name: "server-01"},
+		},
+	}
+
+	t.Run("found", func(t *testing.T) {
+		got := findDeviceByName(inv, "server-01")
+		if got == nil || got.ID != deviceID {
+			t.Errorf("findDeviceByName() = %v, want device with ID %s", got, deviceID)
+		}
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		got := findDeviceByName(inv, "nonexistent")
+		if got != nil {
+			t.Errorf("findDeviceByName() = %v, want nil", got)
+		}
+	})
+}
+
+func TestFindAvailableInterface(t *testing.T) {
+	cableID := uuid.New()
+
+	t.Run("returns unconnected interface", func(t *testing.T) {
+		device := &devicetypes.CaniDeviceType{
+			Interfaces: []devicetypes.InterfaceSpec{
+				{Name: "eth0", ConnectedCable: &cableID},
+				{Name: "eth1"},
+			},
+		}
+		inv := &devicetypes.Inventory{}
+
+		got := findAvailableInterface(inv, device)
+		if got == nil || got.Name != "eth1" {
+			t.Errorf("findAvailableInterface() = %v, want eth1", got)
+		}
+	})
+
+	t.Run("all connected returns nil", func(t *testing.T) {
+		device := &devicetypes.CaniDeviceType{
+			Interfaces: []devicetypes.InterfaceSpec{
+				{Name: "eth0", ConnectedCable: &cableID},
+			},
+		}
+		inv := &devicetypes.Inventory{}
+
+		got := findAvailableInterface(inv, device)
+		if got != nil {
+			t.Errorf("findAvailableInterface() = %v, want nil", got)
+		}
+	})
+
+	t.Run("no interfaces returns nil", func(t *testing.T) {
+		device := &devicetypes.CaniDeviceType{}
+		inv := &devicetypes.Inventory{}
+
+		got := findAvailableInterface(inv, device)
+		if got != nil {
+			t.Errorf("findAvailableInterface() = %v, want nil", got)
+		}
+	})
+}
+
+func TestLinkInterfacesToCable(t *testing.T) {
+	ifaceAID := uuid.New()
+	ifaceBID := uuid.New()
+	deviceAID := uuid.New()
+	deviceBID := uuid.New()
+	cableID := uuid.New()
+
+	t.Run("links both interfaces", func(t *testing.T) {
+		inv := &devicetypes.Inventory{
+			Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
+				deviceAID: {
+					ID:         deviceAID,
+					Interfaces: []devicetypes.InterfaceSpec{{ID: ifaceAID, Name: "eth0"}},
+				},
+				deviceBID: {
+					ID:         deviceBID,
+					Interfaces: []devicetypes.InterfaceSpec{{ID: ifaceBID, Name: "eth0"}},
+				},
+			},
+			Interfaces: map[uuid.UUID]*devicetypes.InterfaceInstance{
+				ifaceAID: {ID: ifaceAID, DeviceID: deviceAID},
+				ifaceBID: {ID: ifaceBID, DeviceID: deviceBID},
+			},
+		}
+
+		cable := &devicetypes.CaniCableType{
+			ID:           cableID,
+			TerminationA: ifaceAID,
+			TerminationB: ifaceBID,
+		}
+
+		err := linkInterfacesToCable(inv, cable)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("missing interface returns error", func(t *testing.T) {
+		inv := &devicetypes.Inventory{
+			Devices:    map[uuid.UUID]*devicetypes.CaniDeviceType{},
+			Interfaces: map[uuid.UUID]*devicetypes.InterfaceInstance{},
+		}
+
+		cable := &devicetypes.CaniCableType{
+			ID:           cableID,
+			TerminationA: uuid.New(),
+			TerminationB: uuid.New(),
+		}
+
+		err := linkInterfacesToCable(inv, cable)
+		if err == nil {
+			t.Error("expected error but got none")
+		}
+	})
+}
+
+func TestGroupDevicesByConfigGroup(t *testing.T) {
+	deviceID := uuid.New()
+
+	t.Run("groups by config group metadata", func(t *testing.T) {
+		inv := &devicetypes.Inventory{
+			Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
+				deviceID: {
+					ID: deviceID,
+					ObjectMeta: devicetypes.ObjectMeta{
+						ProviderMetadata: map[string]any{
+							"example": map[string]any{
+								"ConfigGroup": "0200",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		result := groupDevicesByConfigGroup(inv)
+		if len(result["0200"]) != 1 {
+			t.Errorf("expected 1 device in group 0200, got %d", len(result["0200"]))
+		}
+	})
+
+	t.Run("skips devices without metadata", func(t *testing.T) {
+		inv := &devicetypes.Inventory{
+			Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
+				deviceID: {ID: deviceID},
+			},
+		}
+
+		result := groupDevicesByConfigGroup(inv)
+		if len(result) != 0 {
+			t.Errorf("expected empty result, got %v", result)
+		}
+	})
+
+	t.Run("skips nil devices", func(t *testing.T) {
+		inv := &devicetypes.Inventory{
+			Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
+				deviceID: nil,
+			},
+		}
+
+		result := groupDevicesByConfigGroup(inv)
+		if len(result) != 0 {
+			t.Errorf("expected empty result, got %v", result)
+		}
+	})
+}
+
+func TestFindRelatedDeviceGroups(t *testing.T) {
+	deviceID := uuid.New()
+
+	tests := []struct {
+		name           string
+		cableGroup     string
+		devicesByGroup map[string][]*devicetypes.CaniDeviceType
+		wantLen        int
+	}{
+		{
+			name:       "finds non-rack non-cable groups",
+			cableGroup: "0900",
+			devicesByGroup: map[string][]*devicetypes.CaniDeviceType{
+				"0200": {{ID: deviceID}},
+				"0300": {{ID: deviceID}},
+			},
+			wantLen: 2,
+		},
+		{
+			name:       "excludes rack group 01XX",
+			cableGroup: "0900",
+			devicesByGroup: map[string][]*devicetypes.CaniDeviceType{
+				"0100": {{ID: deviceID}},
+				"0200": {{ID: deviceID}},
+			},
+			wantLen: 1,
+		},
+		{
+			name:       "excludes own cable group",
+			cableGroup: "0900",
+			devicesByGroup: map[string][]*devicetypes.CaniDeviceType{
+				"0900": {{ID: deviceID}},
+			},
+			wantLen: 0,
+		},
+		{
+			name:           "short cable group returns empty",
+			cableGroup:     "1",
+			devicesByGroup: map[string][]*devicetypes.CaniDeviceType{},
+			wantLen:        0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := findRelatedDeviceGroups(tt.cableGroup, tt.devicesByGroup)
+			if len(got) != tt.wantLen {
+				t.Errorf("findRelatedDeviceGroups() returned %d groups, want %d", len(got), tt.wantLen)
+			}
+		})
+	}
+}
+
+func TestTransformCablesEmpty(t *testing.T) {
+	inv := &devicetypes.Inventory{
+		Cables: make(map[uuid.UUID]*devicetypes.CaniCableType),
+	}
+	tally := &visual.StepTally{}
+	recordNum := 0
+
+	cables, err := transformCables(inv, nil, false, visual.ETLOptions{}, tally, &recordNum, 0)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(cables) != 0 {
+		t.Errorf("expected 0 cables, got %d", len(cables))
+	}
+}
+
+func TestTransformCablesProductRecords(t *testing.T) {
+	inv := &devicetypes.Inventory{
+		Cables: make(map[uuid.UUID]*devicetypes.CaniCableType),
+	}
+	tally := &visual.StepTally{}
+	recordNum := 0
+
+	records := []import_.CsvRecord{
+		{
+			PartNumber:  "C7536A",
+			Description: "HPE Cat6 RJ45 M/M 2m",
+			Quantity:    3,
+		},
+	}
+
+	cables, err := transformCables(inv, records, false, visual.ETLOptions{}, tally, &recordNum, len(records))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(cables) != 3 {
+		t.Errorf("expected 3 cables, got %d", len(cables))
+	}
+}
+
+func TestCreateCableFromExplicitRecord(t *testing.T) {
+	srcDeviceID := uuid.New()
+	dstDeviceID := uuid.New()
+	srcIfaceID := uuid.New()
+	dstIfaceID := uuid.New()
+
+	inv := &devicetypes.Inventory{
+		Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
+			srcDeviceID: {
+				ID:   srcDeviceID,
+				Name: "switch-01",
+				Interfaces: []devicetypes.InterfaceSpec{
+					{ID: srcIfaceID, Name: "eth0", Type: devicetypes.InterfacesElemTypeA1000BaseT},
+				},
+			},
+			dstDeviceID: {
+				ID:   dstDeviceID,
+				Name: "server-01",
+				Interfaces: []devicetypes.InterfaceSpec{
+					{ID: dstIfaceID, Name: "eth0", Type: devicetypes.InterfacesElemTypeA1000BaseT},
+				},
+			},
+		},
+	}
+
+	t.Run("success", func(t *testing.T) {
+		rec := import_.CsvRecord{
+			SourceDevice: "switch-01",
+			SourcePort:   "eth0",
+			DestDevice:   "server-01",
+			DestPort:     "eth0",
+		}
+
+		cable, err := createCableFromExplicitRecord(inv, rec)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if cable == nil {
+			t.Fatal("expected cable but got nil")
+		}
+		if cable.TerminationA != srcIfaceID {
+			t.Errorf("TerminationA = %v, want %v", cable.TerminationA, srcIfaceID)
+		}
+		if cable.TerminationB != dstIfaceID {
+			t.Errorf("TerminationB = %v, want %v", cable.TerminationB, dstIfaceID)
+		}
+	})
+
+	t.Run("source device not found", func(t *testing.T) {
+		rec := import_.CsvRecord{
+			SourceDevice: "nonexistent",
+			SourcePort:   "eth0",
+			DestDevice:   "server-01",
+			DestPort:     "eth0",
+		}
+
+		_, err := createCableFromExplicitRecord(inv, rec)
+		if err == nil {
+			t.Error("expected error but got none")
+		}
+	})
+
+	t.Run("source port not found", func(t *testing.T) {
+		rec := import_.CsvRecord{
+			SourceDevice: "switch-01",
+			SourcePort:   "nonexistent",
+			DestDevice:   "server-01",
+			DestPort:     "eth0",
+		}
+
+		_, err := createCableFromExplicitRecord(inv, rec)
+		if err == nil {
+			t.Error("expected error but got none")
+		}
+	})
+
+	t.Run("dest device not found", func(t *testing.T) {
+		rec := import_.CsvRecord{
+			SourceDevice: "switch-01",
+			SourcePort:   "eth0",
+			DestDevice:   "nonexistent",
+			DestPort:     "eth0",
+		}
+
+		_, err := createCableFromExplicitRecord(inv, rec)
+		if err == nil {
+			t.Error("expected error but got none")
+		}
+	})
+
+	t.Run("dest port not found", func(t *testing.T) {
+		rec := import_.CsvRecord{
+			SourceDevice: "switch-01",
+			SourcePort:   "eth0",
+			DestDevice:   "server-01",
+			DestPort:     "nonexistent",
+		}
+
+		_, err := createCableFromExplicitRecord(inv, rec)
+		if err == nil {
+			t.Error("expected error but got none")
+		}
+	})
 }
