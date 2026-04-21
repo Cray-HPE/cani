@@ -26,7 +26,9 @@
 package show
 
 import (
+	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/visual"
@@ -65,11 +67,12 @@ func showLocations(cmd *cobra.Command, args []string) error {
 	format, _ := cmd.Flags().GetString("format")
 	switch format {
 	case "table":
-		printLocationTable(locations, inv)
+		visual.PrintLocationTable(locations, inv)
 		return nil
 	case "tree":
-		nodes := buildLocationTree(inv)
-		renderTreeOutput(nodes)
+		tf := treeFilterFromCmd(cmd)
+		nodes := visual.BuildLocationTree(inv, tf)
+		visual.RenderTreeOutput(nodes, tf.NoColor)
 		return nil
 	default:
 		return marshalAndPrint(locations)
@@ -84,11 +87,12 @@ func showSingleLocation(cmd *cobra.Command, inv *devicetypes.Inventory, arg stri
 	format, _ := cmd.Flags().GetString("format")
 	switch format {
 	case "table":
-		printLocationTable([]*devicetypes.CaniLocationType{loc}, inv)
+		visual.PrintLocationTable([]*devicetypes.CaniLocationType{loc}, inv)
 		return nil
 	case "tree":
-		nodes := []visual.TreeNode{locationToTreeNode(loc, inv)}
-		renderTreeOutput(nodes)
+		tf := treeFilterFromCmd(cmd)
+		nodes := []visual.TreeNode{visual.LocationToTreeNode(loc, inv, tf)}
+		visual.RenderTreeOutput(nodes, tf.NoColor)
 		return nil
 	default:
 		return marshalAndPrint(loc)
@@ -97,13 +101,50 @@ func showSingleLocation(cmd *cobra.Command, inv *devicetypes.Inventory, arg stri
 
 // newRackShowCommand creates the "show rack" subcommand.
 func newRackShowCommand() *cobra.Command {
-	return &cobra.Command{
+	// Merge base formats with rack-specific visual formats.
+	rackFormats := append(BaseFormats(), visual.ValidRackFormats()...)
+
+	cmd := &cobra.Command{
 		Use:   "rack [name|uuid]",
 		Short: "List racks in the inventory.",
-		Long:  "List racks, or show a single rack by name or UUID.\nWhen a rack is specified, the default output is a visual rack view.",
-		Args:  cobra.MaximumNArgs(1),
-		RunE:  showRacks,
+		Long: fmt.Sprintf(`List racks, or show a single rack by name or UUID.
+When a rack is specified, the default output is a visual detail view.
+
+Output formats (-o):
+  table     Tabular list of racks
+  json      JSON output
+  tree      Hierarchical tree view
+  classic   Full-height ASCII rack with device symbols
+  minimap   Compact 2-character-wide rack columns
+  detail    Single-rack minimap with right-side annotations
+  routing   Cable routing with branching visualization
+
+Examples:
+  cani show rack                        # table of all racks
+  cani show rack MyRack                 # detail view of one rack
+  cani show rack -o minimap             # compact minimap of all racks
+  cani show rack -o routing -VV         # cable routing with all cables
+  cani show rack -o json                # JSON output
+
+Valid formats: %s`, strings.Join(rackFormats, ", ")),
+		Args: cobra.MaximumNArgs(1),
+		RunE: showRacks,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			formatKey, _ := cmd.Flags().GetString("format")
+			if !contains(rackFormats, formatKey) {
+				return fmt.Errorf("invalid format '%s'. Valid options: %s",
+					formatKey, strings.Join(rackFormats, ", "))
+			}
+			return validateWithFlag(cmd)
+		},
 	}
+
+	cmd.Flags().Int("columns", 0, "Number of rack columns before wrapping (0=auto, used with minimap)")
+	cmd.Flags().CountP("verbose", "V", "Verbose output: -V shows legend, -VV shows all cables")
+	cmd.Flags().BoolP("labels", "l", false, "Show A/B termination labels on routing view")
+	cmd.Flags().BoolP("interactive", "I", false, "Interactive toggle mode for routing view")
+
+	return cmd
 }
 
 func showRacks(cmd *cobra.Command, args []string) error {
@@ -116,17 +157,29 @@ func showRacks(cmd *cobra.Command, args []string) error {
 		return showSingleRack(cmd, inv, args[0])
 	}
 
-	visualMode, _ := cmd.Flags().GetBool("visual")
-	if visualMode {
-		noColor, _ := cmd.Flags().GetBool("no-color")
-		opts := visual.CompactRenderOptions{
-			NoColor:   noColor,
-			Detail:    true,
-			Inventory: inv,
-		}
-		return visual.RenderMinimapDetailAll(inv, opts)
+	format, _ := cmd.Flags().GetString("format")
+	noColor, _ := cmd.Flags().GetBool("no-color")
+	verbose, _ := cmd.Flags().GetCount("verbose")
+	columns, _ := cmd.Flags().GetInt("columns")
+	showLabels, _ := cmd.Flags().GetBool("labels")
+	interactive, _ := cmd.Flags().GetBool("interactive")
+
+	// Handle rack-specific visual formats.
+	if rf := visual.RackFormat(format); rf == visual.RackFormatClassic ||
+		rf == visual.RackFormatMinimap ||
+		rf == visual.RackFormatDetail ||
+		rf == visual.RackFormatRouting {
+		return visual.RenderRack(inv, rf, visual.CompactRenderOptions{
+			NoColor:     noColor,
+			Columns:     columns,
+			Verbose:     verbose,
+			ShowLabels:  showLabels,
+			Interactive: interactive,
+			Inventory:   inv,
+		})
 	}
 
+	// Fall through to base format dispatch.
 	racks := make([]*devicetypes.CaniRackType, 0, len(inv.Racks))
 	for _, rack := range inv.Racks {
 		racks = append(racks, rack)
@@ -135,14 +188,14 @@ func showRacks(cmd *cobra.Command, args []string) error {
 		return racks[i].Name < racks[j].Name
 	})
 
-	format, _ := cmd.Flags().GetString("format")
 	switch format {
 	case "table":
-		printRackTable(racks, inv)
+		visual.PrintRackTable(racks, inv)
 		return nil
 	case "tree":
-		nodes := buildRackTree(racks, inv)
-		renderTreeOutput(nodes)
+		tf := treeFilterFromCmd(cmd)
+		nodes := visual.BuildRackTree(racks, inv, tf)
+		visual.RenderTreeOutput(nodes, tf.NoColor)
 		return nil
 	default:
 		return marshalAndPrint(racks)
@@ -196,11 +249,12 @@ func showDevices(cmd *cobra.Command, args []string) error {
 	format, _ := cmd.Flags().GetString("format")
 	switch format {
 	case "table":
-		printDeviceTable(devices, inv)
+		visual.PrintDeviceTable(devices, inv)
 		return nil
 	case "tree":
-		nodes := buildDeviceTree(devices, inv)
-		renderTreeOutput(nodes)
+		tf := treeFilterFromCmd(cmd)
+		nodes := visual.BuildDeviceTree(devices, inv, tf)
+		visual.RenderTreeOutput(nodes, tf.NoColor)
 		return nil
 	default:
 		return marshalAndPrint(devices)
@@ -215,11 +269,12 @@ func showSingleDevice(cmd *cobra.Command, inv *devicetypes.Inventory, arg string
 	format, _ := cmd.Flags().GetString("format")
 	switch format {
 	case "table":
-		printDeviceTable([]*devicetypes.CaniDeviceType{dev}, inv)
+		visual.PrintDeviceTable([]*devicetypes.CaniDeviceType{dev}, inv)
 		return nil
 	case "tree":
-		nodes := []visual.TreeNode{deviceToTreeNode(dev, inv)}
-		renderTreeOutput(nodes)
+		tf := treeFilterFromCmd(cmd)
+		nodes := []visual.TreeNode{visual.DeviceToTreeNode(dev, inv, tf)}
+		visual.RenderTreeOutput(nodes, tf.NoColor)
 		return nil
 	default:
 		return marshalAndPrint(dev)
@@ -258,11 +313,12 @@ func showModules(cmd *cobra.Command, args []string) error {
 	format, _ := cmd.Flags().GetString("format")
 	switch format {
 	case "table":
-		printModuleTable(modules, inv)
+		visual.PrintModuleTable(modules, inv)
 		return nil
 	case "tree":
-		nodes := buildModuleTree(modules, inv)
-		renderTreeOutput(nodes)
+		tf := treeFilterFromCmd(cmd)
+		nodes := visual.BuildModuleTree(modules, inv, tf)
+		visual.RenderTreeOutput(nodes, tf.NoColor)
 		return nil
 	default:
 		return marshalAndPrint(modules)
@@ -277,11 +333,12 @@ func showSingleModule(cmd *cobra.Command, inv *devicetypes.Inventory, arg string
 	format, _ := cmd.Flags().GetString("format")
 	switch format {
 	case "table":
-		printModuleTable([]*devicetypes.CaniModuleType{mod}, inv)
+		visual.PrintModuleTable([]*devicetypes.CaniModuleType{mod}, inv)
 		return nil
 	case "tree":
-		nodes := []visual.TreeNode{moduleToTreeNode(mod, inv)}
-		renderTreeOutput(nodes)
+		tf := treeFilterFromCmd(cmd)
+		nodes := []visual.TreeNode{visual.ModuleToTreeNode(mod, inv, tf)}
+		visual.RenderTreeOutput(nodes, tf.NoColor)
 		return nil
 	default:
 		return marshalAndPrint(mod)

@@ -41,28 +41,42 @@ func showSingleRack(cmd *cobra.Command, inv *devicetypes.Inventory, arg string) 
 		return err
 	}
 
-	// Default to rack-view visualization unless --format was explicitly set
-	formatChanged := cmd.Flags().Changed("format")
+	format, _ := cmd.Flags().GetString("format")
+	noColor, _ := cmd.Flags().GetBool("no-color")
+	verbose, _ := cmd.Flags().GetCount("verbose")
+	columns, _ := cmd.Flags().GetInt("columns")
+	showLabels, _ := cmd.Flags().GetBool("labels")
+	interactive, _ := cmd.Flags().GetBool("interactive")
 
-	if !formatChanged {
-		noColor, _ := cmd.Flags().GetBool("no-color")
-		opts := visual.CompactRenderOptions{
-			NoColor:    noColor,
-			RackFilter: rack.Name,
-			Detail:     true,
-			Inventory:  inv,
-		}
-		return visual.RenderMinimapDetailAll(inv, opts)
+	// Default to detail view when no explicit format was set.
+	if !cmd.Flags().Changed("format") {
+		format = string(visual.RackFormatDetail)
 	}
 
-	format, _ := cmd.Flags().GetString("format")
+	// Handle rack-specific visual formats scoped to this rack.
+	if rf := visual.RackFormat(format); rf == visual.RackFormatClassic ||
+		rf == visual.RackFormatMinimap ||
+		rf == visual.RackFormatDetail ||
+		rf == visual.RackFormatRouting {
+		return visual.RenderRack(inv, rf, visual.CompactRenderOptions{
+			NoColor:     noColor,
+			RackFilter:  rack.Name,
+			Columns:     columns,
+			Verbose:     verbose,
+			ShowLabels:  showLabels,
+			Interactive: interactive,
+			Inventory:   inv,
+		})
+	}
+
 	switch format {
 	case "table":
-		printRackTable([]*devicetypes.CaniRackType{rack}, inv)
+		visual.PrintRackTable([]*devicetypes.CaniRackType{rack}, inv)
 		return nil
 	case "tree":
-		nodes := buildRackTree([]*devicetypes.CaniRackType{rack}, inv)
-		renderTreeOutput(nodes)
+		tf := treeFilterFromCmd(cmd)
+		nodes := visual.BuildRackTree([]*devicetypes.CaniRackType{rack}, inv, tf)
+		visual.RenderTreeOutput(nodes, tf.NoColor)
 		return nil
 	default:
 		return marshalAndPrint(rack)
@@ -101,11 +115,12 @@ func showCables(cmd *cobra.Command, args []string) error {
 	format, _ := cmd.Flags().GetString("format")
 	switch format {
 	case "table":
-		printCableTableFromTypes(cables, inv)
+		visual.PrintCableTable(cables, inv)
 		return nil
 	case "tree":
-		nodes := buildCableTree(cables, inv)
-		renderTreeOutput(nodes)
+		tf := treeFilterFromCmd(cmd)
+		nodes := visual.BuildCableTree(cables, inv, tf)
+		visual.RenderTreeOutput(nodes, tf.NoColor)
 		return nil
 	default:
 		return marshalAndPrint(cables)
@@ -120,11 +135,12 @@ func showSingleCable(cmd *cobra.Command, inv *devicetypes.Inventory, arg string)
 	format, _ := cmd.Flags().GetString("format")
 	switch format {
 	case "table":
-		printCableTableFromTypes([]*devicetypes.CaniCableType{cable}, inv)
+		visual.PrintCableTable([]*devicetypes.CaniCableType{cable}, inv)
 		return nil
 	case "tree":
-		nodes := buildCableTree([]*devicetypes.CaniCableType{cable}, inv)
-		renderTreeOutput(nodes)
+		tf := treeFilterFromCmd(cmd)
+		nodes := visual.BuildCableTree([]*devicetypes.CaniCableType{cable}, inv, tf)
+		visual.RenderTreeOutput(nodes, tf.NoColor)
 		return nil
 	default:
 		return marshalAndPrint(cable)
@@ -163,11 +179,12 @@ func showFrus(cmd *cobra.Command, args []string) error {
 	format, _ := cmd.Flags().GetString("format")
 	switch format {
 	case "table":
-		printFruTable(frus, inv)
+		visual.PrintFruTable(frus, inv)
 		return nil
 	case "tree":
-		nodes := buildFruTree(frus, inv)
-		renderTreeOutput(nodes)
+		tf := treeFilterFromCmd(cmd)
+		nodes := visual.BuildFruTree(frus, inv)
+		visual.RenderTreeOutput(nodes, tf.NoColor)
 		return nil
 	default:
 		return marshalAndPrint(frus)
@@ -182,11 +199,12 @@ func showSingleFru(cmd *cobra.Command, inv *devicetypes.Inventory, arg string) e
 	format, _ := cmd.Flags().GetString("format")
 	switch format {
 	case "table":
-		printFruTable([]*devicetypes.CaniFruType{fru}, inv)
+		visual.PrintFruTable([]*devicetypes.CaniFruType{fru}, inv)
 		return nil
 	case "tree":
-		nodes := []visual.TreeNode{fruToTreeNode(fru)}
-		renderTreeOutput(nodes)
+		tf := treeFilterFromCmd(cmd)
+		nodes := []visual.TreeNode{visual.FruToTreeNode(fru, tf)}
+		visual.RenderTreeOutput(nodes, tf.NoColor)
 		return nil
 	default:
 		return marshalAndPrint(fru)
@@ -225,11 +243,12 @@ func showInterfaceInstances(cmd *cobra.Command, args []string) error {
 	format, _ := cmd.Flags().GetString("format")
 	switch format {
 	case "table":
-		printInterfaceInstanceTable(ifaces, inv)
+		visual.PrintInterfaceInstanceTable(ifaces, inv)
 		return nil
 	case "tree":
-		nodes := buildInterfaceInstanceTree(ifaces, inv)
-		renderTreeOutput(nodes)
+		tf := treeFilterFromCmd(cmd)
+		nodes := visual.BuildInterfaceInstanceTree(ifaces, inv)
+		visual.RenderTreeOutput(nodes, tf.NoColor)
 		return nil
 	default:
 		return marshalAndPrint(ifaces)
@@ -244,14 +263,15 @@ func showSingleInterface(cmd *cobra.Command, inv *devicetypes.Inventory, arg str
 	format, _ := cmd.Flags().GetString("format")
 	switch format {
 	case "table":
-		printInterfaceInstanceTable([]*devicetypes.InterfaceInstance{iface}, inv)
+		visual.PrintInterfaceInstanceTable([]*devicetypes.InterfaceInstance{iface}, inv)
 		return nil
 	case "tree":
+		tf := treeFilterFromCmd(cmd)
 		node := visual.TreeNode{
 			Label:  iface.Name,
 			Detail: string(iface.InterfaceType),
 		}
-		renderTreeOutput([]visual.TreeNode{node})
+		visual.RenderTreeOutput([]visual.TreeNode{node}, tf.NoColor)
 		return nil
 	default:
 		return marshalAndPrint(iface)

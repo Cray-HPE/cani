@@ -55,13 +55,15 @@ const (
 
 // CompactRenderOptions controls compact rack visualization
 type CompactRenderOptions struct {
-	NoColor    bool                   // Disable ANSI colors
-	RackFilter string                 // Filter to specific rack name
-	Columns    int                    // Number of rack columns before wrapping (0 = auto)
-	Verbose    int                    // 0 = no legend, 1 = legend, 2 = all cables
-	CableType  string                 // Filter cables by type (e.g., "dac", "cat6")
-	Detail     bool                   // Show single-rack detail with annotations
-	Inventory  *devicetypes.Inventory // Full inventory for module/cable lookups
+	NoColor     bool                   // Disable ANSI colors
+	RackFilter  string                 // Filter to specific rack name
+	Columns     int                    // Number of rack columns before wrapping (0 = auto)
+	Verbose     int                    // 0 = no legend, 1 = legend, 2 = all cables
+	CableType   string                 // Filter cables by type (e.g., "dac", "cat6")
+	Detail      bool                   // Show single-rack detail with annotations
+	ShowLabels  bool                   // Show A/B termination labels on routing view
+	Interactive bool                   // Enter interactive toggle mode for routing view
+	Inventory   *devicetypes.Inventory // Full inventory for module/cable lookups
 }
 
 // CompactRackView holds pre-computed rack data for compact rendering
