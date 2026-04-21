@@ -69,6 +69,7 @@ to a specific type; subcommands reject slugs that do not match their type.`,
 	cmd.AddCommand(newModuleCommand())
 	cmd.AddCommand(newCableCommand())
 	cmd.AddCommand(newMetadataCommand())
+	cmd.AddCommand(newConnectionsCommand())
 
 	cmd.PersistentFlags().BoolP("auto", "a", false, "Automatically recommend values for parent hardware")
 	cmd.PersistentFlags().BoolP("accept", "y", false, "Automatically accept recommended values.")

@@ -88,11 +88,17 @@ func parseSegments(pattern string) ([]segment, error) {
 	return segments, nil
 }
 
-// expandRange expands the inner content of a brace group (e.g., "1..4" or "a..d").
+// expandRange expands the inner content of a brace group.
+// Supports comma-separated lists ({1,4,7} or {a,b,c}) and
+// ranges ({1..4} or {a..d}).
 func expandRange(inner string) ([]string, error) {
+	if strings.Contains(inner, ",") {
+		return expandCommaList(inner)
+	}
+
 	parts := strings.SplitN(inner, "..", 2)
 	if len(parts) != 2 {
-		return nil, fmt.Errorf("expected START..END format")
+		return nil, fmt.Errorf("expected START..END or comma-separated format")
 	}
 
 	start := parts[0]
@@ -109,6 +115,21 @@ func expandRange(inner string) ([]string, error) {
 		return expandAlphaRange(start, end)
 	}
 	return nil, fmt.Errorf("cannot mix numeric and alphabetic ranges: %q..%q", start, end)
+}
+
+// expandCommaList splits a comma-separated list into its elements.
+// Each element is returned as-is (no padding or transformation).
+func expandCommaList(inner string) ([]string, error) {
+	parts := strings.Split(inner, ",")
+	result := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			return nil, fmt.Errorf("empty element in comma-separated list")
+		}
+		result = append(result, p)
+	}
+	return result, nil
 }
 
 // expandNumericRange expands "1..4" or "01..04" into a list of strings,

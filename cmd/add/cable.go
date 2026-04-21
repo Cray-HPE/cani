@@ -28,10 +28,12 @@ package add
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/Cray-HPE/cani/internal/util/nameexpand"
 	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/datastores"
+	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
@@ -69,9 +71,9 @@ func addCable(cmd *cobra.Command, args []string) error {
 	}
 
 	aDeviceArg, _ := cmd.Flags().GetString("a-device")
-	aPort, _ := cmd.Flags().GetString("a-port")
+	aPortArg, _ := cmd.Flags().GetString("a-port")
 	bDeviceArg, _ := cmd.Flags().GetString("b-device")
-	bPort, _ := cmd.Flags().GetString("b-port")
+	bPortArg, _ := cmd.Flags().GetString("b-port")
 	label, _ := cmd.Flags().GetString("label")
 	color, _ := cmd.Flags().GetString("color")
 	statusArg, _ := cmd.Flags().GetString("status")
@@ -80,7 +82,25 @@ func addCable(cmd *cobra.Command, args []string) error {
 	start, _ := cmd.Flags().GetInt("start")
 	padWidth, _ := cmd.Flags().GetInt("pad-width")
 
-	names, err := nameexpand.ResolveNames(nameArg, prefix, start, padWidth, qty)
+	// Expand brace patterns on device/port arguments.
+	aDevices := expandArg(aDeviceArg)
+	aPorts := expandArg(aPortArg)
+	bDevices := expandArg(bDeviceArg)
+	bPorts := expandArg(bPortArg)
+
+	// Determine effective cable count from expanded patterns.
+	count, err := alignCableCount(qty, len(aDevices), len(aPorts), len(bDevices), len(bPorts))
+	if err != nil {
+		return err
+	}
+
+	// Broadcast single-element slices to match count.
+	aDevices = broadcastSlice(aDevices, count)
+	aPorts = broadcastSlice(aPorts, count)
+	bDevices = broadcastSlice(bDevices, count)
+	bPorts = broadcastSlice(bPorts, count)
+
+	names, err := nameexpand.ResolveNames(nameArg, prefix, start, padWidth, count)
 	if err != nil {
 		return fmt.Errorf("name resolution failed: %w", err)
 	}
@@ -102,7 +122,17 @@ func addCable(cmd *cobra.Command, args []string) error {
 		statusArg = normalized
 	}
 
-	for i := range qty {
+	// Resolve device names/UUIDs to inventory UUIDs.
+	aDeviceIDs, err := resolveDeviceRefs(aDevices, inventory)
+	if err != nil {
+		return fmt.Errorf("termination A: %w", err)
+	}
+	bDeviceIDs, err := resolveDeviceRefs(bDevices, inventory)
+	if err != nil {
+		return fmt.Errorf("termination B: %w", err)
+	}
+
+	for i := range count {
 		cable := *result.Cable
 		cable.ID = uuid.New()
 
@@ -115,19 +145,10 @@ func addCable(cmd *cobra.Command, args []string) error {
 			cable.Color = color
 		}
 
-		if aDeviceArg != "" {
-			if aid, aerr := uuid.Parse(aDeviceArg); aerr == nil {
-				cable.TerminationADevice = aid
-			}
-		}
-		cable.TerminationAPort = aPort
-
-		if bDeviceArg != "" {
-			if bid, berr := uuid.Parse(bDeviceArg); berr == nil {
-				cable.TerminationBDevice = bid
-			}
-		}
-		cable.TerminationBPort = bPort
+		cable.TerminationADevice = aDeviceIDs[i]
+		cable.TerminationAPort = aPorts[i]
+		cable.TerminationBDevice = bDeviceIDs[i]
+		cable.TerminationBPort = bPorts[i]
 
 		if statusArg != "" {
 			cable.Status = statusArg
@@ -143,6 +164,78 @@ func addCable(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to save inventory: %w", err)
 	}
 
-	log.Printf("%d cable(s) added", qty)
+	log.Printf("%d cable(s) added", count)
 	return nil
+}
+
+// expandArg expands a CLI argument that may contain brace patterns.
+// Returns nil for empty input, a single-element slice for plain strings,
+// or the expanded list for patterns like "node-{01..04}".
+func expandArg(s string) []string {
+	if s == "" {
+		return nil
+	}
+	if strings.Contains(s, "{") && strings.Contains(s, "}") {
+		expanded, err := nameexpand.Expand(s)
+		if err == nil && len(expanded) > 0 {
+			return expanded
+		}
+	}
+	return []string{s}
+}
+
+// alignCableCount determines the cable count from expanded pattern lengths.
+// All non-zero, non-1 lengths must agree (zip semantics). A single-element
+// list is broadcast to match. Returns the explicit qty if no patterns expand
+// to more than 1 element, or validates qty matches the pattern count.
+func alignCableCount(qty int, lengths ...int) (int, error) {
+	maxLen := 1
+	for _, l := range lengths {
+		if l > 1 {
+			if maxLen > 1 && l != maxLen {
+				return 0, fmt.Errorf("pattern length mismatch: got %d and %d", maxLen, l)
+			}
+			maxLen = l
+		}
+	}
+	if maxLen > 1 {
+		if qty > 1 && qty != maxLen {
+			return 0, fmt.Errorf("--qty %d conflicts with pattern expansion count %d", qty, maxLen)
+		}
+		return maxLen, nil
+	}
+	return qty, nil
+}
+
+// broadcastSlice returns s unchanged if its length matches n, replicates
+// a single element n times, or returns a zero-value slice of length n
+// when s is nil (no argument provided).
+func broadcastSlice(s []string, n int) []string {
+	if len(s) == n {
+		return s
+	}
+	out := make([]string, n)
+	if len(s) == 1 {
+		for i := range out {
+			out[i] = s[0]
+		}
+	}
+	return out
+}
+
+// resolveDeviceRefs resolves a list of device name-or-UUID strings to
+// inventory UUIDs. Empty strings map to uuid.Nil (no device specified).
+func resolveDeviceRefs(refs []string, inv *devicetypes.Inventory) ([]uuid.UUID, error) {
+	ids := make([]uuid.UUID, len(refs))
+	for i, ref := range refs {
+		if ref == "" {
+			continue
+		}
+		dev := inv.FindDeviceByNameOrID(ref)
+		if dev == nil {
+			return nil, fmt.Errorf("device not found: %s", ref)
+		}
+		ids[i] = dev.ID
+	}
+	return ids, nil
 }
