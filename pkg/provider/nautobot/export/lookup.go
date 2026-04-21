@@ -62,14 +62,15 @@ type LookupCache struct {
 	ctx    context.Context
 
 	// Caches for different object types
-	deviceTypes   map[string]*CachedItem // keyed by slug
-	locations     map[string]*CachedItem // keyed by name
-	statuses      map[string]*CachedItem // keyed by name
-	roles         map[string]*CachedItem // keyed by name
-	devices       map[string]*CachedItem // keyed by name
-	manufacturers map[string]*CachedItem // keyed by name
-	interfaces    map[string]*CachedItem // keyed by "deviceID:ifaceName"
-	tags          map[string]*CachedItem // keyed by name
+	deviceTypes          map[string]*CachedItem // keyed by slug
+	locations            map[string]*CachedItem // keyed by name
+	statuses             map[string]*CachedItem // keyed by name
+	roles                map[string]*CachedItem // keyed by name
+	devices              map[string]*CachedItem // keyed by name
+	manufacturers        map[string]*CachedItem // keyed by name
+	interfaces           map[string]*CachedItem // keyed by "deviceID:ifaceName"
+	interfacesPrefetched map[uuid.UUID]bool     // tracks devices whose interfaces have been prefetched
+	tags                 map[string]*CachedItem // keyed by name
 
 	// Mutexes for thread-safe access
 	deviceTypesMu   sync.RWMutex
@@ -99,16 +100,17 @@ type LookupCache struct {
 // NewLookupCache creates a new lookup cache for the given client
 func NewLookupCache(client *NautobotClient) *LookupCache {
 	return &LookupCache{
-		client:        client,
-		ctx:           context.Background(),
-		deviceTypes:   make(map[string]*CachedItem),
-		locations:     make(map[string]*CachedItem),
-		statuses:      make(map[string]*CachedItem),
-		roles:         make(map[string]*CachedItem),
-		devices:       make(map[string]*CachedItem),
-		manufacturers: make(map[string]*CachedItem),
-		interfaces:    make(map[string]*CachedItem),
-		tags:          make(map[string]*CachedItem),
+		client:               client,
+		ctx:                  context.Background(),
+		deviceTypes:          make(map[string]*CachedItem),
+		locations:            make(map[string]*CachedItem),
+		statuses:             make(map[string]*CachedItem),
+		roles:                make(map[string]*CachedItem),
+		devices:              make(map[string]*CachedItem),
+		manufacturers:        make(map[string]*CachedItem),
+		interfaces:           make(map[string]*CachedItem),
+		interfacesPrefetched: make(map[uuid.UUID]bool),
+		tags:                 make(map[string]*CachedItem),
 	}
 }
 
@@ -1347,7 +1349,10 @@ func (c *LookupCache) CacheInterface(deviceID uuid.UUID, ifaceName string, item 
 	c.interfaces[key] = item
 }
 
-// GetInterfaceByDeviceAndName looks up an interface by device ID and interface name
+// GetInterfaceByDeviceAndName looks up an interface by device ID and interface name.
+// On a cache miss it fetches ALL interfaces for the device in a single API
+// call rather than filtering by name.  This avoids 400 errors from the
+// Nautobot API when interface names contain "/" characters (e.g. "1/1/14").
 func (c *LookupCache) GetInterfaceByDeviceAndName(deviceID uuid.UUID, ifaceName string) (*CachedItem, error) {
 	// Check local cache first
 	c.interfacesMu.RLock()
@@ -1358,36 +1363,16 @@ func (c *LookupCache) GetInterfaceByDeviceAndName(deviceID uuid.UUID, ifaceName 
 	}
 	c.interfacesMu.RUnlock()
 
-	// Query from Nautobot API
-	deviceIDStr := []string{deviceID.String()}
-	nameFilter := []string{ifaceName}
-
-	resp, err := c.client.DcimInterfacesListWithResponse(c.ctx, &nautobotapi.DcimInterfacesListParams{
-		Device: &deviceIDStr,
-		Name:   &nameFilter,
-	})
-	if err != nil {
+	// Fetch all interfaces for this device and populate cache.
+	if err := c.PrefetchInterfacesForDevice(deviceID); err != nil {
 		return nil, fmt.Errorf("failed to lookup interface %s on device %s: %w", ifaceName, deviceID, err)
 	}
-	if resp.StatusCode() != http.StatusOK {
-		return nil, fmt.Errorf("failed to lookup interface %s on device %s: status %d", ifaceName, deviceID, resp.StatusCode())
-	}
 
-	if resp.JSON200 != nil && resp.JSON200.Results != nil && len(resp.JSON200.Results) > 0 {
-		iface := (resp.JSON200.Results)[0]
-		item := &CachedItem{
-			ID:      toUUID(iface.Id),
-			Name:    iface.Name,
-			Display: *iface.Display,
-		}
-		// Extract cable ID if interface has a cable attached
-		if iface.Cable != nil && iface.Cable.Id != nil {
-			if cableUUID, err := iface.Cable.Id.AsBulkWritableCableRequestStatusId0(); err == nil {
-				item.CableID = uuid.UUID(cableUUID)
-			}
-		}
-		// Cache the result
-		c.CacheInterface(deviceID, ifaceName, item)
+	// Re-check cache after prefetch
+	c.interfacesMu.RLock()
+	item, ok := c.interfaces[key]
+	c.interfacesMu.RUnlock()
+	if ok {
 		return item, nil
 	}
 
@@ -1397,9 +1382,11 @@ func (c *LookupCache) GetInterfaceByDeviceAndName(deviceID uuid.UUID, ifaceName 
 // GetInterfacesByDevice lists all interfaces for a device
 func (c *LookupCache) GetInterfacesByDevice(deviceID uuid.UUID) ([]*CachedItem, error) {
 	deviceIDStr := []string{deviceID.String()}
+	limit := 1000
 
 	resp, err := c.client.DcimInterfacesListWithResponse(c.ctx, &nautobotapi.DcimInterfacesListParams{
 		Device: &deviceIDStr,
+		Limit:  &limit,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list interfaces for device %s: %w", deviceID, err)
@@ -1427,6 +1414,32 @@ func (c *LookupCache) GetInterfacesByDevice(deviceID uuid.UUID) ([]*CachedItem, 
 	}
 
 	return items, nil
+}
+
+// PrefetchInterfacesForDevice fetches all interfaces for a device from
+// Nautobot in a single API call and populates the local cache.  This
+// avoids per-interface queries that can fail when interface names
+// contain characters (like "/") that cause issues in query filters.
+func (c *LookupCache) PrefetchInterfacesForDevice(deviceID uuid.UUID) error {
+	c.interfacesMu.RLock()
+	if c.interfacesPrefetched[deviceID] {
+		c.interfacesMu.RUnlock()
+		return nil
+	}
+	c.interfacesMu.RUnlock()
+
+	items, err := c.GetInterfacesByDevice(deviceID)
+	if err != nil {
+		return err
+	}
+	for _, item := range items {
+		c.CacheInterface(deviceID, item.Name, item)
+	}
+
+	c.interfacesMu.Lock()
+	c.interfacesPrefetched[deviceID] = true
+	c.interfacesMu.Unlock()
+	return nil
 }
 
 // GetInterfaceByDeviceAndNameFuzzy looks up an interface by device ID and interface name,

@@ -529,11 +529,14 @@ func (e *Exporter) createRack(ctx context.Context, device *devicetypes.CaniDevic
 
 // createRackFromCaniRack creates a new rack in Nautobot from a CaniRackType
 func (e *Exporter) createRackFromCaniRack(ctx context.Context, rack *devicetypes.CaniRackType, inventory *devicetypes.Inventory, mapper *DeviceMapper, result *LoadResult) (uuid.UUID, error) {
-	// Resolve location - prefer rack-level UUID, fall back to provider default
+	// Resolve location - prefer rack-level UUID, fall back to provider default.
+	// If the location's type doesn't allow racks, walk down the tree to find
+	// the deepest descendant that does.
 	locationName := e.Options.DefaultLocation
 	if rack.Location != uuid.Nil {
-		if loc, ok := inventory.Locations[rack.Location]; ok && loc.Name != "" {
-			locationName = loc.Name
+		resolved := resolveContentLocation(rack.Location, "rack", inventory)
+		if resolved != "" {
+			locationName = resolved
 		}
 	}
 	if locationName == "" {
