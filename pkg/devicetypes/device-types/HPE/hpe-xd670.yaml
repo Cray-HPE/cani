@@ -61,6 +61,8 @@ module-bays:
     position: GPU6
   - name: GPU 7
     position: GPU7
+  - name: PCIe 9
+    position: PCIe9
 interfaces:
   # HSN Interfaces - NDR InfiniBand via CX7
   - name: HSN 0

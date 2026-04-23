@@ -1,0 +1,35 @@
+#
+# MIT License
+#
+# (C) Copyright 2024-2026 Hewlett Packard Enterprise Development LP
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+manufacturer: NVIDIA
+model: ConnectX-6 Dx 100GbE 2-port QSFP28
+slug: nvidia-connectx-6-dx-100gbe-2p-qsfp28
+part_number: MCX623106AN-CDAT
+description: "NVIDIA ConnectX-6 Dx dual-port 100GbE QSFP28 PCIe 4.0 x16 network adapter. Supports RoCE, DPDK, and hardware offloads."
+type: nic
+interfaces:
+  - name: Port 1
+    type: 100gbase-x-qsfp28
+  - name: Port 2
+    type: 100gbase-x-qsfp28
