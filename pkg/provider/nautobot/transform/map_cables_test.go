@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2026 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -146,7 +146,7 @@ func TestMapCables(t *testing.T) {
 				TerminationBId:   openapi_types.UUID(ifaceBID),
 				TerminationAType: termAType,
 				TerminationBType: termBType,
-				Type:       &nautobotapi.CableType{Value: &cableType},
+				Type:             &nautobotapi.CableType{Value: &cableType},
 				Length:           intPtr(3),
 				LengthUnit:       &nautobotapi.CableLengthUnit{Value: &lengthUnit},
 			},
