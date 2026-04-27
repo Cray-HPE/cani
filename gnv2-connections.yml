@@ -3,8 +3,8 @@
 # x3516 is the core networking rack (spine). All racks home back to x3516.
 #
 # Topology layers:
-#   Layer 1  — Management (1GbE):  device iLO/BMC → local MAN switch → MANB-x3516
-#   Layer 2  — Backbone  (100GbE): BBL rack-leaf → BBS-x3516 spine → BBB-x3516 super-spine
+#   Layer 1  — Management (1GbE):  device iLO/BMC → local MAN switch → MANB-3516
+#   Layer 2  — Backbone  (100GbE): BBL rack-leaf → BBS-3516 spine → BBB-3516 super-spine
 #   Layer 3  — HSN       (400G NDR): XD670 HSN → local NDR leaf/spine → cross-rack ISLs
 #   Gateway  — FortiGate/F5 → backbone switches in x3516
 #
@@ -31,253 +31,253 @@ connections:
   #        CAT5 RJ45 4.3m (hpe-cat5-rj45-4-3m-cable) for cross-rack
   # ═══════════════════════════════════════════════════════════════════════════
 
-  # --- x3701: GPU node iLOs → MAN-x3701u48 (Aruba 2930F, ports 1-4) ---
-  - a: { device: "GH-x3701u34", port: "iLO" }
-    b: { device: "FORGE-x3701u47M", port: "1" }
+  # --- x3701: GPU node iLOs → MAN-3701u48 (Aruba 2930F, ports 1-4) ---
+  - a: { device: "GH-3701u34", port: "iLO" }
+    b: { device: "FORGE-3701u47M", port: "1" }
     cable: { type: hpe-3m-cat6-stp, color: blue }
-  - a: { device: "GH-x3701u26", port: "iLO" }
-    b: { device: "FORGE-x3701u47M", port: "2" }
+  - a: { device: "GH-3701u26", port: "iLO" }
+    b: { device: "FORGE-3701u47M", port: "2" }
     cable: { type: hpe-3m-cat6-stp, color: blue }
-  - a: { device: "GH-x3701u18", port: "iLO" }
-    b: { device: "FORGE-x3701u47M", port: "3" }
+  - a: { device: "GH-3701u18", port: "iLO" }
+    b: { device: "FORGE-3701u47M", port: "3" }
     cable: { type: hpe-3m-cat6-stp, color: blue }
-  - a: { device: "GH-x3701u10", port: "iLO" }
-    b: { device: "FORGE-x3701u47M", port: "4" }
+  - a: { device: "GH-3701u10", port: "iLO" }
+    b: { device: "FORGE-3701u47M", port: "4" }
     cable: { type: hpe-3m-cat6-stp, color: blue }
-  # - a: { device: "GH-x3701u34", port: "iLO" }
-  #   b: { device: "MAN-x3701u48", port: "1" }
+  # - a: { device: "GH-3701u34", port: "iLO" }
+  #   b: { device: "MAN-3701u48", port: "1" }
   #   cable: { type: hpe-3m-cat6-stp, color: blue }
   #   status: Decommissioning
-  # - a: { device: "GH-x3701u26", port: "iLO" }
-  #   b: { device: "MAN-x3701u48", port: "2" }
+  # - a: { device: "GH-3701u26", port: "iLO" }
+  #   b: { device: "MAN-3701u48", port: "2" }
   #   cable: { type: hpe-3m-cat6-stp, color: blue }
   #   status: Decommissioning
-  # - a: { device: "GH-x3701u18", port: "iLO" }
-  #   b: { device: "MAN-x3701u48", port: "3" }
+  # - a: { device: "GH-3701u18", port: "iLO" }
+  #   b: { device: "MAN-3701u48", port: "3" }
   #   cable: { type: hpe-3m-cat6-stp, color: blue }
   #   status: Decommissioning
-  # - a: { device: "GH-x3701u10", port: "iLO" }
-  #   b: { device: "MAN-x3701u48", port: "4" }
+  # - a: { device: "GH-3701u10", port: "iLO" }
+  #   b: { device: "MAN-3701u48", port: "4" }
   #   cable: { type: hpe-3m-cat6-stp, color: blue }
   #   status: Decommissioning
 
-  # x3701: NDR leaf switch mgmt → MAN-x3701u48
-  # - a: { device: "HSNL-x3701u42", port: "mgmt0" }
-  #   b: { device: "MAN-x3701u48", port: "5" }
+  # x3701: NDR leaf switch mgmt → MAN-3701u48
+  # - a: { device: "HSNL-3701u42", port: "mgmt0" }
+  #   b: { device: "MAN-3701u48", port: "5" }
   #   cable: { type: hpe-3m-cat6-stp, color: blue }
-  # - a: { device: "HSNL-x3701u43", port: "mgmt0" }
-  #   b: { device: "MAN-x3701u48", port: "6" }
+  # - a: { device: "HSNL-3701u43", port: "mgmt0" }
+  #   b: { device: "MAN-3701u48", port: "6" }
   #   cable: { type: hpe-3m-cat6-stp, color: blue }
 
-  # --- x3507: DL380 iLOs → FORGE-x3507u47M (intra-rack mgmt switch) ---
-  - a: { device: "SERV-x3507u21", port: "iLO" }
-    b: { device: "FORGE-x3507u47M", port: "9" }
+  # --- x3507: DL380 iLOs → FORGE-3507u47M (intra-rack mgmt switch) ---
+  - a: { device: "SERV-3507u21", port: "iLO" }
+    b: { device: "FORGE-3507u47M", port: "9" }
     cable: { type: hpe-3m-cat6-stp, color: blue }
-  - a: { device: "SERV-x3507u19", port: "iLO" }
-    b: { device: "FORGE-x3507u47M", port: "10" }
+  - a: { device: "SERV-3507u19", port: "iLO" }
+    b: { device: "FORGE-3507u47M", port: "10" }
     cable: { type: hpe-3m-cat6-stp, color: blue }
-  - a: { device: "SERV-x3507u17", port: "iLO" }
-    b: { device: "FORGE-x3507u47M", port: "11" }
+  - a: { device: "SERV-3507u17", port: "iLO" }
+    b: { device: "FORGE-3507u47M", port: "11" }
     cable: { type: hpe-3m-cat6-stp, color: blue }
-  - a: { device: "SERV-x3507u15", port: "iLO" }
-    b: { device: "FORGE-x3507u47M", port: "12" }
+  - a: { device: "SERV-3507u15", port: "iLO" }
+    b: { device: "FORGE-3507u47M", port: "12" }
     cable: { type: hpe-3m-cat6-stp, color: blue }
-  - a: { device: "SERV-x3507u13", port: "iLO" }
-    b: { device: "FORGE-x3507u47M", port: "13" }
+  - a: { device: "SERV-3507u13", port: "iLO" }
+    b: { device: "FORGE-3507u47M", port: "13" }
     cable: { type: hpe-3m-cat6-stp, color: blue }
-  - a: { device: "SERV-x3507u11", port: "iLO" }
-    b: { device: "FORGE-x3507u47M", port: "14" }
+  - a: { device: "SERV-3507u11", port: "iLO" }
+    b: { device: "FORGE-3507u47M", port: "14" }
     cable: { type: hpe-3m-cat6-stp, color: blue }
-  - a: { device: "SERV-x3507u9", port: "iLO" }
-    b: { device: "FORGE-x3507u47M", port: "15" }
+  - a: { device: "SERV-3507u9", port: "iLO" }
+    b: { device: "FORGE-3507u47M", port: "15" }
     cable: { type: hpe-3m-cat6-stp, color: blue }
-  - a: { device: "SERV-x3507u7", port: "iLO" }
-    b: { device: "FORGE-x3507u47M", port: "16" }
+  - a: { device: "SERV-3507u7", port: "iLO" }
+    b: { device: "FORGE-3507u47M", port: "16" }
     cable: { type: hpe-3m-cat6-stp, color: blue }
-  - a: { device: "SERV-x3507u5", port: "iLO" }
-    b: { device: "FORGE-x3507u47M", port: "17" }
+  - a: { device: "SERV-3507u5", port: "iLO" }
+    b: { device: "FORGE-3507u47M", port: "17" }
     cable: { type: hpe-3m-cat6-stp, color: blue }
 
   # --- x3701: Mgmt switch SFP28 uplinks → FORGE leaf pair (dual-homed, 10G DAC) ---
-  - a: { device: "FORGE-x3701u47M", port: "49" }
-    b: { device: "FORGE-x3701u46L", port: "1/1/5" }
+  - a: { device: "FORGE-3701u47M", port: "49" }
+    b: { device: "FORGE-3701u46L", port: "1/1/5" }
     cable: { type: hpe-aruba-10g-sfpp-3m-dac, color: blue }
-  - a: { device: "FORGE-x3701u47M", port: "50" }
-    b: { device: "FORGE-x3701u45L", port: "1/1/5" }
+  - a: { device: "FORGE-3701u47M", port: "50" }
+    b: { device: "FORGE-3701u45L", port: "1/1/5" }
     cable: { type: hpe-aruba-10g-sfpp-3m-dac, color: blue }
 
   # --- x3507: Mgmt switch SFP28 uplinks → FORGE leaf pair (dual-homed, 10G DAC) ---
-  - a: { device: "FORGE-x3507u47M", port: "49" }
-    b: { device: "FORGE-x3507u44L", port: "1/1/10" }
+  - a: { device: "FORGE-3507u47M", port: "49" }
+    b: { device: "FORGE-3507u44L", port: "1/1/10" }
     cable: { type: hpe-aruba-10g-sfpp-3m-dac, color: blue }
-  - a: { device: "FORGE-x3507u47M", port: "50" }
-    b: { device: "FORGE-x3507u43L", port: "1/1/10" }
+  - a: { device: "FORGE-3507u47M", port: "50" }
+    b: { device: "FORGE-3507u43L", port: "1/1/10" }
     cable: { type: hpe-aruba-10g-sfpp-3m-dac, color: blue }
 
   # ═══════════════════════════════════════════════════════════════════════════
   # LAYER 1c: Leaf — DL380 CX6 100GbE → FORGE leaf switches (dual-homed)
   # Cable: 100G QSFP28 DAC (hpe-aruba-100g-qsfp28-3m-dac) intra-rack
-  # Each DL380 Port 1 → FORGE-x3507u44L, Port 2 → FORGE-x3507u43L
+  # Each DL380 Port 1 → FORGE-3507u44L, Port 2 → FORGE-3507u43L
   # ═══════════════════════════════════════════════════════════════════════════
 
   # DL380 CX6 100GbE ports → FORGE leaf switches in x3507 (dual-homed)
-  - a: { device: "SERV-x3507u21", port: "Port 1" }
-    b: { device: "FORGE-x3507u44L", port: "1/1/1" }
+  - a: { device: "SERV-3507u21", port: "Port 1" }
+    b: { device: "FORGE-3507u44L", port: "1/1/1" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "SERV-x3507u21", port: "Port 2" }
-    b: { device: "FORGE-x3507u43L", port: "1/1/1" }
+  - a: { device: "SERV-3507u21", port: "Port 2" }
+    b: { device: "FORGE-3507u43L", port: "1/1/1" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "SERV-x3507u19", port: "Port 1" }
-    b: { device: "FORGE-x3507u44L", port: "1/1/2" }
+  - a: { device: "SERV-3507u19", port: "Port 1" }
+    b: { device: "FORGE-3507u44L", port: "1/1/2" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "SERV-x3507u19", port: "Port 2" }
-    b: { device: "FORGE-x3507u43L", port: "1/1/2" }
+  - a: { device: "SERV-3507u19", port: "Port 2" }
+    b: { device: "FORGE-3507u43L", port: "1/1/2" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "SERV-x3507u17", port: "Port 1" }
-    b: { device: "FORGE-x3507u44L", port: "1/1/3" }
+  - a: { device: "SERV-3507u17", port: "Port 1" }
+    b: { device: "FORGE-3507u44L", port: "1/1/3" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "SERV-x3507u17", port: "Port 2" }
-    b: { device: "FORGE-x3507u43L", port: "1/1/3" }
+  - a: { device: "SERV-3507u17", port: "Port 2" }
+    b: { device: "FORGE-3507u43L", port: "1/1/3" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "SERV-x3507u15", port: "Port 1" }
-    b: { device: "FORGE-x3507u44L", port: "1/1/4" }
+  - a: { device: "SERV-3507u15", port: "Port 1" }
+    b: { device: "FORGE-3507u44L", port: "1/1/4" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "SERV-x3507u15", port: "Port 2" }
-    b: { device: "FORGE-x3507u43L", port: "1/1/4" }
+  - a: { device: "SERV-3507u15", port: "Port 2" }
+    b: { device: "FORGE-3507u43L", port: "1/1/4" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "SERV-x3507u13", port: "Port 1" }
-    b: { device: "FORGE-x3507u44L", port: "1/1/5" }
+  - a: { device: "SERV-3507u13", port: "Port 1" }
+    b: { device: "FORGE-3507u44L", port: "1/1/5" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "SERV-x3507u13", port: "Port 2" }
-    b: { device: "FORGE-x3507u43L", port: "1/1/5" }
+  - a: { device: "SERV-3507u13", port: "Port 2" }
+    b: { device: "FORGE-3507u43L", port: "1/1/5" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "SERV-x3507u11", port: "Port 1" }
-    b: { device: "FORGE-x3507u44L", port: "1/1/6" }
+  - a: { device: "SERV-3507u11", port: "Port 1" }
+    b: { device: "FORGE-3507u44L", port: "1/1/6" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "SERV-x3507u11", port: "Port 2" }
-    b: { device: "FORGE-x3507u43L", port: "1/1/6" }
+  - a: { device: "SERV-3507u11", port: "Port 2" }
+    b: { device: "FORGE-3507u43L", port: "1/1/6" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "SERV-x3507u9", port: "Port 1" }
-    b: { device: "FORGE-x3507u44L", port: "1/1/7" }
+  - a: { device: "SERV-3507u9", port: "Port 1" }
+    b: { device: "FORGE-3507u44L", port: "1/1/7" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "SERV-x3507u9", port: "Port 2" }
-    b: { device: "FORGE-x3507u43L", port: "1/1/7" }
+  - a: { device: "SERV-3507u9", port: "Port 2" }
+    b: { device: "FORGE-3507u43L", port: "1/1/7" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "SERV-x3507u7", port: "Port 1" }
-    b: { device: "FORGE-x3507u44L", port: "1/1/8" }
+  - a: { device: "SERV-3507u7", port: "Port 1" }
+    b: { device: "FORGE-3507u44L", port: "1/1/8" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "SERV-x3507u7", port: "Port 2" }
-    b: { device: "FORGE-x3507u43L", port: "1/1/8" }
+  - a: { device: "SERV-3507u7", port: "Port 2" }
+    b: { device: "FORGE-3507u43L", port: "1/1/8" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "SERV-x3507u5", port: "Port 1" }
-    b: { device: "FORGE-x3507u44L", port: "1/1/9" }
+  - a: { device: "SERV-3507u5", port: "Port 1" }
+    b: { device: "FORGE-3507u44L", port: "1/1/9" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "SERV-x3507u5", port: "Port 2" }
-    b: { device: "FORGE-x3507u43L", port: "1/1/9" }
-    cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-
-  # FORGE-x3507u44L (leaf-1) → FORGE-x3507u46S (spine-1)
-  - a: { device: "FORGE-x3507u44L", port: "1/1/29" }
-    b: { device: "FORGE-x3507u46S", port: "1/1/1" }
+  - a: { device: "SERV-3507u5", port: "Port 2" }
+    b: { device: "FORGE-3507u43L", port: "1/1/9" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
 
-  # FORGE-x3507u44L (leaf-1) → FORGE-x3507u45S (spine-2)
-  - a: { device: "FORGE-x3507u44L", port: "1/1/28" }
-    b: { device: "FORGE-x3507u45S", port: "1/1/1" }
+  # FORGE-3507u44L (leaf-1) → FORGE-3507u46S (spine-1)
+  - a: { device: "FORGE-3507u44L", port: "1/1/29" }
+    b: { device: "FORGE-3507u46S", port: "1/1/1" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
 
-  # FORGE-x3507u43L (leaf-2) → FORGE-x3507u46S (spine-1)
-  - a: { device: "FORGE-x3507u43L", port: "1/1/29" }
-    b: { device: "FORGE-x3507u46S", port: "1/1/2" }
+  # FORGE-3507u44L (leaf-1) → FORGE-3507u45S (spine-2)
+  - a: { device: "FORGE-3507u44L", port: "1/1/28" }
+    b: { device: "FORGE-3507u45S", port: "1/1/1" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
 
-  # FORGE-x3507u43L (leaf-2) → FORGE-x3507u45S (spine-2)
-  - a: { device: "FORGE-x3507u43L", port: "1/1/28" }
-    b: { device: "FORGE-x3507u45S", port: "1/1/2" }
+  # FORGE-3507u43L (leaf-2) → FORGE-3507u46S (spine-1)
+  - a: { device: "FORGE-3507u43L", port: "1/1/29" }
+    b: { device: "FORGE-3507u46S", port: "1/1/2" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
 
-  # ── x3507 ISL: FORGE-x3507u44L ↔ FORGE-x3507u43L (VSX, 3× 100G DAC 3m) ──
-  - a: { device: "FORGE-x3507u44L", port: "1/1/30" }
-    b: { device: "FORGE-x3507u43L", port: "1/1/30" }
+  # FORGE-3507u43L (leaf-2) → FORGE-3507u45S (spine-2)
+  - a: { device: "FORGE-3507u43L", port: "1/1/28" }
+    b: { device: "FORGE-3507u45S", port: "1/1/2" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "FORGE-x3507u44L", port: "1/1/31" }
-    b: { device: "FORGE-x3507u43L", port: "1/1/31" }
+
+  # ── x3507 ISL: FORGE-3507u44L ↔ FORGE-3507u43L (VSX, 3× 100G DAC 3m) ──
+  - a: { device: "FORGE-3507u44L", port: "1/1/30" }
+    b: { device: "FORGE-3507u43L", port: "1/1/30" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "FORGE-x3507u44L", port: "1/1/32" }
-    b: { device: "FORGE-x3507u43L", port: "1/1/32" }
+  - a: { device: "FORGE-3507u44L", port: "1/1/31" }
+    b: { device: "FORGE-3507u43L", port: "1/1/31" }
+    cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
+  - a: { device: "FORGE-3507u44L", port: "1/1/32" }
+    b: { device: "FORGE-3507u43L", port: "1/1/32" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
 
 # XD670 CX6 100GbE ports → FORGE leaf switches in x3701 (dual-homed)
-  - a: { device: "GH-x3701u34", port: "Port 1" }
-    b: { device: "FORGE-x3701u46L", port: "1/1/1" }
+  - a: { device: "GH-3701u34", port: "Port 1" }
+    b: { device: "FORGE-3701u46L", port: "1/1/1" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "GH-x3701u34", port: "Port 2" }
-    b: { device: "FORGE-x3701u45L", port: "1/1/1" }
+  - a: { device: "GH-3701u34", port: "Port 2" }
+    b: { device: "FORGE-3701u45L", port: "1/1/1" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "GH-x3701u26", port: "Port 1" }
-    b: { device: "FORGE-x3701u46L", port: "1/1/2" }
+  - a: { device: "GH-3701u26", port: "Port 1" }
+    b: { device: "FORGE-3701u46L", port: "1/1/2" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "GH-x3701u26", port: "Port 2" }
-    b: { device: "FORGE-x3701u45L", port: "1/1/2" }
+  - a: { device: "GH-3701u26", port: "Port 2" }
+    b: { device: "FORGE-3701u45L", port: "1/1/2" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "GH-x3701u18", port: "Port 1" }
-    b: { device: "FORGE-x3701u46L", port: "1/1/3" }
+  - a: { device: "GH-3701u18", port: "Port 1" }
+    b: { device: "FORGE-3701u46L", port: "1/1/3" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "GH-x3701u18", port: "Port 2" }
-    b: { device: "FORGE-x3701u45L", port: "1/1/3" }
+  - a: { device: "GH-3701u18", port: "Port 2" }
+    b: { device: "FORGE-3701u45L", port: "1/1/3" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "GH-x3701u10", port: "Port 1" }
-    b: { device: "FORGE-x3701u46L", port: "1/1/4" }
+  - a: { device: "GH-3701u10", port: "Port 1" }
+    b: { device: "FORGE-3701u46L", port: "1/1/4" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "GH-x3701u10", port: "Port 2" }
-    b: { device: "FORGE-x3701u45L", port: "1/1/4" }
+  - a: { device: "GH-3701u10", port: "Port 2" }
+    b: { device: "FORGE-3701u45L", port: "1/1/4" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
 
 
   # # ═══════════════════════════════════════════════════════════════════════════
-  # # LAYER 1b: Management uplinks — MAN switches → MANB-x3516 aggregation
+  # # LAYER 1b: Management uplinks — MAN switches → MANB-3516 aggregation
   # # 2930F SFP+ (10G) → 8325-48Y8C SFP28 ports (backward-compatible)
   # # 8325-48Y8C 100G → 8325-48Y8C 100G for x3502 (which uses 8325-48Y8C as MAN)
   # # ═══════════════════════════════════════════════════════════════════════════
 
 
 
-  # # MAN-x3702u48 dual-homed
-  # - a: { device: "MAN-x3702u48", port: "49" }
-  #   b: { device: "MANB-x3516u35", port: "1/1/2" }
+  # # MAN-3702u48 dual-homed
+  # - a: { device: "MAN-3702u48", port: "49" }
+  #   b: { device: "MANB-3516u35", port: "1/1/2" }
   #   cable: { type: hpe-aruba-10g-sfpp-3m-dac, color: blue }
-  # - a: { device: "MAN-x3702u48", port: "50" }
-  #   b: { device: "MANB-x3516u27", port: "1/1/2" }
+  # - a: { device: "MAN-3702u48", port: "50" }
+  #   b: { device: "MANB-3516u27", port: "1/1/2" }
   #   cable: { type: hpe-aruba-10g-sfpp-3m-dac, color: blue }
 
-  # # MAN-x3502u48 (8325-48Y8C) 100G uplinks → MANB-x3516 100G ports
-  # - a: { device: "MAN-x3502u48", port: "1/1/49" }
-  #   b: { device: "MANB-x3516u35", port: "1/1/49" }
+  # # MAN-3502u48 (8325-48Y8C) 100G uplinks → MANB-3516 100G ports
+  # - a: { device: "MAN-3502u48", port: "1/1/49" }
+  #   b: { device: "MANB-3516u35", port: "1/1/49" }
   #   cable: { type: hpe-aruba-100g-qsfp28-15m-aoc, color: blue }
-  # - a: { device: "MAN-x3502u48", port: "1/1/50" }
-  #   b: { device: "MANB-x3516u27", port: "1/1/49" }
+  # - a: { device: "MAN-3502u48", port: "1/1/50" }
+  #   b: { device: "MANB-3516u27", port: "1/1/49" }
   #   cable: { type: hpe-aruba-100g-qsfp28-15m-aoc, color: blue }
 
-  # # MAN-x3508u48 dual-homed
-  # - a: { device: "MAN-x3508u48", port: "49" }
-  #   b: { device: "MANB-x3516u26", port: "1/1/1" }
+  # # MAN-3508u48 dual-homed
+  # - a: { device: "MAN-3508u48", port: "49" }
+  #   b: { device: "MANB-3516u26", port: "1/1/1" }
   #   cable: { type: hpe-aruba-10g-sfpp-3m-dac, color: blue }
-  # - a: { device: "MAN-x3508u48", port: "50" }
-  #   b: { device: "MANB-x3516u25", port: "1/1/1" }
+  # - a: { device: "MAN-3508u48", port: "50" }
+  #   b: { device: "MANB-3516u25", port: "1/1/1" }
   #   cable: { type: hpe-aruba-10g-sfpp-3m-dac, color: blue }
 
-  # # MANB-x3516 100G interconnects (management-backbone redundancy ring)
-  # - a: { device: "MANB-x3516u35", port: "1/1/50" }
-  #   b: { device: "MANB-x3516u27", port: "1/1/50" }
+  # # MANB-3516 100G interconnects (management-backbone redundancy ring)
+  # - a: { device: "MANB-3516u35", port: "1/1/50" }
+  #   b: { device: "MANB-3516u27", port: "1/1/50" }
   #   cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: blue }
-  # - a: { device: "MANB-x3516u26", port: "1/1/49" }
-  #   b: { device: "MANB-x3516u25", port: "1/1/49" }
+  # - a: { device: "MANB-3516u26", port: "1/1/49" }
+  #   b: { device: "MANB-3516u25", port: "1/1/49" }
   #   cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: blue }
 
   # # ═══════════════════════════════════════════════════════════════════════════
   # # LAYER 2: Backbone 100GbE — Leaf-Spine Fabric
-  # # Leaves: BBL-x3701u45, BBL-x3702u45, BBR-x3516u47, BBR-x3516u46
-  # # Spines: BBS-x3516u39, BBS-x3516u38
+  # # Leaves: BBL-3701u45, BBL-3702u45, BBR-3516u47, BBR-3516u46
+  # # Spines: BBS-3516u39, BBS-3516u38
   # # Each leaf has 2 uplinks to each spine (4 total per leaf)
   # # Cross-rack uses 15m AOC; intra-rack uses 3m DAC
   # # ═══════════════════════════════════════════════════════════════════════════
@@ -285,60 +285,60 @@ connections:
 
 
 
-  # FORGE-x3701u45L (leaf) → FORGE-x3507u46S (spine-1)
-  - a: { device: "FORGE-x3701u45L", port: "1/1/29" }
-    b: { device: "FORGE-x3507u46S", port: "1/1/3" }
+  # FORGE-3701u45L (leaf) → FORGE-3507u46S (spine-1)
+  - a: { device: "FORGE-3701u45L", port: "1/1/29" }
+    b: { device: "FORGE-3507u46S", port: "1/1/3" }
     cable: { type: hpe-aruba-100g-qsfp28-15m-aoc, color: orange }
 
-  # FORGE-x3701u45L (leaf) → FORGE-x3507u45S (spine-2)
-  - a: { device: "FORGE-x3701u45L", port: "1/1/28" }
-    b: { device: "FORGE-x3507u45S", port: "1/1/3" }
+  # FORGE-3701u45L (leaf) → FORGE-3507u45S (spine-2)
+  - a: { device: "FORGE-3701u45L", port: "1/1/28" }
+    b: { device: "FORGE-3507u45S", port: "1/1/3" }
     cable: { type: hpe-aruba-100g-qsfp28-15m-aoc, color: orange }
 
-  # FORGE-x3701u46L (leaf) → FORGE-x3507u46S (spine-1)
-  - a: { device: "FORGE-x3701u46L", port: "1/1/29" }
-    b: { device: "FORGE-x3507u46S", port: "1/1/4" }
+  # FORGE-3701u46L (leaf) → FORGE-3507u46S (spine-1)
+  - a: { device: "FORGE-3701u46L", port: "1/1/29" }
+    b: { device: "FORGE-3507u46S", port: "1/1/4" }
     cable: { type: hpe-aruba-100g-qsfp28-15m-aoc, color: orange }
 
-  # FORGE-x3701u46L (leaf) → FORGE-x3507u45S (spine-2)
-  - a: { device: "FORGE-x3701u46L", port: "1/1/28" }
-    b: { device: "FORGE-x3507u45S", port: "1/1/4" }
+  # FORGE-3701u46L (leaf) → FORGE-3507u45S (spine-2)
+  - a: { device: "FORGE-3701u46L", port: "1/1/28" }
+    b: { device: "FORGE-3507u45S", port: "1/1/4" }
     cable: { type: hpe-aruba-100g-qsfp28-15m-aoc, color: orange }
 
-  # ── x3701 ISL: FORGE-x3701u46L ↔ FORGE-x3701u45L (VSX, 3× 100G DAC 3m) ──
-  - a: { device: "FORGE-x3701u46L", port: "1/1/30" }
-    b: { device: "FORGE-x3701u45L", port: "1/1/30" }
+  # ── x3701 ISL: FORGE-3701u46L ↔ FORGE-3701u45L (VSX, 3× 100G DAC 3m) ──
+  - a: { device: "FORGE-3701u46L", port: "1/1/30" }
+    b: { device: "FORGE-3701u45L", port: "1/1/30" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "FORGE-x3701u46L", port: "1/1/31" }
-    b: { device: "FORGE-x3701u45L", port: "1/1/31" }
+  - a: { device: "FORGE-3701u46L", port: "1/1/31" }
+    b: { device: "FORGE-3701u45L", port: "1/1/31" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "FORGE-x3701u46L", port: "1/1/32" }
-    b: { device: "FORGE-x3701u45L", port: "1/1/32" }
+  - a: { device: "FORGE-3701u46L", port: "1/1/32" }
+    b: { device: "FORGE-3701u45L", port: "1/1/32" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
 
   # ── x3507 Spine → BBR backbone leaves in x3516 (cross-rack, 100G AOC 15m) ──
-  - a: { device: "FORGE-x3507u46S", port: "1/1/32" }
-    b: { device: "BBR-x3516u47L", port: "1/1/1" }
+  - a: { device: "FORGE-3507u46S", port: "1/1/32" }
+    b: { device: "BBR-3516u47L", port: "1/1/1" }
     cable: { type: hpe-aruba-100g-qsfp28-15m-aoc, color: orange }
-  - a: { device: "FORGE-x3507u46S", port: "1/1/31" }
-    b: { device: "BBR-x3516u46L", port: "1/1/1" }
+  - a: { device: "FORGE-3507u46S", port: "1/1/31" }
+    b: { device: "BBR-3516u46L", port: "1/1/1" }
     cable: { type: hpe-aruba-100g-qsfp28-15m-aoc, color: orange }
-  - a: { device: "FORGE-x3507u45S", port: "1/1/32" }
-    b: { device: "BBR-x3516u47L", port: "1/1/2" }
+  - a: { device: "FORGE-3507u45S", port: "1/1/32" }
+    b: { device: "BBR-3516u47L", port: "1/1/2" }
     cable: { type: hpe-aruba-100g-qsfp28-15m-aoc, color: orange }
-  - a: { device: "FORGE-x3507u45S", port: "1/1/31" }
-    b: { device: "BBR-x3516u46L", port: "1/1/2" }
+  - a: { device: "FORGE-3507u45S", port: "1/1/31" }
+    b: { device: "BBR-3516u46L", port: "1/1/2" }
     cable: { type: hpe-aruba-100g-qsfp28-15m-aoc, color: orange }
 
-  # ── x3516 ISL: BBR-x3516u47L ↔ BBR-x3516u46L (VSX, 3× 100G DAC 3m) ──
-  - a: { device: "BBR-x3516u47L", port: "1/1/30" }
-    b: { device: "BBR-x3516u46L", port: "1/1/30" }
+  # ── x3516 ISL: BBR-3516u47L ↔ BBR-3516u46L (VSX, 3× 100G DAC 3m) ──
+  - a: { device: "BBR-3516u47L", port: "1/1/30" }
+    b: { device: "BBR-3516u46L", port: "1/1/30" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "BBR-x3516u47L", port: "1/1/31" }
-    b: { device: "BBR-x3516u46L", port: "1/1/31" }
+  - a: { device: "BBR-3516u47L", port: "1/1/31" }
+    b: { device: "BBR-3516u46L", port: "1/1/31" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  - a: { device: "BBR-x3516u47L", port: "1/1/32" }
-    b: { device: "BBR-x3516u46L", port: "1/1/32" }
+  - a: { device: "BBR-3516u47L", port: "1/1/32" }
+    b: { device: "BBR-3516u46L", port: "1/1/32" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
 
   # # ═══════════════════════════════════════════════════════════════════════════
@@ -346,32 +346,32 @@ connections:
   # # BBS connects to all 4 BBB switches for east-west traffic
   # # ═══════════════════════════════════════════════════════════════════════════
 
-  # # BBS-x3516u39 → all 4 BBB switches (intra-rack DAC)
-  # - a: { device: "BBS-x3516u39", port: "1/1/25" }
-  #   b: { device: "BBB-x3516u11", port: "1/1/1" }
+  # # BBS-3516u39 → all 4 BBB switches (intra-rack DAC)
+  # - a: { device: "BBS-3516u39", port: "1/1/25" }
+  #   b: { device: "BBB-3516u11", port: "1/1/1" }
   #   cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  # - a: { device: "BBS-x3516u39", port: "1/1/26" }
-  #   b: { device: "BBB-x3516u10", port: "1/1/1" }
+  # - a: { device: "BBS-3516u39", port: "1/1/26" }
+  #   b: { device: "BBB-3516u10", port: "1/1/1" }
   #   cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  # - a: { device: "BBS-x3516u39", port: "1/1/27" }
-  #   b: { device: "BBB-x3516u8", port: "1/1/1" }
+  # - a: { device: "BBS-3516u39", port: "1/1/27" }
+  #   b: { device: "BBB-3516u8", port: "1/1/1" }
   #   cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  # - a: { device: "BBS-x3516u39", port: "1/1/28" }
-  #   b: { device: "BBB-x3516u7", port: "1/1/1" }
+  # - a: { device: "BBS-3516u39", port: "1/1/28" }
+  #   b: { device: "BBB-3516u7", port: "1/1/1" }
   #   cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
 
-  # # BBS-x3516u38 → all 4 BBB switches
-  # - a: { device: "BBS-x3516u38", port: "1/1/25" }
-  #   b: { device: "BBB-x3516u11", port: "1/1/2" }
+  # # BBS-3516u38 → all 4 BBB switches
+  # - a: { device: "BBS-3516u38", port: "1/1/25" }
+  #   b: { device: "BBB-3516u11", port: "1/1/2" }
   #   cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  # - a: { device: "BBS-x3516u38", port: "1/1/26" }
-  #   b: { device: "BBB-x3516u10", port: "1/1/2" }
+  # - a: { device: "BBS-3516u38", port: "1/1/26" }
+  #   b: { device: "BBB-3516u10", port: "1/1/2" }
   #   cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  # - a: { device: "BBS-x3516u38", port: "1/1/27" }
-  #   b: { device: "BBB-x3516u8", port: "1/1/2" }
+  # - a: { device: "BBS-3516u38", port: "1/1/27" }
+  #   b: { device: "BBB-3516u8", port: "1/1/2" }
   #   cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
-  # - a: { device: "BBS-x3516u38", port: "1/1/28" }
-  #   b: { device: "BBB-x3516u7", port: "1/1/2" }
+  # - a: { device: "BBS-3516u38", port: "1/1/28" }
+  #   b: { device: "BBB-3516u7", port: "1/1/2" }
   #   cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
 
   # # ═══════════════════════════════════════════════════════════════════════════
@@ -381,19 +381,19 @@ connections:
   # # ═══════════════════════════════════════════════════════════════════════════
 
   # # FortiGate QSFP28 uplinks → backbone-rear leaf switches in x3516
-  # - a: { device: "FORT-x3516u41", port: "port17" }
-  #   b: { device: "BBR-x3516u47", port: "1/1/25" }
+  # - a: { device: "FORT-3516u41", port: "port17" }
+  #   b: { device: "BBR-3516u47", port: "1/1/25" }
   #   cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: red }
-  # - a: { device: "FORT-x3516u41", port: "port18" }
-  #   b: { device: "BBR-x3516u46", port: "1/1/25" }
+  # - a: { device: "FORT-3516u41", port: "port18" }
+  #   b: { device: "BBR-3516u46", port: "1/1/25" }
   #   cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: red }
 
   # # F5 load balancer QSFP28 uplinks → backbone-spine switches in x3516
-  # - a: { device: "F5-x3516", port: "15.0" }
-  #   b: { device: "BBS-x3516u39", port: "1/1/20" }
+  # - a: { device: "F5-3516", port: "15.0" }
+  #   b: { device: "BBS-3516u39", port: "1/1/20" }
   #   cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: red }
-  # - a: { device: "F5-x3516", port: "16.0" }
-  #   b: { device: "BBS-x3516u38", port: "1/1/20" }
+  # - a: { device: "F5-3516", port: "16.0" }
+  #   b: { device: "BBS-3516u38", port: "1/1/20" }
   #   cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: red }
 
   # # ═══════════════════════════════════════════════════════════════════════════
@@ -406,71 +406,71 @@ connections:
 
   # # --- x3701 HSN fabric (4 GPU nodes × 8 HSN ports = 32 cables) ---
 
-  # # GH-x3701u34 → spine ports 1-4, leaf ports 1-4
-  # - a: { device: "GH-x3701u34", port: "HSN {0..3}" }
-  #   b: { device: "HSNS-x3701u43", port: "{1..4}" }
+  # # GH-3701u34 → spine ports 1-4, leaf ports 1-4
+  # - a: { device: "GH-3701u34", port: "HSN {0..3}" }
+  #   b: { device: "HSNS-3701u43", port: "{1..4}" }
   #   cable: { type: hpe-ib-ndr-osfp-dac-cable, color: green }
-  # - a: { device: "GH-x3701u34", port: "HSN {4..7}" }
-  #   b: { device: "HSNL-x3701u42", port: "{1..4}" }
-  #   cable: { type: hpe-ib-ndr-osfp-dac-cable, color: green }
-
-  # # GH-x3701u26 → spine ports 5-8, leaf ports 5-8
-  # - a: { device: "GH-x3701u26", port: "HSN {0..3}" }
-  #   b: { device: "HSNS-x3701u43", port: "{5..8}" }
-  #   cable: { type: hpe-ib-ndr-osfp-dac-cable, color: green }
-  # - a: { device: "GH-x3701u26", port: "HSN {4..7}" }
-  #   b: { device: "HSNL-x3701u42", port: "{5..8}" }
+  # - a: { device: "GH-3701u34", port: "HSN {4..7}" }
+  #   b: { device: "HSNL-3701u42", port: "{1..4}" }
   #   cable: { type: hpe-ib-ndr-osfp-dac-cable, color: green }
 
-  # # GH-x3701u18 → spine ports 9-12, leaf ports 9-12
-  # - a: { device: "GH-x3701u18", port: "HSN {0..3}" }
-  #   b: { device: "HSNS-x3701u43", port: "{9,10,11,12}" }
+  # # GH-3701u26 → spine ports 5-8, leaf ports 5-8
+  # - a: { device: "GH-3701u26", port: "HSN {0..3}" }
+  #   b: { device: "HSNS-3701u43", port: "{5..8}" }
   #   cable: { type: hpe-ib-ndr-osfp-dac-cable, color: green }
-  # - a: { device: "GH-x3701u18", port: "HSN {4..7}" }
-  #   b: { device: "HSNL-x3701u42", port: "{9,10,11,12}" }
+  # - a: { device: "GH-3701u26", port: "HSN {4..7}" }
+  #   b: { device: "HSNL-3701u42", port: "{5..8}" }
   #   cable: { type: hpe-ib-ndr-osfp-dac-cable, color: green }
 
-  # # GH-x3701u10 → spine ports 13-16, leaf ports 13-16
-  # - a: { device: "GH-x3701u10", port: "HSN {0..3}" }
-  #   b: { device: "HSNS-x3701u43", port: "{13..16}" }
+  # # GH-3701u18 → spine ports 9-12, leaf ports 9-12
+  # - a: { device: "GH-3701u18", port: "HSN {0..3}" }
+  #   b: { device: "HSNS-3701u43", port: "{9,10,11,12}" }
   #   cable: { type: hpe-ib-ndr-osfp-dac-cable, color: green }
-  # - a: { device: "GH-x3701u10", port: "HSN {4..7}" }
-  #   b: { device: "HSNL-x3701u42", port: "{13..16}" }
+  # - a: { device: "GH-3701u18", port: "HSN {4..7}" }
+  #   b: { device: "HSNL-3701u42", port: "{9,10,11,12}" }
+  #   cable: { type: hpe-ib-ndr-osfp-dac-cable, color: green }
+
+  # # GH-3701u10 → spine ports 13-16, leaf ports 13-16
+  # - a: { device: "GH-3701u10", port: "HSN {0..3}" }
+  #   b: { device: "HSNS-3701u43", port: "{13..16}" }
+  #   cable: { type: hpe-ib-ndr-osfp-dac-cable, color: green }
+  # - a: { device: "GH-3701u10", port: "HSN {4..7}" }
+  #   b: { device: "HSNL-3701u42", port: "{13..16}" }
   #   cable: { type: hpe-ib-ndr-osfp-dac-cable, color: green }
 
   # # --- x3702 HSN fabric (4 GPU nodes × 8 HSN ports = 32 cables) ---
   # # NOTE: HSNL is at u41 (not u42 like x3701)
 
-  # # GH-x3702u34 → spine ports 1-4, leaf ports 1-4
-  # - a: { device: "GH-x3702u34", port: "HSN {0..3}" }
-  #   b: { device: "HSNS-x3702u43", port: "{1..4}" }
+  # # GH-3702u34 → spine ports 1-4, leaf ports 1-4
+  # - a: { device: "GH-3702u34", port: "HSN {0..3}" }
+  #   b: { device: "HSNS-3702u43", port: "{1..4}" }
   #   cable: { type: hpe-ib-ndr-osfp-dac-cable, color: green }
-  # - a: { device: "GH-x3702u34", port: "HSN {4..7}" }
-  #   b: { device: "HSNL-x3702u41", port: "{1..4}" }
-  #   cable: { type: hpe-ib-ndr-osfp-dac-cable, color: green }
-
-  # # GH-x3702u26 → spine ports 5-8, leaf ports 5-8
-  # - a: { device: "GH-x3702u26", port: "HSN {0..3}" }
-  #   b: { device: "HSNS-x3702u43", port: "{5..8}" }
-  #   cable: { type: hpe-ib-ndr-osfp-dac-cable, color: green }
-  # - a: { device: "GH-x3702u26", port: "HSN {4..7}" }
-  #   b: { device: "HSNL-x3702u41", port: "{5..8}" }
+  # - a: { device: "GH-3702u34", port: "HSN {4..7}" }
+  #   b: { device: "HSNL-3702u41", port: "{1..4}" }
   #   cable: { type: hpe-ib-ndr-osfp-dac-cable, color: green }
 
-  # # GH-x3702u18 → spine ports 9-12, leaf ports 9-12
-  # - a: { device: "GH-x3702u18", port: "HSN {0..3}" }
-  #   b: { device: "HSNS-x3702u43", port: "{9,10,11,12}" }
+  # # GH-3702u26 → spine ports 5-8, leaf ports 5-8
+  # - a: { device: "GH-3702u26", port: "HSN {0..3}" }
+  #   b: { device: "HSNS-3702u43", port: "{5..8}" }
   #   cable: { type: hpe-ib-ndr-osfp-dac-cable, color: green }
-  # - a: { device: "GH-x3702u18", port: "HSN {4..7}" }
-  #   b: { device: "HSNL-x3702u41", port: "{9,10,11,12}" }
+  # - a: { device: "GH-3702u26", port: "HSN {4..7}" }
+  #   b: { device: "HSNL-3702u41", port: "{5..8}" }
   #   cable: { type: hpe-ib-ndr-osfp-dac-cable, color: green }
 
-  # # GH-x3702u10 → spine ports 13-16, leaf ports 13-16
-  # - a: { device: "GH-x3702u10", port: "HSN {0..3}" }
-  #   b: { device: "HSNS-x3702u43", port: "{13..16}" }
+  # # GH-3702u18 → spine ports 9-12, leaf ports 9-12
+  # - a: { device: "GH-3702u18", port: "HSN {0..3}" }
+  #   b: { device: "HSNS-3702u43", port: "{9,10,11,12}" }
   #   cable: { type: hpe-ib-ndr-osfp-dac-cable, color: green }
-  # - a: { device: "GH-x3702u10", port: "HSN {4..7}" }
-  #   b: { device: "HSNL-x3702u41", port: "{13..16}" }
+  # - a: { device: "GH-3702u18", port: "HSN {4..7}" }
+  #   b: { device: "HSNL-3702u41", port: "{9,10,11,12}" }
+  #   cable: { type: hpe-ib-ndr-osfp-dac-cable, color: green }
+
+  # # GH-3702u10 → spine ports 13-16, leaf ports 13-16
+  # - a: { device: "GH-3702u10", port: "HSN {0..3}" }
+  #   b: { device: "HSNS-3702u43", port: "{13..16}" }
+  #   cable: { type: hpe-ib-ndr-osfp-dac-cable, color: green }
+  # - a: { device: "GH-3702u10", port: "HSN {4..7}" }
+  #   b: { device: "HSNL-3702u41", port: "{13..16}" }
   #   cable: { type: hpe-ib-ndr-osfp-dac-cable, color: green }
 
   # # ═══════════════════════════════════════════════════════════════════════════
@@ -479,31 +479,31 @@ connections:
   # # ═══════════════════════════════════════════════════════════════════════════
 
   # # x3701 spine ↔ x3702 spine (4 ISL links)
-  # - a: { device: "HSNS-x3701u43", port: "{33..36}" }
-  #   b: { device: "HSNS-x3702u43", port: "{33..36}" }
-  #   cable: { type: hpe-ib-ndr-mpo-mpo-sm-15m, color: yellow, label: "ISL-S-x3701-x3702" }
+  # - a: { device: "HSNS-3701u43", port: "{33..36}" }
+  #   b: { device: "HSNS-3702u43", port: "{33..36}" }
+  #   cable: { type: hpe-ib-ndr-mpo-mpo-sm-15m, color: yellow, label: "ISL-S-3701-3702" }
 
   # # x3701 spine ↔ x3507 spine (4 ISL links)
-  # - a: { device: "HSNS-x3701u43", port: "{37..40}" }
-  #   b: { device: "HSNS-x3507u41", port: "{33..36}" }
-  #   cable: { type: hpe-ib-ndr-mpo-mpo-sm-15m, color: yellow, label: "ISL-S-x3701-x3507" }
+  # - a: { device: "HSNS-3701u43", port: "{37..40}" }
+  #   b: { device: "HSNS-3507u41", port: "{33..36}" }
+  #   cable: { type: hpe-ib-ndr-mpo-mpo-sm-15m, color: yellow, label: "ISL-S-3701-3507" }
 
   # # x3702 spine ↔ x3507 spine (4 ISL links)
-  # - a: { device: "HSNS-x3702u43", port: "{37..40}" }
-  #   b: { device: "HSNS-x3507u41", port: "{37..40}" }
-  #   cable: { type: hpe-ib-ndr-mpo-mpo-sm-15m, color: yellow, label: "ISL-S-x3702-x3507" }
+  # - a: { device: "HSNS-3702u43", port: "{37..40}" }
+  #   b: { device: "HSNS-3507u41", port: "{37..40}" }
+  #   cable: { type: hpe-ib-ndr-mpo-mpo-sm-15m, color: yellow, label: "ISL-S-3702-3507" }
 
   # # x3701 leaf ↔ x3702 leaf (4 ISL links)
-  # - a: { device: "HSNL-x3701u42", port: "{33..36}" }
-  #   b: { device: "HSNL-x3702u41", port: "{33..36}" }
-  #   cable: { type: hpe-ib-ndr-mpo-mpo-sm-15m, color: yellow, label: "ISL-L-x3701-x3702" }
+  # - a: { device: "HSNL-3701u42", port: "{33..36}" }
+  #   b: { device: "HSNL-3702u41", port: "{33..36}" }
+  #   cable: { type: hpe-ib-ndr-mpo-mpo-sm-15m, color: yellow, label: "ISL-L-3701-3702" }
 
   # # x3701 leaf ↔ x3507 leaf (4 ISL links)
-  # - a: { device: "HSNL-x3701u42", port: "{37..40}" }
-  #   b: { device: "HSNL-x3507u40", port: "{33..36}" }
-  #   cable: { type: hpe-ib-ndr-mpo-mpo-sm-15m, color: yellow, label: "ISL-L-x3701-x3507" }
+  # - a: { device: "HSNL-3701u42", port: "{37..40}" }
+  #   b: { device: "HSNL-3507u40", port: "{33..36}" }
+  #   cable: { type: hpe-ib-ndr-mpo-mpo-sm-15m, color: yellow, label: "ISL-L-3701-3507" }
 
   # # x3702 leaf ↔ x3507 leaf (4 ISL links)
-  # - a: { device: "HSNL-x3702u41", port: "{37..40}" }
-  #   b: { device: "HSNL-x3507u40", port: "{37..40}" }
-  #   cable: { type: hpe-ib-ndr-mpo-mpo-sm-15m, color: yellow, label: "ISL-L-x3702-x3507" }
+  # - a: { device: "HSNL-3702u41", port: "{37..40}" }
+  #   b: { device: "HSNL-3507u40", port: "{37..40}" }
+  #   cable: { type: hpe-ib-ndr-mpo-mpo-sm-15m, color: yellow, label: "ISL-L-3702-3507" }

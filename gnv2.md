@@ -10,28 +10,28 @@ graph TB
     classDef leaf fill:#fff3e0,stroke:#f57c00,color:#000
 
     subgraph x3701["Rack x3701"]
-        GH34["GH-x3701u34\nXD670 GPU"]:::gpu
-        GH26["GH-x3701u26\nXD670 GPU"]:::gpu
-        GH18["GH-x3701u18\nXD670 GPU"]:::gpu
-        GH10["GH-x3701u10\nXD670 GPU"]:::gpu
-        FORGE3701u47M["FORGE-x3701u47M\nMgmt 6300M"]:::mgmt
-        FORGE3701u46L["FORGE-x3701u46L\nLeaf 8325-32C"]:::leaf
-        FORGE3701u45L["FORGE-x3701u45L\nLeaf 8325-32C"]:::leaf
+        GH34["GH-3701u34<br/>XD670 GPU"]:::gpu
+        GH26["GH-3701u26<br/>XD670 GPU"]:::gpu
+        GH18["GH-3701u18<br/>XD670 GPU"]:::gpu
+        GH10["GH-3701u10<br/>XD670 GPU"]:::gpu
+        FORGE3701u47M["FORGE-3701u47M<br/>Mgmt 6300M"]:::mgmt
+        FORGE3701u46L["FORGE-3701u46L<br/>Leaf 8325-32C"]:::leaf
+        FORGE3701u45L["FORGE-3701u45L<br/>Leaf 8325-32C"]:::leaf
     end
 
     subgraph x3507["Rack x3507"]
-        SERV21["SERV-x3507u21\nDL380"]:::server
-        SERV19["SERV-x3507u19\nDL380"]:::server
-        SERV17["SERV-x3507u17\nDL380"]:::server
-        SERV15["SERV-x3507u15\nDL380"]:::server
-        SERV13["SERV-x3507u13\nDL380"]:::server
-        SERV11["SERV-x3507u11\nDL380"]:::server
-        SERV9["SERV-x3507u9\nDL380"]:::server
-        SERV7["SERV-x3507u7\nDL380"]:::server
-        SERV5["SERV-x3507u5\nDL380"]:::server
-        FORGE3507u47M["FORGE-x3507u47M\nMgmt 6300M"]:::mgmt
-        FORGE3507u44L["FORGE-x3507u44L\nLeaf 8325-32C"]:::leaf
-        FORGE3507u43L["FORGE-x3507u43L\nLeaf 8325-32C"]:::leaf
+        SERV21["SERV-3507u21<br/>DL380"]:::server
+        SERV19["SERV-3507u19<br/>DL380"]:::server
+        SERV17["SERV-3507u17<br/>DL380"]:::server
+        SERV15["SERV-3507u15<br/>DL380"]:::server
+        SERV13["SERV-3507u13<br/>DL380"]:::server
+        SERV11["SERV-3507u11<br/>DL380"]:::server
+        SERV9["SERV-3507u9<br/>DL380"]:::server
+        SERV7["SERV-3507u7<br/>DL380"]:::server
+        SERV5["SERV-3507u5<br/>DL380"]:::server
+        FORGE3507u47M["FORGE-3507u47M<br/>Mgmt 6300M"]:::mgmt
+        FORGE3507u44L["FORGE-3507u44L<br/>Leaf 8325-32C"]:::leaf
+        FORGE3507u43L["FORGE-3507u43L<br/>Leaf 8325-32C"]:::leaf
     end
 
     %% ── LAYER 1: Management iLO (1GbE, CAT6) ──
@@ -121,20 +121,20 @@ graph TB
     classDef bbleaf fill:#fbe9e7,stroke:#bf360c,color:#000
 
     subgraph x3701["Rack x3701"]
-        FORGE3701u46L["FORGE-x3701u46L\nLeaf 8325-32C"]:::leaf
-        FORGE3701u45L["FORGE-x3701u45L\nLeaf 8325-32C"]:::leaf
+        FORGE3701u46L["FORGE-3701u46L<br/>Leaf 8325-32C"]:::leaf
+        FORGE3701u45L["FORGE-3701u45L<br/>Leaf 8325-32C"]:::leaf
     end
 
     subgraph x3507["Rack x3507"]
-        FORGE3507u46S["FORGE-x3507u46S\nSpine-1 9300-32D"]:::spine
-        FORGE3507u45S["FORGE-x3507u45S\nSpine-2 9300-32D"]:::spine
-        FORGE3507u44L["FORGE-x3507u44L\nLeaf 8325-32C"]:::leaf
-        FORGE3507u43L["FORGE-x3507u43L\nLeaf 8325-32C"]:::leaf
+        FORGE3507u46S["FORGE-3507u46S<br/>Spine-1 9300-32D"]:::spine
+        FORGE3507u45S["FORGE-3507u45S<br/>Spine-2 9300-32D"]:::spine
+        FORGE3507u44L["FORGE-3507u44L<br/>Leaf 8325-32C"]:::leaf
+        FORGE3507u43L["FORGE-3507u43L<br/>Leaf 8325-32C"]:::leaf
     end
 
     subgraph x3516["Rack x3516 — Core"]
-        BBR47L["BBR-x3516u47L\nBB Leaf 8325-32C"]:::bbleaf
-        BBR46L["BBR-x3516u46L\nBB Leaf 8325-32C"]:::bbleaf
+        BBR47L["BBR-3516u47<br/>BB Leaf 8325-32C"]:::bbleaf
+        BBR46L["BBR-3516u46<br/>BB Leaf 8325-32C"]:::bbleaf
     end
 
     %% ── x3701 leaves → x3507 spines ──
@@ -165,7 +165,7 @@ graph TB
     FORGE3507u45S -- "1/1/32 → 1/1/2" --- BBR47L
     FORGE3507u45S -- "1/1/31 → 1/1/2" --- BBR46L
 
-    %% ── x3516 ISL: BBR u47L ↔ u46L (VSX) ──
+    %% ── x3516 ISL: BBR u47 ↔ u46 (VSX) ──
     BBR47L -- "1/1/30 ↔ 1/1/30" --- BBR46L
     BBR47L -- "1/1/31 ↔ 1/1/31" --- BBR46L
     BBR47L -- "1/1/32 ↔ 1/1/32" --- BBR46L
@@ -173,143 +173,143 @@ graph TB
 
 ## Switch Cabling Tables
 
-### FORGE-x3507u44L — Leaf-1 (Aruba 8325-32C, 32× 100G QSFP28)
+### FORGE-3507u44L — Leaf-1 (Aruba 8325-32C, 32× 100G QSFP28)
 
 | Port | Remote Device | Remote Port | Function | Cable |
 |------|---------------|-------------|----------|-------|
-| 1/1/1 | SERV-x3507u21 | Port 1 | Server downlink | 100G DAC 3m |
-| 1/1/2 | SERV-x3507u19 | Port 1 | Server downlink | 100G DAC 3m |
-| 1/1/3 | SERV-x3507u17 | Port 1 | Server downlink | 100G DAC 3m |
-| 1/1/4 | SERV-x3507u15 | Port 1 | Server downlink | 100G DAC 3m |
-| 1/1/5 | SERV-x3507u13 | Port 1 | Server downlink | 100G DAC 3m |
-| 1/1/6 | SERV-x3507u11 | Port 1 | Server downlink | 100G DAC 3m |
-| 1/1/7 | SERV-x3507u9 | Port 1 | Server downlink | 100G DAC 3m |
-| 1/1/8 | SERV-x3507u7 | Port 1 | Server downlink | 100G DAC 3m |
-| 1/1/9 | SERV-x3507u5 | Port 1 | Server downlink | 100G DAC 3m |
-| 1/1/10 | FORGE-x3507u47M | 49 | Mgmt switch uplink | 10G DAC 3m |
-| 1/1/28 | FORGE-x3507u45S | 1/1/1 | Spine-2 uplink | 100G DAC 3m |
-| 1/1/29 | FORGE-x3507u46S | 1/1/1 | Spine-1 uplink | 100G DAC 3m |
-| 1/1/30 | FORGE-x3507u43L | 1/1/30 | ISL (VSX) | 100G DAC 3m |
-| 1/1/31 | FORGE-x3507u43L | 1/1/31 | ISL (VSX) | 100G DAC 3m |
-| 1/1/32 | FORGE-x3507u43L | 1/1/32 | ISL (VSX) | 100G DAC 3m |
+| 1/1/1 | SERV-3507u21 | Port 1 | Server downlink | 100G DAC 3m |
+| 1/1/2 | SERV-3507u19 | Port 1 | Server downlink | 100G DAC 3m |
+| 1/1/3 | SERV-3507u17 | Port 1 | Server downlink | 100G DAC 3m |
+| 1/1/4 | SERV-3507u15 | Port 1 | Server downlink | 100G DAC 3m |
+| 1/1/5 | SERV-3507u13 | Port 1 | Server downlink | 100G DAC 3m |
+| 1/1/6 | SERV-3507u11 | Port 1 | Server downlink | 100G DAC 3m |
+| 1/1/7 | SERV-3507u9 | Port 1 | Server downlink | 100G DAC 3m |
+| 1/1/8 | SERV-3507u7 | Port 1 | Server downlink | 100G DAC 3m |
+| 1/1/9 | SERV-3507u5 | Port 1 | Server downlink | 100G DAC 3m |
+| 1/1/10 | FORGE-3507u47M | 49 | Mgmt switch uplink | 10G DAC 3m |
+| 1/1/28 | FORGE-3507u45S | 1/1/1 | Spine-2 uplink | 100G DAC 3m |
+| 1/1/29 | FORGE-3507u46S | 1/1/1 | Spine-1 uplink | 100G DAC 3m |
+| 1/1/30 | FORGE-3507u43L | 1/1/30 | ISL (VSX) | 100G DAC 3m |
+| 1/1/31 | FORGE-3507u43L | 1/1/31 | ISL (VSX) | 100G DAC 3m |
+| 1/1/32 | FORGE-3507u43L | 1/1/32 | ISL (VSX) | 100G DAC 3m |
 
-### FORGE-x3507u43L — Leaf-2 (Aruba 8325-32C, 32× 100G QSFP28)
-
-| Port | Remote Device | Remote Port | Function | Cable |
-|------|---------------|-------------|----------|-------|
-| 1/1/1 | SERV-x3507u21 | Port 2 | Server downlink | 100G DAC 3m |
-| 1/1/2 | SERV-x3507u19 | Port 2 | Server downlink | 100G DAC 3m |
-| 1/1/3 | SERV-x3507u17 | Port 2 | Server downlink | 100G DAC 3m |
-| 1/1/4 | SERV-x3507u15 | Port 2 | Server downlink | 100G DAC 3m |
-| 1/1/5 | SERV-x3507u13 | Port 2 | Server downlink | 100G DAC 3m |
-| 1/1/6 | SERV-x3507u11 | Port 2 | Server downlink | 100G DAC 3m |
-| 1/1/7 | SERV-x3507u9 | Port 2 | Server downlink | 100G DAC 3m |
-| 1/1/8 | SERV-x3507u7 | Port 2 | Server downlink | 100G DAC 3m |
-| 1/1/9 | SERV-x3507u5 | Port 2 | Server downlink | 100G DAC 3m |
-| 1/1/10 | FORGE-x3507u47M | 50 | Mgmt switch uplink | 10G DAC 3m |
-| 1/1/28 | FORGE-x3507u45S | 1/1/2 | Spine-2 uplink | 100G DAC 3m |
-| 1/1/29 | FORGE-x3507u46S | 1/1/2 | Spine-1 uplink | 100G DAC 3m |
-| 1/1/30 | FORGE-x3507u44L | 1/1/30 | ISL (VSX) | 100G DAC 3m |
-| 1/1/31 | FORGE-x3507u44L | 1/1/31 | ISL (VSX) | 100G DAC 3m |
-| 1/1/32 | FORGE-x3507u44L | 1/1/32 | ISL (VSX) | 100G DAC 3m |
-
-### FORGE-x3507u46S — Spine-1 (Aruba 9300-32D, 32× 400G QSFP-DD + 2× 10G SFP+)
+### FORGE-3507u43L — Leaf-2 (Aruba 8325-32C, 32× 100G QSFP28)
 
 | Port | Remote Device | Remote Port | Function | Cable |
 |------|---------------|-------------|----------|-------|
-| 1/1/1 | FORGE-x3507u44L | 1/1/29 | Leaf-1 downlink | 100G DAC 3m |
-| 1/1/2 | FORGE-x3507u43L | 1/1/29 | Leaf-2 downlink | 100G DAC 3m |
-| 1/1/3 | FORGE-x3701u45L | 1/1/29 | x3701 Leaf downlink | 100G AOC 15m |
-| 1/1/4 | FORGE-x3701u46L | 1/1/29 | x3701 Leaf downlink | 100G AOC 15m |
-| 1/1/31 | BBR-x3516u46L | 1/1/1 | BB Leaf uplink | 100G AOC 15m |
-| 1/1/32 | BBR-x3516u47L | 1/1/1 | BB Leaf uplink | 100G AOC 15m |
+| 1/1/1 | SERV-3507u21 | Port 2 | Server downlink | 100G DAC 3m |
+| 1/1/2 | SERV-3507u19 | Port 2 | Server downlink | 100G DAC 3m |
+| 1/1/3 | SERV-3507u17 | Port 2 | Server downlink | 100G DAC 3m |
+| 1/1/4 | SERV-3507u15 | Port 2 | Server downlink | 100G DAC 3m |
+| 1/1/5 | SERV-3507u13 | Port 2 | Server downlink | 100G DAC 3m |
+| 1/1/6 | SERV-3507u11 | Port 2 | Server downlink | 100G DAC 3m |
+| 1/1/7 | SERV-3507u9 | Port 2 | Server downlink | 100G DAC 3m |
+| 1/1/8 | SERV-3507u7 | Port 2 | Server downlink | 100G DAC 3m |
+| 1/1/9 | SERV-3507u5 | Port 2 | Server downlink | 100G DAC 3m |
+| 1/1/10 | FORGE-3507u47M | 50 | Mgmt switch uplink | 10G DAC 3m |
+| 1/1/28 | FORGE-3507u45S | 1/1/2 | Spine-2 uplink | 100G DAC 3m |
+| 1/1/29 | FORGE-3507u46S | 1/1/2 | Spine-1 uplink | 100G DAC 3m |
+| 1/1/30 | FORGE-3507u44L | 1/1/30 | ISL (VSX) | 100G DAC 3m |
+| 1/1/31 | FORGE-3507u44L | 1/1/31 | ISL (VSX) | 100G DAC 3m |
+| 1/1/32 | FORGE-3507u44L | 1/1/32 | ISL (VSX) | 100G DAC 3m |
 
-### FORGE-x3507u45S — Spine-2 (Aruba 9300-32D, 32× 400G QSFP-DD + 2× 10G SFP+)
-
-| Port | Remote Device | Remote Port | Function | Cable |
-|------|---------------|-------------|----------|-------|
-| 1/1/1 | FORGE-x3507u44L | 1/1/28 | Leaf-1 downlink | 100G DAC 3m |
-| 1/1/2 | FORGE-x3507u43L | 1/1/28 | Leaf-2 downlink | 100G DAC 3m |
-| 1/1/3 | FORGE-x3701u45L | 1/1/28 | x3701 Leaf downlink | 100G AOC 15m |
-| 1/1/4 | FORGE-x3701u46L | 1/1/28 | x3701 Leaf downlink | 100G AOC 15m |
-| 1/1/31 | BBR-x3516u46L | 1/1/2 | BB Leaf uplink | 100G AOC 15m |
-| 1/1/32 | BBR-x3516u47L | 1/1/2 | BB Leaf uplink | 100G AOC 15m |
-
-### FORGE-x3701u46L — Leaf (Aruba 8325-32C, 32× 100G QSFP28)
+### FORGE-3507u46S — Spine-1 (Aruba 9300-32D, 32× 400G QSFP-DD + 2× 10G SFP+)
 
 | Port | Remote Device | Remote Port | Function | Cable |
 |------|---------------|-------------|----------|-------|
-| 1/1/1 | GH-x3701u34 | Port 1 | GPU downlink | 100G DAC 3m |
-| 1/1/2 | GH-x3701u26 | Port 1 | GPU downlink | 100G DAC 3m |
-| 1/1/3 | GH-x3701u18 | Port 1 | GPU downlink | 100G DAC 3m |
-| 1/1/4 | GH-x3701u10 | Port 1 | GPU downlink | 100G DAC 3m |
-| 1/1/5 | FORGE-x3701u47M | 49 | Mgmt switch uplink | 10G DAC 3m |
-| 1/1/28 | FORGE-x3507u45S | 1/1/4 | Spine-2 uplink | 100G AOC 15m |
-| 1/1/29 | FORGE-x3507u46S | 1/1/4 | Spine-1 uplink | 100G AOC 15m |
-| 1/1/30 | FORGE-x3701u45L | 1/1/30 | ISL (VSX) | 100G DAC 3m |
-| 1/1/31 | FORGE-x3701u45L | 1/1/31 | ISL (VSX) | 100G DAC 3m |
-| 1/1/32 | FORGE-x3701u45L | 1/1/32 | ISL (VSX) | 100G DAC 3m |
+| 1/1/1 | FORGE-3507u44L | 1/1/29 | Leaf-1 downlink | 100G DAC 3m |
+| 1/1/2 | FORGE-3507u43L | 1/1/29 | Leaf-2 downlink | 100G DAC 3m |
+| 1/1/3 | FORGE-3701u45L | 1/1/29 | x3701 Leaf downlink | 100G AOC 15m |
+| 1/1/4 | FORGE-3701u46L | 1/1/29 | x3701 Leaf downlink | 100G AOC 15m |
+| 1/1/31 | BBR-3516u46 | 1/1/1 | BB Leaf uplink | 100G AOC 15m |
+| 1/1/32 | BBR-3516u47 | 1/1/1 | BB Leaf uplink | 100G AOC 15m |
 
-### FORGE-x3701u45L — Leaf (Aruba 8325-32C, 32× 100G QSFP28)
+### FORGE-3507u45S — Spine-2 (Aruba 9300-32D, 32× 400G QSFP-DD + 2× 10G SFP+)
 
 | Port | Remote Device | Remote Port | Function | Cable |
 |------|---------------|-------------|----------|-------|
-| 1/1/1 | GH-x3701u34 | Port 2 | GPU downlink | 100G DAC 3m |
-| 1/1/2 | GH-x3701u26 | Port 2 | GPU downlink | 100G DAC 3m |
-| 1/1/3 | GH-x3701u18 | Port 2 | GPU downlink | 100G DAC 3m |
-| 1/1/4 | GH-x3701u10 | Port 2 | GPU downlink | 100G DAC 3m |
-| 1/1/5 | FORGE-x3701u47M | 50 | Mgmt switch uplink | 10G DAC 3m |
-| 1/1/28 | FORGE-x3507u45S | 1/1/3 | Spine-2 uplink | 100G AOC 15m |
-| 1/1/29 | FORGE-x3507u46S | 1/1/3 | Spine-1 uplink | 100G AOC 15m |
-| 1/1/30 | FORGE-x3701u46L | 1/1/30 | ISL (VSX) | 100G DAC 3m |
-| 1/1/31 | FORGE-x3701u46L | 1/1/31 | ISL (VSX) | 100G DAC 3m |
-| 1/1/32 | FORGE-x3701u46L | 1/1/32 | ISL (VSX) | 100G DAC 3m |
+| 1/1/1 | FORGE-3507u44L | 1/1/28 | Leaf-1 downlink | 100G DAC 3m |
+| 1/1/2 | FORGE-3507u43L | 1/1/28 | Leaf-2 downlink | 100G DAC 3m |
+| 1/1/3 | FORGE-3701u45L | 1/1/28 | x3701 Leaf downlink | 100G AOC 15m |
+| 1/1/4 | FORGE-3701u46L | 1/1/28 | x3701 Leaf downlink | 100G AOC 15m |
+| 1/1/31 | BBR-3516u46 | 1/1/2 | BB Leaf uplink | 100G AOC 15m |
+| 1/1/32 | BBR-3516u47 | 1/1/2 | BB Leaf uplink | 100G AOC 15m |
 
-### BBR-x3516u47L — BB Leaf (Aruba 8325-32C, 32× 100G QSFP28)
+### FORGE-3701u46L — Leaf (Aruba 8325-32C, 32× 100G QSFP28)
 
 | Port | Remote Device | Remote Port | Function | Cable |
 |------|---------------|-------------|----------|-------|
-| 1/1/1 | FORGE-x3507u46S | 1/1/32 | Spine-1 downlink | 100G AOC 15m |
-| 1/1/2 | FORGE-x3507u45S | 1/1/32 | Spine-2 downlink | 100G AOC 15m |
-| 1/1/30 | BBR-x3516u46L | 1/1/30 | ISL (VSX) | 100G DAC 3m |
-| 1/1/31 | BBR-x3516u46L | 1/1/31 | ISL (VSX) | 100G DAC 3m |
-| 1/1/32 | BBR-x3516u46L | 1/1/32 | ISL (VSX) | 100G DAC 3m |
+| 1/1/1 | GH-3701u34 | Port 1 | GPU downlink | 100G DAC 3m |
+| 1/1/2 | GH-3701u26 | Port 1 | GPU downlink | 100G DAC 3m |
+| 1/1/3 | GH-3701u18 | Port 1 | GPU downlink | 100G DAC 3m |
+| 1/1/4 | GH-3701u10 | Port 1 | GPU downlink | 100G DAC 3m |
+| 1/1/5 | FORGE-3701u47M | 49 | Mgmt switch uplink | 10G DAC 3m |
+| 1/1/28 | FORGE-3507u45S | 1/1/4 | Spine-2 uplink | 100G AOC 15m |
+| 1/1/29 | FORGE-3507u46S | 1/1/4 | Spine-1 uplink | 100G AOC 15m |
+| 1/1/30 | FORGE-3701u45L | 1/1/30 | ISL (VSX) | 100G DAC 3m |
+| 1/1/31 | FORGE-3701u45L | 1/1/31 | ISL (VSX) | 100G DAC 3m |
+| 1/1/32 | FORGE-3701u45L | 1/1/32 | ISL (VSX) | 100G DAC 3m |
 
-### BBR-x3516u46L — BB Leaf (Aruba 8325-32C, 32× 100G QSFP28)
-
-| Port | Remote Device | Remote Port | Function | Cable |
-|------|---------------|-------------|----------|-------|
-| 1/1/1 | FORGE-x3507u46S | 1/1/31 | Spine-1 downlink | 100G AOC 15m |
-| 1/1/2 | FORGE-x3507u45S | 1/1/31 | Spine-2 downlink | 100G AOC 15m |
-| 1/1/30 | BBR-x3516u47L | 1/1/30 | ISL (VSX) | 100G DAC 3m |
-| 1/1/31 | BBR-x3516u47L | 1/1/31 | ISL (VSX) | 100G DAC 3m |
-| 1/1/32 | BBR-x3516u47L | 1/1/32 | ISL (VSX) | 100G DAC 3m |
-
-### FORGE-x3701u47M — Mgmt (Aruba 6300M, 48× 1G + 4× 25G SFP28)
+### FORGE-3701u45L — Leaf (Aruba 8325-32C, 32× 100G QSFP28)
 
 | Port | Remote Device | Remote Port | Function | Cable |
 |------|---------------|-------------|----------|-------|
-| 1 | GH-x3701u34 | iLO | Management | CAT6 3m |
-| 2 | GH-x3701u26 | iLO | Management | CAT6 3m |
-| 3 | GH-x3701u18 | iLO | Management | CAT6 3m |
-| 4 | GH-x3701u10 | iLO | Management | CAT6 3m |
-| 49 | FORGE-x3701u46L | 1/1/5 | Leaf uplink | 10G DAC 3m |
-| 50 | FORGE-x3701u45L | 1/1/5 | Leaf uplink | 10G DAC 3m |
+| 1/1/1 | GH-3701u34 | Port 2 | GPU downlink | 100G DAC 3m |
+| 1/1/2 | GH-3701u26 | Port 2 | GPU downlink | 100G DAC 3m |
+| 1/1/3 | GH-3701u18 | Port 2 | GPU downlink | 100G DAC 3m |
+| 1/1/4 | GH-3701u10 | Port 2 | GPU downlink | 100G DAC 3m |
+| 1/1/5 | FORGE-3701u47M | 50 | Mgmt switch uplink | 10G DAC 3m |
+| 1/1/28 | FORGE-3507u45S | 1/1/3 | Spine-2 uplink | 100G AOC 15m |
+| 1/1/29 | FORGE-3507u46S | 1/1/3 | Spine-1 uplink | 100G AOC 15m |
+| 1/1/30 | FORGE-3701u46L | 1/1/30 | ISL (VSX) | 100G DAC 3m |
+| 1/1/31 | FORGE-3701u46L | 1/1/31 | ISL (VSX) | 100G DAC 3m |
+| 1/1/32 | FORGE-3701u46L | 1/1/32 | ISL (VSX) | 100G DAC 3m |
 
-### FORGE-x3507u47M — Mgmt (Aruba 6300M, 48× 1G + 4× 25G SFP28)
+### BBR-3516u47 — BB Leaf (Aruba 8325-32C, 32× 100G QSFP28)
 
 | Port | Remote Device | Remote Port | Function | Cable |
 |------|---------------|-------------|----------|-------|
-| 9 | SERV-x3507u21 | iLO | Management | CAT6 3m |
-| 10 | SERV-x3507u19 | iLO | Management | CAT6 3m |
-| 11 | SERV-x3507u17 | iLO | Management | CAT6 3m |
-| 12 | SERV-x3507u15 | iLO | Management | CAT6 3m |
-| 13 | SERV-x3507u13 | iLO | Management | CAT6 3m |
-| 14 | SERV-x3507u11 | iLO | Management | CAT6 3m |
-| 15 | SERV-x3507u9 | iLO | Management | CAT6 3m |
-| 16 | SERV-x3507u7 | iLO | Management | CAT6 3m |
-| 17 | SERV-x3507u5 | iLO | Management | CAT6 3m |
-| 49 | FORGE-x3507u44L | 1/1/10 | Leaf uplink | 10G DAC 3m |
-| 50 | FORGE-x3507u43L | 1/1/10 | Leaf uplink | 10G DAC 3m |
+| 1/1/1 | FORGE-3507u46S | 1/1/32 | Spine-1 downlink | 100G AOC 15m |
+| 1/1/2 | FORGE-3507u45S | 1/1/32 | Spine-2 downlink | 100G AOC 15m |
+| 1/1/30 | BBR-3516u46 | 1/1/30 | ISL (VSX) | 100G DAC 3m |
+| 1/1/31 | BBR-3516u46 | 1/1/31 | ISL (VSX) | 100G DAC 3m |
+| 1/1/32 | BBR-3516u46 | 1/1/32 | ISL (VSX) | 100G DAC 3m |
+
+### BBR-3516u46 — BB Leaf (Aruba 8325-32C, 32× 100G QSFP28)
+
+| Port | Remote Device | Remote Port | Function | Cable |
+|------|---------------|-------------|----------|-------|
+| 1/1/1 | FORGE-3507u46S | 1/1/31 | Spine-1 downlink | 100G AOC 15m |
+| 1/1/2 | FORGE-3507u45S | 1/1/31 | Spine-2 downlink | 100G AOC 15m |
+| 1/1/30 | BBR-3516u47 | 1/1/30 | ISL (VSX) | 100G DAC 3m |
+| 1/1/31 | BBR-3516u47 | 1/1/31 | ISL (VSX) | 100G DAC 3m |
+| 1/1/32 | BBR-3516u47 | 1/1/32 | ISL (VSX) | 100G DAC 3m |
+
+### FORGE-3701u47M — Mgmt (Aruba 6300M, 48× 1G + 4× 25G SFP28)
+
+| Port | Remote Device | Remote Port | Function | Cable |
+|------|---------------|-------------|----------|-------|
+| 1 | GH-3701u34 | iLO | Management | CAT6 3m |
+| 2 | GH-3701u26 | iLO | Management | CAT6 3m |
+| 3 | GH-3701u18 | iLO | Management | CAT6 3m |
+| 4 | GH-3701u10 | iLO | Management | CAT6 3m |
+| 49 | FORGE-3701u46L | 1/1/5 | Leaf uplink | 10G DAC 3m |
+| 50 | FORGE-3701u45L | 1/1/5 | Leaf uplink | 10G DAC 3m |
+
+### FORGE-3507u47M — Mgmt (Aruba 6300M, 48× 1G + 4× 25G SFP28)
+
+| Port | Remote Device | Remote Port | Function | Cable |
+|------|---------------|-------------|----------|-------|
+| 9 | SERV-3507u21 | iLO | Management | CAT6 3m |
+| 10 | SERV-3507u19 | iLO | Management | CAT6 3m |
+| 11 | SERV-3507u17 | iLO | Management | CAT6 3m |
+| 12 | SERV-3507u15 | iLO | Management | CAT6 3m |
+| 13 | SERV-3507u13 | iLO | Management | CAT6 3m |
+| 14 | SERV-3507u11 | iLO | Management | CAT6 3m |
+| 15 | SERV-3507u9 | iLO | Management | CAT6 3m |
+| 16 | SERV-3507u7 | iLO | Management | CAT6 3m |
+| 17 | SERV-3507u5 | iLO | Management | CAT6 3m |
+| 49 | FORGE-3507u44L | 1/1/10 | Leaf uplink | 10G DAC 3m |
+| 50 | FORGE-3507u43L | 1/1/10 | Leaf uplink | 10G DAC 3m |
 
 ---
