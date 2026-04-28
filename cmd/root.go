@@ -57,6 +57,7 @@ func newRootCommand() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&cfgFile, "config", defaultCfg, "config file")
 	cmd.PersistentFlags().Bool("debug", false, "enable debug mode")
 	cmd.PersistentFlags().String("datastore", "json", "datastore type (json, postgres)")
+	cmd.PersistentFlags().String("datastore-path", "", "override path to the datastore file (for testing)")
 	cmd.PersistentFlags().StringSlice("types-dirs", nil, "local directories with additional hardware types")
 	cmd.PersistentFlags().StringSlice("types-repos", nil, "git repo URLs with additional hardware types")
 	cmd.PersistentFlags().Bool("types-repo-clone", false, "clone types repos that are not yet cached locally")
@@ -127,6 +128,12 @@ func setupDomain(cmd *cobra.Command, args []string) error {
 	// write defaults (in case we injected new maps)
 	if err := config.Save(cfgFile); err != nil {
 		return err
+	}
+
+	// Override the datastore path if the flag was explicitly set.
+	// Applied after Save so the override is not persisted to the config file.
+	if dsPath, _ := cmd.Flags().GetString("datastore-path"); dsPath != "" {
+		config.Cfg.Datastore = dsPath
 	}
 
 	// 3) hand each plugin its own section of the map

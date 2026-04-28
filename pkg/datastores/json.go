@@ -41,10 +41,14 @@ type JSONStore struct {
 }
 
 // NewJSONStore creates a new store with the config path.
+// If the configured datastore path is absolute it is used as-is;
+// otherwise it is resolved relative to the config file directory.
 func NewJSONStore() *JSONStore {
-	return &JSONStore{
-		Path: filepath.Join(filepath.Dir(config.Cfg.Path), filepath.Base(config.Cfg.Datastore)),
+	ds := config.Cfg.Datastore
+	if !filepath.IsAbs(ds) {
+		ds = filepath.Join(filepath.Dir(config.Cfg.Path), filepath.Base(ds))
 	}
+	return &JSONStore{Path: ds}
 }
 
 // Load reads the inventory from disk.
