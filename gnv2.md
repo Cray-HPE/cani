@@ -137,6 +137,11 @@ graph TB
         BBR46L["BBR-3516u46<br/>BB Leaf 8325-32C"]:::bbleaf
     end
 
+    subgraph x3508["Rack x3508 — Core"]
+        BBR3508u47["BBR-3508u47<br/>BB Leaf 8325-32C"]:::bbleaf
+        BBR3508u46["BBR-3508u46<br/>BB Leaf 8325-32C"]:::bbleaf
+    end
+
     %% ── x3701 leaves → x3507 spines ──
     FORGE3701u45L -- "1/1/29 → 1/1/3" --- FORGE3507u46S
     FORGE3701u45L -- "1/1/28 → 1/1/3" --- FORGE3507u45S
@@ -165,10 +170,12 @@ graph TB
     FORGE3507u45S -- "1/1/32 → 1/1/2" --- BBR47L
     FORGE3507u45S -- "1/1/31 → 1/1/2" --- BBR46L
 
-    %% ── x3516 ISL: BBR u47 ↔ u46 (VSX) ──
-    BBR47L -- "1/1/30 ↔ 1/1/30" --- BBR46L
-    BBR47L -- "1/1/31 ↔ 1/1/31" --- BBR46L
-    BBR47L -- "1/1/32 ↔ 1/1/32" --- BBR46L
+    %% ── x3507 spines → BBR backbone leaves in x3508 (cross-rack) ──
+    FORGE3507u46S -- "1/1/30 → 1/1/1" --- BBR3508u47
+    FORGE3507u46S -- "1/1/29 → 1/1/1" --- BBR3508u46
+    FORGE3507u45S -- "1/1/30 → 1/1/2" --- BBR3508u47
+    FORGE3507u45S -- "1/1/29 → 1/1/2" --- BBR3508u46
+
 ```
 
 ## Switch Cabling Tables
@@ -223,6 +230,8 @@ graph TB
 | 1/1/4 | FORGE-3701u46L | 1/1/29 | x3701 Leaf downlink | 100G AOC 15m |
 | 1/1/31 | BBR-3516u46 | 1/1/1 | BB Leaf uplink | 100G AOC 15m |
 | 1/1/32 | BBR-3516u47 | 1/1/1 | BB Leaf uplink | 100G AOC 15m |
+| 1/1/29 | BBR-3508u46 | 1/1/1 | BB Leaf uplink | 100G AOC 15m |
+| 1/1/30 | BBR-3508u47 | 1/1/1 | BB Leaf uplink | 100G AOC 15m |
 
 ### FORGE-3507u45S — Spine-2 (Aruba 9300-32D, 32× 400G QSFP-DD + 2× 10G SFP+)
 
@@ -232,6 +241,8 @@ graph TB
 | 1/1/2 | FORGE-3507u43L | 1/1/28 | Leaf-2 downlink | 100G DAC 3m |
 | 1/1/3 | FORGE-3701u45L | 1/1/28 | x3701 Leaf downlink | 100G AOC 15m |
 | 1/1/4 | FORGE-3701u46L | 1/1/28 | x3701 Leaf downlink | 100G AOC 15m |
+| 1/1/29 | BBR-3508u46 | 1/1/2 | BB Leaf uplink | 100G AOC 15m |
+| 1/1/30 | BBR-3508u47 | 1/1/2 | BB Leaf uplink | 100G AOC 15m |
 | 1/1/31 | BBR-3516u46 | 1/1/2 | BB Leaf uplink | 100G AOC 15m |
 | 1/1/32 | BBR-3516u47 | 1/1/2 | BB Leaf uplink | 100G AOC 15m |
 
@@ -271,9 +282,6 @@ graph TB
 |------|---------------|-------------|----------|-------|
 | 1/1/1 | FORGE-3507u46S | 1/1/32 | Spine-1 downlink | 100G AOC 15m |
 | 1/1/2 | FORGE-3507u45S | 1/1/32 | Spine-2 downlink | 100G AOC 15m |
-| 1/1/30 | BBR-3516u46 | 1/1/30 | ISL (VSX) | 100G DAC 3m |
-| 1/1/31 | BBR-3516u46 | 1/1/31 | ISL (VSX) | 100G DAC 3m |
-| 1/1/32 | BBR-3516u46 | 1/1/32 | ISL (VSX) | 100G DAC 3m |
 
 ### BBR-3516u46 — BB Leaf (Aruba 8325-32C, 32× 100G QSFP28)
 
@@ -281,9 +289,20 @@ graph TB
 |------|---------------|-------------|----------|-------|
 | 1/1/1 | FORGE-3507u46S | 1/1/31 | Spine-1 downlink | 100G AOC 15m |
 | 1/1/2 | FORGE-3507u45S | 1/1/31 | Spine-2 downlink | 100G AOC 15m |
-| 1/1/30 | BBR-3516u47 | 1/1/30 | ISL (VSX) | 100G DAC 3m |
-| 1/1/31 | BBR-3516u47 | 1/1/31 | ISL (VSX) | 100G DAC 3m |
-| 1/1/32 | BBR-3516u47 | 1/1/32 | ISL (VSX) | 100G DAC 3m |
+
+### BBR-3508u47 — BB Leaf (Aruba 8325-32C, 32× 100G QSFP28)
+
+| Port | Remote Device | Remote Port | Function | Cable |
+|------|---------------|-------------|----------|-------|
+| 1/1/1 | FORGE-3507u46S | 1/1/30 | Spine-1 downlink | 100G AOC 15m |
+| 1/1/2 | FORGE-3507u45S | 1/1/30 | Spine-2 downlink | 100G AOC 15m |
+
+### BBR-3508u46 — BB Leaf (Aruba 8325-32C, 32× 100G QSFP28)
+
+| Port | Remote Device | Remote Port | Function | Cable |
+|------|---------------|-------------|----------|-------|
+| 1/1/1 | FORGE-3507u46S | 1/1/29 | Spine-1 downlink | 100G AOC 15m |
+| 1/1/2 | FORGE-3507u45S | 1/1/29 | Spine-2 downlink | 100G AOC 15m |
 
 ### FORGE-3701u47M — Mgmt (Aruba 6300M, 48× 1G + 4× 25G SFP28)
 
