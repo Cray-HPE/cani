@@ -317,31 +317,19 @@ connections:
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
 
   # ── x3507 Spine → BBR backbone leaves in x3516 (cross-rack, 100G AOC 15m) ──
-  - a: { device: "FORGE-3507u46S", port: "1/1/32" }
-    b: { device: "BBR-3516u47", port: "1/1/1" }
-    cable: { type: hpe-aruba-100g-qsfp28-15m-aoc, color: orange }
   - a: { device: "FORGE-3507u46S", port: "1/1/31" }
-    b: { device: "BBR-3516u46", port: "1/1/1" }
-    cable: { type: hpe-aruba-100g-qsfp28-15m-aoc, color: orange }
-  - a: { device: "FORGE-3507u45S", port: "1/1/32" }
-    b: { device: "BBR-3516u47", port: "1/1/2" }
+    b: { device: "BBR-3516u46", port: "1/1/9" }
     cable: { type: hpe-aruba-100g-qsfp28-15m-aoc, color: orange }
   - a: { device: "FORGE-3507u45S", port: "1/1/31" }
-    b: { device: "BBR-3516u46", port: "1/1/2" }
+    b: { device: "BBR-3516u46", port: "1/1/10" }
     cable: { type: hpe-aruba-100g-qsfp28-15m-aoc, color: orange }
 
   # ── x3507 Spine → BBR backbone leaves in x3508 (cross-rack, 100G AOC 15m) ──
-  - a: { device: "FORGE-3507u46S", port: "1/1/30" }
-    b: { device: "BBR-3508u47", port: "1/1/1" }
-    cable: { type: hpe-aruba-100g-qsfp28-15m-aoc, color: orange }
   - a: { device: "FORGE-3507u46S", port: "1/1/29" }
-    b: { device: "BBR-3508u46", port: "1/1/1" }
-    cable: { type: hpe-aruba-100g-qsfp28-15m-aoc, color: orange }
-  - a: { device: "FORGE-3507u45S", port: "1/1/30" }
-    b: { device: "BBR-3508u47", port: "1/1/2" }
+    b: { device: "BBR-3508u46", port: "1/1/9" }
     cable: { type: hpe-aruba-100g-qsfp28-15m-aoc, color: orange }
   - a: { device: "FORGE-3507u45S", port: "1/1/29" }
-    b: { device: "BBR-3508u46", port: "1/1/2" }
+    b: { device: "BBR-3508u46", port: "1/1/10" }
     cable: { type: hpe-aruba-100g-qsfp28-15m-aoc, color: orange }
 
 
