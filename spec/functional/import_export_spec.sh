@@ -27,259 +27,274 @@
 #
 # Tests import and export across all providers using --datastore-path
 # to isolate each test from pre-existing data.
+#
+# Structure:
+#   1. --help         — exits 0 for every provider × operation
+#   2. import         — each provider imports its fixture successfully
+#   3. <src> to <dst> — each import source fans out to all export targets
+#   4. nautobot API   — API-based tests requiring a running Nautobot
 
-# Unique datastore path per provider to avoid test interference.
+# Unique datastore path per test to avoid interference.
 ie_ds() { echo "/tmp/.cani/ie_test_${1}.json"; }
 
-# ── 1. help flag matrix ────────────────────────────────────────────
+# Import a fixture for the given provider into the given datastore.
+#shellcheck disable=SC2317
+import_fixture() {
+  _ie_provider="$1" _ie_ds="$2"
+  case "$_ie_provider" in
+    example)
+      bin/cani alpha import example \
+        --csv "$FIXTURES/example/simple.csv" \
+        --config "$CANI_CONF" --datastore-path "$_ie_ds" ;;
+    ochami)
+      bin/cani alpha import ochami \
+        --jsonfile "$FIXTURES/ochami/ochami_test_data.json" \
+        --config "$CANI_CONF" --datastore-path "$_ie_ds" ;;
+    redfish)
+      bin/cani alpha import redfish \
+        --root "$FIXTURES/redfish/v1/redfish-root.json" \
+        --config "$CANI_CONF" --datastore-path "$_ie_ds" ;;
+    hpcm)
+      bin/cani alpha import hpcm \
+        --node-json-file "$FIXTURES/hpcm/nodes.json" \
+        --config "$CANI_CONF" --datastore-path "$_ie_ds" ;;
+    csm)
+      bin/cani alpha import csm \
+        --sls-file "$FIXTURES/csm/sls/valid_hardware_networks.json" \
+        --ignore-validation \
+        --config "$CANI_CONF" --datastore-path "$_ie_ds" ;;
+  esac
+}
+
+# ── 1. --help ──────────────────────────────────────────────────────
 #
 # Parameters:matrix produces the cross-product of providers × operations.
 # Every combination must accept --help and exit 0.
 
-Describe 'import/export --help (matrix)'
+Describe '--help'
   Parameters:matrix
     csm hpcm example nautobot ochami redfish
     import export
   End
 
-  It "cani alpha $2 $1 --help exits 0"
+  It "$2 $1 exits 0"
     When call bin/cani alpha "$2" "$1" --help
     The status should equal 0
     The stdout should include 'Usage:'
   End
 End
 
-# ── 2. file-based import ───────────────────────────────────────────
+# ── 2. import ──────────────────────────────────────────────────────
+#
+# Each provider imports its fixture file and produces a datastore.
 
-Describe 'file-based import'
+Describe 'import from'
   BeforeAll 'setup_test_env'
   AfterAll  'teardown_test_env'
 
   Describe 'example (CSV)'
-    It 'imports from a CSV fixture'
-      When call bin/cani alpha import example \
-        --csv "$FIXTURES/example/simple.csv" \
-        --config "$CANI_CONF" \
-        --datastore-path "$(ie_ds example_csv)"
+    It 'succeeds'
+      When call import_fixture example "$(ie_ds import_example)"
       The status should equal 0
       The stderr should include 'Import completed successfully'
     End
 
-    It 'creates the datastore file'
-      The path "$(ie_ds example_csv)" should be file
+    It 'creates datastore'
+      The path "$(ie_ds import_example)" should be file
     End
   End
 
   Describe 'ochami (JSON)'
-    It 'imports from a JSON fixture'
-      When call bin/cani alpha import ochami \
-        --jsonfile "$FIXTURES/ochami/ochami_test_data.json" \
-        --config "$CANI_CONF" \
-        --datastore-path "$(ie_ds ochami)"
+    It 'succeeds'
+      When call import_fixture ochami "$(ie_ds import_ochami)"
       The status should equal 0
       The stderr should include 'Import completed successfully'
     End
 
-    It 'creates the datastore file'
-      The path "$(ie_ds ochami)" should be file
+    It 'creates datastore'
+      The path "$(ie_ds import_ochami)" should be file
     End
   End
 
   Describe 'redfish (JSON)'
-    It 'imports from a ServiceRoot fixture'
-      When call bin/cani alpha import redfish \
-        --root "$FIXTURES/redfish/v1/redfish-root.json" \
-        --config "$CANI_CONF" \
-        --datastore-path "$(ie_ds redfish)"
+    It 'succeeds'
+      When call import_fixture redfish "$(ie_ds import_redfish)"
       The status should equal 0
       The stderr should include 'Import completed successfully'
     End
 
-    It 'creates the datastore file'
-      The path "$(ie_ds redfish)" should be file
+    It 'creates datastore'
+      The path "$(ie_ds import_redfish)" should be file
     End
   End
 
-  Describe 'hpcm (node JSON)'
-    It 'imports from a node JSON fixture'
-      When call bin/cani alpha import hpcm \
-        --node-json-file "$FIXTURES/hpcm/nodes.json" \
-        --config "$CANI_CONF" \
-        --datastore-path "$(ie_ds hpcm)"
+  Describe 'hpcm (JSON)'
+    It 'succeeds'
+      When call import_fixture hpcm "$(ie_ds import_hpcm)"
       The status should equal 0
       The stderr should include 'Import completed successfully'
     End
 
-    It 'creates the datastore file'
-      The path "$(ie_ds hpcm)" should be file
+    It 'creates datastore'
+      The path "$(ie_ds import_hpcm)" should be file
     End
   End
 
-  Describe 'csm (SLS file)'
-    It 'imports from an SLS dumpstate fixture'
-      When call bin/cani alpha import csm \
-        --sls-file "$FIXTURES/csm/sls/valid_hardware_networks.json" \
-        --ignore-validation \
-        --config "$CANI_CONF" \
-        --datastore-path "$(ie_ds csm)"
+  Describe 'csm (SLS)'
+    It 'succeeds'
+      When call import_fixture csm "$(ie_ds import_csm)"
       The status should equal 0
       The stderr should include 'Import completed successfully'
     End
 
-    It 'creates the datastore file'
-      The path "$(ie_ds csm)" should be file
+    It 'creates datastore'
+      The path "$(ie_ds import_csm)" should be file
     End
   End
 End
 
-# ── 3. file-based export ───────────────────────────────────────────
+# ── 3. import → export matrix ─────────────────────────────────────
 #
-# Pre-populate a datastore with the CRUD inventory then export via
-# each provider. Providers that are no-ops (hpcm, redfish) simply
-# verify exit 0. Providers that produce output (example, ochami, csm)
-# also check stdout.
-
-Describe 'file-based export'
-  setup_export_env() {
-    setup_test_env
-    cp "$FIXTURES/cani/crud_inventory.json" "$(ie_ds export_example)"
-    cp "$FIXTURES/cani/crud_inventory.json" "$(ie_ds export_ochami)"
-    cp "$FIXTURES/cani/crud_inventory.json" "$(ie_ds export_redfish)"
-    cp "$FIXTURES/cani/crud_inventory.json" "$(ie_ds export_hpcm)"
-    cp "$FIXTURES/cani/crud_inventory.json" "$(ie_ds export_csm)"
-  }
-
-  BeforeAll 'setup_export_env'
-  AfterAll  'teardown_test_env'
-
-  Describe 'example'
-    It 'exports the inventory'
-      When call bin/cani alpha export example \
-        --config "$CANI_CONF" \
-        --datastore-path "$(ie_ds export_example)"
-      The status should equal 0
-      The stdout should include 'Summary:'
-      The stderr should include 'Export completed successfully'
-    End
-  End
-
-  Describe 'ochami'
-    It 'exports the inventory'
-      When call bin/cani alpha export ochami \
-        --config "$CANI_CONF" \
-        --datastore-path "$(ie_ds export_ochami)"
-      The status should equal 0
-      The stdout should include 'nodes:'
-      The stderr should include 'Export completed successfully'
-    End
-  End
-
-  Describe 'redfish'
-    It 'exports the inventory'
-      When call bin/cani alpha export redfish \
-        --config "$CANI_CONF" \
-        --datastore-path "$(ie_ds export_redfish)"
-      The status should equal 0
-      The stderr should include 'Export completed successfully'
-    End
-  End
-
-  Describe 'hpcm'
-    It 'exports the inventory'
-      When call bin/cani alpha export hpcm \
-        --config "$CANI_CONF" \
-        --datastore-path "$(ie_ds export_hpcm)"
-      The status should equal 0
-      The stderr should include 'Export completed successfully'
-    End
-  End
-
-  Describe 'csm (CSV mode)'
-    It 'exports the inventory as CSV'
-      When call bin/cani alpha export csm \
-        --config "$CANI_CONF" \
-        --datastore-path "$(ie_ds export_csm)"
-      The status should equal 0
-      The stdout should include 'Type,Vlan,Role'
-      The stderr should include 'Export completed successfully'
-    End
-  End
-End
-
-# ── 4. round-trip (import → export) ────────────────────────────────
+# For each file-based import source, import the fixture once, then
+# export through every file-based provider.  This verifies:
+#   a) the import produces a valid provider-agnostic datastore
+#   b) every exporter can consume any datastore
 #
-# Import a fixture, then immediately export. Verifies the full ETL
-# pipeline produces consistent output for file-based providers.
+# Same-provider pairs include additional format assertions.
+# Test names read as: "<source> to <target> succeeds".
 
-Describe 'import → export round-trip'
+Describe 'import from example (CSV)'
   BeforeAll 'setup_test_env'
   AfterAll  'teardown_test_env'
 
-  Describe 'example (CSV → visual export)'
-    It 'imports successfully'
-      When call bin/cani alpha import example \
-        --csv "$FIXTURES/example/simple.csv" \
-        --config "$CANI_CONF" \
-        --datastore-path "$(ie_ds roundtrip_example)"
-      The status should equal 0
-      The stderr should include 'Import completed successfully'
-    End
+  #shellcheck disable=SC2317
+  _setup_example() { import_fixture example "$(ie_ds matrix_example)" 2>/dev/null; }
+  BeforeAll '_setup_example'
 
-    It 'exports the imported data'
-      When call bin/cani alpha export example \
+  Describe 'export to'
+    Parameters:value example ochami redfish hpcm csm
+    It "$1 succeeds"
+      When call bin/cani alpha export "$1" \
         --config "$CANI_CONF" \
-        --datastore-path "$(ie_ds roundtrip_example)"
+        --datastore-path "$(ie_ds matrix_example)"
       The status should equal 0
-      The stdout should include 'Summary:'
+      The stdout should be defined
       The stderr should include 'Export completed successfully'
     End
   End
 
-  Describe 'ochami (JSON → YAML export)'
-    It 'imports successfully'
-      When call bin/cani alpha import ochami \
-        --jsonfile "$FIXTURES/ochami/ochami_test_data.json" \
-        --config "$CANI_CONF" \
-        --datastore-path "$(ie_ds roundtrip_ochami)"
-      The status should equal 0
-      The stderr should include 'Import completed successfully'
-    End
+  It 'to example output includes Summary'
+    When call bin/cani alpha export example \
+      --config "$CANI_CONF" \
+      --datastore-path "$(ie_ds matrix_example)"
+    The stdout should include 'Summary:'
+    The stderr should include 'Export completed successfully'
+  End
+End
 
-    It 'exports the imported data'
-      When call bin/cani alpha export ochami \
+Describe 'import from ochami (JSON)'
+  BeforeAll 'setup_test_env'
+  AfterAll  'teardown_test_env'
+
+  #shellcheck disable=SC2317
+  _setup_ochami() { import_fixture ochami "$(ie_ds matrix_ochami)" 2>/dev/null; }
+  BeforeAll '_setup_ochami'
+
+  Describe 'export to'
+    Parameters:value example ochami redfish hpcm csm
+    It "$1 succeeds"
+      When call bin/cani alpha export "$1" \
         --config "$CANI_CONF" \
-        --datastore-path "$(ie_ds roundtrip_ochami)"
+        --datastore-path "$(ie_ds matrix_ochami)"
       The status should equal 0
-      The stdout should include 'nodes:'
+      The stdout should be defined
       The stderr should include 'Export completed successfully'
     End
   End
 
-  Describe 'csm (SLS file → CSV export)'
-    It 'imports successfully'
-      When call bin/cani alpha import csm \
-        --sls-file "$FIXTURES/csm/sls/valid_hardware_networks.json" \
-        --ignore-validation \
-        --config "$CANI_CONF" \
-        --datastore-path "$(ie_ds roundtrip_csm)"
-      The status should equal 0
-      The stderr should include 'Import completed successfully'
-    End
+  It 'to ochami output includes nodes'
+    When call bin/cani alpha export ochami \
+      --config "$CANI_CONF" \
+      --datastore-path "$(ie_ds matrix_ochami)"
+    The stdout should include 'nodes:'
+    The stderr should include 'Export completed successfully'
+  End
+End
 
-    It 'exports the imported data'
-      When call bin/cani alpha export csm \
+Describe 'import from redfish (JSON)'
+  BeforeAll 'setup_test_env'
+  AfterAll  'teardown_test_env'
+
+  #shellcheck disable=SC2317
+  _setup_redfish() { import_fixture redfish "$(ie_ds matrix_redfish)" 2>/dev/null; }
+  BeforeAll '_setup_redfish'
+
+  Describe 'export to'
+    Parameters:value example ochami redfish hpcm csm
+    It "$1 succeeds"
+      When call bin/cani alpha export "$1" \
         --config "$CANI_CONF" \
-        --datastore-path "$(ie_ds roundtrip_csm)"
+        --datastore-path "$(ie_ds matrix_redfish)"
       The status should equal 0
-      The stdout should include 'Type,Vlan,Role'
+      The stdout should be defined
       The stderr should include 'Export completed successfully'
     End
   End
 End
 
-# ── 5. external service providers ──────────────────────────────────
+Describe 'import from hpcm (JSON)'
+  BeforeAll 'setup_test_env'
+  AfterAll  'teardown_test_env'
+
+  #shellcheck disable=SC2317
+  _setup_hpcm() { import_fixture hpcm "$(ie_ds matrix_hpcm)" 2>/dev/null; }
+  BeforeAll '_setup_hpcm'
+
+  Describe 'export to'
+    Parameters:value example ochami redfish hpcm csm
+    It "$1 succeeds"
+      When call bin/cani alpha export "$1" \
+        --config "$CANI_CONF" \
+        --datastore-path "$(ie_ds matrix_hpcm)"
+      The status should equal 0
+      The stdout should be defined
+      The stderr should include 'Export completed successfully'
+    End
+  End
+End
+
+Describe 'import from csm (SLS)'
+  BeforeAll 'setup_test_env'
+  AfterAll  'teardown_test_env'
+
+  #shellcheck disable=SC2317
+  _setup_csm() { import_fixture csm "$(ie_ds matrix_csm)" 2>/dev/null; }
+  BeforeAll '_setup_csm'
+
+  Describe 'export to'
+    Parameters:value example ochami redfish hpcm csm
+    It "$1 succeeds"
+      When call bin/cani alpha export "$1" \
+        --config "$CANI_CONF" \
+        --datastore-path "$(ie_ds matrix_csm)"
+      The status should equal 0
+      The stdout should be defined
+      The stderr should include 'Export completed successfully'
+    End
+  End
+
+  It 'to csm output includes CSV headers'
+    When call bin/cani alpha export csm \
+      --config "$CANI_CONF" \
+      --datastore-path "$(ie_ds matrix_csm)"
+    The stdout should include 'Type,Vlan,Role'
+    The stderr should include 'Export completed successfully'
+  End
+End
+
+# ── 4. nautobot API ───────────────────────────────────────────────
 #
-# Nautobot and CSM API-based tests require running services.
+# Nautobot tests require a running API server.
 # Skip when SKIP_EXTERNAL_TESTS is set or when Nautobot is unreachable.
 
 external_tests_disabled() { [ "${SKIP_EXTERNAL_TESTS:-0}" = "1" ]; }
@@ -288,14 +303,14 @@ nautobot_unreachable() {
     "${NAUTOBOT_URL}/status/" >/dev/null 2>&1
 }
 
-Describe 'nautobot import (API)'
+Describe 'nautobot API'
   Skip if 'external tests disabled' external_tests_disabled
   Skip if 'Nautobot is not reachable' nautobot_unreachable
 
   BeforeAll 'setup_nautobot_env'
   AfterAll  'teardown_test_env'
 
-  It 'imports from the Nautobot API'
+  It 'import succeeds'
     When call bin/cani alpha import nautobot \
       --config "$CANI_CONF" \
       --datastore-path "$(ie_ds nautobot)"
@@ -304,28 +319,27 @@ Describe 'nautobot import (API)'
   End
 End
 
-Describe 'nautobot export (API, dry-run)'
+Describe 'nautobot API'
   Skip if 'external tests disabled' external_tests_disabled
   Skip if 'Nautobot is not reachable' nautobot_unreachable
 
-  # Pre-populate the datastore so export has inventory to process,
-  # regardless of whether Nautobot contains data.
-  setup_nautobot_export() {
+  #shellcheck disable=SC2317
+  _setup_nautobot_export() {
     setup_nautobot_env
     cp "$FIXTURES/cani/crud_inventory.json" "$(ie_ds nautobot_export)"
   }
 
-  BeforeAll 'setup_nautobot_export'
+  BeforeAll '_setup_nautobot_export'
   AfterAll  'teardown_test_env'
 
-  It 'connects to Nautobot and processes the export pipeline'
+  It 'export dry-run connects and processes pipeline'
     When call bin/cani alpha export nautobot \
       --dry-run \
       --config "$CANI_CONF" \
       --datastore-path "$(ie_ds nautobot_export)"
     # Exit status may be non-zero due to fixture/schema mismatches with
-    # an empty Nautobot — the functional test verifies connectivity and
-    # pipeline execution, not data correctness.
+    # an empty Nautobot — the test verifies connectivity and pipeline
+    # execution, not data correctness.
     The status should not equal ""
     The stderr should include 'Successfully connected to Nautobot'
     The stderr should include 'Nautobot Sync Summary'
