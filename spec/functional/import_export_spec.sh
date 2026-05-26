@@ -29,10 +29,11 @@
 # to isolate each test from pre-existing data.
 #
 # Structure:
-#   1. --help         — exits 0 for every provider × operation
-#   2. import         — each provider imports its fixture successfully
-#   3. <src> to <dst> — each import source fans out to all export targets
-#   4. nautobot API   — API-based tests requiring a running Nautobot
+#   1. --help            — exits 0 for every provider × operation
+#   2. import            — each provider imports its fixture successfully
+#   2b. show consistency — show device returns expected counts per provider
+#   3. <src> to <dst>    — each import source fans out to all export targets
+#   4. nautobot API      — API-based tests requiring a running Nautobot
 
 # Unique datastore path per test to avoid interference.
 ie_ds() { echo "/tmp/.cani/ie_test_${1}.json"; }
@@ -150,6 +151,71 @@ Describe 'import from'
     It 'creates datastore'
       The path "$(ie_ds import_csm)" should be file
     End
+  End
+End
+
+# ── 2b. show consistency ──────────────────────────────────────────
+#
+# After importing, run `cani show device` against each provider's
+# datastore and verify:
+#   a) the command exits 0 (inventory is queryable)
+#   b) the device count matches the expected value for each provider
+#
+# This confirms the import pipeline produces deterministic, consistent
+# results that the show layer can consume.
+
+Describe 'show device after import'
+  BeforeAll 'setup_test_env'
+  AfterAll  'teardown_test_env'
+
+  #shellcheck disable=SC2317
+  _setup_show() {
+    import_fixture example "$(ie_ds show_example)" 2>/dev/null
+    import_fixture ochami  "$(ie_ds show_ochami)"  2>/dev/null
+    import_fixture redfish "$(ie_ds show_redfish)" 2>/dev/null
+    import_fixture hpcm    "$(ie_ds show_hpcm)"    2>/dev/null
+    import_fixture csm     "$(ie_ds show_csm)"     2>/dev/null
+  }
+  BeforeAll '_setup_show'
+
+  It 'example reports 6 devices'
+    When call bin/cani alpha show device \
+      --config "$CANI_CONF" \
+      --datastore-path "$(ie_ds show_example)"
+    The status should equal 0
+    The stdout should include 'Total: 6 device(s)'
+  End
+
+  It 'ochami reports 26 devices'
+    When call bin/cani alpha show device \
+      --config "$CANI_CONF" \
+      --datastore-path "$(ie_ds show_ochami)"
+    The status should equal 0
+    The stdout should include 'Total: 26 device(s)'
+  End
+
+  It 'redfish reports 4 devices'
+    When call bin/cani alpha show device \
+      --config "$CANI_CONF" \
+      --datastore-path "$(ie_ds show_redfish)"
+    The status should equal 0
+    The stdout should include 'Total: 4 device(s)'
+  End
+
+  It 'hpcm reports 6 devices'
+    When call bin/cani alpha show device \
+      --config "$CANI_CONF" \
+      --datastore-path "$(ie_ds show_hpcm)"
+    The status should equal 0
+    The stdout should include 'Total: 6 device(s)'
+  End
+
+  It 'csm reports 15 devices'
+    When call bin/cani alpha show device \
+      --config "$CANI_CONF" \
+      --datastore-path "$(ie_ds show_csm)"
+    The status should equal 0
+    The stdout should include 'Total: 15 device(s)'
   End
 End
 
