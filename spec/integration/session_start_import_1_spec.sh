@@ -24,42 +24,23 @@
 #
 Describe 'INTEGRATION:'
 
-It 'start a session'
-  BeforeCall use_inactive_session
-  BeforeCall use_valid_datastore_system_only # deploy a valid datastore
-  BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
-  When call bin/cani alpha session --config "$CANI_CONF" init csm -S
+It 'import from simulator'
+	BeforeCall remove_datastore
+	BeforeCall "curl -sk -X POST -F "sls_dump=@testdata/fixtures/sls/valid_hardware_networks.json" https://localhost:8443/apis/sls/v1/loadstate"
+  When call bin/cani alpha --config "$CANI_CONF" import csm -S --ignore-validation
   The status should equal 0
-  The line 1 of stderr should include 'Using simulation mode'
-  The stderr should include 'Validated CANI inventory'
-  The stderr should include 'Validated external inventory provider'
-  # Verify the import logic reached out to SLS
-  The stderr should include 'GET https://localhost:8443/apis/sls/v1/dumpstate'
-  The stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/State/Components'
-  The stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/Inventory/Hardware'
-  The stderr should include 'Cabinet x9000 does not exist in datastore at System:0->Cabinet:9000'
-  The stderr should include 'Cabinet x9000 device type slug is hpe-ex2000'
-
-  # Verify the import logic pushed changes into SLS
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000'
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c1'
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c1b0'
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c3'
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c3b0'
-
-  # Verify the session has started
-  The stderr should include 'Session is now ACTIVE with provider csm and datastore'
+  The stderr should include 'Imported SLS: 110 hardware entries, 13 networks'
+  The stderr should include 'Transform: 172 devices, 3 racks'
 End
 
-It 'commit and reconcile'
-  When call bin/cani alpha session --config "$CANI_CONF" apply --commit
+It 'export to simulator'
+  When call bin/cani alpha --config "$CANI_CONF" export csm -S --commit
   The status should equal 0
-  The line 1 of stderr should include 'Session is STOPPED'
-  The line 2 of stderr should include 'Committing changes to session'
-  The line 1 of stdout should include 'Summary:'
-  The line 2 of stdout should include '--------'
-  The line 3 of stdout should include 'ID  TYPE  STATUS'
-  The line 5 of stdout should include '0 new hardware item(s) are in the inventory'
+  The stderr should include 'Export completed successfully'
+  The stdout should include 'Summary:'
+  The stdout should include '--------'
+  The stdout should include 'ID  TYPE  STATUS'
+  The stdout should include '0 new hardware item(s) are in the inventory'
 End
 
 End

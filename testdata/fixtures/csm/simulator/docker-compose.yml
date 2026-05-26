@@ -1,0 +1,157 @@
+#
+# MIT License
+#
+# (C) Copyright 2022-2024 Hewlett Packard Enterprise Development LP
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+name: csm-simulator
+networks:
+  simulation:
+services:
+  #
+  # SLS
+  #
+  cray-sls-postgres:
+    hostname: sls-postgres
+    image: artifactory.algol60.net/csm-docker/stable/docker.io/library/postgres:13.2-alpine
+    platform: linux/amd64
+    environment:
+      - POSTGRES_USER=slsuser
+      - POSTGRES_DB=sls
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    ports:
+      - "54321:5432"
+    networks:
+      - simulation
+  cray-sls-init:
+    image: artifactory.algol60.net/csm-docker/stable/cray-sls:2.6.0
+    platform: linux/amd64
+    command: ["sls-init"]
+    environment:
+      - POSTGRES_HOST=sls-postgres
+      - DBOPTS=sslmode=disable
+      - DBUSER=slsuser
+    depends_on:
+      - cray-sls-postgres
+    networks:
+      - simulation
+  cray-sls:
+    image: artifactory.algol60.net/csm-docker/stable/cray-sls:2.6.0
+    platform: linux/amd64
+    environment:
+      - POSTGRES_HOST=cray-sls-postgres
+      - DBOPTS=sslmode=disable
+      - DBUSER=slsuser
+    ports:
+      - "8376:8376"
+    depends_on:
+      - cray-sls-postgres
+      - cray-sls-init
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8376/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - simulation
+  #
+  # HSM
+  #
+  cray-smd-postgres:
+    hostname: hmsds-postgres
+    image: artifactory.algol60.net/csm-docker/stable/docker.io/library/postgres:13.2-alpine
+    platform: linux/amd64
+    environment:
+      - POSTGRES_USER=hmsdsuser
+      - POSTGRES_DB=hmsds
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    ports:
+      - "54322:5432"
+    networks:
+      - simulation
+  cray-smd-init:
+    image: artifactory.algol60.net/csm-docker/stable/cray-smd:2.30.0
+    platform: linux/amd64
+    environment:
+      - SMD_DBHOST=cray-smd-postgres
+      - SMD_DBPORT=5432
+    depends_on:
+      - cray-smd-postgres
+    networks:
+      - simulation
+    command: /entrypoint.sh smd-init
+  cray-smd:
+    image: artifactory.algol60.net/csm-docker/stable/cray-smd:2.30.0
+    platform: linux/amd64
+    environment:
+      - POSTGRES_HOST=cray-smd-postgres
+      - SMD_DBHOST=cray-smd-postgres
+      - DBOPTS=sslmode=disable
+      - DBUSER=hmsdsuser
+      - POSTGRES_PORT=5432
+      - SMD_WVAULT=false
+      - SMD_RVAULT=false
+      - SMD_SLS_HOST=http://cray-sls:8376/v1
+    hostname: cray-smd
+    depends_on:
+      - cray-smd-init
+      - cray-sls
+    ports:
+      - "27779:27779"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:27779/hsm/v2/service/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    volumes:
+      - ./hms:/hms_config
+    networks:
+      - simulation
+  #
+  # API Gateway
+  # Nginx is being used as a standin for the Istio Ingress API gateway we use on
+  # real systems.
+  api-gateway:
+    image: nginx:alpine
+    platform: linux/amd64
+    restart: unless-stopped
+    depends_on:
+      cray-sls:
+        condition: service_healthy
+      cray-smd:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+      - "8443:443"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "--no-check-certificate", "https://localhost:443/apis/sls/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/certs:/etc/nginx/certs
+    networks:
+      simulation:
+        aliases:
+          - api-gateway-hmn

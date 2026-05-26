@@ -1,0 +1,129 @@
+/*
+ *
+ *  MIT License
+ *
+ *  (C) Copyright 2023-2026 Hewlett Packard Enterprise Development LP
+ *
+ *  Permission is hereby granted, free of charge, to any person obtaining a
+ *  copy of this software and associated documentation files (the "Software"),
+ *  to deal in the Software without restriction, including without limitation
+ *  the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ *  and/or sell copies of the Software, and to permit persons to whom the
+ *  Software is furnished to do so, subject to the following conditions:
+ *
+ *  The above copyright notice and this permission notice shall be included
+ *  in all copies or substantial portions of the Software.
+ *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ *  THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ *  OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ *  ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ *  OTHER DEALINGS IN THE SOFTWARE.
+ *
+ */
+package update
+
+import (
+	"fmt"
+	"log"
+	"strings"
+
+	"github.com/Cray-HPE/cani/internal/util/resolve"
+	"github.com/Cray-HPE/cani/pkg/datastores"
+	"github.com/Cray-HPE/cani/pkg/devicetypes"
+	"github.com/google/uuid"
+	"github.com/spf13/cobra"
+)
+
+// newLocationCommand creates the "update location" subcommand.
+func newLocationCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "location <uuid-or-name>",
+		Short: "Update a location in the inventory.",
+		Long:  "Update a location's fields by UUID or name.",
+		Args:  cobra.ExactArgs(1),
+		RunE:  updateLocation,
+	}
+
+	cmd.Flags().String("name", "", "New name")
+	cmd.Flags().String("parent", "", "Parent location UUID or name")
+	cmd.Flags().String("description", "", "Description")
+	cmd.Flags().String("content-types", "", "Comma-separated content types (e.g. device,module,rack)")
+
+	return cmd
+}
+
+func updateLocation(cmd *cobra.Command, args []string) error {
+	if err := datastores.SetDeviceStore(cmd, args); err != nil {
+		return fmt.Errorf("failed to set device store: %w", err)
+	}
+
+	inventory, err := datastores.Datastore.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load inventory: %w", err)
+	}
+
+	id, err := resolve.Location(inventory, args[0])
+	if err != nil {
+		return err
+	}
+
+	loc := inventory.Locations[id]
+
+	// Apply typed flags
+	if cmd.Flags().Changed("name") {
+		loc.Name, _ = cmd.Flags().GetString("name")
+	}
+	if cmd.Flags().Changed("parent") {
+		parentArg, _ := cmd.Flags().GetString("parent")
+		if pid, err := uuid.Parse(parentArg); err == nil {
+			loc.Parent = pid
+		} else if pid, err := resolve.Location(inventory, parentArg); err == nil {
+			loc.Parent = pid
+		}
+	}
+	if cmd.Flags().Changed("description") {
+		loc.Description, _ = cmd.Flags().GetString("description")
+	}
+	if cmd.Flags().Changed("content-types") {
+		raw, _ := cmd.Flags().GetString("content-types")
+		if raw != "" {
+			loc.ContentTypes = strings.Split(raw, ",")
+		}
+	}
+
+	// Apply generic --set pairs
+	if err := applySetToLocation(cmd, loc); err != nil {
+		return err
+	}
+
+	if err := datastores.Datastore.Save(inventory); err != nil {
+		return fmt.Errorf("failed to save inventory: %w", err)
+	}
+
+	log.Printf("Updated location %s (%s)", id, loc.Name)
+	return nil
+}
+
+func applySetToLocation(cmd *cobra.Command, loc *devicetypes.CaniLocationType) error {
+	sets, _ := cmd.Flags().GetStringArray("set")
+	pairs, err := parseSetFlags(sets)
+	if err != nil {
+		return err
+	}
+	for k, v := range pairs {
+		switch k {
+		case "name":
+			loc.Name = v
+		case "description":
+			loc.Description = v
+		case "content_types":
+			loc.ContentTypes = strings.Split(v, ",")
+		default:
+			return fmt.Errorf("unknown location field: %s", k)
+		}
+	}
+	return nil
+}

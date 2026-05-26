@@ -1,0 +1,334 @@
+{
+  "apiVersion": "v1alpha1",
+  "kind": "DiscoverySnapshot",
+  "metadata": {
+    "name": "matrix-test-topology"
+  },
+  "spec": {
+    "rawData": [
+    {
+      "deviceType": "Rack",
+      "serialNumber": "SN-RACK-01",
+      "manufacturer": "HPE",
+      "partNumber": "P9K58A",
+      "parentSerialNumber": "",
+      "properties": {
+        "name": "matrix-rack",
+        "model": "HPE 48U 800mm×1200mm G2 Enterprise Shock Rack"
+      }
+    },
+    {
+      "deviceType": "Node",
+      "serialNumber": "SN-GPU-01",
+      "manufacturer": "HPE",
+      "partNumber": "hpe-xd670",
+      "parentSerialNumber": "SN-RACK-01",
+      "properties": {
+        "name": "matrix-gpu-01",
+        "model": "HPE Cray Supercomputing XD670",
+        "bmc_address": "10.0.100.1",
+        "bmc_fqdn": "matrix-gpu-01-bmc.local"
+      }
+    },
+    {
+      "deviceType": "Node",
+      "serialNumber": "SN-GPU-02",
+      "manufacturer": "HPE",
+      "partNumber": "hpe-xd670",
+      "parentSerialNumber": "SN-RACK-01",
+      "properties": {
+        "name": "matrix-gpu-02",
+        "model": "HPE Cray Supercomputing XD670",
+        "bmc_address": "10.0.100.2",
+        "bmc_fqdn": "matrix-gpu-02-bmc.local"
+      }
+    },
+    {
+      "deviceType": "Node",
+      "serialNumber": "SN-SERV-01",
+      "manufacturer": "HPE",
+      "partNumber": "hpe-proliant-dl380-gen11-8sff",
+      "parentSerialNumber": "SN-RACK-01",
+      "properties": {
+        "name": "matrix-serv-01",
+        "model": "HPE ProLiant DL380 Gen11 8SFF",
+        "bmc_address": "10.0.100.3",
+        "bmc_fqdn": "matrix-serv-01-bmc.local"
+      }
+    },
+    {
+      "deviceType": "Node",
+      "serialNumber": "SN-SERV-02",
+      "manufacturer": "HPE",
+      "partNumber": "hpe-proliant-dl380-gen11-8sff",
+      "parentSerialNumber": "SN-RACK-01",
+      "properties": {
+        "name": "matrix-serv-02",
+        "model": "HPE ProLiant DL380 Gen11 8SFF",
+        "bmc_address": "10.0.100.4",
+        "bmc_fqdn": "matrix-serv-02-bmc.local"
+      }
+    },
+    {
+      "deviceType": "Switch",
+      "serialNumber": "SN-MGMT-SW",
+      "manufacturer": "HPE",
+      "partNumber": "hpe-aruba-2930f-48g-4sfp",
+      "parentSerialNumber": "SN-RACK-01",
+      "properties": {
+        "name": "matrix-mgmt-sw",
+        "model": "HPE Aruba 2930F 48G 4SFP+"
+      }
+    },
+    {
+      "deviceType": "Switch",
+      "serialNumber": "SN-HSN-SW",
+      "manufacturer": "NVIDIA",
+      "partNumber": "nvidia-infiniband-ndr-64-port-osfp-switch",
+      "parentSerialNumber": "SN-RACK-01",
+      "properties": {
+        "name": "matrix-hsn-sw",
+        "model": "NVIDIA InfiniBand NDR 64-port OSFP Managed Switch"
+      }
+    },
+    {
+      "deviceType": "GPU",
+      "serialNumber": "SN-GPU-01-G0",
+      "manufacturer": "NVIDIA",
+      "partNumber": "nvidia-h100-sxm-gpu",
+      "parentSerialNumber": "SN-GPU-01",
+      "properties": { "bay": "GPU0" }
+    },
+    {
+      "deviceType": "GPU",
+      "serialNumber": "SN-GPU-01-G1",
+      "manufacturer": "NVIDIA",
+      "partNumber": "nvidia-h100-sxm-gpu",
+      "parentSerialNumber": "SN-GPU-01",
+      "properties": { "bay": "GPU1" }
+    },
+    {
+      "deviceType": "GPU",
+      "serialNumber": "SN-GPU-01-G2",
+      "manufacturer": "NVIDIA",
+      "partNumber": "nvidia-h100-sxm-gpu",
+      "parentSerialNumber": "SN-GPU-01",
+      "properties": { "bay": "GPU2" }
+    },
+    {
+      "deviceType": "GPU",
+      "serialNumber": "SN-GPU-01-G3",
+      "manufacturer": "NVIDIA",
+      "partNumber": "nvidia-h100-sxm-gpu",
+      "parentSerialNumber": "SN-GPU-01",
+      "properties": { "bay": "GPU3" }
+    },
+    {
+      "deviceType": "GPU",
+      "serialNumber": "SN-GPU-01-G4",
+      "manufacturer": "NVIDIA",
+      "partNumber": "nvidia-h100-sxm-gpu",
+      "parentSerialNumber": "SN-GPU-01",
+      "properties": { "bay": "GPU4" }
+    },
+    {
+      "deviceType": "GPU",
+      "serialNumber": "SN-GPU-01-G5",
+      "manufacturer": "NVIDIA",
+      "partNumber": "nvidia-h100-sxm-gpu",
+      "parentSerialNumber": "SN-GPU-01",
+      "properties": { "bay": "GPU5" }
+    },
+    {
+      "deviceType": "GPU",
+      "serialNumber": "SN-GPU-01-G6",
+      "manufacturer": "NVIDIA",
+      "partNumber": "nvidia-h100-sxm-gpu",
+      "parentSerialNumber": "SN-GPU-01",
+      "properties": { "bay": "GPU6" }
+    },
+    {
+      "deviceType": "GPU",
+      "serialNumber": "SN-GPU-01-G7",
+      "manufacturer": "NVIDIA",
+      "partNumber": "nvidia-h100-sxm-gpu",
+      "parentSerialNumber": "SN-GPU-01",
+      "properties": { "bay": "GPU7" }
+    },
+    {
+      "deviceType": "GPU",
+      "serialNumber": "SN-GPU-02-G0",
+      "manufacturer": "NVIDIA",
+      "partNumber": "nvidia-h100-sxm-gpu",
+      "parentSerialNumber": "SN-GPU-02",
+      "properties": { "bay": "GPU0" }
+    },
+    {
+      "deviceType": "GPU",
+      "serialNumber": "SN-GPU-02-G1",
+      "manufacturer": "NVIDIA",
+      "partNumber": "nvidia-h100-sxm-gpu",
+      "parentSerialNumber": "SN-GPU-02",
+      "properties": { "bay": "GPU1" }
+    },
+    {
+      "deviceType": "GPU",
+      "serialNumber": "SN-GPU-02-G2",
+      "manufacturer": "NVIDIA",
+      "partNumber": "nvidia-h100-sxm-gpu",
+      "parentSerialNumber": "SN-GPU-02",
+      "properties": { "bay": "GPU2" }
+    },
+    {
+      "deviceType": "GPU",
+      "serialNumber": "SN-GPU-02-G3",
+      "manufacturer": "NVIDIA",
+      "partNumber": "nvidia-h100-sxm-gpu",
+      "parentSerialNumber": "SN-GPU-02",
+      "properties": { "bay": "GPU3" }
+    },
+    {
+      "deviceType": "GPU",
+      "serialNumber": "SN-GPU-02-G4",
+      "manufacturer": "NVIDIA",
+      "partNumber": "nvidia-h100-sxm-gpu",
+      "parentSerialNumber": "SN-GPU-02",
+      "properties": { "bay": "GPU4" }
+    },
+    {
+      "deviceType": "GPU",
+      "serialNumber": "SN-GPU-02-G5",
+      "manufacturer": "NVIDIA",
+      "partNumber": "nvidia-h100-sxm-gpu",
+      "parentSerialNumber": "SN-GPU-02",
+      "properties": { "bay": "GPU5" }
+    },
+    {
+      "deviceType": "GPU",
+      "serialNumber": "SN-GPU-02-G6",
+      "manufacturer": "NVIDIA",
+      "partNumber": "nvidia-h100-sxm-gpu",
+      "parentSerialNumber": "SN-GPU-02",
+      "properties": { "bay": "GPU6" }
+    },
+    {
+      "deviceType": "GPU",
+      "serialNumber": "SN-GPU-02-G7",
+      "manufacturer": "NVIDIA",
+      "partNumber": "nvidia-h100-sxm-gpu",
+      "parentSerialNumber": "SN-GPU-02",
+      "properties": { "bay": "GPU7" }
+    },
+    {
+      "deviceType": "NIC",
+      "serialNumber": "SN-GPU-01-CX7",
+      "manufacturer": "NVIDIA",
+      "partNumber": "nvidia-connectx-7-ndr-infiniband-osfp-pcie5",
+      "parentSerialNumber": "SN-GPU-01",
+      "properties": { "bay": "PCIe 9" }
+    },
+    {
+      "deviceType": "NIC",
+      "serialNumber": "SN-GPU-02-CX7",
+      "manufacturer": "NVIDIA",
+      "partNumber": "nvidia-connectx-7-ndr-infiniband-osfp-pcie5",
+      "parentSerialNumber": "SN-GPU-02",
+      "properties": { "bay": "PCIe 9" }
+    },
+    {
+      "deviceType": "NIC",
+      "serialNumber": "SN-SERV-01-CX6",
+      "manufacturer": "NVIDIA",
+      "partNumber": "nvidia-connectx-6-dx-100gbe-2p-qsfp28",
+      "parentSerialNumber": "SN-SERV-01",
+      "properties": { "bay": "PCIe5" }
+    },
+    {
+      "deviceType": "NIC",
+      "serialNumber": "SN-SERV-02-CX6",
+      "manufacturer": "NVIDIA",
+      "partNumber": "nvidia-connectx-6-dx-100gbe-2p-qsfp28",
+      "parentSerialNumber": "SN-SERV-02",
+      "properties": { "bay": "PCIe5" }
+    },
+    {
+      "deviceType": "Cable",
+      "serialNumber": "SN-CBL-MGMT-01",
+      "manufacturer": "HPE",
+      "partNumber": "hpe-3m-cat6-stp",
+      "parentSerialNumber": "",
+      "properties": {
+        "a_device": "matrix-gpu-01",
+        "a_port": "iLO",
+        "b_device": "matrix-mgmt-sw",
+        "b_port": "1"
+      }
+    },
+    {
+      "deviceType": "Cable",
+      "serialNumber": "SN-CBL-MGMT-02",
+      "manufacturer": "HPE",
+      "partNumber": "hpe-3m-cat6-stp",
+      "parentSerialNumber": "",
+      "properties": {
+        "a_device": "matrix-gpu-02",
+        "a_port": "iLO",
+        "b_device": "matrix-mgmt-sw",
+        "b_port": "2"
+      }
+    },
+    {
+      "deviceType": "Cable",
+      "serialNumber": "SN-CBL-MGMT-03",
+      "manufacturer": "HPE",
+      "partNumber": "hpe-3m-cat6-stp",
+      "parentSerialNumber": "",
+      "properties": {
+        "a_device": "matrix-serv-01",
+        "a_port": "iLO",
+        "b_device": "matrix-mgmt-sw",
+        "b_port": "3"
+      }
+    },
+    {
+      "deviceType": "Cable",
+      "serialNumber": "SN-CBL-MGMT-04",
+      "manufacturer": "HPE",
+      "partNumber": "hpe-3m-cat6-stp",
+      "parentSerialNumber": "",
+      "properties": {
+        "a_device": "matrix-serv-02",
+        "a_port": "iLO",
+        "b_device": "matrix-mgmt-sw",
+        "b_port": "4"
+      }
+    },
+    {
+      "deviceType": "Cable",
+      "serialNumber": "SN-CBL-HSN-01",
+      "manufacturer": "HPE",
+      "partNumber": "hpe-ib-ndr-osfp-dac-cable",
+      "parentSerialNumber": "",
+      "properties": {
+        "a_device": "matrix-gpu-01",
+        "a_port": "HSN 0",
+        "b_device": "matrix-hsn-sw",
+        "b_port": "1"
+      }
+    },
+    {
+      "deviceType": "Cable",
+      "serialNumber": "SN-CBL-HSN-02",
+      "manufacturer": "HPE",
+      "partNumber": "hpe-ib-ndr-osfp-dac-cable",
+      "parentSerialNumber": "",
+      "properties": {
+        "a_device": "matrix-gpu-02",
+        "a_port": "HSN 0",
+        "b_device": "matrix-hsn-sw",
+        "b_port": "2"
+      }
+    }
+    ]
+  }
+}

@@ -24,29 +24,13 @@
 #
 Describe 'EDGE:'
 
-It 'start a session'
-  BeforeCall use_inactive_session
-  BeforeCall use_valid_datastore_system_only # deploy a valid datastore
-  BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
-  When call bin/cani alpha session --config "$CANI_CONF" init csm -S
+It 'import from csm'
+	BeforeCall remove_datastore
+	BeforeCall "curl -sk -X POST -F "sls_dump=@testdata/fixtures/sls/valid_hardware_networks.json" https://localhost:8443/apis/sls/v1/loadstate"
+  When call bin/cani alpha --config "$CANI_CONF" import csm -S
   The status should equal 0
-  The line 1 of stderr should include 'Using simulation mode'
-  The stderr should include 'Validated CANI inventory'
-  The stderr should include 'Validated external inventory provider'
-  # Verify the import logic reached out to SLS
-  The stderr should include 'GET https://localhost:8443/apis/sls/v1/dumpstate'
-  The stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/State/Components'
-  The stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/Inventory/Hardware'
-
-  # Verify the import logic pushed changes into SLS
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000'
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c1'
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c1b0'
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c3'
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c3b0'
-
-  # Verify the session has started
-  The stderr should include 'Session is now ACTIVE with provider csm and datastore'
+  The stderr should include 'Imported SLS:'
+  The stderr should include 'Transform:'
 End
 
 End
@@ -61,13 +45,13 @@ Parameters:dynamic
 End
 
 It 'Add ex2000 cabinet to reach subnet limit'
-  When call bin/cani alpha --config "$CANI_CONF" add cabinet csm hpe-ex2000 --auto --accept
+  When call bin/cani alpha --config "$CANI_CONF" add rack hpe-ex2000 --auto --accept
   The status should equal 0
-  The line 1 of stderr should include 'Querying inventory to suggest Cabinet'
-  The line 2 of stderr should include "Suggested cabinet number: $1"
-  The line 3 of stderr should include "Suggested VLAN ID: $2"
-  The line 4 of stderr should include "Cabinet was successfully staged to be added to the system"
-  The line 6 of stderr should include "Cabinet Number: $1"
+  The stderr should include 'Querying inventory to suggest Cabinet'
+  The stderr should include "Suggested cabinet number: $1"
+  The stderr should include "Suggested VLAN ID: $2"
+  The stderr should include "Cabinet was successfully staged to be added to the system"
+  The stderr should include "Cabinet Number: $1"
 End
 
 End
@@ -75,9 +59,9 @@ End
 Describe 'EDGE:'
 
 It 'commit and reconcile'
-  When call bin/cani alpha session --config "$CANI_CONF" apply --commit
+  When call bin/cani alpha --config "$CANI_CONF" export csm -S --commit
   The status should equal 1
-  The stderr should include 'Error: failed to reconcile network changes'
+  The stderr should include 'Error: export failed: failed to reconcile network changes'
   The stderr should include 'unable to allocate subnet for cabinet (x9032) in network (HMN_MTN)'
   The stderr should include 'failed to allocate cabinet subnet for (x9032) in CIDR (10.104.0.0/17)'
   The stderr should include 'network space has been exhausted'

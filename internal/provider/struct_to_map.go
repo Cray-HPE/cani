@@ -1,0 +1,91 @@
+/*
+ *
+ *  MIT License
+ *
+ *  (C) Copyright 2024-2026 Hewlett Packard Enterprise Development LP
+ *
+ *  Permission is hereby granted, free of charge, to any person obtaining a
+ *  copy of this software and associated documentation files (the "Software"),
+ *  to deal in the Software without restriction, including without limitation
+ *  the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ *  and/or sell copies of the Software, and to permit persons to whom the
+ *  Software is furnished to do so, subject to the following conditions:
+ *
+ *  The above copyright notice and this permission notice shall be included
+ *  in all copies or substantial portions of the Software.
+ *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ *  THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ *  OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ *  ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ *  OTHER DEALINGS IN THE SOFTWARE.
+ *
+ */
+package provider
+
+import (
+	"reflect"
+	"strings"
+)
+
+// StructToMapAll recursively converts a struct to a map[string]any,
+// including all fields (even zero-valued ones)
+func StructToMapAll(v interface{}) map[string]any {
+	result := make(map[string]any)
+
+	rv := reflect.ValueOf(v)
+	if rv.Kind() == reflect.Ptr {
+		rv = rv.Elem()
+	}
+
+	if rv.Kind() != reflect.Struct {
+		return result
+	}
+
+	rt := rv.Type()
+	for i := 0; i < rv.NumField(); i++ {
+		field := rt.Field(i)
+		fieldValue := rv.Field(i)
+
+		// Skip unexported fields
+		if !field.IsExported() {
+			continue
+		}
+
+		// Get the yaml tag name, fallback to field name
+		// Handle yaml tag options like "name,omitempty" by taking only the first part
+		tagName := field.Tag.Get("yaml")
+		if tagName == "" || tagName == "-" {
+			tagName = field.Name
+		} else {
+			// Split on comma to handle options like "name,omitempty"
+			if idx := strings.Index(tagName, ","); idx != -1 {
+				tagName = tagName[:idx]
+			}
+		}
+
+		// Handle different field types
+		switch fieldValue.Kind() {
+		case reflect.Struct:
+			// Recursively convert nested structs
+			result[tagName] = StructToMapAll(fieldValue.Interface())
+		case reflect.Ptr:
+			if !fieldValue.IsNil() {
+				if fieldValue.Elem().Kind() == reflect.Struct {
+					result[tagName] = StructToMapAll(fieldValue.Interface())
+				} else {
+					result[tagName] = fieldValue.Elem().Interface()
+				}
+			}
+		default:
+			// Include all fields, even zero-valued ones
+			if fieldValue.IsValid() {
+				result[tagName] = fieldValue.Interface()
+			}
+		}
+	}
+
+	return result
+}

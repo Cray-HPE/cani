@@ -13,6 +13,7 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+*.html
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
@@ -22,6 +23,13 @@ go.work
 
 # vim files
 *.swp
+
+# macos
+.DS_Store
+
+# python
+__pycache__/
+*.pyc
 
 # shellspec
 .shellspec-local
@@ -40,6 +48,9 @@ canitest.yml
 canitestdb.json
 canitestdb.log
 canitest_export.csv
+
+# generated certs
+testdata/fixtures/csm/simulator/nginx/certs/
 
 # support repos
 hms-simulation-environment/

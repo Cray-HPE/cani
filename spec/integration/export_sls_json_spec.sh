@@ -24,63 +24,62 @@
 #
 Describe 'INTEGRATION:'
 
-It 'init session'
-  BeforeCall use_inactive_session
-  BeforeCall use_valid_datastore_system_only # deploy a valid datastore
-  BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
-  When call bin/cani alpha session --config "$CANI_CONF" init csm -S
+It 'import from simulator'
+	BeforeCall remove_datastore
+	BeforeCall "curl -sk -X POST -F "sls_dump=@testdata/fixtures/sls/valid_hardware_networks.json" https://localhost:8443/apis/sls/v1/loadstate"
+  When call bin/cani alpha --config "$CANI_CONF" import csm -S --ignore-validation
   The status should equal 0
-  The line 1 of stderr should include 'Using simulation mode'
+  The stderr should include 'Import completed successfully using provider csm'
 End
 
 It 'add cabinet hpe-ex2500-1-liquid-cooled-chassis'
-  When call bin/cani alpha --config "$CANI_CONF" add cabinet csm hpe-ex2500-1-liquid-cooled-chassis --auto --accept
+  When call bin/cani alpha --config "$CANI_CONF" add hpe-ex2500-1-liquid-cooled-chassis --auto --accept
   The status should equal 0
-  The line 1 of stderr should include 'Querying inventory to suggest Cabinet'
-  The line 2 of stderr should include 'Suggested cabinet number: 8000'
-  The line 3 of stderr should include 'Suggested VLAN ID: 3001'
-  The line 4 of stderr should include 'Cabinet was successfully staged to be added to the system'
-  The line 6 of stderr should include "Cabinet Number: 8000"
+  The stderr should include 'Querying inventory to suggest Cabinet'
+  The stderr should include 'Suggested cabinet number: 8000'
+  The stderr should include 'Suggested VLAN ID: 3001'
+  The stderr should include 'Cabinet was successfully staged to be added to the system'
+  The stderr should include "Cabinet Number: 8000"
 End
 
 It 'export sls json'
-  When call bin/cani alpha --config "$CANI_CONF" export csm --format sls-json
+  When call bin/cani alpha --config "$CANI_CONF" export csm -S --format sls-json
   The status should equal 0
-  The stderr should include 'GET http'
+  The stderr should include 'Fetching current SLS state'
   The stderr should include 'sls/v1/dumpstate'
   The output should include '"x8000": {'
 End
 
 It 'export sls json and parse the json'
-  When call sh -c 'bin/cani alpha --config "$CANI_CONF" export csm --format sls-json | jq'
+  When run command sh -c 'cani alpha --config "$CANI_CONF" export csm -S --format sls-json | jq'
   The status should equal 0
-  The stderr should include 'GET http'
+  The stderr should include 'Fetching current SLS state'
   The stderr should include 'sls/v1/dumpstate'
   The output should include '"x8000": {'
 End
 
-It 'add blade csm --config "$CANI_CONF" hpe-crayex-ex235n-compute-blade --cabinet 8000 --chassis 0 --blade 0'
-  When call bin/cani alpha add blade csm --config "$CANI_CONF" hpe-crayex-ex235n-compute-blade --cabinet 8000 --chassis 0 --blade 0
+It 'add blade hpe-crayex-ex235n-compute-blade to cabinet 8000'
+  When call bin/cani alpha --config "$CANI_CONF" add hpe-crayex-ex235n-compute-blade --auto --accept
   The status should equal 0
-  The line 2 of stderr should include "NodeBlade was successfully staged to be added to the system"
-  The line 3 of stderr should include "UUID: "
-  The line 4 of stderr should include "Cabinet: 8000"
-  The line 5 of stderr should include "Chassis: 0"
-  The line 6 of stderr should include "Blade: 0"
+  The stderr should include 'NodeBlade was successfully staged to be added to the system'
+  The stderr should include 'UUID: '
+  The stderr should include 'Cabinet: 8000'
+  The stderr should include 'Chassis: 0'
+  The stderr should include 'Blade: 0'
 End
 
 It 'export invalid sls data but with ignore-validation option'
-  When call sh -c 'bin/cani alpha --config "$CANI_CONF" export csm --format sls-json --ignore-validation | jq'
+  When run command sh -c 'cani alpha --config "$CANI_CONF" export csm -S --format sls-json --ignore-validation | jq'
   The status should equal 0
-  The stderr should include 'GET http'
+  The stderr should include 'Fetching current SLS state'
   The stderr should include 'sls/v1/dumpstate'
   The output should include '"x8000": {'
 End
 
 It 'export invalid sls data and expect validation failure'
-  When call bin/cani alpha --config "$CANI_CONF" export csm --format sls-json
+  When call bin/cani alpha --config "$CANI_CONF" export csm -S --format sls-json
   The status should equal 1
-  The stderr should include 'GET http'
+  The stderr should include 'Fetching current SLS state'
   The stderr should include 'sls/v1/dumpstate'
 End
 

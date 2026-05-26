@@ -1,0 +1,10 @@
+---
+name: Section
+slug: section
+description: "A third-level location type representing a section within a level of a data center. This location type is typically nested under a level and can contain content types such as racks, devices, or modules."
+nestable: false
+parent: level
+content_types:
+  - rack
+  - device
+  - module

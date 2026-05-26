@@ -1,0 +1,180 @@
+#
+# MIT License
+#
+# (C) Copyright 2024-2026 Hewlett Packard Enterprise Development LP
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+manufacturer: NVIDIA
+model: InfiniBand NDR 64-port OSFP Managed Switch
+slug: nvidia-infiniband-ndr-64-port-osfp-switch
+part_number: P45692-B21
+description: "NVIDIA InfiniBand NDR 64-port OSFP Managed Power to Connector Airflow Switch. Quantum-2 QM9700 with 64 NDR (400 Gbps) ports. 51.2 Tb/s bidirectional throughput. Source: https://buy.hpe.com/us/en/networking/infiniband-adapters-and-cables/infiniband-switches/infiniband-switches/nvidia-infiniband-switches/nvidia-infiniband-ndr-64-port-osfp-managed-power-to-connector-airflow-switch/p/P45692-B21"
+type: hsn-switch
+u_height: 1
+is_full_depth: true
+weight: 22.0
+weight_unit: kg
+console-ports:
+  - name: Console
+    type: rj-45
+  - name: USB
+    type: usb-a
+power-ports:
+  - name: PSU1
+    type: iec-60320-c14
+    maximum_draw: 2400
+    allocated_draw: 1500
+  - name: PSU2
+    type: iec-60320-c14
+    maximum_draw: 2400
+    allocated_draw: 1500
+interfaces:
+  - name: mgmt0
+    type: 1000base-t
+    mgmt_only: true
+  - name: 1
+    type: 400gbase-x-osfp
+  - name: 2
+    type: 400gbase-x-osfp
+  - name: 3
+    type: 400gbase-x-osfp
+  - name: 4
+    type: 400gbase-x-osfp
+  - name: 5
+    type: 400gbase-x-osfp
+  - name: 6
+    type: 400gbase-x-osfp
+  - name: 7
+    type: 400gbase-x-osfp
+  - name: 8
+    type: 400gbase-x-osfp
+  - name: 9
+    type: 400gbase-x-osfp
+  - name: 10
+    type: 400gbase-x-osfp
+  - name: 11
+    type: 400gbase-x-osfp
+  - name: 12
+    type: 400gbase-x-osfp
+  - name: 13
+    type: 400gbase-x-osfp
+  - name: 14
+    type: 400gbase-x-osfp
+  - name: 15
+    type: 400gbase-x-osfp
+  - name: 16
+    type: 400gbase-x-osfp
+  - name: 17
+    type: 400gbase-x-osfp
+  - name: 18
+    type: 400gbase-x-osfp
+  - name: 19
+    type: 400gbase-x-osfp
+  - name: 20
+    type: 400gbase-x-osfp
+  - name: 21
+    type: 400gbase-x-osfp
+  - name: 22
+    type: 400gbase-x-osfp
+  - name: 23
+    type: 400gbase-x-osfp
+  - name: 24
+    type: 400gbase-x-osfp
+  - name: 25
+    type: 400gbase-x-osfp
+  - name: 26
+    type: 400gbase-x-osfp
+  - name: 27
+    type: 400gbase-x-osfp
+  - name: 28
+    type: 400gbase-x-osfp
+  - name: 29
+    type: 400gbase-x-osfp
+  - name: 30
+    type: 400gbase-x-osfp
+  - name: 31
+    type: 400gbase-x-osfp
+  - name: 32
+    type: 400gbase-x-osfp
+  - name: 33
+    type: 400gbase-x-osfp
+  - name: 34
+    type: 400gbase-x-osfp
+  - name: 35
+    type: 400gbase-x-osfp
+  - name: 36
+    type: 400gbase-x-osfp
+  - name: 37
+    type: 400gbase-x-osfp
+  - name: 38
+    type: 400gbase-x-osfp
+  - name: 39
+    type: 400gbase-x-osfp
+  - name: 40
+    type: 400gbase-x-osfp
+  - name: 41
+    type: 400gbase-x-osfp
+  - name: 42
+    type: 400gbase-x-osfp
+  - name: 43
+    type: 400gbase-x-osfp
+  - name: 44
+    type: 400gbase-x-osfp
+  - name: 45
+    type: 400gbase-x-osfp
+  - name: 46
+    type: 400gbase-x-osfp
+  - name: 47
+    type: 400gbase-x-osfp
+  - name: 48
+    type: 400gbase-x-osfp
+  - name: 49
+    type: 400gbase-x-osfp
+  - name: 50
+    type: 400gbase-x-osfp
+  - name: 51
+    type: 400gbase-x-osfp
+  - name: 52
+    type: 400gbase-x-osfp
+  - name: 53
+    type: 400gbase-x-osfp
+  - name: 54
+    type: 400gbase-x-osfp
+  - name: 55
+    type: 400gbase-x-osfp
+  - name: 56
+    type: 400gbase-x-osfp
+  - name: 57
+    type: 400gbase-x-osfp
+  - name: 58
+    type: 400gbase-x-osfp
+  - name: 59
+    type: 400gbase-x-osfp
+  - name: 60
+    type: 400gbase-x-osfp
+  - name: 61
+    type: 400gbase-x-osfp
+  - name: 62
+    type: 400gbase-x-osfp
+  - name: 63
+    type: 400gbase-x-osfp
+  - name: 64
+    type: 400gbase-x-osfp

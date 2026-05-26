@@ -1,0 +1,550 @@
+bmcs: []
+nodes:
+    - xname: x3000c0s16b0n0
+      ip: ""
+      boot_mac: ""
+      hostname: gateway01
+      host_aliases:
+        - gateway01
+    - xname: x3000c0s19b0n0
+      ip: ""
+      boot_mac: ""
+      hostname: uan01
+      host_aliases:
+        - uan01
+    - xname: x3000c0s1b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 100009
+      hostname: ncn-m001
+      host_aliases:
+        - ncn-m001
+    - xname: x3000c0s24b0n0
+      ip: ""
+      boot_mac: ""
+      hostname: uan04
+      host_aliases:
+        - uan04
+    - xname: x3000c0s2b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 100008
+      hostname: ncn-m002
+      host_aliases:
+        - ncn-m002
+    - xname: x3000c0s30b0n0
+      ip: ""
+      boot_mac: ""
+      hostname: uan05
+      host_aliases:
+        - uan05
+    - xname: x3000c0s32b0n0
+      ip: ""
+      boot_mac: ""
+      hostname: uan06
+      host_aliases:
+        - uan06
+    - xname: x3000c0s3b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 100007
+      hostname: ncn-m003
+      host_aliases:
+        - ncn-m003
+    - xname: x3000c0s4b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 100006
+      hostname: ncn-w001
+      host_aliases:
+        - ncn-w001
+    - xname: x3000c0s5b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 100005
+      hostname: ncn-w002
+      host_aliases:
+        - ncn-w002
+    - xname: x3000c0s6b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 100004
+      hostname: ncn-w003
+      host_aliases:
+        - ncn-w003
+    - xname: x3000c0s7b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 100003
+      hostname: ncn-s001
+      host_aliases:
+        - ncn-s001
+    - xname: x3000c0s8b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 100002
+      hostname: ncn-s002
+      host_aliases:
+        - ncn-s002
+    - xname: x3000c0s9b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 100001
+      hostname: ncn-s003
+      host_aliases:
+        - ncn-s003
+    - xname: x3001c0s7b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 1
+      hostname: nid000001
+      host_aliases:
+        - nid000001
+    - xname: x9000c1s0b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 1000
+      hostname: nid001000
+      host_aliases:
+        - nid001000
+    - xname: x9000c1s0b0n1
+      ip: ""
+      boot_mac: ""
+      nid: 1001
+      hostname: nid001001
+      host_aliases:
+        - nid001001
+    - xname: x9000c1s0b1n0
+      ip: ""
+      boot_mac: ""
+      nid: 1002
+      hostname: nid001002
+      host_aliases:
+        - nid001002
+    - xname: x9000c1s0b1n1
+      ip: ""
+      boot_mac: ""
+      nid: 1003
+      hostname: nid001003
+      host_aliases:
+        - nid001003
+    - xname: x9000c1s1b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 1004
+      hostname: nid001004
+      host_aliases:
+        - nid001004
+    - xname: x9000c1s1b0n1
+      ip: ""
+      boot_mac: ""
+      nid: 1005
+      hostname: nid001005
+      host_aliases:
+        - nid001005
+    - xname: x9000c1s1b1n0
+      ip: ""
+      boot_mac: ""
+      nid: 1006
+      hostname: nid001006
+      host_aliases:
+        - nid001006
+    - xname: x9000c1s1b1n1
+      ip: ""
+      boot_mac: ""
+      nid: 1007
+      hostname: nid001007
+      host_aliases:
+        - nid001007
+    - xname: x9000c1s2b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 1008
+      hostname: nid001008
+      host_aliases:
+        - nid001008
+    - xname: x9000c1s2b0n1
+      ip: ""
+      boot_mac: ""
+      nid: 1009
+      hostname: nid001009
+      host_aliases:
+        - nid001009
+    - xname: x9000c1s2b1n0
+      ip: ""
+      boot_mac: ""
+      nid: 1010
+      hostname: nid001010
+      host_aliases:
+        - nid001010
+    - xname: x9000c1s2b1n1
+      ip: ""
+      boot_mac: ""
+      nid: 1011
+      hostname: nid001011
+      host_aliases:
+        - nid001011
+    - xname: x9000c1s3b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 1012
+      hostname: nid001012
+      host_aliases:
+        - nid001012
+    - xname: x9000c1s3b0n1
+      ip: ""
+      boot_mac: ""
+      nid: 1013
+      hostname: nid001013
+      host_aliases:
+        - nid001013
+    - xname: x9000c1s3b1n0
+      ip: ""
+      boot_mac: ""
+      nid: 1014
+      hostname: nid001014
+      host_aliases:
+        - nid001014
+    - xname: x9000c1s3b1n1
+      ip: ""
+      boot_mac: ""
+      nid: 1015
+      hostname: nid001015
+      host_aliases:
+        - nid001015
+    - xname: x9000c1s4b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 1016
+      hostname: nid001016
+      host_aliases:
+        - nid001016
+    - xname: x9000c1s4b0n1
+      ip: ""
+      boot_mac: ""
+      nid: 1017
+      hostname: nid001017
+      host_aliases:
+        - nid001017
+    - xname: x9000c1s4b1n0
+      ip: ""
+      boot_mac: ""
+      nid: 1018
+      hostname: nid001018
+      host_aliases:
+        - nid001018
+    - xname: x9000c1s4b1n1
+      ip: ""
+      boot_mac: ""
+      nid: 1019
+      hostname: nid001019
+      host_aliases:
+        - nid001019
+    - xname: x9000c1s5b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 1020
+      hostname: nid001020
+      host_aliases:
+        - nid001020
+    - xname: x9000c1s5b0n1
+      ip: ""
+      boot_mac: ""
+      nid: 1021
+      hostname: nid001021
+      host_aliases:
+        - nid001021
+    - xname: x9000c1s5b1n0
+      ip: ""
+      boot_mac: ""
+      nid: 1022
+      hostname: nid001022
+      host_aliases:
+        - nid001022
+    - xname: x9000c1s5b1n1
+      ip: ""
+      boot_mac: ""
+      nid: 1023
+      hostname: nid001023
+      host_aliases:
+        - nid001023
+    - xname: x9000c1s6b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 1024
+      hostname: nid001024
+      host_aliases:
+        - nid001024
+    - xname: x9000c1s6b0n1
+      ip: ""
+      boot_mac: ""
+      nid: 1025
+      hostname: nid001025
+      host_aliases:
+        - nid001025
+    - xname: x9000c1s6b1n0
+      ip: ""
+      boot_mac: ""
+      nid: 1026
+      hostname: nid001026
+      host_aliases:
+        - nid001026
+    - xname: x9000c1s6b1n1
+      ip: ""
+      boot_mac: ""
+      nid: 1027
+      hostname: nid001027
+      host_aliases:
+        - nid001027
+    - xname: x9000c1s7b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 1028
+      hostname: nid001028
+      host_aliases:
+        - nid001028
+    - xname: x9000c1s7b0n1
+      ip: ""
+      boot_mac: ""
+      nid: 1029
+      hostname: nid001029
+      host_aliases:
+        - nid001029
+    - xname: x9000c1s7b1n0
+      ip: ""
+      boot_mac: ""
+      nid: 1030
+      hostname: nid001030
+      host_aliases:
+        - nid001030
+    - xname: x9000c1s7b1n1
+      ip: ""
+      boot_mac: ""
+      nid: 1031
+      hostname: nid001031
+      host_aliases:
+        - nid001031
+    - xname: x9000c3s0b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 1032
+      hostname: nid001032
+      host_aliases:
+        - nid001032
+    - xname: x9000c3s0b0n1
+      ip: ""
+      boot_mac: ""
+      nid: 1033
+      hostname: nid001033
+      host_aliases:
+        - nid001033
+    - xname: x9000c3s0b1n0
+      ip: ""
+      boot_mac: ""
+      nid: 1034
+      hostname: nid001034
+      host_aliases:
+        - nid001034
+    - xname: x9000c3s0b1n1
+      ip: ""
+      boot_mac: ""
+      nid: 1035
+      hostname: nid001035
+      host_aliases:
+        - nid001035
+    - xname: x9000c3s1b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 1036
+      hostname: nid001036
+      host_aliases:
+        - nid001036
+    - xname: x9000c3s1b0n1
+      ip: ""
+      boot_mac: ""
+      nid: 1037
+      hostname: nid001037
+      host_aliases:
+        - nid001037
+    - xname: x9000c3s1b1n0
+      ip: ""
+      boot_mac: ""
+      nid: 1038
+      hostname: nid001038
+      host_aliases:
+        - nid001038
+    - xname: x9000c3s1b1n1
+      ip: ""
+      boot_mac: ""
+      nid: 1039
+      hostname: nid001039
+      host_aliases:
+        - nid001039
+    - xname: x9000c3s2b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 1040
+      hostname: nid001040
+      host_aliases:
+        - nid001040
+    - xname: x9000c3s2b0n1
+      ip: ""
+      boot_mac: ""
+      nid: 1041
+      hostname: nid001041
+      host_aliases:
+        - nid001041
+    - xname: x9000c3s2b1n0
+      ip: ""
+      boot_mac: ""
+      nid: 1042
+      hostname: nid001042
+      host_aliases:
+        - nid001042
+    - xname: x9000c3s2b1n1
+      ip: ""
+      boot_mac: ""
+      nid: 1043
+      hostname: nid001043
+      host_aliases:
+        - nid001043
+    - xname: x9000c3s3b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 1044
+      hostname: nid001044
+      host_aliases:
+        - nid001044
+    - xname: x9000c3s3b0n1
+      ip: ""
+      boot_mac: ""
+      nid: 1045
+      hostname: nid001045
+      host_aliases:
+        - nid001045
+    - xname: x9000c3s3b1n0
+      ip: ""
+      boot_mac: ""
+      nid: 1046
+      hostname: nid001046
+      host_aliases:
+        - nid001046
+    - xname: x9000c3s3b1n1
+      ip: ""
+      boot_mac: ""
+      nid: 1047
+      hostname: nid001047
+      host_aliases:
+        - nid001047
+    - xname: x9000c3s4b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 1048
+      hostname: nid001048
+      host_aliases:
+        - nid001048
+    - xname: x9000c3s4b0n1
+      ip: ""
+      boot_mac: ""
+      nid: 1049
+      hostname: nid001049
+      host_aliases:
+        - nid001049
+    - xname: x9000c3s4b1n0
+      ip: ""
+      boot_mac: ""
+      nid: 1050
+      hostname: nid001050
+      host_aliases:
+        - nid001050
+    - xname: x9000c3s4b1n1
+      ip: ""
+      boot_mac: ""
+      nid: 1051
+      hostname: nid001051
+      host_aliases:
+        - nid001051
+    - xname: x9000c3s5b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 1052
+      hostname: nid001052
+      host_aliases:
+        - nid001052
+    - xname: x9000c3s5b0n1
+      ip: ""
+      boot_mac: ""
+      nid: 1053
+      hostname: nid001053
+      host_aliases:
+        - nid001053
+    - xname: x9000c3s5b1n0
+      ip: ""
+      boot_mac: ""
+      nid: 1054
+      hostname: nid001054
+      host_aliases:
+        - nid001054
+    - xname: x9000c3s5b1n1
+      ip: ""
+      boot_mac: ""
+      nid: 1055
+      hostname: nid001055
+      host_aliases:
+        - nid001055
+    - xname: x9000c3s6b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 1056
+      hostname: nid001056
+      host_aliases:
+        - nid001056
+    - xname: x9000c3s6b0n1
+      ip: ""
+      boot_mac: ""
+      nid: 1057
+      hostname: nid001057
+      host_aliases:
+        - nid001057
+    - xname: x9000c3s6b1n0
+      ip: ""
+      boot_mac: ""
+      nid: 1058
+      hostname: nid001058
+      host_aliases:
+        - nid001058
+    - xname: x9000c3s6b1n1
+      ip: ""
+      boot_mac: ""
+      nid: 1059
+      hostname: nid001059
+      host_aliases:
+        - nid001059
+    - xname: x9000c3s7b0n0
+      ip: ""
+      boot_mac: ""
+      nid: 1060
+      hostname: nid001060
+      host_aliases:
+        - nid001060
+    - xname: x9000c3s7b0n1
+      ip: ""
+      boot_mac: ""
+      nid: 1061
+      hostname: nid001061
+      host_aliases:
+        - nid001061
+    - xname: x9000c3s7b1n0
+      ip: ""
+      boot_mac: ""
+      nid: 1062
+      hostname: nid001062
+      host_aliases:
+        - nid001062
+    - xname: x9000c3s7b1n1
+      ip: ""
+      boot_mac: ""
+      nid: 1063
+      hostname: nid001063
+      host_aliases:
+        - nid001063

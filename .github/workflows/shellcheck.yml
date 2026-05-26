@@ -23,21 +23,18 @@
 #
 name: shellcheck
 on:
+  push:
   pull_request:
-    branches:
-      - develop
-      - main
-      - lts/*
+  workflow_dispatch:
 
 jobs:
   shellcheck:
     name: shellcheck
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: run shellcheck
-      uses: ludeeus/action-shellcheck@master
-      with:
-        severity: error
-        ignore_paths: vendor
+      run: |
+        find . -name '*.sh' -not -path './vendor/*' -print0 | \
+          xargs -0 shellcheck -S error

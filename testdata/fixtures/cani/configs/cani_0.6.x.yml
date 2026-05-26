@@ -1,0 +1,45 @@
+# A map of settings for each provider
+providers:
+  hpcm:
+    import:
+      cm_config_file: ""
+      node_json_file: ""
+    export: {}
+  redfish:
+    import:
+      root: ""
+    export: {}
+  csm:
+    ca_cert: ""
+    insecure: false
+    provider_host: ""
+    use_simulation: false
+    import:
+      sls_file: ""
+      smd_file: ""
+    export: {}
+  nautobot:
+    default_location: ""
+    default_role: ""
+    default_status: ""
+    token: "0123456789abcdef0123456789abcdef01234567" # fake nautobot token
+    url: http://localhost:8081/api
+    import: {}
+    export:
+      create_device_types: true
+      create_locations: true
+      create_roles: true
+      create_statuses: true
+      dry_run: false
+      merge: false
+  example:
+    import: {}
+    export: {}
+datastore: /tmp/.cani/canidb.json # Path to the datastore file
+debug: false # Enable debug logging
+# Local directories with extra hardware types
+types_dirs: []
+# Remote git repos with extra hardware types
+types_repos:
+  - https://github.com/netbox-community/devicetype-library.git
+types_repo_pull: false # Pull latest from types repos on startup

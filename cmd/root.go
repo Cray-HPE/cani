@@ -27,52 +27,140 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
-	"github.com/rs/zerolog/log"
+	"github.com/Cray-HPE/cani/internal/config"
+	"github.com/Cray-HPE/cani/internal/core"
+	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/spf13/cobra"
-
-	"github.com/Cray-HPE/cani/cmd/config"
-	"github.com/Cray-HPE/cani/cmd/taxonomy"
-	"github.com/Cray-HPE/cani/internal/domain"
-	"github.com/Cray-HPE/cani/pkg/hardwaretypes"
+	"github.com/spf13/viper"
 )
 
-// RootCmd represents the base command when called without any subcommands
-var RootCmd = &cobra.Command{
-	Use:               taxonomy.App,
-	Short:             taxonomy.ShortDescription,
-	Long:              taxonomy.LongDescription,
-	PersistentPreRunE: setupDomain, // the domain object is needed for all provider operations, load it early from root so it is available to all subcommands
-	// RunE:               runRoot,
-	Version:            version(),
-	PersistentPostRunE: WriteSession, // write any changes made back to the config
+func newRootCommand() *cobra.Command {
+	// Create a new root command
+	// This is where you would set up the command's name, usage, and description.
+	cmd := &cobra.Command{
+		Use:               core.App,
+		Short:             core.ShortDescription,
+		Long:              core.LongDescription,
+		PersistentPreRunE: setupDomain, // the domain object is needed for all provider operations, load it early from root so it is available to all subcommands
+		RunE:              runRoot,
+		Version:           version(),
+	}
+	// allow user to override config file path
+	home, _ := os.UserHomeDir()
+	defaultCfg := filepath.Join(home, "."+core.App, core.App+".yml")
+	cmd.PersistentFlags().StringVar(&cfgFile, "config", defaultCfg, "config file")
+	cmd.PersistentFlags().Bool("debug", false, "enable debug mode")
+	cmd.PersistentFlags().String("datastore", "json", "datastore type (json, postgres)")
+	cmd.PersistentFlags().String("datastore-path", "", "override path to the datastore file (for testing)")
+	cmd.PersistentFlags().StringSlice("types-dirs", nil, "local directories with additional hardware types")
+	cmd.PersistentFlags().StringSlice("types-repos", nil, "git repo URLs with additional hardware types")
+	cmd.PersistentFlags().Bool("types-repo-clone", false, "clone types repos that are not yet cached locally")
+	cmd.PersistentFlags().Bool("types-repo-pull", false, "pull latest changes from types repos on startup")
+	cmd.PersistentFlags().Bool("strict", true, "require a resolved device type (slug) for all devices")
+
+	// Bind debug flag to Viper for config/env/flag precedence
+	_ = viper.BindPFlag("debug", cmd.PersistentFlags().Lookup("debug"))
+	_ = viper.BindPFlag("types_dirs", cmd.PersistentFlags().Lookup("types-dirs"))
+	_ = viper.BindPFlag("types_repos", cmd.PersistentFlags().Lookup("types-repos"))
+	_ = viper.BindPFlag("types_repo_clone", cmd.PersistentFlags().Lookup("types-repo-clone"))
+	_ = viper.BindPFlag("types_repo_pull", cmd.PersistentFlags().Lookup("types-repo-pull"))
+	_ = viper.BindPFlag("strict", cmd.PersistentFlags().Lookup("strict"))
+
+	return cmd
 }
 
-var (
-	// cfgFile is the global configuration file path (from --config)
-	cfgFile string
-	// Debug is a global flag that enables debug logging
-	Debug bool
-	// Verbose is a global flag that enables verbose logging
-	Verbose bool
-	// This is the active domain being used
-	D *domain.Domain
-	// Conf is everything in the config file (all sessions for all providers)
-	Conf *config.Config
-	// Hardware library should also be accessible globally
-	HwLibrary *hardwaretypes.Library
-	// List of hardware types that are blades
-	CabinetTypes, BladeTypes, NodeTypes, MgmtSwitchTypes, HsnSwitchTypes []hardwaretypes.DeviceType
-)
+// initViper initializes Viper for config/env/flag binding
+// This sets up the precedence: CLI flags > env vars > config file > defaults
+func initViper() {
+	home, _ := os.UserHomeDir()
+	configDir := filepath.Join(home, "."+core.App)
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the RootCmd.
+	viper.SetConfigName(core.App)
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(configDir)
+
+	// Enable environment variable support with CANI_ prefix
+	// e.g., CANI_NAUTOBOT_IMPORT_URL maps to nautobot.import.url
+	viper.SetEnvPrefix("CANI")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.AutomaticEnv()
+
+	// Read config file if it exists (errors are ignored, config may not exist yet)
+	_ = viper.ReadInConfig()
+}
+
+func setupDomain(cmd *cobra.Command, args []string) error {
+	// Initialize Viper for config/env/flag binding
+	initViper()
+
+	// Load all hardware type libraries from YAML once at startup
+	devicetypes.Debug = viper.GetBool("debug")
+	typesDirs := viper.GetStringSlice("types_dirs")
+	typesRepos := viper.GetStringSlice("types_repos")
+	typesRepoClone := viper.GetBool("types_repo_clone")
+	typesRepoPull := viper.GetBool("types_repo_pull")
+	if err := devicetypes.LoadAll(typesDirs, typesRepos, typesRepoClone, typesRepoPull); err != nil {
+		return fmt.Errorf("loading device type libraries: %w", err)
+	}
+
+	// 1) load or create the config
+	if err := config.Load(cfgFile); err != nil {
+		return err
+	}
+
+	// Apply flag precedence: CLI > env > config > default
+	config.Cfg.Debug = viper.GetBool("debug")
+	config.Cfg.Strict = viper.GetBool("strict")
+
+	// 2) ensure every registered provider has a key in Conf.Providers
+	for name := range provider.GetProviders() {
+		if _, ok := config.Cfg.Providers[name]; !ok {
+			config.Cfg.Providers[name] = map[string]any{}
+		}
+	}
+
+	// write defaults (in case we injected new maps)
+	if err := config.Save(cfgFile); err != nil {
+		return err
+	}
+
+	// Override the datastore path if the flag was explicitly set.
+	// Applied after Save so the override is not persisted to the config file.
+	if dsPath, _ := cmd.Flags().GetString("datastore-path"); dsPath != "" {
+		config.Cfg.Datastore = dsPath
+	}
+
+	// 3) hand each plugin its own section of the map
+	for name, p := range provider.GetProviders() {
+		if cfgSection, ok := config.Cfg.Providers[name]; ok {
+			if c, ok := p.(interface {
+				Configure(map[string]any) error
+			}); ok {
+				if err := c.Configure(cfgSection); err != nil {
+					return fmt.Errorf("configuring provider %s: %w", name, err)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 func Execute() {
-	err := RootCmd.Execute()
-	if err != nil {
+	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
+}
+
+// RootCommand returns the root cobra.Command for doc generation and testing.
+func RootCommand() *cobra.Command {
+	return rootCmd
 }
 
 // runRoot is the main entrypoint for the cani command
@@ -81,19 +169,5 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		cmd.Help()
 	}
 
-	return nil
-}
-
-// WriteSession writes the session configuration back to the config file
-func WriteSession(cmd *cobra.Command, args []string) error {
-	if cmd.Parent().Name() == "init" {
-		// Write the configuration back to the file
-		cfgFile := cmd.Root().PersistentFlags().Lookup("config").Value.String()
-		log.Debug().Msgf("Writing session to config %s", cfgFile)
-		err := config.WriteConfig(cfgFile, Conf)
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }

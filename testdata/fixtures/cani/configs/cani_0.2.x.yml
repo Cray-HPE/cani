@@ -1,0 +1,21 @@
+session:
+    domain_options:
+        datastore_path: /Users/jsalmela/.cani/canidb.json
+        log_file_path: /Users/jsalmela/.cani/canidb.log
+        provider: csm
+        csm_options:
+            usesimulation: false
+            insecureskipverify: false
+            apigatewaytoken: ""
+            baseurlsls: ""
+            baseurlhsm: ""
+            secretname: ""
+            k8spodscidr: ""
+            k8sservicescidr: ""
+            kubeconfig: ""
+            providerhost: ""
+            cacertpath: ""
+            validroles: []
+            validsubroles: []
+    domain: null
+    active: false

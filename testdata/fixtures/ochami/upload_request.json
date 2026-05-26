@@ -1,0 +1,38 @@
+{
+    "apiVersion": "example.fabrica.dev/v1",
+    "kind": "DiscoverySnapshot",
+    "metadata": {
+        "name": "manual-snapshot-01"
+    },
+    "spec": {
+        "rawData": [
+            {
+                "deviceType": "Node",
+                "serialNumber": "NODE12345",
+                "manufacturer": "Intel",
+                "properties": {
+                    "redfish_uri": "/Systems/NODE12345"
+                }
+            },
+            {
+                "deviceType": "DIMM",
+                "partNumber": "16GB-DDR4",
+                "serialNumber": "DIMM67890",
+                "parentSerialNumber": "NODE12345",
+                "properties": {
+                    "redfish_uri": "/Systems/NODE12345/Memory/1"
+                }
+            },
+            {
+                "deviceType": "CPU",
+                "manufacturer": "Intel",
+                "serialNumber": "CPU1-Serial",
+                "parentID": "device-6dad4952",
+                "parentSerialNumber": "QSBP82909274",
+                "properties": {
+                    "redfish_uri": "/Systems/QSBP82909274/Processors/CPU1"
+                }
+            }
+        ]
+    }
+}

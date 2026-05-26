@@ -1,0 +1,457 @@
+{
+  "schemaVersion": "v1alpha2",
+  "locations": {
+    "00000000-0000-0000-0000-000000000001": {
+      "id": "00000000-0000-0000-0000-000000000001",
+      "name": "HQ-Site",
+      "locationType": "dc",
+      "status": "Active",
+      "facility": "FAC-001",
+      "description": "Main headquarters site",
+      "physicalAddress": "123 Main St, Austin, TX 78701",
+      "shippingAddress": "123 Main St, Dock B, Austin, TX 78701",
+      "latitude": "30.2672",
+      "longitude": "-97.7431",
+      "contactName": "J. Admin",
+      "contactPhone": "+1-555-0100",
+      "contactEmail": "admin@example.com",
+      "timeZone": "America/Chicago",
+      "comments": "Primary data center site",
+      "tenant": "engineering",
+      "tags": [
+        "datacenter",
+        "prod"
+      ],
+      "customFields": {
+        "region": "us-south"
+      }
+    },
+    "00000000-0000-0000-0000-000000000002": {
+      "id": "00000000-0000-0000-0000-000000000002",
+      "name": "HQ-Building-A",
+      "locationType": "level",
+      "parent": "00000000-0000-0000-0000-000000000001",
+      "status": "Active",
+      "description": "Building A on main campus"
+    },
+    "00000000-0000-0000-0000-000000000003": {
+      "id": "00000000-0000-0000-0000-000000000003",
+      "name": "HQ-Room-101",
+      "locationType": "section",
+      "parent": "00000000-0000-0000-0000-000000000002",
+      "status": "Active",
+      "description": "Server room 101"
+    },
+    "00000000-0000-0000-0000-000000000004": {
+      "id": "00000000-0000-0000-0000-000000000004",
+      "name": "Empty-Type-Location",
+      "locationType": "",
+      "status": "Active",
+      "description": "Bug #15: empty locationType must error — no fallback"
+    }
+  },
+  "racks": {
+    "00000000-0000-0000-0000-000000000010": {
+      "id": "00000000-0000-0000-0000-000000000010",
+      "name": "Rack-A01",
+      "slug": "rack-a01",
+      "partNumber": "PN-RACK-42U",
+      "manufacturer": "RackCo",
+      "model": "RC-42U-Cabinet",
+      "description": "Full-featured 42U cabinet",
+      "type": "rack",
+      "uHeight": 42,
+      "outerWidth": 600,
+      "outerDepth": 1200,
+      "outerUnit": "mm",
+      "width": "19",
+      "location": "00000000-0000-0000-0000-000000000003",
+      "status": "Active",
+      "role": "compute",
+      "rackType": "4-post-cabinet",
+      "serial": "RACK-SN-001",
+      "assetTag": "ASSET-RACK-001",
+      "facilityId": "A01",
+      "descUnits": false,
+      "comments": "Bug #17: serial, assetTag, rackType, facilityId, width, role, tenant, tags all dropped in createRackFromCaniRack",
+      "tenant": "engineering",
+      "tags": [
+        "production",
+        "compute"
+      ],
+      "customFields": {
+        "power_circuit": "PDU-A"
+      }
+    },
+    "00000000-0000-0000-0000-000000000011": {
+      "id": "00000000-0000-0000-0000-000000000011",
+      "name": "Rack-B02",
+      "slug": "rack-b02",
+      "type": "rack",
+      "uHeight": 48,
+      "location": "00000000-0000-0000-0000-000000000003",
+      "status": "Active",
+      "rackType": "invalid-rack-type",
+      "description": "Bug #2: location UUID ignored; Bug #20: rackType value not validated against Nautobot enum"
+    },
+    "00000000-0000-0000-0000-000000000012": {
+      "id": "00000000-0000-0000-0000-000000000012",
+      "name": "Rack-C03",
+      "slug": "rack-c03",
+      "type": "cabinet",
+      "uHeight": 24,
+      "location": "00000000-0000-0000-0000-000000000001",
+      "status": "Planned",
+      "rackType": "wall-cabinet",
+      "description": "Wall-mounted cabinet; classified as CategoryRack via 'cabinet' hardwareType"
+    }
+  },
+  "devices": {
+    "00000000-0000-0000-0000-000000000020": {
+      "id": "00000000-0000-0000-0000-000000000020",
+      "name": "Chassis-01",
+      "slug": "hpe-ex4000",
+      "partNumber": "PN-EX4000",
+      "manufacturer": "HPE",
+      "model": "EX4000",
+      "description": "Fully classified chassis device",
+      "serial": "SN-CHASSIS-001",
+      "assetTag": "ASSET-DEV-001",
+      "type": "chassis",
+      "subdeviceRole": "parent",
+      "uHeight": 4,
+      "isFullDepth": true,
+      "comments": "Happy path: all required + optional Nautobot Device fields populated",
+      "status": "Active",
+      "role": "compute",
+      "platform": "linux",
+      "location": "00000000-0000-0000-0000-000000000003",
+      "rack": "00000000-0000-0000-0000-000000000010",
+      "rackPosition": 1,
+      "face": "front",
+      "interfaces": [
+        {
+          "name": "mgmt0",
+          "type": "1000base-t",
+          "mgmt_only": true
+        },
+        {
+          "name": "eth0",
+          "type": "25gbase-x-sfp28"
+        }
+      ],
+      "consolePorts": [
+        {
+          "name": "console0",
+          "type": "rj-45"
+        }
+      ],
+      "powerPorts": [
+        {
+          "name": "psu0",
+          "type": "iec-60320-c14"
+        }
+      ],
+      "moduleBays": [
+        {
+          "name": "slot-0",
+          "position": "0"
+        },
+        {
+          "name": "slot-1",
+          "position": "1"
+        }
+      ],
+      "tenant": "engineering",
+      "tags": [
+        "production",
+        "chassis"
+      ],
+      "customFields": {
+        "warranty_end": "2028-12-31"
+      },
+      "providerMetadata": {
+        "nautobot": {
+          "location": "HQ-Room-101",
+          "role": "compute"
+        },
+        "csm": {
+          "xname": "x1000c0"
+        }
+      }
+    },
+    "00000000-0000-0000-0000-000000000021": {
+      "id": "00000000-0000-0000-0000-000000000021",
+      "name": "Unclassified-Node",
+      "slug": "",
+      "manufacturer": "",
+      "model": "",
+      "type": "",
+      "status": "Active",
+      "description": "Bug #12: no slug, model, or hardwareType; exercises ErrDeviceUnclassified skip path"
+    },
+    "00000000-0000-0000-0000-000000000022": {
+      "id": "00000000-0000-0000-0000-000000000022",
+      "name": "Chassis-01",
+      "slug": "hpe-ex4000",
+      "manufacturer": "HPE",
+      "model": "EX4000",
+      "type": "chassis",
+      "status": "Active",
+      "role": "storage",
+      "location": "00000000-0000-0000-0000-000000000002",
+      "description": "Bug #4: duplicate device name 'Chassis-01'; second insert overwrites first in createdDeviceIDs map"
+    },
+    "00000000-0000-0000-0000-000000000023": {
+      "id": "00000000-0000-0000-0000-000000000023",
+      "name": "Misclassified-Module",
+      "slug": "hpe-gpu-module",
+      "manufacturer": "HPE",
+      "model": "GPU-Module-A100",
+      "type": "module",
+      "status": "Active",
+      "description": "Bug #5: hardwareType='module' falls through to CategoryDevice in ClassifyForNautobot"
+    },
+    "00000000-0000-0000-0000-000000000024": {
+      "id": "00000000-0000-0000-0000-000000000024",
+      "name": "Blade-01",
+      "slug": "hpe-blade-xl",
+      "manufacturer": "HPE",
+      "model": "Blade-XL",
+      "type": "blade",
+      "subdeviceRole": "child",
+      "uHeight": 1,
+      "status": "Active",
+      "role": "compute",
+      "parentDevice": "00000000-0000-0000-0000-000000000020",
+      "parent": "00000000-0000-0000-0000-000000000020",
+      "rack": "00000000-0000-0000-0000-000000000010",
+      "rackPosition": 2,
+      "face": "front",
+      "interfaces": [
+        {
+          "name": "eth0",
+          "type": "25gbase-x-sfp28"
+        },
+        {
+          "name": "eth1",
+          "type": "25gbase-x-sfp28"
+        }
+      ],
+      "description": "Child blade in Chassis-01; exercises parent device FK resolution"
+    },
+    "00000000-0000-0000-0000-000000000025": {
+      "id": "00000000-0000-0000-0000-000000000025",
+      "name": "Meta-Location-Node",
+      "slug": "hpe-dl380",
+      "manufacturer": "HPE",
+      "model": "DL380",
+      "type": "node",
+      "status": "Active",
+      "role": "compute",
+      "description": "Bug #3: location UUID empty; ProviderMetadata['location'] used instead of Location FK",
+      "providerMetadata": {
+        "nautobot": {
+          "location": "HQ-Room-101"
+        }
+      }
+    }
+  },
+  "modules": {
+    "00000000-0000-0000-0000-000000000030": {
+      "id": "00000000-0000-0000-0000-000000000030",
+      "name": "GPU-Module-0",
+      "slug": "nvidia-a100",
+      "partNumber": "PN-A100-80GB",
+      "manufacturer": "NVIDIA",
+      "model": "A100-80GB",
+      "description": "Correctly installed module: ParentDevice set, Location nil",
+      "type": "gpu",
+      "parentDevice": "00000000-0000-0000-0000-000000000020",
+      "moduleBayName": "slot-0",
+      "serial": "GPU-SN-001",
+      "assetTag": "ASSET-GPU-001",
+      "status": "Active",
+      "role": "accelerator",
+      "interfaces": [
+        {
+          "name": "nvlink0",
+          "type": "virtual"
+        }
+      ],
+      "tenant": "engineering",
+      "tags": [
+        "gpu",
+        "compute"
+      ],
+      "customFields": {
+        "vram_gb": 80
+      }
+    },
+    "00000000-0000-0000-0000-000000000031": {
+      "id": "00000000-0000-0000-0000-000000000031",
+      "name": "Spare-NIC-01",
+      "slug": "mellanox-cx6",
+      "partNumber": "PN-CX6-100G",
+      "manufacturer": "Mellanox",
+      "model": "ConnectX-6",
+      "description": "Spare module (not installed): Location set, ParentDevice nil",
+      "type": "nic",
+      "serial": "NIC-SN-SPARE-01",
+      "status": "Inventory",
+      "location": "00000000-0000-0000-0000-000000000003"
+    },
+    "00000000-0000-0000-0000-000000000032": {
+      "id": "00000000-0000-0000-0000-000000000032",
+      "name": "Invalid-Dual-Location-Module",
+      "slug": "hpe-psu-1600w",
+      "manufacturer": "HPE",
+      "model": "PSU-1600W",
+      "description": "Bug #18: both ParentDevice AND Location set; Nautobot says mutually exclusive",
+      "type": "power-supply",
+      "parentDevice": "00000000-0000-0000-0000-000000000020",
+      "moduleBayName": "slot-1",
+      "serial": "PSU-SN-001",
+      "status": "Active",
+      "location": "00000000-0000-0000-0000-000000000003"
+    }
+  },
+  "cables": {
+    "00000000-0000-0000-0000-000000000040": {
+      "id": "00000000-0000-0000-0000-000000000040",
+      "slug": "cat6a-copper",
+      "label": "Cable-A01-B01-eth0",
+      "manufacturer": "Panduit",
+      "model": "CAT6A-10M",
+      "cableType": "cat6a",
+      "length": 10.0,
+      "lengthUnit": "m",
+      "color": "00ff00",
+      "status": "connected",
+      "terminationADevice": "00000000-0000-0000-0000-000000000020",
+      "terminationBDevice": "00000000-0000-0000-0000-000000000024",
+      "terminationAPort": "eth0",
+      "terminationBPort": "eth0",
+      "terminationAType": "dcim.interface",
+      "terminationBType": "dcim.interface",
+      "description": "Happy path: interface-to-interface cable with all fields"
+    },
+    "00000000-0000-0000-0000-000000000041": {
+      "id": "00000000-0000-0000-0000-000000000041",
+      "slug": "dac-passive",
+      "label": "Cable-Fractional",
+      "cableType": "dac-passive",
+      "length": 1.5,
+      "lengthUnit": "m",
+      "status": "connected",
+      "terminationADevice": "00000000-0000-0000-0000-000000000020",
+      "terminationBDevice": "00000000-0000-0000-0000-000000000024",
+      "terminationAPort": "mgmt0",
+      "terminationBPort": "eth1",
+      "terminationAType": "dcim.interface",
+      "terminationBType": "dcim.interface",
+      "description": "Bug #10: 1.5m length truncated to 1m by float64-to-int conversion"
+    },
+    "00000000-0000-0000-0000-000000000042": {
+      "id": "00000000-0000-0000-0000-000000000042",
+      "slug": "power-cable",
+      "label": "Cable-Power",
+      "cableType": "power",
+      "length": 3.0,
+      "lengthUnit": "m",
+      "status": "connected",
+      "terminationADevice": "00000000-0000-0000-0000-000000000020",
+      "terminationBDevice": "00000000-0000-0000-0000-000000000024",
+      "terminationAPort": "psu0",
+      "terminationBPort": "psu0",
+      "terminationAType": "dcim.powerport",
+      "terminationBType": "dcim.powerport",
+      "description": "Bug #9: terminationAType/BType set to 'dcim.powerport' but export hardcodes 'dcim.interface'"
+    },
+    "00000000-0000-0000-0000-000000000043": {
+      "id": "00000000-0000-0000-0000-000000000043",
+      "slug": "incomplete",
+      "label": "Cable-Incomplete",
+      "status": "planned",
+      "description": "Incomplete cable: missing termination devices; exercises skip path in createCaniCableType"
+    }
+  },
+  "frus": {
+    "00000000-0000-0000-0000-000000000050": {
+      "id": "00000000-0000-0000-0000-000000000050",
+      "name": "DIMM-Slot-A1",
+      "slug": "samsung-ddr5-64g",
+      "partNumber": "M393AAG40M32-CAE",
+      "manufacturer": "Samsung",
+      "model": "DDR5-64GB",
+      "description": "Bug #16: entire FRU-to-InventoryItem mapping targets deprecated Nautobot model",
+      "type": "memory",
+      "serial": "FRU-SN-001",
+      "assetTag": "ASSET-FRU-001",
+      "label": "DIMM A1",
+      "status": "Active",
+      "device": "00000000-0000-0000-0000-000000000020",
+      "discovered": true,
+      "tags": [
+        "memory",
+        "compute"
+      ],
+      "customFields": {
+        "capacity_gb": 64
+      }
+    },
+    "00000000-0000-0000-0000-000000000051": {
+      "id": "00000000-0000-0000-0000-000000000051",
+      "name": "DIMM-Slot-A2",
+      "slug": "samsung-ddr5-64g",
+      "partNumber": "M393AAG40M32-CAE",
+      "manufacturer": "Samsung",
+      "description": "Nested FRU: parent is DIMM-Slot-A1 (exercises topological sort)",
+      "type": "memory",
+      "serial": "FRU-SN-002",
+      "status": "Active",
+      "device": "00000000-0000-0000-0000-000000000020",
+      "parent": "00000000-0000-0000-0000-000000000050"
+    },
+    "00000000-0000-0000-0000-000000000052": {
+      "id": "00000000-0000-0000-0000-000000000052",
+      "name": "FRU-Self-Cycle",
+      "slug": "test-fru-cycle",
+      "status": "Active",
+      "device": "00000000-0000-0000-0000-000000000020",
+      "parent": "00000000-0000-0000-0000-000000000052",
+      "description": "Bug #8: parent points to self; topologicalSortFrus has no cycle detection"
+    },
+    "00000000-0000-0000-0000-000000000053": {
+      "id": "00000000-0000-0000-0000-000000000053",
+      "name": "FRU-Orphan-Fields",
+      "slug": "test-fru-orphan",
+      "model": "GPU-X100",
+      "type": "gpu",
+      "role": "accelerator",
+      "status": "Active",
+      "device": "00000000-0000-0000-0000-000000000020",
+      "description": "Bug #21: role/status/hardwareType have no InventoryItem equivalents; Bug #22: model set but partNumber empty, so model name lost in export"
+    }
+  },
+  "interfaces": {
+    "00000000-0000-0000-0000-000000000060": {
+      "id": "00000000-0000-0000-0000-000000000060",
+      "name": "standalone-mgmt0",
+      "interfaceType": "1000base-t",
+      "deviceId": "00000000-0000-0000-0000-000000000020",
+      "status": "active",
+      "mgmtOnly": true,
+      "contentType": "dcim.interface",
+      "label": "Bug #7: inventory.Interfaces never consulted during export; this interface is invisible to load pipeline"
+    },
+    "00000000-0000-0000-0000-000000000061": {
+      "id": "00000000-0000-0000-0000-000000000061",
+      "name": "standalone-eth0",
+      "interfaceType": "25gbase-x-sfp28",
+      "deviceId": "00000000-0000-0000-0000-000000000020",
+      "status": "active",
+      "contentType": "dcim.interface"
+    }
+  }
+}

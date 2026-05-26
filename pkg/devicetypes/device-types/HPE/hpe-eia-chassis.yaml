@@ -1,0 +1,15 @@
+---
+manufacturer: HPE
+model: EIA Chassis
+slug: hpe-eia-chassis
+type: chassis
+u_height: 0
+is_full_depth: true
+description: >-
+  Standard EIA-310 chassis within an HPE Cray EX cabinet.
+  This is the logical enclosure that holds blades, switches,
+  and other rack-mounted components.
+subdevice_role: parent
+comments: >-
+  Generic River-class chassis used as the implicit parent for
+  blades and management switches inside an HPE cabinet.

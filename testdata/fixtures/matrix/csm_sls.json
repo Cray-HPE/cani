@@ -1,0 +1,149 @@
+{
+  "Hardware": {
+    "x9999": {
+      "Xname": "x9999",
+      "Type": "comptype_cabinet",
+      "Class": "River",
+      "TypeString": "Cabinet",
+      "ExtraProperties": {
+        "Networks": {
+          "cn": {
+            "HMN": { "CIDR": "10.104.0.0/22", "Gateway": "10.104.0.1", "VLan": 1513 },
+            "NMN": { "CIDR": "10.100.0.0/22", "Gateway": "10.100.0.1", "VLan": 1770 }
+          }
+        }
+      }
+    },
+    "x9999c0": {
+      "Xname": "x9999c0",
+      "Type": "comptype_chassis",
+      "Class": "River",
+      "TypeString": "Chassis",
+      "Parent": "x9999"
+    },
+    "x9999c0s1b0n0": {
+      "Xname": "x9999c0s1b0n0",
+      "Type": "comptype_node",
+      "Class": "River",
+      "TypeString": "Node",
+      "Parent": "x9999c0s1b0",
+      "ExtraProperties": {
+        "Role": "Compute",
+        "NID": 1,
+        "Aliases": ["matrix-gpu-01"]
+      }
+    },
+    "x9999c0s6b0n0": {
+      "Xname": "x9999c0s6b0n0",
+      "Type": "comptype_node",
+      "Class": "River",
+      "TypeString": "Node",
+      "Parent": "x9999c0s6b0",
+      "ExtraProperties": {
+        "Role": "Compute",
+        "NID": 2,
+        "Aliases": ["matrix-gpu-02"]
+      }
+    },
+    "x9999c0s11b0n0": {
+      "Xname": "x9999c0s11b0n0",
+      "Type": "comptype_node",
+      "Class": "River",
+      "TypeString": "Node",
+      "Parent": "x9999c0s11b0",
+      "ExtraProperties": {
+        "Role": "Compute",
+        "SubRole": "Worker",
+        "NID": 3,
+        "Aliases": ["matrix-serv-01"]
+      }
+    },
+    "x9999c0s13b0n0": {
+      "Xname": "x9999c0s13b0n0",
+      "Type": "comptype_node",
+      "Class": "River",
+      "TypeString": "Node",
+      "Parent": "x9999c0s13b0",
+      "ExtraProperties": {
+        "Role": "Compute",
+        "SubRole": "Worker",
+        "NID": 4,
+        "Aliases": ["matrix-serv-02"]
+      }
+    },
+    "x9999c0w48": {
+      "Xname": "x9999c0w48",
+      "Type": "comptype_mgmt_switch",
+      "Class": "River",
+      "TypeString": "MgmtSwitch",
+      "Parent": "x9999c0",
+      "ExtraProperties": {
+        "Aliases": ["matrix-mgmt-sw"],
+        "Brand": "Aruba",
+        "Model": "2930F-48G-4SFP+",
+        "SNMPAuthPassword": "",
+        "SNMPAuthProtocol": "",
+        "SNMPPrivPassword": "",
+        "SNMPPrivProtocol": "",
+        "SNMPUsername": ""
+      }
+    },
+    "x9999c0w42": {
+      "Xname": "x9999c0w42",
+      "Type": "comptype_hsn_switch",
+      "Class": "River",
+      "TypeString": "HSNSwitch",
+      "Parent": "x9999c0",
+      "ExtraProperties": {
+        "Aliases": ["matrix-hsn-sw"],
+        "Brand": "NVIDIA",
+        "Model": "QM9700"
+      }
+    },
+    "x9999c0w48j1": {
+      "Xname": "x9999c0w48j1",
+      "Type": "comptype_mgmt_switch_connector",
+      "Class": "River",
+      "TypeString": "MgmtSwitchConnector",
+      "Parent": "x9999c0w48",
+      "ExtraProperties": {
+        "NodeNics": ["x9999c0s1b0"],
+        "VendorName": "ethernet1/1/1"
+      }
+    },
+    "x9999c0w48j2": {
+      "Xname": "x9999c0w48j2",
+      "Type": "comptype_mgmt_switch_connector",
+      "Class": "River",
+      "TypeString": "MgmtSwitchConnector",
+      "Parent": "x9999c0w48",
+      "ExtraProperties": {
+        "NodeNics": ["x9999c0s6b0"],
+        "VendorName": "ethernet1/1/2"
+      }
+    },
+    "x9999c0w48j3": {
+      "Xname": "x9999c0w48j3",
+      "Type": "comptype_mgmt_switch_connector",
+      "Class": "River",
+      "TypeString": "MgmtSwitchConnector",
+      "Parent": "x9999c0w48",
+      "ExtraProperties": {
+        "NodeNics": ["x9999c0s11b0"],
+        "VendorName": "ethernet1/1/3"
+      }
+    },
+    "x9999c0w48j4": {
+      "Xname": "x9999c0w48j4",
+      "Type": "comptype_mgmt_switch_connector",
+      "Class": "River",
+      "TypeString": "MgmtSwitchConnector",
+      "Parent": "x9999c0w48",
+      "ExtraProperties": {
+        "NodeNics": ["x9999c0s13b0"],
+        "VendorName": "ethernet1/1/4"
+      }
+    }
+  },
+  "Networks": {}
+}

@@ -1,0 +1,1270 @@
+{
+  "schemaVersion": "v1alpha2",
+  "locations": {
+    "a0000001-0000-0000-0000-000000000001": {
+      "id": "a0000001-0000-0000-0000-000000000001",
+      "name": "HPC-DataCenter",
+      "locationType": "dc",
+      "status": "Active",
+      "description": "Primary HPC data center facility",
+      "physicalAddress": "1 Infinite Loop, Cupertino, CA 95014",
+      "facility": "HPC-DC-01",
+      "contactName": "DC Operations",
+      "contactEmail": "ops@example.com",
+      "latitude": "37.3318",
+      "longitude": "-122.0312",
+      "timeZone": "America/Los_Angeles",
+      "children": [
+        "a0000001-0000-0000-0000-000000000002"
+      ],
+      "racks": []
+    },
+    "a0000001-0000-0000-0000-000000000002": {
+      "id": "a0000001-0000-0000-0000-000000000002",
+      "name": "HPC-Room-A",
+      "locationType": "section",
+      "parent": "a0000001-0000-0000-0000-000000000001",
+      "status": "Active",
+      "description": "Primary compute room",
+      "racks": [
+        "b0000001-0000-0000-0000-000000000001",
+        "b0000001-0000-0000-0000-000000000002"
+      ]
+    }
+  },
+  "racks": {
+    "b0000001-0000-0000-0000-000000000001": {
+      "id": "b0000001-0000-0000-0000-000000000001",
+      "name": "Rack-A01",
+      "status": "Active",
+      "location": "a0000001-0000-0000-0000-000000000002",
+      "uHeight": 48,
+      "width": "19",
+      "outerWidth": 600,
+      "outerDepth": 1200,
+      "outerUnit": "mm",
+      "role": "Compute",
+      "serial": "RCK-A01-SN001",
+      "facilityId": "DC01-A01",
+      "manufacturer": "HPE",
+      "model": "HPE G2 Advanced 48U",
+      "description": "Primary compute rack, Row A Position 01",
+      "devices": [
+        "c0000001-0000-0000-0000-000000000001",
+        "c0000001-0000-0000-0000-000000000003",
+        "c0000001-0000-0000-0000-000000000005",
+        "c0000001-0000-0000-0000-000000000006",
+        "c0000001-0000-0000-0000-000000000009",
+        "c0000001-0000-0000-0000-000000000011"
+      ]
+    },
+    "b0000001-0000-0000-0000-000000000002": {
+      "id": "b0000001-0000-0000-0000-000000000002",
+      "name": "Rack-A02",
+      "status": "Active",
+      "location": "a0000001-0000-0000-0000-000000000002",
+      "uHeight": 48,
+      "width": "19",
+      "outerWidth": 600,
+      "outerDepth": 1200,
+      "outerUnit": "mm",
+      "role": "Compute",
+      "serial": "RCK-A02-SN002",
+      "facilityId": "DC01-A02",
+      "manufacturer": "HPE",
+      "model": "HPE G2 Advanced 48U",
+      "description": "Secondary compute rack, Row A Position 02",
+      "devices": [
+        "c0000001-0000-0000-0000-000000000002",
+        "c0000001-0000-0000-0000-000000000004",
+        "c0000001-0000-0000-0000-000000000007",
+        "c0000001-0000-0000-0000-000000000008",
+        "c0000001-0000-0000-0000-000000000010",
+        "c0000001-0000-0000-0000-000000000012"
+      ]
+    }
+  },
+  "devices": {
+    "c0000001-0000-0000-0000-000000000001": {
+      "id": "c0000001-0000-0000-0000-000000000001",
+      "name": "spine-sw-01",
+      "slug": "hpe-aruba-6300m-48g-4sfp56",
+      "manufacturer": "HPE",
+      "model": "Aruba 6300M-48G-4SFP56",
+      "type": "switch",
+      "type": "Switch",
+      "status": "Active",
+      "role": "Spine Switch",
+      "rack": "b0000001-0000-0000-0000-000000000001",
+      "location": "a0000001-0000-0000-0000-000000000002",
+      "rackPosition": 47,
+      "face": "front",
+      "uHeight": 1,
+      "isFullDepth": true,
+      "serial": "SG12345001",
+      "assetTag": "HPE-SW-001",
+      "description": "Spine switch 01 - top of Rack-A01",
+      "interfaces": [
+        {
+          "name": "1/1/1",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/2",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/3",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/4",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/5",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/6",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/7",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/8",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/49",
+          "type": "50gbase-x-sfp56",
+          "label": "SFP56 Uplink 1"
+        },
+        {
+          "name": "1/1/50",
+          "type": "50gbase-x-sfp56",
+          "label": "SFP56 Uplink 2"
+        },
+        {
+          "name": "1/1/51",
+          "type": "50gbase-x-sfp56",
+          "label": "SFP56 Uplink 3"
+        },
+        {
+          "name": "1/1/52",
+          "type": "50gbase-x-sfp56",
+          "label": "SFP56 Uplink 4"
+        },
+        {
+          "name": "mgmt",
+          "type": "1000base-t",
+          "mgmt_only": true
+        }
+      ],
+      "moduleBays": [
+        {
+          "name": "PS1",
+          "position": "1"
+        },
+        {
+          "name": "PS2",
+          "position": "2"
+        }
+      ],
+      "providerMetadata": {
+        "role": "Spine Switch"
+      }
+    },
+    "c0000001-0000-0000-0000-000000000002": {
+      "id": "c0000001-0000-0000-0000-000000000002",
+      "name": "spine-sw-02",
+      "slug": "hpe-aruba-6300m-48g-4sfp56",
+      "manufacturer": "HPE",
+      "model": "Aruba 6300M-48G-4SFP56",
+      "type": "switch",
+      "type": "Switch",
+      "status": "Active",
+      "role": "Spine Switch",
+      "rack": "b0000001-0000-0000-0000-000000000002",
+      "location": "a0000001-0000-0000-0000-000000000002",
+      "rackPosition": 47,
+      "face": "front",
+      "uHeight": 1,
+      "isFullDepth": true,
+      "serial": "SG12345002",
+      "assetTag": "HPE-SW-002",
+      "description": "Spine switch 02 - top of Rack-A02",
+      "interfaces": [
+        {
+          "name": "1/1/1",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/2",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/3",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/4",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/5",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/6",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/7",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/8",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/49",
+          "type": "50gbase-x-sfp56",
+          "label": "SFP56 Uplink 1"
+        },
+        {
+          "name": "1/1/50",
+          "type": "50gbase-x-sfp56",
+          "label": "SFP56 Uplink 2"
+        },
+        {
+          "name": "1/1/51",
+          "type": "50gbase-x-sfp56",
+          "label": "SFP56 Uplink 3"
+        },
+        {
+          "name": "1/1/52",
+          "type": "50gbase-x-sfp56",
+          "label": "SFP56 Uplink 4"
+        },
+        {
+          "name": "mgmt",
+          "type": "1000base-t",
+          "mgmt_only": true
+        }
+      ],
+      "moduleBays": [
+        {
+          "name": "PS1",
+          "position": "1"
+        },
+        {
+          "name": "PS2",
+          "position": "2"
+        }
+      ],
+      "providerMetadata": {
+        "role": "Spine Switch"
+      }
+    },
+    "c0000001-0000-0000-0000-000000000003": {
+      "id": "c0000001-0000-0000-0000-000000000003",
+      "name": "leaf-sw-01",
+      "slug": "hpe-aruba-6200f-48g-4sfpp",
+      "manufacturer": "HPE",
+      "model": "Aruba 6200F-48G-4SFP+",
+      "type": "switch",
+      "type": "MgmtSwitch",
+      "status": "Active",
+      "role": "Leaf Switch",
+      "rack": "b0000001-0000-0000-0000-000000000001",
+      "location": "a0000001-0000-0000-0000-000000000002",
+      "rackPosition": 45,
+      "face": "front",
+      "uHeight": 1,
+      "isFullDepth": true,
+      "serial": "SG12345003",
+      "assetTag": "HPE-SW-003",
+      "description": "Leaf/mgmt switch 01 - Rack-A01",
+      "interfaces": [
+        {
+          "name": "1/1/1",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/2",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/3",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/4",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/5",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/6",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/49",
+          "type": "10gbase-x-sfpp",
+          "label": "SFP+ Uplink 1"
+        },
+        {
+          "name": "1/1/50",
+          "type": "10gbase-x-sfpp",
+          "label": "SFP+ Uplink 2"
+        },
+        {
+          "name": "mgmt",
+          "type": "1000base-t",
+          "mgmt_only": true
+        }
+      ],
+      "providerMetadata": {
+        "role": "Leaf Switch"
+      }
+    },
+    "c0000001-0000-0000-0000-000000000004": {
+      "id": "c0000001-0000-0000-0000-000000000004",
+      "name": "leaf-sw-02",
+      "slug": "hpe-aruba-6200f-48g-4sfpp",
+      "manufacturer": "HPE",
+      "model": "Aruba 6200F-48G-4SFP+",
+      "type": "switch",
+      "type": "MgmtSwitch",
+      "status": "Active",
+      "role": "Leaf Switch",
+      "rack": "b0000001-0000-0000-0000-000000000002",
+      "location": "a0000001-0000-0000-0000-000000000002",
+      "rackPosition": 45,
+      "face": "front",
+      "uHeight": 1,
+      "isFullDepth": true,
+      "serial": "SG12345004",
+      "assetTag": "HPE-SW-004",
+      "description": "Leaf/mgmt switch 02 - Rack-A02",
+      "interfaces": [
+        {
+          "name": "1/1/1",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/2",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/3",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/4",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/5",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/6",
+          "type": "1000base-t"
+        },
+        {
+          "name": "1/1/49",
+          "type": "10gbase-x-sfpp",
+          "label": "SFP+ Uplink 1"
+        },
+        {
+          "name": "1/1/50",
+          "type": "10gbase-x-sfpp",
+          "label": "SFP+ Uplink 2"
+        },
+        {
+          "name": "mgmt",
+          "type": "1000base-t",
+          "mgmt_only": true
+        }
+      ],
+      "providerMetadata": {
+        "role": "Leaf Switch"
+      }
+    },
+    "c0000001-0000-0000-0000-000000000005": {
+      "id": "c0000001-0000-0000-0000-000000000005",
+      "name": "dl360-r01-u01",
+      "slug": "hpe-proliant-dl360-gen11",
+      "manufacturer": "HPE",
+      "model": "ProLiant DL360 Gen11",
+      "type": "node",
+      "type": "Node",
+      "status": "Active",
+      "role": "Server",
+      "rack": "b0000001-0000-0000-0000-000000000001",
+      "location": "a0000001-0000-0000-0000-000000000002",
+      "rackPosition": 1,
+      "face": "front",
+      "uHeight": 1,
+      "isFullDepth": true,
+      "serial": "CZ12345001",
+      "assetTag": "HPE-DL360-001",
+      "description": "Compute node - DL360 Gen11 in Rack-A01 U1",
+      "interfaces": [
+        {
+          "name": "iLO",
+          "type": "1000base-t",
+          "mgmt_only": true
+        },
+        {
+          "name": "Gig-E 1",
+          "type": "1000base-t"
+        },
+        {
+          "name": "Gig-E 2",
+          "type": "1000base-t"
+        }
+      ],
+      "moduleBays": [
+        {
+          "name": "PSU1",
+          "position": "PSU1"
+        },
+        {
+          "name": "PSU2",
+          "position": "PSU2"
+        },
+        {
+          "name": "FlexLOM",
+          "position": "FlexLOM"
+        }
+      ],
+      "providerMetadata": {
+        "role": "Server"
+      }
+    },
+    "c0000001-0000-0000-0000-000000000006": {
+      "id": "c0000001-0000-0000-0000-000000000006",
+      "name": "dl360-r01-u02",
+      "slug": "hpe-proliant-dl360-gen11",
+      "manufacturer": "HPE",
+      "model": "ProLiant DL360 Gen11",
+      "type": "node",
+      "type": "Node",
+      "status": "Active",
+      "role": "Server",
+      "rack": "b0000001-0000-0000-0000-000000000001",
+      "location": "a0000001-0000-0000-0000-000000000002",
+      "rackPosition": 2,
+      "face": "front",
+      "uHeight": 1,
+      "isFullDepth": true,
+      "serial": "CZ12345002",
+      "assetTag": "HPE-DL360-002",
+      "description": "Compute node - DL360 Gen11 in Rack-A01 U2",
+      "interfaces": [
+        {
+          "name": "iLO",
+          "type": "1000base-t",
+          "mgmt_only": true
+        },
+        {
+          "name": "Gig-E 1",
+          "type": "1000base-t"
+        },
+        {
+          "name": "Gig-E 2",
+          "type": "1000base-t"
+        }
+      ],
+      "moduleBays": [
+        {
+          "name": "PSU1",
+          "position": "PSU1"
+        },
+        {
+          "name": "PSU2",
+          "position": "PSU2"
+        },
+        {
+          "name": "FlexLOM",
+          "position": "FlexLOM"
+        }
+      ],
+      "providerMetadata": {
+        "role": "Server"
+      }
+    },
+    "c0000001-0000-0000-0000-000000000007": {
+      "id": "c0000001-0000-0000-0000-000000000007",
+      "name": "dl360-r02-u01",
+      "slug": "hpe-proliant-dl360-gen11",
+      "manufacturer": "HPE",
+      "model": "ProLiant DL360 Gen11",
+      "type": "node",
+      "type": "Node",
+      "status": "Active",
+      "role": "Server",
+      "rack": "b0000001-0000-0000-0000-000000000002",
+      "location": "a0000001-0000-0000-0000-000000000002",
+      "rackPosition": 1,
+      "face": "front",
+      "uHeight": 1,
+      "isFullDepth": true,
+      "serial": "CZ12345003",
+      "assetTag": "HPE-DL360-003",
+      "description": "Compute node - DL360 Gen11 in Rack-A02 U1",
+      "interfaces": [
+        {
+          "name": "iLO",
+          "type": "1000base-t",
+          "mgmt_only": true
+        },
+        {
+          "name": "Gig-E 1",
+          "type": "1000base-t"
+        },
+        {
+          "name": "Gig-E 2",
+          "type": "1000base-t"
+        }
+      ],
+      "moduleBays": [
+        {
+          "name": "PSU1",
+          "position": "PSU1"
+        },
+        {
+          "name": "PSU2",
+          "position": "PSU2"
+        },
+        {
+          "name": "FlexLOM",
+          "position": "FlexLOM"
+        }
+      ],
+      "providerMetadata": {
+        "role": "Server"
+      }
+    },
+    "c0000001-0000-0000-0000-000000000008": {
+      "id": "c0000001-0000-0000-0000-000000000008",
+      "name": "dl360-r02-u02",
+      "slug": "hpe-proliant-dl360-gen11",
+      "manufacturer": "HPE",
+      "model": "ProLiant DL360 Gen11",
+      "type": "node",
+      "type": "Node",
+      "status": "Active",
+      "role": "Server",
+      "rack": "b0000001-0000-0000-0000-000000000002",
+      "location": "a0000001-0000-0000-0000-000000000002",
+      "rackPosition": 2,
+      "face": "front",
+      "uHeight": 1,
+      "isFullDepth": true,
+      "serial": "CZ12345004",
+      "assetTag": "HPE-DL360-004",
+      "description": "Compute node - DL360 Gen11 in Rack-A02 U2",
+      "interfaces": [
+        {
+          "name": "iLO",
+          "type": "1000base-t",
+          "mgmt_only": true
+        },
+        {
+          "name": "Gig-E 1",
+          "type": "1000base-t"
+        },
+        {
+          "name": "Gig-E 2",
+          "type": "1000base-t"
+        }
+      ],
+      "moduleBays": [
+        {
+          "name": "PSU1",
+          "position": "PSU1"
+        },
+        {
+          "name": "PSU2",
+          "position": "PSU2"
+        },
+        {
+          "name": "FlexLOM",
+          "position": "FlexLOM"
+        }
+      ],
+      "providerMetadata": {
+        "role": "Server"
+      }
+    },
+    "c0000001-0000-0000-0000-000000000009": {
+      "id": "c0000001-0000-0000-0000-000000000009",
+      "name": "dl380-r01-u03",
+      "slug": "hpe-proliant-dl380-gen11",
+      "manufacturer": "HPE",
+      "model": "ProLiant DL380 Gen11",
+      "type": "node",
+      "type": "Node",
+      "status": "Active",
+      "role": "Storage Server",
+      "rack": "b0000001-0000-0000-0000-000000000001",
+      "location": "a0000001-0000-0000-0000-000000000002",
+      "rackPosition": 3,
+      "face": "front",
+      "uHeight": 2,
+      "isFullDepth": true,
+      "serial": "CZ12345005",
+      "assetTag": "HPE-DL380-001",
+      "description": "Storage node - DL380 Gen11 in Rack-A01 U3-4",
+      "interfaces": [
+        {
+          "name": "iLO",
+          "type": "1000base-t",
+          "mgmt_only": true
+        }
+      ],
+      "moduleBays": [
+        {
+          "name": "PSU1",
+          "position": "PSU1"
+        },
+        {
+          "name": "PSU2",
+          "position": "PSU2"
+        },
+        {
+          "name": "OCP1",
+          "position": "OCP1"
+        },
+        {
+          "name": "PCIe1",
+          "position": "PCIe1"
+        }
+      ],
+      "providerMetadata": {
+        "role": "Storage Server"
+      }
+    },
+    "c0000001-0000-0000-0000-000000000010": {
+      "id": "c0000001-0000-0000-0000-000000000010",
+      "name": "dl380-r02-u03",
+      "slug": "hpe-proliant-dl380-gen11",
+      "manufacturer": "HPE",
+      "model": "ProLiant DL380 Gen11",
+      "type": "node",
+      "type": "Node",
+      "status": "Active",
+      "role": "Storage Server",
+      "rack": "b0000001-0000-0000-0000-000000000002",
+      "location": "a0000001-0000-0000-0000-000000000002",
+      "rackPosition": 3,
+      "face": "front",
+      "uHeight": 2,
+      "isFullDepth": true,
+      "serial": "CZ12345006",
+      "assetTag": "HPE-DL380-002",
+      "description": "Storage node - DL380 Gen11 in Rack-A02 U3-4",
+      "interfaces": [
+        {
+          "name": "iLO",
+          "type": "1000base-t",
+          "mgmt_only": true
+        }
+      ],
+      "moduleBays": [
+        {
+          "name": "PSU1",
+          "position": "PSU1"
+        },
+        {
+          "name": "PSU2",
+          "position": "PSU2"
+        },
+        {
+          "name": "OCP1",
+          "position": "OCP1"
+        },
+        {
+          "name": "PCIe1",
+          "position": "PCIe1"
+        }
+      ],
+      "providerMetadata": {
+        "role": "Storage Server"
+      }
+    },
+    "c0000001-0000-0000-0000-000000000011": {
+      "id": "c0000001-0000-0000-0000-000000000011",
+      "name": "dl385-r01-u05",
+      "slug": "hpe-proliant-dl385-gen11",
+      "manufacturer": "HPE",
+      "model": "ProLiant DL385 Gen11",
+      "type": "node",
+      "type": "Node",
+      "status": "Active",
+      "role": "GPU Node",
+      "rack": "b0000001-0000-0000-0000-000000000001",
+      "location": "a0000001-0000-0000-0000-000000000002",
+      "rackPosition": 5,
+      "face": "front",
+      "uHeight": 2,
+      "isFullDepth": true,
+      "serial": "CZ12345007",
+      "assetTag": "HPE-DL385-001",
+      "description": "GPU-accelerated node - DL385 Gen11 in Rack-A01 U5-6",
+      "interfaces": [
+        {
+          "name": "iLO",
+          "type": "1000base-t",
+          "mgmt_only": true
+        }
+      ],
+      "moduleBays": [
+        {
+          "name": "PSU1",
+          "position": "PSU1"
+        },
+        {
+          "name": "PSU2",
+          "position": "PSU2"
+        },
+        {
+          "name": "OCP1",
+          "position": "OCP1"
+        },
+        {
+          "name": "PCIe1",
+          "position": "PCIe1"
+        },
+        {
+          "name": "PCIe2",
+          "position": "PCIe2"
+        }
+      ],
+      "providerMetadata": {
+        "role": "GPU Node"
+      }
+    },
+    "c0000001-0000-0000-0000-000000000012": {
+      "id": "c0000001-0000-0000-0000-000000000012",
+      "name": "dl385-r02-u05",
+      "slug": "hpe-proliant-dl385-gen11",
+      "manufacturer": "HPE",
+      "model": "ProLiant DL385 Gen11",
+      "type": "node",
+      "type": "Node",
+      "status": "Active",
+      "role": "GPU Node",
+      "rack": "b0000001-0000-0000-0000-000000000002",
+      "location": "a0000001-0000-0000-0000-000000000002",
+      "rackPosition": 5,
+      "face": "front",
+      "uHeight": 2,
+      "isFullDepth": true,
+      "serial": "CZ12345008",
+      "assetTag": "HPE-DL385-002",
+      "description": "GPU-accelerated node - DL385 Gen11 in Rack-A02 U5-6",
+      "interfaces": [
+        {
+          "name": "iLO",
+          "type": "1000base-t",
+          "mgmt_only": true
+        }
+      ],
+      "moduleBays": [
+        {
+          "name": "PSU1",
+          "position": "PSU1"
+        },
+        {
+          "name": "PSU2",
+          "position": "PSU2"
+        },
+        {
+          "name": "OCP1",
+          "position": "OCP1"
+        },
+        {
+          "name": "PCIe1",
+          "position": "PCIe1"
+        },
+        {
+          "name": "PCIe2",
+          "position": "PCIe2"
+        }
+      ],
+      "providerMetadata": {
+        "role": "GPU Node"
+      }
+    }
+  },
+  "modules": {
+    "d0000001-0000-0000-0000-000000000001": {
+      "id": "d0000001-0000-0000-0000-000000000001",
+      "name": "dl385-r01-pcie1",
+      "slug": "nvidia-mcx755106as-heat",
+      "manufacturer": "Nvidia",
+      "model": "ConnectX-7 MCX755106AS-HEAT",
+      "partNumber": "MCX755106AS-HEAT",
+      "description": "Mellanox ConnectX-7 Adapter Card",
+      "parentDevice": "c0000001-0000-0000-0000-000000000011",
+      "moduleBayName": "PCIe1",
+      "status": "Active",
+      "serial": "NIC-SN-001"
+    },
+    "d0000001-0000-0000-0000-000000000002": {
+      "id": "d0000001-0000-0000-0000-000000000002",
+      "name": "dl385-r02-pcie1",
+      "slug": "nvidia-mcx755106as-heat",
+      "manufacturer": "Nvidia",
+      "model": "ConnectX-7 MCX755106AS-HEAT",
+      "partNumber": "MCX755106AS-HEAT",
+      "description": "Mellanox ConnectX-7 Adapter Card",
+      "parentDevice": "c0000001-0000-0000-0000-000000000012",
+      "moduleBayName": "PCIe1",
+      "status": "Active",
+      "serial": "NIC-SN-002"
+    },
+    "d0000001-0000-0000-0000-000000000003": {
+      "id": "d0000001-0000-0000-0000-000000000003",
+      "name": "dl385-r01-pcie2",
+      "slug": "nvidia-mcx755106as-heat",
+      "manufacturer": "Nvidia",
+      "model": "ConnectX-7 MCX755106AS-HEAT",
+      "partNumber": "MCX755106AS-HEAT",
+      "description": "Mellanox ConnectX-7 Adapter Card (second)",
+      "parentDevice": "c0000001-0000-0000-0000-000000000011",
+      "moduleBayName": "PCIe2",
+      "status": "Active",
+      "serial": "NIC-SN-003"
+    },
+    "d0000001-0000-0000-0000-000000000004": {
+      "id": "d0000001-0000-0000-0000-000000000004",
+      "name": "dl385-r02-pcie2",
+      "slug": "nvidia-mcx755106as-heat",
+      "manufacturer": "Nvidia",
+      "model": "ConnectX-7 MCX755106AS-HEAT",
+      "partNumber": "MCX755106AS-HEAT",
+      "description": "Mellanox ConnectX-7 Adapter Card (second)",
+      "parentDevice": "c0000001-0000-0000-0000-000000000012",
+      "moduleBayName": "PCIe2",
+      "status": "Active",
+      "serial": "NIC-SN-004"
+    },
+    "d0000001-0000-0000-0000-000000000005": {
+      "id": "d0000001-0000-0000-0000-000000000005",
+      "name": "dl380-r01-psu1",
+      "slug": "hpe-p38995-b21",
+      "manufacturer": "HPE",
+      "model": "HPE 800W Hot Plug Power Supply",
+      "partNumber": "P38995-B21",
+      "description": "HPE Proliant G11 servers 800W PSU",
+      "parentDevice": "c0000001-0000-0000-0000-000000000009",
+      "moduleBayName": "PSU1",
+      "status": "Active",
+      "serial": "PSU-SN-001"
+    },
+    "d0000001-0000-0000-0000-000000000006": {
+      "id": "d0000001-0000-0000-0000-000000000006",
+      "name": "dl380-r02-psu1",
+      "slug": "hpe-p38995-b21",
+      "manufacturer": "HPE",
+      "model": "HPE 800W Hot Plug Power Supply",
+      "partNumber": "P38995-B21",
+      "description": "HPE Proliant G11 servers 800W PSU",
+      "parentDevice": "c0000001-0000-0000-0000-000000000010",
+      "moduleBayName": "PSU1",
+      "status": "Active",
+      "serial": "PSU-SN-002"
+    }
+  },
+  "cables": {
+    "e0000001-0000-0000-0000-000000000001": {
+      "id": "e0000001-0000-0000-0000-000000000001",
+      "slug": "spine-isl-1",
+      "label": "Spine ISL 1",
+      "status": "Connected",
+      "cableType": "cat6a",
+      "cableCategory": "ethernet-copper",
+      "connectorType": "rj45",
+      "length": 3.0,
+      "lengthUnit": "m",
+      "color": "blue",
+      "terminationADevice": "c0000001-0000-0000-0000-000000000001",
+      "terminationAPort": "1/1/49",
+      "terminationAType": "dcim.interface",
+      "terminationBDevice": "c0000001-0000-0000-0000-000000000002",
+      "terminationBPort": "1/1/49",
+      "terminationBType": "dcim.interface",
+      "description": "Spine-to-spine ISL link 1 (spine-sw-01 to spine-sw-02)"
+    },
+    "e0000001-0000-0000-0000-000000000002": {
+      "id": "e0000001-0000-0000-0000-000000000002",
+      "slug": "spine-isl-2",
+      "label": "Spine ISL 2",
+      "status": "Connected",
+      "cableType": "cat6a",
+      "cableCategory": "ethernet-copper",
+      "connectorType": "rj45",
+      "length": 3.0,
+      "lengthUnit": "m",
+      "color": "blue",
+      "terminationADevice": "c0000001-0000-0000-0000-000000000001",
+      "terminationAPort": "1/1/50",
+      "terminationAType": "dcim.interface",
+      "terminationBDevice": "c0000001-0000-0000-0000-000000000002",
+      "terminationBPort": "1/1/50",
+      "terminationBType": "dcim.interface",
+      "description": "Spine-to-spine ISL link 2 (spine-sw-01 to spine-sw-02)"
+    },
+    "e0000001-0000-0000-0000-000000000003": {
+      "id": "e0000001-0000-0000-0000-000000000003",
+      "slug": "leaf01-to-spine01",
+      "label": "Leaf01-Spine01 Uplink",
+      "status": "Connected",
+      "cableType": "dac-passive",
+      "cableCategory": "ethernet-copper",
+      "connectorType": "sfp",
+      "length": 1.0,
+      "lengthUnit": "m",
+      "color": "yellow",
+      "terminationADevice": "c0000001-0000-0000-0000-000000000003",
+      "terminationAPort": "1/1/49",
+      "terminationAType": "dcim.interface",
+      "terminationBDevice": "c0000001-0000-0000-0000-000000000001",
+      "terminationBPort": "1/1/1",
+      "terminationBType": "dcim.interface",
+      "description": "Leaf-sw-01 uplink to spine-sw-01"
+    },
+    "e0000001-0000-0000-0000-000000000004": {
+      "id": "e0000001-0000-0000-0000-000000000004",
+      "slug": "leaf01-to-spine02",
+      "label": "Leaf01-Spine02 Uplink",
+      "status": "Connected",
+      "cableType": "dac-passive",
+      "cableCategory": "ethernet-copper",
+      "connectorType": "sfp",
+      "length": 3.0,
+      "lengthUnit": "m",
+      "color": "yellow",
+      "terminationADevice": "c0000001-0000-0000-0000-000000000003",
+      "terminationAPort": "1/1/50",
+      "terminationAType": "dcim.interface",
+      "terminationBDevice": "c0000001-0000-0000-0000-000000000002",
+      "terminationBPort": "1/1/1",
+      "terminationBType": "dcim.interface",
+      "description": "Leaf-sw-01 uplink to spine-sw-02"
+    },
+    "e0000001-0000-0000-0000-000000000005": {
+      "id": "e0000001-0000-0000-0000-000000000005",
+      "slug": "leaf02-to-spine01",
+      "label": "Leaf02-Spine01 Uplink",
+      "status": "Connected",
+      "cableType": "dac-passive",
+      "cableCategory": "ethernet-copper",
+      "connectorType": "sfp",
+      "length": 3.0,
+      "lengthUnit": "m",
+      "color": "yellow",
+      "terminationADevice": "c0000001-0000-0000-0000-000000000004",
+      "terminationAPort": "1/1/49",
+      "terminationAType": "dcim.interface",
+      "terminationBDevice": "c0000001-0000-0000-0000-000000000001",
+      "terminationBPort": "1/1/2",
+      "terminationBType": "dcim.interface",
+      "description": "Leaf-sw-02 uplink to spine-sw-01"
+    },
+    "e0000001-0000-0000-0000-000000000006": {
+      "id": "e0000001-0000-0000-0000-000000000006",
+      "slug": "leaf02-to-spine02",
+      "label": "Leaf02-Spine02 Uplink",
+      "status": "Connected",
+      "cableType": "dac-passive",
+      "cableCategory": "ethernet-copper",
+      "connectorType": "sfp",
+      "length": 1.0,
+      "lengthUnit": "m",
+      "color": "yellow",
+      "terminationADevice": "c0000001-0000-0000-0000-000000000004",
+      "terminationAPort": "1/1/50",
+      "terminationAType": "dcim.interface",
+      "terminationBDevice": "c0000001-0000-0000-0000-000000000002",
+      "terminationBPort": "1/1/2",
+      "terminationBType": "dcim.interface",
+      "description": "Leaf-sw-02 uplink to spine-sw-02"
+    },
+    "e0000001-0000-0000-0000-000000000007": {
+      "id": "e0000001-0000-0000-0000-000000000007",
+      "slug": "dl360-r01-u01-to-leaf01",
+      "label": "dl360-r01-u01 -> leaf-sw-01",
+      "status": "Connected",
+      "cableType": "cat6a",
+      "cableCategory": "ethernet-copper",
+      "connectorType": "rj45",
+      "length": 2.0,
+      "lengthUnit": "m",
+      "color": "green",
+      "terminationADevice": "c0000001-0000-0000-0000-000000000005",
+      "terminationAPort": "Gig-E 1",
+      "terminationAType": "dcim.interface",
+      "terminationBDevice": "c0000001-0000-0000-0000-000000000003",
+      "terminationBPort": "1/1/1",
+      "terminationBType": "dcim.interface",
+      "description": "Server dl360-r01-u01 data uplink to leaf-sw-01"
+    },
+    "e0000001-0000-0000-0000-000000000008": {
+      "id": "e0000001-0000-0000-0000-000000000008",
+      "slug": "dl360-r01-u02-to-leaf01",
+      "label": "dl360-r01-u02 -> leaf-sw-01",
+      "status": "Connected",
+      "cableType": "cat6a",
+      "cableCategory": "ethernet-copper",
+      "connectorType": "rj45",
+      "length": 2.0,
+      "lengthUnit": "m",
+      "color": "green",
+      "terminationADevice": "c0000001-0000-0000-0000-000000000006",
+      "terminationAPort": "Gig-E 1",
+      "terminationAType": "dcim.interface",
+      "terminationBDevice": "c0000001-0000-0000-0000-000000000003",
+      "terminationBPort": "1/1/2",
+      "terminationBType": "dcim.interface",
+      "description": "Server dl360-r01-u02 data uplink to leaf-sw-01"
+    },
+    "e0000001-0000-0000-0000-000000000009": {
+      "id": "e0000001-0000-0000-0000-000000000009",
+      "slug": "dl360-r02-u01-to-leaf02",
+      "label": "dl360-r02-u01 -> leaf-sw-02",
+      "status": "Connected",
+      "cableType": "cat6a",
+      "cableCategory": "ethernet-copper",
+      "connectorType": "rj45",
+      "length": 2.0,
+      "lengthUnit": "m",
+      "color": "green",
+      "terminationADevice": "c0000001-0000-0000-0000-000000000007",
+      "terminationAPort": "Gig-E 1",
+      "terminationAType": "dcim.interface",
+      "terminationBDevice": "c0000001-0000-0000-0000-000000000004",
+      "terminationBPort": "1/1/1",
+      "terminationBType": "dcim.interface",
+      "description": "Server dl360-r02-u01 data uplink to leaf-sw-02"
+    },
+    "e0000001-0000-0000-0000-000000000010": {
+      "id": "e0000001-0000-0000-0000-000000000010",
+      "slug": "dl360-r02-u02-to-leaf02",
+      "label": "dl360-r02-u02 -> leaf-sw-02",
+      "status": "Connected",
+      "cableType": "cat6a",
+      "cableCategory": "ethernet-copper",
+      "connectorType": "rj45",
+      "length": 2.0,
+      "lengthUnit": "m",
+      "color": "green",
+      "terminationADevice": "c0000001-0000-0000-0000-000000000008",
+      "terminationAPort": "Gig-E 1",
+      "terminationAType": "dcim.interface",
+      "terminationBDevice": "c0000001-0000-0000-0000-000000000004",
+      "terminationBPort": "1/1/2",
+      "terminationBType": "dcim.interface",
+      "description": "Server dl360-r02-u02 data uplink to leaf-sw-02"
+    },
+    "e0000001-0000-0000-0000-000000000011": {
+      "id": "e0000001-0000-0000-0000-000000000011",
+      "slug": "dl380-r01-to-leaf01",
+      "label": "dl380-r01-u03 -> leaf-sw-01",
+      "status": "Connected",
+      "cableType": "cat6a",
+      "cableCategory": "ethernet-copper",
+      "connectorType": "rj45",
+      "length": 2.0,
+      "lengthUnit": "m",
+      "color": "green",
+      "terminationADevice": "c0000001-0000-0000-0000-000000000009",
+      "terminationAPort": "iLO",
+      "terminationAType": "dcim.interface",
+      "terminationBDevice": "c0000001-0000-0000-0000-000000000003",
+      "terminationBPort": "1/1/3",
+      "terminationBType": "dcim.interface",
+      "description": "Storage dl380-r01-u03 mgmt uplink to leaf-sw-01"
+    },
+    "e0000001-0000-0000-0000-000000000012": {
+      "id": "e0000001-0000-0000-0000-000000000012",
+      "slug": "dl380-r02-to-leaf02",
+      "label": "dl380-r02-u03 -> leaf-sw-02",
+      "status": "Connected",
+      "cableType": "cat6a",
+      "cableCategory": "ethernet-copper",
+      "connectorType": "rj45",
+      "length": 2.0,
+      "lengthUnit": "m",
+      "color": "green",
+      "terminationADevice": "c0000001-0000-0000-0000-000000000010",
+      "terminationAPort": "iLO",
+      "terminationAType": "dcim.interface",
+      "terminationBDevice": "c0000001-0000-0000-0000-000000000004",
+      "terminationBPort": "1/1/3",
+      "terminationBType": "dcim.interface",
+      "description": "Storage dl380-r02-u03 mgmt uplink to leaf-sw-02"
+    },
+    "e0000001-0000-0000-0000-000000000013": {
+      "id": "e0000001-0000-0000-0000-000000000013",
+      "slug": "dl385-r01-to-leaf01",
+      "label": "dl385-r01-u05 -> leaf-sw-01",
+      "status": "Connected",
+      "cableType": "cat6a",
+      "cableCategory": "ethernet-copper",
+      "connectorType": "rj45",
+      "length": 2.0,
+      "lengthUnit": "m",
+      "color": "green",
+      "terminationADevice": "c0000001-0000-0000-0000-000000000011",
+      "terminationAPort": "iLO",
+      "terminationAType": "dcim.interface",
+      "terminationBDevice": "c0000001-0000-0000-0000-000000000003",
+      "terminationBPort": "1/1/5",
+      "terminationBType": "dcim.interface",
+      "description": "GPU node dl385-r01-u05 mgmt uplink to leaf-sw-01"
+    },
+    "e0000001-0000-0000-0000-000000000014": {
+      "id": "e0000001-0000-0000-0000-000000000014",
+      "slug": "dl385-r02-to-leaf02",
+      "label": "dl385-r02-u05 -> leaf-sw-02",
+      "status": "Connected",
+      "cableType": "cat6a",
+      "cableCategory": "ethernet-copper",
+      "connectorType": "rj45",
+      "length": 2.0,
+      "lengthUnit": "m",
+      "color": "green",
+      "terminationADevice": "c0000001-0000-0000-0000-000000000012",
+      "terminationAPort": "iLO",
+      "terminationAType": "dcim.interface",
+      "terminationBDevice": "c0000001-0000-0000-0000-000000000004",
+      "terminationBPort": "1/1/5",
+      "terminationBType": "dcim.interface",
+      "description": "GPU node dl385-r02-u05 mgmt uplink to leaf-sw-02"
+    }
+  },
+  "frus": {
+    "f0000001-0000-0000-0000-000000000001": {
+      "id": "f0000001-0000-0000-0000-000000000001",
+      "name": "DIMM-A1",
+      "manufacturer": "Samsung",
+      "partNumber": "M393A8G40AB2-CWE",
+      "serial": "DIMM-SN-001",
+      "description": "Samsung 64GB DDR5-4800 RDIMM",
+      "label": "DIMM Slot A1",
+      "device": "c0000001-0000-0000-0000-000000000005",
+      "discovered": true
+    },
+    "f0000001-0000-0000-0000-000000000002": {
+      "id": "f0000001-0000-0000-0000-000000000002",
+      "name": "DIMM-A2",
+      "manufacturer": "Samsung",
+      "partNumber": "M393A8G40AB2-CWE",
+      "serial": "DIMM-SN-002",
+      "description": "Samsung 64GB DDR5-4800 RDIMM",
+      "label": "DIMM Slot A2",
+      "device": "c0000001-0000-0000-0000-000000000005",
+      "discovered": true
+    },
+    "f0000001-0000-0000-0000-000000000003": {
+      "id": "f0000001-0000-0000-0000-000000000003",
+      "name": "DIMM-A1",
+      "manufacturer": "Samsung",
+      "partNumber": "M393A8G40AB2-CWE",
+      "serial": "DIMM-SN-003",
+      "description": "Samsung 64GB DDR5-4800 RDIMM",
+      "label": "DIMM Slot A1",
+      "device": "c0000001-0000-0000-0000-000000000006",
+      "discovered": true
+    },
+    "f0000001-0000-0000-0000-000000000004": {
+      "id": "f0000001-0000-0000-0000-000000000004",
+      "name": "DIMM-A2",
+      "manufacturer": "Samsung",
+      "partNumber": "M393A8G40AB2-CWE",
+      "serial": "DIMM-SN-004",
+      "description": "Samsung 64GB DDR5-4800 RDIMM",
+      "label": "DIMM Slot A2",
+      "device": "c0000001-0000-0000-0000-000000000006",
+      "discovered": true
+    },
+    "f0000001-0000-0000-0000-000000000005": {
+      "id": "f0000001-0000-0000-0000-000000000005",
+      "name": "PSU-2",
+      "manufacturer": "HPE",
+      "partNumber": "P38995-B21",
+      "serial": "PSU-SN-001",
+      "description": "HPE 800W Flex Slot Platinum Hot Plug Low Halogen Power Supply",
+      "label": "Power Supply Bay 2",
+      "device": "c0000001-0000-0000-0000-000000000009",
+      "discovered": true
+    },
+    "f0000001-0000-0000-0000-000000000006": {
+      "id": "f0000001-0000-0000-0000-000000000006",
+      "name": "PSU-2",
+      "manufacturer": "HPE",
+      "partNumber": "P38995-B21",
+      "serial": "PSU-SN-002",
+      "description": "HPE 800W Flex Slot Platinum Hot Plug Low Halogen Power Supply",
+      "label": "Power Supply Bay 2",
+      "device": "c0000001-0000-0000-0000-000000000010",
+      "discovered": true
+    },
+    "f0000001-0000-0000-0000-000000000007": {
+      "id": "f0000001-0000-0000-0000-000000000007",
+      "name": "NVMe-Drive-Bay0",
+      "manufacturer": "Samsung",
+      "partNumber": "MZQL23T8HCLS-00A07",
+      "serial": "NVME-SN-001",
+      "description": "Samsung PM9A3 3.84TB NVMe U.2 SSD",
+      "label": "NVMe Bay 0",
+      "device": "c0000001-0000-0000-0000-000000000009",
+      "discovered": true
+    },
+    "f0000001-0000-0000-0000-000000000008": {
+      "id": "f0000001-0000-0000-0000-000000000008",
+      "name": "NVMe-Drive-Bay1",
+      "manufacturer": "Samsung",
+      "partNumber": "MZQL23T8HCLS-00A07",
+      "serial": "NVME-SN-002",
+      "description": "Samsung PM9A3 3.84TB NVMe U.2 SSD",
+      "label": "NVMe Bay 1",
+      "device": "c0000001-0000-0000-0000-000000000009",
+      "discovered": true
+    },
+    "f0000001-0000-0000-0000-000000000009": {
+      "id": "f0000001-0000-0000-0000-000000000009",
+      "name": "NVMe-Drive-Bay0",
+      "manufacturer": "Samsung",
+      "partNumber": "MZQL23T8HCLS-00A07",
+      "serial": "NVME-SN-003",
+      "description": "Samsung PM9A3 3.84TB NVMe U.2 SSD",
+      "label": "NVMe Bay 0",
+      "device": "c0000001-0000-0000-0000-000000000010",
+      "discovered": true
+    },
+    "f0000001-0000-0000-0000-000000000010": {
+      "id": "f0000001-0000-0000-0000-000000000010",
+      "name": "NVMe-Drive-Bay1",
+      "manufacturer": "Samsung",
+      "partNumber": "MZQL23T8HCLS-00A07",
+      "serial": "NVME-SN-004",
+      "description": "Samsung PM9A3 3.84TB NVMe U.2 SSD",
+      "label": "NVMe Bay 1",
+      "device": "c0000001-0000-0000-0000-000000000010",
+      "discovered": true
+    }
+  },
+  "interfaces": {}
+}

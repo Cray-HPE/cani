@@ -1,0 +1,26 @@
+Section,PartNumber,Name,Qty,Rack,Position,Face,Role,Status,Serial,Device,Bay,ADevice,APort,BDevice,BPort,Color,Length,LengthUnit,Location,ContentTypes
+_defaults,,,,,,,,Active,,,,,,,,,,,,
+# Roles
+role,,ComputeNode,,,,,,,,,,,,,,,,,,dcim.device
+role,,ManagementSwitch,,,,,,,,,,,,,,,,,,dcim.device
+role,,HSNSwitch,,,,,,,,,,,,,,,,,,dcim.device
+# Racks
+rack,hpe-48u-800mmx1200mm-g2-enterprise-shock-rack,x3701,1,,,,,Available,,,,,,,,,,,,
+rack,hpe-48u-800mmx1200mm-g2-enterprise-shock-rack,x3702,1,,,,,Available,,,,,,,,,,,,
+# Devices in x3701
+device,hpe-aruba-2930f-48g-4sfp,MAN-x3701u48,1,x3701,48,rear,ManagementSwitch,Active,TW39KM301C,,,,,,,,,,,
+device,nvidia-infiniband-ndr-64-port-osfp-switch,HSNS-x3701u43,1,x3701,43,rear,HSNSwitch,Active,1I033601TL,,,,,,,,,,,
+device,hpe-xd670,GH-x3701u34,1,x3701,34,front,ComputeNode,Active,5UF435KF42,,,,,,,,,,,
+device,hpe-xd670,GH-x3701u26,1,x3701,26,front,ComputeNode,Active,5UF435KF41,,,,,,,,,,,
+# Devices in x3702
+device,hpe-aruba-2930f-48g-4sfp,MAN-x3702u48,1,x3702,48,rear,ManagementSwitch,Active,TW34HKV07C,,,,,,,,,,,
+device,hpe-xd670,GH-x3702u34,1,x3702,34,front,ComputeNode,Active,5UF435KF46,,,,,,,,,,,
+# Modules (GPUs in x3701 nodes)
+module,nvidia-h100-sxm-gpu,,1,,,,,,,GH-x3701u34,GPU0,,,,,,,,,,
+module,nvidia-h100-sxm-gpu,,1,,,,,,,GH-x3701u34,GPU1,,,,,,,,,,
+module,nvidia-h100-sxm-gpu,,1,,,,,,,GH-x3701u26,GPU0,,,,,,,,,,
+# Connections — management
+connection,hpe-3m-cat6-stp,,,,,,,,,,,GH-x3701u34,iLO,MAN-x3701u48,1,blue,3,m,,
+connection,hpe-3m-cat6-stp,,,,,,,,,,,GH-x3701u26,iLO,MAN-x3701u48,2,blue,3,m,,
+# Connections — HSN (with brace expansion)
+connection,hpe-ib-ndr-osfp-dac-cable,,,,,,,,,,,GH-x3701u34,HSN {0..3},HSNS-x3701u43,{1..4},green,2,m,,

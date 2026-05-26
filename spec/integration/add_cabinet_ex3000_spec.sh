@@ -24,47 +24,29 @@
 #
 Describe 'INTEGRATION:'
 
-It 'start a session'
-  BeforeCall use_inactive_session
-  BeforeCall use_valid_datastore_system_only # deploy a valid datastore
-  BeforeCall "load_sls.sh testdata/fixtures/sls/valid_hardware_networks.json" # simulator is running, load a specific SLS config
-  When call bin/cani alpha session --config "$CANI_CONF" init csm -S
+It 'import from simulator'
+	BeforeCall remove_datastore
+	BeforeCall "curl -sk -X POST -F "sls_dump=@testdata/fixtures/sls/valid_hardware_networks.json" https://localhost:8443/apis/sls/v1/loadstate"
+  When call bin/cani alpha --config "$CANI_CONF" import csm -S --ignore-validation
   The status should equal 0
-  The line 1 of stderr should include 'Using simulation mode'
-  The stderr should include 'Validated CANI inventory'
-  The stderr should include 'Validated external inventory provider'
-  # Verify the import logic reached out to SLS
-  The stderr should include 'GET https://localhost:8443/apis/sls/v1/dumpstate'
-  The stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/State/Components'
-  The stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/Inventory/Hardware'
-
-  # Verify the import logic pushed changes into SLS
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000'
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c1'
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c1b0'
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c3'
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c3b0'
-
-  # Verify the session has started
-  The stderr should include 'Session is now ACTIVE with provider csm and datastore'
+  The stderr should include 'Import completed successfully using provider csm'
 End
 
 It 'add ex3000 cabinet'
-  When call bin/cani alpha --config "$CANI_CONF" add cabinet csm hpe-ex3000 --auto --accept
+  When call bin/cani alpha --config "$CANI_CONF" add hpe-ex3000 --auto --accept
   The status should equal 0
-  The line 1 of stderr should include 'Querying inventory to suggest Cabinet'
-  The line 2 of stderr should include 'Suggested cabinet number: 1000'
-  The line 3 of stderr should include 'Suggested VLAN ID: 3001'
-  The line 4 of stderr should include 'Cabinet was successfully staged to be added to the system'
-  The line 6 of stderr should include "Cabinet Number: 1000"
+  The stderr should include 'Querying inventory to suggest Cabinet'
+  The stderr should include 'Suggested cabinet number: 1000'
+  The stderr should include 'Suggested VLAN ID: 3001'
+  The stderr should include 'Cabinet was successfully staged to be added to the system'
+  The stderr should include "Cabinet Number: 1000"
 End
 
-It 'commit and reconcile'
-  When call bin/cani alpha session --config "$CANI_CONF" apply --commit
+It 'export to simulator'
+  When call bin/cani alpha --config "$CANI_CONF" export csm -S --commit
   The status should equal 0
-  The stderr should include 'Hardware added to the system'
-  The stderr should include 'x1000            - Type: Cabinet, Class: Mountain, Networks: {"cn":{"HMN":{"CIDR":"10.104.4.0/22","Gateway":"10.104.4.1","VLan":3001},"NMN":{"CIDR":"10.100.4.0/22","Gateway":"10.100.4.1","VLan":2001}}}'
-  The stdout should include 'Cabinet                         (staged)'
+  The stderr should include 'Export completed successfully'
+  The stdout should include 'Cabinet                         (Staged)'
 End
 
 End

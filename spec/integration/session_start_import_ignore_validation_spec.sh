@@ -25,53 +25,30 @@
 Describe 'INTEGRATION:'
 
 It 'attempt to start a session with failures'
-  BeforeCall use_inactive_session
-  BeforeCall use_valid_datastore_system_only # deploy a valid datastore
-  BeforeCall "load_sls.sh testdata/fixtures/sls/invalid_hardware_networks.json" # simulator is running, load a specific SLS config
-  When call bin/cani alpha session --config "$CANI_CONF" init csm -S
+	BeforeCall remove_datastore
+	BeforeCall "curl -sk -X POST -F "sls_dump=@testdata/fixtures/sls/valid_hardware_networks.json" https://localhost:8443/apis/sls/v1/loadstate"
+  When call bin/cani alpha --config "$CANI_CONF" import csm -S
   The status should not equal 0
   The stderr should include 'External inventory is unstable'
 End
 
 It 'start a session ignoring validation failures'
-  BeforeCall use_inactive_session
-  BeforeCall use_valid_datastore_system_only # deploy a valid datastore
-  BeforeCall "load_sls.sh testdata/fixtures/sls/invalid_hardware_networks.json" # simulator is running, load a specific SLS config
-  When call bin/cani alpha session --config "$CANI_CONF" init csm -S --ignore-validation
+	BeforeCall remove_datastore
+  When call bin/cani alpha --config "$CANI_CONF" import csm -S --ignore-validation
   The status should equal 0
-  The line 1 of stderr should include 'Using simulation mode'
-  The stderr should include 'Validated CANI inventory'
-  The stderr should include 'Validated external inventory provider'
-  # Verify the import logic reached out to SLS
-  The stderr should include 'GET https://localhost:8443/apis/sls/v1/dumpstate'
-  The stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/State/Components'
-  The stderr should include 'GET https://localhost:8443/apis/smd/hsm/v2/Inventory/Hardware'
   The stderr should include 'Cabinet x9000 does not exist in datastore at System:0->Cabinet:9000'
   The stderr should include 'Cabinet x9000 device type slug is hpe-ex2000'
-
-  # Verify the import logic pushed changes into SLS
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000'
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c1'
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c1b0'
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c3'
-  The stderr should include 'PUT https://localhost:8443/apis/sls/v1/hardware/x9000c3b0'
-
-  # Verify the warning about sls validation errors
   The stderr should include 'WRN Ignoring these failures'
-
-  # Verify the session has started
-  The stderr should include 'Session is now ACTIVE with provider csm and datastore'
 End
 
 It 'commit and reconcile ignoring validation failures'
-  When call bin/cani alpha session --config "$CANI_CONF" apply --commit --ignore-validation
+  When call bin/cani alpha --config "$CANI_CONF" export csm -S --commit --ignore-validation
   The status should equal 0
-  The line 1 of stderr should include 'Session is STOPPED'
-  The line 2 of stderr should include 'Committing changes to session'
-  The line 1 of stdout should include 'Summary:'
-  The line 2 of stdout should include '--------'
-  The line 3 of stdout should include 'ID  TYPE  STATUS'
-  The line 5 of stdout should include '0 new hardware item(s) are in the inventory'
+  The stderr should include 'Export completed successfully'
+  The stdout should include 'Summary:'
+  The stdout should include '--------'
+  The stdout should include 'ID  TYPE  STATUS'
+  The stdout should include '0 new hardware item(s) are in the inventory'
 End
 
 End
