@@ -44,23 +44,23 @@ import_fixture() {
   case "$_ie_provider" in
     example)
       bin/cani alpha import example \
-        --csv "$FIXTURES/example/simple.csv" \
+        --csv "$FIXTURES/matrix/example.csv" \
         --config "$CANI_CONF" --datastore-path "$_ie_ds" ;;
     ochami)
       bin/cani alpha import ochami \
-        --jsonfile "$FIXTURES/ochami/ochami_test_data.json" \
+        --jsonfile "$FIXTURES/matrix/ochami.json" \
         --config "$CANI_CONF" --datastore-path "$_ie_ds" ;;
     redfish)
       bin/cani alpha import redfish \
-        --root "$FIXTURES/redfish/v1/redfish-root.json" \
+        --root "$FIXTURES/matrix/redfish.json" \
         --config "$CANI_CONF" --datastore-path "$_ie_ds" ;;
     hpcm)
       bin/cani alpha import hpcm \
-        --node-json-file "$FIXTURES/hpcm/nodes.json" \
+        --node-json-file "$FIXTURES/matrix/hpcm.json" \
         --config "$CANI_CONF" --datastore-path "$_ie_ds" ;;
     csm)
       bin/cani alpha import csm \
-        --sls-file "$FIXTURES/csm/sls/valid_hardware_networks.json" \
+        --sls-file "$FIXTURES/matrix/csm_sls.json" \
         --ignore-validation \
         --config "$CANI_CONF" --datastore-path "$_ie_ds" ;;
   esac
