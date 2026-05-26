@@ -1,0 +1,52 @@
+Section,PartNumber,Name,Qty,Rack,Position,Face,Role,Status,Serial,Device,Bay,ADevice,APort,BDevice,BPort,Color,Length,LengthUnit,Location,ContentTypes
+_defaults,,,,,,,,Active,,,,,,,,,,,,
+# Roles
+role,,ComputeNode,,,,,,,,,,,,,,,,,,dcim.device
+role,,ServiceNode,,,,,,,,,,,,,,,,,,dcim.device
+role,,ManagementSwitch,,,,,,,,,,,,,,,,,,dcim.device
+role,,HSNSwitch,,,,,,,,,,,,,,,,,,dcim.device
+# Location
+location,,matrix-site,,,,,site,,,,,,,,,,,,,"rack,device,module"
+# Rack
+rack,hpe-48u-800mmx1200mm-g2-enterprise-shock-rack,matrix-rack,1,,,,,Active,,,,,,,,,,,matrix-site,
+# Devices — GPU nodes (XD670, 5U each)
+device,hpe-xd670,matrix-gpu-01,1,matrix-rack,34,front,ComputeNode,Active,SN-GPU-01,,,,,,,,,,,
+device,hpe-xd670,matrix-gpu-02,1,matrix-rack,26,front,ComputeNode,Active,SN-GPU-02,,,,,,,,,,,
+# Devices — Service nodes (DL380 Gen11, 2U each)
+device,hpe-proliant-dl380-gen11-8sff,matrix-serv-01,1,matrix-rack,11,front,ServiceNode,Active,SN-SERV-01,,,,,,,,,,,
+device,hpe-proliant-dl380-gen11-8sff,matrix-serv-02,1,matrix-rack,13,front,ServiceNode,Active,SN-SERV-02,,,,,,,,,,,
+# Devices — Switches
+device,hpe-aruba-2930f-48g-4sfp,matrix-mgmt-sw,1,matrix-rack,48,rear,ManagementSwitch,Active,SN-MGMT-SW,,,,,,,,,,,
+device,nvidia-infiniband-ndr-64-port-osfp-switch,matrix-hsn-sw,1,matrix-rack,42,rear,HSNSwitch,Active,SN-HSN-SW,,,,,,,,,,,
+# Modules — GPUs in matrix-gpu-01
+module,nvidia-h100-sxm-gpu,,1,,,,,,,matrix-gpu-01,GPU0,,,,,,,,,
+module,nvidia-h100-sxm-gpu,,1,,,,,,,matrix-gpu-01,GPU1,,,,,,,,,
+module,nvidia-h100-sxm-gpu,,1,,,,,,,matrix-gpu-01,GPU2,,,,,,,,,
+module,nvidia-h100-sxm-gpu,,1,,,,,,,matrix-gpu-01,GPU3,,,,,,,,,
+module,nvidia-h100-sxm-gpu,,1,,,,,,,matrix-gpu-01,GPU4,,,,,,,,,
+module,nvidia-h100-sxm-gpu,,1,,,,,,,matrix-gpu-01,GPU5,,,,,,,,,
+module,nvidia-h100-sxm-gpu,,1,,,,,,,matrix-gpu-01,GPU6,,,,,,,,,
+module,nvidia-h100-sxm-gpu,,1,,,,,,,matrix-gpu-01,GPU7,,,,,,,,,
+# Modules — GPUs in matrix-gpu-02
+module,nvidia-h100-sxm-gpu,,1,,,,,,,matrix-gpu-02,GPU0,,,,,,,,,
+module,nvidia-h100-sxm-gpu,,1,,,,,,,matrix-gpu-02,GPU1,,,,,,,,,
+module,nvidia-h100-sxm-gpu,,1,,,,,,,matrix-gpu-02,GPU2,,,,,,,,,
+module,nvidia-h100-sxm-gpu,,1,,,,,,,matrix-gpu-02,GPU3,,,,,,,,,
+module,nvidia-h100-sxm-gpu,,1,,,,,,,matrix-gpu-02,GPU4,,,,,,,,,
+module,nvidia-h100-sxm-gpu,,1,,,,,,,matrix-gpu-02,GPU5,,,,,,,,,
+module,nvidia-h100-sxm-gpu,,1,,,,,,,matrix-gpu-02,GPU6,,,,,,,,,
+module,nvidia-h100-sxm-gpu,,1,,,,,,,matrix-gpu-02,GPU7,,,,,,,,,
+# Modules — CX-7 NICs in XD670 nodes
+module,nvidia-connectx-7-ndr-infiniband-osfp-pcie5,,1,,,,,,,matrix-gpu-01,PCIe 9,,,,,,,,,
+module,nvidia-connectx-7-ndr-infiniband-osfp-pcie5,,1,,,,,,,matrix-gpu-02,PCIe 9,,,,,,,,,
+# Modules — CX-6 NICs in DL380 nodes
+module,nvidia-connectx-6-dx-100gbe-2p-qsfp28,,1,,,,,,,matrix-serv-01,PCIe5,,,,,,,,,
+module,nvidia-connectx-6-dx-100gbe-2p-qsfp28,,1,,,,,,,matrix-serv-02,PCIe5,,,,,,,,,
+# Connections — iLO management to mgmt switch
+connection,hpe-3m-cat6-stp,,,,,,,,,,,matrix-gpu-01,iLO,matrix-mgmt-sw,1,blue,3,m,,
+connection,hpe-3m-cat6-stp,,,,,,,,,,,matrix-gpu-02,iLO,matrix-mgmt-sw,2,blue,3,m,,
+connection,hpe-3m-cat6-stp,,,,,,,,,,,matrix-serv-01,iLO,matrix-mgmt-sw,3,blue,3,m,,
+connection,hpe-3m-cat6-stp,,,,,,,,,,,matrix-serv-02,iLO,matrix-mgmt-sw,4,blue,3,m,,
+# Connections — XD670 HSN to InfiniBand switch
+connection,hpe-ib-ndr-osfp-dac-cable,,,,,,,,,,,matrix-gpu-01,HSN 0,matrix-hsn-sw,1,black,2,m,,
+connection,hpe-ib-ndr-osfp-dac-cable,,,,,,,,,,,matrix-gpu-02,HSN 0,matrix-hsn-sw,2,black,2,m,,

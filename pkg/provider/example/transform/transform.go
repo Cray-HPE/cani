@@ -38,6 +38,20 @@ func SetProviderGetter(getter func() interface {
 	providerGetter = getter
 }
 
+// systemProviderGetter returns the Example singleton for system CSV.
+var systemProviderGetter func() interface {
+	GetSystemRecords() *import_.SystemCSV
+	IsSystemImport() bool
+}
+
+// SetSystemProviderGetter allows the parent package to provide system CSV access.
+func SetSystemProviderGetter(getter func() interface {
+	GetSystemRecords() *import_.SystemCSV
+	IsSystemImport() bool
+}) {
+	systemProviderGetter = getter
+}
+
 // classifiedRecords holds records categorized by type.
 type classifiedRecords struct {
 	racks   []import_.CsvRecord
@@ -93,6 +107,14 @@ func classifyRecords(records []import_.CsvRecord) (*classifiedRecords, error) {
 // Uses three passes: racks first, then devices (with parenting), then cables (with linking).
 // Returns a TransformResult containing all created items.
 func Transform(existing devicetypes.Inventory) (*devicetypes.TransformResult, error) {
+	// Check for system CSV format first
+	if systemProviderGetter != nil {
+		sysProv := systemProviderGetter()
+		if sysProv.IsSystemImport() {
+			return TransformSystem(existing, sysProv.GetSystemRecords())
+		}
+	}
+
 	// Reset rack position tracking for fresh import
 	resetRackPositionStates()
 
@@ -337,10 +359,31 @@ func populateFromDeviceType(device *devicetypes.CaniDeviceType, dt *devicetypes.
 	device.Slug = dt.Slug
 	device.Manufacturer = dt.Manufacturer
 	device.Model = dt.Model
+	if dt.Description != "" {
+		device.Description = dt.Description
+	}
 	if dt.Type != "" {
 		device.Type = dt.Type
 	}
+	if dt.UHeight > 0 {
+		device.UHeight = dt.UHeight
+	}
+	device.IsFullDepth = dt.IsFullDepth
+	if dt.Weight > 0 {
+		device.Weight = dt.Weight
+	}
+	if dt.WeightUnit != "" {
+		device.WeightUnit = dt.WeightUnit
+	}
+	if dt.Comments != "" {
+		device.Comments = dt.Comments
+	}
 	device.Interfaces = dt.Interfaces
+	device.ConsolePorts = dt.ConsolePorts
+	device.PowerPorts = dt.PowerPorts
+	device.ModuleBays = dt.ModuleBays
+	device.DeviceBays = dt.DeviceBays
+	device.Identifications = dt.Identifications
 }
 
 // buildProviderMetadata creates provider metadata from a record.

@@ -1,6 +1,7 @@
 package import_
 
 import (
+	"encoding/csv"
 	"fmt"
 	"log"
 	"os"
@@ -38,6 +39,51 @@ func GetProvider() interface {
 		panic("providerGetter not set; ensure example package init() calls SetProviderGetter")
 	}
 	return providerGetter()
+}
+
+// systemProviderGetter returns the Example singleton for system CSV operations.
+var systemProviderGetter func() interface {
+	SetSystemRecords(data *SystemCSV)
+	ClearSystemRecords()
+	IsSystemImport() bool
+}
+
+// SetSystemProviderGetter allows the parent package to provide system CSV access.
+func SetSystemProviderGetter(getter func() interface {
+	SetSystemRecords(data *SystemCSV)
+	ClearSystemRecords()
+	IsSystemImport() bool
+}) {
+	systemProviderGetter = getter
+}
+
+// GetSystemProvider returns the Example singleton for system CSV operations.
+func GetSystemProvider() interface {
+	SetSystemRecords(data *SystemCSV)
+	ClearSystemRecords()
+	IsSystemImport() bool
+} {
+	if systemProviderGetter == nil {
+		panic("systemProviderGetter not set; ensure example package init() calls SetSystemProviderGetter")
+	}
+	return systemProviderGetter()
+}
+
+// peekCSVHeader reads the first line of a CSV file and returns the header fields.
+func peekCSVHeader(filePath string) ([]string, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	reader := csv.NewReader(file)
+	reader.Comment = '#'
+	header, err := reader.Read()
+	if err != nil {
+		return nil, err
+	}
+	return header, nil
 }
 
 // yamlInventory is an intermediate struct for YAML parsing with string keys
@@ -175,9 +221,48 @@ func mergeYAMLInventory(dst *devicetypes.Inventory, src *yamlInventory) error {
 }
 
 // ImportCSV parses a CSV file and stores raw records on the Example provider.
-// Does NOT create inventory objects; that is the responsibility of the transform phase.
-// When config.Cfg.StepMode is true, displays colorful step output for each record.
+// Auto-detects system CSV format (multi-section with Section column) vs
+// traditional BOM CSV format. Does NOT create inventory objects; that is the
+// responsibility of the transform phase.
 func ImportCSV(cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+	// Peek at header to detect format
+	header, err := peekCSVHeader(commands.CsvFlag)
+	if err != nil {
+		return fmt.Errorf("failed to read CSV header: %w", err)
+	}
+
+	if IsSystemCSV(header) {
+		return importSystemCSV(cmd, args, inventory)
+	}
+	return importBOMCSV(cmd, args, inventory)
+}
+
+// importSystemCSV parses a system CSV and stores the grouped data on the provider.
+func importSystemCSV(cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+	data, err := ParseSystemCSV(commands.CsvFlag)
+	if err != nil {
+		return fmt.Errorf("failed to parse system CSV: %w", err)
+	}
+
+	total := len(data.Roles) + len(data.Racks) + len(data.Devices) + len(data.Modules) + len(data.Connections)
+	if total == 0 {
+		log.Println("No valid records found in system CSV")
+		return nil
+	}
+
+	prov := GetSystemProvider()
+	prov.ClearSystemRecords()
+	prov.SetSystemRecords(data)
+
+	log.Printf("Parsed system CSV from %s: %d roles, %d racks, %d devices, %d modules, %d connections",
+		commands.CsvFlag,
+		len(data.Roles), len(data.Racks), len(data.Devices), len(data.Modules), len(data.Connections))
+
+	return nil
+}
+
+// importBOMCSV parses a traditional BOM CSV and stores raw records on the provider.
+func importBOMCSV(cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
 	records, err := ParseCSV(commands.CsvFlag)
 	if err != nil {
 		return fmt.Errorf("failed to parse CSV: %w", err)

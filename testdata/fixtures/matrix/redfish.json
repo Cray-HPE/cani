@@ -1,0 +1,110 @@
+[
+  {
+    "@odata.id": "/redfish/v1",
+    "@odata.type": "#ServiceRoot.v1_13_0.ServiceRoot",
+    "Id": "RootService",
+    "UUID": "11111111-1111-1111-1111-000000000001",
+    "Product": "ProLiant XD670",
+    "Vendor": "HPE",
+    "RedfishVersion": "1.13.0",
+    "Oem": {
+      "Hpe": {
+        "Manager": [
+          {
+            "FQDN": "matrix-gpu-01-bmc.local",
+            "HostName": "matrix-gpu-01-bmc",
+            "ManagerType": "iLO 6",
+            "ManagerFirmwareVersion": "1.61",
+            "Status": { "Health": "OK" }
+          }
+        ],
+        "Moniker": {
+          "PRODTAG": "XD670",
+          "SYSFAM": "ProLiant",
+          "VENDNAM": "HPE"
+        }
+      }
+    }
+  },
+  {
+    "@odata.id": "/redfish/v1",
+    "@odata.type": "#ServiceRoot.v1_13_0.ServiceRoot",
+    "Id": "RootService",
+    "UUID": "11111111-1111-1111-1111-000000000002",
+    "Product": "ProLiant XD670",
+    "Vendor": "HPE",
+    "RedfishVersion": "1.13.0",
+    "Oem": {
+      "Hpe": {
+        "Manager": [
+          {
+            "FQDN": "matrix-gpu-02-bmc.local",
+            "HostName": "matrix-gpu-02-bmc",
+            "ManagerType": "iLO 6",
+            "ManagerFirmwareVersion": "1.61",
+            "Status": { "Health": "OK" }
+          }
+        ],
+        "Moniker": {
+          "PRODTAG": "XD670",
+          "SYSFAM": "ProLiant",
+          "VENDNAM": "HPE"
+        }
+      }
+    }
+  },
+  {
+    "@odata.id": "/redfish/v1",
+    "@odata.type": "#ServiceRoot.v1_13_0.ServiceRoot",
+    "Id": "RootService",
+    "UUID": "11111111-1111-1111-1111-000000000003",
+    "Product": "ProLiant DL380 Gen11",
+    "Vendor": "HPE",
+    "RedfishVersion": "1.13.0",
+    "Oem": {
+      "Hpe": {
+        "Manager": [
+          {
+            "FQDN": "matrix-serv-01-bmc.local",
+            "HostName": "matrix-serv-01-bmc",
+            "ManagerType": "iLO 6",
+            "ManagerFirmwareVersion": "1.61",
+            "Status": { "Health": "OK" }
+          }
+        ],
+        "Moniker": {
+          "PRODTAG": "DL380 Gen11",
+          "SYSFAM": "ProLiant",
+          "VENDNAM": "HPE"
+        }
+      }
+    }
+  },
+  {
+    "@odata.id": "/redfish/v1",
+    "@odata.type": "#ServiceRoot.v1_13_0.ServiceRoot",
+    "Id": "RootService",
+    "UUID": "11111111-1111-1111-1111-000000000004",
+    "Product": "ProLiant DL380 Gen11",
+    "Vendor": "HPE",
+    "RedfishVersion": "1.13.0",
+    "Oem": {
+      "Hpe": {
+        "Manager": [
+          {
+            "FQDN": "matrix-serv-02-bmc.local",
+            "HostName": "matrix-serv-02-bmc",
+            "ManagerType": "iLO 6",
+            "ManagerFirmwareVersion": "1.61",
+            "Status": { "Health": "OK" }
+          }
+        ],
+        "Moniker": {
+          "PRODTAG": "DL380 Gen11",
+          "SYSFAM": "ProLiant",
+          "VENDNAM": "HPE"
+        }
+      }
+    }
+  }
+]

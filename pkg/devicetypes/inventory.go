@@ -70,6 +70,7 @@ type TransformResult struct {
 	Modules   map[uuid.UUID]*CaniModuleType
 	Cables    map[uuid.UUID]*CaniCableType
 	Frus      map[uuid.UUID]*CaniFruType
+	Metadata  *InventoryMetadata
 }
 
 // EnsureUniqueDeviceNames detects duplicate names within the transform

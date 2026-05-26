@@ -1,0 +1,80 @@
+[
+  {
+    "name": "matrix-gpu-01",
+    "uuid": "11111111-1111-1111-1111-000000000001",
+    "type": "compute",
+    "managed": true,
+    "platform": {
+      "name": "ProLiant XD670"
+    },
+    "management": {
+      "cardType": "iLO6",
+      "cardIpAddress": "10.0.100.1"
+    }
+  },
+  {
+    "name": "matrix-gpu-02",
+    "uuid": "11111111-1111-1111-1111-000000000002",
+    "type": "compute",
+    "managed": true,
+    "platform": {
+      "name": "ProLiant XD670"
+    },
+    "management": {
+      "cardType": "iLO6",
+      "cardIpAddress": "10.0.100.2"
+    }
+  },
+  {
+    "name": "matrix-serv-01",
+    "uuid": "11111111-1111-1111-1111-000000000003",
+    "type": "compute",
+    "managed": true,
+    "platform": {
+      "name": "ProLiant DL380 Gen11"
+    },
+    "management": {
+      "cardType": "iLO6",
+      "cardIpAddress": "10.0.100.3"
+    }
+  },
+  {
+    "name": "matrix-serv-02",
+    "uuid": "11111111-1111-1111-1111-000000000004",
+    "type": "compute",
+    "managed": true,
+    "platform": {
+      "name": "ProLiant DL380 Gen11"
+    },
+    "management": {
+      "cardType": "iLO6",
+      "cardIpAddress": "10.0.100.4"
+    }
+  },
+  {
+    "name": "matrix-mgmt-sw",
+    "uuid": "11111111-1111-1111-1111-000000000005",
+    "type": "switch",
+    "managed": true,
+    "platform": {
+      "name": "Aruba 2930F 48G 4SFP+"
+    },
+    "management": {
+      "cardType": "switch-mgmt",
+      "cardIpAddress": "10.0.100.10"
+    }
+  },
+  {
+    "name": "matrix-hsn-sw",
+    "uuid": "11111111-1111-1111-1111-000000000006",
+    "type": "switch",
+    "managed": true,
+    "platform": {
+      "name": "InfiniBand NDR 64-port OSFP Managed Switch"
+    },
+    "management": {
+      "cardType": "switch-mgmt",
+      "cardIpAddress": "10.0.100.11"
+    }
+  }
+]

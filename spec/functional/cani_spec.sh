@@ -43,7 +43,7 @@ Describe 'cani'
     End
 
     Describe 'flags'
-      Parameters:value --config --debug --datastore --types-dirs --types-repos --types-repo-clone --types-repo-pull --strict --version
+      Parameters:value --config --debug --datastore --datastore-path --types-dirs --types-repos --types-repo-clone --types-repo-pull --strict --version
       It "has $1 flag"
         When call bin/cani --help
         The stdout should include "$1"

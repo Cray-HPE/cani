@@ -32,6 +32,22 @@ func TestNewJSONStoreHappyPath(t *testing.T) {
 	}
 }
 
+func TestNewJSONStoreAbsolutePath(t *testing.T) {
+	original := config.Cfg
+	config.Cfg = &config.Config{
+		Path:      "/tmp/cani-test/config.yaml",
+		Datastore: "/tmp/override/test.json",
+	}
+	defer func() { config.Cfg = original }()
+
+	store := NewJSONStore()
+
+	expected := "/tmp/override/test.json"
+	if store.Path != expected {
+		t.Errorf("expected path %q, got %q", expected, store.Path)
+	}
+}
+
 func TestNewJSONStoreNilConfig(t *testing.T) {
 	original := config.Cfg
 	config.Cfg = nil

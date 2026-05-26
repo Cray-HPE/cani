@@ -1,11 +1,75 @@
 package export
 
-import "github.com/Cray-HPE/cani/pkg/devicetypes"
+import (
+	"encoding/json"
+	"fmt"
+	"os"
 
+	"github.com/Cray-HPE/cani/pkg/devicetypes"
+)
+
+type serviceRoot struct {
+	OdataID        string  `json:"@odata.id"`
+	OdataType      string  `json:"@odata.type"`
+	ID             string  `json:"Id"`
+	UUID           string  `json:"UUID"`
+	Product        string  `json:"Product"`
+	Vendor         string  `json:"Vendor"`
+	RedfishVersion string  `json:"RedfishVersion"`
+	Oem            oemData `json:"Oem"`
+}
+
+type oemData struct {
+	Hpe *hpeOem `json:"Hpe,omitempty"`
+}
+
+type hpeOem struct {
+	Manager []hpeManager `json:"Manager,omitempty"`
+}
+
+type hpeManager struct {
+	FQDN        string `json:"FQDN,omitempty"`
+	HostName    string `json:"HostName,omitempty"`
+	ManagerType string `json:"ManagerType,omitempty"`
+}
+
+// Export writes the inventory devices as a Redfish-compatible JSON array of
+// ServiceRoot objects to stdout. Only "node" type devices are exported
+// (Redfish is BMC-discovery, switches are excluded).
 func Export(existing devicetypes.Inventory) error {
-	// Common patterns:
-	//   - Compare local inventory with external system
-	//   - Create/update/delete resources in external system
-	//   - Report what was created, updated, skipped, or errored
+	var roots []serviceRoot
+	for _, dev := range existing.Devices {
+		if dev == nil {
+			continue
+		}
+		if dev.Type != devicetypes.TypeNode {
+			continue
+		}
+		r := serviceRoot{
+			OdataID:        "/redfish/v1",
+			OdataType:      "#ServiceRoot.v1_13_0.ServiceRoot",
+			ID:             "RootService",
+			UUID:           dev.ID.String(),
+			Product:        dev.Model,
+			Vendor:         dev.GetVendor(),
+			RedfishVersion: "1.13.0",
+			Oem: oemData{
+				Hpe: &hpeOem{
+					Manager: []hpeManager{{
+						FQDN:        dev.Name + "-bmc.local",
+						HostName:    dev.Name + "-bmc",
+						ManagerType: "iLO 6",
+					}},
+				},
+			},
+		}
+		roots = append(roots, r)
+	}
+
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(roots); err != nil {
+		return fmt.Errorf("encoding Redfish ServiceRoots: %w", err)
+	}
 	return nil
 }
