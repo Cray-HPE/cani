@@ -14,7 +14,7 @@ Add the Aruba 6300 and two 8325's to u47, u46, and u45. The XD670 ILO ports on t
 
 ## Rack x3507 Switch Updates
 
-Add the Aruba 6300, two 9300's, and two 8325's to u43 through u47. No changes to the high speed sitches (HSNL-3507U42 and HSNL-3507U43) are required. The bottom DL380 (SERV-3507U05) should not have it's ILO port recabled; it should remain attached to the management switch in rack x3508. Add an additional cable to the onboard NIC of SERV-3507U05 and connect it to another port on the same management switch in rack x3508. Update the ZenDesk ticket with the ILO port number and the onboard NIC port number for SERV-3507U05.
+Add the Aruba 6300, two 9300's, and two 8325's to u43 through u47. No changes to the high speed sitches (HSNL-3507U42 and HSNL-3507U43) are required. SERV-3507U05 iLO is connected to the local 6300M (FORGE-3507u47M) at port 17.
 
 Two DL380's (DL-3507U23 and DL-3507U25) are NOT included in this recabling effort. No cables should be removed. Anything that that these nodes are cabled to should be left in place.
 
@@ -92,7 +92,7 @@ graph TB
         FORGE3507u43L["FORGE-3507u43L<br/>Leaf 8325-32C"]:::leaf
     end
 
-    MGMT3508["x3508 Management Switch"]:::mgmt
+    MAN3507u48["MAN-3507u48<br/>Mgmt Switch"]:::mgmt
 
     %% ── LAYER 1: Management iLO (1GbE, CAT6) ──
 
@@ -104,8 +104,8 @@ graph TB
     SERV11 -- "iLO → p14" --- FORGE3507u47M
     SERV9 -- "iLO → p15" --- FORGE3507u47M
     SERV7 -- "iLO → p16" --- FORGE3507u47M
-    SERV5 -- "iLO" --- MGMT3508
-    SERV5 -- "onboard NIC" --- MGMT3508
+    SERV5 -- "iLO → p17" --- FORGE3507u47M
+    SERV5 -- "OCP NIC → p10" --- MAN3507u48
 
     %% ── LAYER 1b: Mgmt switch SFP28 uplinks → leaf pairs (10G DAC) ──
 
@@ -357,6 +357,7 @@ graph TB
 | 14 | SERV-3507u11 | iLO | Management | CAT6 3m |
 | 15 | SERV-3507u9 | iLO | Management | CAT6 3m |
 | 16 | SERV-3507u7 | iLO | Management | CAT6 3m |
+| 17 | SERV-3507u5 | iLO | Management | CAT6 3m |
 | 49 | FORGE-3507u44L | 1/1/10 | Leaf uplink | 10G DAC 3m |
 | 50 | FORGE-3507u43L | 1/1/10 | Leaf uplink | 10G DAC 3m |
 

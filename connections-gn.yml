@@ -105,8 +105,8 @@ connections:
     b: { device: "MAN-3516u48", port: "16" }
     cable: { type: hpe-cat5-rj45-4-3m-cable, color: blue }
   - a: { device: "SERV-3507u5", port: "iLO" }
-    b: { device: "MAN-3516u48", port: "17" }
-    cable: { type: hpe-cat5-rj45-4-3m-cable, color: blue }
+    b: { device: "FORGE-3507u47M", port: "17" }
+    cable: { type: hpe-3m-cat6-stp, color: blue }
 
   # x3507: NDR switch mgmt + UFM → MAN-3516u48
   - a: { device: "HSNS-3507u41", port: "mgmt0" }
