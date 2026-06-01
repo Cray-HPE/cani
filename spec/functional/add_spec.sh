@@ -37,7 +37,7 @@ Describe 'cani alpha add'
     End
 
     Describe 'subcommands'
-      Parameters:value location rack device module cable metadata
+      Parameters:value location rack device module cable metadata vlan prefix ip
       It "lists the $1 subcommand"
         When call bin/cani alpha add --help
         The stdout should include "$1"
