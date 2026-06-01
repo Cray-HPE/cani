@@ -37,7 +37,7 @@ Describe 'cani alpha show'
     End
 
     Describe 'subcommands'
-      Parameters:value location rack device module cable cables interfaces fru metadata
+      Parameters:value location rack device module cable interface fru metadata vlan prefix ip
       It "lists the $1 subcommand"
         When call bin/cani alpha show --help
         The stdout should include "$1"
@@ -45,7 +45,7 @@ Describe 'cani alpha show'
     End
 
     Describe 'persistent flags'
-      Parameters:value --sort --format --visual --rack --no-color --file --show-cables --rack-view --columns --verbose --show-routing --cable-type --detail
+      Parameters:value --sort --format --no-color --file --with
       It "has $1 flag"
         When call bin/cani alpha show --help
         The stdout should include "$1"
@@ -53,38 +53,23 @@ Describe 'cani alpha show'
     End
   End
 
-  # ── show cables help ────────────────────────────────────────────
+  # ── show cable help ─────────────────────────────────────────────
 
-  Describe 'cables --help'
+  Describe 'cable --help'
     It 'exits 0 and describes listing cables'
-      When call bin/cani alpha show cables --help
+      When call bin/cani alpha show cable --help
       The status should equal 0
-      The stdout should include 'List cables in the inventory'
-    End
-
-    It 'has --unconnected flag'
-      When call bin/cani alpha show cables --help
-      The stdout should include '--unconnected'
+      The stdout should include 'cable'
     End
   End
 
-  # ── show interfaces help ────────────────────────────────────────
+  # ── show interface help ─────────────────────────────────────────
 
-  Describe 'interfaces --help'
+  Describe 'interface --help'
     It 'exits 0 and describes listing interfaces'
-      When call bin/cani alpha show interfaces --help
+      When call bin/cani alpha show interface --help
       The status should equal 0
-      The stdout should include 'List interfaces'
-    End
-
-    It 'has --device flag'
-      When call bin/cani alpha show interfaces --help
-      The stdout should include '--device'
-    End
-
-    It 'has --type flag'
-      When call bin/cani alpha show interfaces --help
-      The stdout should include '--type'
+      The stdout should include 'interface'
     End
   End
 

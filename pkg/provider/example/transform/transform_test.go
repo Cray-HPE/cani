@@ -280,7 +280,30 @@ func TestPopulateFromDeviceType(t *testing.T) {
 		device := &devicetypes.CaniDeviceType{Name: "original", Slug: "old-slug"}
 		dt := &devicetypes.CaniDeviceType{
 			Slug: "new-slug", Manufacturer: "HPE", Model: "DL380 Gen11",
-			Type: devicetypes.Type("node"), Interfaces: []devicetypes.InterfaceSpec{{Name: "eth0"}},
+			Description: "Rack server",
+			Type:        devicetypes.Type("node"),
+			UHeight:     2,
+			IsFullDepth: true,
+			Weight:      15.5,
+			WeightUnit:  "kg",
+			Comments:    "from library",
+			Interfaces:  []devicetypes.InterfaceSpec{{Name: "eth0"}},
+			ConsolePorts: []devicetypes.ConsolePortSpec{{
+				Name: "console0",
+			}},
+			PowerPorts: []devicetypes.PowerPortSpec{{
+				Name: "PSU1",
+			}},
+			ModuleBays: []devicetypes.ModuleBaySpec{{
+				Name: "PCIe1",
+			}},
+			DeviceBays: []devicetypes.DeviceBaySpec{{
+				Name: "bay1",
+			}},
+			Identifications: []devicetypes.Identification{{
+				Manufacturer: "HPE",
+				Model:        "DL380 Gen11",
+			}},
 		}
 		populateFromDeviceType(device, dt)
 
@@ -296,8 +319,41 @@ func TestPopulateFromDeviceType(t *testing.T) {
 		if device.Type != devicetypes.Type("node") {
 			t.Errorf("Type = %q, want %q", device.Type, "node")
 		}
+		if device.Description != "Rack server" {
+			t.Errorf("Description = %q, want %q", device.Description, "Rack server")
+		}
+		if device.UHeight != 2 {
+			t.Errorf("UHeight = %d, want 2", device.UHeight)
+		}
+		if !device.IsFullDepth {
+			t.Fatal("expected IsFullDepth to be true")
+		}
+		if device.Weight != 15.5 {
+			t.Errorf("Weight = %v, want 15.5", device.Weight)
+		}
+		if device.WeightUnit != "kg" {
+			t.Errorf("WeightUnit = %q, want %q", device.WeightUnit, "kg")
+		}
+		if device.Comments != "from library" {
+			t.Errorf("Comments = %q, want %q", device.Comments, "from library")
+		}
 		if len(device.Interfaces) != 1 {
 			t.Errorf("Interfaces len = %d, want 1", len(device.Interfaces))
+		}
+		if len(device.ConsolePorts) != 1 {
+			t.Errorf("ConsolePorts len = %d, want 1", len(device.ConsolePorts))
+		}
+		if len(device.PowerPorts) != 1 {
+			t.Errorf("PowerPorts len = %d, want 1", len(device.PowerPorts))
+		}
+		if len(device.ModuleBays) != 1 {
+			t.Errorf("ModuleBays len = %d, want 1", len(device.ModuleBays))
+		}
+		if len(device.DeviceBays) != 1 {
+			t.Errorf("DeviceBays len = %d, want 1", len(device.DeviceBays))
+		}
+		if len(device.Identifications) != 1 {
+			t.Errorf("Identifications len = %d, want 1", len(device.Identifications))
 		}
 	})
 

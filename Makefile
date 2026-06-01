@@ -322,8 +322,8 @@ spec-setup: ## Install shellspec for BDD tests
 #  Nautobot
 # ──────────────────────────────────────────────────────────────────────────────
 
-NAUTOBOT_VERSION ?= latest
-PYTHON_VER       ?= 3.11
+NAUTOBOT_VERSION ?= 3.0
+PYTHON_VER       ?= 3.12
 NAUTOBOT_COMPOSE := \
 	-f testdata/fixtures/nautobot/docker-compose.postgres.yml \
 	-f testdata/fixtures/nautobot/docker-compose.base.yml \

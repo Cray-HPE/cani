@@ -415,6 +415,8 @@ func (m *DeviceMapper) resolveLocation(device *devicetypes.CaniDeviceType) (*Cac
 
 // locationFromParentRack returns the location name of the device's parent rack,
 // or "" if the device has no parent rack or the rack has no location set.
+// If the rack's location type doesn't support devices, it walks the location
+// tree to find the deepest descendant that does.
 func (m *DeviceMapper) locationFromParentRack(device *devicetypes.CaniDeviceType) string {
 	if m.inventory == nil {
 		return ""
@@ -424,8 +426,9 @@ func (m *DeviceMapper) locationFromParentRack(device *devicetypes.CaniDeviceType
 		return ""
 	}
 	if rack, ok := m.inventory.Racks[rackID]; ok && rack != nil && rack.Location != uuid.Nil {
-		if loc, ok := m.inventory.Locations[rack.Location]; ok && loc.Name != "" {
-			return loc.Name
+		resolved := resolveContentLocation(rack.Location, "device", m.inventory)
+		if resolved != "" {
+			return resolved
 		}
 	}
 	return ""

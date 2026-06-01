@@ -23,9 +23,29 @@ import (
 // --- Validate ---
 
 func TestModuleValidatePassesForValid(t *testing.T) {
-	m := &CaniModuleType{Name: "gpu-a100"}
+	const slug = "test-valid-module-slug"
+	RegisterModuleType(CaniModuleType{Slug: slug})
+	t.Cleanup(func() {
+		delete(allModuleTypes, slug)
+	})
+
+	m := &CaniModuleType{Name: "gpu-a100", Slug: slug}
 	if err := m.Validate(); err != nil {
 		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+func TestModuleValidateReturnsErrorForUnknownSlug(t *testing.T) {
+	m := &CaniModuleType{Name: "gpu-a100", Slug: "definitely-not-a-real-module-slug"}
+	if err := m.Validate(); err == nil {
+		t.Fatal("expected error for unknown module slug")
+	}
+}
+
+func TestModuleValidateAllowsBlankSlug(t *testing.T) {
+	m := &CaniModuleType{Name: "custom-module"}
+	if err := m.Validate(); err != nil {
+		t.Fatalf("expected blank slug to remain valid, got %v", err)
 	}
 }
 

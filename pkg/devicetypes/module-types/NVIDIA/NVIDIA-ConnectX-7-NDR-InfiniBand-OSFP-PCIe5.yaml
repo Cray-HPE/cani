@@ -29,5 +29,8 @@ part_number: P45641-B21
 description: "NVIDIA ConnectX-7 NDR400 InfiniBand single-port OSFP PCIe Gen5 x16 Adapter. 400Gb/s InfiniBand connectivity."
 type: nic
 interfaces:
-  - name: Port 1
+  - name: HSN 0
     type: 400gbase-x-osfp
+    role: hsn
+    label: NDR InfiniBand CX7
+

@@ -57,6 +57,8 @@ func newDeviceCommand() *cobra.Command {
 	cmd.Flags().String("parent", "", "Parent UUID or name (rack or device)")
 	cmd.Flags().Int("nid", 0, "Node ID (CSM provider)")
 	cmd.Flags().String("alias", "", "Node alias (CSM provider)")
+	cmd.Flags().String("primary-ipv4", "", "Primary IPv4 address (CIDR or UUID)")
+	cmd.Flags().String("primary-ipv6", "", "Primary IPv6 address (CIDR or UUID)")
 
 	return cmd
 }
@@ -134,6 +136,22 @@ func updateDevice(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("alias") {
 		alias, _ := cmd.Flags().GetString("alias")
 		device.SetProviderMeta("csm", "aliases", []string{alias})
+	}
+	if cmd.Flags().Changed("primary-ipv4") {
+		ref, _ := cmd.Flags().GetString("primary-ipv4")
+		ipID, rerr := resolveIPAddress(inventory, ref)
+		if rerr != nil {
+			return fmt.Errorf("resolving --primary-ipv4: %w", rerr)
+		}
+		device.PrimaryIPv4 = ipID
+	}
+	if cmd.Flags().Changed("primary-ipv6") {
+		ref, _ := cmd.Flags().GetString("primary-ipv6")
+		ipID, rerr := resolveIPAddress(inventory, ref)
+		if rerr != nil {
+			return fmt.Errorf("resolving --primary-ipv6: %w", rerr)
+		}
+		device.PrimaryIPv6 = ipID
 	}
 
 	if err := applySetToDevice(cmd, device); err != nil {
@@ -291,4 +309,21 @@ func applySetToDevice(cmd *cobra.Command, device *devicetypes.CaniDeviceType) er
 		}
 	}
 	return nil
+}
+
+// resolveIPAddress resolves a CIDR string or UUID to an IP address UUID in the inventory.
+func resolveIPAddress(inv *devicetypes.Inventory, ref string) (uuid.UUID, error) {
+	// Try as UUID first
+	if id, err := uuid.Parse(ref); err == nil {
+		if _, ok := inv.IPAddresses[id]; ok {
+			return id, nil
+		}
+	}
+	// Try as CIDR match
+	for _, addr := range inv.IPAddresses {
+		if addr.Address == ref {
+			return addr.ID, nil
+		}
+	}
+	return uuid.Nil, fmt.Errorf("ip address %q not found in inventory", ref)
 }

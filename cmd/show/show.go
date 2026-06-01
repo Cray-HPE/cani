@@ -48,8 +48,8 @@ func NewCommand() *cobra.Command {
 		Use:   "show",
 		Short: "Show items from the inventory",
 		Long:  `Show items from the inventory.`,
-		// Args:    cobra.ArbitraryArgs,
-		RunE: show,
+		Args:  cobra.NoArgs,
+		RunE:  show,
 	}
 
 	// Define valid sort keys
@@ -60,21 +60,12 @@ func NewCommand() *cobra.Command {
 	validFormatKeys := getAllValidFormats()
 
 	cmd.PersistentFlags().StringP("format", "o", "table", fmt.Sprintf("Output format (%s)", strings.Join(validFormatKeys, ", ")))
+	cmd.PersistentFlags().Bool("no-color", false, "Disable colorized output")
+	cmd.PersistentFlags().StringP("file", "f", "", "Load inventory from a YAML file instead of the datastore")
 
-	// Visual mode flags
-	cmd.PersistentFlags().BoolP("visual", "v", false, "Display ASCII visualization of rack layout")
-	cmd.PersistentFlags().String("rack", "", "Filter to specific rack by name (used with --visual)")
-	cmd.PersistentFlags().Bool("no-color", false, "Disable colorized output (used with --visual)")
-	cmd.PersistentFlags().StringP("file", "f", "", "Load inventory from YAML file (used with --visual)")
-	cmd.PersistentFlags().Bool("show-cables", false, "Show cable connections in visual output")
-
-	// Compact rack view flags
-	cmd.PersistentFlags().Bool("rack-view", false, "Display compact ASCII rack view with device symbols")
-	cmd.PersistentFlags().Int("columns", 0, "Number of rack columns before wrapping (0=auto, used with --rack-view)")
-	cmd.PersistentFlags().String("cable-type", "", "Filter cables by type (e.g., 'dac', 'cat6', used with --rack-view)")
-	cmd.PersistentFlags().CountP("verbose", "V", "Verbose output: -V shows legend, -VV shows all cables (used with --rack-view)")
-	cmd.PersistentFlags().Bool("show-routing", false, "Display cable routing with branching visualization (1 rack per line)")
-	cmd.PersistentFlags().Bool("detail", false, "Show single-rack detail with annotations (used with --rack-view)")
+	// Tree detail modifiers (inherited by all subcommands)
+	cmd.PersistentFlags().StringSlice("with", []string{"empty-us"},
+		"Include extra detail in tree output (modules, interfaces, cables, empty-us)")
 
 	// Add validation
 	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
@@ -91,7 +82,7 @@ func NewCommand() *cobra.Command {
 				formatKey, strings.Join(validFormatKeys, ", "))
 		}
 
-		return nil
+		return validateWithFlag(cmd)
 	}
 
 	// Add noun-based subcommands
@@ -103,8 +94,9 @@ func NewCommand() *cobra.Command {
 	cmd.AddCommand(newFruCommand())
 	cmd.AddCommand(newInterfaceCommand())
 	cmd.AddCommand(newMetadataCommand())
-	cmd.AddCommand(ListCablesCmd)
-	cmd.AddCommand(ListInterfacesCmd)
+	cmd.AddCommand(newVLANShowCommand())
+	cmd.AddCommand(newPrefixShowCommand())
+	cmd.AddCommand(newIPShowCommand())
 
 	return cmd
 }
@@ -112,9 +104,7 @@ func NewCommand() *cobra.Command {
 // loadInventory loads the inventory from a file or the configured datastore.
 func loadInventory(cmd *cobra.Command, args []string) (*devicetypes.Inventory, error) {
 	filePath, _ := cmd.Flags().GetString("file")
-	visualMode, _ := cmd.Flags().GetBool("visual")
-
-	if filePath != "" && visualMode {
+	if filePath != "" {
 		return loadInventoryFromFile(filePath)
 	}
 
@@ -130,76 +120,15 @@ func show(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Check for cable routing view mode
-	showRouting, _ := cmd.Flags().GetBool("show-routing")
-	if showRouting {
-		rackFilter, _ := cmd.Flags().GetString("rack")
-		noColor, _ := cmd.Flags().GetBool("no-color")
-		verbose, _ := cmd.Flags().GetCount("verbose")
-		cableType, _ := cmd.Flags().GetString("cable-type")
-
-		opts := visual.CompactRenderOptions{
-			NoColor:    noColor,
-			RackFilter: rackFilter,
-			Verbose:    verbose,
-			CableType:  cableType,
-		}
-
-		return visual.RenderCompactRacksWithCables(inv, opts)
-	}
-
-	// Check for compact rack view mode
-	rackViewMode, _ := cmd.Flags().GetBool("rack-view")
-	if rackViewMode {
-		rackFilter, _ := cmd.Flags().GetString("rack")
-		noColor, _ := cmd.Flags().GetBool("no-color")
-		columns, _ := cmd.Flags().GetInt("columns")
-		verbose, _ := cmd.Flags().GetCount("verbose")
-		cableType, _ := cmd.Flags().GetString("cable-type")
-		detail, _ := cmd.Flags().GetBool("detail")
-
-		opts := visual.CompactRenderOptions{
-			NoColor:    noColor,
-			RackFilter: rackFilter,
-			Columns:    columns,
-			Verbose:    verbose,
-			CableType:  cableType,
-			Detail:     detail,
-			Inventory:  inv,
-		}
-
-		if detail {
-			return visual.RenderMinimapDetailAll(inv, opts)
-		}
-		return visual.RenderMinimapRacks(inv, opts)
-	}
-
-	// Check for visual mode
-	visualMode, _ := cmd.Flags().GetBool("visual")
-	if visualMode {
-		rackFilter, _ := cmd.Flags().GetString("rack")
-		noColor, _ := cmd.Flags().GetBool("no-color")
-		showCables, _ := cmd.Flags().GetBool("show-cables")
-
-		opts := visual.RenderOptions{
-			NoColor:    noColor,
-			RackFilter: rackFilter,
-			ShowCables: showCables,
-			Inventory:  inv,
-		}
-
-		return visual.RenderAllRacks(inv, opts)
-	}
-
-	// Dispatch on --format flag
 	format, _ := cmd.Flags().GetString("format")
 	switch format {
 	case "table":
-		printAllTables(inv)
+		visual.PrintAllTables(inv)
 		return nil
 	case "tree":
-		nodes := buildFullTree(inv)
-		renderTreeOutput(nodes)
+		tf := treeFilterFromCmd(cmd)
+		nodes := visual.BuildFullTree(inv, tf)
+		visual.RenderTreeOutput(nodes, tf.NoColor)
 		return nil
 	default:
 		output, err := json.MarshalIndent(inv, "", "  ")
@@ -221,10 +150,13 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
+// BaseFormats returns the format names that every show subcommand accepts.
+func BaseFormats() []string {
+	return append([]string(nil), baseFormats...)
+}
+
 func getAllValidFormats() []string {
-	allFormats := make([]string, len(baseFormats))
-	copy(allFormats, baseFormats)
-	return allFormats
+	return BaseFormats()
 }
 
 // inventoryYAML is an intermediate struct for YAML parsing with string keys

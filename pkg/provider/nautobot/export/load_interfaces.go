@@ -105,6 +105,14 @@ func (e *Exporter) collectNewInterfaces(
 			continue
 		}
 
+		// Pre-fetch all interfaces for this device in one API call.
+		// This avoids per-interface queries whose "name" filter can
+		// fail with 400 when interface names contain "/" characters
+		// (e.g. "1/1/14" on Aruba switches).
+		if err := e.Cache.PrefetchInterfacesForDevice(nautobotID); err != nil {
+			clog.Warn("Warning: failed to prefetch interfaces for %s: %v", deviceName, err)
+		}
+
 		specs := getDeviceInterfaceSpecs(device)
 		for _, spec := range specs {
 			existing, err := e.Cache.GetInterfaceByDeviceAndName(nautobotID, spec.Name)
@@ -168,6 +176,15 @@ func (e *Exporter) createInterfacesBulk(ctx context.Context, items []bulkInterfa
 			clog.Warn("Bulk batch failed (%d items), falling back to individual creates: %v", len(batch), batchErr)
 			for _, item := range batch {
 				if err := e.createInterface(ctx, item.DeviceID, item.Spec, result); err != nil {
+					// Skip "already exists" errors — interface was created in a prior run.
+					// Fetch and cache the existing interface so cable creation can find it.
+					if strings.Contains(err.Error(), "must make a unique set") {
+						existing, lookupErr := e.Cache.GetInterfaceByDeviceAndName(item.DeviceID, item.Spec.Name)
+						if lookupErr == nil && existing != nil {
+							e.Cache.CacheInterface(item.DeviceID, item.Spec.Name, existing)
+						}
+						continue
+					}
 					mu.Lock()
 					errs = append(errs, fmt.Sprintf("%s/%s: %v", item.DeviceName, item.Spec.Name, err))
 					mu.Unlock()
@@ -206,12 +223,25 @@ func (e *Exporter) sendInterfaceBatch(
 		}
 
 		ifaceType := nautobotapi.InterfaceTypeChoices(item.Spec.Type)
-		reqs = append(reqs, nautobotapi.WritableInterfaceRequest{
+		req := nautobotapi.WritableInterfaceRequest{
 			Device: &nautobotapi.BulkWritableCircuitRequestTenant{Id: &deviceIDUnion},
 			Name:   item.Spec.Name,
 			Type:   ifaceType,
 			Status: status,
-		})
+		}
+
+		// Resolve interface role if specified
+		if item.Spec.Role != "" {
+			roleItem, roleErr := e.Cache.GetRole(item.Spec.Role)
+			if roleErr == nil && roleItem != nil {
+				var roleIDUnion nautobotapi.BulkWritableCableRequestStatusId
+				if err := roleIDUnion.FromBulkWritableCableRequestStatusId0(roleItem.ID); err == nil {
+					req.Role = &nautobotapi.BulkWritableCircuitRequestTenant{Id: &roleIDUnion}
+				}
+			}
+		}
+
+		reqs = append(reqs, req)
 	}
 
 	body, err := json.Marshal(reqs)

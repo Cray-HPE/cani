@@ -311,7 +311,7 @@ func TestAddDevicesValid(t *testing.T) {
 
 	id := uuid.New()
 	batch := map[uuid.UUID]*CaniDeviceType{
-		id: {ID: id, Name: "server-new", Slug: "test-slug"},
+		id: {ID: id, Name: "server-new"},
 	}
 
 	err := inv.AddDevices(batch)
@@ -339,6 +339,19 @@ func TestAddDevicesDuplicateUUID(t *testing.T) {
 	}
 }
 
+func TestAddDevicesRejectsInvalidSlug(t *testing.T) {
+	inv := NewInventory()
+
+	id := uuid.New()
+	batch := map[uuid.UUID]*CaniDeviceType{
+		id: {ID: id, Name: "server-new", Slug: "not-a-real-device-slug"},
+	}
+
+	if err := inv.AddDevices(batch); err == nil {
+		t.Error("AddDevices should reject an invalid device slug")
+	}
+}
+
 // ---------- MergeDevices ----------
 
 func TestMergeDevicesByUUID(t *testing.T) {
@@ -348,11 +361,10 @@ func TestMergeDevicesByUUID(t *testing.T) {
 	inv.Devices[id] = &CaniDeviceType{
 		ID:   id,
 		Name: "server-1",
-		Slug: "old-slug",
 	}
 
 	incoming := map[uuid.UUID]*CaniDeviceType{
-		id: {ID: id, Name: "server-1", Slug: "new-slug", Serial: "SN-123"},
+		id: {ID: id, Name: "server-1", Serial: "SN-123"},
 	}
 
 	inv.MergeDevices(incoming)
@@ -369,7 +381,6 @@ func TestMergeDevicesByName(t *testing.T) {
 	inv.Devices[existingID] = &CaniDeviceType{
 		ID:   existingID,
 		Name: "server-named",
-		Slug: "existing-slug",
 	}
 
 	incomingID := uuid.New()
@@ -382,6 +393,32 @@ func TestMergeDevicesByName(t *testing.T) {
 	// The existing device should have the merged serial.
 	if inv.Devices[existingID].Serial != "SN-NEW" {
 		t.Errorf("expected Serial merged by name, got %q", inv.Devices[existingID].Serial)
+	}
+}
+
+func TestMergeDevicesSkipsInvalidSlug(t *testing.T) {
+	inv := NewInventory()
+
+	id := uuid.New()
+	inv.MergeDevices(map[uuid.UUID]*CaniDeviceType{
+		id: {ID: id, Name: "server-invalid", Slug: "not-a-real-device-slug"},
+	})
+
+	if len(inv.Devices) != 0 {
+		t.Fatalf("expected invalid device merge to be skipped, got %d devices", len(inv.Devices))
+	}
+}
+
+func TestMergeModulesSkipsInvalidSlug(t *testing.T) {
+	inv := NewInventory()
+
+	id := uuid.New()
+	inv.MergeModules(map[uuid.UUID]*CaniModuleType{
+		id: {ID: id, Name: "module-invalid", Slug: "not-a-real-module-slug"},
+	})
+
+	if len(inv.Modules) != 0 {
+		t.Fatalf("expected invalid module merge to be skipped, got %d modules", len(inv.Modules))
 	}
 }
 

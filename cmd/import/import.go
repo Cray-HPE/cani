@@ -317,6 +317,7 @@ func displayTransformSummary(ctx *etlContext, result *devicetypes.TransformResul
 // mergeTransformResult merges all transformed entities into ctx.inventory.
 func mergeTransformResult(ctx *etlContext, result *devicetypes.TransformResult) {
 	result.EnsureUniqueDeviceNames()
+	mergeMetadata(ctx, result.Metadata)
 	locationRemap := mergeLocations(ctx, result.Locations)
 	rackRemap := mergeRacks(ctx, result.Racks)
 	remapDeviceParents(result.Devices, locationRemap, rackRemap)
@@ -330,6 +331,23 @@ func mergeTransformResult(ctx *etlContext, result *devicetypes.TransformResult) 
 	// from per-entity verify calls.
 	log.Printf("Verifying parent-child relationships")
 	ctx.inventory.VerifyParentChildRelationships()
+}
+
+// mergeMetadata adds roles, statuses, and tags from the transform result
+// into the inventory metadata catalog. Duplicates are silently ignored.
+func mergeMetadata(ctx *etlContext, meta *devicetypes.InventoryMetadata) {
+	if meta == nil {
+		return
+	}
+	for _, role := range meta.Roles {
+		_ = ctx.inventory.AddMetadata("roles", role)
+	}
+	for _, status := range meta.Statuses {
+		_ = ctx.inventory.AddMetadata("statuses", status)
+	}
+	for _, tag := range meta.Tags {
+		_ = ctx.inventory.AddMetadata("tags", tag)
+	}
 }
 
 // remapDeviceParents rewrites device Parent fields using the UUID remap

@@ -516,8 +516,8 @@ func (inv *Inventory) rebuildCableRelationships() *RelationshipResult {
 		}
 
 		// Remove cables whose device references are invalid.
-		aDeviceOK := cable.TerminationADevice == uuid.Nil || inv.Devices[cable.TerminationADevice] != nil
-		bDeviceOK := cable.TerminationBDevice == uuid.Nil || inv.Devices[cable.TerminationBDevice] != nil
+		aDeviceOK := cable.TerminationADevice == uuid.Nil || inv.Devices[cable.TerminationADevice] != nil || inv.Modules[cable.TerminationADevice] != nil
+		bDeviceOK := cable.TerminationBDevice == uuid.Nil || inv.Devices[cable.TerminationBDevice] != nil || inv.Modules[cable.TerminationBDevice] != nil
 		if !aDeviceOK || !bDeviceOK {
 			res.Fixed = append(res.Fixed,
 				fmt.Sprintf("cable %q (%s): removed (endpoint device deleted)",
@@ -554,8 +554,19 @@ func (inv *Inventory) rebuildCableRelationships() *RelationshipResult {
 }
 
 // findInterfaceIDByPort finds an interface UUID on a device (or its modules)
-// by matching the port name. Returns uuid.Nil if not found.
+// by matching the port name. Also handles the case where the ID refers
+// directly to a module. Returns uuid.Nil if not found.
 func (inv *Inventory) findInterfaceIDByPort(deviceID uuid.UUID, portName string) uuid.UUID {
+	// Check if the ID refers directly to a module.
+	if mod, ok := inv.Modules[deviceID]; ok && mod != nil {
+		for i := range mod.Interfaces {
+			if mod.Interfaces[i].Name == portName {
+				return mod.Interfaces[i].ID
+			}
+		}
+		return uuid.Nil
+	}
+
 	device := inv.Devices[deviceID]
 	if device == nil {
 		return uuid.Nil
@@ -605,7 +616,9 @@ func (inv *Inventory) validateCableEnd(
 ) *RelationshipResult {
 	res := &RelationshipResult{}
 	if deviceRef != uuid.Nil {
-		if _, ok := inv.Devices[deviceRef]; !ok {
+		_, devOK := inv.Devices[deviceRef]
+		_, modOK := inv.Modules[deviceRef]
+		if !devOK && !modOK {
 			res.Errors = append(res.Errors,
 				fmt.Errorf("cable %q (%s): termination %s device %s not found",
 					cable.Label, cableID, side, deviceRef))
@@ -641,13 +654,18 @@ func (inv *Inventory) rebuildInterfaceRelationships() *RelationshipResult {
 		}
 		for i := range device.Interfaces {
 			iface := &device.Interfaces[i]
+			if iface.ID == uuid.Nil {
+				iface.ID = uuid.New()
+			}
+			mgmtOnly := iface.MgmtOnly != nil && *iface.MgmtOnly
+			role := ResolveInterfaceRole(iface.Role, iface.Name, iface.Type, mgmtOnly)
 			inst := &InterfaceInstance{
 				ID:            iface.ID,
 				Name:          iface.Name,
 				InterfaceType: iface.Type,
 				DeviceID:      deviceID,
-				ObjectMeta:    ObjectMeta{Status: string(StatusActive)},
-				MgmtOnly:      iface.MgmtOnly != nil && *iface.MgmtOnly,
+				ObjectMeta:    ObjectMeta{Status: string(StatusActive), Role: role},
+				MgmtOnly:      mgmtOnly,
 			}
 			inv.Interfaces[iface.ID] = inst
 			if !oldIfaces[iface.ID] {
@@ -664,13 +682,18 @@ func (inv *Inventory) rebuildInterfaceRelationships() *RelationshipResult {
 		}
 		for i := range mod.Interfaces {
 			iface := &mod.Interfaces[i]
+			if iface.ID == uuid.Nil {
+				iface.ID = uuid.New()
+			}
+			mgmtOnly := iface.MgmtOnly != nil && *iface.MgmtOnly
+			role := ResolveInterfaceRole(iface.Role, iface.Name, iface.Type, mgmtOnly)
 			inst := &InterfaceInstance{
 				ID:            iface.ID,
 				Name:          iface.Name,
 				InterfaceType: iface.Type,
 				DeviceID:      mod.ParentDevice,
-				ObjectMeta:    ObjectMeta{Status: string(StatusActive)},
-				MgmtOnly:      iface.MgmtOnly != nil && *iface.MgmtOnly,
+				ObjectMeta:    ObjectMeta{Status: string(StatusActive), Role: role},
+				MgmtOnly:      mgmtOnly,
 			}
 			inv.Interfaces[iface.ID] = inst
 			if !oldIfaces[iface.ID] {

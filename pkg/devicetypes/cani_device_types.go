@@ -2,6 +2,7 @@ package devicetypes
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 
 	"github.com/google/uuid"
@@ -58,6 +59,10 @@ type CaniDeviceType struct {
 	// Rack placement
 	RackPosition int    `json:"rackPosition,omitempty" yaml:"rack_position,omitempty"`
 	Face         string `json:"face,omitempty" yaml:"face,omitempty"`
+
+	// IPAM: primary IP addresses for this device
+	PrimaryIPv4 uuid.UUID `json:"primaryIpv4,omitempty" yaml:"primary_ipv4,omitempty"`
+	PrimaryIPv6 uuid.UUID `json:"primaryIpv6,omitempty" yaml:"primary_ipv6,omitempty"`
 
 	// Source tracks where this type was loaded from (e.g. "builtin", "local:/path", "git:url").
 	Source string `json:"-" yaml:"-"`
@@ -220,6 +225,11 @@ func (c *CaniDeviceType) Validate() error {
 	if c == nil {
 		return errors.New("cannot validate nil CaniDeviceType")
 	}
+	if c.Slug != "" {
+		if _, ok := GetBySlug(c.Slug); !ok {
+			return fmt.Errorf("device type slug %q not found in library", c.Slug)
+		}
+	}
 
 	return nil
 }
@@ -236,12 +246,13 @@ func (c *CaniDeviceType) InstantiateInterfaces() []InterfaceInstance {
 		if iface.MgmtOnly != nil {
 			mgmtOnly = *iface.MgmtOnly
 		}
+		role := ResolveInterfaceRole(iface.Role, iface.Name, iface.Type, mgmtOnly)
 		instances = append(instances, InterfaceInstance{
 			ID:            uuid.New(),
 			Name:          iface.Name,
 			InterfaceType: iface.Type,
 			DeviceID:      c.ID,
-			ObjectMeta:    ObjectMeta{Status: string(StatusActive)},
+			ObjectMeta:    ObjectMeta{Status: string(StatusActive), Role: role},
 			MgmtOnly:      mgmtOnly,
 		})
 	}

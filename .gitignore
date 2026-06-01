@@ -55,3 +55,6 @@ testdata/fixtures/csm/simulator/nginx/certs/
 # support repos
 hms-simulation-environment/
 shellspec/
+
+# ggshield cache
+.cache_ggshield

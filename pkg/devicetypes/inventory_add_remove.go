@@ -69,6 +69,9 @@ func (inv *Inventory) AddModule(mod *CaniModuleType) error {
 	if mod == nil {
 		return fmt.Errorf("module must not be nil")
 	}
+	if err := mod.Validate(); err != nil {
+		return err
+	}
 	if _, exists := inv.Modules[mod.ID]; exists {
 		return fmt.Errorf("module %s already exists", mod.ID)
 	}
@@ -152,5 +155,53 @@ func (inv *Inventory) RemoveCable(id uuid.UUID) error {
 		return fmt.Errorf("cable %s not found", id)
 	}
 	delete(inv.Cables, id)
+	return nil
+}
+
+// AddVLAN inserts a single VLAN into the inventory.
+func (inv *Inventory) AddVLAN(vlan *CaniVLAN) error {
+	if vlan == nil {
+		return fmt.Errorf("vlan must not be nil")
+	}
+	if _, exists := inv.VLANs[vlan.ID]; exists {
+		return fmt.Errorf("vlan %s already exists", vlan.ID)
+	}
+	inv.VLANs[vlan.ID] = vlan
+	return nil
+}
+
+// AddPrefix inserts a single prefix into the inventory and auto-computes its parent.
+func (inv *Inventory) AddPrefix(prefix *CaniPrefix) error {
+	if prefix == nil {
+		return fmt.Errorf("prefix must not be nil")
+	}
+	if _, exists := inv.Prefixes[prefix.ID]; exists {
+		return fmt.Errorf("prefix %s already exists", prefix.ID)
+	}
+	if err := ParsePrefix(prefix); err != nil {
+		return fmt.Errorf("invalid prefix: %w", err)
+	}
+	if prefix.Parent == uuid.Nil {
+		prefix.Parent = FindParentPrefix(prefix, inv.Prefixes)
+	}
+	inv.Prefixes[prefix.ID] = prefix
+	return nil
+}
+
+// AddIPAddress inserts a single IP address into the inventory and auto-computes its parent prefix.
+func (inv *Inventory) AddIPAddress(addr *CaniIPAddress) error {
+	if addr == nil {
+		return fmt.Errorf("ip address must not be nil")
+	}
+	if _, exists := inv.IPAddresses[addr.ID]; exists {
+		return fmt.Errorf("ip address %s already exists", addr.ID)
+	}
+	if err := ParseIPAddress(addr); err != nil {
+		return fmt.Errorf("invalid ip address: %w", err)
+	}
+	if addr.Parent == uuid.Nil {
+		addr.Parent = FindParentPrefixForIP(addr, inv.Prefixes)
+	}
+	inv.IPAddresses[addr.ID] = addr
 	return nil
 }

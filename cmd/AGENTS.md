@@ -81,7 +81,9 @@ cani (root)
     │   ├── rack <slug-or-part>
     │   ├── device <slug-or-part>
     │   ├── module <slug-or-part>
-    │   └── cable <slug-or-part>
+    │   ├── cable <slug-or-part>
+    │   └── connections <file.yaml>
+    │       └── generate <pattern>
     ├── remove/                  # Remove inventory items
     │   ├── location <uuid-or-name>
     │   ├── rack <uuid-or-name>

@@ -19,7 +19,7 @@ import (
 
 func TestCaniTypeValidatePassesForValidInstance(t *testing.T) {
 	id := uuid.New()
-	var ct CaniType = &CaniDeviceType{ID: id, Slug: "test-device", ObjectMeta: ObjectMeta{Status: "Staged"}}
+	var ct CaniType = &CaniDeviceType{ID: id, ObjectMeta: ObjectMeta{Status: "Staged"}}
 	if err := ct.Validate(); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

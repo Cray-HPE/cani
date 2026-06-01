@@ -448,6 +448,19 @@ func (inv *Inventory) FindDeviceByNameOrID(ref string) *CaniDeviceType {
 	return nil
 }
 
+// FindConnectableByNameOrID searches devices first, then modules, returning
+// the UUID of the matching entity. This allows cables to terminate on either
+// a device or a module. Returns uuid.Nil if nothing matches.
+func (inv *Inventory) FindConnectableByNameOrID(ref string) uuid.UUID {
+	if dev := inv.FindDeviceByNameOrID(ref); dev != nil {
+		return dev.ID
+	}
+	if mod := inv.FindModuleByName(ref); mod != nil {
+		return mod.ID
+	}
+	return uuid.Nil
+}
+
 // DevicesBySlug returns all inventory devices matching the given slug,
 // sorted by name for deterministic ordering.
 func (inv *Inventory) DevicesBySlug(slug string) []*CaniDeviceType {
