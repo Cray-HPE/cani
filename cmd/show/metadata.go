@@ -26,11 +26,7 @@
 package show
 
 import (
-	"fmt"
-	"strconv"
-	"strings"
-
-	"github.com/Cray-HPE/cani/pkg/devicetypes"
+	"github.com/Cray-HPE/cani/pkg/visual"
 	"github.com/spf13/cobra"
 )
 
@@ -53,91 +49,9 @@ func showMetadata(cmd *cobra.Command, args []string) error {
 	format, _ := cmd.Flags().GetString("format")
 	switch format {
 	case "table":
-		printMetadataTable(inv)
+		visual.PrintMetadataTable(inv)
 		return nil
 	default:
 		return marshalAndPrint(inv.Metadata)
-	}
-}
-
-// printMetadataTable renders inventory metadata as grouped tables.
-func printMetadataTable(inv *devicetypes.Inventory) {
-	if inv.Metadata == nil || (len(inv.Metadata.Roles) == 0 &&
-		len(inv.Metadata.Statuses) == 0 &&
-		len(inv.Metadata.Tags) == 0) {
-		fmt.Println("(no metadata defined)")
-		return
-	}
-
-	if len(inv.Metadata.Roles) > 0 {
-		fmt.Printf("\nRoles (%d):\n", len(inv.Metadata.Roles))
-		printRolesTable(inv.Metadata.Roles)
-	}
-	if len(inv.Metadata.Statuses) > 0 {
-		fmt.Printf("\nStatuses (%d):\n", len(inv.Metadata.Statuses))
-		printEntriesTable(inv.Metadata.Statuses)
-	}
-	if len(inv.Metadata.Tags) > 0 {
-		fmt.Printf("\nTags (%d):\n", len(inv.Metadata.Tags))
-		printEntriesTable(inv.Metadata.Tags)
-	}
-	fmt.Println()
-}
-
-// Column widths for metadata tables.
-const (
-	colMetaName = 25
-	colColor    = 10
-	colDesc     = 30
-	colCTypes   = 30
-	colWeight   = 8
-)
-
-// printRolesTable renders role entries with a WEIGHT column.
-func printRolesTable(entries []devicetypes.MetadataEntry) {
-	header := col("NAME", colMetaName) + "  " +
-		col("COLOR", colColor) + "  " +
-		col("DESCRIPTION", colDesc) + "  " +
-		col("CONTENT TYPES", colCTypes) + "  " +
-		col("WEIGHT", colWeight)
-	sep := col(strings.Repeat("-", colMetaName), colMetaName) + "  " +
-		col(strings.Repeat("-", colColor), colColor) + "  " +
-		col(strings.Repeat("-", colDesc), colDesc) + "  " +
-		col(strings.Repeat("-", colCTypes), colCTypes) + "  " +
-		col(strings.Repeat("-", colWeight), colWeight)
-
-	fmt.Println(header)
-	fmt.Println(sep)
-	for _, e := range entries {
-		fmt.Println(
-			col(e.Name, colMetaName) + "  " +
-				col(e.Color, colColor) + "  " +
-				col(e.Description, colDesc) + "  " +
-				col(strings.Join(e.ContentTypes, ","), colCTypes) + "  " +
-				col(strconv.Itoa(e.Weight), colWeight),
-		)
-	}
-}
-
-// printEntriesTable renders metadata entries without a WEIGHT column.
-func printEntriesTable(entries []devicetypes.MetadataEntry) {
-	header := col("NAME", colMetaName) + "  " +
-		col("COLOR", colColor) + "  " +
-		col("DESCRIPTION", colDesc) + "  " +
-		col("CONTENT TYPES", colCTypes)
-	sep := col(strings.Repeat("-", colMetaName), colMetaName) + "  " +
-		col(strings.Repeat("-", colColor), colColor) + "  " +
-		col(strings.Repeat("-", colDesc), colDesc) + "  " +
-		col(strings.Repeat("-", colCTypes), colCTypes)
-
-	fmt.Println(header)
-	fmt.Println(sep)
-	for _, e := range entries {
-		fmt.Println(
-			col(e.Name, colMetaName) + "  " +
-				col(e.Color, colColor) + "  " +
-				col(e.Description, colDesc) + "  " +
-				col(strings.Join(e.ContentTypes, ","), colCTypes),
-		)
 	}
 }

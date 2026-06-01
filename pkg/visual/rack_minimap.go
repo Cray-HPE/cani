@@ -303,28 +303,32 @@ func printMinimapLegend(opts CompactRenderOptions) {
 
 // colorFuncs bundles color helper closures.
 type colorFuncs struct {
-	red    func(string) string
-	green  func(string) string
-	yellow func(string) string
-	cyan   func(string) string
-	gray   func(string) string
-	bold   func(string) string
-	white  func(string) string
+	red     func(string) string
+	green   func(string) string
+	yellow  func(string) string
+	cyan    func(string) string
+	blue    func(string) string
+	magenta func(string) string
+	gray    func(string) string
+	bold    func(string) string
+	white   func(string) string
 }
 
 func newColorFuncs(noColor bool) colorFuncs {
 	id := func(s string) string { return s }
 	if noColor {
-		return colorFuncs{id, id, id, id, id, id, id}
+		return colorFuncs{id, id, id, id, id, id, id, id, id}
 	}
 	return colorFuncs{
-		red:    func(s string) string { return ColorRed + s + ColorReset },
-		green:  func(s string) string { return ColorGreen + s + ColorReset },
-		yellow: func(s string) string { return ColorYellow + s + ColorReset },
-		cyan:   func(s string) string { return ColorCyan + s + ColorReset },
-		gray:   func(s string) string { return ColorGray + s + ColorReset },
-		bold:   func(s string) string { return ColorBold + s + ColorReset },
-		white:  func(s string) string { return ColorWhite + s + ColorReset },
+		red:     func(s string) string { return ColorRed + s + ColorReset },
+		green:   func(s string) string { return ColorGreen + s + ColorReset },
+		yellow:  func(s string) string { return ColorYellow + s + ColorReset },
+		cyan:    func(s string) string { return ColorCyan + s + ColorReset },
+		blue:    func(s string) string { return ColorBlue + s + ColorReset },
+		magenta: func(s string) string { return ColorMagenta + s + ColorReset },
+		gray:    func(s string) string { return ColorGray + s + ColorReset },
+		bold:    func(s string) string { return ColorBold + s + ColorReset },
+		white:   func(s string) string { return ColorWhite + s + ColorReset },
 	}
 }
 
@@ -339,6 +343,10 @@ func (cf colorFuncs) colorize(s, colorKey string) string {
 		return cf.yellow(s)
 	case "cyan":
 		return cf.cyan(s)
+	case "blue":
+		return cf.blue(s)
+	case "magenta":
+		return cf.magenta(s)
 	case "white":
 		return cf.white(s)
 	default:
