@@ -61,37 +61,11 @@ module-bays:
     position: GPU6
   - name: GPU 7
     position: GPU7
+  - name: PCIe 9
+    position: PCIe9
 interfaces:
-  # HSN Interfaces - NDR InfiniBand via CX7
-  - name: HSN 0
-    type: 400gbase-x-qsfpdd
-    label: NDR InfiniBand CX7
-  - name: HSN 1
-    type: 400gbase-x-qsfpdd
-    label: NDR InfiniBand CX7
-  - name: HSN 2
-    type: 400gbase-x-qsfpdd
-    label: NDR InfiniBand CX7
-  - name: HSN 3
-    type: 400gbase-x-qsfpdd
-    label: NDR InfiniBand CX7
-  - name: HSN 4
-    type: 400gbase-x-qsfpdd
-    label: NDR InfiniBand CX7
-  - name: HSN 5
-    type: 400gbase-x-qsfpdd
-    label: NDR InfiniBand CX7
-  - name: HSN 6
-    type: 400gbase-x-qsfpdd
-    label: NDR InfiniBand CX7
-  - name: HSN 7
-    type: 400gbase-x-qsfpdd
-    label: NDR InfiniBand CX7
-  # Management Interface - 100GbE CX6
-  - name: MGMT 0
-    type: 100gbase-x-qsfp28
-    label: Management CX6
   # iLO
   - name: iLO
     type: 1000base-t
+    role: management
     mgmt_only: true

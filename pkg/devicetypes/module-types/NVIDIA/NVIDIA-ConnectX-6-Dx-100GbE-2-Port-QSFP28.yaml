@@ -23,13 +23,18 @@
 #
 ---
 manufacturer: NVIDIA
-model: NVIDIA ConnectX-6 DX 100GbE Dual-Port QSFP28 Adapter
+model: NVIDIA ConnectX-6 Dx 100GbE 2-Port QSFP28 Adapter
 slug: nvidia-connectx-6-dx-100gbe-2p-qsfp28
-part_number: MCX623106AC-CDAT
-description: "NVIDIA ConnectX-6 DX dual-port 100GbE QSFP28 PCIe Gen4 x16 SmartNIC. Supports RoCE, GPUDirect, and hardware offloads."
+description: >-
+  NVIDIA ConnectX-6 Dx dual-port 100GbE QSFP28 PCIe adapter.
+  Provides two 100GbE ports for high-bandwidth host connectivity.
 type: nic
 interfaces:
-  - name: Port 1
+  - name: HSN 0
     type: 100gbase-x-qsfp28
-  - name: Port 2
+    role: hsn
+    label: 100GbE CX6
+  - name: HSN 1
     type: 100gbase-x-qsfp28
+    role: hsn
+    label: 100GbE CX6

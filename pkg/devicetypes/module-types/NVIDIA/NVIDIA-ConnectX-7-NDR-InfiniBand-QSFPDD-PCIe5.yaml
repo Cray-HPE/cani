@@ -29,5 +29,8 @@ part_number: MCX75310AAS-HEAT
 description: "NVIDIA ConnectX-7 NDR400 InfiniBand single-port QSFP-DD PCIe Gen5 x16 Adapter. 400Gb/s InfiniBand connectivity."
 type: nic
 interfaces:
-  - name: Port 1
+  # HSN Interfaces - NDR InfiniBand via CX7
+  - name: HSN 0
     type: 400gbase-x-qsfpdd
+    role: hsn
+    label: NDR InfiniBand CX7
