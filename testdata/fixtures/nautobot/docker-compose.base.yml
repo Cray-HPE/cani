@@ -1,6 +1,6 @@
 ---
 x-nautobot-base: &nautobot-base
-  image: "ghcr.io/nautobot/nautobot:${NAUTOBOT_VERSION:-2.3.3}-py${PYTHON_VER:-3.11}"
+  image: "networktocode/nautobot:${NAUTOBOT_VERSION:-3.0}-py${PYTHON_VER:-3.12}"
   env_file:
     - "env/local.env"
     - "env/creds.env"
