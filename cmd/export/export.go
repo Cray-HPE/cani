@@ -54,6 +54,9 @@ func NewCommand() *cobra.Command {
 	// Add provider subcommands
 	addProviderSubcommands(cmd)
 
+	// Add non-provider subcommands
+	cmd.AddCommand(newConnectionsCommand())
+
 	return cmd
 }
 

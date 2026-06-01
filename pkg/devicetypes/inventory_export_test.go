@@ -457,12 +457,16 @@ func TestSpineLeafCableEndpoints(t *testing.T) {
 				t.Errorf("cable %s: terminationBPort is empty", cableID)
 			}
 
-			// Verify devices exist in inventory
+			// Verify devices or modules exist in inventory
 			if _, ok := inv.Devices[cable.TerminationADevice]; !ok {
-				t.Errorf("cable %s: terminationADevice %s not in inventory", cableID, cable.TerminationADevice)
+				if _, ok2 := inv.Modules[cable.TerminationADevice]; !ok2 {
+					t.Errorf("cable %s: terminationADevice %s not in inventory", cableID, cable.TerminationADevice)
+				}
 			}
 			if _, ok := inv.Devices[cable.TerminationBDevice]; !ok {
-				t.Errorf("cable %s: terminationBDevice %s not in inventory", cableID, cable.TerminationBDevice)
+				if _, ok2 := inv.Modules[cable.TerminationBDevice]; !ok2 {
+					t.Errorf("cable %s: terminationBDevice %s not in inventory", cableID, cable.TerminationBDevice)
+				}
 			}
 		})
 	}

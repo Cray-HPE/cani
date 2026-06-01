@@ -83,18 +83,18 @@ func resolveEntry(entry ConnectionEntry, defaults *CableDefaults, inv *devicetyp
 
 	result := make([]ResolvedConnection, 0, count)
 	for i := range count {
-		aDev := inv.FindDeviceByNameOrID(aDevices[i])
-		if aDev == nil {
+		aID := inv.FindConnectableByNameOrID(aDevices[i])
+		if aID == uuid.Nil {
 			return nil, fmt.Errorf("device not found: %s", aDevices[i])
 		}
-		bDev := inv.FindDeviceByNameOrID(bDevices[i])
-		if bDev == nil {
+		bID := inv.FindConnectableByNameOrID(bDevices[i])
+		if bID == uuid.Nil {
 			return nil, fmt.Errorf("device not found: %s", bDevices[i])
 		}
 		result = append(result, ResolvedConnection{
-			ADevice: aDev.ID,
+			ADevice: aID,
 			APort:   aPorts[i],
-			BDevice: bDev.ID,
+			BDevice: bID,
 			BPort:   bPorts[i],
 			Cable:   mergeProps(entry.Cable, defaults),
 		})

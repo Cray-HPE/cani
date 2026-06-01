@@ -163,6 +163,77 @@ func TestExpand_CartesianProduct(t *testing.T) {
 	}
 }
 
+func TestExpand_CommaLists(t *testing.T) {
+	tests := []struct {
+		name    string
+		pattern string
+		want    []string
+	}{
+		{
+			name:    "numeric comma list",
+			pattern: "port{9,10,11,12}",
+			want:    []string{"port9", "port10", "port11", "port12"},
+		},
+		{
+			name:    "alpha comma list",
+			pattern: "rack-{a,b,c}",
+			want:    []string{"rack-a", "rack-b", "rack-c"},
+		},
+		{
+			name:    "device name list",
+			pattern: "GH-x3701u{34,26,18,10}",
+			want:    []string{"GH-x3701u34", "GH-x3701u26", "GH-x3701u18", "GH-x3701u10"},
+		},
+		{
+			name:    "mixed with range",
+			pattern: "{a,b}{1..3}",
+			want:    []string{"a1", "a2", "a3", "b1", "b2", "b3"},
+		},
+		{
+			name:    "no zero padding",
+			pattern: "{9,10,11,12}",
+			want:    []string{"9", "10", "11", "12"},
+		},
+		{
+			name:    "comma list with spaces trimmed",
+			pattern: "x{1, 2, 3}",
+			want:    []string{"x1", "x2", "x3"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := Expand(tt.pattern)
+			if err != nil {
+				t.Fatalf("Expand(%q) unexpected error: %v", tt.pattern, err)
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Expand(%q)\n  got  %v\n  want %v", tt.pattern, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestExpand_CommaList_Errors(t *testing.T) {
+	tests := []struct {
+		name    string
+		pattern string
+	}{
+		{name: "empty element", pattern: "x{1,,3}"},
+		{name: "trailing comma", pattern: "x{1,2,}"},
+		{name: "leading comma", pattern: "x{,1,2}"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := Expand(tt.pattern)
+			if err == nil {
+				t.Errorf("Expand(%q) expected error, got nil", tt.pattern)
+			}
+		})
+	}
+}
+
 func TestExpand_NoBraces(t *testing.T) {
 	got, err := Expand("plainname")
 	if err != nil {

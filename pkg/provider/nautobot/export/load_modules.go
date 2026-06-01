@@ -173,6 +173,16 @@ func (e *Exporter) createModuleFromCani(
 	clog.Created("Created module: %s (parent: %s, bay: %s)",
 		module.Name, parentDevice.Name, moduleBayName)
 	result.ModulesCreated++
+
+	// Create the module's interfaces on the parent device.
+	// Nautobot doesn't auto-create interfaces from module types created via API,
+	// so we explicitly create them and associate with the parent device.
+	if len(module.Interfaces) > 0 {
+		if err := e.createModuleInterfaces(ctx, module, parentNautobotID, result); err != nil {
+			clog.Warn("Warning: failed to create interfaces for module %s: %v", module.Name, err)
+		}
+	}
+
 	return nil
 }
 
@@ -301,6 +311,63 @@ func (e *Exporter) getOrCreateModuleBay(
 		}, nil
 	}
 	return nil, fmt.Errorf("module bay create: no response body")
+}
+
+// createModuleInterfaces creates interfaces defined on a module on the parent device.
+// Module interfaces (e.g., HSN 0 from a ConnectX-6 NIC) are created as device
+// interfaces in Nautobot, associated with the parent device.
+func (e *Exporter) createModuleInterfaces(
+	ctx context.Context,
+	module *devicetypes.CaniModuleType,
+	parentNautobotID uuid.UUID,
+	result *LoadResult,
+) error {
+	for _, iface := range module.Interfaces {
+		ifaceType := mapInterfaceType(string(iface.Type))
+
+		// Skip interfaces with types not supported by Nautobot
+		// (e.g., nvlink, pcie-gen5-x16 are internal GPU interconnects).
+		if !isValidNautobotInterfaceType(ifaceType) {
+			continue
+		}
+
+		// Skip if the interface already exists on this device (another module
+		// may have created it with the same name).
+		existing, _ := e.Cache.GetInterfaceByDeviceAndName(parentNautobotID, iface.Name)
+		if existing != nil {
+			continue
+		}
+
+		role := iface.Role
+		if role == "" {
+			mgmtOnly := iface.MgmtOnly != nil && *iface.MgmtOnly
+			role = devicetypes.InferInterfaceRole(iface.Name, iface.Type, mgmtOnly)
+		}
+		spec := interfaceSpec{
+			Name: iface.Name,
+			Type: ifaceType,
+			Role: role,
+		}
+		if err := e.createInterface(ctx, parentNautobotID, spec, result); err != nil {
+			return fmt.Errorf("interface %s: %w", iface.Name, err)
+		}
+	}
+	return nil
+}
+
+// isValidNautobotInterfaceType returns true if the interface type is a valid
+// Nautobot InterfaceTypeChoices value.
+func isValidNautobotInterfaceType(ifaceType string) bool {
+	switch ifaceType {
+	case "100base-tx", "1000base-t", "10gbase-x-sfpp", "25gbase-x-sfp28",
+		"40gbase-x-qsfpp", "100gbase-x-qsfp28", "200gbase-x-qsfp56",
+		"400gbase-x-osfp", "400gbase-x-qsfpdd",
+		"infiniband-hdr", "infiniband-ndr",
+		"virtual", "lag", "other":
+		return true
+	default:
+		return false
+	}
 }
 
 // derefString safely dereferences a *string, returning "" if nil.

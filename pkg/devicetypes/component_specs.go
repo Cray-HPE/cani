@@ -9,6 +9,7 @@ type InterfaceSpec struct {
 	Name           string             `yaml:"name" json:"name"`
 	Type           InterfacesElemType `yaml:"type" json:"type"`
 	Label          string             `yaml:"label,omitempty" json:"label,omitempty"`
+	Role           string             `yaml:"role,omitempty" json:"role,omitempty"`
 	MgmtOnly       *bool              `yaml:"mgmt_only,omitempty" json:"mgmt_only,omitempty"`
 	ConnectedCable *uuid.UUID         `yaml:"connected_cable,omitempty" json:"connectedCable,omitempty"`
 }
@@ -23,10 +24,11 @@ type InterfaceInstance struct {
 	// Shared metadata (status, role, tags, tenant, custom fields, external IDs, provider metadata)
 	ObjectMeta `yaml:",inline"`
 
-	MgmtOnly       bool       `json:"mgmtOnly,omitempty" yaml:"mgmt_only,omitempty"`
-	Label          string     `json:"label,omitempty" yaml:"label,omitempty"`
-	ConnectedCable *uuid.UUID `json:"connectedCable,omitempty" yaml:"connected_cable,omitempty"`
-	ContentType    string     `json:"contentType,omitempty" yaml:"content_type,omitempty"` // For cable terminations (e.g., "dcim.interface")
+	MgmtOnly       bool        `json:"mgmtOnly,omitempty" yaml:"mgmt_only,omitempty"`
+	Label          string      `json:"label,omitempty" yaml:"label,omitempty"`
+	ConnectedCable *uuid.UUID  `json:"connectedCable,omitempty" yaml:"connected_cable,omitempty"`
+	ContentType    string      `json:"contentType,omitempty" yaml:"content_type,omitempty"` // For cable terminations (e.g., "dcim.interface")
+	IPAddresses    []uuid.UUID `json:"ipAddresses,omitempty" yaml:"ip_addresses,omitempty"` // Assigned IP address IDs
 }
 
 // ConsolePortSpec defines a console port in a device type.

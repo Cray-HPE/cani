@@ -102,6 +102,23 @@ func TestAddModuleNil(t *testing.T) {
 	}
 }
 
+func TestAddModuleRejectsInvalidSlug(t *testing.T) {
+	inv := NewInventory()
+	devID := uuid.New()
+	inv.Devices[devID] = &CaniDeviceType{ID: devID, Name: "parent-dev"}
+
+	mod := &CaniModuleType{
+		ID:           uuid.New(),
+		Name:         "nic-0",
+		Slug:         "not-a-real-module-slug",
+		ParentDevice: devID,
+	}
+
+	if err := inv.AddModule(mod); err == nil {
+		t.Error("AddModule should reject an invalid module slug")
+	}
+}
+
 // ---------- AddCable ----------
 
 func TestAddCableValid(t *testing.T) {

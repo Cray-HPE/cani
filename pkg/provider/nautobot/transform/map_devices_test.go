@@ -205,8 +205,9 @@ func TestMapDevices(t *testing.T) {
 		if dev.Model != "DL380" {
 			t.Errorf("Model = %q, want %q", dev.Model, "DL380")
 		}
-		if dev.Slug != "hpe-dl380" {
-			t.Errorf("Slug = %q, want %q", dev.Slug, "hpe-dl380")
+		// "hpe-dl380" is not in the library, so resolveDeviceSlug returns empty.
+		if dev.Slug != "" {
+			t.Errorf("Slug = %q, want %q (not in library)", dev.Slug, "")
 		}
 		if dev.UHeight != 2 {
 			t.Errorf("UHeight = %d, want 2", dev.UHeight)

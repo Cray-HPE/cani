@@ -2,6 +2,7 @@ package devicetypes
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 )
@@ -46,6 +47,11 @@ type CaniModuleType struct {
 func (m *CaniModuleType) Validate() error {
 	if m == nil {
 		return errors.New("cannot validate nil CaniModuleType")
+	}
+	if m.Slug != "" {
+		if _, ok := GetModuleBySlug(m.Slug); !ok {
+			return fmt.Errorf("module type slug %q not found in library", m.Slug)
+		}
 	}
 	return nil
 }
@@ -104,12 +110,13 @@ func (m *CaniModuleType) InstantiateInterfaces() []InterfaceInstance {
 		if iface.MgmtOnly != nil {
 			mgmtOnly = *iface.MgmtOnly
 		}
+		role := ResolveInterfaceRole(iface.Role, iface.Name, iface.Type, mgmtOnly)
 		instances = append(instances, InterfaceInstance{
 			ID:            uuid.New(),
 			Name:          iface.Name,
 			InterfaceType: iface.Type,
 			DeviceID:      m.ID,
-			ObjectMeta:    ObjectMeta{Status: string(StatusActive)},
+			ObjectMeta:    ObjectMeta{Status: string(StatusActive), Role: role},
 			MgmtOnly:      mgmtOnly,
 		})
 	}

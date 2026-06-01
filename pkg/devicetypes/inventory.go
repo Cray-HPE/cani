@@ -35,6 +35,7 @@ import (
 const (
 	SchemaVersionV1Alpha1 = "v1alpha1"
 	SchemaVersionV1Alpha2 = "v1alpha2"
+	SchemaVersionV1Alpha3 = "v1alpha3"
 )
 
 // Inventory represents the entire inventory of devices, racks, locations, etc.
@@ -51,6 +52,11 @@ type Inventory struct {
 	Frus       map[uuid.UUID]*CaniFruType       `json:"frus"       yaml:"frus"`
 	Interfaces map[uuid.UUID]*InterfaceInstance `json:"interfaces" yaml:"interfaces"`
 
+	// IPAM
+	Prefixes    map[uuid.UUID]*CaniPrefix    `json:"prefixes,omitempty"    yaml:"prefixes,omitempty"`
+	IPAddresses map[uuid.UUID]*CaniIPAddress `json:"ipAddresses,omitempty" yaml:"ip_addresses,omitempty"`
+	VLANs       map[uuid.UUID]*CaniVLAN      `json:"vlans,omitempty"       yaml:"vlans,omitempty"`
+
 	// Metadata stores the catalog of metadata definitions (roles,
 	// statuses, tags) that individual inventory items reference.
 	Metadata *InventoryMetadata `json:"metadata,omitempty" yaml:"metadata,omitempty"`
@@ -64,13 +70,16 @@ type Inventory struct {
 // TransformResult holds the combined output of the Transform step.
 // Nil maps indicate the provider does not produce that type.
 type TransformResult struct {
-	Locations map[uuid.UUID]*CaniLocationType
-	Racks     map[uuid.UUID]*CaniRackType
-	Devices   map[uuid.UUID]*CaniDeviceType
-	Modules   map[uuid.UUID]*CaniModuleType
-	Cables    map[uuid.UUID]*CaniCableType
-	Frus      map[uuid.UUID]*CaniFruType
-	Metadata  *InventoryMetadata
+	Locations   map[uuid.UUID]*CaniLocationType
+	Racks       map[uuid.UUID]*CaniRackType
+	Devices     map[uuid.UUID]*CaniDeviceType
+	Modules     map[uuid.UUID]*CaniModuleType
+	Cables      map[uuid.UUID]*CaniCableType
+	Frus        map[uuid.UUID]*CaniFruType
+	Metadata    *InventoryMetadata
+	Prefixes    map[uuid.UUID]*CaniPrefix
+	IPAddresses map[uuid.UUID]*CaniIPAddress
+	VLANs       map[uuid.UUID]*CaniVLAN
 }
 
 // EnsureUniqueDeviceNames detects duplicate names within the transform
@@ -107,7 +116,7 @@ func (tr *TransformResult) EnsureUniqueDeviceNames() {
 // NewInventory creates an Inventory with all maps initialized.
 func NewInventory() *Inventory {
 	return &Inventory{
-		SchemaVersion: SchemaVersionV1Alpha2,
+		SchemaVersion: SchemaVersionV1Alpha3,
 		Locations:     make(map[uuid.UUID]*CaniLocationType),
 		Racks:         make(map[uuid.UUID]*CaniRackType),
 		Devices:       make(map[uuid.UUID]*CaniDeviceType),
@@ -115,6 +124,9 @@ func NewInventory() *Inventory {
 		Cables:        make(map[uuid.UUID]*CaniCableType),
 		Frus:          make(map[uuid.UUID]*CaniFruType),
 		Interfaces:    make(map[uuid.UUID]*InterfaceInstance),
+		Prefixes:      make(map[uuid.UUID]*CaniPrefix),
+		IPAddresses:   make(map[uuid.UUID]*CaniIPAddress),
+		VLANs:         make(map[uuid.UUID]*CaniVLAN),
 		Metadata:      &InventoryMetadata{},
 		pkIndex:       make(providerKeyIndex),
 	}

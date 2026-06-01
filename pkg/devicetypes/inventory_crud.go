@@ -73,6 +73,12 @@ func (inv *Inventory) AssignRacksToLocation(locationID uuid.UUID) {
 // if any UUID already exists.
 func (inv *Inventory) AddDevices(batch map[uuid.UUID]*CaniDeviceType) error {
 	for id, device := range batch {
+		if device == nil {
+			return fmt.Errorf("device %s must not be nil", id)
+		}
+		if err := device.Validate(); err != nil {
+			return err
+		}
 		if _, exists := inv.Devices[id]; exists {
 			return fmt.Errorf("device with ID %s already exists", id)
 		}
@@ -107,6 +113,10 @@ func (inv *Inventory) MergeDevicesStrict(incoming map[uuid.UUID]*CaniDeviceType,
 
 	for id, device := range incoming {
 		if device == nil || device.Name == "" {
+			continue
+		}
+		if err := device.Validate(); err != nil {
+			log.Printf("Skipping invalid device %q: %v", device.Name, err)
 			continue
 		}
 
@@ -430,6 +440,10 @@ func (inv *Inventory) MergeModules(incoming map[uuid.UUID]*CaniModuleType) {
 
 	for id, mod := range incoming {
 		if mod == nil || mod.Name == "" {
+			continue
+		}
+		if err := mod.Validate(); err != nil {
+			log.Printf("Skipping invalid module %q: %v", mod.Name, err)
 			continue
 		}
 

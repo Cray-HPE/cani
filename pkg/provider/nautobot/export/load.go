@@ -529,11 +529,14 @@ func (e *Exporter) createRack(ctx context.Context, device *devicetypes.CaniDevic
 
 // createRackFromCaniRack creates a new rack in Nautobot from a CaniRackType
 func (e *Exporter) createRackFromCaniRack(ctx context.Context, rack *devicetypes.CaniRackType, inventory *devicetypes.Inventory, mapper *DeviceMapper, result *LoadResult) (uuid.UUID, error) {
-	// Resolve location - prefer rack-level UUID, fall back to provider default
+	// Resolve location - prefer rack-level UUID, fall back to provider default.
+	// If the location's type doesn't allow racks, walk down the tree to find
+	// the deepest descendant that does.
 	locationName := e.Options.DefaultLocation
 	if rack.Location != uuid.Nil {
-		if loc, ok := inventory.Locations[rack.Location]; ok && loc.Name != "" {
-			locationName = loc.Name
+		resolved := resolveContentLocation(rack.Location, "rack", inventory)
+		if resolved != "" {
+			locationName = resolved
 		}
 	}
 	if locationName == "" {
@@ -544,10 +547,21 @@ func (e *Exporter) createRackFromCaniRack(ctx context.Context, rack *devicetypes
 	if err != nil || location == nil {
 		// Try to create location if allowed
 		if e.Options.CreateLocations {
-			location, err = e.Cache.CreateLocation(locationName)
-			if err != nil {
-				return uuid.Nil, fmt.Errorf("failed to create location: %w", err)
+			// Use createLocationFromCani with an explicit location type
+			// so that the fallback "Default" location gets a proper type.
+			loc := &devicetypes.CaniLocationType{
+				ID:           uuid.New(),
+				Name:         locationName,
+				LocationType: "section",
+				ContentTypes: []string{"rack", "device", "module"},
+				ObjectMeta:   devicetypes.ObjectMeta{Status: "Active"},
 			}
+			createdMap := make(map[uuid.UUID]uuid.UUID)
+			nautobotLocID, createErr := e.createLocationFromCani(ctx, loc, createdMap, result)
+			if createErr != nil {
+				return uuid.Nil, fmt.Errorf("failed to create location: %w", createErr)
+			}
+			location = &CachedItem{ID: nautobotLocID, Name: locationName}
 		} else {
 			return uuid.Nil, fmt.Errorf("location '%s' not found and create_locations is disabled", locationName)
 		}
@@ -704,6 +718,7 @@ type interfaceSpec struct {
 	Name  string
 	Type  string // 1000base-t, 10gbase-x-sfpp, etc.
 	Speed int    // Speed in Kbps
+	Role  string // Interface role name (e.g. "management", "hsn")
 }
 
 // getDeviceInterfaceSpecs returns interface specifications based on device type.
@@ -717,10 +732,16 @@ func getDeviceInterfaceSpecs(device *devicetypes.CaniDeviceType) []interfaceSpec
 		for _, iface := range device.Interfaces {
 			ifaceType := mapInterfaceType(string(iface.Type))
 			speed := getSpeedForType(ifaceType)
+			mgmtOnly := iface.MgmtOnly != nil && *iface.MgmtOnly
+			role := iface.Role
+			if role == "" {
+				role = devicetypes.InferInterfaceRole(iface.Name, iface.Type, mgmtOnly)
+			}
 			specs = append(specs, interfaceSpec{
 				Name:  iface.Name,
 				Type:  ifaceType,
 				Speed: speed,
+				Role:  role,
 			})
 		}
 		return specs
@@ -874,6 +895,17 @@ func (e *Exporter) createInterface(ctx context.Context, deviceID uuid.UUID, ifac
 		Status: status,
 	}
 
+	// Resolve interface role if specified
+	if iface.Role != "" {
+		roleItem, roleErr := e.Cache.GetRole(iface.Role)
+		if roleErr == nil && roleItem != nil {
+			var roleIDUnion nautobotapi.BulkWritableCableRequestStatusId
+			if err := roleIDUnion.FromBulkWritableCableRequestStatusId0(roleItem.ID); err == nil {
+				req.Role = &nautobotapi.BulkWritableCircuitRequestTenant{Id: &roleIDUnion}
+			}
+		}
+	}
+
 	resp, err := e.Client.DcimInterfacesCreateWithResponse(ctx, &nautobotapi.DcimInterfacesCreateParams{}, req)
 	if err != nil {
 		return fmt.Errorf("API error: %w", err)
@@ -954,9 +986,21 @@ func (e *Exporter) createCaniCableType(ctx context.Context, cableID uuid.UUID, c
 		return nil
 	}
 
-	// Look up device names from inventory
+	// Look up device names from inventory.
+	// Cable terminations may reference either devices or modules.
+	// When a termination references a module, resolve to the parent device.
 	deviceA := inventory.Devices[cable.TerminationADevice]
 	deviceB := inventory.Devices[cable.TerminationBDevice]
+	if deviceA == nil {
+		if modA := inventory.Modules[cable.TerminationADevice]; modA != nil {
+			deviceA = inventory.Devices[modA.ParentDevice]
+		}
+	}
+	if deviceB == nil {
+		if modB := inventory.Modules[cable.TerminationBDevice]; modB != nil {
+			deviceB = inventory.Devices[modB.ParentDevice]
+		}
+	}
 	if deviceA == nil || deviceB == nil {
 		return fmt.Errorf("cable endpoints reference unknown devices (A=%s, B=%s)", cable.TerminationADevice, cable.TerminationBDevice)
 	}
@@ -983,15 +1027,32 @@ func (e *Exporter) createCaniCableType(ctx context.Context, cableID uuid.UUID, c
 	}
 
 	// Look up interface IDs for both terminations using fuzzy matching
-	// This handles naming variations between cani inventory and Nautobot
+	// This handles naming variations between cani inventory and Nautobot.
+	// If the initial lookup fails, invalidate the prefetch cache and retry.
+	// Module creation (Phase 4) adds interfaces after the Phase 3 prefetch,
+	// so the cache may be stale for module-owned interfaces (e.g. HSN ports).
 	ifaceA, err := e.Cache.GetInterfaceByDeviceAndNameFuzzy(nautobotDeviceAID, cable.TerminationAPort)
-	if err != nil || ifaceA == nil {
+	if err != nil {
 		return fmt.Errorf("cannot find interface %s on device %s: %v", cable.TerminationAPort, deviceA.Name, err)
+	}
+	if ifaceA == nil {
+		e.Cache.InvalidateInterfacePrefetch(nautobotDeviceAID)
+		ifaceA, err = e.Cache.GetInterfaceByDeviceAndNameFuzzy(nautobotDeviceAID, cable.TerminationAPort)
+		if err != nil || ifaceA == nil {
+			return fmt.Errorf("cannot find interface %s on device %s: %v", cable.TerminationAPort, deviceA.Name, err)
+		}
 	}
 
 	ifaceB, err := e.Cache.GetInterfaceByDeviceAndNameFuzzy(nautobotDeviceBID, cable.TerminationBPort)
-	if err != nil || ifaceB == nil {
+	if err != nil {
 		return fmt.Errorf("cannot find interface %s on device %s: %v", cable.TerminationBPort, deviceB.Name, err)
+	}
+	if ifaceB == nil {
+		e.Cache.InvalidateInterfacePrefetch(nautobotDeviceBID)
+		ifaceB, err = e.Cache.GetInterfaceByDeviceAndNameFuzzy(nautobotDeviceBID, cable.TerminationBPort)
+		if err != nil || ifaceB == nil {
+			return fmt.Errorf("cannot find interface %s on device %s: %v", cable.TerminationBPort, deviceB.Name, err)
+		}
 	}
 
 	// Check if cable already exists between these interfaces
@@ -1121,15 +1182,22 @@ func (e *Exporter) createCaniCableType(ctx context.Context, cableID uuid.UUID, c
 		return fmt.Errorf("unexpected status %d: %s", resp.StatusCode(), string(resp.Body))
 	}
 
+	// Mark both interfaces as cabled in the cache so subsequent cable
+	// creation attempts for the same interface are skipped.
+	var createdCableID uuid.UUID
+	if resp.JSON201 != nil && resp.JSON201.Id != nil {
+		createdCableID = uuid.UUID(*resp.JSON201.Id)
+	}
+	if createdCableID != uuid.Nil {
+		ifaceA.CableID = createdCableID
+		ifaceB.CableID = createdCableID
+	}
+
 	clog.Created("Created cable: %s (%s:%s <-> %s:%s)",
 		cable.Label, deviceA.Name, cable.TerminationAPort, deviceB.Name, cable.TerminationBPort)
 	result.CablesCreated++
 	return nil
 }
-
-// printConflictDiffs prints per-device field diffs for devices that already
-// exist in Nautobot. This gives the user visibility into what --merge would
-// change before the summary is printed.
 func (e *Exporter) printConflictDiffs(result *LoadResult) {
 	hasAnyDiffs := false
 	for _, c := range result.Conflicts {

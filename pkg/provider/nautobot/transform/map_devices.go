@@ -1,6 +1,8 @@
 package transform
 
 import (
+	"strings"
+
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/google/uuid"
@@ -51,17 +53,14 @@ func MapDevices(
 		dtNBID := refIDVal(dev.DeviceType)
 		if dt, ok := deviceTypeMap[dtNBID]; ok {
 			caniDev.Model = dt.Model
-			if dt.NaturalSlug != nil {
-				caniDev.Slug = *dt.NaturalSlug
-			}
 			if dt.UHeight != nil {
 				caniDev.UHeight = *dt.UHeight
 			}
 			if dt.IsFullDepth != nil {
 				caniDev.IsFullDepth = *dt.IsFullDepth
 			}
-			mfgNBID := refIDVal(dt.Manufacturer)
-			_ = mfgNBID // manufacturer name is not directly on the ref
+			// Resolve slug: try NaturalSlug first, then fall back to model-based lookup.
+			caniDev.Slug = resolveDeviceSlug(dt)
 		}
 
 		// Resolve rack → Parent.
@@ -147,4 +146,26 @@ func BuildDeviceTypeMap(dts []nautobotapi.DeviceType) map[uuid.UUID]nautobotapi.
 		}
 	}
 	return m
+}
+
+// resolveDeviceSlug attempts to find a matching slug in the cani device type library.
+// It tries: 1) NaturalSlug as-is, 2) model-based lookup across all library entries.
+// Returns the library slug if found, or empty string if no match.
+func resolveDeviceSlug(dt nautobotapi.DeviceType) string {
+	// Try NaturalSlug directly.
+	if dt.NaturalSlug != nil {
+		if _, ok := devicetypes.GetBySlug(*dt.NaturalSlug); ok {
+			return *dt.NaturalSlug
+		}
+	}
+
+	// Try matching by model name (case-insensitive) across all library entries.
+	modelLower := strings.ToLower(dt.Model)
+	for _, libDT := range devicetypes.All() {
+		if strings.ToLower(libDT.Model) == modelLower {
+			return libDT.Slug
+		}
+	}
+
+	return ""
 }

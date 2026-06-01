@@ -155,9 +155,29 @@ func TestDeviceTypeGetStatusReturnsEmptyForNil(t *testing.T) {
 // --- Validate ---
 
 func TestValidatePassesForValidDevice(t *testing.T) {
-	d := &CaniDeviceType{Name: "switch-1", Slug: "switch-1"}
+	const slug = "test-valid-device-slug"
+	RegisterDeviceType(CaniDeviceType{Slug: slug})
+	t.Cleanup(func() {
+		delete(allDeviceTypes, slug)
+	})
+
+	d := &CaniDeviceType{Name: "switch-1", Slug: slug}
 	if err := d.Validate(); err != nil {
 		t.Fatalf("unexpected validation error: %v", err)
+	}
+}
+
+func TestValidateReturnsErrorForUnknownSlug(t *testing.T) {
+	d := &CaniDeviceType{Name: "switch-1", Slug: "definitely-not-a-real-device-slug"}
+	if err := d.Validate(); err == nil {
+		t.Fatal("expected error for unknown device slug")
+	}
+}
+
+func TestValidateAllowsBlankSlug(t *testing.T) {
+	d := &CaniDeviceType{Name: "custom-device"}
+	if err := d.Validate(); err != nil {
+		t.Fatalf("unexpected validation error for blank slug: %v", err)
 	}
 }
 
