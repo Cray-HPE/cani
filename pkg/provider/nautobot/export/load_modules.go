@@ -148,8 +148,9 @@ func (e *Exporter) createModuleFromCani(
 	})
 	if err == nil && existResp.StatusCode() == http.StatusOK &&
 		existResp.JSON200 != nil && existResp.JSON200.Count > 0 {
-		clog.Skipped("Module already exists in bay %s on %s — skipping %s",
-			moduleBayName, parentDevice.Name, module.Name)
+		clog.Skipped("Skipped module (already exists): %s (bay: %s, device: %s)",
+			module.Name, moduleBayName, parentDevice.Name)
+		result.ModulesSkipped++
 		return nil
 	}
 
@@ -293,7 +294,7 @@ func (e *Exporter) getOrCreateModuleBay(
 		ParentDevice: makeTenantRef(deviceNautobotID),
 	}
 
-	clog.Detail("[nautobot] Creating module bay: %s on device %s", bayName, deviceNautobotID)
+	// clog.Detail("[nautobot] Creating module bay: %s on device %s", bayName, deviceNautobotID)
 	createResp, err := e.Client.DcimModuleBaysCreateWithResponse(ctx,
 		&nautobotapi.DcimModuleBaysCreateParams{}, createReq)
 	if err != nil {

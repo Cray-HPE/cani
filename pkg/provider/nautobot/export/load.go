@@ -41,18 +41,29 @@ import (
 
 // LoadResult contains the results of a Load operation
 type LoadResult struct {
-	Created          []string       // Names of devices created
-	Updated          []string       // Names of devices updated (merged)
-	Skipped          []string       // Names of devices skipped (already exist, no --merge)
-	Errors           []string       // Error messages
-	Conflicts        []ConflictInfo // Detailed conflict information
-	LocationsCreated []string       // Names of locations created
-	LocationsSkipped []string       // Names of locations skipped (already exist)
-	RacksCreated     []string       // Names of racks created
-	IfacesCreated    int            // Number of interfaces created
-	ModulesCreated   int            // Number of modules created
-	FrusCreated      int            // Number of FRUs (inventory items) created
-	CablesCreated    int            // Number of cables created
+	Created            []string       // Names of devices created
+	Updated            []string       // Names of devices updated (merged)
+	Skipped            []string       // Names of devices skipped (already exist, no --merge)
+	Errors             []string       // Error messages
+	Conflicts          []ConflictInfo // Detailed conflict information
+	LocationsCreated   []string       // Names of locations created
+	LocationsSkipped   []string       // Names of locations skipped (already exist)
+	RacksCreated       []string       // Names of racks created
+	RacksSkipped       int            // Number of racks skipped (already exist)
+	IfacesCreated      int            // Number of interfaces created
+	IfacesSkipped      int            // Number of interfaces skipped (already exist)
+	ModulesCreated     int            // Number of modules created
+	ModulesSkipped     int            // Number of modules skipped (already exist)
+	FrusCreated        int            // Number of FRUs (inventory items) created
+	FrusSkipped        int            // Number of FRUs skipped (already exist)
+	CablesCreated      int            // Number of cables created
+	CablesSkipped      int            // Number of cables skipped (already exist)
+	VLANsCreated       int            // Number of VLANs created
+	VLANsSkipped       int            // Number of VLANs skipped (already exist)
+	PrefixesCreated    int            // Number of prefixes created
+	PrefixesSkipped    int            // Number of prefixes skipped (already exist)
+	IPAddressesCreated int            // Number of IP addresses created
+	IPAddressesSkipped int            // Number of IP addresses skipped (already exist)
 }
 
 // ConflictInfo contains information about a device conflict
@@ -181,7 +192,7 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 	if err != nil {
 		result.Errors = append(result.Errors, fmt.Sprintf("location phase error: %v", err))
 	}
-	_ = createdLocationIDs // available for rack/device location resolution
+	// createdLocationIDs used for rack/device location resolution and IPAM phases
 
 	// Track created device IDs for interface creation
 	createdDeviceIDs := make(map[string]uuid.UUID) // deviceName -> Nautobot UUID
@@ -212,8 +223,8 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 		// If we already have a Nautobot UUID from a previous export, use it
 		if nid, ok := rack.ExternalIDs["nautobot"]; ok && nid != uuid.Nil {
 			createdRackIDs[rackID] = nid
-			clog.Skipped("Rack already exported: %s (nautobot:%s)", rack.Name, nid)
-			result.Skipped = append(result.Skipped, rack.Name)
+			clog.Skipped("Skipped rack (already exported): %s", rack.Name)
+			result.RacksSkipped++
 			continue
 		}
 
@@ -225,8 +236,8 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 		}
 
 		if existing != nil {
-			clog.Skipped("Rack already exists: %s", rack.Name)
-			result.Skipped = append(result.Skipped, rack.Name)
+			clog.Skipped("Skipped rack (already exists): %s", rack.Name)
+			result.RacksSkipped++
 			createdRackIDs[rackID] = existing.ID
 			setExternalID(&rack.ExternalIDs, "nautobot", existing.ID)
 			continue
@@ -261,8 +272,8 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 		}
 
 		if existing != nil {
-			clog.Skipped("Rack already exists: %s", device.Name)
-			result.Skipped = append(result.Skipped, device.Name)
+			clog.Skipped("Skipped rack (already exists): %s", device.Name)
+			result.RacksSkipped++
 			continue
 		}
 
@@ -426,6 +437,23 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 				result.Errors = append(result.Errors, fmt.Sprintf("cable %s: create error: %v", cable.Label, err))
 			}
 		}
+	}
+
+	// Phase 7: Create VLANs
+	createdVLANIDs, err := e.loadVLANs(ctx, inventory, createdLocationIDs, result)
+	if err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("vlan phase error: %v", err))
+	}
+
+	// Phase 8: Create Prefixes
+	createdPrefixIDs, err := e.loadPrefixes(ctx, inventory, createdLocationIDs, createdVLANIDs, result)
+	if err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("prefix phase error: %v", err))
+	}
+
+	// Phase 9: Create IP Addresses
+	if err := e.loadIPAddresses(ctx, inventory, createdPrefixIDs, createdDeviceIDs, result); err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("ip address phase error: %v", err))
 	}
 
 	// Print field diffs for skipped devices before the summary
@@ -1064,21 +1092,24 @@ func (e *Exporter) createCaniCableType(ctx context.Context, cableID uuid.UUID, c
 	}
 	if existingCable != nil {
 		// Cable already exists between these exact interfaces
-		clog.Skipped("Cable already exists: %s (%s:%s <-> %s:%s) - skipping",
+		clog.Skipped("Skipped cable (already exists): %s (%s:%s <-> %s:%s)",
 			cable.Label, deviceA.Name, cable.TerminationAPort, deviceB.Name, cable.TerminationBPort)
+		result.CablesSkipped++
 		return nil
 	}
 
 	// Also check if either interface already has ANY cable attached
 	// (to prevent "must make a unique set" errors)
 	if ifaceA.CableID != uuid.Nil {
-		clog.Skipped("Interface %s:%s already has a cable attached - skipping cable creation",
+		clog.Skipped("Skipped cable (interface already cabled): %s:%s",
 			deviceA.Name, cable.TerminationAPort)
+		result.CablesSkipped++
 		return nil
 	}
 	if ifaceB.CableID != uuid.Nil {
-		clog.Skipped("Interface %s:%s already has a cable attached - skipping cable creation",
+		clog.Skipped("Skipped cable (interface already cabled): %s:%s",
 			deviceB.Name, cable.TerminationBPort)
+		result.CablesSkipped++
 		return nil
 	}
 
@@ -1179,7 +1210,10 @@ func (e *Exporter) createCaniCableType(ctx context.Context, cableID uuid.UUID, c
 	}
 
 	if resp.StatusCode() != http.StatusCreated && resp.StatusCode() != http.StatusOK {
-		return fmt.Errorf("unexpected status %d: %s", resp.StatusCode(), string(resp.Body))
+		return fmt.Errorf("unexpected status %d: %s (cable: %s:%s <-> %s:%s, ifaceA=%s, ifaceB=%s)",
+			resp.StatusCode(), string(resp.Body),
+			deviceA.Name, cable.TerminationAPort, deviceB.Name, cable.TerminationBPort,
+			ifaceA.ID, ifaceB.ID)
 	}
 
 	// Mark both interfaces as cabled in the cache so subsequent cable
@@ -1220,56 +1254,43 @@ func (e *Exporter) printConflictDiffs(result *LoadResult) {
 func (e *Exporter) printLoadSummary(result *LoadResult) {
 	clog.Header("\n=== Nautobot Sync Summary ===")
 
+	// Locations
 	if len(result.LocationsCreated) > 0 {
-		clog.Created("Locations created: %d", len(result.LocationsCreated))
+		clog.Created("Created locations: %d", len(result.LocationsCreated))
 		for _, name := range result.LocationsCreated {
 			clog.SummaryCreated("%s", name)
 		}
 	}
-
 	if len(result.LocationsSkipped) > 0 {
-		clog.Ok("Locations skipped (already exist): %d", len(result.LocationsSkipped))
+		clog.Skipped("Skipped locations (already exist): %d", len(result.LocationsSkipped))
 	}
 
+	// Racks
 	if len(result.RacksCreated) > 0 {
-		clog.Created("Racks created: %d", len(result.RacksCreated))
+		clog.Created("Created racks: %d", len(result.RacksCreated))
 		for _, name := range result.RacksCreated {
 			clog.SummaryCreated("%s", name)
 		}
 	}
+	if result.RacksSkipped > 0 {
+		clog.Skipped("Skipped racks (already exist): %d", result.RacksSkipped)
+	}
 
+	// Devices
 	if len(result.Created) > 0 {
-		clog.Created("Devices created: %d", len(result.Created))
+		clog.Created("Created devices: %d", len(result.Created))
 		for _, name := range result.Created {
 			clog.SummaryCreated("%s", name)
 		}
 	}
-
 	if len(result.Updated) > 0 {
-		clog.Changed("Devices updated: %d", len(result.Updated))
+		clog.Changed("Updated devices: %d", len(result.Updated))
 		for _, name := range result.Updated {
 			clog.SummaryChanged("%s", name)
 		}
 	}
-
-	if result.IfacesCreated > 0 {
-		clog.Created("Interfaces created: %d", result.IfacesCreated)
-	}
-
-	if result.ModulesCreated > 0 {
-		clog.Created("Modules created: %d", result.ModulesCreated)
-	}
-
-	if result.FrusCreated > 0 {
-		clog.Created("Inventory items (FRUs) created: %d", result.FrusCreated)
-	}
-
-	if result.CablesCreated > 0 {
-		clog.Created("Cables created: %d", result.CablesCreated)
-	}
-
 	if len(result.Skipped) > 0 {
-		clog.Skipped("Skipped (conflicts): %d devices", len(result.Skipped))
+		clog.Skipped("Skipped devices (conflicts): %d", len(result.Skipped))
 		for _, conflict := range result.Conflicts {
 			if len(conflict.Diffs) > 0 {
 				clog.SummaryChanged("%s: %d field(s) would change (use --merge to update)", conflict.DeviceName, len(conflict.Diffs))
@@ -1279,18 +1300,69 @@ func (e *Exporter) printLoadSummary(result *LoadResult) {
 		}
 	}
 
+	// Interfaces
+	if result.IfacesCreated > 0 {
+		clog.Created("Created interfaces: %d", result.IfacesCreated)
+	}
+	if result.IfacesSkipped > 0 {
+		clog.Skipped("Skipped interfaces (already exist): %d", result.IfacesSkipped)
+	}
+
+	// Modules
+	if result.ModulesCreated > 0 {
+		clog.Created("Created modules: %d", result.ModulesCreated)
+	}
+	if result.ModulesSkipped > 0 {
+		clog.Skipped("Skipped modules (already exist): %d", result.ModulesSkipped)
+	}
+
+	// Inventory items (FRUs)
+	if result.FrusCreated > 0 {
+		clog.Created("Created inventory items: %d", result.FrusCreated)
+	}
+	if result.FrusSkipped > 0 {
+		clog.Skipped("Skipped inventory items (already exist): %d", result.FrusSkipped)
+	}
+
+	// Cables
+	if result.CablesCreated > 0 {
+		clog.Created("Created cables: %d", result.CablesCreated)
+	}
+	if result.CablesSkipped > 0 {
+		clog.Skipped("Skipped cables (already exist): %d", result.CablesSkipped)
+	}
+
+	// VLANs
+	if result.VLANsCreated > 0 {
+		clog.Created("Created VLANs: %d", result.VLANsCreated)
+	}
+	if result.VLANsSkipped > 0 {
+		clog.Skipped("Skipped VLANs (already exist): %d", result.VLANsSkipped)
+	}
+
+	// Prefixes
+	if result.PrefixesCreated > 0 {
+		clog.Created("Created prefixes: %d", result.PrefixesCreated)
+	}
+	if result.PrefixesSkipped > 0 {
+		clog.Skipped("Skipped prefixes (already exist): %d", result.PrefixesSkipped)
+	}
+
+	// IP Addresses
+	if result.IPAddressesCreated > 0 {
+		clog.Created("Created IP addresses: %d", result.IPAddressesCreated)
+	}
+	if result.IPAddressesSkipped > 0 {
+		clog.Skipped("Skipped IP addresses (already exist): %d", result.IPAddressesSkipped)
+	}
+
+	// Errors
 	if len(result.Errors) > 0 {
 		clog.Error("Errors: %d", len(result.Errors))
 		for _, errMsg := range result.Errors {
 			clog.SummaryError("%s", errMsg)
 		}
 	}
-
-	total := len(result.LocationsCreated) + len(result.RacksCreated) + len(result.Created) + len(result.Updated) + len(result.Skipped) + len(result.Errors)
-	clog.Info("\nTotal processed: %d objects (locations=%d, racks=%d, devices=%d, interfaces=%d, modules=%d, frus=%d, cables=%d)",
-		total, len(result.LocationsCreated), len(result.RacksCreated),
-		len(result.Created)+len(result.Updated), result.IfacesCreated,
-		result.ModulesCreated, result.FrusCreated, result.CablesCreated)
 }
 
 // cableTypeMap maps CableCategory strings to their best-fit Nautobot CableTypeChoices.

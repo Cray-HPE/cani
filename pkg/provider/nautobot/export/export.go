@@ -69,25 +69,86 @@ func ValidateInventory(inv *devicetypes.Inventory) error {
 func PrintSummary(result *LoadResult) {
 	clog.Header("\n=== Export Summary ===")
 
+	if len(result.LocationsCreated) > 0 {
+		clog.Created("Created locations: %d", len(result.LocationsCreated))
+	}
+	if len(result.LocationsSkipped) > 0 {
+		clog.Skipped("Skipped locations (already exist): %d", len(result.LocationsSkipped))
+	}
+
+	if len(result.RacksCreated) > 0 {
+		clog.Created("Created racks: %d", len(result.RacksCreated))
+	}
+	if result.RacksSkipped > 0 {
+		clog.Skipped("Skipped racks (already exist): %d", result.RacksSkipped)
+	}
+
 	if len(result.Created) > 0 {
-		clog.Created("Created: %d devices", len(result.Created))
+		clog.Created("Created devices: %d", len(result.Created))
 		for _, name := range result.Created {
 			clog.SummaryCreated("%s", name)
 		}
 	}
-
 	if len(result.Updated) > 0 {
-		clog.Changed("Updated: %d devices", len(result.Updated))
+		clog.Changed("Updated devices: %d", len(result.Updated))
 		for _, name := range result.Updated {
 			clog.SummaryChanged("%s", name)
 		}
 	}
-
 	if len(result.Skipped) > 0 {
-		clog.Skipped("Skipped (conflicts): %d devices", len(result.Skipped))
+		clog.Skipped("Skipped devices (conflicts): %d", len(result.Skipped))
 		for _, conflict := range result.Conflicts {
 			clog.SummarySkipped("%s: %s", conflict.DeviceName, conflict.Reason)
 		}
+	}
+
+	if result.IfacesCreated > 0 {
+		clog.Created("Created interfaces: %d", result.IfacesCreated)
+	}
+	if result.IfacesSkipped > 0 {
+		clog.Skipped("Skipped interfaces (already exist): %d", result.IfacesSkipped)
+	}
+
+	if result.ModulesCreated > 0 {
+		clog.Created("Created modules: %d", result.ModulesCreated)
+	}
+	if result.ModulesSkipped > 0 {
+		clog.Skipped("Skipped modules (already exist): %d", result.ModulesSkipped)
+	}
+
+	if result.FrusCreated > 0 {
+		clog.Created("Created inventory items: %d", result.FrusCreated)
+	}
+	if result.FrusSkipped > 0 {
+		clog.Skipped("Skipped inventory items (already exist): %d", result.FrusSkipped)
+	}
+
+	if result.CablesCreated > 0 {
+		clog.Created("Created cables: %d", result.CablesCreated)
+	}
+	if result.CablesSkipped > 0 {
+		clog.Skipped("Skipped cables (already exist): %d", result.CablesSkipped)
+	}
+
+	if result.VLANsCreated > 0 {
+		clog.Created("Created VLANs: %d", result.VLANsCreated)
+	}
+	if result.VLANsSkipped > 0 {
+		clog.Skipped("Skipped VLANs (already exist): %d", result.VLANsSkipped)
+	}
+
+	if result.PrefixesCreated > 0 {
+		clog.Created("Created prefixes: %d", result.PrefixesCreated)
+	}
+	if result.PrefixesSkipped > 0 {
+		clog.Skipped("Skipped prefixes (already exist): %d", result.PrefixesSkipped)
+	}
+
+	if result.IPAddressesCreated > 0 {
+		clog.Created("Created IP addresses: %d", result.IPAddressesCreated)
+	}
+	if result.IPAddressesSkipped > 0 {
+		clog.Skipped("Skipped IP addresses (already exist): %d", result.IPAddressesSkipped)
 	}
 
 	if len(result.Errors) > 0 {
@@ -96,7 +157,4 @@ func PrintSummary(result *LoadResult) {
 			clog.SummaryError("%s", errMsg)
 		}
 	}
-
-	total := len(result.Created) + len(result.Updated) + len(result.Skipped) + len(result.Errors)
-	clog.Info("\nTotal processed: %d devices", total)
 }

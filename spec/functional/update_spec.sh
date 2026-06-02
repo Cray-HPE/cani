@@ -37,7 +37,7 @@ Describe 'cani alpha update'
     End
 
     Describe 'subcommands'
-      Parameters:value location rack device module cable orphans
+      Parameters:value location rack device module cable interface orphans
       It "lists the $1 subcommand"
         When call bin/cani alpha update --help
         The stdout should include "$1"

@@ -125,6 +125,8 @@ func (e *Exporter) collectNewInterfaces(
 					if err := e.updateInterface(ctx, existing.ID, nautobotID, spec, result); err != nil {
 						clog.Warn("Warning: failed to update interface %s on %s: %v", spec.Name, deviceName, err)
 					}
+				} else {
+					result.IfacesSkipped++
 				}
 				continue
 			}

@@ -69,3 +69,8 @@ interfaces:
     type: 1000base-t
     role: management
     mgmt_only: true
+  # ConnectX-6 100GbE HSN ports
+  - name: HSN 0
+    type: 100gbase-x-qsfp28
+  - name: HSN 1
+    type: 100gbase-x-qsfp28

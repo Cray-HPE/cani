@@ -484,7 +484,7 @@ func (m *DeviceMapper) resolveRole(device *devicetypes.CaniDeviceType) (*CachedI
 	if err != nil {
 		return nil, err
 	}
-	clog.Detail("[mapper] Resolved role '%s' to ID: %s", name, role.ID)
+	// clog.Detail("[mapper] Resolved role '%s' to ID: %s", name, role.ID)
 	return role, nil
 }
 
