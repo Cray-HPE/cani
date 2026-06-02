@@ -105,7 +105,7 @@ graph TB
     SERV9 -- "iLO → p15" --- FORGE3507u47M
     SERV7 -- "iLO → p16" --- FORGE3507u47M
     SERV5 -- "iLO → p17" --- FORGE3507u47M
-    SERV5 -- "OCP NIC → p10" --- MAN3507u48
+    SERV5 -- "OCP-p1 → p10" --- MAN3507u48
 
     %% ── LAYER 1b: Mgmt switch SFP28 uplinks → leaf pairs (10G DAC) ──
 
@@ -231,6 +231,7 @@ graph TB
 | 1/1/30 | FORGE-3507u43L | 1/1/30 | ISL (VSX) | 100G DAC 3m |
 | 1/1/31 | FORGE-3507u43L | 1/1/31 | ISL (VSX) | 100G DAC 3m |
 | 1/1/32 | FORGE-3507u43L | 1/1/32 | ISL (VSX) | 100G DAC 3m |
+| mgmt   | FORGE-3507u47M | 46          | Management | CAT6 3m |
 
 ### FORGE-3507u43L — Leaf-2 (Aruba 8325-32C, 32× 100G QSFP28)
 
@@ -251,6 +252,7 @@ graph TB
 | 1/1/30 | FORGE-3507u44L | 1/1/30 | ISL (VSX) | 100G DAC 3m |
 | 1/1/31 | FORGE-3507u44L | 1/1/31 | ISL (VSX) | 100G DAC 3m |
 | 1/1/32 | FORGE-3507u44L | 1/1/32 | ISL (VSX) | 100G DAC 3m |
+| mgmt   | FORGE-3507u47M | 45          | Management | CAT6 3m |
 
 ### FORGE-3507u46S — Spine-1 (Aruba 9300-32D, 32× 400G QSFP-DD + 2× 10G SFP+)
 
@@ -262,6 +264,7 @@ graph TB
 | 1/1/4 | FORGE-3701u46L | 1/1/29 | x3701 Leaf downlink | 100G AOC 15m |
 | 1/1/29 | BBR-3508u46 | 1/1/9 | BB Leaf uplink | 100G AOC 15m |
 | 1/1/31 | BBR-3516u46 | 1/1/9 | BB Leaf uplink | 100G AOC 15m |
+| mgmt   | FORGE-3507u47M | 48          | Management | CAT6 3m |
 
 ### FORGE-3507u45S — Spine-2 (Aruba 9300-32D, 32× 400G QSFP-DD + 2× 10G SFP+)
 
@@ -273,6 +276,7 @@ graph TB
 | 1/1/4 | FORGE-3701u46L | 1/1/28 | x3701 Leaf downlink | 100G AOC 15m |
 | 1/1/29 | BBR-3508u46 | 1/1/10 | BB Leaf uplink | 100G AOC 15m |
 | 1/1/31 | BBR-3516u46 | 1/1/10 | BB Leaf uplink | 100G AOC 15m |
+| mgmt   | FORGE-3507u47M | 47          | Management | CAT6 3m |
 
 ### BBR-3508u46 — Router-1 (Aruba 8325-32C 32-PORT 100G QSFP+/QSFP28)
 
@@ -358,7 +362,11 @@ graph TB
 | 15 | SERV-3507u9 | iLO | Management | CAT6 3m |
 | 16 | SERV-3507u7 | iLO | Management | CAT6 3m |
 | 17 | SERV-3507u5 | iLO | Management | CAT6 3m |
+| 45 | FORGE-3507u43 | mgmt        | Management | CAT6 3m |
+| 46 | FORGE-3507u44L| mgmt        | Management | CAT6 3m |
+| 47 | FORGE-3507u45S | mgmt        | Management | CAT6 3m |
+| 48 | FORGE-3507u46S | mgmt        | Management | CAT6 3m |
 | 49 | FORGE-3507u44L | 1/1/10 | Leaf uplink | 10G DAC 3m |
 | 50 | FORGE-3507u43L | 1/1/10 | Leaf uplink | 10G DAC 3m |
-
+| mgmt   | SERV-3507u5 | ocp1-p2     | Management | CAT6 3m |
 ---
