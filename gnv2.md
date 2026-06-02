@@ -105,7 +105,7 @@ graph TB
     SERV9 -- "iLO → p15" --- FORGE3507u47M
     SERV7 -- "iLO → p16" --- FORGE3507u47M
     SERV5 -- "iLO → p17" --- FORGE3507u47M
-    SERV5 -- "OCP NIC → p10" --- MAN3507u48
+    SERV5 -- "OCP-p1 → p10" --- MAN3507u48
 
     %% ── LAYER 1b: Mgmt switch SFP28 uplinks → leaf pairs (10G DAC) ──
 
