@@ -743,10 +743,11 @@ func (e *Exporter) createDeviceWithID(ctx context.Context, device *devicetypes.C
 
 // interfaceSpec describes an interface to create
 type interfaceSpec struct {
-	Name  string
-	Type  string // 1000base-t, 10gbase-x-sfpp, etc.
-	Speed int    // Speed in Kbps
-	Role  string // Interface role name (e.g. "management", "hsn")
+	Name     string
+	Type     string // 1000base-t, 10gbase-x-sfpp, etc.
+	Speed    int    // Speed in Kbps
+	Role     string // Interface role name (e.g. "management", "hsn")
+	MgmtOnly bool   // Out-of-band management-only interface (Nautobot mgmt_only)
 }
 
 // getDeviceInterfaceSpecs returns interface specifications based on device type.
@@ -766,10 +767,11 @@ func getDeviceInterfaceSpecs(device *devicetypes.CaniDeviceType) []interfaceSpec
 				role = devicetypes.InferInterfaceRole(iface.Name, iface.Type, mgmtOnly)
 			}
 			specs = append(specs, interfaceSpec{
-				Name:  iface.Name,
-				Type:  ifaceType,
-				Speed: speed,
-				Role:  role,
+				Name:     iface.Name,
+				Type:     ifaceType,
+				Speed:    speed,
+				Role:     role,
+				MgmtOnly: mgmtOnly,
 			})
 		}
 		return specs
@@ -779,7 +781,7 @@ func getDeviceInterfaceSpecs(device *devicetypes.CaniDeviceType) []interfaceSpec
 	switch devicetypes.Type(string(device.Type)) {
 	case devicetypes.Blade, devicetypes.Node:
 		// ProLiant servers typically have iLO + 4 Ethernet + optional IB
-		specs = append(specs, interfaceSpec{Name: "iLO", Type: "1000base-t", Speed: 1000000})
+		specs = append(specs, interfaceSpec{Name: "iLO", Type: "1000base-t", Speed: 1000000, MgmtOnly: true})
 		for i := 0; i < 4; i++ {
 			specs = append(specs, interfaceSpec{Name: fmt.Sprintf("eth%d", i), Type: "1000base-t", Speed: 1000000})
 		}
@@ -791,7 +793,7 @@ func getDeviceInterfaceSpecs(device *devicetypes.CaniDeviceType) []interfaceSpec
 
 	case devicetypes.MgmtSwitch:
 		// Management switches - use Aruba 2930F as template
-		specs = append(specs, interfaceSpec{Name: "mgmt0", Type: "1000base-t", Speed: 1000000})
+		specs = append(specs, interfaceSpec{Name: "mgmt0", Type: "1000base-t", Speed: 1000000, MgmtOnly: true})
 		for i := 1; i <= 48; i++ {
 			specs = append(specs, interfaceSpec{Name: fmt.Sprintf("port%d", i), Type: "1000base-t", Speed: 1000000})
 		}
@@ -801,14 +803,14 @@ func getDeviceInterfaceSpecs(device *devicetypes.CaniDeviceType) []interfaceSpec
 
 	case devicetypes.HSNSwitch:
 		// InfiniBand NDR switches
-		specs = append(specs, interfaceSpec{Name: "mgmt0", Type: "1000base-t", Speed: 1000000})
+		specs = append(specs, interfaceSpec{Name: "mgmt0", Type: "1000base-t", Speed: 1000000, MgmtOnly: true})
 		for i := 1; i <= 64; i++ {
 			specs = append(specs, interfaceSpec{Name: fmt.Sprintf("osfp%d", i), Type: "infiniband-ndr", Speed: 400000000})
 		}
 
 	case devicetypes.CabinetPDU:
 		// PDUs just have management interface
-		specs = append(specs, interfaceSpec{Name: "mgmt0", Type: "100base-tx", Speed: 100000})
+		specs = append(specs, interfaceSpec{Name: "mgmt0", Type: "100base-tx", Speed: 100000, MgmtOnly: true})
 	}
 
 	return specs
@@ -916,11 +918,13 @@ func (e *Exporter) createInterface(ctx context.Context, deviceID uuid.UUID, ifac
 
 	// Build interface request
 	ifaceType := nautobotapi.InterfaceTypeChoices(iface.Type)
+	mgmtOnly := iface.MgmtOnly
 	req := nautobotapi.WritableInterfaceRequest{
-		Device: deviceRef,
-		Name:   iface.Name,
-		Type:   ifaceType,
-		Status: status,
+		Device:   deviceRef,
+		Name:     iface.Name,
+		Type:     ifaceType,
+		Status:   status,
+		MgmtOnly: &mgmtOnly,
 	}
 
 	// Resolve interface role if specified
@@ -988,10 +992,12 @@ func (e *Exporter) updateInterface(ctx context.Context, interfaceID uuid.UUID, d
 
 	// Build patch request - update type, status, and device
 	ifaceType := nautobotapi.InterfaceTypeChoices(iface.Type)
+	mgmtOnly := iface.MgmtOnly
 	req := nautobotapi.PatchedWritableInterfaceRequest{
-		Device: device,
-		Type:   &ifaceType,
-		Status: &status,
+		Device:   device,
+		Type:     &ifaceType,
+		Status:   &status,
+		MgmtOnly: &mgmtOnly,
 	}
 
 	resp, err := e.Client.DcimInterfacesPartialUpdateWithResponse(ctx, interfaceID, &nautobotapi.DcimInterfacesPartialUpdateParams{}, req)

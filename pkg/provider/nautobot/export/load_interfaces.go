@@ -225,11 +225,13 @@ func (e *Exporter) sendInterfaceBatch(
 		}
 
 		ifaceType := nautobotapi.InterfaceTypeChoices(item.Spec.Type)
+		mgmtOnly := item.Spec.MgmtOnly
 		req := nautobotapi.WritableInterfaceRequest{
-			Device: &nautobotapi.BulkWritableCircuitRequestTenant{Id: &deviceIDUnion},
-			Name:   item.Spec.Name,
-			Type:   ifaceType,
-			Status: status,
+			Device:   &nautobotapi.BulkWritableCircuitRequestTenant{Id: &deviceIDUnion},
+			Name:     item.Spec.Name,
+			Type:     ifaceType,
+			Status:   status,
+			MgmtOnly: &mgmtOnly,
 		}
 
 		// Resolve interface role if specified
