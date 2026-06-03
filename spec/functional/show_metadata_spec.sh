@@ -23,34 +23,27 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 
-# ── update module ───────────────────────────────────────────────────
+# ── show metadata ───────────────────────────────────────────────────
 
-Describe 'cani alpha update module'
-  Before 'setup_crud_env'
+Describe 'cani alpha show metadata'
 
-  Describe 'valid name'
-    It 'updates a module by name'
-      When call bin/cani alpha update module test-module --description "updated description" --config "$CANI_CONF"
+  Describe '--help'
+    It 'exits 0 and shows the description'
+      When call bin/cani alpha show metadata --help
       The status should equal 0
-      The stderr should include 'Updated module'
+      The stdout should include 'metadata'
     End
   End
 
-  Describe 'invalid name'
-    It 'rejects an unknown name'
-      When call bin/cani alpha update module nonexistent-name --description "x" --config "$CANI_CONF"
-      The status should equal 1
-      The stderr should include 'no item found matching'
-    End
-  End
+  Describe 'with data'
+    Before 'setup_crud_env'
 
-  # ── --bay flag (move between bays) ─────────────────────────────
-
-  Describe '--bay'
-    It 'moves a module to a different bay'
-      When call bin/cani alpha update module test-module --bay PCIe2 --config "$CANI_CONF"
+    It 'shows metadata after adding a role'
+      # First add a role, then show metadata
+      When call sh -c "bin/cani alpha add metadata role show-test-role --config '$CANI_CONF' && bin/cani alpha show metadata --config '$CANI_CONF'"
       The status should equal 0
-      The stderr should include 'Updated module'
+      The stdout should include 'show-test-role'
+      The stderr should include 'Added role'
     End
   End
 

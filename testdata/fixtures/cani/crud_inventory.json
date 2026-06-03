@@ -126,8 +126,66 @@
       ],
       "status": "Staged",
       "parent": "00000000-0000-0000-0000-000000000000",
-      "rack": "00000000-0000-0000-0000-000000000000",
-      "location": "00000000-0000-0000-0000-000000000000",
+      "rack": "58f00e62-0b30-4435-9c78-98f5aa3649f1",
+      "rackPosition": 1,
+      "rackFace": "front",
+      "location": "f9e5d985-376f-4bb1-8249-a7e82647b7f9",
+      "parentDevice": "00000000-0000-0000-0000-000000000000"
+    },
+    "b7a1c3d4-5e6f-7890-abcd-ef1234567890": {
+      "id": "b7a1c3d4-5e6f-7890-abcd-ef1234567890",
+      "name": "test-device-2",
+      "slug": "cray-xd225v",
+      "partNumber": "P52183-B21",
+      "manufacturer": "HPE",
+      "model": "Cray XD225v Node",
+      "type": "node",
+      "subdeviceRole": "child",
+      "uHeight": 1,
+      "isFullDepth": true,
+      "interfaces": [
+        {
+          "id": "00000000-0000-0000-0000-000000000000",
+          "name": "Management",
+          "type": "100base-tx",
+          "mgmt_only": true
+        },
+        {
+          "id": "00000000-0000-0000-0000-000000000000",
+          "name": "GigabitEthernet0/0/1",
+          "type": "1000base-t"
+        }
+      ],
+      "consolePorts": [
+        {
+          "name": "console",
+          "type": "rj-45-console"
+        }
+      ],
+      "powerPorts": [
+        {
+          "name": "PSU1",
+          "type": "iec-60320-c14",
+          "maximum_draw": 105,
+          "allocated_draw": 67
+        }
+      ],
+      "moduleBays": [
+        {
+          "name": "PCIe1",
+          "position": "PCIe1"
+        },
+        {
+          "name": "PCIe2",
+          "position": "PCIe2"
+        }
+      ],
+      "status": "Staged",
+      "parent": "00000000-0000-0000-0000-000000000000",
+      "rack": "58f00e62-0b30-4435-9c78-98f5aa3649f1",
+      "rackPosition": 2,
+      "rackFace": "front",
+      "location": "f9e5d985-376f-4bb1-8249-a7e82647b7f9",
       "parentDevice": "00000000-0000-0000-0000-000000000000"
     }
   },
@@ -176,6 +234,13 @@
       "name": "GigabitEthernet0/0/1",
       "interfaceType": "1000base-t",
       "deviceId": "16e4c62b-237e-4977-8426-aaec65db017b",
+      "status": "Active"
+    },
+    "11111111-1111-1111-1111-111111111111": {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "name": "Management",
+      "interfaceType": "100base-tx",
+      "deviceId": "b7a1c3d4-5e6f-7890-abcd-ef1234567890",
       "status": "Active"
     }
   },

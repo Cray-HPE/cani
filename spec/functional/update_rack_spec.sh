@@ -44,4 +44,24 @@ Describe 'cani alpha update rack'
     End
   End
 
+  # ── --u-height flag ─────────────────────────────────────────────
+
+  Describe '--u-height'
+    It 'updates the rack height'
+      When call bin/cani alpha update rack test-rack --u-height 48 --config "$CANI_CONF"
+      The status should equal 0
+      The stderr should include 'Updated rack'
+    End
+  End
+
+  # ── --location flag (re-parenting) ─────────────────────────────
+
+  Describe '--location'
+    It 're-parents a rack to a different location'
+      When call bin/cani alpha update rack test-rack --location removable-location --config "$CANI_CONF"
+      The status should equal 0
+      The stderr should include 'Updated rack'
+    End
+  End
+
 End

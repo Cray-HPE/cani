@@ -123,6 +123,25 @@ teardown_test_env() {
   rm -rf "$CANI_DIR"
 }
 
+# Create a test environment pre-loaded with the CRUD inventory for connection tests.
+# Same as setup_crud_env but also provides connection fixture paths.
+#shellcheck disable=SC2317
+setup_connections_env() {
+  rm -rf "$CANI_DIR"
+  mkdir -p "$CANI_DIR"
+  cp "$FIXTURES/cani/configs/test_config.yml" "$CANI_CONF"
+  cp "$FIXTURES/cani/crud_inventory.json" "$CANI_DS"
+}
+
+# Create a test environment with orphaned devices/racks for orphan resolution tests.
+#shellcheck disable=SC2317
+setup_orphan_env() {
+  rm -rf "$CANI_DIR"
+  mkdir -p "$CANI_DIR"
+  cp "$FIXTURES/cani/configs/test_config.yml" "$CANI_CONF"
+  cp "$FIXTURES/cani/orphan_inventory.json" "$CANI_DS"
+}
+
 # Create a clean migration test environment by deploying a legacy config fixture.
 # Usage: setup_migration_env cani_0.1.x.yml
 #shellcheck disable=SC2317

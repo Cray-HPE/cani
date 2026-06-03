@@ -1,0 +1,11 @@
+version: v1
+cable_defaults:
+  status: Connected
+
+connections:
+  - a: { device: "test-device", port: "Management" }
+    b: { device: "test-device-2", port: "Management" }
+    cable: { type: cat5, color: blue }
+  - a: { device: "test-device", port: "GigabitEthernet0/0/1" }
+    b: { device: "test-device-2", port: "GigabitEthernet0/0/1" }
+    cable: { type: cat6a, color: green, length: 3, length_unit: m }

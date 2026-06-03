@@ -44,4 +44,60 @@ Describe 'cani alpha add device'
     End
   End
 
+  # ── --qty bulk add ──────────────────────────────────────────────
+
+  Describe '--qty flag'
+    It 'adds multiple devices with --qty'
+      When call bin/cani alpha add device cray-xd225v --qty 3 --config "$CANI_CONF"
+      The status should equal 0
+      The stderr should include '3 device(s) added'
+    End
+  End
+
+  # ── --dry-run ───────────────────────────────────────────────────
+
+  Describe '--dry-run flag'
+    Before 'setup_crud_env'
+
+    It 'exits 0 with --dry-run'
+      When call bin/cani alpha add device cray-xd225v --rack test-rack --dry-run --config "$CANI_CONF"
+      The status should equal 0
+      The stderr should include 'device(s) added'
+    End
+  End
+
+  # ── sequential naming (--prefix, --start, --pad-width) ──────────
+
+  Describe 'sequential naming'
+    It 'names devices with --prefix and --start'
+      When call bin/cani alpha add device cray-xd225v --qty 2 --prefix node --start 5 --pad-width 3 --config "$CANI_CONF"
+      The status should equal 0
+      The stderr should include '2 device(s) added'
+    End
+  End
+
+  # ── --zone flag ─────────────────────────────────────────────────
+
+  Describe '--zone flag'
+    Before 'setup_crud_env'
+
+    It 'accepts a valid zone'
+      When call bin/cani alpha add device cray-xd225v --rack test-rack --zone top --config "$CANI_CONF"
+      The status should equal 0
+      The stderr should include 'Added device'
+    End
+  End
+
+  # ── name expansion patterns ─────────────────────────────────────
+
+  Describe 'name expansion'
+    Before 'setup_crud_env'
+
+    It 'expands %{SEQ} in device name'
+      When call bin/cani alpha add device cray-xd225v --rack test-rack --name "%{SEQ}-compute" --config "$CANI_CONF"
+      The status should equal 0
+      The stderr should include 'Added device'
+    End
+  End
+
 End
