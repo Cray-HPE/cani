@@ -145,6 +145,12 @@ func printDryRun(conns []connections.ResolvedConnection, inv *devicetypes.Invent
 		}
 		fmt.Printf("  %3d. %s:%s --[%s]-- %s:%s\n",
 			i+1, aName, c.APort, cableType, bName, c.BPort)
+		if c.AMac != "" {
+			fmt.Printf("       %s:%s mac=%s\n", aName, c.APort, c.AMac)
+		}
+		if c.BMac != "" {
+			fmt.Printf("       %s:%s mac=%s\n", bName, c.BPort, c.BMac)
+		}
 	}
 	return nil
 }

@@ -1,0 +1,14 @@
+{
+  "assignments": [
+    {
+      "orphan_id": "bbbb1111-2222-3333-4444-555566667777",
+      "orphan_name": "orphan-device",
+      "orphan_kind": "device",
+      "parent_id": "58f00e62-0b30-4435-9c78-98f5aa3649f1",
+      "parent_name": "test-rack",
+      "parent_kind": "rack",
+      "rack_position": 5,
+      "face": "front"
+    }
+  ]
+}

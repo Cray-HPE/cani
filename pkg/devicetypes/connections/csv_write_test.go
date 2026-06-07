@@ -61,12 +61,12 @@ func TestWriteCSV_Basic(t *testing.T) {
 		t.Fatalf("expected 2 lines (header + 1 row), got %d:\n%s", len(lines), got)
 	}
 
-	wantHeader := "a_device,a_port,b_device,b_port,type,label,color,length,length_unit,status"
+	wantHeader := "a_device,a_port,a_mac,b_device,b_port,b_mac,type,label,color,length,length_unit,status"
 	if lines[0] != wantHeader {
 		t.Errorf("header = %q, want %q", lines[0], wantHeader)
 	}
 
-	wantRow := "sw-leaf01,1/1/1,node01,HSN 0,cat6a,mgmt,,3,m,Connected"
+	wantRow := "sw-leaf01,1/1/1,,node01,HSN 0,,cat6a,mgmt,,3,m,Connected"
 	if lines[1] != wantRow {
 		t.Errorf("row = %q, want %q", lines[1], wantRow)
 	}

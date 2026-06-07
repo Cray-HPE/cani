@@ -44,4 +44,22 @@ Describe 'cani alpha add cable'
     End
   End
 
+  # ── endpoint flags (--a-device, --a-port, --b-device, --b-port) ──
+
+  Describe 'cable endpoints'
+    Before 'setup_crud_env'
+
+    It 'creates a cable between two devices'
+      When call bin/cani alpha add cable hpe-cat5-rj45-4-3m-cable --a-device test-device --a-port "Management" --b-device test-device-2 --b-port "Management" --config "$CANI_CONF"
+      The status should equal 0
+      The stderr should include 'Added cable'
+    End
+
+    It 'fails with a non-existent device name'
+      When call bin/cani alpha add cable hpe-cat5-rj45-4-3m-cable --a-device nonexistent --a-port "Management" --b-device test-device-2 --b-port "Management" --config "$CANI_CONF"
+      The status should equal 1
+      The stderr should include 'Error'
+    End
+  End
+
 End

@@ -1,0 +1,4 @@
+a_device,a_port,b_device,b_port,type,label,color,length,length_unit,status
+_defaults,,,,cat5,,blue,,,Connected
+test-device,Management,test-device-2,Management,,mgmt-link,blue,,,
+test-device,GigabitEthernet0/0/1,test-device-2,GigabitEthernet0/0/1,cat6a,data-link,green,3,m,

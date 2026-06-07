@@ -124,4 +124,88 @@ Describe 'cani alpha show'
     End
   End
 
+  # ── show rack visual modes ──────────────────────────────────────
+
+  Describe 'rack visual modes'
+    Before 'setup_crud_env'
+
+    It 'show rack with --columns exits 0'
+      When call bin/cani alpha show rack test-rack --columns 2 --config "$CANI_CONF"
+      The status should equal 0
+      The stdout should be present
+    End
+
+    It 'show rack with -V (verbose) exits 0'
+      When call bin/cani alpha show rack test-rack -V --config "$CANI_CONF"
+      The status should equal 0
+      The stdout should be present
+    End
+
+    It 'show rack with -VV (extra verbose) exits 0'
+      When call bin/cani alpha show rack test-rack -VV --config "$CANI_CONF"
+      The status should equal 0
+      The stdout should be present
+    End
+
+    It 'show rack with --labels exits 0'
+      When call bin/cani alpha show rack test-rack --labels --config "$CANI_CONF"
+      The status should equal 0
+      The stdout should be present
+    End
+  End
+
+  # ── --with tree detail ──────────────────────────────────────────
+
+  Describe '--with flag'
+    Before 'setup_crud_env'
+
+    It 'includes modules in tree output'
+      When call bin/cani alpha show --with modules --config "$CANI_CONF"
+      The status should equal 0
+      The stdout should be present
+    End
+
+    It 'includes interfaces in tree output'
+      When call bin/cani alpha show --with interfaces --config "$CANI_CONF"
+      The status should equal 0
+      The stdout should be present
+    End
+
+    It 'includes cables in tree output'
+      When call bin/cani alpha show --with cables --config "$CANI_CONF"
+      The status should equal 0
+      The stdout should be present
+    End
+
+    It 'includes empty-us in tree output'
+      When call bin/cani alpha show --with empty-us --config "$CANI_CONF"
+      The status should equal 0
+      The stdout should be present
+    End
+  End
+
+  # ── show prefix --tree ──────────────────────────────────────────
+
+  Describe 'prefix --tree'
+    Before 'setup_crud_env'
+
+    It 'exits 0 with --tree flag'
+      When call bin/cani alpha show prefix --tree --config "$CANI_CONF"
+      The status should equal 0
+      The stdout should be present
+    End
+  End
+
+  # ── show ip --prefix ────────────────────────────────────────────
+
+  Describe 'ip --prefix filter'
+    Before 'setup_crud_env'
+
+    It 'exits 0 with --prefix filter'
+      When call bin/cani alpha show ip --prefix "10.0.0.0/24" --config "$CANI_CONF"
+      The status should equal 0
+      The stdout should be present
+    End
+  End
+
 End

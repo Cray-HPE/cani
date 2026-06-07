@@ -257,7 +257,7 @@ func TestLinkInterfacesToCable(t *testing.T) {
 				deviceAID: {ID: deviceAID, Interfaces: []devicetypes.InterfaceSpec{{ID: ifaceAID, Name: "eth0"}}},
 				deviceBID: {ID: deviceBID, Interfaces: []devicetypes.InterfaceSpec{{ID: ifaceBID, Name: "eth0"}}},
 			},
-			Interfaces: map[uuid.UUID]*devicetypes.InterfaceInstance{
+			Interfaces: map[uuid.UUID]*devicetypes.CaniInterface{
 				ifaceAID: {ID: ifaceAID, DeviceID: deviceAID},
 				ifaceBID: {ID: ifaceBID, DeviceID: deviceBID},
 			},
@@ -271,7 +271,7 @@ func TestLinkInterfacesToCable(t *testing.T) {
 	t.Run("missing interface returns error", func(t *testing.T) {
 		inv := &devicetypes.Inventory{
 			Devices:    map[uuid.UUID]*devicetypes.CaniDeviceType{},
-			Interfaces: map[uuid.UUID]*devicetypes.InterfaceInstance{},
+			Interfaces: map[uuid.UUID]*devicetypes.CaniInterface{},
 		}
 		cable := &devicetypes.CaniCableType{ID: cableID, TerminationA: uuid.New(), TerminationB: uuid.New()}
 		if err := linkInterfacesToCable(inv, cable); err == nil {

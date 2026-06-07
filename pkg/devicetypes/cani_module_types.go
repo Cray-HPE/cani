@@ -99,25 +99,26 @@ func (m *CaniModuleType) GetType() Type {
 	return TypeModule
 }
 
-// InstantiateInterfaces creates InterfaceInstance entries from this module's specs.
-func (m *CaniModuleType) InstantiateInterfaces() []InterfaceInstance {
+// InstantiateInterfaces creates CaniInterface entries from this module's specs.
+func (m *CaniModuleType) InstantiateInterfaces() []CaniInterface {
 	if m == nil {
 		return nil
 	}
-	instances := make([]InterfaceInstance, 0, len(m.Interfaces))
+	instances := make([]CaniInterface, 0, len(m.Interfaces))
 	for _, iface := range m.Interfaces {
 		mgmtOnly := false
 		if iface.MgmtOnly != nil {
 			mgmtOnly = *iface.MgmtOnly
 		}
 		role := ResolveInterfaceRole(iface.Role, iface.Name, iface.Type, mgmtOnly)
-		instances = append(instances, InterfaceInstance{
+		instances = append(instances, CaniInterface{
 			ID:            uuid.New(),
 			Name:          iface.Name,
 			InterfaceType: iface.Type,
 			DeviceID:      m.ID,
 			ObjectMeta:    ObjectMeta{Status: string(StatusActive), Role: role},
 			MgmtOnly:      mgmtOnly,
+			MacAddress:    iface.MacAddress,
 		})
 	}
 	return instances

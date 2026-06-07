@@ -101,8 +101,9 @@ func (e *Exporter) createFruFromCani(
 		existResp.JSON200 != nil && existResp.JSON200.Count > 0 {
 		existing := existResp.JSON200.Results[0]
 		existingID := toUUID(existing.Id)
-		clog.Skipped("Inventory item already exists: %s on %s (ID: %s) — skipping",
-			fru.Name, parentDevice.Name, existingID)
+		clog.Skipped("Skipped inventory item (already exists): %s on %s",
+			fru.Name, parentDevice.Name)
+		result.FrusSkipped++
 		return existingID, nil
 	}
 

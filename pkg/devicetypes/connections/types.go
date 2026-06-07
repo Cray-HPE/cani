@@ -56,6 +56,7 @@ type ConnectionEntry struct {
 type Endpoint struct {
 	Device string `yaml:"device" json:"device"`
 	Port   string `yaml:"port" json:"port"`
+	Mac    string `yaml:"mac,omitempty" json:"mac,omitempty"`
 }
 
 // CableProps holds per-connection cable properties that override defaults.

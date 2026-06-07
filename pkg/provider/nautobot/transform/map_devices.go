@@ -96,11 +96,12 @@ func MapDevices(
 					ifaceType = string(*iface.Type.Value)
 				}
 				spec := devicetypes.InterfaceSpec{
-					ID:       uuid.New(),
-					Name:     iface.Name,
-					Type:     devicetypes.InterfacesElemType(ifaceType),
-					Label:    strVal(iface.Label),
-					MgmtOnly: &mgmt,
+					ID:         uuid.New(),
+					Name:       iface.Name,
+					Type:       devicetypes.InterfacesElemType(ifaceType),
+					Label:      strVal(iface.Label),
+					MacAddress: strVal(iface.MacAddress),
+					MgmtOnly:   &mgmt,
 				}
 				caniDev.Interfaces = append(caniDev.Interfaces, spec)
 			}

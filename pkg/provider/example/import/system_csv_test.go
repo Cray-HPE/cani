@@ -52,6 +52,9 @@ func TestParseSystemCSV(t *testing.T) {
 				if len(data.Modules) != 3 {
 					t.Errorf("expected 3 modules, got %d", len(data.Modules))
 				}
+				if len(data.Interfaces) != 2 {
+					t.Errorf("expected 2 interfaces, got %d", len(data.Interfaces))
+				}
 				if len(data.Connections) != 3 {
 					t.Errorf("expected 3 connections, got %d", len(data.Connections))
 				}
@@ -196,6 +199,28 @@ func TestParseSystemCSV_ConnectionFields(t *testing.T) {
 	}
 	if conn.Color != "blue" {
 		t.Errorf("Color = %q, want %q", conn.Color, "blue")
+	}
+}
+
+func TestParseSystemCSV_InterfaceFields(t *testing.T) {
+	data, err := ParseSystemCSV("../../../../testdata/fixtures/example/system.csv")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(data.Interfaces) < 1 {
+		t.Fatal("expected at least 1 interface")
+	}
+
+	iface := data.Interfaces[0]
+	if iface.Device != "GH-x3701u34" {
+		t.Errorf("Device = %q, want %q", iface.Device, "GH-x3701u34")
+	}
+	if iface.Name != "iLO" {
+		t.Errorf("Name = %q, want %q", iface.Name, "iLO")
+	}
+	if iface.MacAddress != "aa:bb:cc:dd:ee:01" {
+		t.Errorf("MacAddress = %q, want %q", iface.MacAddress, "aa:bb:cc:dd:ee:01")
 	}
 }
 

@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "v1alpha2",
+  "locations": {
+    "f9e5d985-376f-4bb1-8249-a7e82647b7f9": {
+      "id": "f9e5d985-376f-4bb1-8249-a7e82647b7f9",
+      "name": "test-site",
+      "locationType": "site",
+      "parent": "00000000-0000-0000-0000-000000000000",
+      "racks": [
+        "58f00e62-0b30-4435-9c78-98f5aa3649f1"
+      ],
+      "status": "Active"
+    }
+  },
+  "racks": {
+    "58f00e62-0b30-4435-9c78-98f5aa3649f1": {
+      "id": "58f00e62-0b30-4435-9c78-98f5aa3649f1",
+      "name": "test-rack",
+      "slug": "hpe-eia-cabinet",
+      "manufacturer": "HPE",
+      "model": "EX2000",
+      "type": "cabinet",
+      "uHeight": 42,
+      "status": "Active",
+      "location": "f9e5d985-376f-4bb1-8249-a7e82647b7f9"
+    },
+    "aaaa1111-2222-3333-4444-555566667777": {
+      "id": "aaaa1111-2222-3333-4444-555566667777",
+      "name": "orphan-rack",
+      "slug": "hpe-eia-cabinet",
+      "manufacturer": "HPE",
+      "model": "EX2000",
+      "type": "cabinet",
+      "uHeight": 42,
+      "status": "Staged",
+      "location": "00000000-0000-0000-0000-000000000000"
+    }
+  },
+  "devices": {
+    "bbbb1111-2222-3333-4444-555566667777": {
+      "id": "bbbb1111-2222-3333-4444-555566667777",
+      "name": "orphan-device",
+      "slug": "cray-xd225v",
+      "partNumber": "P52183-B21",
+      "manufacturer": "HPE",
+      "model": "Cray XD225v Node",
+      "type": "node",
+      "uHeight": 1,
+      "isFullDepth": true,
+      "interfaces": [
+        {
+          "id": "00000000-0000-0000-0000-000000000000",
+          "name": "Management",
+          "type": "100base-tx",
+          "mgmt_only": true
+        }
+      ],
+      "status": "Staged",
+      "parent": "00000000-0000-0000-0000-000000000000",
+      "rack": "00000000-0000-0000-0000-000000000000",
+      "location": "00000000-0000-0000-0000-000000000000",
+      "parentDevice": "00000000-0000-0000-0000-000000000000"
+    }
+  },
+  "modules": {},
+  "cables": {},
+  "frus": {},
+  "interfaces": {},
+  "metadata": {}
+}

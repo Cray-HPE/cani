@@ -356,10 +356,10 @@ func (c *LookupCache) GetStatus(name string) (*CachedItem, error) {
 	if resp.JSON200 != nil && resp.JSON200.Results != nil && len(resp.JSON200.Results) > 0 {
 		st := (resp.JSON200.Results)[0]
 
-		// For custom (non-predefined) statuses, ensure they cover
-		// dcim.device and dcim.module; patch if missing.
-		if c.createStatuses && !devicetypes.IsValidStatus(name) {
-			required := []string{"dcim.device", "dcim.module"}
+		// Ensure the status covers all content types the exporter may
+		// need (DCIM + IPAM); patch if any are missing.
+		if c.createStatuses {
+			required := []string{"dcim.device", "dcim.module", "dcim.rack", "ipam.prefix", "ipam.ipaddress", "ipam.vlan"}
 			var missing []string
 			for _, req := range required {
 				found := false
@@ -374,7 +374,7 @@ func (c *LookupCache) GetStatus(name string) (*CachedItem, error) {
 				}
 			}
 			if len(missing) > 0 {
-				clog.Detail("[nautobot] Custom status '%s' missing content types %v, updating...", name, missing)
+				clog.Detail("[nautobot] Status '%s' missing content types %v, updating...", name, missing)
 				updated := append(st.ContentTypes, missing...)
 				c.statusesMu.Unlock()
 				updatedItem, err := c.UpdateStatusContentTypes(toUUID(st.Id), name, updated)
@@ -448,18 +448,21 @@ func (c *LookupCache) GetRole(name string) (*CachedItem, error) {
 			r := (resp.JSON200.Results)[0]
 			clog.Detail("[nautobot] Found role: name='%s', id=%s, content_types=%v", r.Name, r.Id, r.ContentTypes)
 
-			// Check if role has dcim.device content type
-			hasDeviceType := false
+			// Check if role has all required content types
+			requiredTypes := []string{"dcim.device", "ipam.prefix", "ipam.ipaddress", "ipam.vlan"}
+			existingTypes := make(map[string]bool)
 			for _, ct := range r.ContentTypes {
-				if ct == "dcim.device" {
-					hasDeviceType = true
-					break
+				existingTypes[ct] = true
+			}
+			var missingTypes []string
+			for _, rt := range requiredTypes {
+				if !existingTypes[rt] {
+					missingTypes = append(missingTypes, rt)
 				}
 			}
-			if !hasDeviceType && c.createRoles {
-				clog.Detail("[nautobot] Role '%s' exists but doesn't have dcim.device content type, updating...", name)
-				// Update the role to add dcim.device content type
-				updatedContentTypes := append(r.ContentTypes, "dcim.device")
+			if len(missingTypes) > 0 && c.createRoles {
+				clog.Detail("[nautobot] Role '%s' missing content types %v, updating...", name, missingTypes)
+				updatedContentTypes := append(r.ContentTypes, missingTypes...)
 				c.rolesMu.Unlock()
 				updatedItem, err := c.UpdateRoleContentTypes(toUUID(r.Id), name, updatedContentTypes)
 				c.rolesMu.Lock()
@@ -954,12 +957,12 @@ func (c *LookupCache) CreateDeviceTypeFromCaniDevice(device *devicetypes.CaniDev
 	return nil, fmt.Errorf("device type %s: no response body", device.Slug)
 }
 
-// CreateStatus creates a new status in Nautobot for use with devices, racks, and modules.
+// CreateStatus creates a new status in Nautobot for use with devices, racks, modules, and IPAM objects.
 func (c *LookupCache) CreateStatus(name string) (*CachedItem, error) {
 	clog.Detail("[nautobot] Creating status: %s", name)
 
 	// Status requires content_types to specify what objects it applies to.
-	contentTypes := []string{"dcim.device", "dcim.rack", "dcim.module"}
+	contentTypes := []string{"dcim.device", "dcim.rack", "dcim.module", "ipam.prefix", "ipam.ipaddress", "ipam.vlan"}
 
 	createResp, err := c.client.ExtrasStatusesCreateWithResponse(c.ctx,
 		&nautobotapi.ExtrasStatusesCreateParams{},
@@ -995,7 +998,7 @@ func (c *LookupCache) CreateRole(name string) (*CachedItem, error) {
 	clog.Detail("[nautobot] Creating role: %s", name)
 
 	// Role requires content_types and weight
-	contentTypes := []string{"dcim.device", "dcim.interface"}
+	contentTypes := []string{"dcim.device", "dcim.interface", "ipam.prefix", "ipam.ipaddress", "ipam.vlan"}
 	weight := 1000
 
 	createResp, err := c.client.ExtrasRolesCreateWithResponse(c.ctx,

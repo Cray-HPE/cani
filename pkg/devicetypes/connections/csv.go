@@ -44,6 +44,7 @@ type csvInterface struct {
 	Type       string // interface type (e.g. 100gbase-x-qsfp28)
 	Status     string // status__name
 	Label      string // label
+	Mac        string // mac_address
 }
 
 // requiredInterfaceColumns lists columns required for Nautobot interfaces CSV.
@@ -132,8 +133,8 @@ func ParseConnectionsCSV(r io.Reader) (*ConnectionMap, error) {
 		}
 
 		entry := ConnectionEntry{
-			A: Endpoint{Device: aDevice, Port: aPort},
-			B: Endpoint{Device: bDevice, Port: bPort},
+			A: Endpoint{Device: aDevice, Port: aPort, Mac: getField(record, idx, "a_mac")},
+			B: Endpoint{Device: bDevice, Port: bPort, Mac: getField(record, idx, "b_mac")},
 		}
 
 		// Attach optional cable properties
@@ -279,6 +280,7 @@ func readInterfaceRows(reader *csv.Reader, idx map[string]int) (map[string]csvIn
 			Type:       getField(record, idx, "type"),
 			Status:     getField(record, idx, "status__name"),
 			Label:      getField(record, idx, "label"),
+			Mac:        getField(record, idx, "mac_address"),
 		}
 
 		// Skip uncabled interfaces
@@ -327,8 +329,8 @@ func pairInterfaces(interfaces map[string]csvInterface) (*ConnectionMap, error) 
 		}
 
 		entry := ConnectionEntry{
-			A: Endpoint{Device: a.DeviceName, Port: a.Name},
-			B: Endpoint{Device: b.DeviceName, Port: b.Name},
+			A: Endpoint{Device: a.DeviceName, Port: a.Name, Mac: a.Mac},
+			B: Endpoint{Device: b.DeviceName, Port: b.Name, Mac: b.Mac},
 		}
 
 		// Attach any available cable metadata

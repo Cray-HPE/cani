@@ -528,7 +528,7 @@ func (inv *Inventory) rebuildCableRelationships() *RelationshipResult {
 
 		// Resolve TerminationA interface UUID from device + port name.
 		if cable.TerminationADevice != uuid.Nil && cable.TerminationAPort != "" {
-			if ifaceID := inv.findInterfaceIDByPort(cable.TerminationADevice, cable.TerminationAPort); ifaceID != uuid.Nil {
+			if ifaceID := inv.FindInterfaceIDByPort(cable.TerminationADevice, cable.TerminationAPort); ifaceID != uuid.Nil {
 				if cable.TerminationA != ifaceID {
 					cable.TerminationA = ifaceID
 					res.Fixed = append(res.Fixed,
@@ -540,7 +540,7 @@ func (inv *Inventory) rebuildCableRelationships() *RelationshipResult {
 
 		// Resolve TerminationB interface UUID from device + port name.
 		if cable.TerminationBDevice != uuid.Nil && cable.TerminationBPort != "" {
-			if ifaceID := inv.findInterfaceIDByPort(cable.TerminationBDevice, cable.TerminationBPort); ifaceID != uuid.Nil {
+			if ifaceID := inv.FindInterfaceIDByPort(cable.TerminationBDevice, cable.TerminationBPort); ifaceID != uuid.Nil {
 				if cable.TerminationB != ifaceID {
 					cable.TerminationB = ifaceID
 					res.Fixed = append(res.Fixed,
@@ -553,10 +553,10 @@ func (inv *Inventory) rebuildCableRelationships() *RelationshipResult {
 	return res
 }
 
-// findInterfaceIDByPort finds an interface UUID on a device (or its modules)
+// FindInterfaceIDByPort finds an interface UUID on a device (or its modules)
 // by matching the port name. Also handles the case where the ID refers
 // directly to a module. Returns uuid.Nil if not found.
-func (inv *Inventory) findInterfaceIDByPort(deviceID uuid.UUID, portName string) uuid.UUID {
+func (inv *Inventory) FindInterfaceIDByPort(deviceID uuid.UUID, portName string) uuid.UUID {
 	// Check if the ID refers directly to a module.
 	if mod, ok := inv.Modules[deviceID]; ok && mod != nil {
 		for i := range mod.Interfaces {
@@ -646,7 +646,7 @@ func (inv *Inventory) rebuildInterfaceRelationships() *RelationshipResult {
 		oldIfaces[id] = true
 	}
 
-	inv.Interfaces = make(map[uuid.UUID]*InterfaceInstance)
+	inv.Interfaces = make(map[uuid.UUID]*CaniInterface)
 
 	for deviceID, device := range inv.Devices {
 		if device == nil {
@@ -659,13 +659,14 @@ func (inv *Inventory) rebuildInterfaceRelationships() *RelationshipResult {
 			}
 			mgmtOnly := iface.MgmtOnly != nil && *iface.MgmtOnly
 			role := ResolveInterfaceRole(iface.Role, iface.Name, iface.Type, mgmtOnly)
-			inst := &InterfaceInstance{
+			inst := &CaniInterface{
 				ID:            iface.ID,
 				Name:          iface.Name,
 				InterfaceType: iface.Type,
 				DeviceID:      deviceID,
 				ObjectMeta:    ObjectMeta{Status: string(StatusActive), Role: role},
 				MgmtOnly:      mgmtOnly,
+				MacAddress:    iface.MacAddress,
 			}
 			inv.Interfaces[iface.ID] = inst
 			if !oldIfaces[iface.ID] {
@@ -687,13 +688,14 @@ func (inv *Inventory) rebuildInterfaceRelationships() *RelationshipResult {
 			}
 			mgmtOnly := iface.MgmtOnly != nil && *iface.MgmtOnly
 			role := ResolveInterfaceRole(iface.Role, iface.Name, iface.Type, mgmtOnly)
-			inst := &InterfaceInstance{
+			inst := &CaniInterface{
 				ID:            iface.ID,
 				Name:          iface.Name,
 				InterfaceType: iface.Type,
 				DeviceID:      mod.ParentDevice,
 				ObjectMeta:    ObjectMeta{Status: string(StatusActive), Role: role},
 				MgmtOnly:      mgmtOnly,
+				MacAddress:    iface.MacAddress,
 			}
 			inv.Interfaces[iface.ID] = inst
 			if !oldIfaces[iface.ID] {

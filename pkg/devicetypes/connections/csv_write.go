@@ -33,7 +33,7 @@ import (
 
 // csvHeader is the column order for human-friendly connection CSV files.
 var csvHeader = []string{
-	"a_device", "a_port", "b_device", "b_port",
+	"a_device", "a_port", "a_mac", "b_device", "b_port", "b_mac",
 	"type", "label", "color", "length", "length_unit", "status",
 }
 
@@ -48,7 +48,7 @@ func WriteCSV(w io.Writer, cm ConnectionMap) error {
 
 	if cm.CableDefaults != nil {
 		row := []string{
-			"_defaults", "", "", "",
+			"_defaults", "", "", "", "", "",
 			cm.CableDefaults.Type,
 			"",
 			cm.CableDefaults.Color,
@@ -65,20 +65,22 @@ func WriteCSV(w io.Writer, cm ConnectionMap) error {
 		row := []string{
 			entry.A.Device,
 			entry.A.Port,
+			entry.A.Mac,
 			entry.B.Device,
 			entry.B.Port,
+			entry.B.Mac,
 			"", "", "", "", "", "",
 		}
 
 		if entry.Cable != nil {
-			row[4] = entry.Cable.Type
-			row[5] = entry.Cable.Label
-			row[6] = entry.Cable.Color
+			row[6] = entry.Cable.Type
+			row[7] = entry.Cable.Label
+			row[8] = entry.Cable.Color
 			if entry.Cable.Length != nil {
-				row[7] = formatLength(*entry.Cable.Length)
+				row[9] = formatLength(*entry.Cable.Length)
 			}
-			row[8] = entry.Cable.LengthUnit
-			row[9] = entry.Cable.Status
+			row[10] = entry.Cable.LengthUnit
+			row[11] = entry.Cable.Status
 		}
 
 		if err := writer.Write(row); err != nil {

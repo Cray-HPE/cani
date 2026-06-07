@@ -203,7 +203,7 @@ The `Inventory` contains seven maps:
 | `modules` | `CaniModuleType` | NICs, GPUs, PSUs, and other internal modules |
 | `cables` | `CaniCableType` | Network and power cables with terminations |
 | `frus` | `CaniFruType` | Field-replaceable units (spares tracking) |
-| `interfaces` | `InterfaceInstance` | Network interfaces (1GbE, 10GbE, 100GbE, etc.) |
+| `interfaces` | `CaniInterface` | Network interfaces (1GbE, 10GbE, 100GbE, etc.) |
 
 **Example device entry:**
 

@@ -186,7 +186,7 @@ func TestPrintRackCables(t *testing.T) {
 				Cables: map[uuid.UUID]*devicetypes.CaniCableType{
 					cableID: {Slug: "cat6", TerminationA: ifaceID},
 				},
-				Interfaces: map[uuid.UUID]*devicetypes.InterfaceInstance{
+				Interfaces: map[uuid.UUID]*devicetypes.CaniInterface{
 					ifaceID: {ID: ifaceID, Name: "eth0", DeviceID: deviceID},
 				},
 			},

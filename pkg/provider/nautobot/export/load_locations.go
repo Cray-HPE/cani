@@ -66,6 +66,7 @@ func (e *Exporter) loadLocations(
 			created[loc.ID] = existing.ID
 			setExternalID(&loc.ExternalIDs, "nautobot", existing.ID)
 			result.LocationsSkipped = append(result.LocationsSkipped, loc.Name)
+			clog.Skipped("Skipped location (already exists): %s", loc.Name)
 			continue
 		}
 

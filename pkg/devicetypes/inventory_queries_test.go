@@ -449,7 +449,7 @@ func TestGetInterfaceByIDFound(t *testing.T) {
 			{ID: ifaceID, Name: "eth0", Type: "1000base-t"},
 		},
 	}
-	inv.Interfaces[ifaceID] = &InterfaceInstance{
+	inv.Interfaces[ifaceID] = &CaniInterface{
 		ID:       ifaceID,
 		DeviceID: devID,
 	}
@@ -485,7 +485,7 @@ func TestGetInterfacesByDeviceFound(t *testing.T) {
 	devID := uuid.New()
 	ifaceID := uuid.New()
 
-	inv.Interfaces[ifaceID] = &InterfaceInstance{
+	inv.Interfaces[ifaceID] = &CaniInterface{
 		ID:       ifaceID,
 		Name:     "eth0",
 		DeviceID: devID,

@@ -28,6 +28,7 @@ package add
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
@@ -99,6 +100,41 @@ func addIP(cmd *cobra.Command, args []string) error {
 
 	if err := inventory.AddIPAddress(addr); err != nil {
 		return fmt.Errorf("failed to add ip address: %w", err)
+	}
+
+	// Resolve --interface flags to interface UUIDs after AddIPAddress
+	// (which computes parent prefix), so we can use the full inventory.
+	if cmd.Flags().Changed("interface") {
+		refs, _ := cmd.Flags().GetStringArray("interface")
+		for _, ref := range refs {
+			parts := strings.SplitN(ref, ":", 2)
+			if len(parts) != 2 {
+				return fmt.Errorf("invalid interface reference %q: expected device:port", ref)
+			}
+			deviceName, portName := parts[0], parts[1]
+			device := inventory.FindDeviceByNameOrID(deviceName)
+			if device == nil {
+				return fmt.Errorf("interface reference %q: device %q not found", ref, deviceName)
+			}
+			ifaceID := inventory.FindInterfaceIDByPort(device.ID, portName)
+			if ifaceID == uuid.Nil {
+				// Auto-create virtual interface for loopback/vlan/SVI names
+				ifaceID = uuid.New()
+				iface := devicetypes.InterfaceSpec{
+					ID:   ifaceID,
+					Name: portName,
+					Type: devicetypes.InterfacesElemTypeVirtual,
+				}
+				device.Interfaces = append(device.Interfaces, iface)
+				inventory.Interfaces[ifaceID] = &devicetypes.CaniInterface{
+					ID:            ifaceID,
+					Name:          portName,
+					InterfaceType: devicetypes.InterfacesElemTypeVirtual,
+					DeviceID:      device.ID,
+				}
+			}
+			addr.Interfaces = append(addr.Interfaces, ifaceID)
+		}
 	}
 
 	if err := datastores.Datastore.Save(inventory); err != nil {

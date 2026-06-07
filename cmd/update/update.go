@@ -47,6 +47,7 @@ func NewCommand() *cobra.Command {
 	cmd.AddCommand(newDeviceCommand())
 	cmd.AddCommand(newModuleCommand())
 	cmd.AddCommand(newCableCommand())
+	cmd.AddCommand(newInterfaceCommand())
 	cmd.AddCommand(newOrphansCommand())
 
 	cmd.PersistentFlags().StringArray("set", nil, "Set field value as key=value (repeatable)")

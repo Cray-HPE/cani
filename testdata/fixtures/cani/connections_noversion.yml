@@ -1,0 +1,7 @@
+# Missing the required version field
+cable_defaults:
+  status: Connected
+
+connections:
+  - a: { device: "test-device", port: "Management" }
+    b: { device: "test-device-2", port: "Management" }

@@ -230,11 +230,11 @@ func newTestInventoryWithCable(ifaceType InterfacesElemType) (*CaniCableType, *I
 			{ID: ifaceBID, Name: "eth0", Type: ifaceType},
 		},
 	}
-	inv.Interfaces[ifaceAID] = &InterfaceInstance{
+	inv.Interfaces[ifaceAID] = &CaniInterface{
 		ID:       ifaceAID,
 		DeviceID: devAID,
 	}
-	inv.Interfaces[ifaceBID] = &InterfaceInstance{
+	inv.Interfaces[ifaceBID] = &CaniInterface{
 		ID:       ifaceBID,
 		DeviceID: devBID,
 	}

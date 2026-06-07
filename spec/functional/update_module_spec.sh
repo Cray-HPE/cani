@@ -44,4 +44,14 @@ Describe 'cani alpha update module'
     End
   End
 
+  # ── --bay flag (move between bays) ─────────────────────────────
+
+  Describe '--bay'
+    It 'moves a module to a different bay'
+      When call bin/cani alpha update module test-module --bay PCIe2 --config "$CANI_CONF"
+      The status should equal 0
+      The stderr should include 'Updated module'
+    End
+  End
+
 End

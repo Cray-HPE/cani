@@ -33,6 +33,7 @@ type SystemRecord struct {
 	LengthUnit   string // cable length unit (connections)
 	Location     string // location name (racks)
 	ContentTypes string // comma-separated content types (roles)
+	MacAddress   string // MAC address (interfaces)
 }
 
 // SystemCSV holds parsed system CSV data grouped by section.
@@ -44,6 +45,7 @@ type SystemCSV struct {
 	Racks           []SystemRecord
 	Devices         []SystemRecord
 	Modules         []SystemRecord
+	Interfaces      []SystemRecord
 	Connections     []SystemRecord
 }
 
@@ -70,6 +72,7 @@ type systemColumnIndex struct {
 	lengthUnit   int
 	location     int
 	contentTypes int
+	macAddress   int
 }
 
 // IsSystemCSV returns true if the header row contains a "Section" column,
@@ -144,6 +147,8 @@ func ParseSystemCSV(filePath string) (*SystemCSV, error) {
 			result.Devices = append(result.Devices, rec)
 		case "module":
 			result.Modules = append(result.Modules, rec)
+		case "interface":
+			result.Interfaces = append(result.Interfaces, rec)
 		case "connection":
 			result.Connections = append(result.Connections, rec)
 		default:
@@ -178,6 +183,7 @@ func parseSystemHeader(header []string) (systemColumnIndex, error) {
 		lengthUnit:   -1,
 		location:     -1,
 		contentTypes: -1,
+		macAddress:   -1,
 	}
 
 	for i, col := range header {
@@ -224,6 +230,8 @@ func parseSystemHeader(header []string) (systemColumnIndex, error) {
 			idx.location = i
 		case "contenttypes":
 			idx.contentTypes = i
+		case "macaddress":
+			idx.macAddress = i
 		}
 	}
 
@@ -284,6 +292,8 @@ func normalizeSystemHeader(col string) string {
 		return "location"
 	case "contenttypes", "contenttype":
 		return "contenttypes"
+	case "macaddress", "mac", "macaddr", "hwaddr", "hardwareaddress":
+		return "macaddress"
 	default:
 		return lower
 	}
@@ -341,6 +351,7 @@ func parseSystemRow(row []string, idx systemColumnIndex, lineNum int) (SystemRec
 		LengthUnit:   getColumnValue(row, idx.lengthUnit),
 		Location:     getColumnValue(row, idx.location),
 		ContentTypes: getColumnValue(row, idx.contentTypes),
+		MacAddress:   getColumnValue(row, idx.macAddress),
 	}, nil
 }
 

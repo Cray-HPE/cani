@@ -221,11 +221,11 @@ func newInterfaceCommand() *cobra.Command {
 		Short:   "List interfaces in the inventory.",
 		Long:    "List interfaces, or show a single interface by name or UUID.",
 		Args:    cobra.MaximumNArgs(1),
-		RunE:    showInterfaceInstances,
+		RunE:    showInterfaces,
 	}
 }
 
-func showInterfaceInstances(cmd *cobra.Command, args []string) error {
+func showInterfaces(cmd *cobra.Command, args []string) error {
 	inv, err := loadInventory(cmd, args)
 	if err != nil {
 		return err
@@ -235,7 +235,7 @@ func showInterfaceInstances(cmd *cobra.Command, args []string) error {
 		return showSingleInterface(cmd, inv, args[0])
 	}
 
-	ifaces := make([]*devicetypes.InterfaceInstance, 0, len(inv.Interfaces))
+	ifaces := make([]*devicetypes.CaniInterface, 0, len(inv.Interfaces))
 	for _, iface := range inv.Interfaces {
 		ifaces = append(ifaces, iface)
 	}
@@ -246,11 +246,11 @@ func showInterfaceInstances(cmd *cobra.Command, args []string) error {
 	format, _ := cmd.Flags().GetString("format")
 	switch format {
 	case "table":
-		visual.PrintInterfaceInstanceTable(ifaces, inv)
+		visual.PrintInterfaceTable(ifaces, inv)
 		return nil
 	case "tree":
 		tf := treeFilterFromCmd(cmd)
-		nodes := visual.BuildInterfaceInstanceTree(ifaces, inv, tf)
+		nodes := visual.BuildInterfaceTree(ifaces, inv, tf)
 		visual.RenderTreeOutput(nodes, tf.NoColor)
 		return nil
 	default:
@@ -266,13 +266,17 @@ func showSingleInterface(cmd *cobra.Command, inv *devicetypes.Inventory, arg str
 	format, _ := cmd.Flags().GetString("format")
 	switch format {
 	case "table":
-		visual.PrintInterfaceInstanceTable([]*devicetypes.InterfaceInstance{iface}, inv)
+		visual.PrintInterfaceTable([]*devicetypes.CaniInterface{iface}, inv)
 		return nil
 	case "tree":
 		tf := treeFilterFromCmd(cmd)
+		detail := string(iface.InterfaceType)
+		if iface.MacAddress != "" {
+			detail = visual.PipeSep(detail, "mac:"+iface.MacAddress)
+		}
 		node := visual.TreeNode{
 			Label:  iface.Name,
-			Detail: string(iface.InterfaceType),
+			Detail: detail,
 		}
 		visual.RenderTreeOutput([]visual.TreeNode{node}, tf.NoColor)
 		return nil

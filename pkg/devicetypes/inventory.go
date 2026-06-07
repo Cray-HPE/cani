@@ -44,13 +44,13 @@ type Inventory struct {
 	SchemaVersion string `json:"schemaVersion" yaml:"schema_version"`
 	Provider      string `json:"provider,omitempty" yaml:"provider,omitempty"`
 
-	Locations  map[uuid.UUID]*CaniLocationType  `json:"locations"  yaml:"locations"`
-	Racks      map[uuid.UUID]*CaniRackType      `json:"racks"      yaml:"racks"`
-	Devices    map[uuid.UUID]*CaniDeviceType    `json:"devices"    yaml:"devices"`
-	Modules    map[uuid.UUID]*CaniModuleType    `json:"modules"    yaml:"modules"`
-	Cables     map[uuid.UUID]*CaniCableType     `json:"cables"     yaml:"cables"`
-	Frus       map[uuid.UUID]*CaniFruType       `json:"frus"       yaml:"frus"`
-	Interfaces map[uuid.UUID]*InterfaceInstance `json:"interfaces" yaml:"interfaces"`
+	Locations  map[uuid.UUID]*CaniLocationType `json:"locations"  yaml:"locations"`
+	Racks      map[uuid.UUID]*CaniRackType     `json:"racks"      yaml:"racks"`
+	Devices    map[uuid.UUID]*CaniDeviceType   `json:"devices"    yaml:"devices"`
+	Modules    map[uuid.UUID]*CaniModuleType   `json:"modules"    yaml:"modules"`
+	Cables     map[uuid.UUID]*CaniCableType    `json:"cables"     yaml:"cables"`
+	Frus       map[uuid.UUID]*CaniFruType      `json:"frus"       yaml:"frus"`
+	Interfaces map[uuid.UUID]*CaniInterface    `json:"interfaces" yaml:"interfaces"`
 
 	// IPAM
 	Prefixes    map[uuid.UUID]*CaniPrefix    `json:"prefixes,omitempty"    yaml:"prefixes,omitempty"`
@@ -123,7 +123,7 @@ func NewInventory() *Inventory {
 		Modules:       make(map[uuid.UUID]*CaniModuleType),
 		Cables:        make(map[uuid.UUID]*CaniCableType),
 		Frus:          make(map[uuid.UUID]*CaniFruType),
-		Interfaces:    make(map[uuid.UUID]*InterfaceInstance),
+		Interfaces:    make(map[uuid.UUID]*CaniInterface),
 		Prefixes:      make(map[uuid.UUID]*CaniPrefix),
 		IPAddresses:   make(map[uuid.UUID]*CaniIPAddress),
 		VLANs:         make(map[uuid.UUID]*CaniVLAN),

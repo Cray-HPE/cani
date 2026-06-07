@@ -125,6 +125,8 @@ func (e *Exporter) collectNewInterfaces(
 					if err := e.updateInterface(ctx, existing.ID, nautobotID, spec, result); err != nil {
 						clog.Warn("Warning: failed to update interface %s on %s: %v", spec.Name, deviceName, err)
 					}
+				} else {
+					result.IfacesSkipped++
 				}
 				continue
 			}
@@ -223,11 +225,18 @@ func (e *Exporter) sendInterfaceBatch(
 		}
 
 		ifaceType := nautobotapi.InterfaceTypeChoices(item.Spec.Type)
+		mgmtOnly := item.Spec.MgmtOnly
 		req := nautobotapi.WritableInterfaceRequest{
-			Device: &nautobotapi.BulkWritableCircuitRequestTenant{Id: &deviceIDUnion},
-			Name:   item.Spec.Name,
-			Type:   ifaceType,
-			Status: status,
+			Device:   &nautobotapi.BulkWritableCircuitRequestTenant{Id: &deviceIDUnion},
+			Name:     item.Spec.Name,
+			Type:     ifaceType,
+			Status:   status,
+			MgmtOnly: &mgmtOnly,
+		}
+
+		if item.Spec.Mac != "" {
+			mac := item.Spec.Mac
+			req.MacAddress = &mac
 		}
 
 		// Resolve interface role if specified

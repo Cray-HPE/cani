@@ -132,9 +132,9 @@ func BuildFruTree(frus []*devicetypes.CaniFruType, inv *devicetypes.Inventory) [
 	return nodes
 }
 
-// BuildInterfaceInstanceTree groups interface instances by device as tree nodes.
-func BuildInterfaceInstanceTree(ifaces []*devicetypes.InterfaceInstance, inv *devicetypes.Inventory, tf TreeFilter) []TreeNode {
-	groups := make(map[uuid.UUID][]*devicetypes.InterfaceInstance)
+// BuildInterfaceTree groups interface instances by device as tree nodes.
+func BuildInterfaceTree(ifaces []*devicetypes.CaniInterface, inv *devicetypes.Inventory, tf TreeFilter) []TreeNode {
+	groups := make(map[uuid.UUID][]*devicetypes.CaniInterface)
 	var order []uuid.UUID
 	for _, iface := range ifaces {
 		did := iface.DeviceID
@@ -158,6 +158,9 @@ func BuildInterfaceInstanceTree(ifaces []*devicetypes.InterfaceInstance, inv *de
 			}
 			if tf.Roles && iface.Role != "" {
 				detail = PipeSep(detail, "role:"+iface.Role)
+			}
+			if iface.MacAddress != "" {
+				detail = PipeSep(detail, "mac:"+iface.MacAddress)
 			}
 			node.Children = append(node.Children, TreeNode{
 				Label:  iface.Name,

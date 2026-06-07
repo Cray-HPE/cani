@@ -44,4 +44,34 @@ Describe 'cani alpha update device'
     End
   End
 
+  # ── --primary-ipv4 flag ─────────────────────────────────────────
+
+  Describe '--primary-ipv4'
+    It 'rejects an IP not in inventory'
+      When call bin/cani alpha update device test-device --primary-ipv4 "10.0.0.1/24" --config "$CANI_CONF"
+      The status should equal 1
+      The stderr should include 'not found in inventory'
+    End
+  End
+
+  # ── --primary-ipv6 flag ─────────────────────────────────────────
+
+  Describe '--primary-ipv6'
+    It 'rejects an IP not in inventory'
+      When call bin/cani alpha update device test-device --primary-ipv6 "fd00::1/128" --config "$CANI_CONF"
+      The status should equal 1
+      The stderr should include 'not found in inventory'
+    End
+  End
+
+  # ── --swap flag ─────────────────────────────────────────────────
+
+  Describe '--swap'
+    It 'requires device to be in a rack'
+      When call bin/cani alpha update device test-device-2 --position 1 --swap --config "$CANI_CONF"
+      The status should equal 1
+      The stderr should include 'is not assigned to a rack'
+    End
+  End
+
 End
