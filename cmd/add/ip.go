@@ -126,7 +126,7 @@ func addIP(cmd *cobra.Command, args []string) error {
 					Type: devicetypes.InterfacesElemTypeVirtual,
 				}
 				device.Interfaces = append(device.Interfaces, iface)
-				inventory.Interfaces[ifaceID] = &devicetypes.InterfaceInstance{
+				inventory.Interfaces[ifaceID] = &devicetypes.CaniInterface{
 					ID:            ifaceID,
 					Name:          portName,
 					InterfaceType: devicetypes.InterfacesElemTypeVirtual,

@@ -129,6 +129,72 @@ func TestTransformSystem_DeviceUnknownRack(t *testing.T) {
 	}
 }
 
+func TestTransformSystem_InterfaceMAC(t *testing.T) {
+	data := &import_.SystemCSV{
+		SectionDefaults: make(map[string]import_.SystemRecord),
+		Racks: []import_.SystemRecord{
+			{Section: "rack", PartNumber: "hpe-48u-800mmx1200mm-g2-enterprise-shock-rack", Name: "x3701", Qty: 1, Status: "Available"},
+		},
+		Devices: []import_.SystemRecord{
+			{Section: "device", PartNumber: "hpe-xd670", Name: "GH-x3701u34", Qty: 1, Rack: "x3701", Position: 34, Face: "front", Role: "ComputeNode", Status: "Active"},
+			{Section: "device", PartNumber: "hpe-xd670", Name: "GH-x3701u26", Qty: 1, Rack: "x3701", Position: 26, Face: "front", Role: "ComputeNode", Status: "Active"},
+		},
+		Interfaces: []import_.SystemRecord{
+			// Hyphen form must be normalized to lowercase colon form.
+			{Section: "interface", Device: "GH-x3701u34", Name: "iLO", MacAddress: "AA-BB-CC-DD-EE-01"},
+		},
+	}
+
+	result, err := TransformSystem(devicetypes.Inventory{}, data)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	macFor := func(devName string) string {
+		for _, d := range result.Devices {
+			if d.Name != devName {
+				continue
+			}
+			for _, ifc := range d.Interfaces {
+				if ifc.Name == "iLO" {
+					return ifc.MacAddress
+				}
+			}
+		}
+		return "<not found>"
+	}
+
+	if got := macFor("GH-x3701u34"); got != "aa:bb:cc:dd:ee:01" {
+		t.Errorf("GH-x3701u34 iLO MAC = %q, want %q", got, "aa:bb:cc:dd:ee:01")
+	}
+
+	// Slice-clone isolation: setting MAC on one device of a type must not
+	// leak into another device sharing the same device-type template.
+	if got := macFor("GH-x3701u26"); got != "" {
+		t.Errorf("GH-x3701u26 iLO MAC = %q, want empty (per-device isolation)", got)
+	}
+}
+
+func TestTransformSystem_InterfaceMACUnknownTarget(t *testing.T) {
+	data := &import_.SystemCSV{
+		SectionDefaults: make(map[string]import_.SystemRecord),
+		Racks: []import_.SystemRecord{
+			{Section: "rack", PartNumber: "hpe-48u-800mmx1200mm-g2-enterprise-shock-rack", Name: "x3701", Qty: 1, Status: "Available"},
+		},
+		Devices: []import_.SystemRecord{
+			{Section: "device", PartNumber: "hpe-xd670", Name: "GH-x3701u34", Qty: 1, Rack: "x3701", Position: 34, Face: "front", Role: "ComputeNode", Status: "Active"},
+		},
+		Interfaces: []import_.SystemRecord{
+			// Unknown interface name -> warn + skip, not a hard error.
+			{Section: "interface", Device: "GH-x3701u34", Name: "does-not-exist", MacAddress: "aa:bb:cc:dd:ee:ff"},
+		},
+	}
+
+	if _, err := TransformSystem(devicetypes.Inventory{}, data); err != nil {
+		t.Fatalf("unknown interface target should be skipped, got error: %v", err)
+	}
+}
+
 func TestTransformSystem_Modules(t *testing.T) {
 	data := &import_.SystemCSV{
 		SectionDefaults: make(map[string]import_.SystemRecord),

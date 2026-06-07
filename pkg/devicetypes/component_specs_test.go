@@ -5,7 +5,7 @@ package devicetypes
 // | Function           | Happy-path test                            | Failure test                                  |
 // |--------------------|--------------------------------------------|-----------------------------------------------|
 // | InterfaceSpec      | TestInterfaceSpecJSONRoundTrip              | TestInterfaceSpecUnmarshalInvalidID           |
-// | InterfaceInstance   | TestInterfaceInstanceJSONRoundTrip          | TestInterfaceInstanceUnmarshalInvalidID       |
+// | CaniInterface      | TestCaniInterfaceJSONRoundTrip              | TestCaniInterfaceUnmarshalInvalidID           |
 // | ConsolePortSpec    | TestConsolePortSpecJSONRoundTrip            | TestConsolePortSpecUnmarshalTypeMismatch      |
 // | PowerPortSpec      | TestPowerPortSpecJSONRoundTrip              | TestPowerPortSpecUnmarshalTypeMismatch        |
 // | ModuleBaySpec      | TestModuleBaySpecJSONRoundTrip              | TestModuleBaySpecUnmarshalTypeMismatch        |
@@ -71,9 +71,9 @@ func TestInterfaceSpecUnmarshalInvalidID(t *testing.T) {
 	}
 }
 
-func TestInterfaceInstanceJSONRoundTrip(t *testing.T) {
+func TestCaniInterfaceJSONRoundTrip(t *testing.T) {
 	cable := uuid.New()
-	orig := InterfaceInstance{
+	orig := CaniInterface{
 		ID:             uuid.New(),
 		Name:           "eth1",
 		InterfaceType:  InterfacesElemTypeA25GbaseXSfp28,
@@ -90,7 +90,7 @@ func TestInterfaceInstanceJSONRoundTrip(t *testing.T) {
 		t.Fatalf("marshal failed: %v", err)
 	}
 
-	var got InterfaceInstance
+	var got CaniInterface
 	if err := json.Unmarshal(data, &got); err != nil {
 		t.Fatalf("unmarshal failed: %v", err)
 	}
@@ -118,9 +118,9 @@ func TestInterfaceInstanceJSONRoundTrip(t *testing.T) {
 	}
 }
 
-func TestInterfaceInstanceUnmarshalInvalidID(t *testing.T) {
+func TestCaniInterfaceUnmarshalInvalidID(t *testing.T) {
 	data := []byte(`{"id":"bad-uuid","name":"eth1","interfaceType":"10gbase-t","deviceId":"also-bad","status":"Active"}`)
-	var inst InterfaceInstance
+	var inst CaniInterface
 	if err := json.Unmarshal(data, &inst); err == nil {
 		t.Fatal("expected error for invalid UUID in id field, got nil")
 	}

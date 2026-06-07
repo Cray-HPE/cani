@@ -63,6 +63,17 @@ func ApplyConnections(resolved []ResolvedConnection, inv *devicetypes.Inventory)
 			continue
 		}
 		created++
+
+		if conn.AMac != "" {
+			if err := inv.SetInterfaceMACByID(conn.ADevice, conn.APort, conn.AMac); err != nil {
+				errs = append(errs, fmt.Errorf("set mac on %s: %w", conn.APort, err))
+			}
+		}
+		if conn.BMac != "" {
+			if err := inv.SetInterfaceMACByID(conn.BDevice, conn.BPort, conn.BMac); err != nil {
+				errs = append(errs, fmt.Errorf("set mac on %s: %w", conn.BPort, err))
+			}
+		}
 	}
 
 	return created, errs

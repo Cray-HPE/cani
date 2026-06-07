@@ -646,7 +646,7 @@ func (inv *Inventory) rebuildInterfaceRelationships() *RelationshipResult {
 		oldIfaces[id] = true
 	}
 
-	inv.Interfaces = make(map[uuid.UUID]*InterfaceInstance)
+	inv.Interfaces = make(map[uuid.UUID]*CaniInterface)
 
 	for deviceID, device := range inv.Devices {
 		if device == nil {
@@ -659,13 +659,14 @@ func (inv *Inventory) rebuildInterfaceRelationships() *RelationshipResult {
 			}
 			mgmtOnly := iface.MgmtOnly != nil && *iface.MgmtOnly
 			role := ResolveInterfaceRole(iface.Role, iface.Name, iface.Type, mgmtOnly)
-			inst := &InterfaceInstance{
+			inst := &CaniInterface{
 				ID:            iface.ID,
 				Name:          iface.Name,
 				InterfaceType: iface.Type,
 				DeviceID:      deviceID,
 				ObjectMeta:    ObjectMeta{Status: string(StatusActive), Role: role},
 				MgmtOnly:      mgmtOnly,
+				MacAddress:    iface.MacAddress,
 			}
 			inv.Interfaces[iface.ID] = inst
 			if !oldIfaces[iface.ID] {
@@ -687,13 +688,14 @@ func (inv *Inventory) rebuildInterfaceRelationships() *RelationshipResult {
 			}
 			mgmtOnly := iface.MgmtOnly != nil && *iface.MgmtOnly
 			role := ResolveInterfaceRole(iface.Role, iface.Name, iface.Type, mgmtOnly)
-			inst := &InterfaceInstance{
+			inst := &CaniInterface{
 				ID:            iface.ID,
 				Name:          iface.Name,
 				InterfaceType: iface.Type,
 				DeviceID:      mod.ParentDevice,
 				ObjectMeta:    ObjectMeta{Status: string(StatusActive), Role: role},
 				MgmtOnly:      mgmtOnly,
+				MacAddress:    iface.MacAddress,
 			}
 			inv.Interfaces[iface.ID] = inst
 			if !oldIfaces[iface.ID] {

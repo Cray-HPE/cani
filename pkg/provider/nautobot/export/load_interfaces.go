@@ -234,6 +234,11 @@ func (e *Exporter) sendInterfaceBatch(
 			MgmtOnly: &mgmtOnly,
 		}
 
+		if item.Spec.Mac != "" {
+			mac := item.Spec.Mac
+			req.MacAddress = &mac
+		}
+
 		// Resolve interface role if specified
 		if item.Spec.Role != "" {
 			roleItem, roleErr := e.Cache.GetRole(item.Spec.Role)

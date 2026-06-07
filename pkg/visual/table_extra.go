@@ -61,19 +61,21 @@ func PrintFruTable(frus []*devicetypes.CaniFruType, inv *devicetypes.Inventory) 
 	fmt.Printf("\nTotal: %d FRU(s)\n", len(frus))
 }
 
-// PrintInterfaceInstanceTable renders interface instances as a fixed-width table.
-func PrintInterfaceInstanceTable(ifaces []*devicetypes.InterfaceInstance, inv *devicetypes.Inventory) {
+// PrintInterfaceTable renders interface instances as a fixed-width table.
+func PrintInterfaceTable(ifaces []*devicetypes.CaniInterface, inv *devicetypes.Inventory) {
 	header := Col("NAME", ColName) + "  " +
 		Col("TYPE", ColType) + "  " +
 		Col("ROLE", ColRole) + "  " +
 		Col("DEVICE", ColDevice) + "  " +
 		Col("LABEL", ColLabel) + "  " +
+		Col("MAC", ColMac) + "  " +
 		Col("CONNECTED", ColConnected)
 	sep := Col(strings.Repeat("-", ColName), ColName) + "  " +
 		Col(strings.Repeat("-", ColType), ColType) + "  " +
 		Col(strings.Repeat("-", ColRole), ColRole) + "  " +
 		Col(strings.Repeat("-", ColDevice), ColDevice) + "  " +
 		Col(strings.Repeat("-", ColLabel), ColLabel) + "  " +
+		Col(strings.Repeat("-", ColMac), ColMac) + "  " +
 		Col(strings.Repeat("-", ColConnected), ColConnected)
 
 	fmt.Println(header)
@@ -84,25 +86,30 @@ func PrintInterfaceInstanceTable(ifaces []*devicetypes.InterfaceInstance, inv *d
 		if iface.ConnectedCable != nil {
 			connected = "yes"
 		}
+		mac := iface.MacAddress
+		if mac == "" {
+			mac = "-"
+		}
 		fmt.Println(
 			Col(iface.Name, ColName) + "  " +
 				Col(string(iface.InterfaceType), ColType) + "  " +
 				Col(iface.Role, ColRole) + "  " +
 				Col(devName, ColDevice) + "  " +
 				Col(iface.Label, ColLabel) + "  " +
+				Col(mac, ColMac) + "  " +
 				Col(connected, ColConnected),
 		)
 	}
 	fmt.Printf("\nTotal: %d interface(s)\n", len(ifaces))
 }
 
-// CollectInterfacesForDevices returns all InterfaceInstances belonging to the given devices.
-func CollectInterfacesForDevices(devices []*devicetypes.CaniDeviceType, inv *devicetypes.Inventory) []*devicetypes.InterfaceInstance {
+// CollectInterfacesForDevices returns all CaniInterface instances belonging to the given devices.
+func CollectInterfacesForDevices(devices []*devicetypes.CaniDeviceType, inv *devicetypes.Inventory) []*devicetypes.CaniInterface {
 	devIDs := make(map[string]bool, len(devices))
 	for _, d := range devices {
 		devIDs[d.ID.String()] = true
 	}
-	var result []*devicetypes.InterfaceInstance
+	var result []*devicetypes.CaniInterface
 	for _, iface := range inv.Interfaces {
 		if devIDs[iface.DeviceID.String()] {
 			result = append(result, iface)

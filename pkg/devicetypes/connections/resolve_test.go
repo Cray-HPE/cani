@@ -127,6 +127,56 @@ func TestResolveConnectionMap_DeviceNotFound(t *testing.T) {
 	}
 }
 
+func TestResolveConnectionMap_MacCarried(t *testing.T) {
+	inv := testInventoryWithDevices("node-01", "switch-01")
+
+	cm := &ConnectionMap{
+		Version: "v1",
+		Connections: []ConnectionEntry{
+			{
+				A: Endpoint{Device: "node-01", Port: "eth0", Mac: "aa:bb:cc:dd:ee:01"},
+				B: Endpoint{Device: "switch-01", Port: "eth1", Mac: "aa:bb:cc:dd:ee:02"},
+			},
+		},
+	}
+
+	resolved, errs := ResolveConnectionMap(cm, inv)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+	if len(resolved) != 1 {
+		t.Fatalf("expected 1 connection, got %d", len(resolved))
+	}
+	if resolved[0].AMac != "aa:bb:cc:dd:ee:01" {
+		t.Errorf("AMac = %q, want %q", resolved[0].AMac, "aa:bb:cc:dd:ee:01")
+	}
+	if resolved[0].BMac != "aa:bb:cc:dd:ee:02" {
+		t.Errorf("BMac = %q, want %q", resolved[0].BMac, "aa:bb:cc:dd:ee:02")
+	}
+}
+
+func TestResolveConnectionMap_MacBraceExpandError(t *testing.T) {
+	inv := testInventoryWithDevices("node-01", "node-02", "switch-01")
+
+	cm := &ConnectionMap{
+		Version: "v1",
+		Connections: []ConnectionEntry{
+			{
+				A: Endpoint{Device: "node-{01..02}", Port: "eth0", Mac: "aa:bb:cc:dd:ee:01"},
+				B: Endpoint{Device: "switch-01", Port: "eth{0..1}"},
+			},
+		},
+	}
+
+	resolved, errs := ResolveConnectionMap(cm, inv)
+	if len(errs) == 0 {
+		t.Fatal("expected error when mac is applied to a brace-expanded endpoint")
+	}
+	if len(resolved) != 0 {
+		t.Errorf("expected 0 resolved connections, got %d", len(resolved))
+	}
+}
+
 func TestResolveConnectionMap_CableDefaults(t *testing.T) {
 	inv := testInventoryWithDevices("node-01", "switch-01")
 

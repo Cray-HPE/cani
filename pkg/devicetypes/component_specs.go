@@ -10,12 +10,13 @@ type InterfaceSpec struct {
 	Type           InterfacesElemType `yaml:"type" json:"type"`
 	Label          string             `yaml:"label,omitempty" json:"label,omitempty"`
 	Role           string             `yaml:"role,omitempty" json:"role,omitempty"`
+	MacAddress     string             `yaml:"mac_address,omitempty" json:"macAddress,omitempty"`
 	MgmtOnly       *bool              `yaml:"mgmt_only,omitempty" json:"mgmt_only,omitempty"`
 	ConnectedCable *uuid.UUID         `yaml:"connected_cable,omitempty" json:"connectedCable,omitempty"`
 }
 
-// InterfaceInstance represents an instantiated interface on a specific device.
-type InterfaceInstance struct {
+// CaniInterface represents an instantiated interface on a specific device.
+type CaniInterface struct {
 	ID            uuid.UUID          `json:"id" yaml:"id"`
 	Name          string             `json:"name" yaml:"name"`
 	InterfaceType InterfacesElemType `json:"interfaceType" yaml:"interface_type"`
@@ -26,6 +27,7 @@ type InterfaceInstance struct {
 
 	MgmtOnly       bool        `json:"mgmtOnly,omitempty" yaml:"mgmt_only,omitempty"`
 	Label          string      `json:"label,omitempty" yaml:"label,omitempty"`
+	MacAddress     string      `json:"macAddress,omitempty" yaml:"mac_address,omitempty"`
 	ConnectedCable *uuid.UUID  `json:"connectedCable,omitempty" yaml:"connected_cable,omitempty"`
 	ContentType    string      `json:"contentType,omitempty" yaml:"content_type,omitempty"` // For cable terminations (e.g., "dcim.interface")
 	IPAddresses    []uuid.UUID `json:"ipAddresses,omitempty" yaml:"ip_addresses,omitempty"` // Assigned IP address IDs

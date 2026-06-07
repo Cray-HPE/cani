@@ -17,7 +17,7 @@ type Inventory struct {
     Modules    map[uuid.UUID]*CaniModuleType
     Cables     map[uuid.UUID]*CaniCableType
     Frus       map[uuid.UUID]*CaniFruType
-    Interfaces map[uuid.UUID]*InterfaceInstance
+    Interfaces map[uuid.UUID]*CaniInterface
 
     Metadata   *InventoryMetadata // catalog of roles, statuses, tags
 }
@@ -35,7 +35,7 @@ The current schema version is `v1alpha2`.
 | Module | `CaniModuleType` | Component installed in a device (GPU, NIC, PSU) |
 | Cable | `CaniCableType` | Physical cable between two endpoints |
 | FRU | `CaniFruType` | Field-replaceable unit (spare or replacement part) |
-| Interface | `InterfaceInstance` | Network or console port on a device or module |
+| Interface | `CaniInterface` | Network or console port on a device or module |
 
 ## Relationships
 

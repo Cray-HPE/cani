@@ -130,7 +130,7 @@ func findFruByNameOrUUID(arg string, inv *devicetypes.Inventory) (*devicetypes.C
 }
 
 // findInterfaceByNameOrUUID looks up an interface by UUID string or exact name (case-insensitive).
-func findInterfaceByNameOrUUID(arg string, inv *devicetypes.Inventory) (*devicetypes.InterfaceInstance, error) {
+func findInterfaceByNameOrUUID(arg string, inv *devicetypes.Inventory) (*devicetypes.CaniInterface, error) {
 	if id, err := uuid.Parse(arg); err == nil {
 		if iface, ok := inv.Interfaces[id]; ok {
 			return iface, nil

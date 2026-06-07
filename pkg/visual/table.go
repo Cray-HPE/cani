@@ -52,6 +52,7 @@ const (
 	ColSerial    = 20
 	ColConnected = 12
 	ColRole      = 14
+	ColMac       = 18
 )
 
 // Pad right-pads s with spaces to width n.

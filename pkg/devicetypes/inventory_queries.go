@@ -274,10 +274,10 @@ func (inv *Inventory) GetInterfaceByID(ifaceID uuid.UUID) (*InterfaceSpec, *Cani
 	return inv.findInterfaceInModules(ifaceID)
 }
 
-// GetInterfacesByDevice returns all InterfaceInstance entries belonging
+// GetInterfacesByDevice returns all CaniInterface entries belonging
 // to the given device (including interfaces on the device's modules).
-func (inv *Inventory) GetInterfacesByDevice(deviceID uuid.UUID) []*InterfaceInstance {
-	var result []*InterfaceInstance
+func (inv *Inventory) GetInterfacesByDevice(deviceID uuid.UUID) []*CaniInterface {
+	var result []*CaniInterface
 	for _, inst := range inv.Interfaces {
 		if inst.DeviceID == deviceID {
 			result = append(result, inst)

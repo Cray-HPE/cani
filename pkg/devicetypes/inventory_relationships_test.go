@@ -487,8 +487,8 @@ func TestValidateCableRelationshipsHappyPath(t *testing.T) {
 		},
 	}
 	// Pre-populate interface index so GetInterfaceByID works.
-	inv.Interfaces[ifaceA] = &InterfaceInstance{ID: ifaceA, DeviceID: devA}
-	inv.Interfaces[ifaceB] = &InterfaceInstance{ID: ifaceB, DeviceID: devB}
+	inv.Interfaces[ifaceA] = &CaniInterface{ID: ifaceA, DeviceID: devA}
+	inv.Interfaces[ifaceB] = &CaniInterface{ID: ifaceB, DeviceID: devB}
 
 	inv.Cables[cableID] = &CaniCableType{
 		Label:              "cable-1",
@@ -536,7 +536,7 @@ func TestValidateCableEndHappyPath(t *testing.T) {
 			{ID: ifaceID, Name: "eth0", Type: InterfacesElemTypeA1000BaseT},
 		},
 	}
-	inv.Interfaces[ifaceID] = &InterfaceInstance{ID: ifaceID, DeviceID: devID}
+	inv.Interfaces[ifaceID] = &CaniInterface{ID: ifaceID, DeviceID: devID}
 	cable := &CaniCableType{Label: "c1"}
 
 	res := inv.validateCableEnd(cableID, cable, "A", devID, ifaceID)

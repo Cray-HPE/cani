@@ -234,26 +234,27 @@ func (c *CaniDeviceType) Validate() error {
 	return nil
 }
 
-// InstantiateInterfaces creates InterfaceInstance entries from this device's InterfaceSpec definitions.
+// InstantiateInterfaces creates CaniInterface entries from this device's InterfaceSpec definitions.
 // Returns the instantiated interfaces for assignment to an inventory record.
-func (c *CaniDeviceType) InstantiateInterfaces() []InterfaceInstance {
+func (c *CaniDeviceType) InstantiateInterfaces() []CaniInterface {
 	if c == nil {
 		return nil
 	}
-	instances := make([]InterfaceInstance, 0, len(c.Interfaces))
+	instances := make([]CaniInterface, 0, len(c.Interfaces))
 	for _, iface := range c.Interfaces {
 		mgmtOnly := false
 		if iface.MgmtOnly != nil {
 			mgmtOnly = *iface.MgmtOnly
 		}
 		role := ResolveInterfaceRole(iface.Role, iface.Name, iface.Type, mgmtOnly)
-		instances = append(instances, InterfaceInstance{
+		instances = append(instances, CaniInterface{
 			ID:            uuid.New(),
 			Name:          iface.Name,
 			InterfaceType: iface.Type,
 			DeviceID:      c.ID,
 			ObjectMeta:    ObjectMeta{Status: string(StatusActive), Role: role},
 			MgmtOnly:      mgmtOnly,
+			MacAddress:    iface.MacAddress,
 		})
 	}
 	return instances

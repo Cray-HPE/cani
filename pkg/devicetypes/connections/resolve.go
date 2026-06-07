@@ -39,8 +39,10 @@ import (
 type ResolvedConnection struct {
 	ADevice uuid.UUID
 	APort   string
+	AMac    string
 	BDevice uuid.UUID
 	BPort   string
+	BMac    string
 	Cable   CableProps
 }
 
@@ -81,6 +83,15 @@ func resolveEntry(entry ConnectionEntry, defaults *CableDefaults, inv *devicetyp
 	bDevices = Broadcast(bDevices, count)
 	bPorts = Broadcast(bPorts, count)
 
+	// A MAC address identifies a single physical interface, so it cannot be
+	// applied across a brace-expanded endpoint that resolves to many cables.
+	if entry.A.Mac != "" && count > 1 {
+		return nil, fmt.Errorf("endpoint a: mac address cannot be applied to a brace-expanded endpoint (%d connections)", count)
+	}
+	if entry.B.Mac != "" && count > 1 {
+		return nil, fmt.Errorf("endpoint b: mac address cannot be applied to a brace-expanded endpoint (%d connections)", count)
+	}
+
 	result := make([]ResolvedConnection, 0, count)
 	for i := range count {
 		aID := inv.FindConnectableByNameOrID(aDevices[i])
@@ -94,8 +105,10 @@ func resolveEntry(entry ConnectionEntry, defaults *CableDefaults, inv *devicetyp
 		result = append(result, ResolvedConnection{
 			ADevice: aID,
 			APort:   aPorts[i],
+			AMac:    entry.A.Mac,
 			BDevice: bID,
 			BPort:   bPorts[i],
+			BMac:    entry.B.Mac,
 			Cable:   mergeProps(entry.Cable, defaults),
 		})
 	}

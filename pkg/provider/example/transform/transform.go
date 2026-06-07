@@ -378,7 +378,7 @@ func populateFromDeviceType(device *devicetypes.CaniDeviceType, dt *devicetypes.
 	if dt.Comments != "" {
 		device.Comments = dt.Comments
 	}
-	device.Interfaces = dt.Interfaces
+	device.Interfaces = append([]devicetypes.InterfaceSpec(nil), dt.Interfaces...)
 	device.ConsolePorts = dt.ConsolePorts
 	device.PowerPorts = dt.PowerPorts
 	device.ModuleBays = dt.ModuleBays

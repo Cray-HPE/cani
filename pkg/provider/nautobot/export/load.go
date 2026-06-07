@@ -748,6 +748,7 @@ type interfaceSpec struct {
 	Speed    int    // Speed in Kbps
 	Role     string // Interface role name (e.g. "management", "hsn")
 	MgmtOnly bool   // Out-of-band management-only interface (Nautobot mgmt_only)
+	Mac      string // MAC address (Nautobot mac_address)
 }
 
 // getDeviceInterfaceSpecs returns interface specifications based on device type.
@@ -772,6 +773,7 @@ func getDeviceInterfaceSpecs(device *devicetypes.CaniDeviceType) []interfaceSpec
 				Speed:    speed,
 				Role:     role,
 				MgmtOnly: mgmtOnly,
+				Mac:      iface.MacAddress,
 			})
 		}
 		return specs
@@ -927,6 +929,11 @@ func (e *Exporter) createInterface(ctx context.Context, deviceID uuid.UUID, ifac
 		MgmtOnly: &mgmtOnly,
 	}
 
+	if iface.Mac != "" {
+		mac := iface.Mac
+		req.MacAddress = &mac
+	}
+
 	// Resolve interface role if specified
 	if iface.Role != "" {
 		roleItem, roleErr := e.Cache.GetRole(iface.Role)
@@ -998,6 +1005,11 @@ func (e *Exporter) updateInterface(ctx context.Context, interfaceID uuid.UUID, d
 		Type:     &ifaceType,
 		Status:   &status,
 		MgmtOnly: &mgmtOnly,
+	}
+
+	if iface.Mac != "" {
+		mac := iface.Mac
+		req.MacAddress = &mac
 	}
 
 	resp, err := e.Client.DcimInterfacesPartialUpdateWithResponse(ctx, interfaceID, &nautobotapi.DcimInterfacesPartialUpdateParams{}, req)

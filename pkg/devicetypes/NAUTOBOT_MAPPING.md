@@ -501,7 +501,7 @@ Iterates `inventory.Cables`. For each cable:
 
 ### Lower Priority
 
-9. **~~Normalize interfaces into `Inventory.Interfaces`~~** — ✅ Implemented. Added `Interfaces map[uuid.UUID]*InterfaceInstance` to `Inventory` struct in `inventory.go`. `rebuildInterfaceRelationships()` in `inventory_relationships.go` populates the map from device and module `Interfaces` slices during `VerifyParentChildRelationships()`. `GetInterfaceByID()` in `inventory_queries.go` rewritten from O(n×m) scan to O(1) map lookup. Added `GetInterfacesByDevice()` helper. `InterfaceInstance` YAML tags fixed from PascalCase to snake_case.
+9. **~~Normalize interfaces into `Inventory.Interfaces`~~** — ✅ Implemented. Added `Interfaces map[uuid.UUID]*CaniInterface` to `Inventory` struct in `inventory.go`. `rebuildInterfaceRelationships()` in `inventory_relationships.go` populates the map from device and module `Interfaces` slices during `VerifyParentChildRelationships()`. `GetInterfaceByID()` in `inventory_queries.go` rewritten from O(n×m) scan to O(1) map lookup. Added `GetInterfacesByDevice()` helper. `CaniInterface` YAML tags fixed from PascalCase to snake_case.
 
 10. **~~Standardize YAML/JSON tag style~~** — ✅ Implemented. Converted 12 kebab-case YAML tags to snake_case across 5 Go struct files: `hardware-type` → `hardware_type`, `device-bays` → `device_bays`, `module-bays` → `module_bays`, `console-ports` → `console_ports`, `power-ports` → `power_ports`, `allowed-children` → `allowed_children`. Updated 44 YAML library and test fixture files to match. JSON tags already used camelCase — no changes needed.
 
