@@ -266,6 +266,20 @@ func addModuleLiteral(cmd *cobra.Command, result *lookupResult, qty int, nameArg
 		return fmt.Errorf("name resolution failed: %w", err)
 	}
 
+	// ResolveNames defers template names (e.g. "CX7-%{DEVICE}") by returning
+	// nil. Expand them here using the resolved device and bay context so the
+	// module gets a unique name instead of falling back to the model name.
+	if names == nil && nameexpand.IsTemplate(nameArg) {
+		deviceName := ""
+		if len(devices) == 1 {
+			deviceName = devices[0].Name
+		}
+		names, err = expandLiteralModuleNames(nameArg, deviceName, bayName, start, qty)
+		if err != nil {
+			return err
+		}
+	}
+
 	for i := range qty {
 		mod := *result.Module
 		mod.ID = uuid.New()
@@ -351,4 +365,24 @@ func resolveModuleTemplateNames(nameArg string, entries []placement.ModulePlacem
 		names[i] = name
 	}
 	return names
+}
+
+// expandLiteralModuleNames expands a template name (e.g. "CX7-%{DEVICE}") for
+// the single-device add flow, producing one name per quantity using the
+// resolved device name and bay as context.
+func expandLiteralModuleNames(nameArg, deviceName, bayName string, start, qty int) ([]string, error) {
+	names := make([]string, qty)
+	for i := range qty {
+		vars := map[string]string{
+			"DEVICE": deviceName,
+			"BAY":    bayName,
+			"SEQ":    strconv.Itoa(start + i),
+		}
+		expanded, err := nameexpand.ExpandTemplate(nameArg, vars)
+		if err != nil {
+			return nil, fmt.Errorf("name template expansion failed: %w", err)
+		}
+		names[i] = expanded
+	}
+	return names, nil
 }

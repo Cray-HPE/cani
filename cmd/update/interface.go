@@ -62,12 +62,17 @@ Examples:
   cani update interface --device server-01 --name eth0 --label "BMC Network"
 
   # Set MAC address on an interface
-  cani update interface --device server-01 --name iLO --mac aa:bb:cc:dd:ee:ff`,
+  cani update interface --device server-01 --name iLO --mac aa:bb:cc:dd:ee:ff
+
+  # Target a specific module's interface (disambiguates names shared with the
+  # parent device or sibling modules, e.g. multiple "HSN 0" ports on one node)
+  cani update interface --module CX7-server-01 --name "HSN 0" --mac aa:bb:cc:dd:ee:ff`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: updateInterface,
 	}
 
 	cmd.Flags().String("device", "", "Device name or UUID (required when not using positional UUID)")
+	cmd.Flags().String("module", "", "Module name or UUID (targets only that module's own interfaces)")
 	cmd.Flags().String("name", "", "Interface name or glob pattern (e.g. \"1/1/*\")")
 	cmd.Flags().String("role", "", "Interface role (e.g. management, hsn, storage, access)")
 	cmd.Flags().String("label", "", "Interface label")
@@ -189,29 +194,76 @@ func resolveInterfaces(cmd *cobra.Command, args []string, inv *devicetypes.Inven
 		return []interfaceTarget{{instance: iface, spec: spec}}, nil
 	}
 
-	// Case 2: --device + --name
+	// Case 2: --device/--module + --name
 	deviceRef, _ := cmd.Flags().GetString("device")
+	moduleRef, _ := cmd.Flags().GetString("module")
 	namePattern, _ := cmd.Flags().GetString("name")
 
-	if deviceRef == "" {
-		return nil, fmt.Errorf("either a positional UUID or --device flag is required")
+	if deviceRef == "" && moduleRef == "" {
+		return nil, fmt.Errorf("either a positional UUID, --device, or --module flag is required")
+	}
+	if deviceRef != "" && moduleRef != "" {
+		return nil, fmt.Errorf("--device and --module are mutually exclusive")
 	}
 	if namePattern == "" {
-		return nil, fmt.Errorf("--name is required when using --device")
+		return nil, fmt.Errorf("--name is required when using --device or --module")
+	}
+
+	// --module targets only the named module's own interfaces, which
+	// disambiguates interface names shared with the parent device or
+	// sibling modules (e.g. multiple "HSN 0" ports on one node).
+	if moduleRef != "" {
+		moduleID, err := resolve.Module(inv, moduleRef)
+		if err != nil {
+			return nil, fmt.Errorf("resolving --module: %w", err)
+		}
+		return collectModuleInterfaceTargets(inv, moduleID, namePattern)
 	}
 
 	deviceID, err := resolve.Device(inv, deviceRef)
 	if err != nil {
 		return nil, fmt.Errorf("resolving --device: %w", err)
 	}
+	return collectInterfaceTargets(inv, namePattern, func(iface *devicetypes.CaniInterface) bool {
+		return belongsToDevice(inv, iface, deviceID)
+	})
+}
 
-	// Collect all interfaces belonging to this device (or its modules)
+// collectModuleInterfaceTargets returns targets for the named module's own
+// interfaces. Module interfaces are flattened into inv.Interfaces under the
+// parent device's ID, so they cannot be distinguished by DeviceID; instead we
+// walk the module's interface specs (which carry the canonical ID) and pair
+// each with its top-level instance looked up by that ID.
+func collectModuleInterfaceTargets(inv *devicetypes.Inventory, moduleID uuid.UUID, namePattern string) ([]interfaceTarget, error) {
+	mod := inv.Modules[moduleID]
+	if mod == nil {
+		return nil, fmt.Errorf("module %s not found", moduleID)
+	}
 	var targets []interfaceTarget
-	for _, iface := range inv.Interfaces {
-		if iface == nil {
+	for i := range mod.Interfaces {
+		spec := &mod.Interfaces[i]
+		matched, merr := matchInterfaceName(namePattern, spec.Name)
+		if merr != nil {
+			return nil, fmt.Errorf("invalid --name pattern %q: %w", namePattern, merr)
+		}
+		if !matched && !strings.EqualFold(spec.Name, namePattern) {
 			continue
 		}
-		if !belongsToDevice(inv, iface, deviceID) {
+		instance := inv.Interfaces[spec.ID]
+		if instance == nil {
+			continue
+		}
+		targets = append(targets, interfaceTarget{instance: instance, spec: spec})
+	}
+	return targets, nil
+}
+
+// collectInterfaceTargets returns interface targets whose name matches the
+// given pattern and that satisfy the supplied ownership predicate.
+func collectInterfaceTargets(inv *devicetypes.Inventory, namePattern string, owns func(*devicetypes.CaniInterface) bool) ([]interfaceTarget, error) {
+	var targets []interfaceTarget
+	for _, iface := range inv.Interfaces {
+		if iface == nil || !owns(iface) {
 			continue
 		}
 		// Use matchInterfaceName so that '*' can match '/' characters
@@ -220,16 +272,12 @@ func resolveInterfaces(cmd *cobra.Command, args []string, inv *devicetypes.Inven
 		if merr != nil {
 			return nil, fmt.Errorf("invalid --name pattern %q: %w", namePattern, merr)
 		}
-		if !matched {
-			// Also try case-insensitive exact match
-			if !strings.EqualFold(iface.Name, namePattern) {
-				continue
-			}
+		if !matched && !strings.EqualFold(iface.Name, namePattern) {
+			continue
 		}
 		spec := findInterfaceSpec(inv, iface)
 		targets = append(targets, interfaceTarget{instance: iface, spec: spec})
 	}
-
 	return targets, nil
 }
 

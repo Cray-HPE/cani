@@ -331,21 +331,9 @@ func transformSystemModules(data *import_.SystemCSV, result *devicetypes.Transfo
 			// Populate from module type library
 			if rec.PartNumber != "" {
 				if mt, ok := devicetypes.GetModuleBySlug(rec.PartNumber); ok {
-					module.Slug = mt.Slug
-					module.Manufacturer = mt.Manufacturer
-					module.Model = mt.Model
-					module.Type = mt.Type
-					if mt.PartNumber != "" {
-						module.PartNumber = mt.PartNumber
-					}
+					populateModuleFromType(module, &mt)
 				} else if mt, ok := devicetypes.GetModuleTypeByPartNumber(rec.PartNumber); ok {
-					module.Slug = mt.Slug
-					module.Manufacturer = mt.Manufacturer
-					module.Model = mt.Model
-					module.Type = mt.Type
-					if mt.PartNumber != "" {
-						module.PartNumber = mt.PartNumber
-					}
+					populateModuleFromType(module, &mt)
 				}
 			}
 
@@ -372,6 +360,20 @@ func transformSystemModules(data *import_.SystemCSV, result *devicetypes.Transfo
 	}
 
 	return nil
+}
+
+// populateModuleFromType copies identity and hardware specs from a module
+// type library entry, including a fresh copy of the interface specs so that
+// per-interface details (e.g. MAC addresses) can be set on the module.
+func populateModuleFromType(module *devicetypes.CaniModuleType, mt *devicetypes.CaniModuleType) {
+	module.Slug = mt.Slug
+	module.Manufacturer = mt.Manufacturer
+	module.Model = mt.Model
+	module.Type = mt.Type
+	if mt.PartNumber != "" {
+		module.PartNumber = mt.PartNumber
+	}
+	module.Interfaces = append([]devicetypes.InterfaceSpec(nil), mt.Interfaces...)
 }
 
 func resolveSystemModuleBayName(device *devicetypes.CaniDeviceType, requestedBay string) string {
