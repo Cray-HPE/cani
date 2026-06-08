@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023-2026 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2026 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -23,39 +23,45 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package update
+package nautobot
 
-import (
-	"fmt"
-	"strings"
+import "testing"
 
-	"github.com/Cray-HPE/cani/internal/provider"
-)
+func TestApplyMetadata(t *testing.T) {
+	p := New()
 
-// parseSetFlags splits --set key=value pairs into a map.
-func parseSetFlags(pairs []string) (map[string]string, error) {
-	result := make(map[string]string, len(pairs))
-	for _, p := range pairs {
-		parts := strings.SplitN(p, "=", 2)
-		if len(parts) != 2 {
-			return nil, fmt.Errorf("invalid --set value %q; expected key=value", p)
-		}
-		result[parts[0]] = parts[1]
+	var pm map[string]any
+	p.ApplyMetadata(&pm, map[string]string{"rack": "r1", "site": "dc1"})
+
+	sub, ok := pm[p.Slug()].(map[string]any)
+	if !ok {
+		t.Fatalf("expected %q sub-map, got %v", p.Slug(), pm)
 	}
-	return result, nil
+	if sub["rack"] != "r1" || sub["site"] != "dc1" {
+		t.Errorf("sub-map = %v, want rack=r1 site=dc1", sub)
+	}
 }
 
-// applyProviderMetadata parses key=value pairs and lets each registered
-// provider merge them into its own section of the metadata map.
-func applyProviderMetadata(pm *map[string]any, pairs []string) error {
-	parsed, err := parseSetFlags(pairs)
-	if err != nil {
-		return fmt.Errorf("invalid --metadata: %w", err)
+func TestApplyMetadataMergesExisting(t *testing.T) {
+	p := New()
+
+	pm := map[string]any{
+		p.Slug(): map[string]any{"existing": "v"},
 	}
-	for _, p := range provider.GetProviders() {
-		if ma, ok := p.(provider.MetadataApplier); ok {
-			ma.ApplyMetadata(pm, parsed)
-		}
+	p.ApplyMetadata(&pm, map[string]string{"new": "w"})
+
+	sub := pm[p.Slug()].(map[string]any)
+	if sub["existing"] != "v" || sub["new"] != "w" {
+		t.Errorf("sub-map = %v, want existing=v new=w", sub)
 	}
-	return nil
+}
+
+func TestApplyMetadataEmptyNoop(t *testing.T) {
+	p := New()
+
+	var pm map[string]any
+	p.ApplyMetadata(&pm, nil)
+	if pm != nil {
+		t.Errorf("expected nil map for empty meta, got %v", pm)
+	}
 }

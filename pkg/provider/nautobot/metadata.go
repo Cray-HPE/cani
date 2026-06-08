@@ -23,39 +23,24 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package update
+package nautobot
 
-import (
-	"fmt"
-	"strings"
-
-	"github.com/Cray-HPE/cani/internal/provider"
-)
-
-// parseSetFlags splits --set key=value pairs into a map.
-func parseSetFlags(pairs []string) (map[string]string, error) {
-	result := make(map[string]string, len(pairs))
-	for _, p := range pairs {
-		parts := strings.SplitN(p, "=", 2)
-		if len(parts) != 2 {
-			return nil, fmt.Errorf("invalid --set value %q; expected key=value", p)
-		}
-		result[parts[0]] = parts[1]
+// ApplyMetadata implements provider.MetadataApplier.
+// It merges generic key=value metadata into the Nautobot sub-map of pm,
+// keyed by the provider's slug.
+func (p *Nautobot) ApplyMetadata(pm *map[string]any, meta map[string]string) {
+	if len(meta) == 0 {
+		return
 	}
-	return result, nil
-}
-
-// applyProviderMetadata parses key=value pairs and lets each registered
-// provider merge them into its own section of the metadata map.
-func applyProviderMetadata(pm *map[string]any, pairs []string) error {
-	parsed, err := parseSetFlags(pairs)
-	if err != nil {
-		return fmt.Errorf("invalid --metadata: %w", err)
+	if *pm == nil {
+		*pm = make(map[string]any)
 	}
-	for _, p := range provider.GetProviders() {
-		if ma, ok := p.(provider.MetadataApplier); ok {
-			ma.ApplyMetadata(pm, parsed)
-		}
+	existing, _ := (*pm)[p.Slug()].(map[string]any)
+	if existing == nil {
+		existing = make(map[string]any)
 	}
-	return nil
+	for k, v := range meta {
+		existing[k] = v
+	}
+	(*pm)[p.Slug()] = existing
 }

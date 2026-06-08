@@ -133,3 +133,37 @@ type RackPostAddHook interface {
 	// metadata, status, or name on the rack.
 	OnRackAdded(rack *devicetypes.CaniRackType, inventory *devicetypes.Inventory) error
 }
+
+// MetadataApplier is an optional interface that providers can implement to
+// merge generic --metadata key=value pairs into provider-specific storage.
+// The command layer parses the flag into a map and lets each registered
+// provider decide where to store it (typically its own Slug() sub-map), so
+// no provider name is hard-coded in cmd/.
+type MetadataApplier interface {
+	// ApplyMetadata merges meta into the provider's section of pm,
+	// allocating the map if necessary.
+	ApplyMetadata(pm *map[string]any, meta map[string]string)
+}
+
+// DeviceUpdateFlagProvider is an optional interface that providers can
+// implement to contribute provider-specific flags to the generic
+// "update device" command and apply them to a device.  This keeps
+// provider-specific flags (e.g. CSM's --nid/--alias) out of cmd/.
+type DeviceUpdateFlagProvider interface {
+	// RegisterDeviceUpdateFlags adds the provider's flags to cmd.
+	RegisterDeviceUpdateFlags(cmd *cobra.Command)
+
+	// ApplyDeviceUpdateFlags reads any changed provider flags from cmd
+	// and applies them to device.  It is a no-op when no flags changed.
+	ApplyDeviceUpdateFlags(cmd *cobra.Command, device *devicetypes.CaniDeviceType) error
+}
+
+// StagedDeviceDescriber is an optional interface that providers can implement
+// to supply human-readable description lines for a staged device (for example,
+// CSM's xname-derived Cabinet/Chassis/Blade location).  The command layer logs
+// the returned lines verbatim, so xname decoding stays in the provider.
+type StagedDeviceDescriber interface {
+	// DescribeStagedDevice returns zero or more description lines for the
+	// device.  Returns nil when the provider has nothing to add.
+	DescribeStagedDevice(device *devicetypes.CaniDeviceType) []string
+}

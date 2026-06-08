@@ -166,8 +166,9 @@ func singularKind(kind string) string {
 	}
 }
 
-// ParseMetadataFlags parses --metadata key=value pairs into a map
-// suitable for setting on ProviderMetadata["nautobot"].
+// ParseMetadataFlags parses --metadata key=value pairs into a map.
+// The parsed values are handed to each provider's MetadataApplier, which
+// decides where to store them.
 func ParseMetadataFlags(pairs []string) (map[string]string, error) {
 	result := make(map[string]string, len(pairs))
 	for _, p := range pairs {

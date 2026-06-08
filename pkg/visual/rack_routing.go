@@ -100,15 +100,7 @@ func RenderRoutingView(inv *devicetypes.Inventory, opts CompactRenderOptions) er
 
 // collectRoutingCables gathers cables whose endpoints are in visible racks.
 func collectRoutingCables(inv *devicetypes.Inventory, rackViews []*CompactRackView, opts CompactRenderOptions) []routingCable {
-	// Map each device to its rack ID for inter-rack detection.
-	deviceRack := make(map[uuid.UUID]uuid.UUID)
-	visible := make(map[uuid.UUID]bool)
-	for _, rv := range rackViews {
-		for _, devID := range rv.Rack.Devices {
-			visible[devID] = true
-			deviceRack[devID] = rv.RackID
-		}
-	}
+	deviceRack, visible := buildVisibilityMaps(rackViews)
 
 	var out []routingCable
 	for _, cable := range inv.Cables {
@@ -118,65 +110,92 @@ func collectRoutingCables(inv *devicetypes.Inventory, rackViews []*CompactRackVi
 		if opts.CableType != "" && !strings.Contains(strings.ToLower(cable.Slug), strings.ToLower(opts.CableType)) {
 			continue
 		}
-		if !visible[cable.TerminationADevice] && !visible[cable.TerminationBDevice] {
-			continue
+		if rc, ok := routingCableFor(inv, cable, deviceRack, visible, opts.Verbose); ok {
+			out = append(out, rc)
 		}
-		devA := inv.Devices[cable.TerminationADevice]
-		devB := inv.Devices[cable.TerminationBDevice]
-		if devA == nil || devB == nil || devA.RackPosition <= 0 || devB.RackPosition <= 0 {
-			continue
-		}
-
-		rackA := deviceRack[cable.TerminationADevice]
-		rackB := deviceRack[cable.TerminationBDevice]
-		sameRack := rackA == rackB
-
-		if sameRack && opts.Verbose < 2 {
-			continue
-		}
-
-		uA, uB := devA.RackPosition, devB.RackPosition
-		rc := routingCable{
-			labelA:    truncateName(devA.Name, 20) + ":" + cable.TerminationAPort,
-			labelB:    truncateName(devB.Name, 20) + ":" + cable.TerminationBPort,
-			group:     classifyCable(cable.Slug, cable.TerminationAPort, cable.TerminationBPort),
-			interRack: !sameRack,
-		}
-		if uA >= uB {
-			rc.topU, rc.botU, rc.topIsA = uA, uB, true
-			rc.portAtTop = cable.TerminationAPort
-			rc.portAtBot = cable.TerminationBPort
-		} else {
-			rc.topU, rc.botU, rc.topIsA = uB, uA, false
-			rc.portAtTop = cable.TerminationBPort
-			rc.portAtBot = cable.TerminationAPort
-		}
-		if !sameRack {
-			// Inter-rack: fix endpoints so botU = local device,
-			// portAtBot = local port, portAtTop = remote port.
-			if visible[cable.TerminationADevice] {
-				rc.localU = devA.RackPosition
-				rc.botU = devA.RackPosition
-				rc.portAtBot = cable.TerminationAPort
-				rc.portAtTop = cable.TerminationBPort
-				rc.localIsA = true
-				if rr := inv.Racks[devB.Rack]; rr != nil {
-					rc.remoteRack = rr.Name
-				}
-			} else {
-				rc.localU = devB.RackPosition
-				rc.botU = devB.RackPosition
-				rc.portAtBot = cable.TerminationBPort
-				rc.portAtTop = cable.TerminationAPort
-				rc.localIsA = false
-				if rr := inv.Racks[devA.Rack]; rr != nil {
-					rc.remoteRack = rr.Name
-				}
-			}
-		}
-		out = append(out, rc)
 	}
 	return out
+}
+
+// buildVisibilityMaps maps each visible device to its rack ID and records the
+// set of visible devices.
+func buildVisibilityMaps(rackViews []*CompactRackView) (map[uuid.UUID]uuid.UUID, map[uuid.UUID]bool) {
+	deviceRack := make(map[uuid.UUID]uuid.UUID)
+	visible := make(map[uuid.UUID]bool)
+	for _, rv := range rackViews {
+		for _, devID := range rv.Rack.Devices {
+			visible[devID] = true
+			deviceRack[devID] = rv.RackID
+		}
+	}
+	return deviceRack, visible
+}
+
+// routingCableFor builds a routingCable for a cable with at least one visible,
+// rack-positioned endpoint. Intra-rack cables are skipped when verbose < 2.
+func routingCableFor(inv *devicetypes.Inventory, cable *devicetypes.CaniCableType, deviceRack map[uuid.UUID]uuid.UUID, visible map[uuid.UUID]bool, verbose int) (routingCable, bool) {
+	if !visible[cable.TerminationADevice] && !visible[cable.TerminationBDevice] {
+		return routingCable{}, false
+	}
+	devA := inv.Devices[cable.TerminationADevice]
+	devB := inv.Devices[cable.TerminationBDevice]
+	if devA == nil || devB == nil || devA.RackPosition <= 0 || devB.RackPosition <= 0 {
+		return routingCable{}, false
+	}
+
+	sameRack := deviceRack[cable.TerminationADevice] == deviceRack[cable.TerminationBDevice]
+	if sameRack && verbose < 2 {
+		return routingCable{}, false
+	}
+
+	rc := routingCable{
+		labelA:    truncateName(devA.Name, 20) + ":" + cable.TerminationAPort,
+		labelB:    truncateName(devB.Name, 20) + ":" + cable.TerminationBPort,
+		group:     classifyCable(cable.Slug, cable.TerminationAPort, cable.TerminationBPort),
+		interRack: !sameRack,
+	}
+	setRoutingEndpoints(&rc, cable, devA.RackPosition, devB.RackPosition)
+	if !sameRack {
+		setInterRackEndpoints(&rc, inv, cable, devA, devB, visible)
+	}
+	return rc, true
+}
+
+// setRoutingEndpoints orders the cable's endpoints top/bottom by U position.
+func setRoutingEndpoints(rc *routingCable, cable *devicetypes.CaniCableType, uA, uB int) {
+	if uA >= uB {
+		rc.topU, rc.botU, rc.topIsA = uA, uB, true
+		rc.portAtTop = cable.TerminationAPort
+		rc.portAtBot = cable.TerminationBPort
+		return
+	}
+	rc.topU, rc.botU, rc.topIsA = uB, uA, false
+	rc.portAtTop = cable.TerminationBPort
+	rc.portAtBot = cable.TerminationAPort
+}
+
+// setInterRackEndpoints fixes endpoints so botU/portAtBot describe the local
+// device, portAtTop the remote port, and remoteRack the far rack name.
+func setInterRackEndpoints(rc *routingCable, inv *devicetypes.Inventory, cable *devicetypes.CaniCableType, devA, devB *devicetypes.CaniDeviceType, visible map[uuid.UUID]bool) {
+	if visible[cable.TerminationADevice] {
+		rc.localU = devA.RackPosition
+		rc.botU = devA.RackPosition
+		rc.portAtBot = cable.TerminationAPort
+		rc.portAtTop = cable.TerminationBPort
+		rc.localIsA = true
+		if rr := inv.Racks[devB.Rack]; rr != nil {
+			rc.remoteRack = rr.Name
+		}
+		return
+	}
+	rc.localU = devB.RackPosition
+	rc.botU = devB.RackPosition
+	rc.portAtBot = cable.TerminationBPort
+	rc.portAtTop = cable.TerminationAPort
+	rc.localIsA = false
+	if rr := inv.Racks[devA.Rack]; rr != nil {
+		rc.remoteRack = rr.Name
+	}
 }
 
 // assignRoutingLanes uses greedy interval colouring so non-overlapping cables share lanes.
@@ -201,142 +220,4 @@ func assignRoutingLanes(cables []routingCable) {
 			}
 		}
 	}
-}
-
-// renderRoutingDiagram draws the full wiring diagram to stdout.
-func renderRoutingDiagram(
-	racks []*CompactRackView,
-	grids map[uuid.UUID]map[int]MinimapSlot,
-	cables []routingCable,
-	maxHeight int,
-	opts CompactRenderOptions,
-) {
-	cf := newColorFuncs(opts.NoColor)
-	lanes := maxRoutingLane(cables) + 1
-
-	// Rack name headers — right-justified, truncated to 4 chars to match rack column width.
-	fmt.Print(strings.Repeat(" ", minimapUCol))
-	for _, rv := range racks {
-		name := rv.Rack.Name
-		if len(name) > 4 {
-			name = name[len(name)-4:]
-		}
-		fmt.Printf(" %4s", cf.bold(name))
-	}
-	if lanes > 0 {
-		if entryStr := buildRoutingLaneStr(maxHeight+2, cables, lanes, cf); entryStr != "" {
-			fmt.Print(" " + entryStr)
-		}
-	}
-	fmt.Println()
-
-	// Top border
-	fmt.Print(strings.Repeat(" ", minimapUCol))
-	for range racks {
-		fmt.Print(" ┌──┐")
-	}
-	if lanes > 0 {
-		if borderStr := buildRoutingLaneStr(maxHeight+1, cables, lanes, cf); borderStr != "" {
-			fmt.Print(" " + borderStr)
-		}
-	}
-	fmt.Println()
-
-	for u := maxHeight; u >= 1; u-- {
-		if uHasEndpoint(u, cables) {
-			fmt.Print(cf.bold(fmt.Sprintf("%2d", u)) + "  ")
-		} else {
-			fmt.Printf("%2d  ", u)
-		}
-		for _, rv := range racks {
-			if u > rv.Height {
-				fmt.Print("     ")
-				continue
-			}
-			slot := grids[rv.RackID][u]
-			c1 := cf.colorize(string(slot.Char1), slot.Color1)
-			c2 := cf.colorize(string(slot.Char2), slot.Color2)
-			fmt.Printf(" │%s%s│", c1, c2)
-		}
-
-		lStr := buildRoutingLaneStr(u, cables, lanes, cf)
-		if lStr != "" {
-			fmt.Print(" " + lStr)
-			if opts.ShowLabels {
-				if ann := buildColoredAnnotation(u, cables, cf); ann != "" {
-					fmt.Print("  " + ann)
-				}
-			}
-		}
-		fmt.Println()
-	}
-
-	// Bottom border
-	fmt.Print(strings.Repeat(" ", minimapUCol))
-	for range racks {
-		fmt.Print(" └──┘")
-	}
-	fmt.Println()
-}
-
-// maxRoutingLane returns the highest assigned lane, or -1 if empty.
-func maxRoutingLane(cables []routingCable) int {
-	m := -1
-	for _, c := range cables {
-		if c.lane > m {
-			m = c.lane
-		}
-	}
-	return m
-}
-
-// buildRoutingLaneStr produces the lane-character segment for one U row.
-func buildRoutingLaneStr(u int, cables []routingCable, lanes int, cf colorFuncs) string {
-	if lanes <= 0 {
-		return ""
-	}
-	type laneCell struct {
-		ch    rune
-		color string
-	}
-	cells := make([]laneCell, lanes)
-	active := false
-	for _, c := range cables {
-		if u < c.botU || u > c.topU {
-			continue
-		}
-		active = true
-		var ch rune
-		switch {
-		case c.topU == c.botU:
-			ch = '─'
-		case u == c.topU:
-			if c.interRack && c.localIsA {
-				ch = '┌' // outgoing: originates here, exits up
-			} else {
-				ch = '┐' // incoming or intra-rack start
-			}
-		case u == c.botU:
-			ch = '┘' // connection point at device
-		default:
-			ch = '│'
-		}
-		color := groupColorKey(c.group)
-		if c.dimmed {
-			color = "gray"
-		}
-		cells[c.lane] = laneCell{ch, color}
-	}
-	if !active {
-		return ""
-	}
-	var sb strings.Builder
-	for _, lc := range cells {
-		if lc.ch == 0 || lc.ch == ' ' {
-			sb.WriteByte(' ')
-		} else {
-			sb.WriteString(cf.colorize(string(lc.ch), lc.color))
-		}
-	}
-	return sb.String()
 }
