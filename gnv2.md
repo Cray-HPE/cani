@@ -106,6 +106,7 @@ graph TB
     SERV7 -- "iLO → p16" --- FORGE3507u47M
     SERV5 -- "iLO → p17" --- FORGE3507u47M
     SERV5 -- "OCP-p1 → p10" --- MAN3507u48
+    SERV5 -- "OCP-p3 → p1" --- FORGE3507u47M
 
     %% ── LAYER 1b: Mgmt switch SFP28 uplinks → leaf pairs (10G DAC) ──
 
@@ -352,7 +353,8 @@ graph TB
 ### FORGE-3507u47M — Mgmt (Aruba 6300M, 48× 1G + 4× 25G SFP28)
 
 | Port | Remote Device | Remote Port | Function | Cable |
-|------|---------------|-------------|----------|-------|
+|---|---------------|-------------|----------|-------|
+| 1 | SERV-3507u5 | ocp1-p3 | Management | CAT6 3m |
 | 9 | SERV-3507u21 | iLO | Management | CAT6 3m |
 | 10 | SERV-3507u19 | iLO | Management | CAT6 3m |
 | 11 | SERV-3507u17 | iLO | Management | CAT6 3m |
@@ -368,5 +370,5 @@ graph TB
 | 48 | FORGE-3507u46S | mgmt        | Management | CAT6 3m |
 | 49 | FORGE-3507u44L | 1/1/10 | Leaf uplink | 10G DAC 3m |
 | 50 | FORGE-3507u43L | 1/1/10 | Leaf uplink | 10G DAC 3m |
-| mgmt   | SERV-3507u5 | ocp1-p2     | Management | CAT6 3m |
+| mgmt | SERV-3507u5 | ocp1-p2     | Management | CAT6 3m |
 ---
