@@ -49,8 +49,8 @@ func newLocationCommand() *cobra.Command {
 
 	cmd.Flags().String("name", "", "New name")
 	cmd.Flags().String("parent", "", "Parent location UUID or name")
-	cmd.Flags().String("description", "", "Description")
-	cmd.Flags().String("content-types", "", "Comma-separated content types (e.g. device,module,rack)")
+	cmd.Flags().String(flagDescription, "", "Description")
+	cmd.Flags().String(flagContentTypes, "", "Comma-separated content types (e.g. device,module,rack)")
 
 	return cmd
 }
@@ -84,11 +84,11 @@ func updateLocation(cmd *cobra.Command, args []string) error {
 			loc.Parent = pid
 		}
 	}
-	if cmd.Flags().Changed("description") {
-		loc.Description, _ = cmd.Flags().GetString("description")
+	if cmd.Flags().Changed(flagDescription) {
+		loc.Description, _ = cmd.Flags().GetString(flagDescription)
 	}
-	if cmd.Flags().Changed("content-types") {
-		raw, _ := cmd.Flags().GetString("content-types")
+	if cmd.Flags().Changed(flagContentTypes) {
+		raw, _ := cmd.Flags().GetString(flagContentTypes)
 		if raw != "" {
 			loc.ContentTypes = strings.Split(raw, ",")
 		}
@@ -117,7 +117,7 @@ func applySetToLocation(cmd *cobra.Command, loc *devicetypes.CaniLocationType) e
 		switch k {
 		case "name":
 			loc.Name = v
-		case "description":
+		case flagDescription:
 			loc.Description = v
 		case "content_types":
 			loc.ContentTypes = strings.Split(v, ",")

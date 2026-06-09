@@ -50,8 +50,8 @@ Examples:
 	}
 
 	cmd.Flags().String("name", "", "VLAN name (required)")
-	cmd.Flags().String("location", "", "Location UUID or name")
-	cmd.Flags().String("description", "", "VLAN description")
+	cmd.Flags().String(flagLocation, "", "Location UUID or name")
+	cmd.Flags().String(flagDescription, "", "VLAN description")
 
 	return cmd
 }
@@ -85,11 +85,11 @@ func addVLAN(cmd *cobra.Command, args []string) error {
 		Name: name,
 	}
 
-	if cmd.Flags().Changed("description") {
-		vlan.Description, _ = cmd.Flags().GetString("description")
+	if cmd.Flags().Changed(flagDescription) {
+		vlan.Description, _ = cmd.Flags().GetString(flagDescription)
 	}
-	if cmd.Flags().Changed("location") {
-		locationArg, _ := cmd.Flags().GetString("location")
+	if cmd.Flags().Changed(flagLocation) {
+		locationArg, _ := cmd.Flags().GetString(flagLocation)
 		vlan.Location = resolveLocation(inventory, locationArg)
 	}
 	if cmd.Flags().Changed("status") {

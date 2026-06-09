@@ -195,12 +195,12 @@ func (p *Nautobot) loadExportOptsFromViper() {
 
 // loadOptionsFromConfig loads the Nautobot options from the config file
 func (p *Nautobot) loadOptionsFromConfig() error {
-	if url, ok := config.GetNestedValue("nautobot", "url"); ok {
+	if url, ok := config.GetNestedValue(providerSlug, "url"); ok {
 		if urlStr, ok := url.(string); ok {
 			p.Options.URL = urlStr
 		}
 	}
-	if token, ok := config.GetNestedValue("nautobot", "token"); ok {
+	if token, ok := config.GetNestedValue(providerSlug, "token"); ok {
 		if tokenStr, ok := token.(string); ok {
 			p.Options.Token = tokenStr
 		}
@@ -217,77 +217,69 @@ func (p *Nautobot) loadOptionsFromConfig() error {
 	return nil
 }
 
+// defaultFromConfig returns a provider-global default string, preferring the
+// top-level key and falling back to the legacy "import" subsection.
+func (p *Nautobot) defaultFromConfig(key string) (string, bool) {
+	if v, ok := config.GetNestedValue(providerSlug, key); ok {
+		if s, ok := v.(string); ok {
+			return s, true
+		}
+	}
+	if v, ok := config.GetNestedValue(providerSlug, "import", key); ok {
+		if s, ok := v.(string); ok {
+			return s, true
+		}
+	}
+	return "", false
+}
+
 // loadDefaultsFromConfig loads provider-global defaults from the config file with legacy fallback.
 func (p *Nautobot) loadDefaultsFromConfig() {
-	if loc, ok := config.GetNestedValue("nautobot", "default_location"); ok {
-		if locStr, ok := loc.(string); ok {
-			p.Options.DefaultLocation = locStr
-		}
-	} else if loc, ok := config.GetNestedValue("nautobot", "import", "default_location"); ok {
-		if locStr, ok := loc.(string); ok {
-			p.Options.DefaultLocation = locStr
+	if v, ok := p.defaultFromConfig("default_location"); ok {
+		p.Options.DefaultLocation = v
+	}
+	if v, ok := p.defaultFromConfig("default_role"); ok {
+		p.Options.DefaultRole = v
+	}
+	if v, ok := p.defaultFromConfig("default_status"); ok {
+		p.Options.DefaultStatus = v
+	}
+}
+
+// exportBoolFromConfig returns an export-scoped boolean flag from the config file.
+func (p *Nautobot) exportBoolFromConfig(key string) (bool, bool) {
+	if v, ok := config.GetNestedValue(providerSlug, "export", key); ok {
+		if b, ok := v.(bool); ok {
+			return b, true
 		}
 	}
-	if role, ok := config.GetNestedValue("nautobot", "default_role"); ok {
-		if roleStr, ok := role.(string); ok {
-			p.Options.DefaultRole = roleStr
-		}
-	} else if role, ok := config.GetNestedValue("nautobot", "import", "default_role"); ok {
-		if roleStr, ok := role.(string); ok {
-			p.Options.DefaultRole = roleStr
-		}
-	}
-	if status, ok := config.GetNestedValue("nautobot", "default_status"); ok {
-		if statusStr, ok := status.(string); ok {
-			p.Options.DefaultStatus = statusStr
-		}
-	} else if status, ok := config.GetNestedValue("nautobot", "import", "default_status"); ok {
-		if statusStr, ok := status.(string); ok {
-			p.Options.DefaultStatus = statusStr
-		}
-	}
+	return false, false
 }
 
 // loadExportOptsFromConfig loads export-specific create/merge/dry-run flags from the config file.
 func (p *Nautobot) loadExportOptsFromConfig() {
-	if merge, ok := config.GetNestedValue("nautobot", "export", "merge"); ok {
-		if mergeBool, ok := merge.(bool); ok {
-			p.Options.Export.Merge = mergeBool
-		}
+	if v, ok := p.exportBoolFromConfig("merge"); ok {
+		p.Options.Export.Merge = v
 	}
-	if dryRun, ok := config.GetNestedValue("nautobot", "export", "dry_run"); ok {
-		if dryRunBool, ok := dryRun.(bool); ok {
-			p.Options.Export.DryRun = dryRunBool
-		}
+	if v, ok := p.exportBoolFromConfig("dry_run"); ok {
+		p.Options.Export.DryRun = v
 	}
-	if val, ok := config.GetNestedValue("nautobot", "export", "create_device_types"); ok {
-		if b, ok := val.(bool); ok {
-			p.Options.Export.CreateDeviceTypes = b
-		}
+	if v, ok := p.exportBoolFromConfig("create_device_types"); ok {
+		p.Options.Export.CreateDeviceTypes = v
 	}
-	if val, ok := config.GetNestedValue("nautobot", "export", "create_locations"); ok {
-		if b, ok := val.(bool); ok {
-			p.Options.Export.CreateLocations = b
-		}
+	if v, ok := p.exportBoolFromConfig("create_locations"); ok {
+		p.Options.Export.CreateLocations = v
 	}
-	if val, ok := config.GetNestedValue("nautobot", "export", "create_statuses"); ok {
-		if b, ok := val.(bool); ok {
-			p.Options.Export.CreateStatuses = b
-		}
+	if v, ok := p.exportBoolFromConfig("create_statuses"); ok {
+		p.Options.Export.CreateStatuses = v
 	}
-	if val, ok := config.GetNestedValue("nautobot", "export", "create_roles"); ok {
-		if b, ok := val.(bool); ok {
-			p.Options.Export.CreateRoles = b
-		}
+	if v, ok := p.exportBoolFromConfig("create_roles"); ok {
+		p.Options.Export.CreateRoles = v
 	}
-	if val, ok := config.GetNestedValue("nautobot", "export", "create_location_types"); ok {
-		if b, ok := val.(bool); ok {
-			p.Options.Export.CreateLocationTypes = b
-		}
+	if v, ok := p.exportBoolFromConfig("create_location_types"); ok {
+		p.Options.Export.CreateLocationTypes = v
 	}
-	if val, ok := config.GetNestedValue("nautobot", "export", "create_module_types"); ok {
-		if b, ok := val.(bool); ok {
-			p.Options.Export.CreateModuleTypes = b
-		}
+	if v, ok := p.exportBoolFromConfig("create_module_types"); ok {
+		p.Options.Export.CreateModuleTypes = v
 	}
 }

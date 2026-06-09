@@ -12,6 +12,13 @@ import (
 	"github.com/google/uuid"
 )
 
+// Redfish provider metadata keys and the reconciliation log message.
+const (
+	providerKeyRedfish = "redfish"
+	metaKeyRedfishUUID = "redfish_uuid"
+	msgMatchedExisting = "Matched existing device %s (%s) by provider metadata"
+)
+
 // providerGetter returns the Redfish singleton with raw roots.
 // Set by the parent package to break import cycles.
 var providerGetter func() interface {
@@ -97,7 +104,7 @@ func buildDeviceFromRoot(root import_.ServiceRoot, existing *devicetypes.Invento
 	}
 
 	// Set import source from the --root flag value.
-	dev.SetImportSource("redfish", commands.RootFlag)
+	dev.SetImportSource(providerKeyRedfish, commands.RootFlag)
 
 	return dev
 }
@@ -116,40 +123,57 @@ func resolveExistingID(root import_.ServiceRoot, existing *devicetypes.Inventory
 
 	fqdn := root.ManagerFQDN()
 	host := root.ManagerHostName()
-	hasBMCIdentity := fqdn != "" || host != ""
 
 	// When a BMC identity is available, require both UUID and BMC to match.
-	if hasBMCIdentity {
-		for _, dev := range existing.Devices {
-			meta, ok := dev.GetProviderSubMap("redfish")
-			if !ok {
-				continue
-			}
-			if !providerValueEquals(meta, "redfish_uuid", root.UUID) {
-				continue
-			}
-			if fqdn != "" && providerValueEquals(meta, "bmc_fqdn", fqdn) {
-				log.Printf("Matched existing device %s (%s) by provider metadata", dev.Name, dev.ID)
-				return dev.ID
-			}
-			if host != "" && providerValueEquals(meta, "bmc_hostname", host) {
-				log.Printf("Matched existing device %s (%s) by provider metadata", dev.Name, dev.ID)
-				return dev.ID
-			}
+	if fqdn != "" || host != "" {
+		if id, ok := matchByBMCIdentity(root, existing, fqdn, host); ok {
+			return id
 		}
 		return uuid.New()
 	}
 
 	// Fallback: no BMC identity, match on UUID alone.
-	checks := []devicetypes.ProviderKeyCheck{
-		{Key: "redfish_uuid", Value: root.UUID},
+	if id, ok := matchByRedfishUUID(root, existing); ok {
+		return id
 	}
-	if match := existing.FindDeviceByProviderKeys("redfish", checks); match != nil {
-		log.Printf("Matched existing device %s (%s) by provider metadata", match.Name, match.ID)
-		return match.ID
-	}
-
 	return uuid.New()
+}
+
+// matchByBMCIdentity returns the ID of an existing device whose redfish_uuid AND
+// BMC identity (FQDN or hostname) match the ServiceRoot. The bool is false when
+// no device matches.
+func matchByBMCIdentity(root import_.ServiceRoot, existing *devicetypes.Inventory, fqdn, host string) (uuid.UUID, bool) {
+	for _, dev := range existing.Devices {
+		meta, ok := dev.GetProviderSubMap(providerKeyRedfish)
+		if !ok {
+			continue
+		}
+		if !providerValueEquals(meta, metaKeyRedfishUUID, root.UUID) {
+			continue
+		}
+		if fqdn != "" && providerValueEquals(meta, "bmc_fqdn", fqdn) {
+			log.Printf(msgMatchedExisting, dev.Name, dev.ID)
+			return dev.ID, true
+		}
+		if host != "" && providerValueEquals(meta, "bmc_hostname", host) {
+			log.Printf(msgMatchedExisting, dev.Name, dev.ID)
+			return dev.ID, true
+		}
+	}
+	return uuid.Nil, false
+}
+
+// matchByRedfishUUID returns the ID of an existing device matched on redfish_uuid
+// alone. The bool is false when no device matches.
+func matchByRedfishUUID(root import_.ServiceRoot, existing *devicetypes.Inventory) (uuid.UUID, bool) {
+	checks := []devicetypes.ProviderKeyCheck{
+		{Key: metaKeyRedfishUUID, Value: root.UUID},
+	}
+	if match := existing.FindDeviceByProviderKeys(providerKeyRedfish, checks); match != nil {
+		log.Printf(msgMatchedExisting, match.Name, match.ID)
+		return match.ID, true
+	}
+	return uuid.Nil, false
 }
 
 // providerValueEquals returns true when meta[key] equals val (as string).
@@ -166,10 +190,10 @@ func providerValueEquals(meta map[string]any, key, val string) bool {
 // All Redfish-specific keys are nested under the "redfish" provider key.
 func buildProviderMetadata(root import_.ServiceRoot) map[string]any {
 	meta := map[string]any{
-		"redfish_version": root.RedfishVersion,
-		"redfish_uuid":    root.UUID,
-		"vendor":          root.Vendor,
-		"odata_type":      root.OdataType,
+		"redfish_version":  root.RedfishVersion,
+		metaKeyRedfishUUID: root.UUID,
+		"vendor":           root.Vendor,
+		"odata_type":       root.OdataType,
 	}
 
 	if bmc := root.ManagerType(); bmc != "" {
@@ -196,5 +220,5 @@ func buildProviderMetadata(root import_.ServiceRoot) map[string]any {
 	// /Chassis/ endpoints. A future enhancement could add --systems
 	// and --chassis flags to import those resources.
 
-	return map[string]any{"redfish": meta}
+	return map[string]any{providerKeyRedfish: meta}
 }

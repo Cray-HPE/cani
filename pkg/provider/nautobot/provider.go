@@ -68,9 +68,12 @@ func New() *Nautobot {
 	}
 }
 
+// providerSlug is the canonical slug and config root key for the Nautobot provider.
+const providerSlug = "nautobot"
+
 // Slug returns the slug for the CANI provider
 func (p *Nautobot) Slug() string {
-	return "nautobot"
+	return providerSlug
 }
 
 // ClearRawData resets the raw data storage for a fresh import.

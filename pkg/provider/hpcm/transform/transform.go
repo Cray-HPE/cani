@@ -13,6 +13,19 @@ import (
 	"github.com/google/uuid"
 )
 
+// HPCM provider metadata keys and field identifiers, centralized to avoid
+// duplicated string literals.
+const (
+	metaKeyHpcmUUID = "hpcm_uuid"
+	metaKeyAliases  = "aliases"
+
+	targetTypeCaniDevice = "CaniDeviceType"
+	sourceFieldLibrary   = "(library)"
+
+	fieldPartNumber   = "part_number"
+	fieldManufacturer = "manufacturer"
+)
+
 // providerGetter returns the Hpcm singleton with raw nodes.
 // Set by the parent package to break import cycles.
 var providerGetter func() interface {
@@ -50,11 +63,8 @@ func transformNodes(nodes []import_.Node, existing *devicetypes.Inventory) (*dev
 		Frus:      make(map[uuid.UUID]*devicetypes.CaniFruType),
 	}
 
-	stepMode := config.Cfg != nil && config.Cfg.StepMode
 	noColor := config.Cfg != nil && config.Cfg.NoColor
-	opts := visual.ETLOptions{NoColor: noColor}
 	tally := visual.StepTally{}
-	racksByNumber := make(map[int32]uuid.UUID)
 
 	// Classify every node up front.
 	classifications := make([]Classification, len(nodes))
@@ -62,49 +72,77 @@ func transformNodes(nodes []import_.Node, existing *devicetypes.Inventory) (*dev
 		classifications[i] = classifyNode(node)
 	}
 
-	// chassisByLoc maps "rack-chassis" → device UUID for module parenting.
-	chassisByLoc := make(map[string]uuid.UUID)
-	// chassisByXname maps chassis xname (e.g. "x9000c1") → device UUID
-	// for geoloc-based module parenting.
-	chassisByXname := make(map[string]uuid.UUID)
+	tc := &transformContext{
+		existing:       existing,
+		result:         result,
+		racksByNumber:  make(map[int32]uuid.UUID),
+		chassisByLoc:   make(map[string]uuid.UUID),
+		chassisByXname: make(map[string]uuid.UUID),
+		tally:          &tally,
+		opts:           visual.ETLOptions{NoColor: noColor},
+		stepMode:       config.Cfg != nil && config.Cfg.StepMode,
+		totalNodes:     len(nodes),
+	}
 
-	// ── Pass 1: chassis devices (so their UUIDs exist for modules). ──
+	// Pass 1 builds chassis devices first so their UUIDs exist when
+	// modules are parented in pass 2.
+	if err := tc.chassisPass(nodes, classifications); err != nil {
+		return nil, err
+	}
+
+	unmatched, err := tc.remainingPass(nodes, classifications)
+	if err != nil {
+		return nil, err
+	}
+
+	logUnmatched(unmatched)
+
+	log.Printf("Transformed %d nodes → %d devices, %d modules, %d locations, %d racks, %d FRUs",
+		len(nodes), len(result.Devices), len(result.Modules),
+		len(result.Locations), len(result.Racks), len(result.Frus))
+	return result, nil
+}
+
+// transformContext carries shared state across the transform passes so the
+// per-node helpers do not need long parameter lists.
+type transformContext struct {
+	existing       *devicetypes.Inventory
+	result         *devicetypes.TransformResult
+	racksByNumber  map[int32]uuid.UUID
+	chassisByLoc   map[string]uuid.UUID
+	chassisByXname map[string]uuid.UUID
+	tally          *visual.StepTally
+	opts           visual.ETLOptions
+	stepMode       bool
+	totalNodes     int
+}
+
+// chassisPass builds chassis devices and registers them for later module
+// parenting by both location key and xname.
+func (tc *transformContext) chassisPass(nodes []import_.Node, classifications []Classification) error {
 	for i, node := range nodes {
 		cl := classifications[i]
 		if cl.Category != CategoryDevice || cl.DeviceTypeHint != devicetypes.TypeChassis {
 			continue
 		}
-		dev, frus := buildDeviceFromNode(node, cl, existing)
+		dev, frus := buildDeviceFromNode(node, cl, tc.existing)
 		_, mq, ms := enrichDeviceFromLibrary(&dev, frus, cl)
-		result.Devices[dev.ID] = &dev
-		addFrus(result, frus)
+		tc.result.Devices[dev.ID] = &dev
+		addFrus(tc.result, frus)
 
-		rack := buildRack(node, racksByNumber, existing)
-		if rack != nil {
-			result.Racks[rack.ID] = rack
-			tally.Racks++
-		}
-		assignRack(&dev, node, racksByNumber, result)
+		tc.assignRackAndTally(&dev, node, frus)
+		tc.registerChassis(node, dev.ID)
 
-		// Register chassis for module parenting.
-		if node.Location != nil && node.Location.Rack != nil && node.Location.Chassis != nil {
-			key := chassisKey(*node.Location.Rack, *node.Location.Chassis)
-			chassisByLoc[key] = dev.ID
-		}
-		// Register by xname for geoloc-based resolution.
-		chassisByXname[node.Name] = dev.ID
-
-		tally.Devices++
-		tally.Cables += len(frus)
-		if stepMode {
-			info := buildNodeStepInfo(i+1, len(nodes), node, &dev, frus, dev.Slug, mq, ms)
-			if err := visual.PromptNodeTransformStep(info, tally, opts); err != nil {
-				return nil, fmt.Errorf("step interrupted: %w", err)
-			}
+		if err := tc.maybeStep(i, node, &dev, frus, dev.Slug, mq, ms); err != nil {
+			return err
 		}
 	}
+	return nil
+}
 
-	// ── Pass 2: everything else. ─────────────────────────────────────
+// remainingPass processes locations, non-chassis devices, and modules,
+// returning any nodes that could not be matched to a library type.
+func (tc *transformContext) remainingPass(nodes []import_.Node, classifications []Classification) ([]UnmatchedNode, error) {
 	var unmatched []UnmatchedNode
 
 	for i, node := range nodes {
@@ -121,57 +159,100 @@ func transformNodes(nodes []import_.Node, existing *devicetypes.Inventory) (*dev
 		switch cl.Category {
 		case CategoryLocation:
 			loc := buildLocationFromNode(node)
-			result.Locations[loc.ID] = &loc
-
+			tc.result.Locations[loc.ID] = &loc
 		case CategoryDevice:
-			dev, frus := buildDeviceFromNode(node, cl, existing)
-			slug, mq, ms := enrichDeviceFromLibrary(&dev, frus, cl)
-			if slug == "" {
-				unmatched = append(unmatched, newUnmatched(node, cl))
+			u, err := tc.transformDeviceNode(i, node, cl)
+			if err != nil {
+				return nil, err
 			}
-			result.Devices[dev.ID] = &dev
-			addFrus(result, frus)
-
-			rack := buildRack(node, racksByNumber, existing)
-			if rack != nil {
-				result.Racks[rack.ID] = rack
-				tally.Racks++
-			}
-			assignRack(&dev, node, racksByNumber, result)
-
-			tally.Devices++
-			tally.Cables += len(frus)
-			if stepMode {
-				info := buildNodeStepInfo(i+1, len(nodes), node, &dev, frus, slug, mq, ms)
-				if err := visual.PromptNodeTransformStep(info, tally, opts); err != nil {
-					return nil, fmt.Errorf("step interrupted: %w", err)
-				}
-			}
-
+			unmatched = append(unmatched, u...)
 		case CategoryModule:
-			mod, frus := buildModuleFromNode(node, cl, chassisByLoc, chassisByXname)
-			slug, _, _ := enrichModuleFromLibrary(&mod, frus, cl)
-			if slug == "" {
-				unmatched = append(unmatched, newUnmatched(node, cl))
-			}
-			result.Modules[mod.ID] = &mod
-
-			// FRUs belong to the module they were discovered on.
-			for j := range frus {
-				frus[j].Device = mod.ID
-				frus[j].Parent = mod.ID
-				result.Frus[frus[j].ID] = &frus[j]
-			}
-			tally.Cables += len(frus)
+			unmatched = append(unmatched, tc.transformModuleNode(node, cl)...)
 		}
 	}
 
-	logUnmatched(unmatched)
+	return unmatched, nil
+}
 
-	log.Printf("Transformed %d nodes → %d devices, %d modules, %d locations, %d racks, %d FRUs",
-		len(nodes), len(result.Devices), len(result.Modules),
-		len(result.Locations), len(result.Racks), len(result.Frus))
-	return result, nil
+// transformDeviceNode builds a non-chassis device, enriches it from the
+// library, assigns its rack, and shows the step prompt. The returned slice
+// holds the node when no library slug was resolved.
+func (tc *transformContext) transformDeviceNode(nodeIdx int, node import_.Node, cl Classification) ([]UnmatchedNode, error) {
+	dev, frus := buildDeviceFromNode(node, cl, tc.existing)
+	slug, mq, ms := enrichDeviceFromLibrary(&dev, frus, cl)
+
+	var unmatched []UnmatchedNode
+	if slug == "" {
+		unmatched = append(unmatched, newUnmatched(node, cl))
+	}
+	tc.result.Devices[dev.ID] = &dev
+	addFrus(tc.result, frus)
+
+	tc.assignRackAndTally(&dev, node, frus)
+
+	if err := tc.maybeStep(nodeIdx, node, &dev, frus, slug, mq, ms); err != nil {
+		return nil, err
+	}
+	return unmatched, nil
+}
+
+// transformModuleNode builds a module, enriches it, and attaches its FRUs.
+// The returned slice holds the node when no library slug was resolved.
+func (tc *transformContext) transformModuleNode(node import_.Node, cl Classification) []UnmatchedNode {
+	mod, frus := buildModuleFromNode(node, cl, tc.chassisByLoc, tc.chassisByXname)
+	slug, _, _ := enrichModuleFromLibrary(&mod, frus, cl)
+
+	var unmatched []UnmatchedNode
+	if slug == "" {
+		unmatched = append(unmatched, newUnmatched(node, cl))
+	}
+	tc.result.Modules[mod.ID] = &mod
+
+	// FRUs belong to the module they were discovered on.
+	for j := range frus {
+		frus[j].Device = mod.ID
+		frus[j].Parent = mod.ID
+		tc.result.Frus[frus[j].ID] = &frus[j]
+	}
+	tc.tally.Cables += len(frus)
+	return unmatched
+}
+
+// assignRackAndTally creates the device's rack (if any), links it, and
+// updates the running tally counters.
+func (tc *transformContext) assignRackAndTally(dev *devicetypes.CaniDeviceType, node import_.Node, frus []devicetypes.CaniFruType) {
+	rack := buildRack(node, tc.racksByNumber, tc.existing)
+	if rack != nil {
+		tc.result.Racks[rack.ID] = rack
+		tc.tally.Racks++
+	}
+	assignRack(dev, node, tc.racksByNumber, tc.result)
+
+	tc.tally.Devices++
+	tc.tally.Cables += len(frus)
+}
+
+// registerChassis records a chassis device for module parenting by both
+// location key and xname.
+func (tc *transformContext) registerChassis(node import_.Node, devID uuid.UUID) {
+	if node.Location != nil && node.Location.Rack != nil && node.Location.Chassis != nil {
+		key := chassisKey(*node.Location.Rack, *node.Location.Chassis)
+		tc.chassisByLoc[key] = devID
+	}
+	tc.chassisByXname[node.Name] = devID
+}
+
+// maybeStep displays the step-through prompt for a node when step mode is
+// enabled. nodeIdx is the zero-based node index.
+func (tc *transformContext) maybeStep(nodeIdx int, node import_.Node, dev *devicetypes.CaniDeviceType, frus []devicetypes.CaniFruType, slug, matchQuery string, matchScore int) error {
+	if !tc.stepMode {
+		return nil
+	}
+	info := buildNodeStepInfo(nodeIdx+1, tc.totalNodes, node, dev, frus, slug, matchQuery, matchScore)
+	if err := visual.PromptNodeTransformStep(info, *tc.tally, tc.opts); err != nil {
+		return fmt.Errorf("step interrupted: %w", err)
+	}
+	return nil
 }
 
 // chassisKey produces a dedup key for locating a chassis by rack+chassis number.
@@ -229,10 +310,10 @@ func logUnmatched(nodes []UnmatchedNode) {
 func buildDeviceFromNode(node import_.Node, cl Classification, existing *devicetypes.Inventory) (devicetypes.CaniDeviceType, []devicetypes.CaniFruType) {
 	hpcmMeta := make(map[string]any)
 	if node.UUID != "" {
-		hpcmMeta["hpcm_uuid"] = node.UUID
+		hpcmMeta[metaKeyHpcmUUID] = node.UUID
 	}
 	if len(node.Aliases) > 0 {
-		hpcmMeta["aliases"] = node.Aliases
+		hpcmMeta[metaKeyAliases] = node.Aliases
 	}
 	if node.Location != nil {
 		hpcmMeta["location"] = locationToMap(node.Location)
@@ -270,10 +351,10 @@ func buildModuleFromNode(node import_.Node, cl Classification, chassisByLoc, cha
 	}
 
 	if node.UUID != "" {
-		mod.CustomFields["hpcm_uuid"] = node.UUID
+		mod.CustomFields[metaKeyHpcmUUID] = node.UUID
 	}
 	if len(node.Aliases) > 0 {
-		mod.CustomFields["aliases"] = node.Aliases
+		mod.CustomFields[metaKeyAliases] = node.Aliases
 	}
 	if node.Location != nil {
 		mod.CustomFields["location"] = locationToMap(node.Location)
@@ -331,7 +412,7 @@ func buildLocationFromNode(node import_.Node) devicetypes.CaniLocationType {
 		ID:           uuid.New(),
 		Name:         node.Name,
 		LocationType: "site",
-		ObjectMeta:   devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), CustomFields: map[string]any{"hpcm_uuid": node.UUID}},
+		ObjectMeta:   devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), CustomFields: map[string]any{metaKeyHpcmUUID: node.UUID}},
 	}
 }
 
@@ -385,14 +466,14 @@ func buildNodeStepInfo(nodeNum, total int, node import_.Node, dev *devicetypes.C
 		{
 			SourceField: "name",
 			SourceValue: node.Name,
-			TargetType:  "CaniDeviceType",
+			TargetType:  targetTypeCaniDevice,
 			TargetField: "Name",
 			TargetValue: dev.Name,
 		},
 		{
 			SourceField: "type",
 			SourceValue: node.Type,
-			TargetType:  "CaniDeviceType",
+			TargetType:  targetTypeCaniDevice,
 			TargetField: "Type",
 			TargetValue: string(dev.Type),
 			IsDerived:   true,
@@ -400,7 +481,7 @@ func buildNodeStepInfo(nodeNum, total int, node import_.Node, dev *devicetypes.C
 		{
 			SourceField: "uuid",
 			SourceValue: node.UUID,
-			TargetType:  "CaniDeviceType",
+			TargetType:  targetTypeCaniDevice,
 			TargetField: "ProviderMetadata[hpcm][hpcm_uuid]",
 			TargetValue: node.UUID,
 		},
@@ -419,18 +500,18 @@ func buildNodeStepInfo(nodeNum, total int, node import_.Node, dev *devicetypes.C
 
 	if libSlug != "" {
 		mappings = append(mappings, visual.FieldMapping{
-			SourceField: "(library)",
+			SourceField: sourceFieldLibrary,
 			SourceValue: libSlug,
-			TargetType:  "CaniDeviceType",
+			TargetType:  targetTypeCaniDevice,
 			TargetField: "Slug",
 			TargetValue: dev.Slug,
 			IsDerived:   true,
 		})
 		if dev.Manufacturer != "" {
 			mappings = append(mappings, visual.FieldMapping{
-				SourceField: "(library)",
+				SourceField: sourceFieldLibrary,
 				SourceValue: libSlug,
-				TargetType:  "CaniDeviceType",
+				TargetType:  targetTypeCaniDevice,
 				TargetField: "Manufacturer",
 				TargetValue: dev.Manufacturer,
 				IsDerived:   true,
@@ -438,9 +519,9 @@ func buildNodeStepInfo(nodeNum, total int, node import_.Node, dev *devicetypes.C
 		}
 		if dev.Model != "" {
 			mappings = append(mappings, visual.FieldMapping{
-				SourceField: "(library)",
+				SourceField: sourceFieldLibrary,
 				SourceValue: libSlug,
-				TargetType:  "CaniDeviceType",
+				TargetType:  targetTypeCaniDevice,
 				TargetField: "Model",
 				TargetValue: dev.Model,
 				IsDerived:   true,
@@ -485,20 +566,7 @@ func enrichDeviceFromLibrary(dev *devicetypes.CaniDeviceType, frus []devicetypes
 	// Prepend classification queries (SKU etc.) ahead of FRU-derived ones.
 	queries = mergeQueries(cl.LookupQueries, queries)
 
-	var bestDT devicetypes.CaniDeviceType
-	var bestQuery string
-	bestScore := 0
-	for _, q := range queries {
-		dt, score := devicetypes.LookupScored(q)
-		if score > bestScore {
-			bestScore = score
-			bestDT = dt
-			bestQuery = q
-		}
-		if bestScore >= 100 {
-			break // exact match, no need to check further
-		}
-	}
+	bestDT, bestQuery, bestScore := bestDeviceMatch(queries)
 	if bestDT.Slug != "" {
 		applyDeviceDefaults(dev, bestDT)
 		return bestDT.Slug, bestQuery, bestScore
@@ -520,40 +588,13 @@ func enrichModuleFromLibrary(mod *devicetypes.CaniModuleType, frus []devicetypes
 	}
 
 	// Try module library first — keep best score.
-	var bestMT devicetypes.CaniModuleType
-	var bestQuery string
-	bestScore := 0
-	for _, q := range queries {
-		mt, score := devicetypes.LookupModuleScored(q)
-		if score > bestScore {
-			bestScore = score
-			bestMT = mt
-			bestQuery = q
-		}
-		if bestScore >= 100 {
-			break
-		}
-	}
-	if bestMT.Slug != "" {
+	if bestMT, bestQuery, bestScore := bestModuleMatch(queries); bestMT.Slug != "" {
 		applyModuleDefaults(mod, bestMT)
 		return bestMT.Slug, bestQuery, bestScore
 	}
 
 	// Fall back to device library (some modules are listed as device-types).
-	var bestDT devicetypes.CaniDeviceType
-	bestQuery = ""
-	bestScore = 0
-	for _, q := range queries {
-		dt, score := devicetypes.LookupScored(q)
-		if score > bestScore {
-			bestScore = score
-			bestDT = dt
-			bestQuery = q
-		}
-		if bestScore >= 100 {
-			break
-		}
-	}
+	bestDT, bestQuery, bestScore := bestDeviceMatch(queries)
 	if bestDT.Slug != "" {
 		mod.Slug = bestDT.Slug
 		if mod.Manufacturer == "" {
@@ -565,6 +606,46 @@ func enrichModuleFromLibrary(mod *devicetypes.CaniModuleType, frus []devicetypes
 		return bestDT.Slug, bestQuery, bestScore
 	}
 	return "", "", 0
+}
+
+// bestModuleMatch returns the highest-scored module-library match across the
+// given queries, stopping early on an exact (>=100) match.
+func bestModuleMatch(queries []string) (devicetypes.CaniModuleType, string, int) {
+	var best devicetypes.CaniModuleType
+	var bestQuery string
+	bestScore := 0
+	for _, q := range queries {
+		mt, score := devicetypes.LookupModuleScored(q)
+		if score > bestScore {
+			bestScore = score
+			best = mt
+			bestQuery = q
+		}
+		if bestScore >= 100 {
+			break
+		}
+	}
+	return best, bestQuery, bestScore
+}
+
+// bestDeviceMatch returns the highest-scored device-library match across the
+// given queries, stopping early on an exact (>=100) match.
+func bestDeviceMatch(queries []string) (devicetypes.CaniDeviceType, string, int) {
+	var best devicetypes.CaniDeviceType
+	var bestQuery string
+	bestScore := 0
+	for _, q := range queries {
+		dt, score := devicetypes.LookupScored(q)
+		if score > bestScore {
+			bestScore = score
+			best = dt
+			bestQuery = q
+		}
+		if bestScore >= 100 {
+			break
+		}
+	}
+	return best, bestQuery, bestScore
 }
 
 // mergeQueries returns a combined list with a's entries first, deduped.
@@ -591,7 +672,7 @@ func aliasesFromMeta(meta map[string]any) map[string]string {
 	if meta == nil {
 		return nil
 	}
-	v, ok := meta["aliases"]
+	v, ok := meta[metaKeyAliases]
 	if !ok {
 		return nil
 	}
@@ -743,11 +824,11 @@ func buildCaniFru(parentName, groupID string, entries []kvEntry) devicetypes.Can
 		switch normalizeField(e.key) {
 		case "serial":
 			fru.Serial = e.value
-		case "part_number":
+		case fieldPartNumber:
 			fru.PartNumber = e.value
 		case "model":
 			fru.Model = e.value
-		case "manufacturer":
+		case fieldManufacturer:
 			fru.Manufacturer = e.value
 		case "name":
 			fru.Label = e.value
@@ -764,12 +845,12 @@ func normalizeField(field string) string {
 	switch field {
 	case "serialNumber", "Serial Number", "serial_number", "SerialNumber":
 		return "serial"
-	case "partNumber", "Part Number", "part_number", "PartNumber":
-		return "part_number"
+	case "partNumber", "Part Number", fieldPartNumber, "PartNumber":
+		return fieldPartNumber
 	case "model", "model_name", "Model":
 		return "model"
-	case "vendor", "Vendor", "manufacturer", "Manufacturer":
-		return "manufacturer"
+	case "vendor", "Vendor", fieldManufacturer, "Manufacturer":
+		return fieldManufacturer
 	case "name", "info_name", "Name":
 		return "name"
 	default:

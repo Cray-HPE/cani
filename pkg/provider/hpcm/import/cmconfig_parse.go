@@ -10,6 +10,9 @@ import (
 	"gopkg.in/ini.v1"
 )
 
+// sectionKeyTemplate is the ini key holding a NIC template definition.
+const sectionKeyTemplate = "template"
+
 // ParseCmConfig parses an HPCM cm.config file into a CmConfig struct.
 // Uses ini.ShadowLoad to handle the multi-value shadow-key format.
 func ParseCmConfig(data []byte) (*CmConfig, error) {
@@ -52,6 +55,22 @@ func ParseCmConfig(data []byte) (*CmConfig, error) {
 	}, nil
 }
 
+// parseSubkeys splits a cm.config shadow value into "key=value" pairs and
+// invokes apply for each. The first bare (non key=value) token is passed to
+// setName; subsequent bare keywords are ignored.
+func parseSubkeys(v string, apply func(key, val string), setName func(name string)) {
+	for i, subkey := range strings.Split(v, ", ") {
+		kvp := strings.SplitN(subkey, "=", 2)
+		if len(kvp) == 2 {
+			sk := strings.TrimSpace(kvp[0])
+			sv := strings.Trim(kvp[1], `"`)
+			apply(sk, sv)
+		} else if i == 0 {
+			setName(strings.TrimSpace(kvp[0]))
+		}
+	}
+}
+
 // importDiscoverSection parses the [discover] section into Discover entries.
 // Ported from upstream validate_hpcm_config.go importCfgDiscoverSection.
 func importDiscoverSection(cfg *ini.File) (map[string]cmconfig.Discover, error) {
@@ -66,19 +85,10 @@ func importDiscoverSection(cfg *ini.File) (map[string]cmconfig.Discover, error) 
 		}
 		for _, v := range section.Key(secName).ValueWithShadows() {
 			d := cmconfig.Discover{}
-			subkeys := strings.Split(v, ", ")
-			for i, subkey := range subkeys {
-				kvp := strings.SplitN(subkey, "=", 2)
-				if len(kvp) == 2 {
-					sk := strings.TrimSpace(kvp[0])
-					sv := strings.Trim(kvp[1], `"`)
-					applyDiscoverField(&d, sk, sv)
-				} else if i == 0 {
-					// First bare value is the hostname / primary key.
-					d.Hostname1 = strings.TrimSpace(kvp[0])
-				}
-				// Subsequent bare keywords (switch_controller, etc.) are boolean flags — skip.
-			}
+			parseSubkeys(v,
+				func(k, val string) { applyDiscoverField(&d, k, val) },
+				func(name string) { d.Hostname1 = name },
+			)
 			if d.Hostname1 != "" {
 				discover[d.Hostname1] = d
 			}
@@ -159,18 +169,10 @@ func importTemplatesSection(cfg *ini.File) (map[string]cmconfig.Template, error)
 		}
 		for _, v := range section.Key("name").ValueWithShadows() {
 			t := cmconfig.Template{}
-			subkeys := strings.Split(v, ", ")
-			for i, subkey := range subkeys {
-				kvp := strings.SplitN(subkey, "=", 2)
-				if len(kvp) == 2 {
-					sk := strings.TrimSpace(kvp[0])
-					sv := strings.Trim(kvp[1], `"`)
-					applyTemplateField(&t, sk, sv)
-				} else if i == 0 {
-					// First bare value is the template name.
-					t.Name = strings.TrimSpace(kvp[0])
-				}
-			}
+			parseSubkeys(v,
+				func(k, val string) { applyTemplateField(&t, k, val) },
+				func(name string) { t.Name = name },
+			)
 			if t.Name != "" {
 				templates[t.Name] = t
 			}
@@ -217,23 +219,15 @@ func importNicTemplatesSection(cfg *ini.File) (map[string]cmconfig.NicTemplate, 
 		if section.Name() != "nic_templates" {
 			continue
 		}
-		if !section.HasKey("template") {
+		if !section.HasKey(sectionKeyTemplate) {
 			continue
 		}
-		for _, v := range section.Key("template").ValueWithShadows() {
+		for _, v := range section.Key(sectionKeyTemplate).ValueWithShadows() {
 			n := cmconfig.NicTemplate{}
-			subkeys := strings.Split(v, ", ")
-			for i, subkey := range subkeys {
-				kvp := strings.SplitN(subkey, "=", 2)
-				if len(kvp) == 2 {
-					sk := strings.TrimSpace(kvp[0])
-					sv := strings.Trim(kvp[1], `"`)
-					applyNicTemplateField(&n, sk, sv)
-				} else if i == 0 {
-					// First bare value is the template name.
-					n.Template = strings.TrimSpace(kvp[0])
-				}
-			}
+			parseSubkeys(v,
+				func(k, val string) { applyNicTemplateField(&n, k, val) },
+				func(name string) { n.Template = name },
+			)
 			if n.Template != "" && n.Network != "" {
 				key := n.Template + "/" + n.Network
 				templates[key] = n
@@ -246,7 +240,7 @@ func importNicTemplatesSection(cfg *ini.File) (map[string]cmconfig.NicTemplate, 
 // applyNicTemplateField sets a single field on a NicTemplate by key name.
 func applyNicTemplateField(n *cmconfig.NicTemplate, key, val string) {
 	switch key {
-	case "template":
+	case sectionKeyTemplate:
 		n.Template = val
 	case "network":
 		n.Network = val

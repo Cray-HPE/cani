@@ -61,6 +61,16 @@ const (
 // maxRawDataLen is the maximum length for raw data display before truncation
 const maxRawDataLen = 80
 
+// Shared ETL format strings and prompt message.
+const (
+	fmtIndentPair = "  %s %s\n"
+	fmtIconLine   = "%s %s\n"
+	fmtIndentLine = "  %s\n"
+	fmtNameCount  = "%s %s (%d)\n"
+	msgPressEnter = "Press Enter to continue..."
+	stepRule      = "─────────────────────────────────────────────────────────────"
+)
+
 // colorFuncs returns closures for coloring text based on NoColor option
 func (opts ETLOptions) colorFuncs() (cyan, yellow, green, gray, bold, red func(string) string) {
 	if opts.NoColor {
@@ -117,7 +127,7 @@ func PrintCaniOperation(msg string, opts ETLOptions) {
 	w := opts.getWriter()
 	cyan, _, _, _, _, _ := opts.colorFuncs()
 
-	fmt.Fprintf(w, "%s %s\n", cyan("│"), msg)
+	fmt.Fprintf(w, fmtIconLine, cyan("│"), msg)
 }
 
 // PrintProviderOperation prints a provider-specific operation message (yellow)
@@ -125,7 +135,7 @@ func PrintProviderOperation(msg string, opts ETLOptions) {
 	w := opts.getWriter()
 	_, yellow, _, _, _, _ := opts.colorFuncs()
 
-	fmt.Fprintf(w, "%s %s\n", yellow("│"), msg)
+	fmt.Fprintf(w, fmtIconLine, yellow("│"), msg)
 }
 
 // PrintStepItem prints details about an item being processed (for step-through)
@@ -134,8 +144,8 @@ func PrintStepItem(itemDesc string, opts ETLOptions) {
 	_, yellow, _, gray, _, _ := opts.colorFuncs()
 
 	fmt.Fprintln(w)
-	fmt.Fprintf(w, "%s %s\n", yellow("→"), itemDesc)
-	fmt.Fprintf(w, "  %s\n", gray("Press Enter to continue..."))
+	fmt.Fprintf(w, fmtIconLine, yellow("→"), itemDesc)
+	printPressEnter(w, gray, false)
 }
 
 // PromptStep prints item details and waits for user to press Enter
@@ -158,23 +168,39 @@ func truncateRawData(s string, maxLen int) string {
 	return s[:maxLen-3] + "..."
 }
 
+// printStepRule prints the yellow horizontal rule that separates step blocks.
+func printStepRule(w io.Writer, yellow func(string) string) {
+	fmt.Fprintf(w, fmtIconLine, yellow(stepRule), "")
+}
+
+// printRawParsed prints the shared gray raw (truncated) and parsed step lines.
+func printRawParsed(w io.Writer, gray func(string) string, rawData, parsed string) {
+	fmt.Fprintf(w, fmtIndentPair, gray("raw:"), truncateRawData(rawData, maxRawDataLen))
+	fmt.Fprintf(w, fmtIndentPair, gray("parsed:"), parsed)
+}
+
+// printPressEnter prints the gray "Press Enter to continue..." prompt, optionally
+// preceded by a blank line.
+func printPressEnter(w io.Writer, gray func(string) string, leadingBlank bool) {
+	if leadingBlank {
+		fmt.Fprintf(w, "\n  %s\n", gray(msgPressEnter))
+		return
+	}
+	fmt.Fprintf(w, fmtIndentLine, gray(msgPressEnter))
+}
+
 // PrintCSVRowStep prints enhanced step info for a CSV row with raw data and tally
 func PrintCSVRowStep(rowNum, totalRows int, rawData string, parsed string, tally StepTally, opts ETLOptions) {
 	w := opts.getWriter()
 	_, yellow, _, gray, bold, _ := opts.colorFuncs()
 
 	fmt.Fprintln(w)
-	fmt.Fprintf(w, "%s %s\n", yellow("─────────────────────────────────────────────────────────────"), "")
+	printStepRule(w, yellow)
 
 	// Row header
 	fmt.Fprintf(w, "%s CSV Row %d of %d\n", yellow("→"), rowNum, totalRows)
 
-	// Raw data (truncated if needed)
-	truncatedRaw := truncateRawData(rawData, maxRawDataLen)
-	fmt.Fprintf(w, "  %s %s\n", gray("raw:"), truncatedRaw)
-
-	// Parsed interpretation
-	fmt.Fprintf(w, "  %s %s\n", gray("parsed:"), parsed)
+	printRawParsed(w, gray, rawData, parsed)
 
 	// Running tally
 	fmt.Fprintf(w, "  %s racks: %s  devices: %s  cables: %s\n",
@@ -183,7 +209,7 @@ func PrintCSVRowStep(rowNum, totalRows int, rawData string, parsed string, tally
 		bold(fmt.Sprintf("%d", tally.Devices)),
 		bold(fmt.Sprintf("%d", tally.Cables)))
 
-	fmt.Fprintf(w, "\n  %s\n", gray("Press Enter to continue..."))
+	printPressEnter(w, gray, true)
 }
 
 // PrintCSVRowStepRaw prints step info for a raw CSV row without tally (for extract phase)
@@ -192,19 +218,14 @@ func PrintCSVRowStepRaw(rowNum, totalRows int, rawData string, parsed string, op
 	_, yellow, _, gray, _, _ := opts.colorFuncs()
 
 	fmt.Fprintln(w)
-	fmt.Fprintf(w, "%s %s\n", yellow("─────────────────────────────────────────────────────────────"), "")
+	printStepRule(w, yellow)
 
 	// Row header
 	fmt.Fprintf(w, "%s CSV Row %d of %d\n", yellow("→"), rowNum, totalRows)
 
-	// Raw data (truncated if needed)
-	truncatedRaw := truncateRawData(rawData, maxRawDataLen)
-	fmt.Fprintf(w, "  %s %s\n", gray("raw:"), truncatedRaw)
+	printRawParsed(w, gray, rawData, parsed)
 
-	// Parsed interpretation
-	fmt.Fprintf(w, "  %s %s\n", gray("parsed:"), parsed)
-
-	fmt.Fprintf(w, "\n  %s\n", gray("Press Enter to continue..."))
+	printPressEnter(w, gray, true)
 }
 
 // PrintRecordStepRaw prints step info for a record without tally (for extract phase).
@@ -214,24 +235,19 @@ func PrintRecordStepRaw(rowNum, totalRows int, rawData string, parsed string, id
 	_, yellow, _, gray, _, _ := opts.colorFuncs()
 
 	fmt.Fprintln(w)
-	fmt.Fprintf(w, "%s %s\n", yellow("─────────────────────────────────────────────────────────────"), "")
+	printStepRule(w, yellow)
 
 	// Record header
 	fmt.Fprintf(w, "%s Record %d of %d\n", yellow("→"), rowNum, totalRows)
 
 	// Optional unique identifier in gray
 	if identifier != "" {
-		fmt.Fprintf(w, "  %s\n", gray(identifier))
+		fmt.Fprintf(w, fmtIndentLine, gray(identifier))
 	}
 
-	// Raw data (truncated if needed)
-	truncatedRaw := truncateRawData(rawData, maxRawDataLen)
-	fmt.Fprintf(w, "  %s %s\n", gray("raw:"), truncatedRaw)
+	printRawParsed(w, gray, rawData, parsed)
 
-	// Parsed interpretation
-	fmt.Fprintf(w, "  %s %s\n", gray("parsed:"), parsed)
-
-	fmt.Fprintf(w, "\n  %s\n", gray("Press Enter to continue..."))
+	printPressEnter(w, gray, true)
 }
 
 // PromptRecordStepRaw prints record step info and waits for Enter (no tally).
@@ -297,7 +313,7 @@ func PrintFieldMappings(mappings []FieldMapping, opts ETLOptions) {
 		maxSourceValue = 32
 	}
 
-	fmt.Fprintf(w, "  %s\n", cyan("Field Mappings:"))
+	fmt.Fprintf(w, fmtIndentLine, cyan("Field Mappings:"))
 	for _, m := range mappings {
 		sourceVal := m.SourceValue
 		if len(sourceVal) > 30 {
@@ -337,7 +353,7 @@ func PromptTransformStep(rowNum, totalRows int, info TransformStepInfo, tally St
 	cyan, yellow, green, gray, bold, _ := opts.colorFuncs()
 
 	fmt.Fprintln(w)
-	fmt.Fprintf(w, "%s %s\n", yellow("─────────────────────────────────────────────────────────────"), "")
+	printStepRule(w, yellow)
 
 	// Row header with hardware type and quantity
 	if info.Quantity > 1 {
@@ -369,7 +385,7 @@ func PromptTransformStep(rowNum, totalRows int, info TransformStepInfo, tally St
 		bold(fmt.Sprintf("%d", tally.Devices)),
 		bold(fmt.Sprintf("%d", tally.Cables)))
 
-	fmt.Fprintf(w, "\n  %s\n", gray("Press Enter to continue..."))
+	printPressEnter(w, gray, true)
 
 	reader := bufio.NewReader(os.Stdin)
 	_, err := reader.ReadString('\n')
@@ -399,58 +415,74 @@ func PrintImportSummary(summary ImportSummary, opts ETLOptions, stepMode bool) {
 
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "%s\n", cyan("════════════════════════════════════════════════════════════"))
-	fmt.Fprintf(w, "%s %s\n", cyan("║"), bold("IMPORT SUMMARY"))
+	fmt.Fprintf(w, fmtIconLine, cyan("║"), bold("IMPORT SUMMARY"))
 	fmt.Fprintf(w, "%s\n", cyan("════════════════════════════════════════════════════════════"))
 	fmt.Fprintln(w)
 
-	// Racks and their devices
-	if len(summary.RackNames) > 0 {
-		fmt.Fprintf(w, "%s %s (%d)\n", green("■"), bold("Racks"), len(summary.RackNames))
-		for _, rackName := range summary.RackNames {
-			fmt.Fprintf(w, "  %s %s\n", cyan("├──"), rackName)
-			if devices, ok := summary.DevicesByRack[rackName]; ok && len(devices) > 0 {
-				for i, devName := range devices {
-					prefix := "│   ├──"
-					if i == len(devices)-1 {
-						prefix = "│   └──"
-					}
-					fmt.Fprintf(w, "  %s %s\n", gray(prefix), devName)
-				}
-			}
-		}
-		fmt.Fprintln(w)
-	}
-
-	// Standalone devices (not in racks)
-	if standaloneDevs, ok := summary.DevicesByRack[""]; ok && len(standaloneDevs) > 0 {
-		fmt.Fprintf(w, "%s %s (%d)\n", green("■"), bold("Standalone Devices"), len(standaloneDevs))
-		for _, devName := range standaloneDevs {
-			fmt.Fprintf(w, "  %s %s\n", gray("└──"), devName)
-		}
-		fmt.Fprintln(w)
-	}
-
-	// Cables
-	if len(summary.Cables) > 0 {
-		fmt.Fprintf(w, "%s %s (%d)\n", green("■"), bold("Cables"), len(summary.Cables))
-		for _, cable := range summary.Cables {
-			cableInfo := fmt.Sprintf("%s:%s ←→ %s:%s",
-				cable.SourceDevice, cable.SourcePort,
-				cable.DestDevice, cable.DestPort)
-			if cable.CableType != "" {
-				cableInfo += fmt.Sprintf(" [%s]", cable.CableType)
-			}
-			fmt.Fprintf(w, "  %s %s\n", gray("└──"), cableInfo)
-		}
-		fmt.Fprintln(w)
-	}
+	printSummaryRacks(w, summary, cyan, green, gray, bold)
+	printSummaryStandalone(w, summary, green, gray, bold)
+	printSummaryCables(w, summary, green, gray, bold)
 
 	// In step mode, wait for user to continue
 	if stepMode {
-		fmt.Fprintf(w, "  %s\n", gray("Press Enter to continue..."))
+		printPressEnter(w, gray, false)
 		reader := bufio.NewReader(os.Stdin)
 		reader.ReadString('\n')
 	}
+}
+
+// printSummaryRacks prints the racks section and their nested devices.
+func printSummaryRacks(w io.Writer, summary ImportSummary, cyan, green, gray, bold func(string) string) {
+	if len(summary.RackNames) == 0 {
+		return
+	}
+	fmt.Fprintf(w, fmtNameCount, green("■"), bold("Racks"), len(summary.RackNames))
+	for _, rackName := range summary.RackNames {
+		fmt.Fprintf(w, fmtIndentPair, cyan("├──"), rackName)
+		devices, ok := summary.DevicesByRack[rackName]
+		if !ok || len(devices) == 0 {
+			continue
+		}
+		for i, devName := range devices {
+			prefix := "│   ├──"
+			if i == len(devices)-1 {
+				prefix = "│   └──"
+			}
+			fmt.Fprintf(w, fmtIndentPair, gray(prefix), devName)
+		}
+	}
+	fmt.Fprintln(w)
+}
+
+// printSummaryStandalone prints devices that are not assigned to any rack.
+func printSummaryStandalone(w io.Writer, summary ImportSummary, green, gray, bold func(string) string) {
+	standaloneDevs, ok := summary.DevicesByRack[""]
+	if !ok || len(standaloneDevs) == 0 {
+		return
+	}
+	fmt.Fprintf(w, fmtNameCount, green("■"), bold("Standalone Devices"), len(standaloneDevs))
+	for _, devName := range standaloneDevs {
+		fmt.Fprintf(w, fmtIndentPair, gray("└──"), devName)
+	}
+	fmt.Fprintln(w)
+}
+
+// printSummaryCables prints the cables section with optional cable types.
+func printSummaryCables(w io.Writer, summary ImportSummary, green, gray, bold func(string) string) {
+	if len(summary.Cables) == 0 {
+		return
+	}
+	fmt.Fprintf(w, fmtNameCount, green("■"), bold("Cables"), len(summary.Cables))
+	for _, cable := range summary.Cables {
+		cableInfo := fmt.Sprintf("%s:%s ←→ %s:%s",
+			cable.SourceDevice, cable.SourcePort,
+			cable.DestDevice, cable.DestPort)
+		if cable.CableType != "" {
+			cableInfo += fmt.Sprintf(" [%s]", cable.CableType)
+		}
+		fmt.Fprintf(w, fmtIndentPair, gray("└──"), cableInfo)
+	}
+	fmt.Fprintln(w)
 }
 
 // PrintWarning prints a warning message
@@ -458,7 +490,7 @@ func PrintWarning(msg string, opts ETLOptions) {
 	w := opts.getWriter()
 	_, yellow, _, _, _, _ := opts.colorFuncs()
 
-	fmt.Fprintf(w, "%s %s\n", yellow("⚠"), msg)
+	fmt.Fprintf(w, fmtIconLine, yellow("⚠"), msg)
 }
 
 // PrintError prints an error message
@@ -466,5 +498,5 @@ func PrintError(msg string, opts ETLOptions) {
 	w := opts.getWriter()
 	_, _, _, _, _, red := opts.colorFuncs()
 
-	fmt.Fprintf(w, "%s %s\n", red("✗"), msg)
+	fmt.Fprintf(w, fmtIconLine, red("✗"), msg)
 }

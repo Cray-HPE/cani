@@ -45,20 +45,20 @@ func applyScalarFields(cmd *cobra.Command, device *devicetypes.CaniDeviceType) {
 	if cmd.Flags().Changed("role") {
 		device.Role, _ = cmd.Flags().GetString("role")
 	}
-	if cmd.Flags().Changed("description") {
-		device.Description, _ = cmd.Flags().GetString("description")
+	if cmd.Flags().Changed(flagDescription) {
+		device.Description, _ = cmd.Flags().GetString(flagDescription)
 	}
 }
 
 // applyPositionUpdate handles --position/--face changes, including swap logic.
 func applyPositionUpdate(cmd *cobra.Command, inventory *devicetypes.Inventory, id uuid.UUID, device *devicetypes.CaniDeviceType) error {
-	if !cmd.Flags().Changed("position") && !cmd.Flags().Changed("face") {
+	if !cmd.Flags().Changed(flagPosition) && !cmd.Flags().Changed("face") {
 		return nil
 	}
 	newPos := device.RackPosition
 	newFace := device.Face
-	if cmd.Flags().Changed("position") {
-		newPos, _ = cmd.Flags().GetInt("position")
+	if cmd.Flags().Changed(flagPosition) {
+		newPos, _ = cmd.Flags().GetInt(flagPosition)
 	}
 	if cmd.Flags().Changed("face") {
 		newFace, _ = cmd.Flags().GetString("face")
@@ -136,7 +136,7 @@ func applySetToDevice(cmd *cobra.Command, device *devicetypes.CaniDeviceType) er
 			device.Status = v
 		case "role":
 			device.Role = v
-		case "description":
+		case flagDescription:
 			device.Description = v
 		case "rack_position":
 			n, nerr := strconv.Atoi(v)

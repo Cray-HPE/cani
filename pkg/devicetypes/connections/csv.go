@@ -33,6 +33,14 @@ import (
 	"strings"
 )
 
+// CSV column names and shared error formats. Centralizing these avoids
+// duplicated string literals across the parser functions.
+const (
+	colADevice       = "a_device"
+	colCablePeer     = "cable_peer"
+	errReadCSVHeader = "reading CSV header: %w"
+)
+
 // csvInterface holds the fields extracted from one row of a Nautobot
 // interfaces CSV export.
 type csvInterface struct {
@@ -48,10 +56,10 @@ type csvInterface struct {
 }
 
 // requiredInterfaceColumns lists columns required for Nautobot interfaces CSV.
-var requiredInterfaceColumns = []string{"name", "device__name", "id", "cable_peer"}
+var requiredInterfaceColumns = []string{"name", "device__name", "id", colCablePeer}
 
 // requiredConnectionColumns lists columns required for human-friendly CSV.
-var requiredConnectionColumns = []string{"a_device", "a_port", "b_device", "b_port"}
+var requiredConnectionColumns = []string{colADevice, "a_port", "b_device", "b_port"}
 
 // ParseCSV reads a CSV and auto-detects the format from the header row.
 // If the header contains "a_device" it uses the human-friendly single-row
@@ -65,14 +73,14 @@ func ParseCSV(r io.Reader) (*ConnectionMap, error) {
 	// Peek at header to detect format
 	header, err := csv.NewReader(bytes.NewReader(data)).Read()
 	if err != nil {
-		return nil, fmt.Errorf("reading CSV header: %w", err)
+		return nil, fmt.Errorf(errReadCSVHeader, err)
 	}
 
 	idx := buildColumnIndex(header)
-	if _, ok := idx["a_device"]; ok {
+	if _, ok := idx[colADevice]; ok {
 		return ParseConnectionsCSV(bytes.NewReader(data))
 	}
-	if _, ok := idx["cable_peer"]; ok {
+	if _, ok := idx[colCablePeer]; ok {
 		return ParseInterfacesCSV(bytes.NewReader(data))
 	}
 
@@ -95,7 +103,7 @@ func ParseConnectionsCSV(r io.Reader) (*ConnectionMap, error) {
 
 	header, err := reader.Read()
 	if err != nil {
-		return nil, fmt.Errorf("reading CSV header: %w", err)
+		return nil, fmt.Errorf(errReadCSVHeader, err)
 	}
 
 	idx := buildColumnIndex(header)
@@ -116,7 +124,7 @@ func ParseConnectionsCSV(r io.Reader) (*ConnectionMap, error) {
 		}
 		lineNum++
 
-		aDevice := getField(record, idx, "a_device")
+		aDevice := getField(record, idx, colADevice)
 
 		// Sentinel row: "_defaults" sets cable defaults for all rows
 		if aDevice == "_defaults" {
@@ -218,7 +226,7 @@ func ParseInterfacesCSV(r io.Reader) (*ConnectionMap, error) {
 
 	header, err := reader.Read()
 	if err != nil {
-		return nil, fmt.Errorf("reading CSV header: %w", err)
+		return nil, fmt.Errorf(errReadCSVHeader, err)
 	}
 
 	colIndex := buildColumnIndex(header)
@@ -275,7 +283,7 @@ func readInterfaceRows(reader *csv.Reader, idx map[string]int) (map[string]csvIn
 			ID:         getField(record, idx, "id"),
 			Name:       getField(record, idx, "name"),
 			DeviceName: getField(record, idx, "device__name"),
-			CablePeer:  getField(record, idx, "cable_peer"),
+			CablePeer:  getField(record, idx, colCablePeer),
 			CablePK:    getField(record, idx, "cable__pk"),
 			Type:       getField(record, idx, "type"),
 			Status:     getField(record, idx, "status__name"),

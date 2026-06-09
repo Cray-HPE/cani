@@ -11,6 +11,9 @@ import (
 const (
 	sourceLibrary = "(library)"
 	sourceRedfish = "(redfish)"
+
+	// targetTypeCaniDevice labels Redfish field mappings whose target is a CaniDeviceType.
+	targetTypeCaniDevice = "CaniDeviceType"
 )
 
 // stepInput bundles arguments for building step-through display info.
@@ -54,28 +57,28 @@ func buildFieldMappings(
 		{
 			SourceField: "Product",
 			SourceValue: root.Product,
-			TargetType:  "CaniDeviceType",
+			TargetType:  targetTypeCaniDevice,
 			TargetField: "Name",
 			TargetValue: dev.Name,
 		},
 		{
 			SourceField: "Vendor",
 			SourceValue: root.Vendor,
-			TargetType:  "CaniDeviceType",
+			TargetType:  targetTypeCaniDevice,
 			TargetField: "Manufacturer",
 			TargetValue: dev.Manufacturer,
 		},
 		{
 			SourceField: "UUID",
 			SourceValue: root.UUID,
-			TargetType:  "CaniDeviceType",
+			TargetType:  targetTypeCaniDevice,
 			TargetField: "ProviderMetadata[redfish][redfish_uuid]",
 			TargetValue: root.UUID,
 		},
 		{
 			SourceField: "RedfishVersion",
 			SourceValue: root.RedfishVersion,
-			TargetType:  "CaniDeviceType",
+			TargetType:  targetTypeCaniDevice,
 			TargetField: "ProviderMetadata[redfish][redfish_version]",
 			TargetValue: root.RedfishVersion,
 		},
@@ -86,7 +89,7 @@ func buildFieldMappings(
 		mappings = append(mappings, visual.FieldMapping{
 			SourceField: sourceRedfish,
 			SourceValue: "Manager.FQDN",
-			TargetType:  "CaniDeviceType",
+			TargetType:  targetTypeCaniDevice,
 			TargetField: "ProviderMetadata[redfish][bmc_fqdn]",
 			TargetValue: fqdn,
 		})
@@ -95,7 +98,7 @@ func buildFieldMappings(
 		mappings = append(mappings, visual.FieldMapping{
 			SourceField: sourceRedfish,
 			SourceValue: "Manager.HostName",
-			TargetType:  "CaniDeviceType",
+			TargetType:  targetTypeCaniDevice,
 			TargetField: "ProviderMetadata[redfish][bmc_hostname]",
 			TargetValue: host,
 		})
@@ -104,7 +107,7 @@ func buildFieldMappings(
 		mappings = append(mappings, visual.FieldMapping{
 			SourceField: sourceRedfish,
 			SourceValue: "Manager.ManagerType",
-			TargetType:  "CaniDeviceType",
+			TargetType:  targetTypeCaniDevice,
 			TargetField: "ProviderMetadata[redfish][bmc_type]",
 			TargetValue: bmc,
 		})
@@ -113,7 +116,7 @@ func buildFieldMappings(
 		mappings = append(mappings, visual.FieldMapping{
 			SourceField: sourceRedfish,
 			SourceValue: "Manager.ManagerFirmwareVersion",
-			TargetType:  "CaniDeviceType",
+			TargetType:  targetTypeCaniDevice,
 			TargetField: "ProviderMetadata[redfish][bmc_firmware]",
 			TargetValue: fw,
 		})
@@ -124,7 +127,7 @@ func buildFieldMappings(
 		mappings = append(mappings, visual.FieldMapping{
 			SourceField: sourceLibrary,
 			SourceValue: libSlug,
-			TargetType:  "CaniDeviceType",
+			TargetType:  targetTypeCaniDevice,
 			TargetField: "Slug",
 			TargetValue: dev.Slug,
 			IsDerived:   true,
@@ -133,7 +136,7 @@ func buildFieldMappings(
 			mappings = append(mappings, visual.FieldMapping{
 				SourceField: sourceLibrary,
 				SourceValue: libSlug,
-				TargetType:  "CaniDeviceType",
+				TargetType:  targetTypeCaniDevice,
 				TargetField: "Model",
 				TargetValue: dev.Model,
 				IsDerived:   true,
@@ -143,7 +146,7 @@ func buildFieldMappings(
 			mappings = append(mappings, visual.FieldMapping{
 				SourceField: sourceLibrary,
 				SourceValue: libSlug,
-				TargetType:  "CaniDeviceType",
+				TargetType:  targetTypeCaniDevice,
 				TargetField: "PartNumber",
 				TargetValue: dev.PartNumber,
 				IsDerived:   true,
@@ -153,7 +156,7 @@ func buildFieldMappings(
 			mappings = append(mappings, visual.FieldMapping{
 				SourceField: sourceLibrary,
 				SourceValue: libSlug,
-				TargetType:  "CaniDeviceType",
+				TargetType:  targetTypeCaniDevice,
 				TargetField: "UHeight",
 				TargetValue: fmt.Sprintf("%d", dev.UHeight),
 				IsDerived:   true,

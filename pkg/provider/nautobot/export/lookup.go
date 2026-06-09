@@ -38,6 +38,16 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Nautobot content-type identifiers used when assigning statuses and roles.
+const (
+	contentTypeDevice    = "dcim.device"
+	contentTypeRack      = "dcim.rack"
+	contentTypeModule    = "dcim.module"
+	contentTypePrefix    = "ipam.prefix"
+	contentTypeIPAddress = "ipam.ipaddress"
+	contentTypeVLAN      = "ipam.vlan"
+)
+
 // CachedItem represents a cached Nautobot object with its ID and display name
 type CachedItem struct {
 	ID      uuid.UUID
@@ -359,7 +369,7 @@ func (c *LookupCache) GetStatus(name string) (*CachedItem, error) {
 		// Ensure the status covers all content types the exporter may
 		// need (DCIM + IPAM); patch if any are missing.
 		if c.createStatuses {
-			required := []string{"dcim.device", "dcim.module", "dcim.rack", "ipam.prefix", "ipam.ipaddress", "ipam.vlan"}
+			required := []string{contentTypeDevice, contentTypeModule, contentTypeRack, contentTypePrefix, contentTypeIPAddress, contentTypeVLAN}
 			var missing []string
 			for _, req := range required {
 				found := false
@@ -449,7 +459,7 @@ func (c *LookupCache) GetRole(name string) (*CachedItem, error) {
 			clog.Detail("[nautobot] Found role: name='%s', id=%s, content_types=%v", r.Name, r.Id, r.ContentTypes)
 
 			// Check if role has all required content types
-			requiredTypes := []string{"dcim.device", "ipam.prefix", "ipam.ipaddress", "ipam.vlan"}
+			requiredTypes := []string{contentTypeDevice, contentTypePrefix, contentTypeIPAddress, contentTypeVLAN}
 			existingTypes := make(map[string]bool)
 			for _, ct := range r.ContentTypes {
 				existingTypes[ct] = true
@@ -962,7 +972,7 @@ func (c *LookupCache) CreateStatus(name string) (*CachedItem, error) {
 	clog.Detail("[nautobot] Creating status: %s", name)
 
 	// Status requires content_types to specify what objects it applies to.
-	contentTypes := []string{"dcim.device", "dcim.rack", "dcim.module", "ipam.prefix", "ipam.ipaddress", "ipam.vlan"}
+	contentTypes := []string{contentTypeDevice, contentTypeRack, contentTypeModule, contentTypePrefix, contentTypeIPAddress, contentTypeVLAN}
 
 	createResp, err := c.client.ExtrasStatusesCreateWithResponse(c.ctx,
 		&nautobotapi.ExtrasStatusesCreateParams{},
@@ -998,7 +1008,7 @@ func (c *LookupCache) CreateRole(name string) (*CachedItem, error) {
 	clog.Detail("[nautobot] Creating role: %s", name)
 
 	// Role requires content_types and weight
-	contentTypes := []string{"dcim.device", "dcim.interface", "ipam.prefix", "ipam.ipaddress", "ipam.vlan"}
+	contentTypes := []string{contentTypeDevice, "dcim.interface", contentTypePrefix, contentTypeIPAddress, contentTypeVLAN}
 	weight := 1000
 
 	createResp, err := c.client.ExtrasRolesCreateWithResponse(c.ctx,
@@ -1140,7 +1150,7 @@ func (c *LookupCache) createLocationType(name string, def *devicetypes.LocationT
 			}
 		}
 	} else {
-		contentTypes := []string{"dcim.device", "dcim.rack"}
+		contentTypes := []string{contentTypeDevice, contentTypeRack}
 		req.ContentTypes = &contentTypes
 	}
 

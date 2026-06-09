@@ -33,6 +33,9 @@ import (
 	"github.com/google/uuid"
 )
 
+// labelUnassigned labels nodes whose parent device name cannot be resolved.
+const labelUnassigned = "(unassigned)"
+
 // BuildRackTree builds tree nodes for racks → devices → modules.
 func BuildRackTree(racks []*devicetypes.CaniRackType, inv *devicetypes.Inventory, tf TreeFilter) []TreeNode {
 	nodes := make([]TreeNode, 0, len(racks))
@@ -67,7 +70,7 @@ func BuildModuleTree(modules []*devicetypes.CaniModuleType, inv *devicetypes.Inv
 	for _, pid := range order {
 		parentLabel := ResolveDeviceName(pid, inv)
 		if parentLabel == "" {
-			parentLabel = "(unassigned)"
+			parentLabel = labelUnassigned
 		}
 		node := TreeNode{Label: parentLabel, Detail: "device"}
 		for _, mod := range groups[pid] {
@@ -121,7 +124,7 @@ func BuildFruTree(frus []*devicetypes.CaniFruType, inv *devicetypes.Inventory) [
 	for _, did := range order {
 		parentLabel := ResolveDeviceName(did, inv)
 		if parentLabel == "" {
-			parentLabel = "(unassigned)"
+			parentLabel = labelUnassigned
 		}
 		node := TreeNode{Label: parentLabel, Detail: "device"}
 		for _, f := range groups[did] {
@@ -148,91 +151,116 @@ func BuildInterfaceTree(ifaces []*devicetypes.CaniInterface, inv *devicetypes.In
 	for _, did := range order {
 		parentLabel := ResolveDeviceName(did, inv)
 		if parentLabel == "" {
-			parentLabel = "(unassigned)"
+			parentLabel = labelUnassigned
 		}
 		node := TreeNode{Label: parentLabel, Detail: "device"}
 		for _, iface := range groups[did] {
-			detail := string(iface.InterfaceType)
-			if iface.Label != "" {
-				detail += " " + iface.Label
-			}
-			if tf.Roles && iface.Role != "" {
-				detail = PipeSep(detail, "role:"+iface.Role)
-			}
-			if iface.MacAddress != "" {
-				detail = PipeSep(detail, "mac:"+iface.MacAddress)
-			}
-			node.Children = append(node.Children, TreeNode{
-				Label:  iface.Name,
-				Detail: detail,
-			})
+			node.Children = append(node.Children, interfaceInstanceNode(iface, tf))
 		}
 		nodes = append(nodes, node)
 	}
 	return nodes
 }
 
+// interfaceInstanceNode builds a tree node for a single interface instance.
+func interfaceInstanceNode(iface *devicetypes.CaniInterface, tf TreeFilter) TreeNode {
+	detail := string(iface.InterfaceType)
+	if iface.Label != "" {
+		detail += " " + iface.Label
+	}
+	if tf.Roles && iface.Role != "" {
+		detail = PipeSep(detail, "role:"+iface.Role)
+	}
+	if iface.MacAddress != "" {
+		detail = PipeSep(detail, "mac:"+iface.MacAddress)
+	}
+	return TreeNode{
+		Label:  iface.Name,
+		Detail: detail,
+	}
+}
+
 // BuildFullTree builds the complete inventory tree: Locations → Racks → Devices → Modules.
 func BuildFullTree(inv *devicetypes.Inventory, tf TreeFilter) []TreeNode {
 	var roots []TreeNode
+	roots = append(roots, locationRoot(inv, tf)...)
+	roots = append(roots, orphanRackRoot(inv, tf)...)
+	roots = append(roots, orphanDeviceRoot(inv, tf)...)
+	roots = append(roots, orphanCableRoot(inv, tf)...)
+	return roots
+}
 
+// locationRoot returns the Locations root node, or nil when there are none.
+func locationRoot(inv *devicetypes.Inventory, tf TreeFilter) []TreeNode {
 	locNodes := BuildLocationTree(inv, tf)
-	if len(locNodes) > 0 {
-		roots = append(roots, TreeNode{
-			Label:    fmt.Sprintf("Locations (%d)", len(inv.Locations)),
-			Children: locNodes,
-		})
+	if len(locNodes) == 0 {
+		return nil
 	}
+	return []TreeNode{{
+		Label:    fmt.Sprintf("Locations (%d)", len(inv.Locations)),
+		Children: locNodes,
+	}}
+}
 
+// orphanRackRoot returns the root node for racks with no location, or nil.
+func orphanRackRoot(inv *devicetypes.Inventory, tf TreeFilter) []TreeNode {
 	var orphanRacks []*devicetypes.CaniRackType
 	for _, rack := range inv.Racks {
 		if rack.Location == uuid.Nil {
 			orphanRacks = append(orphanRacks, rack)
 		}
 	}
+	if len(orphanRacks) == 0 {
+		return nil
+	}
 	sort.Slice(orphanRacks, func(i, j int) bool {
 		return orphanRacks[i].Name < orphanRacks[j].Name
 	})
-	if len(orphanRacks) > 0 {
-		roots = append(roots, TreeNode{
-			Label:    fmt.Sprintf("Racks (%d)", len(orphanRacks)),
-			Children: BuildRackTree(orphanRacks, inv, tf),
-		})
-	}
+	return []TreeNode{{
+		Label:    fmt.Sprintf("Racks (%d)", len(orphanRacks)),
+		Children: BuildRackTree(orphanRacks, inv, tf),
+	}}
+}
 
+// orphanDeviceRoot returns the root node for top-level devices, or nil.
+func orphanDeviceRoot(inv *devicetypes.Inventory, tf TreeFilter) []TreeNode {
 	var orphanDevices []*devicetypes.CaniDeviceType
 	for _, dev := range inv.Devices {
 		if dev.Rack == uuid.Nil && dev.ParentDevice == uuid.Nil {
 			orphanDevices = append(orphanDevices, dev)
 		}
 	}
+	if len(orphanDevices) == 0 {
+		return nil
+	}
 	sort.Slice(orphanDevices, func(i, j int) bool {
 		return orphanDevices[i].Name < orphanDevices[j].Name
 	})
-	if len(orphanDevices) > 0 {
-		roots = append(roots, TreeNode{
-			Label:    fmt.Sprintf("Devices (%d)", len(orphanDevices)),
-			Children: BuildDeviceTree(orphanDevices, inv, tf),
-		})
-	}
+	return []TreeNode{{
+		Label:    fmt.Sprintf("Devices (%d)", len(orphanDevices)),
+		Children: BuildDeviceTree(orphanDevices, inv, tf),
+	}}
+}
 
-	if tf.Cables && len(inv.Cables) > 0 {
-		var orphanCables []*devicetypes.CaniCableType
-		for _, c := range inv.Cables {
-			if !CableAttachedToAnyDeviceInterface(c, inv) {
-				orphanCables = append(orphanCables, c)
-			}
-		}
-		sort.Slice(orphanCables, func(i, j int) bool {
-			return orphanCables[i].Label < orphanCables[j].Label
-		})
-		if len(orphanCables) > 0 {
-			roots = append(roots, TreeNode{
-				Label:    fmt.Sprintf("Unattached Cables (%d)", len(orphanCables)),
-				Children: BuildCableTree(orphanCables, inv, tf),
-			})
+// orphanCableRoot returns the root node for unattached cables, or nil.
+func orphanCableRoot(inv *devicetypes.Inventory, tf TreeFilter) []TreeNode {
+	if !tf.Cables || len(inv.Cables) == 0 {
+		return nil
+	}
+	var orphanCables []*devicetypes.CaniCableType
+	for _, c := range inv.Cables {
+		if !CableAttachedToAnyDeviceInterface(c, inv) {
+			orphanCables = append(orphanCables, c)
 		}
 	}
-
-	return roots
+	if len(orphanCables) == 0 {
+		return nil
+	}
+	sort.Slice(orphanCables, func(i, j int) bool {
+		return orphanCables[i].Label < orphanCables[j].Label
+	})
+	return []TreeNode{{
+		Label:    fmt.Sprintf("Unattached Cables (%d)", len(orphanCables)),
+		Children: BuildCableTree(orphanCables, inv, tf),
+	}}
 }

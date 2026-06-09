@@ -39,16 +39,23 @@ import (
 	"github.com/google/uuid"
 )
 
+// ETL phase display labels used in headers, prompts, and completion messages.
+const (
+	phaseNameExtract   = "EXTRACT"
+	phaseNameTransform = "TRANSFORM"
+	phaseNameLoad      = "LOAD"
+)
+
 // runExtractPhase executes the Extract phase of the ETL pipeline.
 // It calls provider.Import() which populates ctx.inventory with raw data from the source.
 func runExtractPhase(ctx *etlContext) error {
 	if ctx.debug {
-		visual.PrintPhaseHeader("EXTRACT", ctx.opts)
+		visual.PrintPhaseHeader(phaseNameExtract, ctx.opts)
 		visual.PrintCaniOperation("Starting extract phase", ctx.opts)
 	}
 
 	if stepFlag {
-		if err := promptPhaseStart("EXTRACT", ctx.opts); err != nil {
+		if err := promptPhaseStart(phaseNameExtract, ctx.opts); err != nil {
 			return fmt.Errorf("extract phase: %w", err)
 		}
 	}
@@ -56,7 +63,7 @@ func runExtractPhase(ctx *etlContext) error {
 	importer, ok := ctx.provider.(provider.Importer)
 	if !ok {
 		if ctx.debug {
-			visual.PrintPhaseComplete("EXTRACT", ctx.opts)
+			visual.PrintPhaseComplete(phaseNameExtract, ctx.opts)
 		}
 		return nil
 	}
@@ -70,7 +77,7 @@ func runExtractPhase(ctx *etlContext) error {
 	}
 
 	if ctx.debug {
-		visual.PrintPhaseComplete("EXTRACT", ctx.opts)
+		visual.PrintPhaseComplete(phaseNameExtract, ctx.opts)
 	}
 	return nil
 }
@@ -79,12 +86,12 @@ func runExtractPhase(ctx *etlContext) error {
 // It calls provider.Transform() and merges the result into ctx.inventory.
 func runTransformPhase(ctx *etlContext) error {
 	if ctx.debug {
-		visual.PrintPhaseHeader("TRANSFORM", ctx.opts)
+		visual.PrintPhaseHeader(phaseNameTransform, ctx.opts)
 		visual.PrintCaniOperation("Starting transform phase", ctx.opts)
 	}
 
 	if stepFlag {
-		if err := promptPhaseStart("TRANSFORM", ctx.opts); err != nil {
+		if err := promptPhaseStart(phaseNameTransform, ctx.opts); err != nil {
 			return fmt.Errorf("transform phase: %w", err)
 		}
 	}
@@ -102,7 +109,7 @@ func runTransformPhase(ctx *etlContext) error {
 	mergeTransformResult(ctx, result)
 
 	if ctx.debug {
-		visual.PrintPhaseComplete("TRANSFORM", ctx.opts)
+		visual.PrintPhaseComplete(phaseNameTransform, ctx.opts)
 	}
 	return nil
 }
@@ -140,12 +147,12 @@ func mergeTransformResult(ctx *etlContext, result *devicetypes.TransformResult) 
 // It persists ctx.inventory to the local datastore.
 func runLoadPhase(ctx *etlContext) error {
 	if ctx.debug {
-		visual.PrintPhaseHeader("LOAD", ctx.opts)
+		visual.PrintPhaseHeader(phaseNameLoad, ctx.opts)
 		visual.PrintCaniOperation("Starting load phase", ctx.opts)
 	}
 
 	if stepFlag {
-		if err := promptPhaseStart("LOAD", ctx.opts); err != nil {
+		if err := promptPhaseStart(phaseNameLoad, ctx.opts); err != nil {
 			return fmt.Errorf("load phase: %w", err)
 		}
 	}
@@ -159,7 +166,7 @@ func runLoadPhase(ctx *etlContext) error {
 	}
 
 	if ctx.debug {
-		visual.PrintPhaseComplete("LOAD", ctx.opts)
+		visual.PrintPhaseComplete(phaseNameLoad, ctx.opts)
 	}
 	return nil
 }

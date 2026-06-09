@@ -50,9 +50,9 @@ func newRackUpdateCommand() *cobra.Command {
 	cmd.Flags().String("name", "", "New name")
 	cmd.Flags().String("status", "", "New status")
 	cmd.Flags().String("role", "", "New role")
-	cmd.Flags().String("description", "", "Description")
-	cmd.Flags().Int("u-height", 0, "Rack unit height")
-	cmd.Flags().String("location", "", "Parent location UUID or name")
+	cmd.Flags().String(flagDescription, "", "Description")
+	cmd.Flags().Int(flagUHeight, 0, "Rack unit height")
+	cmd.Flags().String(flagLocation, "", "Parent location UUID or name")
 
 	return cmd
 }
@@ -74,43 +74,14 @@ func updateRack(cmd *cobra.Command, args []string) error {
 
 	rack := inventory.Racks[id]
 
-	if cmd.Flags().Changed("name") {
-		rack.Name, _ = cmd.Flags().GetString("name")
+	if err := applyRackScalarFlags(cmd, rack); err != nil {
+		return err
 	}
-	if cmd.Flags().Changed("status") {
-		s, _ := cmd.Flags().GetString("status")
-		normalized, err := validate.Status(s)
-		if err != nil {
-			return err
-		}
-		rack.Status = normalized
+	if err := applyRackLocation(cmd, inventory, rack); err != nil {
+		return err
 	}
-	if cmd.Flags().Changed("role") {
-		rack.Role, _ = cmd.Flags().GetString("role")
-	}
-	if cmd.Flags().Changed("description") {
-		rack.Description, _ = cmd.Flags().GetString("description")
-	}
-	if cmd.Flags().Changed("u-height") {
-		rack.UHeight, _ = cmd.Flags().GetInt("u-height")
-	}
-	if cmd.Flags().Changed("location") {
-		locRef, _ := cmd.Flags().GetString("location")
-		locID, lerr := resolve.Location(inventory, locRef)
-		if lerr != nil {
-			return fmt.Errorf("resolving location: %w", lerr)
-		}
-		rack.Location = locID
-	}
-	if cmd.Flags().Changed("tag") {
-		tags, _ := cmd.Flags().GetStringArray("tag")
-		rack.Tags = tags
-	}
-	if cmd.Flags().Changed("metadata") {
-		pairs, _ := cmd.Flags().GetStringArray("metadata")
-		if err := applyProviderMetadata(&rack.ProviderMetadata, pairs); err != nil {
-			return err
-		}
+	if err := applyRackTagsMetadata(cmd, rack); err != nil {
+		return err
 	}
 
 	if err := applySetToRack(cmd, rack); err != nil {
@@ -128,6 +99,60 @@ func updateRack(cmd *cobra.Command, args []string) error {
 	}
 
 	log.Printf("Updated rack %s (%s)", id, rack.Name)
+	return nil
+}
+
+// applyRackScalarFlags applies the simple scalar rack flags when set.
+func applyRackScalarFlags(cmd *cobra.Command, rack *devicetypes.CaniRackType) error {
+	if cmd.Flags().Changed("name") {
+		rack.Name, _ = cmd.Flags().GetString("name")
+	}
+	if cmd.Flags().Changed("status") {
+		s, _ := cmd.Flags().GetString("status")
+		normalized, err := validate.Status(s)
+		if err != nil {
+			return err
+		}
+		rack.Status = normalized
+	}
+	if cmd.Flags().Changed("role") {
+		rack.Role, _ = cmd.Flags().GetString("role")
+	}
+	if cmd.Flags().Changed(flagDescription) {
+		rack.Description, _ = cmd.Flags().GetString(flagDescription)
+	}
+	if cmd.Flags().Changed(flagUHeight) {
+		rack.UHeight, _ = cmd.Flags().GetInt(flagUHeight)
+	}
+	return nil
+}
+
+// applyRackLocation resolves and applies the --location flag when set.
+func applyRackLocation(cmd *cobra.Command, inventory *devicetypes.Inventory, rack *devicetypes.CaniRackType) error {
+	if !cmd.Flags().Changed(flagLocation) {
+		return nil
+	}
+	locRef, _ := cmd.Flags().GetString(flagLocation)
+	locID, lerr := resolve.Location(inventory, locRef)
+	if lerr != nil {
+		return fmt.Errorf("resolving location: %w", lerr)
+	}
+	rack.Location = locID
+	return nil
+}
+
+// applyRackTagsMetadata applies the --tag and --metadata flags when set.
+func applyRackTagsMetadata(cmd *cobra.Command, rack *devicetypes.CaniRackType) error {
+	if cmd.Flags().Changed("tag") {
+		tags, _ := cmd.Flags().GetStringArray("tag")
+		rack.Tags = tags
+	}
+	if cmd.Flags().Changed("metadata") {
+		pairs, _ := cmd.Flags().GetStringArray("metadata")
+		if err := applyProviderMetadata(&rack.ProviderMetadata, pairs); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -149,7 +174,7 @@ func applySetToRack(cmd *cobra.Command, rack *devicetypes.CaniRackType) error {
 			rack.Status = normalized
 		case "role":
 			rack.Role = v
-		case "description":
+		case flagDescription:
 			rack.Description = v
 		case "u_height":
 			n, nerr := strconv.Atoi(v)
@@ -159,7 +184,7 @@ func applySetToRack(cmd *cobra.Command, rack *devicetypes.CaniRackType) error {
 			rack.UHeight = n
 		case "tag":
 			rack.Tags = append(rack.Tags, v)
-		case "location":
+		case flagLocation:
 			return fmt.Errorf("use --location flag instead of --set location=...")
 		default:
 			return fmt.Errorf("unknown rack field: %s", k)

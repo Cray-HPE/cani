@@ -33,8 +33,36 @@ import (
 	"github.com/google/uuid"
 )
 
+// Shared tree labels.
+const (
+	labelNoLabel   = "<no label>"
+	labelModuleSep = " (module) "
+)
+
 // DeviceToTreeNode converts a device and its modules/children into a tree node.
 func DeviceToTreeNode(dev *devicetypes.CaniDeviceType, inv *devicetypes.Inventory, tf TreeFilter) TreeNode {
+	node := deviceBaseNode(dev, tf)
+
+	childDevs := ResolveDeviceChildren(dev.Children, inv)
+	for _, child := range childDevs {
+		node.Children = append(node.Children, DeviceToTreeNode(child, inv, tf))
+	}
+
+	node.Children = append(node.Children, deviceModuleNodes(dev, inv, tf)...)
+	node.Children = append(node.Children, deviceInterfaceNodes(dev, inv, tf)...)
+
+	frus := FindFrusForDevice(dev.ID, inv)
+	for _, fru := range frus {
+		node.Children = append(node.Children, FruToTreeNode(fru, tf))
+	}
+
+	node.Children = append(node.Children, deviceCableNodes(dev, inv, tf)...)
+
+	return node
+}
+
+// deviceBaseNode builds the label and detail for a device node (no children).
+func deviceBaseNode(dev *devicetypes.CaniDeviceType, tf TreeFilter) TreeNode {
 	uPos := ""
 	if dev.RackPosition > 0 {
 		if dev.UHeight > 1 {
@@ -53,9 +81,9 @@ func DeviceToTreeNode(dev *devicetypes.CaniDeviceType, inv *devicetypes.Inventor
 	name := dev.Name
 	if name == "" {
 		if tf.NoColor {
-			name = "<no label>"
+			name = labelNoLabel
 		} else {
-			name = ColorGray + "<no label>" + ColorReset
+			name = ColorGray + labelNoLabel + ColorReset
 		}
 	} else if !tf.NoColor {
 		name = StatusAnsi(dev.Status) + name + ColorReset
@@ -67,73 +95,77 @@ func DeviceToTreeNode(dev *devicetypes.CaniDeviceType, inv *devicetypes.Inventor
 	if tf.Roles && dev.GetRole() != "" {
 		node.Detail = PipeSep(name, slug, "role:"+dev.GetRole())
 	}
-
-	childDevs := ResolveDeviceChildren(dev.Children, inv)
-	for _, child := range childDevs {
-		node.Children = append(node.Children, DeviceToTreeNode(child, inv, tf))
-	}
-
-	if tf.Modules {
-		modules := FindModulesForDevice(dev.ID, inv)
-		populated := make(map[string]*devicetypes.CaniModuleType)
-		for _, mod := range modules {
-			if mod.ModuleBayName != "" {
-				populated[mod.ModuleBayName] = mod
-			}
-		}
-
-		for _, bay := range dev.ModuleBays {
-			if mod, ok := populated[bay.Name]; ok {
-				node.Children = append(node.Children, ModuleBayNode(bay.Name, mod, inv, tf))
-				delete(populated, bay.Name)
-			} else {
-				node.Children = append(node.Children, EmptyBayNode(bay.Name, tf))
-			}
-		}
-
-		for _, mod := range modules {
-			if mod.ModuleBayName == "" {
-				node.Children = append(node.Children, ModuleToTreeNode(mod, inv, tf))
-			}
-		}
-	}
-
-	if tf.Interfaces && len(dev.Interfaces) > 0 {
-		ifaceNodes := make([]TreeNode, 0, len(dev.Interfaces))
-		for _, iface := range dev.Interfaces {
-			ifaceNodes = append(ifaceNodes, InterfaceToTreeNode(iface, dev.ID, inv, tf))
-		}
-
-		if tf.Modules && len(dev.ModuleBays) > 0 {
-			lbl := fmt.Sprintf("(device) Interfaces (%d)", len(dev.Interfaces))
-			if !tf.NoColor {
-				lbl = ColorGray + "(device interfaces)" + ColorReset + "(" + strconv.Itoa(len(dev.Interfaces)) + ")"
-			}
-			node.Children = append(node.Children, TreeNode{
-				Label:    lbl,
-				Children: ifaceNodes,
-			})
-		} else {
-			node.Children = append(node.Children, ifaceNodes...)
-		}
-	}
-
-	frus := FindFrusForDevice(dev.ID, inv)
-	for _, fru := range frus {
-		node.Children = append(node.Children, FruToTreeNode(fru, tf))
-	}
-
-	if tf.Cables {
-		cables := FindCablesForDevice(dev.ID, inv)
-		for _, c := range cables {
-			if tf.Interfaces && CableMatchesAnyInterface(c, dev, inv) {
-				continue
-			}
-			node.Children = append(node.Children, CableLeafNode(c, inv, tf))
-		}
-	}
-
 	return node
+}
+
+// deviceModuleNodes builds child nodes for a device's module bays and modules.
+func deviceModuleNodes(dev *devicetypes.CaniDeviceType, inv *devicetypes.Inventory, tf TreeFilter) []TreeNode {
+	if !tf.Modules {
+		return nil
+	}
+	modules := FindModulesForDevice(dev.ID, inv)
+	populated := make(map[string]*devicetypes.CaniModuleType)
+	for _, mod := range modules {
+		if mod.ModuleBayName != "" {
+			populated[mod.ModuleBayName] = mod
+		}
+	}
+
+	var out []TreeNode
+	for _, bay := range dev.ModuleBays {
+		if mod, ok := populated[bay.Name]; ok {
+			out = append(out, ModuleBayNode(bay.Name, mod, inv, tf))
+			delete(populated, bay.Name)
+		} else {
+			out = append(out, EmptyBayNode(bay.Name, tf))
+		}
+	}
+
+	for _, mod := range modules {
+		if mod.ModuleBayName == "" {
+			out = append(out, ModuleToTreeNode(mod, inv, tf))
+		}
+	}
+	return out
+}
+
+// deviceInterfaceNodes builds child nodes for a device's interfaces.
+func deviceInterfaceNodes(dev *devicetypes.CaniDeviceType, inv *devicetypes.Inventory, tf TreeFilter) []TreeNode {
+	if !tf.Interfaces || len(dev.Interfaces) == 0 {
+		return nil
+	}
+	ifaceNodes := make([]TreeNode, 0, len(dev.Interfaces))
+	for _, iface := range dev.Interfaces {
+		ifaceNodes = append(ifaceNodes, InterfaceToTreeNode(iface, dev.ID, inv, tf))
+	}
+
+	if tf.Modules && len(dev.ModuleBays) > 0 {
+		lbl := fmt.Sprintf("(device) Interfaces (%d)", len(dev.Interfaces))
+		if !tf.NoColor {
+			lbl = ColorGray + "(device interfaces)" + ColorReset + "(" + strconv.Itoa(len(dev.Interfaces)) + ")"
+		}
+		return []TreeNode{{
+			Label:    lbl,
+			Children: ifaceNodes,
+		}}
+	}
+	return ifaceNodes
+}
+
+// deviceCableNodes builds child nodes for a device's cables.
+func deviceCableNodes(dev *devicetypes.CaniDeviceType, inv *devicetypes.Inventory, tf TreeFilter) []TreeNode {
+	if !tf.Cables {
+		return nil
+	}
+	var out []TreeNode
+	cables := FindCablesForDevice(dev.ID, inv)
+	for _, c := range cables {
+		if tf.Interfaces && CableMatchesAnyInterface(c, dev, inv) {
+			continue
+		}
+		out = append(out, CableLeafNode(c, inv, tf))
+	}
+	return out
 }
 
 // ModuleToTreeNode converts a module into a tree node with its interfaces and FRUs.
@@ -148,7 +180,7 @@ func ModuleBayNode(bayName string, mod *devicetypes.CaniModuleType, inv *devicet
 
 	var label string
 	if tf.NoColor {
-		label = IconModule + " (module) " + bayTag + " | " + modName
+		label = IconModule + labelModuleSep + bayTag + " | " + modName
 	} else {
 		label = ColorYellow + IconModule + ColorReset + " " +
 			ColorGray + "(module) " + bayTag + ColorReset + " | " +
@@ -182,9 +214,9 @@ func EmptyBayNode(bayName string, tf TreeFilter) TreeNode {
 	bayTag := "bay:" + bayName
 	var label string
 	if tf.NoColor {
-		label = IconModule + " (module) " + bayTag + " | empty"
+		label = IconModule + labelModuleSep + bayTag + " | empty"
 	} else {
-		label = ColorGray + IconModule + " (module) " + bayTag + " | empty" + ColorReset
+		label = ColorGray + IconModule + labelModuleSep + bayTag + " | empty" + ColorReset
 	}
 	return TreeNode{Label: label}
 }
@@ -235,9 +267,9 @@ func CableLeafNode(c *devicetypes.CaniCableType, inv *devicetypes.Inventory, tf 
 	label := c.Label
 	if label == "" {
 		if tf.NoColor {
-			label = "<no label>"
+			label = labelNoLabel
 		} else {
-			label = ColorGray + "<no label>" + ColorReset
+			label = ColorGray + labelNoLabel + ColorReset
 		}
 	}
 	aTerm := FormatTermination(c.TerminationADevice, c.TerminationAPort, inv)

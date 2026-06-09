@@ -13,6 +13,12 @@ import (
 	"github.com/google/uuid"
 )
 
+// CSM provider metadata keys, centralized to avoid duplicated string literals.
+const (
+	hmnVlanKey = "hmnVlan"
+	aliasesKey = "aliases"
+)
+
 // ImportCSV reads a CSV from stdin and updates devices in the inventory.
 // It returns the number of modified and total records.
 func ImportCSV(inventory *devicetypes.Inventory) (modified, total int, err error) {
@@ -56,39 +62,64 @@ func importCSVFromReader(reader *csv.Reader, inventory *devicetypes.Inventory) (
 
 		total++
 
-		rowMap := rowToMap(headers, row)
-		idStr, ok := rowMap["ID"]
-		if !ok || idStr == "" {
-			return modified, total, fmt.Errorf("missing ID for row %d", total+1)
+		changed, rowErr := applyCSVRow(headers, row, inventory, total)
+		if rowErr != nil {
+			return modified, total, rowErr
 		}
-
-		id, parseErr := uuid.Parse(idStr)
-		if parseErr != nil {
-			return modified, total, fmt.Errorf("failed to parse %q as a UUID: %w", idStr, parseErr)
-		}
-
-		dev, ok := inventory.Devices[id]
-		if !ok {
-			// Check if it's a rack (cabinet added via "add rack").
-			rack, rok := inventory.Racks[id]
-			if !rok {
-				return modified, total, fmt.Errorf("could not find device with UUID %s", id)
-			}
-			if setRackFields(rack, rowMap) {
-				log.Printf("Updated %s", id)
-				modified++
-			}
-			continue
-		}
-
-		changed := setDeviceFields(dev, rowMap)
 		if changed {
-			log.Printf("Updated %s", id)
 			modified++
 		}
 	}
 
 	return modified, total, nil
+}
+
+// applyCSVRow parses one CSV row and applies its fields to the matching
+// device or rack, returning whether the inventory was modified.
+func applyCSVRow(
+	headers, row []string,
+	inventory *devicetypes.Inventory,
+	rowNum int,
+) (bool, error) {
+	rowMap := rowToMap(headers, row)
+	idStr, ok := rowMap["ID"]
+	if !ok || idStr == "" {
+		return false, fmt.Errorf("missing ID for row %d", rowNum+1)
+	}
+
+	id, parseErr := uuid.Parse(idStr)
+	if parseErr != nil {
+		return false, fmt.Errorf("failed to parse %q as a UUID: %w", idStr, parseErr)
+	}
+
+	dev, ok := inventory.Devices[id]
+	if !ok {
+		return applyCSVRowToRack(id, rowMap, inventory)
+	}
+
+	changed := setDeviceFields(dev, rowMap)
+	if changed {
+		log.Printf("Updated %s", id)
+	}
+	return changed, nil
+}
+
+// applyCSVRowToRack applies CSV fields to a rack (a cabinet added via the
+// "add rack" flow). It errors when no device or rack matches the ID.
+func applyCSVRowToRack(
+	id uuid.UUID,
+	rowMap map[string]string,
+	inventory *devicetypes.Inventory,
+) (bool, error) {
+	rack, rok := inventory.Racks[id]
+	if !rok {
+		return false, fmt.Errorf("could not find device with UUID %s", id)
+	}
+	changed := setRackFields(rack, rowMap)
+	if changed {
+		log.Printf("Updated %s", id)
+	}
+	return changed, nil
 }
 
 // hasIDColumn checks whether "ID" is present in the headers.
@@ -226,43 +257,46 @@ func setCSMMetaNid(dev *devicetypes.CaniDeviceType, value string) bool {
 // setCSMMetaAlias sets the aliases field from a single alias string.
 func setCSMMetaAlias(dev *devicetypes.CaniDeviceType, value string) bool {
 	sub, _ := dev.GetProviderSubMap("csm")
-	oldAliases := sub["aliases"]
+	oldAliases := sub[aliasesKey]
 
 	if value == "" {
-		if oldAliases == nil {
+		if oldAliases == nil || aliasesIsEmpty(oldAliases) {
 			return false
 		}
-		// Check if old is empty slice
-		switch a := oldAliases.(type) {
-		case []string:
-			if len(a) == 0 {
-				return false
-			}
-		case []interface{}:
-			if len(a) == 0 {
-				return false
-			}
-		}
-		dev.SetProviderMeta("csm", "aliases", []string{})
+		dev.SetProviderMeta("csm", aliasesKey, []string{})
 		return true
 	}
 
-	newAliases := []string{value}
-
-	// Compare with current first alias
-	switch a := oldAliases.(type) {
-	case []string:
-		if len(a) == 1 && a[0] == value {
-			return false
-		}
-	case []interface{}:
-		if len(a) == 1 && fmt.Sprintf("%v", a[0]) == value {
-			return false
-		}
+	if aliasesMatchSingle(oldAliases, value) {
+		return false
 	}
 
-	dev.SetProviderMeta("csm", "aliases", newAliases)
+	dev.SetProviderMeta("csm", aliasesKey, []string{value})
 	return true
+}
+
+// aliasesIsEmpty reports whether an aliases metadata value is a
+// zero-length string or interface slice.
+func aliasesIsEmpty(aliases any) bool {
+	switch a := aliases.(type) {
+	case []string:
+		return len(a) == 0
+	case []interface{}:
+		return len(a) == 0
+	}
+	return false
+}
+
+// aliasesMatchSingle reports whether aliases already holds exactly the
+// single given value.
+func aliasesMatchSingle(aliases any, value string) bool {
+	switch a := aliases.(type) {
+	case []string:
+		return len(a) == 1 && a[0] == value
+	case []interface{}:
+		return len(a) == 1 && fmt.Sprintf("%v", a[0]) == value
+	}
+	return false
 }
 
 // setCSMMetaVlan sets the hmnVlan field, parsing as integer.
@@ -270,11 +304,11 @@ func setCSMMetaVlan(dev *devicetypes.CaniDeviceType, value string) bool {
 	sub, _ := dev.GetProviderSubMap("csm")
 
 	if value == "" {
-		old := sub["hmnVlan"]
+		old := sub[hmnVlanKey]
 		if old == nil {
 			return false
 		}
-		dev.SetProviderMeta("csm", "hmnVlan", nil)
+		dev.SetProviderMeta("csm", hmnVlanKey, nil)
 		return true
 	}
 
@@ -283,7 +317,7 @@ func setCSMMetaVlan(dev *devicetypes.CaniDeviceType, value string) bool {
 		return false
 	}
 
-	oldVal := sub["hmnVlan"]
+	oldVal := sub[hmnVlanKey]
 	switch v := oldVal.(type) {
 	case float64:
 		if int(v) == vlan {
@@ -295,7 +329,7 @@ func setCSMMetaVlan(dev *devicetypes.CaniDeviceType, value string) bool {
 		}
 	}
 
-	dev.SetProviderMeta("csm", "hmnVlan", vlan)
+	dev.SetProviderMeta("csm", hmnVlanKey, vlan)
 	return true
 }
 
@@ -318,11 +352,11 @@ func setRackMetaVlan(rack *devicetypes.CaniRackType, value string) bool {
 	sub, _ := rack.GetProviderSubMap("csm")
 
 	if value == "" {
-		old := sub["hmnVlan"]
+		old := sub[hmnVlanKey]
 		if old == nil {
 			return false
 		}
-		rack.SetProviderMeta("csm", "hmnVlan", nil)
+		rack.SetProviderMeta("csm", hmnVlanKey, nil)
 		return true
 	}
 
@@ -331,7 +365,7 @@ func setRackMetaVlan(rack *devicetypes.CaniRackType, value string) bool {
 		return false
 	}
 
-	oldVal := sub["hmnVlan"]
+	oldVal := sub[hmnVlanKey]
 	switch v := oldVal.(type) {
 	case float64:
 		if int(v) == vlan {
@@ -343,6 +377,6 @@ func setRackMetaVlan(rack *devicetypes.CaniRackType, value string) bool {
 		}
 	}
 
-	rack.SetProviderMeta("csm", "hmnVlan", vlan)
+	rack.SetProviderMeta("csm", hmnVlanKey, vlan)
 	return true
 }

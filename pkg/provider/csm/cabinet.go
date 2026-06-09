@@ -33,6 +33,9 @@ import (
 	"github.com/Cray-HPE/cani/pkg/provider/csm/commands"
 )
 
+// hmnVlanKey is the CSM provider metadata key for a cabinet's HMN VLAN.
+const hmnVlanKey = "hmnVlan"
+
 // OnRackAdded implements provider.RackPostAddHook.
 // It detects CSM cabinet provider defaults on a rack type and, when
 // present, computes the next cabinet number and VLAN, sets the
@@ -56,7 +59,7 @@ func (p *Csm) OnRackAdded(r *devicetypes.CaniRackType, inventory *devicetypes.In
 	r.SetProviderMeta("csm", "xname", xname)
 	r.SetProviderMeta("csm", "class", defaults.Class)
 	if vlan != 0 {
-		r.SetProviderMeta("csm", "hmnVlan", vlan)
+		r.SetProviderMeta("csm", hmnVlanKey, vlan)
 	}
 	r.Status = string(devicetypes.StatusStaged)
 	r.Name = xname
@@ -72,31 +75,15 @@ func (p *Csm) OnRackAdded(r *devicetypes.CaniRackType, inventory *devicetypes.In
 func nextCabinetNumber(inventory *devicetypes.Inventory, baseOrdinal int) int {
 	used := make(map[int]bool)
 	for _, rack := range inventory.Racks {
-		sub, ok := rack.GetProviderSubMap("csm")
-		if !ok {
-			continue
-		}
-		x, _ := sub["xname"].(string)
-		if len(x) > 1 && x[0] == 'x' {
-			var num int
-			if _, err := fmt.Sscanf(x, "x%d", &num); err == nil {
-				used[num] = true
-			}
+		if sub, ok := rack.GetProviderSubMap("csm"); ok {
+			recordCabinetXnameOrdinal(sub, used)
 		}
 	}
 	// Also check devices for backwards compatibility with imports
 	// that create Device entries for cabinets.
 	for _, dev := range inventory.Devices {
-		sub, ok := dev.GetProviderSubMap("csm")
-		if !ok {
-			continue
-		}
-		x, _ := sub["xname"].(string)
-		if len(x) > 1 && x[0] == 'x' {
-			var num int
-			if _, err := fmt.Sscanf(x, "x%d", &num); err == nil {
-				used[num] = true
-			}
+		if sub, ok := dev.GetProviderSubMap("csm"); ok {
+			recordCabinetXnameOrdinal(sub, used)
 		}
 	}
 
@@ -104,6 +91,19 @@ func nextCabinetNumber(inventory *devicetypes.Inventory, baseOrdinal int) int {
 		if !used[n] {
 			return n
 		}
+	}
+}
+
+// recordCabinetXnameOrdinal extracts the numeric ordinal from a CSM
+// sub-map's xname (e.g. "x1000") and marks it used.
+func recordCabinetXnameOrdinal(sub map[string]any, used map[int]bool) {
+	x, _ := sub["xname"].(string)
+	if len(x) <= 1 || x[0] != 'x' {
+		return
+	}
+	var num int
+	if _, err := fmt.Sscanf(x, "x%d", &num); err == nil {
+		used[num] = true
 	}
 }
 
@@ -119,7 +119,7 @@ func nextVlan(inventory *devicetypes.Inventory, startVlan, endVlan int) int {
 		if !ok {
 			continue
 		}
-		if v := intFromAny(sub["hmnVlan"]); v != 0 {
+		if v := intFromAny(sub[hmnVlanKey]); v != 0 {
 			used[v] = true
 		}
 	}
@@ -128,7 +128,7 @@ func nextVlan(inventory *devicetypes.Inventory, startVlan, endVlan int) int {
 		if !ok {
 			continue
 		}
-		if v := intFromAny(sub["hmnVlan"]); v != 0 {
+		if v := intFromAny(sub[hmnVlanKey]); v != 0 {
 			used[v] = true
 		}
 	}

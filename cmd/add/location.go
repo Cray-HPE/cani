@@ -65,7 +65,7 @@ Use -L to list available location type slugs.`,
 
 	cmd.Flags().String("name", "", "Location name (required)")
 	cmd.Flags().String("parent", "", "Parent location UUID or name")
-	cmd.Flags().String("description", "", "Location description")
+	cmd.Flags().String(flagDescription, "", "Location description")
 	cmd.Flags().String(flagContentTypes, "", "Comma-separated content types (e.g. device,module,rack)")
 
 	return cmd
@@ -124,8 +124,8 @@ func buildLocation(cmd *cobra.Command, args []string) (*devicetypes.CaniLocation
 
 // applyLocationFlags overrides location fields from CLI flags when set.
 func applyLocationFlags(cmd *cobra.Command, loc *devicetypes.CaniLocationType) {
-	if cmd.Flags().Changed("description") {
-		loc.Description, _ = cmd.Flags().GetString("description")
+	if cmd.Flags().Changed(flagDescription) {
+		loc.Description, _ = cmd.Flags().GetString(flagDescription)
 	}
 	if cmd.Flags().Changed(flagContentTypes) {
 		raw, _ := cmd.Flags().GetString(flagContentTypes)

@@ -50,11 +50,11 @@ Examples:
 		RunE: addIP,
 	}
 
-	cmd.Flags().StringArray("interface", nil, "Interface reference (repeatable)")
+	cmd.Flags().StringArray(flagInterface, nil, "Interface reference (repeatable)")
 	cmd.Flags().String("type", "", "Address type: host, dhcp, or slaac")
 	cmd.Flags().String("role", "", "Address role: loopback, secondary, anycast, vip, vrrp, hsrp, glbp")
-	cmd.Flags().String("dns-name", "", "Forward DNS name for this address")
-	cmd.Flags().String("description", "", "Address description")
+	cmd.Flags().String(flagDNSName, "", "Forward DNS name for this address")
+	cmd.Flags().String(flagDescription, "", "Address description")
 
 	return cmd
 }
@@ -76,27 +76,7 @@ func addIP(cmd *cobra.Command, args []string) error {
 		Address: cidr,
 	}
 
-	if cmd.Flags().Changed("type") {
-		t, _ := cmd.Flags().GetString("type")
-		addr.Type = devicetypes.IPAddressType(t)
-	}
-	if cmd.Flags().Changed("role") {
-		r, _ := cmd.Flags().GetString("role")
-		addr.IPRole = devicetypes.IPAddressRole(r)
-	}
-	if cmd.Flags().Changed("dns-name") {
-		addr.DNSName, _ = cmd.Flags().GetString("dns-name")
-	}
-	if cmd.Flags().Changed("description") {
-		addr.Description, _ = cmd.Flags().GetString("description")
-	}
-	if cmd.Flags().Changed("status") {
-		addr.Status, _ = cmd.Flags().GetString("status")
-	}
-	tags, _ := cmd.Flags().GetStringArray("tag")
-	if len(tags) > 0 {
-		addr.Tags = tags
-	}
+	applyIPFlags(cmd, addr)
 
 	if err := inventory.AddIPAddress(addr); err != nil {
 		return fmt.Errorf("failed to add ip address: %w", err)
@@ -104,37 +84,8 @@ func addIP(cmd *cobra.Command, args []string) error {
 
 	// Resolve --interface flags to interface UUIDs after AddIPAddress
 	// (which computes parent prefix), so we can use the full inventory.
-	if cmd.Flags().Changed("interface") {
-		refs, _ := cmd.Flags().GetStringArray("interface")
-		for _, ref := range refs {
-			parts := strings.SplitN(ref, ":", 2)
-			if len(parts) != 2 {
-				return fmt.Errorf("invalid interface reference %q: expected device:port", ref)
-			}
-			deviceName, portName := parts[0], parts[1]
-			device := inventory.FindDeviceByNameOrID(deviceName)
-			if device == nil {
-				return fmt.Errorf("interface reference %q: device %q not found", ref, deviceName)
-			}
-			ifaceID := inventory.FindInterfaceIDByPort(device.ID, portName)
-			if ifaceID == uuid.Nil {
-				// Auto-create virtual interface for loopback/vlan/SVI names
-				ifaceID = uuid.New()
-				iface := devicetypes.InterfaceSpec{
-					ID:   ifaceID,
-					Name: portName,
-					Type: devicetypes.InterfacesElemTypeVirtual,
-				}
-				device.Interfaces = append(device.Interfaces, iface)
-				inventory.Interfaces[ifaceID] = &devicetypes.CaniInterface{
-					ID:            ifaceID,
-					Name:          portName,
-					InterfaceType: devicetypes.InterfacesElemTypeVirtual,
-					DeviceID:      device.ID,
-				}
-			}
-			addr.Interfaces = append(addr.Interfaces, ifaceID)
-		}
+	if err := resolveIPInterfaces(cmd, inventory, addr); err != nil {
+		return err
 	}
 
 	if err := datastores.Datastore.Save(inventory); err != nil {
@@ -143,4 +94,72 @@ func addIP(cmd *cobra.Command, args []string) error {
 
 	log.Printf("Added IP address %s (%s)", addr.Address, addr.ID)
 	return nil
+}
+
+// applyIPFlags copies optional IP-address fields from CLI flags when set.
+func applyIPFlags(cmd *cobra.Command, addr *devicetypes.CaniIPAddress) {
+	if cmd.Flags().Changed("type") {
+		t, _ := cmd.Flags().GetString("type")
+		addr.Type = devicetypes.IPAddressType(t)
+	}
+	if cmd.Flags().Changed("role") {
+		r, _ := cmd.Flags().GetString("role")
+		addr.IPRole = devicetypes.IPAddressRole(r)
+	}
+	if cmd.Flags().Changed(flagDNSName) {
+		addr.DNSName, _ = cmd.Flags().GetString(flagDNSName)
+	}
+	if cmd.Flags().Changed(flagDescription) {
+		addr.Description, _ = cmd.Flags().GetString(flagDescription)
+	}
+	if cmd.Flags().Changed("status") {
+		addr.Status, _ = cmd.Flags().GetString("status")
+	}
+	if tags, _ := cmd.Flags().GetStringArray("tag"); len(tags) > 0 {
+		addr.Tags = tags
+	}
+}
+
+// resolveIPInterfaces resolves each --interface reference to an interface UUID,
+// auto-creating a virtual interface when the port does not already exist.
+func resolveIPInterfaces(cmd *cobra.Command, inventory *devicetypes.Inventory, addr *devicetypes.CaniIPAddress) error {
+	if !cmd.Flags().Changed(flagInterface) {
+		return nil
+	}
+	refs, _ := cmd.Flags().GetStringArray(flagInterface)
+	for _, ref := range refs {
+		parts := strings.SplitN(ref, ":", 2)
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid interface reference %q: expected device:port", ref)
+		}
+		deviceName, portName := parts[0], parts[1]
+		device := inventory.FindDeviceByNameOrID(deviceName)
+		if device == nil {
+			return fmt.Errorf("interface reference %q: device %q not found", ref, deviceName)
+		}
+		ifaceID := inventory.FindInterfaceIDByPort(device.ID, portName)
+		if ifaceID == uuid.Nil {
+			ifaceID = createVirtualInterface(inventory, device, portName)
+		}
+		addr.Interfaces = append(addr.Interfaces, ifaceID)
+	}
+	return nil
+}
+
+// createVirtualInterface registers a virtual interface (loopback/vlan/SVI) on a
+// device and the inventory, returning its new UUID.
+func createVirtualInterface(inventory *devicetypes.Inventory, device *devicetypes.CaniDeviceType, portName string) uuid.UUID {
+	ifaceID := uuid.New()
+	device.Interfaces = append(device.Interfaces, devicetypes.InterfaceSpec{
+		ID:   ifaceID,
+		Name: portName,
+		Type: devicetypes.InterfacesElemTypeVirtual,
+	})
+	inventory.Interfaces[ifaceID] = &devicetypes.CaniInterface{
+		ID:            ifaceID,
+		Name:          portName,
+		InterfaceType: devicetypes.InterfacesElemTypeVirtual,
+		DeviceID:      device.ID,
+	}
+	return ifaceID
 }

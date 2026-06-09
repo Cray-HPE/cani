@@ -53,8 +53,8 @@ Examples:
 	cmd.Flags().String("role", "", "Prefix role (e.g. management, bmc, infrastructure)")
 	cmd.Flags().String("vlan", "", "Associated VLAN name or UUID")
 	cmd.Flags().String("vrf", "", "VRF name")
-	cmd.Flags().String("location", "", "Location UUID or name")
-	cmd.Flags().String("description", "", "Prefix description")
+	cmd.Flags().String(flagLocation, "", "Location UUID or name")
+	cmd.Flags().String(flagDescription, "", "Prefix description")
 
 	return cmd
 }
@@ -80,14 +80,14 @@ func addPrefix(cmd *cobra.Command, args []string) error {
 		t, _ := cmd.Flags().GetString("type")
 		prefix.Type = devicetypes.PrefixType(t)
 	}
-	if cmd.Flags().Changed("description") {
-		prefix.Description, _ = cmd.Flags().GetString("description")
+	if cmd.Flags().Changed(flagDescription) {
+		prefix.Description, _ = cmd.Flags().GetString(flagDescription)
 	}
 	if cmd.Flags().Changed("vrf") {
 		prefix.VRF, _ = cmd.Flags().GetString("vrf")
 	}
-	if cmd.Flags().Changed("location") {
-		locationArg, _ := cmd.Flags().GetString("location")
+	if cmd.Flags().Changed(flagLocation) {
+		locationArg, _ := cmd.Flags().GetString(flagLocation)
 		prefix.Location = resolveLocation(inventory, locationArg)
 	}
 	if cmd.Flags().Changed("vlan") {
