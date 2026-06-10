@@ -3,9 +3,11 @@ package devicetypes
 import (
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 // LoadFromGitRepo clones or pulls a git repository into a local cache
@@ -13,6 +15,10 @@ import (
 // ~/.cani/types-cache/<sanitized-repo-name>/.
 // When pull is false the repo is cloned on first use but never updated.
 func LoadFromGitRepo(repoURL string, clone, pull bool) error {
+	if err := validateRepoURL(repoURL); err != nil {
+		return err
+	}
+
 	cacheDir, err := gitCacheDir(repoURL)
 	if err != nil {
 		return fmt.Errorf("resolving cache dir: %w", err)
@@ -72,6 +78,44 @@ func requireGit() error {
 	return nil
 }
 
+// validateRepoURL rejects types-repo URLs that could be abused for argument
+// injection or arbitrary command execution. Git transports such as "ext::"
+// and "file::" can run shell commands, and a leading dash would be parsed by
+// git as a command-line option, so only an explicit allowlist is accepted.
+func validateRepoURL(repoURL string) error {
+	if repoURL == "" {
+		return fmt.Errorf("types repo URL is empty")
+	}
+	if strings.HasPrefix(repoURL, "-") {
+		return fmt.Errorf("invalid types repo URL %q: must not start with '-'", repoURL)
+	}
+	// scp-style shorthand, e.g. git@github.com:org/repo.git
+	if isSCPSyntax(repoURL) {
+		return nil
+	}
+	u, err := url.Parse(repoURL)
+	if err != nil {
+		return fmt.Errorf("invalid types repo URL %q: %w", repoURL, err)
+	}
+	switch u.Scheme {
+	case "https", "http", "ssh", "git":
+		return nil
+	}
+	return fmt.Errorf("unsupported types repo URL scheme %q (allowed: https, http, ssh, git, or scp-style user@host:path)", u.Scheme)
+}
+
+// isSCPSyntax reports whether s looks like git's scp-style SSH shorthand,
+// e.g. "git@github.com:org/repo.git", where the ':' appears before any '/'.
+func isSCPSyntax(s string) bool {
+	at := strings.Index(s, "@")
+	colon := strings.Index(s, ":")
+	if at <= 0 || colon < at {
+		return false
+	}
+	slash := strings.Index(s, "/")
+	return slash == -1 || colon < slash
+}
+
 // gitClone clones a repository into the target directory.
 func gitClone(repoURL, target string) error {
 	if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
@@ -82,7 +126,7 @@ func gitClone(repoURL, target string) error {
 		log.Printf("Cloning types repo %s into %s", repoURL, target)
 	}
 
-	cmd := exec.Command("git", "clone", "--depth", "1", repoURL, target)
+	cmd := exec.Command("git", "clone", "--depth", "1", "--", repoURL, target)
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {

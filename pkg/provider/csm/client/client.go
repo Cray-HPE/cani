@@ -119,8 +119,13 @@ func buildTransport(opts Options) (*http.Transport, error) {
 		}
 	}
 
+	if opts.InsecureSkipVerify {
+		log.Printf("WARNING: TLS certificate verification is disabled for %s; the connection is vulnerable to man-in-the-middle attacks and credential interception", opts.ProviderHost)
+	}
+
 	return &http.Transport{
 		TLSClientConfig: &tls.Config{
+			MinVersion:         tls.VersionTLS12,
 			RootCAs:            certPool,
 			InsecureSkipVerify: opts.InsecureSkipVerify,
 		},

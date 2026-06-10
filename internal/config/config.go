@@ -293,9 +293,10 @@ func Load(path string) error {
 // Save writes Cfg back to path, preserving existing YAML structure, comments, and ordering.
 // Only missing keys are added with default values.
 func Save(path string) error {
-	// Ensure the directory exists
+	// Ensure the directory exists. Use 0700 because the config may hold
+	// provider API tokens; it must not be readable by other local users.
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0700); err != nil {
 		return err
 	}
 
@@ -465,12 +466,19 @@ func Save(path string) error {
 		}
 	}
 
-	// Write the node tree to file
-	f, err := os.Create(path)
+	// Write the node tree to file. Use 0600 because the config may contain
+	// provider API tokens; it must not be readable by other local users.
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
+
+	// Tighten permissions on a pre-existing file that may have been created
+	// with a looser umask before this safeguard existed.
+	if err := f.Chmod(0600); err != nil {
+		return err
+	}
 
 	enc := yaml.NewEncoder(f)
 	enc.SetIndent(2)

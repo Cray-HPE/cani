@@ -109,6 +109,7 @@ func buildClient(cmd *cobra.Command) (*client.Client, error) {
 	host, _ := cmd.Flags().GetString("csm-api-host")
 	user, _ := cmd.Flags().GetString("csm-keycloak-username")
 	pass, _ := cmd.Flags().GetString("csm-keycloak-password")
+	pass = client.ResolveSecret(pass, "csm-keycloak-password", "CANI_CSM_KEYCLOAK_PASSWORD")
 	slsURL, _ := cmd.Flags().GetString("csm-url-sls")
 	hsmURL, _ := cmd.Flags().GetString("csm-url-hsm")
 	caCert, _ := cmd.Flags().GetString("csm-ca-cert")
@@ -118,6 +119,7 @@ func buildClient(cmd *cobra.Command) (*client.Client, error) {
 	secretName, _ := cmd.Flags().GetString("csm-secret-name")
 	clientID, _ := cmd.Flags().GetString("csm-client-id")
 	clientSecret, _ := cmd.Flags().GetString("csm-client-secret")
+	clientSecret = client.ResolveSecret(clientSecret, "csm-client-secret", "CANI_CSM_CLIENT_SECRET")
 
 	opts := client.Options{
 		ProviderHost:       host,
