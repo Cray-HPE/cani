@@ -1448,7 +1448,8 @@ func (c *LookupCache) GetInterfacesByDevice(deviceID uuid.UUID) ([]*CachedItem, 
 		return nil, fmt.Errorf("failed to list interfaces for device %s: %w", deviceID, err)
 	}
 	if resp.StatusCode() != http.StatusOK {
-		return nil, fmt.Errorf("failed to list interfaces for device %s: status %d", deviceID, resp.StatusCode())
+		return nil, fmt.Errorf("failed to list interfaces for device %s: status %d: %s",
+			deviceID, resp.StatusCode(), strings.TrimSpace(string(resp.Body)))
 	}
 
 	var items []*CachedItem

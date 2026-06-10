@@ -332,6 +332,11 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 			continue
 		}
 
+		// Drop any stale stored Nautobot UUID so we re-resolve by name instead
+		// of poisoning downstream interface and cable lookups with HTTP 400
+		// "not one of the available choices" errors.
+		e.pruneStaleDeviceID(ctx, device)
+
 		// If this device already has a stored Nautobot UUID, use it directly.
 		if nid, ok := device.ExternalIDs[externalIDKeyNautobot]; ok && nid != uuid.Nil {
 			createdDeviceIDs[device.Name] = nid
@@ -728,6 +733,40 @@ func (e *Exporter) createRackFromCaniRack(ctx context.Context, rack *devicetypes
 	clog.Created("Created rack: %s (ID: %s)", rack.Name, nautobotID)
 	result.RacksCreated = append(result.RacksCreated, rack.Name)
 	return nautobotID, nil
+}
+
+// pruneStaleDeviceID removes a stored Nautobot UUID from the device when that
+// UUID no longer exists in Nautobot (e.g. the device was deleted or Nautobot
+// was rebuilt).  Clearing it lets the caller fall through to name-based
+// resolution instead of trusting a dead ID.
+func (e *Exporter) pruneStaleDeviceID(ctx context.Context, device *devicetypes.CaniDeviceType) {
+	nid, ok := device.ExternalIDs[externalIDKeyNautobot]
+	if !ok || nid == uuid.Nil {
+		return
+	}
+	if exists, err := e.deviceExistsByID(ctx, nid); err == nil && !exists {
+		clog.Warn("Stored Nautobot ID %s for %q no longer exists; re-resolving by name", nid, device.Name)
+		delete(device.ExternalIDs, externalIDKeyNautobot)
+	}
+}
+
+// deviceExistsByID reports whether a device with the given ID currently exists
+// in Nautobot.  A definitive 404 returns (false, nil); a transient failure
+// (network, auth, 5xx) returns (false, err) so callers do not mistake a
+// momentary error for a deleted device.
+func (e *Exporter) deviceExistsByID(ctx context.Context, id uuid.UUID) (bool, error) {
+	resp, err := e.Client.DcimDevicesRetrieveWithResponse(ctx, id, &nautobotapi.DcimDevicesRetrieveParams{})
+	if err != nil {
+		return false, fmt.Errorf(errFmtAPIError, err)
+	}
+	switch resp.StatusCode() {
+	case http.StatusOK:
+		return true, nil
+	case http.StatusNotFound:
+		return false, nil
+	default:
+		return false, fmt.Errorf("unexpected status %d checking device %s", resp.StatusCode(), id)
+	}
 }
 
 // createDeviceWithID creates a new device in Nautobot and returns its Nautobot UUID
