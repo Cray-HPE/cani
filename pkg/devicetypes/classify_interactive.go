@@ -9,6 +9,13 @@ import (
 	"strings"
 )
 
+// fmtConfirmSelection formats the confirmation line printed after a device-type
+// slug is chosen (e.g. "  ✓ <slug>").
+const fmtConfirmSelection = "  %s %s\n"
+
+// ansiReset is the ANSI escape sequence that clears text styling.
+const ansiReset = "\033[0m"
+
 // ClassifyOptions controls the interactive classification prompt.
 type ClassifyOptions struct {
 	NoColor bool
@@ -39,7 +46,22 @@ func PromptForDeviceType(device UnclassifiedDevice, opts ClassifyOptions) (strin
 
 	cyan, yellow, green, gray, bold := colorFuncs(opts.NoColor)
 
-	// Display device summary
+	printUnclassifiedDevice(w, device, cyan, gray, bold)
+
+	suggestions := SuggestTypes(device, 8)
+	printTypeSuggestions(w, suggestions, yellow, gray, bold)
+
+	// Show options
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "  %s select suggestion, %s to search, %s to skip\n",
+		bold("[1-N]"), bold("[s]"), bold("[k]"))
+	fmt.Fprintf(w, "  > ")
+
+	return readTypeSelection(w, r, suggestions, opts.NoColor, green)
+}
+
+// printUnclassifiedDevice prints the summary header for an unclassified device.
+func printUnclassifiedDevice(w io.Writer, device UnclassifiedDevice, cyan, gray, bold func(string) string) {
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "%s\n", bold("─── Unclassified Device ───"))
 	fmt.Fprintf(w, "  Name:          %s\n", cyan(device.Name))
@@ -65,30 +87,28 @@ func PromptForDeviceType(device UnclassifiedDevice, opts ClassifyOptions) (strin
 		fmt.Fprintf(w, "  Children:      %d\n", device.ChildrenCount)
 	}
 	printProviderMetadata(w, device.ProviderMetadata, gray)
+}
 
-	// Show suggestions
-	suggestions := SuggestTypes(device, 8)
-	if len(suggestions) > 0 {
-		fmt.Fprintln(w)
-		fmt.Fprintf(w, "%s\n", yellow("Suggestions:"))
-		for i, s := range suggestions {
-			label := ScoreTierLabel(s.Score)
-			fmt.Fprintf(w, "  %s  %s  %s\n",
-				bold(fmt.Sprintf("[%d]", i+1)),
-				s.Slug,
-				gray(fmt.Sprintf("(%d%% %s)", s.Score, label)),
-			)
-		}
-	} else {
+// printTypeSuggestions prints the scored device-type suggestions, if any.
+func printTypeSuggestions(w io.Writer, suggestions []MatchResult, yellow, gray, bold func(string) string) {
+	if len(suggestions) == 0 {
 		fmt.Fprintf(w, "\n%s\n", gray("  No suggestions found"))
+		return
 	}
-
-	// Show options
 	fmt.Fprintln(w)
-	fmt.Fprintf(w, "  %s select suggestion, %s to search, %s to skip\n",
-		bold("[1-N]"), bold("[s]"), bold("[k]"))
-	fmt.Fprintf(w, "  > ")
+	fmt.Fprintf(w, "%s\n", yellow("Suggestions:"))
+	for i, s := range suggestions {
+		label := ScoreTierLabel(s.Score)
+		fmt.Fprintf(w, "  %s  %s  %s\n",
+			bold(fmt.Sprintf("[%d]", i+1)),
+			s.Slug,
+			gray(fmt.Sprintf("(%d%% %s)", s.Score, label)),
+		)
+	}
+}
 
+// readTypeSelection reads user input until a slug is chosen or the user skips.
+func readTypeSelection(w io.Writer, r *bufio.Reader, suggestions []MatchResult, noColor bool, green func(string) string) (string, error) {
 	for {
 		line, err := r.ReadString('\n')
 		if err != nil {
@@ -100,29 +120,49 @@ func PromptForDeviceType(device UnclassifiedDevice, opts ClassifyOptions) (strin
 		case "k", "skip":
 			return "", nil
 		case "s", "search":
-			slug, err := promptSearch(w, r, opts.NoColor)
-			if err != nil {
-				return "", err
-			}
-			if slug != "" {
-				fmt.Fprintf(w, "  %s %s\n", green("✓"), slug)
-			}
-			return slug, nil
+			return handleSearchSelection(w, r, noColor, green)
 		default:
-			n, err := strconv.Atoi(input)
-			if err == nil && n >= 1 && n <= len(suggestions) {
-				slug := suggestions[n-1].Slug
-				fmt.Fprintf(w, "  %s %s\n", green("✓"), slug)
+			if slug, ok := resolveSlugInput(w, input, suggestions, green); ok {
 				return slug, nil
-			}
-			// Try as a direct slug
-			if _, ok := GetBySlug(input); ok {
-				fmt.Fprintf(w, "  %s %s\n", green("✓"), input)
-				return input, nil
 			}
 			fmt.Fprintf(w, "  Invalid input. Enter a number, 's' to search, or 'k' to skip: ")
 		}
 	}
+}
+
+// handleSearchSelection runs the free-text search prompt and confirms the choice.
+func handleSearchSelection(w io.Writer, r *bufio.Reader, noColor bool, green func(string) string) (string, error) {
+	slug, err := promptSearch(w, r, noColor)
+	if err != nil {
+		return "", err
+	}
+	if slug != "" {
+		fmt.Fprintf(w, fmtConfirmSelection, green("✓"), slug)
+	}
+	return slug, nil
+}
+
+// resolveSlugInput resolves a numeric menu choice or a direct slug, printing a
+// confirmation line. Returns ok=false when the input matches nothing.
+func resolveSlugInput(w io.Writer, input string, suggestions []MatchResult, green func(string) string) (string, bool) {
+	if slug, ok := selectSuggestion(input, suggestions); ok {
+		fmt.Fprintf(w, fmtConfirmSelection, green("✓"), slug)
+		return slug, true
+	}
+	if _, ok := GetBySlug(input); ok {
+		fmt.Fprintf(w, fmtConfirmSelection, green("✓"), input)
+		return input, true
+	}
+	return "", false
+}
+
+// selectSuggestion resolves a numeric menu choice to its slug.
+func selectSuggestion(input string, suggestions []MatchResult) (string, bool) {
+	n, err := strconv.Atoi(input)
+	if err == nil && n >= 1 && n <= len(suggestions) {
+		return suggestions[n-1].Slug, true
+	}
+	return "", false
 }
 
 // promptSearch presents a free-text search prompt and returns the selected slug.
@@ -188,11 +228,11 @@ func colorFuncs(noColor bool) (cyan, yellow, green, gray, bold func(string) stri
 	if noColor {
 		return id, id, id, id, id
 	}
-	cyan = func(s string) string { return "\033[36m" + s + "\033[0m" }
-	yellow = func(s string) string { return "\033[33m" + s + "\033[0m" }
-	green = func(s string) string { return "\033[32m" + s + "\033[0m" }
-	gray = func(s string) string { return "\033[90m" + s + "\033[0m" }
-	bold = func(s string) string { return "\033[1m" + s + "\033[0m" }
+	cyan = func(s string) string { return "\033[36m" + s + ansiReset }
+	yellow = func(s string) string { return "\033[33m" + s + ansiReset }
+	green = func(s string) string { return "\033[32m" + s + ansiReset }
+	gray = func(s string) string { return "\033[90m" + s + ansiReset }
+	bold = func(s string) string { return "\033[1m" + s + ansiReset }
 	return
 }
 

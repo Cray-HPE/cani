@@ -64,6 +64,37 @@ const (
 	paddingWidth   = 2  // Space around content
 )
 
+// Shared format string and placeholder values.
+const (
+	fmtTriple  = "%s%s%s\n"
+	valUnknown = "unknown"
+)
+
+// rackPalette holds the color functions used when rendering racks.
+type rackPalette struct {
+	green, gray, cyan, yellow, red, bold func(string) string
+}
+
+// newRackPalette builds a rackPalette honoring the NoColor option.
+func newRackPalette(noColor bool) rackPalette {
+	mk := func(code string) func(string) string {
+		return func(s string) string {
+			if noColor {
+				return s
+			}
+			return code + s + ColorReset
+		}
+	}
+	return rackPalette{
+		green:  mk(ColorGreen),
+		gray:   mk(ColorGray),
+		cyan:   mk(ColorCyan),
+		yellow: mk(ColorYellow),
+		red:    mk(ColorRed),
+		bold:   mk(ColorBold),
+	}
+}
+
 // BuildRackVisualization creates a RackView from inventory for a specific rack
 func BuildRackVisualization(inv *devicetypes.Inventory, rackID uuid.UUID) (*RackView, error) {
 	rack, ok := inv.Devices[rackID]
@@ -134,20 +165,10 @@ func RenderAllRacksTo(w io.Writer, inv *devicetypes.Inventory, opts RenderOption
 		return RenderRacklessInventory(w, inv, opts)
 	}
 
-	// Filter by rack name if specified
-	if opts.RackFilter != "" {
-		var filtered []*devicetypes.CaniDeviceType
-		for _, rack := range racks {
-			if strings.Contains(strings.ToLower(rack.Name), strings.ToLower(opts.RackFilter)) {
-				filtered = append(filtered, rack)
-			}
-		}
-		racks = filtered
-
-		if len(racks) == 0 {
-			fmt.Fprintf(w, "No racks matching '%s' found in inventory.\n", opts.RackFilter)
-			return nil
-		}
+	racks = filterRacksByName(racks, opts.RackFilter)
+	if len(racks) == 0 {
+		fmt.Fprintf(w, "No racks matching '%s' found in inventory.\n", opts.RackFilter)
+		return nil
 	}
 
 	// Render each rack
@@ -171,45 +192,24 @@ func RenderAllRacksTo(w io.Writer, inv *devicetypes.Inventory, opts RenderOption
 	return nil
 }
 
+// filterRacksByName returns racks whose name contains filter (case-insensitive).
+// An empty filter returns the input unchanged.
+func filterRacksByName(racks []*devicetypes.CaniDeviceType, filter string) []*devicetypes.CaniDeviceType {
+	if filter == "" {
+		return racks
+	}
+	var filtered []*devicetypes.CaniDeviceType
+	for _, rack := range racks {
+		if strings.Contains(strings.ToLower(rack.Name), strings.ToLower(filter)) {
+			filtered = append(filtered, rack)
+		}
+	}
+	return filtered
+}
+
 // RenderRackASCII renders a single rack to a writer
 func RenderRackASCII(w io.Writer, rv *RackView, opts RenderOptions) error {
-	// Color helper functions
-	green := func(s string) string {
-		if opts.NoColor {
-			return s
-		}
-		return ColorGreen + s + ColorReset
-	}
-	gray := func(s string) string {
-		if opts.NoColor {
-			return s
-		}
-		return ColorGray + s + ColorReset
-	}
-	cyan := func(s string) string {
-		if opts.NoColor {
-			return s
-		}
-		return ColorCyan + s + ColorReset
-	}
-	yellow := func(s string) string {
-		if opts.NoColor {
-			return s
-		}
-		return ColorYellow + s + ColorReset
-	}
-	red := func(s string) string {
-		if opts.NoColor {
-			return s
-		}
-		return ColorRed + s + ColorReset
-	}
-	bold := func(s string) string {
-		if opts.NoColor {
-			return s
-		}
-		return ColorBold + s + ColorReset
-	}
+	c := newRackPalette(opts.NoColor)
 
 	// Calculate widths
 	innerWidth := terminalWidth - 2 // Account for left and right borders
@@ -219,10 +219,10 @@ func RenderRackASCII(w io.Writer, rv *RackView, opts RenderOptions) error {
 	titlePadded := centerString(title, innerWidth)
 
 	// Print top border
-	fmt.Fprintf(w, "%s%s%s\n", boxTopLeft, strings.Repeat(boxHorizontal, innerWidth), boxTopRight)
+	fmt.Fprintf(w, fmtTriple, boxTopLeft, strings.Repeat(boxHorizontal, innerWidth), boxTopRight)
 
 	// Print title
-	fmt.Fprintf(w, "%s%s%s\n", boxVertical, bold(titlePadded), boxVertical)
+	fmt.Fprintf(w, fmtTriple, boxVertical, c.bold(titlePadded), boxVertical)
 
 	// Print header separator
 	fmt.Fprintf(w, "%s%s%s%s%s\n",
@@ -235,35 +235,12 @@ func RenderRackASCII(w io.Writer, rv *RackView, opts RenderOptions) error {
 	// Print U positions from top to bottom
 	for u := rv.Height; u >= 1; u-- {
 		uLabel := fmt.Sprintf("U%-3d", u)
-		slot := rv.GetSlot(u)
-
-		var content string
-		if slot == nil {
-			// Empty slot
-			content = gray(fmt.Sprintf("%s [EMPTY]", markerEmpty))
-		} else if slot.IsContinued {
-			// Continuation of multi-U device
-			content = colorizeDevice(fmt.Sprintf("%s (continued)", markerContinued), slot.Device, red, green, yellow, cyan)
-		} else {
-			// Start of device
-			deviceName := truncateString(slot.Device.Name, contentWidth-10)
-			uHeight := slot.Device.GetUHeight()
-			if uHeight == 0 {
-				uHeight = 1
-			}
-			if uHeight > 1 {
-				content = colorizeDevice(fmt.Sprintf("%s %s (%dU)", markerOccupied, deviceName, uHeight), slot.Device, red, green, yellow, cyan)
-			} else {
-				content = colorizeDevice(fmt.Sprintf("%s %s", markerOccupied, deviceName), slot.Device, red, green, yellow, cyan)
-			}
-		}
-
-		// Pad content to fill the space
+		content := slotContent(rv.GetSlot(u), c)
 		contentPadded := padRight(content, innerWidth-uColumnWidth-1, opts.NoColor)
 
 		fmt.Fprintf(w, "%s %s %s%s%s\n",
 			boxVertical,
-			cyan(uLabel),
+			c.cyan(uLabel),
 			boxVertical,
 			contentPadded,
 			boxVertical)
@@ -279,58 +256,92 @@ func RenderRackASCII(w io.Writer, rv *RackView, opts RenderOptions) error {
 
 	// Print summary
 	fmt.Fprintf(w, "  %s: %d devices, %d/%d U occupied, %d U empty\n",
-		bold("Summary"),
+		c.bold("Summary"),
 		rv.DeviceCount(),
 		rv.OccupiedCount(),
 		rv.Height,
 		rv.EmptyCount())
 
-	// Print unpositioned devices if any
-	if len(rv.UnpositionedDevices) > 0 {
-		fmt.Fprintf(w, "\n  %s:\n", yellow("Unpositioned Devices"))
-		for _, device := range rv.UnpositionedDevices {
-			fmt.Fprintf(w, "    %s %s\n", yellow("•"), device.Name)
-		}
-	}
-
-	// Print cable connections if requested
-	if opts.ShowCables && opts.Inventory != nil && opts.Inventory.Cables != nil {
-		// Find cables connected to devices in this rack
-		rackCables := findCablesForRack(rv, opts.Inventory)
-		if len(rackCables) > 0 {
-			fmt.Fprintf(w, "\n  %s (%d cables):\n", cyan("Cable Connections"), len(rackCables))
-			for _, cable := range rackCables {
-				ifaceA, deviceA := opts.Inventory.GetInterfaceByID(cable.TerminationA)
-				ifaceB, deviceB := opts.Inventory.GetInterfaceByID(cable.TerminationB)
-
-				deviceAName := "unknown"
-				deviceBName := "unknown"
-				portAName := "?"
-				portBName := "?"
-				if deviceA != nil {
-					deviceAName = deviceA.Name
-				}
-				if deviceB != nil {
-					deviceBName = deviceB.Name
-				}
-				if ifaceA != nil {
-					portAName = ifaceA.Name
-				}
-				if ifaceB != nil {
-					portBName = ifaceB.Name
-				}
-
-				fmt.Fprintf(w, "    %s %s\n",
-					green("•"),
-					fmt.Sprintf("%s [%s:%s] ←→ [%s:%s]",
-						cable.Label,
-						deviceAName, portAName,
-						deviceBName, portBName))
-			}
-		}
-	}
+	printUnpositionedDevices(w, rv, c)
+	printRackCables(w, rv, opts, c)
 
 	return nil
+}
+
+// slotContent renders the content cell for a single rack U slot.
+func slotContent(slot *RackSlot, c rackPalette) string {
+	if slot == nil {
+		return c.gray(fmt.Sprintf("%s [EMPTY]", markerEmpty))
+	}
+	if slot.IsContinued {
+		return colorizeDevice(fmt.Sprintf("%s (continued)", markerContinued), slot.Device, c.red, c.green, c.yellow, c.cyan)
+	}
+
+	deviceName := truncateString(slot.Device.Name, contentWidth-10)
+	uHeight := slot.Device.GetUHeight()
+	if uHeight == 0 {
+		uHeight = 1
+	}
+	if uHeight > 1 {
+		return colorizeDevice(fmt.Sprintf("%s %s (%dU)", markerOccupied, deviceName, uHeight), slot.Device, c.red, c.green, c.yellow, c.cyan)
+	}
+	return colorizeDevice(fmt.Sprintf("%s %s", markerOccupied, deviceName), slot.Device, c.red, c.green, c.yellow, c.cyan)
+}
+
+// printUnpositionedDevices lists devices without an assigned U position.
+func printUnpositionedDevices(w io.Writer, rv *RackView, c rackPalette) {
+	if len(rv.UnpositionedDevices) == 0 {
+		return
+	}
+	fmt.Fprintf(w, "\n  %s:\n", c.yellow("Unpositioned Devices"))
+	for _, device := range rv.UnpositionedDevices {
+		fmt.Fprintf(w, "    %s %s\n", c.yellow("•"), device.Name)
+	}
+}
+
+// printRackCables prints cable connections for devices in the rack.
+func printRackCables(w io.Writer, rv *RackView, opts RenderOptions, c rackPalette) {
+	if !opts.ShowCables || opts.Inventory == nil || opts.Inventory.Cables == nil {
+		return
+	}
+	rackCables := findCablesForRack(rv, opts.Inventory)
+	if len(rackCables) == 0 {
+		return
+	}
+	fmt.Fprintf(w, "\n  %s (%d cables):\n", c.cyan("Cable Connections"), len(rackCables))
+	for _, cable := range rackCables {
+		printRackCableLine(w, cable, opts.Inventory, c)
+	}
+}
+
+// printRackCableLine prints a single cable connection line for a rack.
+func printRackCableLine(w io.Writer, cable *devicetypes.CaniCableType, inv *devicetypes.Inventory, c rackPalette) {
+	ifaceA, deviceA := inv.GetInterfaceByID(cable.TerminationA)
+	ifaceB, deviceB := inv.GetInterfaceByID(cable.TerminationB)
+
+	deviceAName := valUnknown
+	deviceBName := valUnknown
+	portAName := "?"
+	portBName := "?"
+	if deviceA != nil {
+		deviceAName = deviceA.Name
+	}
+	if deviceB != nil {
+		deviceBName = deviceB.Name
+	}
+	if ifaceA != nil {
+		portAName = ifaceA.Name
+	}
+	if ifaceB != nil {
+		portBName = ifaceB.Name
+	}
+
+	fmt.Fprintf(w, "    %s %s\n",
+		c.green("•"),
+		fmt.Sprintf("%s [%s:%s] ←→ [%s:%s]",
+			cable.Label,
+			deviceAName, portAName,
+			deviceBName, portBName))
 }
 
 // getRackHeight determines the height of a rack in U
@@ -465,121 +476,115 @@ func findCablesForRack(rv *RackView, inv *devicetypes.Inventory) []*devicetypes.
 
 // RenderRacklessInventory renders inventory that has no racks - shows device summary and cables
 func RenderRacklessInventory(w io.Writer, inv *devicetypes.Inventory, opts RenderOptions) error {
-	// Color helpers
-	green := func(s string) string {
-		if opts.NoColor {
-			return s
-		}
-		return ColorGreen + s + ColorReset
-	}
-	cyan := func(s string) string {
-		if opts.NoColor {
-			return s
-		}
-		return ColorCyan + s + ColorReset
-	}
-	yellow := func(s string) string {
-		if opts.NoColor {
-			return s
-		}
-		return ColorYellow + s + ColorReset
-	}
-	bold := func(s string) string {
-		if opts.NoColor {
-			return s
-		}
-		return ColorBold + s + ColorReset
-	}
+	c := newRackPalette(opts.NoColor)
 
 	innerWidth := terminalWidth - 2
 
 	// Print header
-	fmt.Fprintf(w, "%s%s%s\n", boxTopLeft, strings.Repeat(boxHorizontal, innerWidth), boxTopRight)
+	fmt.Fprintf(w, fmtTriple, boxTopLeft, strings.Repeat(boxHorizontal, innerWidth), boxTopRight)
 	title := centerString("Inventory Summary (No Racks Defined)", innerWidth)
-	fmt.Fprintf(w, "%s%s%s\n", boxVertical, bold(title), boxVertical)
-	fmt.Fprintf(w, "%s%s%s\n", boxBottomLeft, strings.Repeat(boxHorizontal, innerWidth), boxBottomRight)
+	fmt.Fprintf(w, fmtTriple, boxVertical, c.bold(title), boxVertical)
+	fmt.Fprintf(w, fmtTriple, boxBottomLeft, strings.Repeat(boxHorizontal, innerWidth), boxBottomRight)
 
-	// Count devices by hardware type
+	typeCounts, topLevelDevices := countDeviceTypes(inv)
+	printDeviceTypeSummary(w, typeCounts, c)
+	printTopLevelDevices(w, topLevelDevices, c)
+	printRacklessCables(w, inv, opts, c)
+
+	fmt.Fprintln(w)
+	return nil
+}
+
+// countDeviceTypes tallies devices by hardware type and collects top-level devices.
+func countDeviceTypes(inv *devicetypes.Inventory) (map[string]int, []*devicetypes.CaniDeviceType) {
 	typeCounts := make(map[string]int)
 	var topLevelDevices []*devicetypes.CaniDeviceType
-
 	for _, device := range inv.Devices {
 		if device == nil {
 			continue
 		}
 		typeCounts[string(device.Type)]++
-
-		// Collect top-level devices (no parent or parent is nil UUID)
 		if device.Parent == uuid.Nil {
 			topLevelDevices = append(topLevelDevices, device)
 		}
 	}
+	return typeCounts, topLevelDevices
+}
 
-	// Print device type summary
-	fmt.Fprintf(w, "\n  %s:\n", cyan("Device Types"))
+// printDeviceTypeSummary prints the device-type counts section.
+func printDeviceTypeSummary(w io.Writer, typeCounts map[string]int, c rackPalette) {
+	fmt.Fprintf(w, "\n  %s:\n", c.cyan("Device Types"))
 	for hwType, count := range typeCounts {
 		if hwType == "" {
 			hwType = "(untyped)"
 		}
-		fmt.Fprintf(w, "    %s %-20s %d\n", green("•"), hwType, count)
+		fmt.Fprintf(w, "    %s %-20s %d\n", c.green("•"), hwType, count)
 	}
+}
 
-	// Print top-level devices
-	if len(topLevelDevices) > 0 {
-		fmt.Fprintf(w, "\n  %s (%d devices):\n", cyan("Top-Level Devices"), len(topLevelDevices))
-		for _, device := range topLevelDevices {
-			hwType := string(device.Type)
-			if hwType == "" {
-				hwType = "device"
-			}
-			fmt.Fprintf(w, "    %s %s [%s]\n", green("•"), device.Name, yellow(hwType))
+// printTopLevelDevices prints devices that have no parent.
+func printTopLevelDevices(w io.Writer, devices []*devicetypes.CaniDeviceType, c rackPalette) {
+	if len(devices) == 0 {
+		return
+	}
+	fmt.Fprintf(w, "\n  %s (%d devices):\n", c.cyan("Top-Level Devices"), len(devices))
+	for _, device := range devices {
+		hwType := string(device.Type)
+		if hwType == "" {
+			hwType = "device"
 		}
+		fmt.Fprintf(w, "    %s %s [%s]\n", c.green("•"), device.Name, c.yellow(hwType))
 	}
+}
 
-	// Print cables if requested
-	if opts.ShowCables && inv.Cables != nil && len(inv.Cables) > 0 {
-		fmt.Fprintf(w, "\n  %s (%d cables):\n", cyan("Cable Connections"), len(inv.Cables))
-
-		for _, cable := range inv.Cables {
-			if cable == nil {
-				continue
-			}
-
-			ifaceA, deviceA := inv.GetInterfaceByID(cable.TerminationA)
-			ifaceB, deviceB := inv.GetInterfaceByID(cable.TerminationB)
-
-			deviceAName := "unknown"
-			deviceBName := "unknown"
-			portAName := "?"
-			portBName := "?"
-			if deviceA != nil {
-				deviceAName = truncateString(deviceA.Name, 30)
-			}
-			if deviceB != nil {
-				deviceBName = truncateString(deviceB.Name, 30)
-			}
-			if ifaceA != nil {
-				portAName = ifaceA.Name
-			}
-			if ifaceB != nil {
-				portBName = ifaceB.Name
-			}
-
-			cableType := cable.Slug
-			if cableType == "" {
-				cableType = "unknown"
-			}
-
-			fmt.Fprintf(w, "    %s [%s] %s:%s ←→ %s:%s\n",
-				green(cableType),
-				yellow(cable.Status),
-				deviceAName, portAName,
-				deviceBName, portBName)
+// printRacklessCables prints cable connections (or a placeholder) when requested.
+func printRacklessCables(w io.Writer, inv *devicetypes.Inventory, opts RenderOptions, c rackPalette) {
+	if !opts.ShowCables {
+		return
+	}
+	if len(inv.Cables) == 0 {
+		fmt.Fprintf(w, "\n  %s: No cables defined in inventory\n", c.yellow("Cables"))
+		return
+	}
+	fmt.Fprintf(w, "\n  %s (%d cables):\n", c.cyan("Cable Connections"), len(inv.Cables))
+	for _, cable := range inv.Cables {
+		if cable == nil {
+			continue
 		}
-	} else if opts.ShowCables {
-		fmt.Fprintf(w, "\n  %s: No cables defined in inventory\n", yellow("Cables"))
+		printRacklessCableLine(w, cable, inv, c)
+	}
+}
+
+// printRacklessCableLine prints a single cable line for the rackless summary.
+func printRacklessCableLine(w io.Writer, cable *devicetypes.CaniCableType, inv *devicetypes.Inventory, c rackPalette) {
+	ifaceA, deviceA := inv.GetInterfaceByID(cable.TerminationA)
+	ifaceB, deviceB := inv.GetInterfaceByID(cable.TerminationB)
+
+	deviceAName := valUnknown
+	deviceBName := valUnknown
+	portAName := "?"
+	portBName := "?"
+	if deviceA != nil {
+		deviceAName = truncateString(deviceA.Name, 30)
+	}
+	if deviceB != nil {
+		deviceBName = truncateString(deviceB.Name, 30)
+	}
+	if ifaceA != nil {
+		portAName = ifaceA.Name
+	}
+	if ifaceB != nil {
+		portBName = ifaceB.Name
 	}
 
-	fmt.Fprintln(w)
-	return nil
+	cableType := cable.Slug
+	if cableType == "" {
+		cableType = valUnknown
+	}
+
+	fmt.Fprintf(w, "    %s [%s] %s:%s ←→ %s:%s\n",
+		c.green(cableType),
+		c.yellow(cable.Status),
+		deviceAName, portAName,
+		deviceBName, portBName)
 }

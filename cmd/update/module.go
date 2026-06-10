@@ -48,7 +48,7 @@ func newModuleCommand() *cobra.Command {
 	cmd.Flags().String("name", "", "New name")
 	cmd.Flags().String("status", "", "New status")
 	cmd.Flags().String("role", "", "New role")
-	cmd.Flags().String("description", "", "Description")
+	cmd.Flags().String(flagDescription, "", "Description")
 	cmd.Flags().String("bay", "", "Module bay name")
 
 	return cmd
@@ -80,8 +80,8 @@ func updateModule(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("role") {
 		mod.Role, _ = cmd.Flags().GetString("role")
 	}
-	if cmd.Flags().Changed("description") {
-		mod.Description, _ = cmd.Flags().GetString("description")
+	if cmd.Flags().Changed(flagDescription) {
+		mod.Description, _ = cmd.Flags().GetString(flagDescription)
 	}
 	if cmd.Flags().Changed("bay") {
 		mod.ModuleBayName, _ = cmd.Flags().GetString("bay")
@@ -113,7 +113,7 @@ func applySetToModule(cmd *cobra.Command, mod *devicetypes.CaniModuleType) error
 			mod.Status = v
 		case "role":
 			mod.Role = v
-		case "description":
+		case flagDescription:
 			mod.Description = v
 		case "module_bay_name":
 			mod.ModuleBayName = v

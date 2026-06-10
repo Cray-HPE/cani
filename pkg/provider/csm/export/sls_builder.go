@@ -13,6 +13,9 @@ import (
 // caniMetadataSchemaVersion is the current CANI SLS schema version.
 const caniMetadataSchemaVersion = "v1alpha1"
 
+// statusProvisioned is the CSM/SLS status applied to exported hardware.
+const statusProvisioned = "provisioned"
+
 // buildExpectedHardware iterates over the CANI inventory devices and
 // produces SLS hardware entries with CANI metadata injected into
 // ExtraProperties. It merges existing SLS ExtraProperties so that
@@ -29,8 +32,20 @@ func buildExpectedHardware(
 		expected[xname] = hw
 	}
 
-	// Overlay CANI metadata onto hardware entries that match devices
-	// in the CANI inventory.
+	overlayDeviceMetadata(expected, inventory)
+	overlayStagedRacks(expected, inventory)
+	injectSlsOnlyMetadata(expected, inventory)
+
+	return expected
+}
+
+// overlayDeviceMetadata overlays CANI metadata onto hardware entries that
+// match devices in the inventory, creating new SLS entries for staged
+// devices that do not yet exist in SLS.
+func overlayDeviceMetadata(
+	expected map[string]import_.SlsHardware,
+	inventory devicetypes.Inventory,
+) {
 	for _, dev := range inventory.Devices {
 		xname := extractXname(dev)
 		if xname == "" {
@@ -39,23 +54,11 @@ func buildExpectedHardware(
 
 		hw, exists := expected[xname]
 		if !exists {
-			// Device exists in CANI but not in SLS.  Build a new
-			// SLS entry for staged hardware so the export can push them.
-			switch {
-			case strings.EqualFold(dev.Status, "staged") && strings.EqualFold(string(dev.GetType()), string(devicetypes.TypeNode)):
-				hw = buildNewNodeEntry(dev, xname)
-			case strings.EqualFold(dev.Status, "staged") && strings.EqualFold(string(dev.GetType()), string(devicetypes.TypeCabinet)):
-				hw = buildNewCabinetEntry(dev, xname)
-				// Also generate chassis and chassis-BMC children.
-				for _, child := range buildCabinetChildren(dev, xname) {
-					child.ExtraProperties = injectCaniMetadata(
-						child.ExtraProperties, dev.ID.String(), "provisioned",
-					)
-					expected[child.Xname] = child
-				}
-			default:
+			newHW, ok := buildStagedDeviceEntry(dev, xname, expected)
+			if !ok {
 				continue
 			}
+			hw = newHW
 		}
 
 		hw.ExtraProperties = injectCaniMetadata(
@@ -63,8 +66,41 @@ func buildExpectedHardware(
 		)
 		expected[xname] = hw
 	}
+}
 
-	// Second pass: process staged racks (cabinets added via "add" flow).
+// buildStagedDeviceEntry builds a new SLS entry for a staged device that is
+// absent from SLS. For staged cabinets it also injects chassis and
+// chassis-BMC children into expected. The second return is false when the
+// device should be skipped.
+func buildStagedDeviceEntry(
+	dev *devicetypes.CaniDeviceType,
+	xname string,
+	expected map[string]import_.SlsHardware,
+) (import_.SlsHardware, bool) {
+	switch {
+	case strings.EqualFold(dev.Status, "staged") && strings.EqualFold(string(dev.GetType()), string(devicetypes.TypeNode)):
+		return buildNewNodeEntry(dev, xname), true
+	case strings.EqualFold(dev.Status, "staged") && strings.EqualFold(string(dev.GetType()), string(devicetypes.TypeCabinet)):
+		hw := buildNewCabinetEntry(dev, xname)
+		// Also generate chassis and chassis-BMC children.
+		for _, child := range buildCabinetChildren(dev, xname) {
+			child.ExtraProperties = injectCaniMetadata(
+				child.ExtraProperties, dev.ID.String(), statusProvisioned,
+			)
+			expected[child.Xname] = child
+		}
+		return hw, true
+	default:
+		return import_.SlsHardware{}, false
+	}
+}
+
+// overlayStagedRacks builds SLS entries for staged racks (cabinets added via
+// the "add" flow) that were not already handled by the device pass.
+func overlayStagedRacks(
+	expected map[string]import_.SlsHardware,
+	inventory devicetypes.Inventory,
+) {
 	for _, rack := range inventory.Racks {
 		if rack == nil {
 			continue
@@ -82,19 +118,24 @@ func buildExpectedHardware(
 		hw := buildNewCabinetEntryFromRack(rack, xname)
 		for _, child := range buildCabinetChildrenFromRack(rack, xname) {
 			child.ExtraProperties = injectCaniMetadata(
-				child.ExtraProperties, rack.ID.String(), "provisioned",
+				child.ExtraProperties, rack.ID.String(), statusProvisioned,
 			)
 			expected[child.Xname] = child
 		}
 		hw.ExtraProperties = injectCaniMetadata(
-			hw.ExtraProperties, rack.ID.String(), "provisioned",
+			hw.ExtraProperties, rack.ID.String(), statusProvisioned,
 		)
 		expected[xname] = hw
 	}
+}
 
-	// Third pass: inject CANI metadata into SLS-only entries whose
-	// parent device is in the inventory.  This covers ChassisBMC and
-	// similar entries that the transform skips but SLS still carries.
+// injectSlsOnlyMetadata injects CANI metadata into SLS-only entries whose
+// parent device is in the inventory.  This covers ChassisBMC and similar
+// entries that the transform skips but SLS still carries.
+func injectSlsOnlyMetadata(
+	expected map[string]import_.SlsHardware,
+	inventory devicetypes.Inventory,
+) {
 	for xname, hw := range expected {
 		if hasCaniMetadata(hw) {
 			continue // already handled above
@@ -108,8 +149,6 @@ func buildExpectedHardware(
 		)
 		expected[xname] = hw
 	}
-
-	return expected
 }
 
 // findParentDevice walks up the xname hierarchy looking for a device
@@ -156,11 +195,11 @@ func caniStatus(dev *devicetypes.CaniDeviceType) string {
 	}
 	if strings.EqualFold(string(dev.GetType()), string(devicetypes.TypeNode)) {
 		if strings.EqualFold(dev.Status, "staged") {
-			return "provisioned"
+			return statusProvisioned
 		}
 		return "empty"
 	}
-	return "provisioned"
+	return statusProvisioned
 }
 
 // injectCaniMetadata returns a new ExtraProperties map that contains

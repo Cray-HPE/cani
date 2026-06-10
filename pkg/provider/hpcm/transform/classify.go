@@ -17,6 +17,9 @@ const (
 	CategorySkip     CaniCategory = "skip"
 )
 
+// aliasKeyProduct is the HPCM alias key holding the product/model name.
+const aliasKeyProduct = "product"
+
 // Classification holds the result of analysing an HPCM node. It tells the
 // transform which CANI type to create and provides ranked lookup queries.
 type Classification struct {
@@ -139,7 +142,7 @@ func collectQueries(frus []devicetypes.CaniFruType, node import_.Node) []string 
 
 	// 3. Product alias (highest-priority alias).
 	if node.Aliases != nil {
-		add(node.Aliases["product"])
+		add(node.Aliases[aliasKeyProduct])
 	}
 
 	// 3b. Template ctrl_model alias (cm.config hardware model identifier).
@@ -166,7 +169,7 @@ func collectQueries(frus []devicetypes.CaniFruType, node import_.Node) []string 
 	// 6. All remaining alias values (lowest priority, "product" already added).
 	if node.Aliases != nil {
 		for key, val := range node.Aliases {
-			if key == "product" {
+			if key == aliasKeyProduct {
 				continue
 			}
 			add(val)
@@ -228,7 +231,7 @@ func isAliasNode(node import_.Node) bool {
 		return false
 	}
 	if node.Aliases != nil {
-		if _, ok := node.Aliases["product"]; ok {
+		if _, ok := node.Aliases[aliasKeyProduct]; ok {
 			return false
 		}
 	}

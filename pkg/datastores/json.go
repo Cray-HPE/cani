@@ -110,7 +110,7 @@ func (s *JSONStore) Load() (*devicetypes.Inventory, error) {
 
 // Save writes the inventory to disk, creating directories as needed.
 func (s *JSONStore) Save(inventory *devicetypes.Inventory) error {
-	if err := os.MkdirAll(filepath.Dir(s.Path), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(s.Path), 0700); err != nil {
 		return fmt.Errorf("creating inventory directory: %w", err)
 	}
 
@@ -119,7 +119,7 @@ func (s *JSONStore) Save(inventory *devicetypes.Inventory) error {
 		return fmt.Errorf("encoding inventory: %w", err)
 	}
 
-	if err := os.WriteFile(s.Path, data, 0644); err != nil {
+	if err := os.WriteFile(s.Path, data, 0600); err != nil {
 		return fmt.Errorf("writing inventory file: %w", err)
 	}
 

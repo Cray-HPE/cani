@@ -28,38 +28,8 @@ package visual
 import (
 	"fmt"
 	"sort"
-	"strconv"
 	"strings"
 )
-
-// abbreviatePort shortens well-known port names for compact display.
-//
-//	"HSN 0"  → "h0"    "MGMT 0" → "M0"    "mgmt0" → "m0"
-//	"mgmt1"  → "m1"    "iLO"    → "iL"    "1/1/3"  → as-is
-//	bare int → as-is
-func abbreviatePort(port string) string {
-	low := strings.ToLower(port)
-	switch {
-	case strings.HasPrefix(low, "hsn "):
-		return "h" + port[4:]
-	case strings.HasPrefix(low, "mgmt "):
-		return strings.ToUpper(port[:1]) + port[5:]
-	case strings.HasPrefix(low, "mgmt"):
-		return "m" + port[4:]
-	case low == "ilo":
-		return "iL"
-	}
-	return port
-}
-
-// abbreviateRack shortens a rack name for inline display.
-// Keeps the last 5 chars (e.g. "x3516") to preserve the x-prefix.
-func abbreviateRack(name string) string {
-	if len(name) <= 5 {
-		return name
-	}
-	return name[len(name)-5:]
-}
 
 // connEndpoint describes one cable's contribution at a specific U.
 type connEndpoint struct {
@@ -70,10 +40,10 @@ type connEndpoint struct {
 	group      cableGroup
 }
 
-// buildEndpointAnnotation produces a compact annotation for cables at row u.
-// Intra-rack:  →U(localPort:remotePort, ...)
-// Inter-rack:  ⇢rack(localPort:remotePort, ...)
-func buildEndpointAnnotation(u int, cables []routingCable) string {
+// collectAnnotationEndpoints gathers the non-dimmed cable endpoints that should
+// be annotated at row u. Inter-rack cables are only annotated at the local
+// device's U position.
+func collectAnnotationEndpoints(u int, cables []routingCable) []connEndpoint {
 	var endpoints []connEndpoint
 	for _, c := range cables {
 		if c.dimmed {
@@ -102,6 +72,14 @@ func buildEndpointAnnotation(u int, cables []routingCable) string {
 		}
 		endpoints = append(endpoints, ep)
 	}
+	return endpoints
+}
+
+// buildEndpointAnnotation produces a compact annotation for cables at row u.
+// Intra-rack:  →U(localPort:remotePort, ...)
+// Inter-rack:  ⇢rack(localPort:remotePort, ...)
+func buildEndpointAnnotation(u int, cables []routingCable) string {
+	endpoints := collectAnnotationEndpoints(u, cables)
 	if len(endpoints) == 0 {
 		return ""
 	}
@@ -112,33 +90,7 @@ func buildEndpointAnnotation(u int, cables []routingCable) string {
 // colors: intra-rack labels use the cable group color, inter-rack labels
 // are dimmed gray, and local U references are bold.
 func buildColoredAnnotation(u int, cables []routingCable, cf colorFuncs) string {
-	var endpoints []connEndpoint
-	for _, c := range cables {
-		if c.dimmed {
-			continue
-		}
-		if u != c.topU && u != c.botU {
-			continue
-		}
-		if c.interRack && u != c.localU {
-			continue
-		}
-		var ep connEndpoint
-		ep.group = c.group
-		if u == c.topU {
-			ep.localPort = abbreviatePort(c.portAtTop)
-			ep.remotePort = abbreviatePort(c.portAtBot)
-			ep.remoteU = c.botU
-		} else {
-			ep.localPort = abbreviatePort(c.portAtBot)
-			ep.remotePort = abbreviatePort(c.portAtTop)
-			ep.remoteU = c.topU
-		}
-		if c.interRack {
-			ep.remoteRack = abbreviateRack(c.remoteRack)
-		}
-		endpoints = append(endpoints, ep)
-	}
+	endpoints := collectAnnotationEndpoints(u, cables)
 	if len(endpoints) == 0 {
 		return ""
 	}
@@ -165,15 +117,30 @@ type groupKey struct {
 	group      cableGroup // semantic classification for coloring
 }
 
+// destGroup collects the port pairs that share a single destination key.
+type destGroup struct {
+	key   groupKey
+	pairs []portPair
+}
+
 // formatEndpoints groups endpoints by destination and formats them.
 // When cf has color functions (non-zero), labels are colorized:
 // intra-rack uses the cable group color, inter-rack is dimmed gray,
 // and local U numbers are bold.
 func formatEndpoints(eps []connEndpoint, cf colorFuncs) string {
-	type destGroup struct {
-		key   groupKey
-		pairs []portPair
+	groups, order := groupEndpointsByDest(eps)
+	sortDestKeys(order)
+	hasColor := cf.bold != nil
+	var parts []string
+	for _, k := range order {
+		parts = append(parts, formatDestLabel(k, groups[k].pairs, cf, hasColor))
 	}
+	return strings.Join(parts, " ")
+}
+
+// groupEndpointsByDest buckets endpoints by destination, preserving the
+// first-seen order of each unique destination key.
+func groupEndpointsByDest(eps []connEndpoint) (map[groupKey]*destGroup, []groupKey) {
 	groups := make(map[groupKey]*destGroup)
 	var order []groupKey
 	for _, ep := range eps {
@@ -189,7 +156,12 @@ func formatEndpoints(eps []connEndpoint, cf colorFuncs) string {
 		}
 		g.pairs = append(g.pairs, portPair{local: ep.localPort, remote: ep.remotePort})
 	}
-	// Sort: intra-rack first (by U desc), then inter-rack (by rack name).
+	return groups, order
+}
+
+// sortDestKeys orders destinations: intra-rack first (by U desc), then
+// inter-rack (by rack name asc).
+func sortDestKeys(order []groupKey) {
 	sort.Slice(order, func(i, j int) bool {
 		iInter := order[i].remoteRack != ""
 		jInter := order[j].remoteRack != ""
@@ -201,135 +173,35 @@ func formatEndpoints(eps []connEndpoint, cf colorFuncs) string {
 		}
 		return order[i].remoteU > order[j].remoteU
 	})
-
-	var parts []string
-	hasColor := cf.bold != nil
-	for _, k := range order {
-		g := groups[k]
-		compressed := compressPortPairs(g.pairs)
-		if k.remoteRack != "" {
-			label := fmt.Sprintf("⇢%s(%s)", k.remoteRack, compressed)
-			if hasColor {
-				label = cf.gray(label)
-			}
-			parts = append(parts, label)
-		} else {
-			if hasColor {
-				color := groupColorKey(k.group)
-				uStr := cf.bold(cf.colorize(fmt.Sprintf("%d", k.remoteU), color))
-				body := cf.colorize(fmt.Sprintf("(%s)", compressed), color)
-				parts = append(parts, "→"+uStr+body)
-			} else {
-				parts = append(parts, fmt.Sprintf("→%d(%s)", k.remoteU, compressed))
-			}
-		}
-	}
-	return strings.Join(parts, " ")
 }
 
-// portPair is a local:remote port mapping.
-type portPair struct {
-	local  string
-	remote string
+// formatDestLabel formats one destination group's label.
+func formatDestLabel(k groupKey, pairs []portPair, cf colorFuncs, hasColor bool) string {
+	compressed := compressPortPairs(pairs)
+	if k.remoteRack != "" {
+		return formatInterRackLabel(k.remoteRack, compressed, cf, hasColor)
+	}
+	return formatIntraRackLabel(k, compressed, cf, hasColor)
 }
 
-// parsedPort holds prefix+number decomposition for range compression.
-type parsedPort struct {
-	lPre string
-	lNum int
-	rPre string
-	rNum int
-	ok   bool
+// formatInterRackLabel renders a dimmed inter-rack destination label.
+func formatInterRackLabel(rack, compressed string, cf colorFuncs, hasColor bool) string {
+	label := fmt.Sprintf("⇢%s(%s)", rack, compressed)
+	if hasColor {
+		label = cf.gray(label)
+	}
+	return label
 }
 
-// compressPortPairs tries to compress consecutive port ranges.
-// e.g. h0:1 h1:2 h2:3 h3:4 → "h0-3:1-4"
-// Falls back to "local:remote,local:remote" when ranges don't compress.
-func compressPortPairs(pairs []portPair) string {
-	if len(pairs) == 0 {
-		return ""
+// formatIntraRackLabel renders a colorized intra-rack destination label.
+func formatIntraRackLabel(k groupKey, compressed string, cf colorFuncs, hasColor bool) string {
+	if !hasColor {
+		return fmt.Sprintf("→%d(%s)", k.remoteU, compressed)
 	}
-	if len(pairs) == 1 {
-		return pairs[0].local + ":" + pairs[0].remote
-	}
-
-	// Try range compression: split each port into prefix+number.
-	pp := make([]parsedPort, len(pairs))
-	allParsed := true
-	for i, p := range pairs {
-		lPre, lNum, lok := splitPortNum(p.local)
-		rPre, rNum, rok := splitPortNum(p.remote)
-		pp[i] = parsedPort{lPre, lNum, rPre, rNum, lok && rok}
-		if !pp[i].ok {
-			allParsed = false
-		}
-	}
-
-	if allParsed {
-		// Sort by local number for range detection.
-		sort.Slice(pp, func(i, j int) bool { return pp[i].lNum < pp[j].lNum })
-		if runs := findRuns(pp); runs != "" {
-			return runs
-		}
-	}
-
-	// Fallback: comma-separated pairs.
-	items := make([]string, len(pairs))
-	for i, p := range pairs {
-		items[i] = p.local + ":" + p.remote
-	}
-	return strings.Join(items, ",")
-}
-
-// splitPortNum splits "h3" → ("h", 3, true), "49" → ("", 49, true).
-func splitPortNum(port string) (string, int, bool) {
-	// Find where trailing digits start.
-	i := len(port)
-	for i > 0 && port[i-1] >= '0' && port[i-1] <= '9' {
-		i--
-	}
-	if i == len(port) {
-		return port, 0, false // no trailing number
-	}
-	n, err := strconv.Atoi(port[i:])
-	if err != nil {
-		return port, 0, false
-	}
-	return port[:i], n, true
-}
-
-// findRuns detects consecutive runs in sorted parsed pairs and formats
-// them as compressed ranges. Returns "" if no clean runs are found.
-func findRuns(pp []parsedPort) string {
-	if len(pp) == 0 {
-		return ""
-	}
-	// Check all share the same prefix pair.
-	lPre, rPre := pp[0].lPre, pp[0].rPre
-	for _, p := range pp {
-		if p.lPre != lPre || p.rPre != rPre {
-			return "" // mixed prefixes, can't compress
-		}
-	}
-	// Check local numbers are consecutive.
-	for i := 1; i < len(pp); i++ {
-		if pp[i].lNum != pp[i-1].lNum+1 {
-			return "" // gap in local sequence
-		}
-	}
-	// Build range string.
-	first, last := pp[0], pp[len(pp)-1]
-	lRange := formatRange(lPre, first.lNum, last.lNum)
-	rRange := formatRange(rPre, first.rNum, last.rNum)
-	return lRange + ":" + rRange
-}
-
-// formatRange formats a prefix+number range: "h", 0, 3 → "h0-3".
-func formatRange(prefix string, lo, hi int) string {
-	if lo == hi {
-		return fmt.Sprintf("%s%d", prefix, lo)
-	}
-	return fmt.Sprintf("%s%d-%d", prefix, lo, hi)
+	color := groupColorKey(k.group)
+	uStr := cf.bold(cf.colorize(fmt.Sprintf("%d", k.remoteU), color))
+	body := cf.colorize(fmt.Sprintf("(%s)", compressed), color)
+	return "→" + uStr + body
 }
 
 // printRoutingLegend prints the symbol and cable legend.

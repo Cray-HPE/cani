@@ -40,6 +40,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	errAddModule     = "failed to add module: %w"
+	errSaveInventory = "failed to save inventory: %w"
+)
+
 // newModuleCommand creates the "add module" subcommand.
 func newModuleCommand() *cobra.Command {
 	cmd := &cobra.Command{
@@ -62,10 +67,10 @@ Template variables for --name: %{DEVICE}, %{BAY}, %{SEQ}`,
 
 	cmd.Flags().String("device", "", "Parent device UUID, name, slug, or strategy (%{FILL})")
 	cmd.Flags().String("bay", "", "Module bay name on the parent device")
-	cmd.Flags().String("bay-filter", "", "Filter bays by name substring (overrides auto-filter)")
+	cmd.Flags().String(flagBayFilter, "", "Filter bays by name substring (overrides auto-filter)")
 	cmd.Flags().String("name", "", "Module name, expansion pattern, or template (%{DEVICE}, %{BAY}, %{SEQ})")
-	cmd.Flags().String("location", "", "Location filter for device selection (name or UUID)")
-	cmd.Flags().Bool("dry-run", false, "Show placement plan without committing changes")
+	cmd.Flags().String(flagLocation, "", "Location filter for device selection (name or UUID)")
+	cmd.Flags().Bool(flagDryRun, false, "Show placement plan without committing changes")
 
 	return cmd
 }
@@ -95,35 +100,94 @@ func addModule(cmd *cobra.Command, args []string) error {
 	return addModuleLiteral(cmd, result, qty, nameArg, deviceArg)
 }
 
+// moduleAddOpts holds the parsed flags shared by the literal placement helpers.
+type moduleAddOpts struct {
+	qty          int
+	nameArg      string
+	deviceArg    string
+	bayName      string
+	bayFilterArg string
+	prefix       string
+	start        int
+	padWidth     int
+	statusArg    string
+	serialArg    string
+	dryRun       bool
+}
+
+// loadModuleInventory sets the device store from flags and loads the inventory.
+func loadModuleInventory(cmd *cobra.Command) (*devicetypes.Inventory, error) {
+	if err := datastores.SetDeviceStore(cmd, nil); err != nil {
+		return nil, fmt.Errorf("failed to set device store: %w", err)
+	}
+	inventory, err := datastores.Datastore.Load()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load inventory: %w", err)
+	}
+	return inventory, nil
+}
+
+// normalizeModuleStatus validates a status against the inventory, returning the
+// canonical form. An empty status is returned unchanged.
+func normalizeModuleStatus(statusArg string, inventory *devicetypes.Inventory) (string, error) {
+	if statusArg == "" {
+		return "", nil
+	}
+	return validate.StatusWithInventory(statusArg, inventory)
+}
+
+// applyModuleStatusSerial copies optional status and serial onto a module.
+func applyModuleStatusSerial(mod *devicetypes.CaniModuleType, statusArg, serialArg string) {
+	if statusArg != "" {
+		mod.Status = statusArg
+	}
+	if serialArg != "" {
+		mod.Serial = serialArg
+	}
+}
+
+// commitPlannedModules creates and saves a module for each placement entry.
+func commitPlannedModules(inventory *devicetypes.Inventory, base *devicetypes.CaniModuleType, entries []placement.ModulePlacementEntry, names []string, statusArg, serialArg string) error {
+	for i, e := range entries {
+		mod := *base
+		mod.ID = uuid.New()
+		mod.ParentDevice = e.DeviceID
+		mod.ModuleBayName = e.BayName
+		if i < len(names) {
+			mod.Name = names[i]
+		}
+		applyModuleStatusSerial(&mod, statusArg, serialArg)
+		if err := inventory.AddModule(&mod); err != nil {
+			return fmt.Errorf(errAddModule, err)
+		}
+		log.Printf("Added module %s (%s) in %s bay %s", mod.ID, mod.Name, e.DeviceName, e.BayName)
+	}
+	if err := datastores.Datastore.Save(inventory); err != nil {
+		return fmt.Errorf(errSaveInventory, err)
+	}
+	return nil
+}
+
 // addModuleStrategy handles multi-device auto-placement with %{FILL}.
 func addModuleStrategy(cmd *cobra.Command, result *lookupResult, qty int, nameArg, deviceArg string) error {
-	bayFilterArg, _ := cmd.Flags().GetString("bay-filter")
-	locationArg, _ := cmd.Flags().GetString("location")
-	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	bayFilterArg, _ := cmd.Flags().GetString(flagBayFilter)
+	locationArg, _ := cmd.Flags().GetString(flagLocation)
+	dryRun, _ := cmd.Flags().GetBool(flagDryRun)
 	statusArg, _ := cmd.Flags().GetString("status")
 	serialArg, _ := cmd.Flags().GetString("serial")
 
 	strategy, _ := placement.ParseStrategy(deviceArg)
 
-	isTemplate := nameexpand.IsTemplate(nameArg)
-	if !isTemplate && nameArg != "" {
+	if nameArg != "" && !nameexpand.IsTemplate(nameArg) {
 		return fmt.Errorf("strategy placement requires template naming (%%{DEVICE}, %%{BAY}, etc.) or no --name flag")
 	}
 
-	if err := datastores.SetDeviceStore(cmd, nil); err != nil {
-		return fmt.Errorf("failed to set device store: %w", err)
-	}
-	inventory, err := datastores.Datastore.Load()
+	inventory, err := loadModuleInventory(cmd)
 	if err != nil {
-		return fmt.Errorf("failed to load inventory: %w", err)
+		return err
 	}
-
-	if statusArg != "" {
-		normalized, verr := validate.StatusWithInventory(statusArg, inventory)
-		if verr != nil {
-			return verr
-		}
-		statusArg = normalized
+	if statusArg, err = normalizeModuleStatus(statusArg, inventory); err != nil {
+		return err
 	}
 
 	devices := resolveTargetDevices(inventory, locationArg)
@@ -132,42 +196,19 @@ func addModuleStrategy(cmd *cobra.Command, result *lookupResult, qty int, nameAr
 	}
 
 	bayFilter := resolveBayFilter(bayFilterArg, string(result.Module.Type))
-
 	entries, err := placement.PlanModules(devices, inventory, bayFilter, qty, strategy)
 	if err != nil {
 		return err
 	}
 
 	names := resolveModuleTemplateNames(nameArg, entries)
-
 	if dryRun {
 		placement.PrintModulePlan(os.Stdout, entries, names)
 		return nil
 	}
 
-	for i, e := range entries {
-		mod := *result.Module
-		mod.ID = uuid.New()
-		mod.ParentDevice = e.DeviceID
-		mod.ModuleBayName = e.BayName
-		if i < len(names) {
-			mod.Name = names[i]
-		}
-		if statusArg != "" {
-			mod.Status = statusArg
-		}
-		if serialArg != "" {
-			mod.Serial = serialArg
-		}
-
-		if err := inventory.AddModule(&mod); err != nil {
-			return fmt.Errorf("failed to add module: %w", err)
-		}
-		log.Printf("Added module %s (%s) in %s bay %s", mod.ID, mod.Name, e.DeviceName, e.BayName)
-	}
-
-	if err := datastores.Datastore.Save(inventory); err != nil {
-		return fmt.Errorf("failed to save inventory: %w", err)
+	if err := commitPlannedModules(inventory, result.Module, entries, names, statusArg, serialArg); err != nil {
+		return err
 	}
 
 	log.Printf("%d module(s) added via %s strategy", len(entries), strategy)
@@ -177,126 +218,125 @@ func addModuleStrategy(cmd *cobra.Command, result *lookupResult, qty int, nameAr
 // addModuleLiteral handles the original single-device flow and also
 // supports device lookup by slug (all matching devices).
 func addModuleLiteral(cmd *cobra.Command, result *lookupResult, qty int, nameArg, deviceArg string) error {
-	bayName, _ := cmd.Flags().GetString("bay")
-	bayFilterArg, _ := cmd.Flags().GetString("bay-filter")
-	dryRun, _ := cmd.Flags().GetBool("dry-run")
-	statusArg, _ := cmd.Flags().GetString("status")
-	serialArg, _ := cmd.Flags().GetString("serial")
-	prefix, _ := cmd.Flags().GetString("prefix")
-	start, _ := cmd.Flags().GetInt("start")
-	padWidth, _ := cmd.Flags().GetInt("pad-width")
+	opts := parseModuleOpts(cmd, qty, nameArg, deviceArg)
 
-	if err := datastores.SetDeviceStore(cmd, nil); err != nil {
-		return fmt.Errorf("failed to set device store: %w", err)
-	}
-	inventory, err := datastores.Datastore.Load()
+	inventory, err := loadModuleInventory(cmd)
 	if err != nil {
-		return fmt.Errorf("failed to load inventory: %w", err)
+		return err
+	}
+	if opts.statusArg, err = normalizeModuleStatus(opts.statusArg, inventory); err != nil {
+		return err
 	}
 
-	if statusArg != "" {
-		normalized, verr := validate.StatusWithInventory(statusArg, inventory)
-		if verr != nil {
-			return verr
-		}
-		statusArg = normalized
-	}
-
-	// Resolve target device(s): try name/UUID first, then slug match.
-	var devices []*devicetypes.CaniDeviceType
-	if deviceArg != "" {
-		if dev := inventory.FindDeviceByNameOrID(deviceArg); dev != nil {
-			devices = []*devicetypes.CaniDeviceType{dev}
-		} else if slugDevices := inventory.DevicesBySlug(deviceArg); len(slugDevices) > 0 {
-			devices = slugDevices
-		}
-	}
-
-	// If multiple devices matched by slug and we have template naming,
-	// delegate to strategy-like flow using FILL.
+	devices := resolveLiteralDevices(inventory, deviceArg)
 	if len(devices) > 1 {
-		isTemplate := nameexpand.IsTemplate(nameArg)
-		bayFilter := resolveBayFilter(bayFilterArg, string(result.Module.Type))
+		return addModuleMultiDevice(inventory, result.Module, devices, opts)
+	}
+	return addModuleSingleDevice(inventory, result.Module, devices, opts)
+}
 
-		entries, planErr := placement.PlanModules(devices, inventory, bayFilter, qty, placement.StrategyFill)
-		if planErr != nil {
-			return planErr
-		}
+// parseModuleOpts reads the module placement flags into a struct.
+func parseModuleOpts(cmd *cobra.Command, qty int, nameArg, deviceArg string) moduleAddOpts {
+	opts := moduleAddOpts{qty: qty, nameArg: nameArg, deviceArg: deviceArg}
+	opts.bayName, _ = cmd.Flags().GetString("bay")
+	opts.bayFilterArg, _ = cmd.Flags().GetString(flagBayFilter)
+	opts.dryRun, _ = cmd.Flags().GetBool(flagDryRun)
+	opts.statusArg, _ = cmd.Flags().GetString("status")
+	opts.serialArg, _ = cmd.Flags().GetString("serial")
+	opts.prefix, _ = cmd.Flags().GetString("prefix")
+	opts.start, _ = cmd.Flags().GetInt("start")
+	opts.padWidth, _ = cmd.Flags().GetInt("pad-width")
+	return opts
+}
 
-		var names []string
-		if isTemplate {
-			names = resolveModuleTemplateNames(nameArg, entries)
-		}
+// resolveLiteralDevices resolves a device argument by name/UUID, then slug.
+func resolveLiteralDevices(inventory *devicetypes.Inventory, deviceArg string) []*devicetypes.CaniDeviceType {
+	if deviceArg == "" {
+		return nil
+	}
+	if dev := inventory.FindDeviceByNameOrID(deviceArg); dev != nil {
+		return []*devicetypes.CaniDeviceType{dev}
+	}
+	if slugDevices := inventory.DevicesBySlug(deviceArg); len(slugDevices) > 0 {
+		return slugDevices
+	}
+	return nil
+}
 
-		if dryRun {
-			placement.PrintModulePlan(os.Stdout, entries, names)
-			return nil
-		}
+// addModuleMultiDevice plans and commits modules across all matching devices.
+func addModuleMultiDevice(inventory *devicetypes.Inventory, base *devicetypes.CaniModuleType, devices []*devicetypes.CaniDeviceType, opts moduleAddOpts) error {
+	bayFilter := resolveBayFilter(opts.bayFilterArg, string(base.Type))
+	entries, err := placement.PlanModules(devices, inventory, bayFilter, opts.qty, placement.StrategyFill)
+	if err != nil {
+		return err
+	}
 
-		for i, e := range entries {
-			mod := *result.Module
-			mod.ID = uuid.New()
-			mod.ParentDevice = e.DeviceID
-			mod.ModuleBayName = e.BayName
-			if names != nil && i < len(names) {
-				mod.Name = names[i]
-			}
-			if statusArg != "" {
-				mod.Status = statusArg
-			}
-			if serialArg != "" {
-				mod.Serial = serialArg
-			}
-			if err := inventory.AddModule(&mod); err != nil {
-				return fmt.Errorf("failed to add module: %w", err)
-			}
-			log.Printf("Added module %s (%s) in %s bay %s", mod.ID, mod.Name, e.DeviceName, e.BayName)
-		}
+	var names []string
+	if nameexpand.IsTemplate(opts.nameArg) {
+		names = resolveModuleTemplateNames(opts.nameArg, entries)
+	}
 
-		if err := datastores.Datastore.Save(inventory); err != nil {
-			return fmt.Errorf("failed to save inventory: %w", err)
-		}
-		log.Printf("%d module(s) added", len(entries))
+	if opts.dryRun {
+		placement.PrintModulePlan(os.Stdout, entries, names)
 		return nil
 	}
 
-	// Single-device literal flow.
-	names, err := nameexpand.ResolveNames(nameArg, prefix, start, padWidth, qty)
+	if err := commitPlannedModules(inventory, base, entries, names, opts.statusArg, opts.serialArg); err != nil {
+		return err
+	}
+	log.Printf("%d module(s) added", len(entries))
+	return nil
+}
+
+// addModuleSingleDevice adds qty modules to a single (or no) parent device.
+func addModuleSingleDevice(inventory *devicetypes.Inventory, base *devicetypes.CaniModuleType, devices []*devicetypes.CaniDeviceType, opts moduleAddOpts) error {
+	names, err := resolveSingleDeviceNames(opts, devices)
 	if err != nil {
-		return fmt.Errorf("name resolution failed: %w", err)
+		return err
 	}
 
-	for i := range qty {
-		mod := *result.Module
+	for i := range opts.qty {
+		mod := *base
 		mod.ID = uuid.New()
-		mod.ModuleBayName = bayName
-
+		mod.ModuleBayName = opts.bayName
 		if len(devices) == 1 {
 			mod.ParentDevice = devices[0].ID
 		}
-
 		if names != nil {
 			mod.Name = names[i]
 		}
-		if statusArg != "" {
-			mod.Status = statusArg
-		}
-		if serialArg != "" {
-			mod.Serial = serialArg
-		}
-
+		applyModuleStatusSerial(&mod, opts.statusArg, opts.serialArg)
 		if err := inventory.AddModule(&mod); err != nil {
-			return fmt.Errorf("failed to add module: %w", err)
+			return fmt.Errorf(errAddModule, err)
 		}
 		log.Printf("Added module %s (%s)", mod.ID, mod.Name)
 	}
 
 	if err := datastores.Datastore.Save(inventory); err != nil {
-		return fmt.Errorf("failed to save inventory: %w", err)
+		return fmt.Errorf(errSaveInventory, err)
 	}
-
-	log.Printf("%d module(s) added", qty)
+	log.Printf("%d module(s) added", opts.qty)
 	return nil
+}
+
+// resolveSingleDeviceNames resolves module names for the single-device flow,
+// expanding deferred templates against the resolved device and bay context.
+func resolveSingleDeviceNames(opts moduleAddOpts, devices []*devicetypes.CaniDeviceType) ([]string, error) {
+	names, err := nameexpand.ResolveNames(opts.nameArg, opts.prefix, opts.start, opts.padWidth, opts.qty)
+	if err != nil {
+		return nil, fmt.Errorf("name resolution failed: %w", err)
+	}
+	if names == nil && nameexpand.IsTemplate(opts.nameArg) {
+		deviceName := ""
+		if len(devices) == 1 {
+			deviceName = devices[0].Name
+		}
+		names, err = expandLiteralModuleNames(opts.nameArg, deviceName, opts.bayName, opts.start, opts.qty)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return names, nil
 }
 
 // resolveTargetDevices finds all devices in the inventory, optionally
@@ -351,4 +391,24 @@ func resolveModuleTemplateNames(nameArg string, entries []placement.ModulePlacem
 		names[i] = name
 	}
 	return names
+}
+
+// expandLiteralModuleNames expands a template name (e.g. "CX7-%{DEVICE}") for
+// the single-device add flow, producing one name per quantity using the
+// resolved device name and bay as context.
+func expandLiteralModuleNames(nameArg, deviceName, bayName string, start, qty int) ([]string, error) {
+	names := make([]string, qty)
+	for i := range qty {
+		vars := map[string]string{
+			"DEVICE": deviceName,
+			"BAY":    bayName,
+			"SEQ":    strconv.Itoa(start + i),
+		}
+		expanded, err := nameexpand.ExpandTemplate(nameArg, vars)
+		if err != nil {
+			return nil, fmt.Errorf("name template expansion failed: %w", err)
+		}
+		names[i] = expanded
+	}
+	return names, nil
 }

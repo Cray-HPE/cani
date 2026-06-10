@@ -39,6 +39,32 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Nautobot interface type slugs used when synthesizing interface specs and
+// mapping device-type library interface types to the Nautobot API.
+const (
+	ifaceType1000BaseT       = "1000base-t"
+	ifaceType100BaseTX       = "100base-tx"
+	ifaceType10GBaseXSFPP    = "10gbase-x-sfpp"
+	ifaceType25GBaseXSFP28   = "25gbase-x-sfp28"
+	ifaceType40GBaseXQSFPP   = "40gbase-x-qsfpp"
+	ifaceType100GBaseXQSFP28 = "100gbase-x-qsfp28"
+	ifaceType200GBaseXQSFP56 = "200gbase-x-qsfp56"
+	ifaceType400GBaseXOSFP   = "400gbase-x-osfp"
+	ifaceTypeInfinibandNDR   = "infiniband-ndr"
+	ifaceTypeInfinibandHDR   = "infiniband-hdr"
+)
+
+// Reused format strings and keys for Nautobot load operations.
+const (
+	errFmtAPIError         = "API error: %w"
+	errFmtUnexpectedStatus = "unexpected status %d: %s"
+	errFmtCreateStatusID   = "failed to create status ID: %w"
+	errFmtFindInterface    = "cannot find interface %s on device %s: %v"
+	msgSkippedUnclassified = "  ~ %s: skipped (unclassified, no device type slug)"
+	suffixDryRun           = " (dry-run)"
+	externalIDKeyNautobot  = "nautobot"
+)
+
 // LoadResult contains the results of a Load operation
 type LoadResult struct {
 	Created            []string       // Names of devices created
@@ -221,7 +247,7 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 		}
 
 		// If we already have a Nautobot UUID from a previous export, use it
-		if nid, ok := rack.ExternalIDs["nautobot"]; ok && nid != uuid.Nil {
+		if nid, ok := rack.ExternalIDs[externalIDKeyNautobot]; ok && nid != uuid.Nil {
 			createdRackIDs[rackID] = nid
 			clog.Skipped("Skipped rack (already exported): %s", rack.Name)
 			result.RacksSkipped++
@@ -239,7 +265,7 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 			clog.Skipped("Skipped rack (already exists): %s", rack.Name)
 			result.RacksSkipped++
 			createdRackIDs[rackID] = existing.ID
-			setExternalID(&rack.ExternalIDs, "nautobot", existing.ID)
+			setExternalID(&rack.ExternalIDs, externalIDKeyNautobot, existing.ID)
 			continue
 		}
 
@@ -250,7 +276,7 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 			continue
 		}
 		createdRackIDs[rackID] = nautobotRackID
-		setExternalID(&rack.ExternalIDs, "nautobot", nautobotRackID)
+		setExternalID(&rack.ExternalIDs, externalIDKeyNautobot, nautobotRackID)
 	}
 
 	// Phase 1b: Also check for racks in inventory.Devices (legacy/fallback)
@@ -306,8 +332,13 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 			continue
 		}
 
+		// Drop any stale stored Nautobot UUID so we re-resolve by name instead
+		// of poisoning downstream interface and cable lookups with HTTP 400
+		// "not one of the available choices" errors.
+		e.pruneStaleDeviceID(ctx, device)
+
 		// If this device already has a stored Nautobot UUID, use it directly.
-		if nid, ok := device.ExternalIDs["nautobot"]; ok && nid != uuid.Nil {
+		if nid, ok := device.ExternalIDs[externalIDKeyNautobot]; ok && nid != uuid.Nil {
 			createdDeviceIDs[device.Name] = nid
 
 			if e.Options.Merge {
@@ -322,7 +353,7 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 				}
 				if err := e.updateDevice(ctx, device, nid, mapper, result); err != nil {
 					if errors.Is(err, ErrDeviceUnclassified) {
-						clog.Skipped("  ~ %s: skipped (unclassified, no device type slug)", device.Name)
+						clog.Skipped(msgSkippedUnclassified, device.Name)
 						result.Skipped = append(result.Skipped, device.Name)
 					} else {
 						result.Errors = append(result.Errors, fmt.Sprintf("%s: update error: %v", device.Name, err))
@@ -360,7 +391,7 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 		if existing != nil && !createdThisSession[existing.ID] {
 			// Found an existing Nautobot device not created this session.
 			createdDeviceIDs[device.Name] = existing.ID
-			setExternalID(&device.ExternalIDs, "nautobot", existing.ID)
+			setExternalID(&device.ExternalIDs, externalIDKeyNautobot, existing.ID)
 
 			if e.Options.Merge {
 				// Only update if there are actual field differences.
@@ -374,7 +405,7 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 				}
 				if err := e.updateDevice(ctx, device, existing.ID, mapper, result); err != nil {
 					if errors.Is(err, ErrDeviceUnclassified) {
-						clog.Skipped("  ~ %s: skipped (unclassified, no device type slug)", device.Name)
+						clog.Skipped(msgSkippedUnclassified, device.Name)
 						result.Skipped = append(result.Skipped, device.Name)
 					} else {
 						result.Errors = append(result.Errors, fmt.Sprintf("%s: update error: %v", device.Name, err))
@@ -399,7 +430,7 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 			nautobotID, err := e.createDeviceWithID(ctx, device, mapper, result)
 			if err != nil {
 				if errors.Is(err, ErrDeviceUnclassified) {
-					clog.Skipped("  ~ %s: skipped (unclassified, no device type slug)", device.Name)
+					clog.Skipped(msgSkippedUnclassified, device.Name)
 					result.Skipped = append(result.Skipped, device.Name)
 				} else {
 					result.Errors = append(result.Errors, fmt.Sprintf("%s: create error: %v", device.Name, err))
@@ -407,7 +438,7 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 			} else if nautobotID != uuid.Nil {
 				createdDeviceIDs[device.Name] = nautobotID
 				createdThisSession[nautobotID] = true
-				setExternalID(&device.ExternalIDs, "nautobot", nautobotID)
+				setExternalID(&device.ExternalIDs, externalIDKeyNautobot, nautobotID)
 			}
 		}
 	}
@@ -479,13 +510,13 @@ func (e *Exporter) createDevice(ctx context.Context, device *devicetypes.CaniDev
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create device: %s", device.Name)
-		result.Created = append(result.Created, device.Name+" (dry-run)")
+		result.Created = append(result.Created, device.Name+suffixDryRun)
 		return nil
 	}
 
 	resp, err := e.Client.DcimDevicesCreateWithResponse(ctx, &nautobotapi.DcimDevicesCreateParams{}, *req)
 	if err != nil {
-		return fmt.Errorf("API error: %w", err)
+		return fmt.Errorf(errFmtAPIError, err)
 	}
 
 	if resp.StatusCode() != http.StatusCreated && resp.StatusCode() != http.StatusOK {
@@ -493,7 +524,7 @@ func (e *Exporter) createDevice(ctx context.Context, device *devicetypes.CaniDev
 		if resp.StatusCode() == http.StatusBadRequest && strings.Contains(body, "status") && strings.Contains(body, "Related object not found") {
 			return fmt.Errorf("status '%s' does not support dcim.device content type in Nautobot — use a status like Active or Planned instead", device.Status)
 		}
-		return fmt.Errorf("unexpected status %d: %s", resp.StatusCode(), body)
+		return fmt.Errorf(errFmtUnexpectedStatus, resp.StatusCode(), body)
 	}
 
 	clog.Created("Created device: %s", device.Name)
@@ -510,17 +541,17 @@ func (e *Exporter) updateDevice(ctx context.Context, device *devicetypes.CaniDev
 
 	if e.Options.DryRun {
 		clog.DryRun("Would update device: %s (ID: %s)", device.Name, existingID)
-		result.Updated = append(result.Updated, device.Name+" (dry-run)")
+		result.Updated = append(result.Updated, device.Name+suffixDryRun)
 		return nil
 	}
 
 	resp, err := e.Client.DcimDevicesPartialUpdateWithResponse(ctx, existingID, &nautobotapi.DcimDevicesPartialUpdateParams{}, *req)
 	if err != nil {
-		return fmt.Errorf("API error: %w", err)
+		return fmt.Errorf(errFmtAPIError, err)
 	}
 
 	if resp.StatusCode() != http.StatusOK {
-		return fmt.Errorf("unexpected status %d: %s", resp.StatusCode(), string(resp.Body))
+		return fmt.Errorf(errFmtUnexpectedStatus, resp.StatusCode(), string(resp.Body))
 	}
 
 	clog.Changed("Updated device: %s", device.Name)
@@ -537,17 +568,17 @@ func (e *Exporter) createRack(ctx context.Context, device *devicetypes.CaniDevic
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create rack: %s", device.Name)
-		result.RacksCreated = append(result.RacksCreated, device.Name+" (dry-run)")
+		result.RacksCreated = append(result.RacksCreated, device.Name+suffixDryRun)
 		return nil
 	}
 
 	resp, err := e.Client.DcimRacksCreateWithResponse(ctx, &nautobotapi.DcimRacksCreateParams{}, *req)
 	if err != nil {
-		return fmt.Errorf("API error: %w", err)
+		return fmt.Errorf(errFmtAPIError, err)
 	}
 
 	if resp.StatusCode() != http.StatusCreated && resp.StatusCode() != http.StatusOK {
-		return fmt.Errorf("unexpected status %d: %s", resp.StatusCode(), string(resp.Body))
+		return fmt.Errorf(errFmtUnexpectedStatus, resp.StatusCode(), string(resp.Body))
 	}
 
 	clog.Created("Created rack: %s", device.Name)
@@ -681,17 +712,17 @@ func (e *Exporter) createRackFromCaniRack(ctx context.Context, rack *devicetypes
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create rack: %s", rack.Name)
-		result.RacksCreated = append(result.RacksCreated, rack.Name+" (dry-run)")
+		result.RacksCreated = append(result.RacksCreated, rack.Name+suffixDryRun)
 		return uuid.Nil, nil
 	}
 
 	resp, err := e.Client.DcimRacksCreateWithResponse(ctx, &nautobotapi.DcimRacksCreateParams{}, req)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("API error: %w", err)
+		return uuid.Nil, fmt.Errorf(errFmtAPIError, err)
 	}
 
 	if resp.StatusCode() != http.StatusCreated && resp.StatusCode() != http.StatusOK {
-		return uuid.Nil, fmt.Errorf("unexpected status %d: %s", resp.StatusCode(), string(resp.Body))
+		return uuid.Nil, fmt.Errorf(errFmtUnexpectedStatus, resp.StatusCode(), string(resp.Body))
 	}
 
 	var nautobotID uuid.UUID
@@ -704,6 +735,40 @@ func (e *Exporter) createRackFromCaniRack(ctx context.Context, rack *devicetypes
 	return nautobotID, nil
 }
 
+// pruneStaleDeviceID removes a stored Nautobot UUID from the device when that
+// UUID no longer exists in Nautobot (e.g. the device was deleted or Nautobot
+// was rebuilt).  Clearing it lets the caller fall through to name-based
+// resolution instead of trusting a dead ID.
+func (e *Exporter) pruneStaleDeviceID(ctx context.Context, device *devicetypes.CaniDeviceType) {
+	nid, ok := device.ExternalIDs[externalIDKeyNautobot]
+	if !ok || nid == uuid.Nil {
+		return
+	}
+	if exists, err := e.deviceExistsByID(ctx, nid); err == nil && !exists {
+		clog.Warn("Stored Nautobot ID %s for %q no longer exists; re-resolving by name", nid, device.Name)
+		delete(device.ExternalIDs, externalIDKeyNautobot)
+	}
+}
+
+// deviceExistsByID reports whether a device with the given ID currently exists
+// in Nautobot.  A definitive 404 returns (false, nil); a transient failure
+// (network, auth, 5xx) returns (false, err) so callers do not mistake a
+// momentary error for a deleted device.
+func (e *Exporter) deviceExistsByID(ctx context.Context, id uuid.UUID) (bool, error) {
+	resp, err := e.Client.DcimDevicesRetrieveWithResponse(ctx, id, &nautobotapi.DcimDevicesRetrieveParams{})
+	if err != nil {
+		return false, fmt.Errorf(errFmtAPIError, err)
+	}
+	switch resp.StatusCode() {
+	case http.StatusOK:
+		return true, nil
+	case http.StatusNotFound:
+		return false, nil
+	default:
+		return false, fmt.Errorf("unexpected status %d checking device %s", resp.StatusCode(), id)
+	}
+}
+
 // createDeviceWithID creates a new device in Nautobot and returns its Nautobot UUID
 func (e *Exporter) createDeviceWithID(ctx context.Context, device *devicetypes.CaniDeviceType, mapper *DeviceMapper, result *LoadResult) (uuid.UUID, error) {
 	req, err := mapper.MapToWritableDeviceRequest(device)
@@ -713,13 +778,13 @@ func (e *Exporter) createDeviceWithID(ctx context.Context, device *devicetypes.C
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create device: %s", device.Name)
-		result.Created = append(result.Created, device.Name+" (dry-run)")
+		result.Created = append(result.Created, device.Name+suffixDryRun)
 		return uuid.Nil, nil
 	}
 
 	resp, err := e.Client.DcimDevicesCreateWithResponse(ctx, &nautobotapi.DcimDevicesCreateParams{}, *req)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("API error: %w", err)
+		return uuid.Nil, fmt.Errorf(errFmtAPIError, err)
 	}
 
 	if resp.StatusCode() != http.StatusCreated && resp.StatusCode() != http.StatusOK {
@@ -727,7 +792,7 @@ func (e *Exporter) createDeviceWithID(ctx context.Context, device *devicetypes.C
 		if resp.StatusCode() == http.StatusBadRequest && strings.Contains(body, "status") && strings.Contains(body, "Related object not found") {
 			return uuid.Nil, fmt.Errorf("status '%s' does not support dcim.device content type in Nautobot — use a status like Active or Planned instead", device.Status)
 		}
-		return uuid.Nil, fmt.Errorf("unexpected status %d: %s", resp.StatusCode(), body)
+		return uuid.Nil, fmt.Errorf(errFmtUnexpectedStatus, resp.StatusCode(), body)
 	}
 
 	// Parse response to get the created device's ID
@@ -783,36 +848,36 @@ func getDeviceInterfaceSpecs(device *devicetypes.CaniDeviceType) []interfaceSpec
 	switch devicetypes.Type(string(device.Type)) {
 	case devicetypes.Blade, devicetypes.Node:
 		// ProLiant servers typically have iLO + 4 Ethernet + optional IB
-		specs = append(specs, interfaceSpec{Name: "iLO", Type: "1000base-t", Speed: 1000000, MgmtOnly: true})
+		specs = append(specs, interfaceSpec{Name: "iLO", Type: ifaceType1000BaseT, Speed: 1000000, MgmtOnly: true})
 		for i := 0; i < 4; i++ {
-			specs = append(specs, interfaceSpec{Name: fmt.Sprintf("eth%d", i), Type: "1000base-t", Speed: 1000000})
+			specs = append(specs, interfaceSpec{Name: fmt.Sprintf("eth%d", i), Type: ifaceType1000BaseT, Speed: 1000000})
 		}
 		// Check for InfiniBand adapters in metadata or model
 		if containsInfiniband(device) {
-			specs = append(specs, interfaceSpec{Name: "ib0", Type: "infiniband-hdr", Speed: 200000000})
-			specs = append(specs, interfaceSpec{Name: "ib1", Type: "infiniband-hdr", Speed: 200000000})
+			specs = append(specs, interfaceSpec{Name: "ib0", Type: ifaceTypeInfinibandHDR, Speed: 200000000})
+			specs = append(specs, interfaceSpec{Name: "ib1", Type: ifaceTypeInfinibandHDR, Speed: 200000000})
 		}
 
 	case devicetypes.MgmtSwitch:
 		// Management switches - use Aruba 2930F as template
-		specs = append(specs, interfaceSpec{Name: "mgmt0", Type: "1000base-t", Speed: 1000000, MgmtOnly: true})
+		specs = append(specs, interfaceSpec{Name: "mgmt0", Type: ifaceType1000BaseT, Speed: 1000000, MgmtOnly: true})
 		for i := 1; i <= 48; i++ {
-			specs = append(specs, interfaceSpec{Name: fmt.Sprintf("port%d", i), Type: "1000base-t", Speed: 1000000})
+			specs = append(specs, interfaceSpec{Name: fmt.Sprintf("port%d", i), Type: ifaceType1000BaseT, Speed: 1000000})
 		}
 		for i := 1; i <= 4; i++ {
-			specs = append(specs, interfaceSpec{Name: fmt.Sprintf("sfp%d", i), Type: "10gbase-x-sfpp", Speed: 10000000})
+			specs = append(specs, interfaceSpec{Name: fmt.Sprintf("sfp%d", i), Type: ifaceType10GBaseXSFPP, Speed: 10000000})
 		}
 
 	case devicetypes.HSNSwitch:
 		// InfiniBand NDR switches
-		specs = append(specs, interfaceSpec{Name: "mgmt0", Type: "1000base-t", Speed: 1000000, MgmtOnly: true})
+		specs = append(specs, interfaceSpec{Name: "mgmt0", Type: ifaceType1000BaseT, Speed: 1000000, MgmtOnly: true})
 		for i := 1; i <= 64; i++ {
-			specs = append(specs, interfaceSpec{Name: fmt.Sprintf("osfp%d", i), Type: "infiniband-ndr", Speed: 400000000})
+			specs = append(specs, interfaceSpec{Name: fmt.Sprintf("osfp%d", i), Type: ifaceTypeInfinibandNDR, Speed: 400000000})
 		}
 
 	case devicetypes.CabinetPDU:
 		// PDUs just have management interface
-		specs = append(specs, interfaceSpec{Name: "mgmt0", Type: "100base-tx", Speed: 100000, MgmtOnly: true})
+		specs = append(specs, interfaceSpec{Name: "mgmt0", Type: ifaceType100BaseTX, Speed: 100000, MgmtOnly: true})
 	}
 
 	return specs
@@ -835,57 +900,72 @@ func mapInterfaceType(ifaceType string) string {
 	// Handle common mappings between devicetypes library and Nautobot API
 	lower := strings.ToLower(ifaceType)
 	switch {
-	case strings.Contains(lower, "1000base-t"), strings.Contains(lower, "1gbase-t"):
-		return "1000base-t"
-	case strings.Contains(lower, "10gbase-x-sfpp"), strings.Contains(lower, "10gbase-x"):
-		return "10gbase-x-sfpp"
-	case strings.Contains(lower, "25gbase-x-sfp28"):
-		return "25gbase-x-sfp28"
-	case strings.Contains(lower, "40gbase-x-qsfpp"):
-		return "40gbase-x-qsfpp"
-	case strings.Contains(lower, "100gbase-x-qsfp28"):
-		return "100gbase-x-qsfp28"
-	case strings.Contains(lower, "200gbase-x-qsfp56"):
-		return "200gbase-x-qsfp56"
-	case strings.Contains(lower, "400gbase-x-osfp"), strings.Contains(lower, "400gbase-x-qsfpdd"):
-		return "400gbase-x-osfp"
-	case strings.Contains(lower, "infiniband-ndr"):
-		return "infiniband-ndr"
-	case strings.Contains(lower, "infiniband-hdr"):
-		return "infiniband-hdr"
-	case strings.Contains(lower, "100base-tx"):
-		return "100base-tx"
+	case strings.Contains(lower, ifaceType1000BaseT), strings.Contains(lower, "1gbase-t"):
+		return ifaceType1000BaseT
+	case strings.Contains(lower, ifaceType10GBaseXSFPP), strings.Contains(lower, "10gbase-x"):
+		return ifaceType10GBaseXSFPP
+	case strings.Contains(lower, ifaceType25GBaseXSFP28):
+		return ifaceType25GBaseXSFP28
+	case strings.Contains(lower, ifaceType40GBaseXQSFPP):
+		return ifaceType40GBaseXQSFPP
+	case strings.Contains(lower, ifaceType100GBaseXQSFP28):
+		return ifaceType100GBaseXQSFP28
+	case strings.Contains(lower, ifaceType200GBaseXQSFP56):
+		return ifaceType200GBaseXQSFP56
+	case strings.Contains(lower, ifaceType400GBaseXOSFP), strings.Contains(lower, "400gbase-x-qsfpdd"):
+		return ifaceType400GBaseXOSFP
+	case strings.Contains(lower, ifaceTypeInfinibandNDR):
+		return ifaceTypeInfinibandNDR
+	case strings.Contains(lower, ifaceTypeInfinibandHDR):
+		return ifaceTypeInfinibandHDR
+	case strings.Contains(lower, ifaceType100BaseTX):
+		return ifaceType100BaseTX
 	default:
 		// Return as-is if no mapping needed
 		if ifaceType != "" {
 			return ifaceType
 		}
-		return "1000base-t" // Default fallback
+		return ifaceType1000BaseT // Default fallback
 	}
 }
 
 // getSpeedForType returns the speed in Kbps for a given interface type
 func getSpeedForType(ifaceType string) int {
 	switch ifaceType {
-	case "100base-tx":
+	case ifaceType100BaseTX:
 		return 100000
-	case "1000base-t":
+	case ifaceType1000BaseT:
 		return 1000000
-	case "10gbase-x-sfpp":
+	case ifaceType10GBaseXSFPP:
 		return 10000000
-	case "25gbase-x-sfp28":
+	case ifaceType25GBaseXSFP28:
 		return 25000000
-	case "40gbase-x-qsfpp":
+	case ifaceType40GBaseXQSFPP:
 		return 40000000
-	case "100gbase-x-qsfp28":
+	case ifaceType100GBaseXQSFP28:
 		return 100000000
-	case "200gbase-x-qsfp56", "infiniband-hdr":
+	case ifaceType200GBaseXQSFP56, ifaceTypeInfinibandHDR:
 		return 200000000
-	case "400gbase-x-osfp", "400gbase-x-qsfpdd", "infiniband-ndr":
+	case ifaceType400GBaseXOSFP, "400gbase-x-qsfpdd", ifaceTypeInfinibandNDR:
 		return 400000000
 	default:
 		return 1000000 // Default 1Gbps
 	}
+}
+
+// statusRef resolves the named Nautobot status and builds a status reference.
+func (e *Exporter) statusRef(name string) (nautobotapi.BulkWritableCableRequestStatus, error) {
+	var status nautobotapi.BulkWritableCableRequestStatus
+	statusItem, err := e.Cache.GetStatus(name)
+	if err != nil {
+		return status, fmt.Errorf("failed to get %s status: %w", name, err)
+	}
+	var statusIDUnion nautobotapi.BulkWritableCableRequestStatusId
+	if err := statusIDUnion.FromBulkWritableCableRequestStatusId0(statusItem.ID); err != nil {
+		return status, fmt.Errorf(errFmtCreateStatusID, err)
+	}
+	status.Id = &statusIDUnion
+	return status, nil
 }
 
 // createInterface creates a single interface on a device
@@ -906,16 +986,9 @@ func (e *Exporter) createInterface(ctx context.Context, deviceID uuid.UUID, ifac
 	}
 
 	// Build status reference - get "Active" status
-	statusItem, err := e.Cache.GetStatus("Active")
+	status, err := e.statusRef("Active")
 	if err != nil {
-		return fmt.Errorf("failed to get Active status: %w", err)
-	}
-	var statusIDUnion nautobotapi.BulkWritableCableRequestStatusId
-	if err := statusIDUnion.FromBulkWritableCableRequestStatusId0(statusItem.ID); err != nil {
-		return fmt.Errorf("failed to create status ID: %w", err)
-	}
-	status := nautobotapi.BulkWritableCableRequestStatus{
-		Id: &statusIDUnion,
+		return err
 	}
 
 	// Build interface request
@@ -947,11 +1020,11 @@ func (e *Exporter) createInterface(ctx context.Context, deviceID uuid.UUID, ifac
 
 	resp, err := e.Client.DcimInterfacesCreateWithResponse(ctx, &nautobotapi.DcimInterfacesCreateParams{}, req)
 	if err != nil {
-		return fmt.Errorf("API error: %w", err)
+		return fmt.Errorf(errFmtAPIError, err)
 	}
 
 	if resp.StatusCode() != http.StatusCreated && resp.StatusCode() != http.StatusOK {
-		return fmt.Errorf("unexpected status %d: %s", resp.StatusCode(), string(resp.Body))
+		return fmt.Errorf(errFmtUnexpectedStatus, resp.StatusCode(), string(resp.Body))
 	}
 
 	// Cache the newly created interface for cable creation
@@ -976,16 +1049,9 @@ func (e *Exporter) updateInterface(ctx context.Context, interfaceID uuid.UUID, d
 	}
 
 	// Build status reference - get "Active" status
-	statusItem, err := e.Cache.GetStatus("Active")
+	status, err := e.statusRef("Active")
 	if err != nil {
-		return fmt.Errorf("failed to get Active status: %w", err)
-	}
-	var statusIDUnion nautobotapi.BulkWritableCableRequestStatusId
-	if err := statusIDUnion.FromBulkWritableCableRequestStatusId0(statusItem.ID); err != nil {
-		return fmt.Errorf("failed to create status ID: %w", err)
-	}
-	status := nautobotapi.BulkWritableCableRequestStatus{
-		Id: &statusIDUnion,
+		return err
 	}
 
 	// Build device reference (required by Nautobot API)
@@ -1014,11 +1080,11 @@ func (e *Exporter) updateInterface(ctx context.Context, interfaceID uuid.UUID, d
 
 	resp, err := e.Client.DcimInterfacesPartialUpdateWithResponse(ctx, interfaceID, &nautobotapi.DcimInterfacesPartialUpdateParams{}, req)
 	if err != nil {
-		return fmt.Errorf("API error: %w", err)
+		return fmt.Errorf(errFmtAPIError, err)
 	}
 
 	if resp.StatusCode() != http.StatusOK {
-		return fmt.Errorf("unexpected status %d: %s", resp.StatusCode(), string(resp.Body))
+		return fmt.Errorf(errFmtUnexpectedStatus, resp.StatusCode(), string(resp.Body))
 	}
 
 	return nil
@@ -1079,25 +1145,25 @@ func (e *Exporter) createCaniCableType(ctx context.Context, cableID uuid.UUID, c
 	// so the cache may be stale for module-owned interfaces (e.g. HSN ports).
 	ifaceA, err := e.Cache.GetInterfaceByDeviceAndNameFuzzy(nautobotDeviceAID, cable.TerminationAPort)
 	if err != nil {
-		return fmt.Errorf("cannot find interface %s on device %s: %v", cable.TerminationAPort, deviceA.Name, err)
+		return fmt.Errorf(errFmtFindInterface, cable.TerminationAPort, deviceA.Name, err)
 	}
 	if ifaceA == nil {
 		e.Cache.InvalidateInterfacePrefetch(nautobotDeviceAID)
 		ifaceA, err = e.Cache.GetInterfaceByDeviceAndNameFuzzy(nautobotDeviceAID, cable.TerminationAPort)
 		if err != nil || ifaceA == nil {
-			return fmt.Errorf("cannot find interface %s on device %s: %v", cable.TerminationAPort, deviceA.Name, err)
+			return fmt.Errorf(errFmtFindInterface, cable.TerminationAPort, deviceA.Name, err)
 		}
 	}
 
 	ifaceB, err := e.Cache.GetInterfaceByDeviceAndNameFuzzy(nautobotDeviceBID, cable.TerminationBPort)
 	if err != nil {
-		return fmt.Errorf("cannot find interface %s on device %s: %v", cable.TerminationBPort, deviceB.Name, err)
+		return fmt.Errorf(errFmtFindInterface, cable.TerminationBPort, deviceB.Name, err)
 	}
 	if ifaceB == nil {
 		e.Cache.InvalidateInterfacePrefetch(nautobotDeviceBID)
 		ifaceB, err = e.Cache.GetInterfaceByDeviceAndNameFuzzy(nautobotDeviceBID, cable.TerminationBPort)
 		if err != nil || ifaceB == nil {
-			return fmt.Errorf("cannot find interface %s on device %s: %v", cable.TerminationBPort, deviceB.Name, err)
+			return fmt.Errorf(errFmtFindInterface, cable.TerminationBPort, deviceB.Name, err)
 		}
 	}
 
@@ -1143,16 +1209,9 @@ func (e *Exporter) createCaniCableType(ctx context.Context, cableID uuid.UUID, c
 	if strings.EqualFold(cable.Status, "planned") {
 		statusName = string(devicetypes.StatusPlanned)
 	}
-	statusItem, err := e.Cache.GetStatus(statusName)
+	status, err := e.statusRef(statusName)
 	if err != nil {
-		return fmt.Errorf("failed to get %s status: %w", statusName, err)
-	}
-	var statusIDUnion nautobotapi.BulkWritableCableRequestStatusId
-	if err := statusIDUnion.FromBulkWritableCableRequestStatusId0(statusItem.ID); err != nil {
-		return fmt.Errorf("failed to create status ID: %w", err)
-	}
-	status := nautobotapi.BulkWritableCableRequestStatus{
-		Id: &statusIDUnion,
+		return err
 	}
 
 	// Build cable request — prefer explicit types from fixture, default to dcim.interface
@@ -1224,7 +1283,7 @@ func (e *Exporter) createCaniCableType(ctx context.Context, cableID uuid.UUID, c
 
 	resp, err := e.Client.DcimCablesCreateWithResponse(ctx, &nautobotapi.DcimCablesCreateParams{}, req)
 	if err != nil {
-		return fmt.Errorf("API error: %w", err)
+		return fmt.Errorf(errFmtAPIError, err)
 	}
 
 	if resp.StatusCode() != http.StatusCreated && resp.StatusCode() != http.StatusOK {

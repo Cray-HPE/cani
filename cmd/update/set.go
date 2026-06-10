@@ -28,6 +28,8 @@ package update
 import (
 	"fmt"
 	"strings"
+
+	"github.com/Cray-HPE/cani/internal/provider"
 )
 
 // parseSetFlags splits --set key=value pairs into a map.
@@ -43,22 +45,17 @@ func parseSetFlags(pairs []string) (map[string]string, error) {
 	return result, nil
 }
 
-// applyProviderMetadata merges key=value pairs into a ProviderMetadata["nautobot"] map.
+// applyProviderMetadata parses key=value pairs and lets each registered
+// provider merge them into its own section of the metadata map.
 func applyProviderMetadata(pm *map[string]any, pairs []string) error {
 	parsed, err := parseSetFlags(pairs)
 	if err != nil {
 		return fmt.Errorf("invalid --metadata: %w", err)
 	}
-	if *pm == nil {
-		*pm = make(map[string]any)
+	for _, p := range provider.GetProviders() {
+		if ma, ok := p.(provider.MetadataApplier); ok {
+			ma.ApplyMetadata(pm, parsed)
+		}
 	}
-	existing, _ := (*pm)["nautobot"].(map[string]any)
-	if existing == nil {
-		existing = make(map[string]any)
-	}
-	for k, v := range parsed {
-		existing[k] = v
-	}
-	(*pm)["nautobot"] = existing
 	return nil
 }

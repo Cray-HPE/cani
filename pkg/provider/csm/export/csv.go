@@ -11,6 +11,9 @@ import (
 	"github.com/google/uuid"
 )
 
+// subRoleKey is the canonical CSV/SLS field name for a node's sub-role.
+const subRoleKey = "SubRole"
+
 // csvAllowedHeaders maps lowercase header names to their canonical form.
 var csvAllowedHeaders = map[string]string{
 	"id":      "ID",
@@ -19,7 +22,7 @@ var csvAllowedHeaders = map[string]string{
 	"status":  "Status",
 	"vlan":    "Vlan",
 	"role":    "Role",
-	"subrole": "SubRole",
+	"subrole": subRoleKey,
 	"alias":   "Alias",
 	"nid":     "Nid",
 }
@@ -215,7 +218,7 @@ func getField(dev *devicetypes.CaniDeviceType, header string) string {
 		return getCSMMetaString(dev, "hmnVlan")
 	case "Role":
 		return getCSMMetaString(dev, "role")
-	case "SubRole":
+	case subRoleKey:
 		return getCSMMetaString(dev, "subRole")
 	case "Nid":
 		return getCSMMetaString(dev, "nid")
@@ -298,7 +301,7 @@ func getRackField(rack *devicetypes.CaniRackType, header string) string {
 		return metaString(&rack.ObjectMeta, "hmnVlan")
 	case "Role":
 		return metaString(&rack.ObjectMeta, "role")
-	case "SubRole":
+	case subRoleKey:
 		return metaString(&rack.ObjectMeta, "subRole")
 	case "Nid":
 		return metaString(&rack.ObjectMeta, "nid")

@@ -28,13 +28,9 @@ package update
 import (
 	"fmt"
 	"log"
-	"path/filepath"
-	"strings"
 
-	"github.com/Cray-HPE/cani/internal/util/resolve"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
-	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
@@ -62,12 +58,17 @@ Examples:
   cani update interface --device server-01 --name eth0 --label "BMC Network"
 
   # Set MAC address on an interface
-  cani update interface --device server-01 --name iLO --mac aa:bb:cc:dd:ee:ff`,
+  cani update interface --device server-01 --name iLO --mac aa:bb:cc:dd:ee:ff
+
+  # Target a specific module's interface (disambiguates names shared with the
+  # parent device or sibling modules, e.g. multiple "HSN 0" ports on one node)
+  cani update interface --module CX7-server-01 --name "HSN 0" --mac aa:bb:cc:dd:ee:ff`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: updateInterface,
 	}
 
 	cmd.Flags().String("device", "", "Device name or UUID (required when not using positional UUID)")
+	cmd.Flags().String("module", "", "Module name or UUID (targets only that module's own interfaces)")
 	cmd.Flags().String("name", "", "Interface name or glob pattern (e.g. \"1/1/*\")")
 	cmd.Flags().String("role", "", "Interface role (e.g. management, hsn, storage, access)")
 	cmd.Flags().String("label", "", "Interface label")
@@ -93,12 +94,45 @@ func updateInterface(cmd *cobra.Command, args []string) error {
 		return listDeviceInterfaces(cmd, inventory)
 	}
 
+	updates, err := parseInterfaceUpdates(cmd)
+	if err != nil {
+		return err
+	}
+
+	// Resolve target interfaces
+	targets, err := resolveInterfaces(cmd, args, inventory)
+	if err != nil {
+		return err
+	}
+	if len(targets) == 0 {
+		return fmt.Errorf("no interfaces matched the specified criteria")
+	}
+
+	applyInterfaceUpdates(cmd, targets, updates)
+
+	if err := finalizeInterfaceUpdate(inventory); err != nil {
+		return err
+	}
+
+	logInterfaceUpdate(targets)
+	return nil
+}
+
+// interfaceUpdates holds the validated --role/--label/--mac values.
+type interfaceUpdates struct {
+	role  string
+	label string
+	mac   string
+}
+
+// parseInterfaceUpdates reads and validates the --role/--label/--mac flags.
+func parseInterfaceUpdates(cmd *cobra.Command) (interfaceUpdates, error) {
 	role, _ := cmd.Flags().GetString("role")
 	label, _ := cmd.Flags().GetString("label")
 	mac, _ := cmd.Flags().GetString("mac")
 
 	if !cmd.Flags().Changed("role") && !cmd.Flags().Changed("label") && !cmd.Flags().Changed("mac") {
-		return fmt.Errorf("at least one of --role, --label, or --mac must be specified")
+		return interfaceUpdates{}, fmt.Errorf("at least one of --role, --label, or --mac must be specified")
 	}
 
 	if role != "" {
@@ -110,43 +144,59 @@ func updateInterface(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("mac") {
 		normalized, nerr := devicetypes.NormalizeMAC(mac)
 		if nerr != nil {
-			return nerr
+			return interfaceUpdates{}, nerr
 		}
 		mac = normalized
 	}
 
-	// Resolve target interfaces
-	targets, err := resolveInterfaces(cmd, args, inventory)
-	if err != nil {
-		return err
-	}
+	return interfaceUpdates{role: role, label: label, mac: mac}, nil
+}
 
-	if len(targets) == 0 {
-		return fmt.Errorf("no interfaces matched the specified criteria")
-	}
-
-	// Apply updates
+// applyInterfaceUpdates applies the changed fields to each target interface
+// (and its backing spec when present).
+func applyInterfaceUpdates(cmd *cobra.Command, targets []interfaceTarget, u interfaceUpdates) {
+	roleChanged := cmd.Flags().Changed("role")
+	labelChanged := cmd.Flags().Changed("label")
+	macChanged := cmd.Flags().Changed("mac")
 	for _, t := range targets {
-		if cmd.Flags().Changed("role") {
-			t.instance.Role = role
-			if t.spec != nil {
-				t.spec.Role = role
-			}
+		if roleChanged {
+			setInterfaceRole(t, u.role)
 		}
-		if cmd.Flags().Changed("label") {
-			t.instance.Label = label
-			if t.spec != nil {
-				t.spec.Label = label
-			}
+		if labelChanged {
+			setInterfaceLabel(t, u.label)
 		}
-		if cmd.Flags().Changed("mac") {
-			t.instance.MacAddress = mac
-			if t.spec != nil {
-				t.spec.MacAddress = mac
-			}
+		if macChanged {
+			setInterfaceMAC(t, u.mac)
 		}
 	}
+}
 
+// setInterfaceRole sets the role on the instance and its spec when present.
+func setInterfaceRole(t interfaceTarget, role string) {
+	t.instance.Role = role
+	if t.spec != nil {
+		t.spec.Role = role
+	}
+}
+
+// setInterfaceLabel sets the label on the instance and its spec when present.
+func setInterfaceLabel(t interfaceTarget, label string) {
+	t.instance.Label = label
+	if t.spec != nil {
+		t.spec.Label = label
+	}
+}
+
+// setInterfaceMAC sets the MAC on the instance and its spec when present.
+func setInterfaceMAC(t interfaceTarget, mac string) {
+	t.instance.MacAddress = mac
+	if t.spec != nil {
+		t.spec.MacAddress = mac
+	}
+}
+
+// finalizeInterfaceUpdate rebuilds derived relationships and persists the inventory.
+func finalizeInterfaceUpdate(inventory *devicetypes.Inventory) error {
 	// Rebuild relationships so derived fields are updated.
 	result := inventory.VerifyParentChildRelationships()
 	if result.HasErrors() {
@@ -156,179 +206,20 @@ func updateInterface(cmd *cobra.Command, args []string) error {
 	if err := datastores.Datastore.Save(inventory); err != nil {
 		return fmt.Errorf("failed to save inventory: %w", err)
 	}
+	return nil
+}
 
+// logInterfaceUpdate logs the result of an interface update.
+func logInterfaceUpdate(targets []interfaceTarget) {
 	if len(targets) == 1 {
 		log.Printf("Updated interface %s (%s)", targets[0].instance.Name, targets[0].instance.ID)
 	} else {
 		log.Printf("Updated %d interfaces", len(targets))
 	}
-	return nil
 }
 
 // interfaceTarget pairs a CaniInterface with its parent spec (if found).
 type interfaceTarget struct {
 	instance *devicetypes.CaniInterface
 	spec     *devicetypes.InterfaceSpec
-}
-
-// resolveInterfaces finds the target interface(s) based on either:
-//   - A positional UUID argument
-//   - --device + --name flags (name supports glob patterns)
-func resolveInterfaces(cmd *cobra.Command, args []string, inv *devicetypes.Inventory) ([]interfaceTarget, error) {
-	// Case 1: Positional UUID argument
-	if len(args) == 1 {
-		id, err := uuid.Parse(args[0])
-		if err != nil {
-			return nil, fmt.Errorf("invalid interface UUID: %w", err)
-		}
-		iface, ok := inv.Interfaces[id]
-		if !ok {
-			return nil, fmt.Errorf("interface %s not found", id)
-		}
-		spec := findInterfaceSpec(inv, iface)
-		return []interfaceTarget{{instance: iface, spec: spec}}, nil
-	}
-
-	// Case 2: --device + --name
-	deviceRef, _ := cmd.Flags().GetString("device")
-	namePattern, _ := cmd.Flags().GetString("name")
-
-	if deviceRef == "" {
-		return nil, fmt.Errorf("either a positional UUID or --device flag is required")
-	}
-	if namePattern == "" {
-		return nil, fmt.Errorf("--name is required when using --device")
-	}
-
-	deviceID, err := resolve.Device(inv, deviceRef)
-	if err != nil {
-		return nil, fmt.Errorf("resolving --device: %w", err)
-	}
-
-	// Collect all interfaces belonging to this device (or its modules)
-	var targets []interfaceTarget
-	for _, iface := range inv.Interfaces {
-		if iface == nil {
-			continue
-		}
-		if !belongsToDevice(inv, iface, deviceID) {
-			continue
-		}
-		// Use matchInterfaceName so that '*' can match '/' characters
-		// in interface names like "1/1/14".
-		matched, merr := matchInterfaceName(namePattern, iface.Name)
-		if merr != nil {
-			return nil, fmt.Errorf("invalid --name pattern %q: %w", namePattern, merr)
-		}
-		if !matched {
-			// Also try case-insensitive exact match
-			if !strings.EqualFold(iface.Name, namePattern) {
-				continue
-			}
-		}
-		spec := findInterfaceSpec(inv, iface)
-		targets = append(targets, interfaceTarget{instance: iface, spec: spec})
-	}
-
-	return targets, nil
-}
-
-// belongsToDevice returns true if the interface belongs to the given device
-// directly or via one of its child modules.
-func belongsToDevice(inv *devicetypes.Inventory, iface *devicetypes.CaniInterface, deviceID uuid.UUID) bool {
-	if iface.DeviceID == deviceID {
-		return true
-	}
-	// Check if the interface's device is actually a module parented by this device
-	for _, mod := range inv.Modules {
-		if mod == nil {
-			continue
-		}
-		if mod.ID == iface.DeviceID && mod.ParentDevice == deviceID {
-			return true
-		}
-	}
-	return false
-}
-
-// listDeviceInterfaces prints all interfaces for a device (and its modules).
-func listDeviceInterfaces(cmd *cobra.Command, inv *devicetypes.Inventory) error {
-	deviceRef, _ := cmd.Flags().GetString("device")
-	if deviceRef == "" {
-		return fmt.Errorf("--device is required with -L/--list")
-	}
-
-	deviceID, err := resolve.Device(inv, deviceRef)
-	if err != nil {
-		return fmt.Errorf("resolving --device: %w", err)
-	}
-	device := inv.Devices[deviceID]
-
-	fmt.Printf("Interfaces for %s (%s):\n", device.Name, deviceID)
-	fmt.Printf("  %-20s %-24s %-20s %s\n", "NAME", "TYPE", "ROLE", "SOURCE")
-	fmt.Printf("  %-20s %-24s %-20s %s\n", "----", "----", "----", "------")
-
-	// Device's own interfaces
-	for _, iface := range device.Interfaces {
-		mgmtOnly := iface.MgmtOnly != nil && *iface.MgmtOnly
-		role := devicetypes.ResolveInterfaceRole(iface.Role, iface.Name, iface.Type, mgmtOnly)
-		if role == "" {
-			role = "-"
-		}
-		fmt.Printf("  %-20s %-24s %-20s %s\n", iface.Name, iface.Type, role, "device")
-	}
-
-	// Module interfaces
-	for _, mod := range inv.Modules {
-		if mod == nil || mod.ParentDevice != deviceID {
-			continue
-		}
-		for _, iface := range mod.Interfaces {
-			mgmtOnly := iface.MgmtOnly != nil && *iface.MgmtOnly
-			role := devicetypes.ResolveInterfaceRole(iface.Role, iface.Name, iface.Type, mgmtOnly)
-			if role == "" {
-				role = "-"
-			}
-			fmt.Printf("  %-20s %-24s %-20s module:%s\n", iface.Name, iface.Type, role, mod.Name)
-		}
-	}
-
-	return nil
-}
-
-// matchInterfaceName performs glob matching where '*' can match '/' characters.
-// Standard filepath.Match treats '/' as a path separator that '*' cannot cross;
-// this function works around that for interface names like "1/1/14".
-func matchInterfaceName(pattern, name string) (bool, error) {
-	p := strings.ReplaceAll(pattern, "/", "\x00")
-	n := strings.ReplaceAll(name, "/", "\x00")
-	return filepath.Match(p, n)
-}
-
-// findInterfaceSpec locates the InterfaceSpec on the parent device/module
-// that corresponds to the given CaniInterface.
-func findInterfaceSpec(inv *devicetypes.Inventory, iface *devicetypes.CaniInterface) *devicetypes.InterfaceSpec {
-	// Check device interfaces
-	if device, ok := inv.Devices[iface.DeviceID]; ok && device != nil {
-		for i := range device.Interfaces {
-			if device.Interfaces[i].Name == iface.Name {
-				return &device.Interfaces[i]
-			}
-			if device.Interfaces[i].ID == iface.ID {
-				return &device.Interfaces[i]
-			}
-		}
-	}
-	// Check module interfaces
-	if mod, ok := inv.Modules[iface.DeviceID]; ok && mod != nil {
-		for i := range mod.Interfaces {
-			if mod.Interfaces[i].Name == iface.Name {
-				return &mod.Interfaces[i]
-			}
-			if mod.Interfaces[i].ID == iface.ID {
-				return &mod.Interfaces[i]
-			}
-		}
-	}
-	return nil
 }

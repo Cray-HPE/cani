@@ -28,7 +28,9 @@ package export
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
+	"net/url"
 
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 )
@@ -48,6 +50,8 @@ func NewNautobotClient(url, token string) (*NautobotClient, error) {
 	if token == "" {
 		return nil, fmt.Errorf("nautobot API token is required")
 	}
+
+	warnIfInsecureURL(url)
 
 	// Create auth header injector
 	authEditor := nautobotapi.WithRequestEditorFn(func(ctx context.Context, req *http.Request) error {
@@ -78,4 +82,19 @@ func (c *NautobotClient) TestConnection(ctx context.Context) error {
 		return fmt.Errorf("nautobot returned status %d: %s", resp.StatusCode(), string(resp.Body))
 	}
 	return nil
+}
+
+// warnIfInsecureURL logs a warning when the Nautobot URL uses cleartext HTTP
+// to a non-loopback host. The API token is sent in the Authorization header,
+// so an http:// connection to a remote host exposes it to interception.
+func warnIfInsecureURL(rawURL string) {
+	u, err := url.Parse(rawURL)
+	if err != nil || u.Scheme == "https" {
+		return
+	}
+	switch u.Hostname() {
+	case "localhost", "127.0.0.1", "::1":
+		return
+	}
+	log.Printf("WARNING: nautobot URL %q uses cleartext HTTP; the API token will be transmitted unencrypted and is vulnerable to interception. Use https:// for remote instances.", rawURL)
 }

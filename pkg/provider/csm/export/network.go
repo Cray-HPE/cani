@@ -19,6 +19,9 @@ const hmnMTNKey = "HMN_MTN"
 // nmnMTNKey is the SLS network name for the mountain NMN.
 const nmnMTNKey = "NMN_MTN"
 
+// hmnVlanKey is the CSM provider metadata key for a cabinet's HMN VLAN.
+const hmnVlanKey = "hmnVlan"
+
 // enrichCabinetNetworks sets ExtraProperties.Networks on each new
 // cabinet entry in expected so the PUT to SLS includes network data.
 func enrichCabinetNetworks(
@@ -36,30 +39,8 @@ func enrichCabinetNetworks(
 		if dev.Status != "staged" {
 			continue
 		}
-		xname := extractXname(dev)
-		hw, ok := expected[xname]
-		if !ok {
-			continue
-		}
 		sub, _ := dev.GetProviderSubMap("csm")
-		hmnVlan := intFromMeta(sub, "hmnVlan")
-		if hmnVlan == 0 {
-			continue
-		}
-
-		nmnVlan := deriveNMNVlan(hmnVlan, &hmnNet, &nmnNet)
-
-		hmnSub, err := computeSubnet(&hmnNet, hmnVlan, xname)
-		if err != nil {
-			continue
-		}
-		nmnSub, err := computeSubnet(&nmnNet, nmnVlan, xname)
-		if err != nil {
-			continue
-		}
-
-		setNetworkMetadata(&hw, hmnSub, nmnSub, hmnVlan, nmnVlan)
-		expected[xname] = hw
+		enrichCabinetEntry(expected, extractXname(dev), sub, &hmnNet, &nmnNet)
 	}
 
 	// Also process staged racks (cabinets added via "add" flow).
@@ -67,31 +48,42 @@ func enrichCabinetNetworks(
 		if rack == nil || !strings.EqualFold(rack.Status, "staged") {
 			continue
 		}
-		xname := extractRackXname(rack)
-		hw, ok := expected[xname]
-		if !ok {
-			continue
-		}
 		sub, _ := rack.GetProviderSubMap("csm")
-		hmnVlan := intFromMeta(sub, "hmnVlan")
-		if hmnVlan == 0 {
-			continue
-		}
-
-		nmnVlan := deriveNMNVlan(hmnVlan, &hmnNet, &nmnNet)
-
-		hmnSub, err := computeSubnet(&hmnNet, hmnVlan, xname)
-		if err != nil {
-			continue
-		}
-		nmnSub, err := computeSubnet(&nmnNet, nmnVlan, xname)
-		if err != nil {
-			continue
-		}
-
-		setNetworkMetadata(&hw, hmnSub, nmnSub, hmnVlan, nmnVlan)
-		expected[xname] = hw
+		enrichCabinetEntry(expected, extractRackXname(rack), sub, &hmnNet, &nmnNet)
 	}
+}
+
+// enrichCabinetEntry computes HMN/NMN subnets for a single cabinet and
+// writes the network metadata back into expected. It is a no-op when the
+// cabinet has no expected entry or no HMN VLAN.
+func enrichCabinetEntry(
+	expected map[string]import_.SlsHardware,
+	xname string,
+	sub map[string]any,
+	hmnNet, nmnNet *import_.SlsNetwork,
+) {
+	hw, ok := expected[xname]
+	if !ok {
+		return
+	}
+	hmnVlan := intFromMeta(sub, hmnVlanKey)
+	if hmnVlan == 0 {
+		return
+	}
+
+	nmnVlan := deriveNMNVlan(hmnVlan, hmnNet, nmnNet)
+
+	hmnSub, err := computeSubnet(hmnNet, hmnVlan, xname)
+	if err != nil {
+		return
+	}
+	nmnSub, err := computeSubnet(nmnNet, nmnVlan, xname)
+	if err != nil {
+		return
+	}
+
+	setNetworkMetadata(&hw, hmnSub, nmnSub, hmnVlan, nmnVlan)
+	expected[xname] = hw
 }
 
 // reconcileNetworks pushes updated SLS network definitions when new
@@ -112,43 +104,72 @@ func reconcileNetworks(
 		if hw.TypeString != "Cabinet" {
 			continue
 		}
-
-		// Look for CSM metadata on devices first, then on racks.
-		var sub map[string]any
-		dev := findDeviceByXname(hw.Xname, inventory)
-		if dev != nil {
-			sub, _ = dev.GetProviderSubMap("csm")
-		} else {
-			rack := findRackByXname(hw.Xname, inventory)
-			if rack == nil {
-				continue
-			}
-			sub, _ = rack.GetProviderSubMap("csm")
-		}
-		hmnVlan := intFromMeta(sub, "hmnVlan")
-		if hmnVlan == 0 {
+		sub, ok := resolveCabinetSubMap(hw.Xname, inventory)
+		if !ok {
 			continue
 		}
-		nmnVlan := deriveNMNVlan(hmnVlan, &hmnNet, &nmnNet)
-		ordinal := cabinetOrdinalFromXname(hw.Xname)
-
-		hmnSub, err := computeSubnet(&hmnNet, hmnVlan, hw.Xname)
+		h, n, err := addCabinetSubnets(hw, sub, &hmnNet, &nmnNet)
 		if err != nil {
-			return fmt.Errorf("unable to allocate subnet for cabinet (%s) in network (%s): %w", hw.Xname, hmnMTNKey, err)
+			return err
 		}
-		nmnSub, err := computeSubnet(&nmnNet, nmnVlan, hw.Xname)
-		if err != nil {
-			return fmt.Errorf("unable to allocate subnet for cabinet (%s) in network (%s): %w", hw.Xname, nmnMTNKey, err)
-		}
-
-		if appendSubnet(&hmnNet, cabinetSubnetName(ordinal), hmnSub, hmnVlan) {
-			hmnDirty = true
-		}
-		if appendSubnet(&nmnNet, cabinetSubnetName(ordinal), nmnSub, nmnVlan) {
-			nmnDirty = true
-		}
+		hmnDirty = hmnDirty || h
+		nmnDirty = nmnDirty || n
 	}
 
+	return putDirtyNetworks(c, hmnNet, nmnNet, hmnDirty, nmnDirty, stats)
+}
+
+// resolveCabinetSubMap returns the CSM sub-map for a cabinet hardware
+// entry, checking devices first and then racks. The second return is
+// false when neither a device nor a rack matches the xname.
+func resolveCabinetSubMap(xname string, inventory devicetypes.Inventory) (map[string]any, bool) {
+	if dev := findDeviceByXname(xname, inventory); dev != nil {
+		sub, _ := dev.GetProviderSubMap("csm")
+		return sub, true
+	}
+	if rack := findRackByXname(xname, inventory); rack != nil {
+		sub, _ := rack.GetProviderSubMap("csm")
+		return sub, true
+	}
+	return nil, false
+}
+
+// addCabinetSubnets allocates and appends HMN/NMN subnets for a single
+// added cabinet, returning whether each network was modified.
+func addCabinetSubnets(
+	hw import_.SlsHardware,
+	sub map[string]any,
+	hmnNet, nmnNet *import_.SlsNetwork,
+) (hmnDirty, nmnDirty bool, err error) {
+	hmnVlan := intFromMeta(sub, hmnVlanKey)
+	if hmnVlan == 0 {
+		return false, false, nil
+	}
+	nmnVlan := deriveNMNVlan(hmnVlan, hmnNet, nmnNet)
+	ordinal := cabinetOrdinalFromXname(hw.Xname)
+
+	hmnSub, err := computeSubnet(hmnNet, hmnVlan, hw.Xname)
+	if err != nil {
+		return false, false, fmt.Errorf("unable to allocate subnet for cabinet (%s) in network (%s): %w", hw.Xname, hmnMTNKey, err)
+	}
+	nmnSub, err := computeSubnet(nmnNet, nmnVlan, hw.Xname)
+	if err != nil {
+		return false, false, fmt.Errorf("unable to allocate subnet for cabinet (%s) in network (%s): %w", hw.Xname, nmnMTNKey, err)
+	}
+
+	hmnDirty = appendSubnet(hmnNet, cabinetSubnetName(ordinal), hmnSub, hmnVlan)
+	nmnDirty = appendSubnet(nmnNet, cabinetSubnetName(ordinal), nmnSub, nmnVlan)
+	return hmnDirty, nmnDirty, nil
+}
+
+// putDirtyNetworks PUTs each network that was modified and records the
+// number of PUT calls in stats.
+func putDirtyNetworks(
+	c *client.Client,
+	hmnNet, nmnNet import_.SlsNetwork,
+	hmnDirty, nmnDirty bool,
+	stats *reconcileStats,
+) error {
 	if hmnDirty {
 		if err := putNetwork(c, hmnNet); err != nil {
 			return err

@@ -48,7 +48,7 @@ func newCableCommand() *cobra.Command {
 	cmd.Flags().String("label", "", "New label")
 	cmd.Flags().String("status", "", "New status")
 	cmd.Flags().String("color", "", "Cable color")
-	cmd.Flags().String("description", "", "Description")
+	cmd.Flags().String(flagDescription, "", "Description")
 
 	return cmd
 }
@@ -79,8 +79,8 @@ func updateCable(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("color") {
 		cable.Color, _ = cmd.Flags().GetString("color")
 	}
-	if cmd.Flags().Changed("description") {
-		cable.Description, _ = cmd.Flags().GetString("description")
+	if cmd.Flags().Changed(flagDescription) {
+		cable.Description, _ = cmd.Flags().GetString(flagDescription)
 	}
 
 	if err := applySetToCable(cmd, cable); err != nil {
@@ -109,7 +109,7 @@ func applySetToCable(cmd *cobra.Command, cable *devicetypes.CaniCableType) error
 			cable.Status = v
 		case "color":
 			cable.Color = v
-		case "description":
+		case flagDescription:
 			cable.Description = v
 		default:
 			return fmt.Errorf("unknown cable field: %s", k)

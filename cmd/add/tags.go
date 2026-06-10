@@ -26,6 +26,7 @@
 package add
 
 import (
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/spf13/cobra"
 )
@@ -51,22 +52,22 @@ func applyTagsToDevice(device *devicetypes.CaniDeviceType, tags []string) {
 	}
 }
 
-// applyProviderMetadataToDevice merges metadata into the device's ProviderMetadata["nautobot"].
-func applyProviderMetadataToDevice(device *devicetypes.CaniDeviceType, meta map[string]string) {
+// applyProviderMetadataMap lets each registered provider merge metadata
+// into its own section of the given provider-metadata map.
+func applyProviderMetadataMap(pm *map[string]any, meta map[string]string) {
 	if len(meta) == 0 {
 		return
 	}
-	if device.ProviderMetadata == nil {
-		device.ProviderMetadata = make(map[string]any)
+	for _, p := range provider.GetProviders() {
+		if ma, ok := p.(provider.MetadataApplier); ok {
+			ma.ApplyMetadata(pm, meta)
+		}
 	}
-	existing, _ := device.ProviderMetadata["nautobot"].(map[string]any)
-	if existing == nil {
-		existing = make(map[string]any)
-	}
-	for k, v := range meta {
-		existing[k] = v
-	}
-	device.ProviderMetadata["nautobot"] = existing
+}
+
+// applyProviderMetadataToDevice merges metadata into the device's provider metadata.
+func applyProviderMetadataToDevice(device *devicetypes.CaniDeviceType, meta map[string]string) {
+	applyProviderMetadataMap(&device.ProviderMetadata, meta)
 }
 
 // applyTagsToRack appends tags to a rack.
@@ -76,20 +77,7 @@ func applyTagsToRack(rack *devicetypes.CaniRackType, tags []string) {
 	}
 }
 
-// applyProviderMetadataToRack merges metadata into the rack's ProviderMetadata["nautobot"].
+// applyProviderMetadataToRack merges metadata into the rack's provider metadata.
 func applyProviderMetadataToRack(rack *devicetypes.CaniRackType, meta map[string]string) {
-	if len(meta) == 0 {
-		return
-	}
-	if rack.ProviderMetadata == nil {
-		rack.ProviderMetadata = make(map[string]any)
-	}
-	existing, _ := rack.ProviderMetadata["nautobot"].(map[string]any)
-	if existing == nil {
-		existing = make(map[string]any)
-	}
-	for k, v := range meta {
-		existing[k] = v
-	}
-	rack.ProviderMetadata["nautobot"] = existing
+	applyProviderMetadataMap(&rack.ProviderMetadata, meta)
 }
