@@ -33,9 +33,7 @@ def stableToken = ~/v?\d+\.\d+\.\d+(\.post\d+)?/
 def isStable = (env.TAG_NAME != null & env.TAG_NAME ==~ stableToken) ? true : false
 pipeline {
 
-    agent {
-        label "metal-gcp-builder"
-    }
+    agent any
 
     options {
         buildDiscarder(logRotator(numToKeepStr: "10"))
@@ -53,15 +51,15 @@ pipeline {
 
     stages {
 
-        stage('Build & Publish') {
+        stage('Matrix') {
 
             matrix {
 
-                agent {
-                    node {
-                        label "metal-gcp-builder"
-                        customWorkspace "${env.WORKSPACE}/${sleVersion}/${ARCH}/${env.GO_VERSION}"
-                    }
+                environment {
+                    DOCKER_ARCH = sh(returnStdout: true, script: "[ ${ARCH} == 'x86_64' ] && echo -n 'amd64' || echo -n 'arm64'")
+                    JENKINS_AGENT = sh(returnStdout: true, script: "[ ${ARCH} == 'x86_64' ] && echo -n 'metal-gcp-builder' || echo -n 'metal-gcp-builder-arm64'")
+                    DOCKER_GO_IMAGE = "${goImage}:${GO_VERSION}-SLES15.5"
+                    BUILD_DIR = "${env.WORKSPACE}/dist/rpmbuild/${ARCH}"
                 }
 
                 axes {
@@ -69,59 +67,60 @@ pipeline {
                         name 'ARCH'
                         values 'x86_64', 'aarch64'
                     }
-                    axis {
-                        name 'sleVersion'
-                        values 'noos'
-                    }
                 }
 
                 stages {
 
-                    stage('Prepare: RPMs') {
+                    stage('Build & Publish') {
                         agent {
-                            docker {
-                                label 'docker'
-                                reuseNode true
-                                image "${goImage}:${env.GO_VERSION}-SLES15.5"
-                            }
+                            label "${env.JENKINS_AGENT}"
                         }
-                        steps {
-                            runLibraryScript("addRpmMetaData.sh", "${env.NAME}.spec")
-                            sh "make rpm_prepare"
-                            sh "git update-index --assume-unchanged ${env.NAME}.spec"
-                        }
-                    }
 
-                    stage('Build: RPMs') {
-                        agent {
-                            docker {
-                                label 'docker'
-                                reuseNode true
-                                image "${goImage}:${env.GO_VERSION}-SLES15.5"
-                            }
-                        }
-                        steps {
-                            sh "make rpm"
-                        }
-                    }
+                        stages {
 
-                    stage('Publish: RPMs') {
-                        steps {
-                            script {
-                                publishCsmRpms(
-                                        arch: "${ARCH}",
-                                        component: env.NAME,
-                                        isStable: isStable,
-                                        os: "${sleVersion}",
-                                        pattern: "dist/rpmbuild/RPMS/${ARCH}/*.rpm",
-                                )
-                                publishCsmRpms(
-                                        arch: "src",
-                                        component: env.NAME,
-                                        isStable: isStable,
-                                        os: "${sleVersion}",
-                                        pattern: "dist/rpmbuild/SRPMS/*.rpm",
-                                )
+                            stage('Prepare: Docker') {
+                                steps {
+                                    sh "docker pull ${env.DOCKER_GO_IMAGE}"
+                                }
+                            }
+
+                            stage('Prepare: RPMs') {
+                                steps {
+                                    runLibraryScript("addRpmMetaData.sh", "${env.NAME}.spec")
+                                    sh "make rpm_prepare"
+                                    sh "git update-index --assume-unchanged ${env.NAME}.spec"
+                                }
+                            }
+
+                            stage('Build: RPMs') {
+                                steps {
+                                    script {
+                                        docker.image(DOCKER_GO_IMAGE).inside {
+                                            sh "make rpm"
+                                        }
+                                    }
+                                }
+                            }
+
+                            stage('Publish: RPMs') {
+                                steps {
+                                    script {
+                                        publishCsmRpms(
+                                                arch: "${ARCH}",
+                                                component: env.NAME,
+                                                isStable: isStable,
+                                                os: "noos",
+                                                pattern: "dist/rpmbuild/${ARCH}/RPMS/${ARCH}/*.rpm",
+                                        )
+                                        publishCsmRpms(
+                                                arch: "src",
+                                                component: env.NAME,
+                                                isStable: isStable,
+                                                os: "noos",
+                                                pattern: "dist/rpmbuild/${ARCH}/SRPMS/*.rpm",
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
