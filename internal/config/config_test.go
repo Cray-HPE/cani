@@ -9,10 +9,17 @@ package config
 import (
 	"os"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 )
 
 // ---------- GetNestedValue ----------
 
+// TestGetNestedValueReturnsDeepKey verifies nested provider map values are found.
+//
+// Why it matters: provider code reads config through this helper instead of raw maps.
+// Inputs: a provider with top-level and nested import settings. Outputs: found values with ok=true.
+// Data choice: string values make exact key traversal failures easy to diagnose.
 func TestGetNestedValueReturnsDeepKey(t *testing.T) {
 	// Save and restore global singleton.
 	orig := Cfg
@@ -48,6 +55,11 @@ func TestGetNestedValueReturnsDeepKey(t *testing.T) {
 	}
 }
 
+// TestGetNestedValueMissingProvider verifies missing providers, keys, and globals return false.
+//
+// Why it matters: callers rely on absent config paths falling back without panics.
+// Inputs: empty, partial, and nil global configs. Outputs: ok=false for every missing lookup.
+// Data choice: a single known provider isolates missing-key behavior from provider lookup behavior.
 func TestGetNestedValueMissingProvider(t *testing.T) {
 	orig := Cfg
 	defer func() { Cfg = orig }()
@@ -79,6 +91,11 @@ func TestGetNestedValueMissingProvider(t *testing.T) {
 
 // ---------- GetNestedString ----------
 
+// TestGetNestedStringReturnsValue verifies string lookups return configured values.
+//
+// Why it matters: provider defaults should only be used when a string setting is absent or invalid.
+// Inputs: top-level and nested string settings. Outputs: the exact configured strings.
+// Data choice: Nautobot-shaped keys mirror real provider configuration paths.
 func TestGetNestedStringReturnsValue(t *testing.T) {
 	orig := Cfg
 	defer func() { Cfg = orig }()
@@ -107,6 +124,11 @@ func TestGetNestedStringReturnsValue(t *testing.T) {
 	}
 }
 
+// TestGetNestedStringReturnsFallback verifies missing or non-string values use the fallback.
+//
+// Why it matters: config consumers need stable defaults when YAML contains unexpected types.
+// Inputs: a missing key, an integer value, and an unknown provider. Outputs: the supplied fallback.
+// Data choice: an integer exercises the type guard without relying on YAML decoding.
 func TestGetNestedStringReturnsFallback(t *testing.T) {
 	orig := Cfg
 	defer func() { Cfg = orig }()
@@ -140,6 +162,11 @@ func TestGetNestedStringReturnsFallback(t *testing.T) {
 
 // ---------- GetNestedInt ----------
 
+// TestGetNestedIntReturnsValue verifies integer lookups accept int and JSON-style float64 values.
+//
+// Why it matters: config values may come from multiple decoders before callers request integers.
+// Inputs: int and float64 provider settings. Outputs: integer values returned without fallback.
+// Data choice: port and timeout names represent common numeric config fields.
 func TestGetNestedIntReturnsValue(t *testing.T) {
 	orig := Cfg
 	defer func() { Cfg = orig }()
@@ -165,6 +192,11 @@ func TestGetNestedIntReturnsValue(t *testing.T) {
 	}
 }
 
+// TestGetNestedIntReturnsFallback verifies missing or non-numeric values use the fallback.
+//
+// Why it matters: callers should not treat malformed numeric config as a real value.
+// Inputs: a string value and a missing key. Outputs: the supplied integer fallback.
+// Data choice: a host string is a realistic wrong type for an integer accessor.
 func TestGetNestedIntReturnsFallback(t *testing.T) {
 	orig := Cfg
 	defer func() { Cfg = orig }()
@@ -192,6 +224,11 @@ func TestGetNestedIntReturnsFallback(t *testing.T) {
 
 // ---------- Load ----------
 
+// TestLoadInvalidYAML verifies invalid YAML returns an error from Load.
+//
+// Why it matters: malformed config files must fail clearly before mutating global config state further.
+// Inputs: a temporary file containing invalid YAML. Outputs: a non-nil Load error.
+// Data choice: mixed punctuation and indentation creates a parser-level failure.
 func TestLoadInvalidYAML(t *testing.T) {
 	orig := Cfg
 	defer func() { Cfg = orig }()
@@ -209,6 +246,11 @@ func TestLoadInvalidYAML(t *testing.T) {
 	}
 }
 
+// TestLoadCreatesDefaultConfig verifies missing config files are created with defaults.
+//
+// Why it matters: first-run CLI behavior depends on Load being able to bootstrap configuration.
+// Inputs: a path that does not exist in a temporary directory. Outputs: a file and populated Cfg.
+// Data choice: an empty temp directory isolates creation from any user config on disk.
 func TestLoadCreatesDefaultConfig(t *testing.T) {
 	orig := Cfg
 	defer func() { Cfg = orig }()
@@ -234,4 +276,128 @@ func TestLoadCreatesDefaultConfig(t *testing.T) {
 	if Cfg.Providers == nil {
 		t.Fatal("expected Cfg.Providers to be non-nil")
 	}
+}
+
+// ---------- Comments ----------
+
+type commentTagFixture struct {
+	Scalar  string `yaml:"scalar,omitempty" head_comment:"scalar head" line_comment:"scalar line" foot_comment:"scalar foot"`
+	Ignored string `yaml:"-" head_comment:"ignored head"`
+	Plain   string `yaml:"plain"`
+	Inline  string `yaml:",inline" line_comment:"inline line"`
+}
+
+// TestExtractCommentsReadsYAMLCommentTags verifies comment tags are extracted
+// only for YAML fields that have a concrete key and at least one comment.
+//
+// Why it matters: Save relies on this metadata to restore comments while preserving user YAML.
+// Inputs: a struct with commented, ignored, plain, and inline-style YAML fields. Outputs: one FieldComment entry.
+// Data choice: the fields cover the tag forms accepted or skipped by config structs.
+func TestExtractCommentsReadsYAMLCommentTags(t *testing.T) {
+	comments := extractComments(&commentTagFixture{})
+
+	got, ok := comments["scalar"]
+	if !ok {
+		t.Fatal("expected scalar comments to be extracted")
+	}
+	if got.HeadComment != "scalar head" {
+		t.Errorf("HeadComment = %q, want %q", got.HeadComment, "scalar head")
+	}
+	if got.LineComment != "scalar line" {
+		t.Errorf("LineComment = %q, want %q", got.LineComment, "scalar line")
+	}
+	if got.FootComment != "scalar foot" {
+		t.Errorf("FootComment = %q, want %q", got.FootComment, "scalar foot")
+	}
+
+	for _, key := range []string{"-", "plain", ""} {
+		if _, ok := comments[key]; ok {
+			t.Errorf("did not expect comments for skipped key %q", key)
+		}
+	}
+	if len(comments) != 1 {
+		t.Fatalf("extractComments returned %d entries, want 1: %#v", len(comments), comments)
+	}
+}
+
+// TestApplyCommentsKeepsLineCommentsOffNestedNodes verifies line comments are
+// not attached to populated mapping or sequence nodes.
+//
+// Why it matters: yaml.v3 can misplace nested-node line comments and produce confusing or malformed config output.
+// Inputs: scalar, empty mapping, populated mapping, and sequence YAML nodes with comment metadata. Outputs: safe node comments and parseable YAML.
+// Data choice: the node shapes match config scalars and provider import/export sections.
+func TestApplyCommentsKeepsLineCommentsOffNestedNodes(t *testing.T) {
+	mapNode := &yaml.Node{Kind: yaml.MappingNode, Tag: tagMap, Content: []*yaml.Node{
+		{Kind: yaml.ScalarNode, Tag: tagStr, Value: "scalar"},
+		{Kind: yaml.ScalarNode, Tag: tagStr, Value: "value"},
+		{Kind: yaml.ScalarNode, Tag: tagStr, Value: "empty_map"},
+		{Kind: yaml.MappingNode, Tag: tagMap},
+		{Kind: yaml.ScalarNode, Tag: tagStr, Value: "nested_map"},
+		{Kind: yaml.MappingNode, Tag: tagMap, Content: []*yaml.Node{
+			{Kind: yaml.ScalarNode, Tag: tagStr, Value: "child"},
+			{Kind: yaml.ScalarNode, Tag: tagStr, Value: "value"},
+		}},
+		{Kind: yaml.ScalarNode, Tag: tagStr, Value: "sequence"},
+		{Kind: yaml.SequenceNode, Tag: tagSeq, Content: []*yaml.Node{
+			{Kind: yaml.ScalarNode, Tag: tagStr, Value: "item"},
+		}},
+	}}
+	comments := map[string]FieldComment{
+		"scalar":     {HeadComment: "scalar head", LineComment: "scalar line", FootComment: "scalar foot"},
+		"empty_map":  {LineComment: "empty line"},
+		"nested_map": {LineComment: "nested line", FootComment: "nested foot"},
+		"sequence":   {LineComment: "sequence line", FootComment: "sequence foot"},
+	}
+
+	applyComments(mapNode, comments)
+
+	if got := yamlMappingKey(t, mapNode, "scalar").HeadComment; got != "scalar head" {
+		t.Errorf("scalar head comment = %q, want %q", got, "scalar head")
+	}
+	if got := yamlMappingValue(t, mapNode, "scalar").LineComment; got != "scalar line" {
+		t.Errorf("scalar line comment = %q, want %q", got, "scalar line")
+	}
+	if got := yamlMappingValue(t, mapNode, "scalar").FootComment; got != "scalar foot" {
+		t.Errorf("scalar foot comment = %q, want %q", got, "scalar foot")
+	}
+	if got := yamlMappingValue(t, mapNode, "empty_map").LineComment; got != "empty line" {
+		t.Errorf("empty mapping line comment = %q, want %q", got, "empty line")
+	}
+	if got := yamlMappingValue(t, mapNode, "nested_map").LineComment; got != "" {
+		t.Errorf("nested mapping line comment = %q, want empty", got)
+	}
+	if got := yamlMappingValue(t, mapNode, "sequence").LineComment; got != "" {
+		t.Errorf("sequence line comment = %q, want empty", got)
+	}
+	if got := yamlMappingValue(t, mapNode, "nested_map").FootComment; got != "nested foot" {
+		t.Errorf("nested mapping foot comment = %q, want %q", got, "nested foot")
+	}
+
+	out := renderYAML(t, &yaml.Node{Kind: yaml.DocumentNode, Content: []*yaml.Node{mapNode}})
+	assertNotContains(t, out, "nested line")
+	assertNotContains(t, out, "sequence line")
+	var reparsed yaml.Node
+	if err := yaml.Unmarshal([]byte(out), &reparsed); err != nil {
+		t.Fatalf("rendered YAML should parse after comment application: %v\n%s", err, out)
+	}
+}
+
+func yamlMappingKey(t *testing.T, mapNode *yaml.Node, key string) *yaml.Node {
+	t.Helper()
+	for i := 0; i+1 < len(mapNode.Content); i += 2 {
+		if mapNode.Content[i].Value == key {
+			return mapNode.Content[i]
+		}
+	}
+	t.Fatalf("missing YAML key %q", key)
+	return nil
+}
+
+func yamlMappingValue(t *testing.T, mapNode *yaml.Node, key string) *yaml.Node {
+	t.Helper()
+	node, _ := findNodeByKey(mapNode, key)
+	if node == nil {
+		t.Fatalf("missing YAML value for key %q", key)
+	}
+	return node
 }
