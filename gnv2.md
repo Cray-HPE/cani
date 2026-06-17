@@ -28,6 +28,7 @@ Two DL380's (DL-3507U23 and DL-3507U25) are NOT included in this recabling effor
 graph TB
     classDef gpu fill:#f3e5f5,stroke:#7b1fa2,color:#000
     classDef mgmt fill:#e8f5e9,stroke:#388e3c,color:#000
+    classDef oobm fill:#F54927,stroke:#388e3c,color:#000
     classDef leaf fill:#fff3e0,stroke:#f57c00,color:#000
 
     subgraph x3701["Rack x3701"]
@@ -35,22 +36,18 @@ graph TB
         GH26["GH-3701u26<br/>XD670 GPU"]:::gpu
         GH18["GH-3701u18<br/>XD670 GPU"]:::gpu
         GH10["GH-3701u10<br/>XD670 GPU"]:::gpu
-        FORGE3701u47M["FORGE-3701u47M<br/>Mgmt 6300M"]:::mgmt
         FORGE3701u46L["FORGE-3701u46L<br/>Leaf 8325-32C"]:::leaf
         FORGE3701u45L["FORGE-3701u45L<br/>Leaf 8325-32C"]:::leaf
     end
 
+   FORGE3507u47M["FORGE-3507u47M<br/>Mgmt Switch"]:::mgmt
+
     %% ── LAYER 1: Management iLO (1GbE, CAT6) ──
 
-    GH34 -- "iLO → p1" --- FORGE3701u47M
-    GH26 -- "iLO → p2" --- FORGE3701u47M
-    GH18 -- "iLO → p3" --- FORGE3701u47M
-    GH10 -- "iLO → p4" --- FORGE3701u47M
-
-    %% ── LAYER 1b: Mgmt switch SFP28 uplinks → leaf pairs (10G DAC) ──
-
-    FORGE3701u47M -- "p49 → 1/1/5" --- FORGE3701u46L
-    FORGE3701u47M -- "p50 → 1/1/5" --- FORGE3701u45L
+    GH34 -- "iLO → 46" --- FORGE3507u47M
+    GH26 -- "iLO → 45" --- FORGE3507u47M
+    GH18 -- "iLO → 47" --- FORGE3507u47M
+    GH10 -- "iLO → 48" --- FORGE3507u47M
 
     %% ── LAYER 1c: 100GbE Leaf — XD670 CX6 dual-homed ──
 
@@ -106,7 +103,6 @@ graph TB
     SERV7 -- "iLO → p16" --- FORGE3507u47M
     SERV5 -- "iLO → p17" --- FORGE3507u47M
     SERV5 -- "OCP-p1 → p10" --- MAN3507u48
-    SERV5 -- "OCP-p3 → p1" --- FORGE3507u47M
 
     %% ── LAYER 1b: Mgmt switch SFP28 uplinks → leaf pairs (10G DAC) ──
 
@@ -232,7 +228,7 @@ graph TB
 | 1/1/30 | FORGE-3507u43L | 1/1/30 | ISL (VSX) | 100G DAC 3m |
 | 1/1/31 | FORGE-3507u43L | 1/1/31 | ISL (VSX) | 100G DAC 3m |
 | 1/1/32 | FORGE-3507u43L | 1/1/32 | ISL (VSX) | 100G DAC 3m |
-| mgmt   | FORGE-3507u47M | 46          | Management | CAT6 3m |
+| mgmt   | FORGE-3701u47M | Port 2 | Management | CAT6 3m |
 
 ### FORGE-3507u43L — Leaf-2 (Aruba 8325-32C, 32× 100G QSFP28)
 
@@ -253,7 +249,7 @@ graph TB
 | 1/1/30 | FORGE-3507u44L | 1/1/30 | ISL (VSX) | 100G DAC 3m |
 | 1/1/31 | FORGE-3507u44L | 1/1/31 | ISL (VSX) | 100G DAC 3m |
 | 1/1/32 | FORGE-3507u44L | 1/1/32 | ISL (VSX) | 100G DAC 3m |
-| mgmt   | FORGE-3507u47M | 45          | Management | CAT6 3m |
+| mgmt   | FORGE-3701u47M | Port 1 | Management | CAT6 3m |
 
 ### FORGE-3507u46S — Spine-1 (Aruba 9300-32D, 32× 400G QSFP-DD + 2× 10G SFP+)
 
@@ -265,7 +261,7 @@ graph TB
 | 1/1/4 | FORGE-3701u46L | 1/1/29 | x3701 Leaf downlink | 100G AOC 15m |
 | 1/1/29 | BBR-3508u46 | 1/1/9 | BB Leaf uplink | 100G AOC 15m |
 | 1/1/31 | BBR-3516u46 | 1/1/9 | BB Leaf uplink | 100G AOC 15m |
-| mgmt   | FORGE-3507u47M | 48          | Management | CAT6 3m |
+| mgmt   | FORGE-3701u47M | Port 4 | Management | CAT6 3m |
 
 ### FORGE-3507u45S — Spine-2 (Aruba 9300-32D, 32× 400G QSFP-DD + 2× 10G SFP+)
 
@@ -277,7 +273,7 @@ graph TB
 | 1/1/4 | FORGE-3701u46L | 1/1/28 | x3701 Leaf downlink | 100G AOC 15m |
 | 1/1/29 | BBR-3508u46 | 1/1/10 | BB Leaf uplink | 100G AOC 15m |
 | 1/1/31 | BBR-3516u46 | 1/1/10 | BB Leaf uplink | 100G AOC 15m |
-| mgmt   | FORGE-3507u47M | 47          | Management | CAT6 3m |
+| mgmt   | FORGE-3701u47M | Port 3 | Management | CAT6 3m |
 
 ### BBR-3508u46 — Router-1 (Aruba 8325-32C 32-PORT 100G QSFP+/QSFP28)
 
@@ -303,12 +299,12 @@ graph TB
 | 1/1/2 | GH-3701u26 | Port 1 | GPU downlink | 100G DAC 3m |
 | 1/1/3 | GH-3701u18 | Port 1 | GPU downlink | 100G DAC 3m |
 | 1/1/4 | GH-3701u10 | Port 1 | GPU downlink | 100G DAC 3m |
-| 1/1/5 | FORGE-3701u47M | 49 | Mgmt switch uplink | 10G DAC 3m |
 | 1/1/28 | FORGE-3507u45S | 1/1/4 | Spine-2 uplink | 100G AOC 15m |
 | 1/1/29 | FORGE-3507u46S | 1/1/4 | Spine-1 uplink | 100G AOC 15m |
 | 1/1/30 | FORGE-3701u45L | 1/1/30 | ISL (VSX) | 100G DAC 3m |
 | 1/1/31 | FORGE-3701u45L | 1/1/31 | ISL (VSX) | 100G DAC 3m |
 | 1/1/32 | FORGE-3701u45L | 1/1/32 | ISL (VSX) | 100G DAC 3m |
+| mgmt   | FORGE-3701u47M | Port 7 | Management | CAT6 3m |
 
 ### FORGE-3701u45L — Leaf (Aruba 8325-32C, 32× 100G QSFP28)
 
@@ -318,12 +314,12 @@ graph TB
 | 1/1/2 | GH-3701u26 | Port 2 | GPU downlink | 100G DAC 3m |
 | 1/1/3 | GH-3701u18 | Port 2 | GPU downlink | 100G DAC 3m |
 | 1/1/4 | GH-3701u10 | Port 2 | GPU downlink | 100G DAC 3m |
-| 1/1/5 | FORGE-3701u47M | 50 | Mgmt switch uplink | 10G DAC 3m |
 | 1/1/28 | FORGE-3507u45S | 1/1/3 | Spine-2 uplink | 100G AOC 15m |
 | 1/1/29 | FORGE-3507u46S | 1/1/3 | Spine-1 uplink | 100G AOC 15m |
 | 1/1/30 | FORGE-3701u46L | 1/1/30 | ISL (VSX) | 100G DAC 3m |
 | 1/1/31 | FORGE-3701u46L | 1/1/31 | ISL (VSX) | 100G DAC 3m |
 | 1/1/32 | FORGE-3701u46L | 1/1/32 | ISL (VSX) | 100G DAC 3m |
+| mgmt   | FORGE-3701u47M | Port 6 | Management | CAT6 3m |
 
 ### BBR-3516u46 — BB Leaf (Aruba 8325-32C, 32× 100G QSFP28)
 
@@ -341,14 +337,25 @@ graph TB
 
 ### FORGE-3701u47M — Mgmt (Aruba 6300M, 48× 1G + 4× 25G SFP28)
 
-| Port | Remote Device | Remote Port | Function | Cable |
-|------|---------------|-------------|----------|-------|
-| 1 | GH-3701u34 | iLO | Management | CAT6 3m |
-| 2 | GH-3701u26 | iLO | Management | CAT6 3m |
-| 3 | GH-3701u18 | iLO | Management | CAT6 3m |
-| 4 | GH-3701u10 | iLO | Management | CAT6 3m |
-| 49 | FORGE-3701u46L | 1/1/5 | Leaf uplink | 10G DAC 3m |
-| 50 | FORGE-3701u45L | 1/1/5 | Leaf uplink | 10G DAC 3m |
+| Port | Remote Device  | Remote Port | Function   | Cable   |
+|------|----------------|-------------|------------|---------|
+| 1    | FORGE-3507u43  | mgmt        | Management | CAT6 3m |
+| 2    | FORGE-3507u44L | mgmt        | Management | CAT6 3m |
+| 3    | FORGE-3507u45S | mgmt        | Management | CAT6 3m |
+| 4    | FORGE-3507u46S | mgmt        | Management | CAT6 3m |
+| 5    | FORGE-3507u47M | mgmt        | Management | CAT6 3m |
+| 6    | FORGE-3701u45L | mgmt        | Management | CAT6 3m |
+| 7    | FORGE-3701u46L | mgmt        | Management | CAT6 3m |
+| 40   | SERV-3507u21   | ocp1-p2     | Fabric Mgmt | CAT6 3m |
+| 41   | SERV-3507u19   | ocp1-p2     | Fabric Mgmt | CAT6 3m |
+| 42   | SERV-3507u17   | ocp1-p2     | Fabric Mgmt | CAT6 3m |
+| 43   | SERV-3507u15   | ocp1-p2     | Fabric Mgmt | CAT6 3m |
+| 44   | SERV-3507u13   | ocp1-p2     | Fabric Mgmt | CAT6 3m |
+| 45   | SERV-3507u11   | ocp1-p2     | Fabric Mgmt | CAT6 3m |
+| 46   | SERV-3507u9    | ocp1-p2     | Fabric Mgmt | CAT6 3m |
+| 47   | SERV-3507u7    | ocp1-p2     | Fabric Mgmt | CAT6 3m |
+| 48   | SERV-3507u5    | ocp1-p2     | Fabric Mgmt | CAT6 3m |
+
 
 ### FORGE-3507u47M — Mgmt (Aruba 6300M, 48× 1G + 4× 25G SFP28)
 
@@ -364,11 +371,12 @@ graph TB
 | 15 | SERV-3507u9 | iLO | Management | CAT6 3m |
 | 16 | SERV-3507u7 | iLO | Management | CAT6 3m |
 | 17 | SERV-3507u5 | iLO | Management | CAT6 3m |
-| 45 | FORGE-3507u43 | mgmt        | Management | CAT6 3m |
-| 46 | FORGE-3507u44L| mgmt        | Management | CAT6 3m |
-| 47 | FORGE-3507u45S | mgmt        | Management | CAT6 3m |
-| 48 | FORGE-3507u46S | mgmt        | Management | CAT6 3m |
+| 46 | GH-3701u34 | iLO | Management | CAT6 3m |
+| 45 | GH-3701u26 | iLO | Management | CAT6 3m |
+| 47 | GH-3701u18 | iLO | Management | CAT6 3m |
+| 48 | GH-3701u10 | iLO | Management | CAT6 3m |
 | 49 | FORGE-3507u44L | 1/1/10 | Leaf uplink | 10G DAC 3m |
 | 50 | FORGE-3507u43L | 1/1/10 | Leaf uplink | 10G DAC 3m |
-| mgmt | SERV-3507u5 | ocp1-p2     | Management | CAT6 3m |
+| mgmt | FORGE-3701u47M | Port 5 | Management | CAT6 3m |
+
 ---
