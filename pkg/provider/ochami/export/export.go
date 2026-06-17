@@ -24,9 +24,9 @@ func Export(inventory devicetypes.Inventory, w io.Writer) error {
 
 		switch string(dev.Type) {
 		case "node":
-			payload.Nodes = append(payload.Nodes, buildNode(dev, meta))
+			payload.Nodes = append(payload.Nodes, buildEntry(dev, meta))
 		case "bmc":
-			payload.BMCs = append(payload.BMCs, buildBMC(dev, meta))
+			payload.BMCs = append(payload.BMCs, buildEntry(dev, meta))
 		}
 	}
 
@@ -48,8 +48,6 @@ func Export(inventory devicetypes.Inventory, w io.Writer) error {
 
 // effectiveMeta builds a merged metadata map for the given device.
 // Ochami-specific keys take priority; CSM keys are used as fallback.
-// CSM stores aliases as "aliases" while ochami expects "host_aliases"
-// and "hostname", so the mapping is performed here.
 func effectiveMeta(dev *devicetypes.CaniDeviceType) map[string]any {
 	result := map[string]any{}
 
@@ -59,8 +57,6 @@ func effectiveMeta(dev *devicetypes.CaniDeviceType) map[string]any {
 		copyCsmKey(result, csm, "ip")
 		copyCsmKey(result, csm, "mac")
 		copyCsmKey(result, csm, "boot_mac")
-		copyCsmKey(result, csm, "nid")
-		mapCsmAliases(result, csm)
 	}
 
 	// Overlay ochami-specific keys (always win).
@@ -80,40 +76,21 @@ func copyCsmKey(dst, csm map[string]any, key string) {
 	}
 }
 
-// mapCsmAliases converts CSM "aliases" into ochami "hostname" and
-// "host_aliases" fields when they are not already set.
-func mapCsmAliases(dst map[string]any, csm map[string]any) {
-	aliases := extractStringSlice(csm, "aliases")
-	if len(aliases) == 0 {
-		return
-	}
-	dst["hostname"] = aliases[0]
-	dst["host_aliases"] = aliases
-}
-
-func buildNode(dev *devicetypes.CaniDeviceType, meta map[string]any) openChamiNode {
+func buildEntry(dev *devicetypes.CaniDeviceType, meta map[string]any) openChamiEntry {
 	xname := extractString(meta, "xname")
 	if xname == "" {
 		xname = dev.Name
 	}
-	return openChamiNode{
-		Xname:       xname,
-		IP:          extractString(meta, "ip"),
-		BootMAC:     extractString(meta, "boot_mac"),
-		NID:         extractIntPtr(meta, "nid"),
-		Hostname:    extractString(meta, "hostname"),
-		HostAliases: extractStringSlice(meta, "host_aliases"),
-	}
-}
-
-func buildBMC(dev *devicetypes.CaniDeviceType, meta map[string]any) openChamiBMC {
-	xname := extractString(meta, "xname")
-	if xname == "" {
-		xname = dev.Name
-	}
-	return openChamiBMC{
+	return openChamiEntry{
 		Xname: xname,
+		MAC:   effectiveMAC(meta),
 		IP:    extractString(meta, "ip"),
-		MAC:   extractString(meta, "mac"),
 	}
+}
+
+func effectiveMAC(meta map[string]any) string {
+	if mac := extractString(meta, "mac"); mac != "" {
+		return mac
+	}
+	return extractString(meta, "boot_mac")
 }
