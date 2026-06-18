@@ -25,6 +25,13 @@
 
 # ── import command ──────────────────────────────────────────────────
 
+#shellcheck disable=SC2317
+import_example_header_only_system_csv() {
+  _path="$CANI_DIR/example-system-header-only.csv"
+  printf 'Section,Name\n' >"$_path"
+  bin/cani alpha import example --csv "$_path" --config "$CANI_CONF"
+}
+
 Describe 'cani alpha import'
 
   Describe '--help'
@@ -45,6 +52,47 @@ Describe 'cani alpha import'
     It 'lists provider subcommands'
       When call bin/cani alpha import --help
       The stdout should include 'example'
+    End
+  End
+
+  Describe 'example --help'
+    Parameters:value --csv --file
+    It "has $1 flag"
+      When call bin/cani alpha import example --help
+      The status should equal 0
+      The stdout should include "$1"
+    End
+  End
+
+  Describe 'example CSV validation'
+    Before 'setup_test_env'
+    After  'teardown_test_env'
+
+    It 'rejects a BOM CSV missing the description column'
+      When call bin/cani alpha import example --csv "$FIXTURES/example/missing_column.csv" --config "$CANI_CONF"
+      The status should equal 1
+      The stderr should include 'failed to parse CSV: missing required column: Description'
+    End
+
+    It 'rejects a header-only BOM CSV'
+      When call bin/cani alpha import example --csv "$FIXTURES/example/empty.csv" --config "$CANI_CONF"
+      The status should equal 1
+      The stderr should include 'failed to parse CSV: CSV must have a header row and at least one data row'
+    End
+
+    It 'routes a Section header to the system CSV parser and rejects header-only input'
+      When call import_example_header_only_system_csv
+      The status should equal 1
+      The stderr should include 'failed to parse system CSV: system CSV must have a header row and at least one data row'
+    End
+  End
+
+  Describe 'nautobot --help'
+    Parameters:value --default-location --default-role --default-status
+    It "has $1 flag"
+      When call bin/cani alpha import nautobot --help
+      The status should equal 0
+      The stdout should include "$1"
     End
   End
 

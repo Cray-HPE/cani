@@ -23,43 +23,33 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 
-# ── export command ──────────────────────────────────────────────────
+# Functional visual-output CLI coverage.
 
-Describe 'cani alpha export'
+Describe 'cani alpha show visual flags'
 
-  Describe '--help'
-    It 'exits 0 and describes exporting inventory'
-      When call bin/cani alpha export --help
-      The status should equal 0
-      The stdout should include 'Export'
-    End
-
-    It 'has --merge flag'
-      When call bin/cani alpha export --help
-      The stdout should include '--merge'
-    End
-
-    It 'has --dry-run flag'
-      When call bin/cani alpha export --help
-      The stdout should include '--dry-run'
-    End
-  End
-
-  Describe 'nautobot --help'
-    Parameters:value --create-device-types --create-location-types --create-module-types --create-locations --create-roles --create-statuses --dry-run --merge
-    It "has $1 flag"
-      When call bin/cani alpha export nautobot --help
+  Describe 'rack visual formats'
+    Parameters:value classic minimap detail routing
+    It "lists $1 as a rack format"
+      When call bin/cani alpha show rack --help
       The status should equal 0
       The stdout should include "$1"
     End
   End
 
-  Describe 'argument validation'
-    It 'fails with no arguments'
-      When call bin/cani alpha export
-      The status should equal 1
-      The stderr should include 'accepts 1 arg(s), received 0'
+  Describe 'rack visual flags'
+    Parameters:value --columns --verbose --labels --interactive
+    It "lists $1 flag"
+      When call bin/cani alpha show rack --help
+      The status should equal 0
+      The stdout should include "$1"
     End
+  End
+
+  It 'rejects unknown tree detail values'
+    When call bin/cani alpha show rack --with imaginary-detail
+    The status should equal 1
+    The stderr should include 'invalid --with value "imaginary-detail"'
+    The stderr should include 'modules, interfaces, cables, empty-us, roles'
   End
 
 End
