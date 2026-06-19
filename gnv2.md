@@ -89,6 +89,8 @@ graph TB
         FORGE3507u43L["FORGE-3507u43L<br/>Leaf 8325-32C"]:::leaf
     end
 
+    NAS2["NAS-3502u18<br/>NetApp FAS 8300"]:::server
+    NAS1["NAS-3502u20<br/>NetApp FAS 8300"]:::server
     MAN3507u48["MAN-3507u48<br/>Mgmt Switch"]:::mgmt
 
     %% ── LAYER 1: Management iLO (1GbE, CAT6) ──
@@ -103,6 +105,14 @@ graph TB
     SERV7 -- "iLO → p16" --- FORGE3507u47M
     SERV5 -- "iLO → p17" --- FORGE3507u47M
     SERV5 -- "OCP-p1 → p10" --- MAN3507u48
+    NAS1 -- "s1p1 → p26" --- FORGE3507u44L
+    NAS1 -- "s2p1 → p27" --- FORGE3507u44L
+    NAS2 -- "s1p1 → p24" --- FORGE3507u44L
+    NAS2 -- "s2p1 → p25" --- FORGE3507u44L
+    NAS1 -- "s1p2 → p26" --- FORGE3507u43L
+    NAS1 -- "s2p2 → p27" --- FORGE3507u43L
+    NAS2 -- "s1p2 → p24" --- FORGE3507u43L
+    NAS2 -- "s2p2 → p25" --- FORGE3507u43L
 
     %% ── LAYER 1b: Mgmt switch SFP28 uplinks → leaf pairs (10G DAC) ──
 
@@ -223,6 +233,10 @@ graph TB
 | 1/1/8 | SERV-3507u7 | Port 1 | Server downlink | 100G DAC 3m |
 | 1/1/9 | SERV-3507u5 | Port 1 | Server downlink | 100G DAC 3m |
 | 1/1/10 | FORGE-3507u47M | 49 | Mgmt switch uplink | 10G DAC 3m |
+| 1/1/24 | NAS-3502u18 | s1p1 | Server downlink | ? DAC 20m? |
+| 1/1/25 | NAS-3502u18 | s2p1 | Server downlink | ? DAC 20m? |
+| 1/1/26 | NAS-3502u20 | s1p1 | Server downlink | ? DAC 20m? |
+| 1/1/27 | NAS-3502u20 | s2p1 | Server downlink | ? DAC 20m? |
 | 1/1/28 | FORGE-3507u45S | 1/1/1 | Spine-2 uplink | 100G DAC 3m |
 | 1/1/29 | FORGE-3507u46S | 1/1/1 | Spine-1 uplink | 100G DAC 3m |
 | 1/1/30 | FORGE-3507u43L | 1/1/30 | ISL (VSX) | 100G DAC 3m |
@@ -244,6 +258,10 @@ graph TB
 | 1/1/8 | SERV-3507u7 | Port 2 | Server downlink | 100G DAC 3m |
 | 1/1/9 | SERV-3507u5 | Port 2 | Server downlink | 100G DAC 3m |
 | 1/1/10 | FORGE-3507u47M | 50 | Mgmt switch uplink | 10G DAC 3m |
+| 1/1/24 | NAS-3502u18 | s1p2 | Server downlink | ? DAC 20m? |
+| 1/1/25 | NAS-3502u18 | s2p2 | Server downlink | ? DAC 20m? |
+| 1/1/26 | NAS-3502u20 | s1p2 | Server downlink | ? DAC 20m? |
+| 1/1/27 | NAS-3502u20 | s2p2 | Server downlink | ? DAC 20m? |
 | 1/1/28 | FORGE-3507u45S | 1/1/2 | Spine-2 uplink | 100G DAC 3m |
 | 1/1/29 | FORGE-3507u46S | 1/1/2 | Spine-1 uplink | 100G DAC 3m |
 | 1/1/30 | FORGE-3507u44L | 1/1/30 | ISL (VSX) | 100G DAC 3m |
