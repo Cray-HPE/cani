@@ -66,7 +66,7 @@ func (c *Command) UsageString() string {
 	var b strings.Builder
 	b.WriteString("\nUsage:\n")
 	if c.RunE != nil || len(c.commands) == 0 {
-		fmt.Fprintf(&b, "  %s [flags]\n", c.commandPath())
+		fmt.Fprintf(&b, "  %s\n", c.useLine())
 	}
 	if len(c.commands) > 0 {
 		fmt.Fprintf(&b, "  %s [command]\n", c.commandPath())
@@ -83,6 +83,20 @@ func (c *Command) UsageString() string {
 		fmt.Fprintf(&b, "\nUse \"%s [command] --help\" for more information about a command.\n", c.commandPath())
 	}
 	return b.String()
+}
+
+// useLine returns the usage synopsis: the full command path including the Use
+// string's argument placeholders, plus a trailing [flags] marker.  This mirrors
+// cobra's UseLine so usages such as "remove location <uuid-or-name>" are shown.
+func (c *Command) useLine() string {
+	line := c.Use
+	if c.parent != nil {
+		line = c.parent.commandPath() + " " + c.Use
+	}
+	if !strings.Contains(line, "[flags]") {
+		line += " [flags]"
+	}
+	return line
 }
 
 // writeCommandList appends the "Available Commands" section.

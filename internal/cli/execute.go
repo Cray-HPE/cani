@@ -140,13 +140,18 @@ func (c *Command) run(args []string) error {
 		fmt.Fprintf(c.OutOrStdout(), "%s version %s\n", c.Name(), c.Version)
 		return nil
 	}
-	return c.runPipeline(positionals)
+	if err := c.runPipeline(positionals); err != nil {
+		return c.fail(err)
+	}
+	return nil
 }
 
 // runPipeline executes the validation and run hooks once flags are parsed.
+// Errors are returned unadorned; run wraps them with fail so the message and
+// usage are printed once.
 func (c *Command) runPipeline(positionals []string) error {
 	if err := c.validateFlagGroups(); err != nil {
-		return c.fail(err)
+		return err
 	}
 	if pre := c.nearestPersistentPreRunE(); pre != nil {
 		if err := pre(c, positionals); err != nil {
@@ -155,7 +160,7 @@ func (c *Command) runPipeline(positionals []string) error {
 	}
 	if c.Args != nil {
 		if err := c.Args(c, positionals); err != nil {
-			return c.fail(err)
+			return err
 		}
 	}
 	if c.PreRunE != nil {
