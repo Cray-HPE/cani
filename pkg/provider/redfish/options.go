@@ -1,6 +1,6 @@
 package redfish
 
-import "github.com/spf13/cobra"
+import "github.com/Cray-HPE/cani/internal/cli"
 
 // Options holds the provider's configuration options.
 // These are written to the config file with YAML comments preserved.
@@ -62,7 +62,7 @@ func (p *Redfish) GetImportDefaults() map[string]any {
 
 // BindImportFlags binds CLI flags to Viper for the import command.
 // This enables precedence: CLI flags > env vars > config file > defaults.
-func (p *Redfish) BindImportFlags(cmd *cobra.Command) error {
+func (p *Redfish) BindImportFlags(cmd *cli.Command) error {
 	return nil
 }
 
@@ -84,7 +84,7 @@ func (p *Redfish) GetExportDefaults() map[string]any {
 
 // BindExportFlags binds CLI flags to Viper for the export command.
 // This enables precedence: CLI flags > env vars > config file > defaults.
-func (p *Redfish) BindExportFlags(cmd *cobra.Command) error {
+func (p *Redfish) BindExportFlags(cmd *cli.Command) error {
 	// TODO: Bind export-related flags
 	// Example:
 	// viper.BindPFlag("redfish.export.format", cmd.Flags().Lookup("format"))

@@ -26,13 +26,13 @@
 package show
 
 import (
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/visual"
-	"github.com/spf13/cobra"
 )
 
 // newMetadataCommand creates the "show metadata" subcommand.
-func newMetadataCommand() *cobra.Command {
-	return &cobra.Command{
+func newMetadataCommand() *cli.Command {
+	return &cli.Command{
 		Use:   "metadata",
 		Short: "Show metadata definitions (roles, statuses, tags) in the inventory.",
 		Long:  "Show metadata definitions (roles, statuses, tags) in the inventory.",
@@ -40,7 +40,7 @@ func newMetadataCommand() *cobra.Command {
 	}
 }
 
-func showMetadata(cmd *cobra.Command, args []string) error {
+func showMetadata(cmd *cli.Command, args []string) error {
 	inv, err := loadInventory(cmd, args)
 	if err != nil {
 		return err

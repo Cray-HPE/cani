@@ -3,11 +3,11 @@ package commands
 import (
 	"testing"
 
-	"github.com/spf13/cobra"
+	"github.com/Cray-HPE/cani/internal/cli"
 )
 
 func TestNewImportCommand(t *testing.T) {
-	base := &cobra.Command{Use: "import"}
+	base := &cli.Command{Use: "import"}
 
 	cmd, err := NewImportCommand(base)
 	if err != nil {
@@ -38,7 +38,7 @@ func TestNewImportCommand(t *testing.T) {
 }
 
 func TestNewImportCommand_FlagTypes(t *testing.T) {
-	cmd, _ := NewImportCommand(&cobra.Command{})
+	cmd, _ := NewImportCommand(&cli.Command{})
 
 	tests := []struct {
 		flag     string
@@ -61,7 +61,7 @@ func TestNewImportCommand_FlagTypes(t *testing.T) {
 }
 
 func TestNewExportCommand(t *testing.T) {
-	base := &cobra.Command{Use: "export"}
+	base := &cli.Command{Use: "export"}
 
 	cmd, err := NewExportCommand(base)
 	if err != nil {
@@ -97,7 +97,7 @@ func TestNewExportCommand(t *testing.T) {
 }
 
 func TestNewExportCommand_FlagTypes(t *testing.T) {
-	cmd, _ := NewExportCommand(&cobra.Command{})
+	cmd, _ := NewExportCommand(&cli.Command{})
 
 	boolFlags := []string{
 		"create-device-types", "create-location-types", "create-module-types",
@@ -117,7 +117,7 @@ func TestNewExportCommand_FlagTypes(t *testing.T) {
 }
 
 func TestNewExportCommand_UsageStrings(t *testing.T) {
-	cmd, _ := NewExportCommand(&cobra.Command{})
+	cmd, _ := NewExportCommand(&cli.Command{})
 
 	tests := []struct {
 		flag  string

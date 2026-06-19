@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/spf13/cobra"
+	"github.com/Cray-HPE/cani/internal/cli"
 )
 
 // providerGetter returns the Hpcm singleton to store raw nodes.
@@ -29,7 +29,7 @@ func SetProviderGetter(getter func() interface {
 // Import reads HPCM nodes from --node-json-file and/or --cm-config,
 // merges them (deduplicating by name), and stores on the provider singleton.
 // No transformation is done here; that happens in the transform step.
-func Import(cmd *cobra.Command, args []string) error {
+func Import(cmd *cli.Command, args []string) error {
 	p := providerGetter()
 
 	jsonFile, _ := cmd.Flags().GetString("node-json-file")

@@ -26,14 +26,14 @@
 package add
 
 import (
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
-	"github.com/spf13/cobra"
 )
 
 // collectProviderMetadata parses --metadata key=value flags into a map.
 // Returns nil if the flag was not set or parsing fails.
-func collectProviderMetadata(cmd *cobra.Command) map[string]string {
+func collectProviderMetadata(cmd *cli.Command) map[string]string {
 	pairs, _ := cmd.Flags().GetStringArray("metadata")
 	if len(pairs) == 0 {
 		return nil

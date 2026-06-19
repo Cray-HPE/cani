@@ -29,23 +29,23 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/resolve"
 	"github.com/Cray-HPE/cani/pkg/datastores"
-	"github.com/spf13/cobra"
 )
 
 // newDeviceCommand creates the "remove device" subcommand.
-func newDeviceCommand() *cobra.Command {
-	return &cobra.Command{
+func newDeviceCommand() *cli.Command {
+	return &cli.Command{
 		Use:   "device <uuid-or-name>",
 		Short: "Remove a device from the inventory.",
 		Long:  "Remove a device by UUID or name. Cascades to child devices, modules, and cables.",
-		Args:  cobra.ExactArgs(1),
+		Args:  cli.ExactArgs(1),
 		RunE:  removeDevice,
 	}
 }
 
-func removeDevice(cmd *cobra.Command, args []string) error {
+func removeDevice(cmd *cli.Command, args []string) error {
 	if err := datastores.SetDeviceStore(cmd, args); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
 	}

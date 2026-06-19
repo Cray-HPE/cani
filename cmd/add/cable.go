@@ -30,17 +30,17 @@ import (
 	"log"
 	"strings"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/nameexpand"
 	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
-	"github.com/spf13/cobra"
 )
 
 // newCableCommand creates the "add cable" subcommand.
-func newCableCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func newCableCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "cable <slug-or-part-number>",
 		Short: "Add cable(s) to the inventory.",
 		Long:  "Add one or more cables to the inventory by slug or part number.",
@@ -59,7 +59,7 @@ func newCableCommand() *cobra.Command {
 	return cmd
 }
 
-func addCable(cmd *cobra.Command, args []string) error {
+func addCable(cmd *cli.Command, args []string) error {
 	qty, _ := cmd.Flags().GetInt("qty")
 	if qty < 1 {
 		qty = 1

@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
-	"github.com/spf13/cobra"
 )
 
 // categoryRank defines the hierarchical display order for hardware categories.
@@ -41,7 +41,7 @@ const (
 
 // printTypeTable renders a sorted, column-aligned table of type entries
 // grouped by category. Columns: NAME, SLUG, PART NUMBER, SOURCE.
-func printTypeTable(cmd *cobra.Command, entries []devicetypes.TypeEntry) {
+func printTypeTable(cmd *cli.Command, entries []devicetypes.TypeEntry) {
 	if len(entries) == 0 {
 		cmd.Println("No hardware types available.")
 		return
@@ -136,7 +136,7 @@ func pad(s string, n int) string {
 const maxDescLen = 60
 
 // listLocationTypes prints a table of registered location types and exits.
-func listLocationTypes(cmd *cobra.Command) error {
+func listLocationTypes(cmd *cli.Command) error {
 	types := devicetypes.AllLocationTypes()
 	if len(types) == 0 {
 		cmd.Println("No location types available.")

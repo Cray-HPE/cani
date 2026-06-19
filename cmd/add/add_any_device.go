@@ -29,15 +29,15 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
-	"github.com/spf13/cobra"
 )
 
 // addAnyDevice adds device(s) using the resolved device type.
-func addAnyDevice(cmd *cobra.Command, args []string, device *devicetypes.CaniDeviceType, qty int) error {
+func addAnyDevice(cmd *cli.Command, args []string, device *devicetypes.CaniDeviceType, qty int) error {
 	parentArg, _ := cmd.Flags().GetString("parent")
 	statusArg, _ := cmd.Flags().GetString("status")
 	serialArg, _ := cmd.Flags().GetString("serial")

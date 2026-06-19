@@ -8,16 +8,16 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/provider/nautobot/export"
 	import_ "github.com/Cray-HPE/cani/pkg/provider/nautobot/import"
-	"github.com/spf13/cobra"
 )
 
 // Import implements the provider.Importer interface.
 // It delegates to the import subpackage to fetch all entity types from
 // the Nautobot API and stores the raw responses for later use by Transform().
-func (p *Nautobot) Import(ctx context.Context, cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+func (p *Nautobot) Import(ctx context.Context, cmd *cli.Command, args []string, inventory *devicetypes.Inventory) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func (p *Nautobot) Import(ctx context.Context, cmd *cobra.Command, args []string
 // importNautobot is the RunE handler for "cani import nautobot".
 // It creates the API client, tests the connection, and prompts for
 // defaults if they were not supplied via CLI flags.
-func (p *Nautobot) importNautobot(cmd *cobra.Command, args []string) error {
+func (p *Nautobot) importNautobot(cmd *cli.Command, args []string) error {
 	clog.Info("Importing via Nautobot provider...")
 
 	if err := p.loadOptionsFromConfig(); err != nil {

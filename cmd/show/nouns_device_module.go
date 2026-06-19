@@ -28,23 +28,23 @@ package show
 import (
 	"sort"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/visual"
-	"github.com/spf13/cobra"
 )
 
 // newDeviceShowCommand creates the "show device" subcommand.
-func newDeviceShowCommand() *cobra.Command {
-	return &cobra.Command{
+func newDeviceShowCommand() *cli.Command {
+	return &cli.Command{
 		Use:   "device [name|uuid]",
 		Short: "List devices in the inventory.",
 		Long:  "List devices, or show a single device by name or UUID.",
-		Args:  cobra.MaximumNArgs(1),
+		Args:  cli.MaximumNArgs(1),
 		RunE:  showDevices,
 	}
 }
 
-func showDevices(cmd *cobra.Command, args []string) error {
+func showDevices(cmd *cli.Command, args []string) error {
 	inv, err := loadInventory(cmd, args)
 	if err != nil {
 		return err
@@ -92,7 +92,7 @@ func showDevices(cmd *cobra.Command, args []string) error {
 	}
 }
 
-func showSingleDevice(cmd *cobra.Command, inv *devicetypes.Inventory, arg string) error {
+func showSingleDevice(cmd *cli.Command, inv *devicetypes.Inventory, arg string) error {
 	dev, err := findDeviceByNameOrUUID(arg, inv)
 	if err != nil {
 		return err
@@ -113,17 +113,17 @@ func showSingleDevice(cmd *cobra.Command, inv *devicetypes.Inventory, arg string
 }
 
 // newModuleCommand creates the "show module" subcommand.
-func newModuleCommand() *cobra.Command {
-	return &cobra.Command{
+func newModuleCommand() *cli.Command {
+	return &cli.Command{
 		Use:   "module [name|uuid]",
 		Short: "List modules in the inventory.",
 		Long:  "List modules, or show a single module by name or UUID.",
-		Args:  cobra.MaximumNArgs(1),
+		Args:  cli.MaximumNArgs(1),
 		RunE:  showModules,
 	}
 }
 
-func showModules(cmd *cobra.Command, args []string) error {
+func showModules(cmd *cli.Command, args []string) error {
 	inv, err := loadInventory(cmd, args)
 	if err != nil {
 		return err
@@ -156,7 +156,7 @@ func showModules(cmd *cobra.Command, args []string) error {
 	}
 }
 
-func showSingleModule(cmd *cobra.Command, inv *devicetypes.Inventory, arg string) error {
+func showSingleModule(cmd *cli.Command, inv *devicetypes.Inventory, arg string) error {
 	mod, err := findModuleByNameOrUUID(arg, inv)
 	if err != nil {
 		return err

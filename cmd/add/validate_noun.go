@@ -29,8 +29,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
-	"github.com/spf13/cobra"
 )
 
 // Noun identifies which inventory noun a subcommand operates on.
@@ -76,8 +76,8 @@ var nounTypeMap = map[Noun][]devicetypes.Type{
 
 // validSlugOrPartNumber validates the positional arg for an add subcommand.
 // It checks device, rack, module, and cable registries as appropriate.
-func validSlugOrPartNumber(noun Noun) func(cmd *cobra.Command, args []string) error {
-	return func(cmd *cobra.Command, args []string) error {
+func validSlugOrPartNumber(noun Noun) func(cmd *cli.Command, args []string) error {
+	return func(cmd *cli.Command, args []string) error {
 		cmd.SetOut(os.Stderr)
 
 		if cmd.Flags().Changed("list-supported-types") {
@@ -158,7 +158,7 @@ func lookupBySlugOrPart(noun Noun, key string) (*lookupResult, error) {
 }
 
 // listTypesForNoun prints supported slugs for a noun and exits.
-func listTypesForNoun(cmd *cobra.Command, noun Noun) error {
+func listTypesForNoun(cmd *cli.Command, noun Noun) error {
 	var entries []devicetypes.TypeEntry
 
 	switch noun {

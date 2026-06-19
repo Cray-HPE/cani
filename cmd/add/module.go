@@ -31,13 +31,13 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/nameexpand"
 	"github.com/Cray-HPE/cani/internal/util/placement"
 	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
-	"github.com/spf13/cobra"
 )
 
 const (
@@ -46,8 +46,8 @@ const (
 )
 
 // newModuleCommand creates the "add module" subcommand.
-func newModuleCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func newModuleCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "module <slug-or-part-number>",
 		Short: "Add module(s) to the inventory.",
 		Long: `Add one or more modules to the inventory by slug or part number.
@@ -75,7 +75,7 @@ Template variables for --name: %{DEVICE}, %{BAY}, %{SEQ}`,
 	return cmd
 }
 
-func addModule(cmd *cobra.Command, args []string) error {
+func addModule(cmd *cli.Command, args []string) error {
 	qty, _ := cmd.Flags().GetInt("qty")
 
 	result, err := lookupBySlugOrPart(NounModule, args[0])
@@ -116,7 +116,7 @@ type moduleAddOpts struct {
 }
 
 // loadModuleInventory sets the device store from flags and loads the inventory.
-func loadModuleInventory(cmd *cobra.Command) (*devicetypes.Inventory, error) {
+func loadModuleInventory(cmd *cli.Command) (*devicetypes.Inventory, error) {
 	if err := datastores.SetDeviceStore(cmd, nil); err != nil {
 		return nil, fmt.Errorf("failed to set device store: %w", err)
 	}
@@ -169,7 +169,7 @@ func commitPlannedModules(inventory *devicetypes.Inventory, base *devicetypes.Ca
 }
 
 // addModuleStrategy handles multi-device auto-placement with %{FILL}.
-func addModuleStrategy(cmd *cobra.Command, result *lookupResult, qty int, nameArg, deviceArg string) error {
+func addModuleStrategy(cmd *cli.Command, result *lookupResult, qty int, nameArg, deviceArg string) error {
 	bayFilterArg, _ := cmd.Flags().GetString(flagBayFilter)
 	locationArg, _ := cmd.Flags().GetString(flagLocation)
 	dryRun, _ := cmd.Flags().GetBool(flagDryRun)
@@ -217,7 +217,7 @@ func addModuleStrategy(cmd *cobra.Command, result *lookupResult, qty int, nameAr
 
 // addModuleLiteral handles the original single-device flow and also
 // supports device lookup by slug (all matching devices).
-func addModuleLiteral(cmd *cobra.Command, result *lookupResult, qty int, nameArg, deviceArg string) error {
+func addModuleLiteral(cmd *cli.Command, result *lookupResult, qty int, nameArg, deviceArg string) error {
 	opts := parseModuleOpts(cmd, qty, nameArg, deviceArg)
 
 	inventory, err := loadModuleInventory(cmd)
@@ -236,7 +236,7 @@ func addModuleLiteral(cmd *cobra.Command, result *lookupResult, qty int, nameArg
 }
 
 // parseModuleOpts reads the module placement flags into a struct.
-func parseModuleOpts(cmd *cobra.Command, qty int, nameArg, deviceArg string) moduleAddOpts {
+func parseModuleOpts(cmd *cli.Command, qty int, nameArg, deviceArg string) moduleAddOpts {
 	opts := moduleAddOpts{qty: qty, nameArg: nameArg, deviceArg: deviceArg}
 	opts.bayName, _ = cmd.Flags().GetString("bay")
 	opts.bayFilterArg, _ = cmd.Flags().GetString(flagBayFilter)

@@ -29,15 +29,15 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/nameexpand"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
-	"github.com/spf13/cobra"
 )
 
 // addAny looks up the argument across all hardware registries and delegates
 // to the appropriate add logic based on the category it resolves to.
-func addAny(cmd *cobra.Command, args []string) error {
+func addAny(cmd *cli.Command, args []string) error {
 	key := args[0]
 
 	result, err := devicetypes.LookupAny(key)
@@ -68,7 +68,7 @@ func addAny(cmd *cobra.Command, args []string) error {
 
 // resolveNamesFromFlags resolves device/rack/module/cable names from the
 // standard naming flags (name, prefix, start, pad-width).
-func resolveNamesFromFlags(cmd *cobra.Command, qty int) ([]string, error) {
+func resolveNamesFromFlags(cmd *cli.Command, qty int) ([]string, error) {
 	nameArg, _ := cmd.Flags().GetString("name")
 	prefix, _ := cmd.Flags().GetString("prefix")
 	start, _ := cmd.Flags().GetInt("start")
@@ -83,7 +83,7 @@ func resolveNamesFromFlags(cmd *cobra.Command, qty int) ([]string, error) {
 
 // loadInventoryForAdd sets the device store from the command and loads the
 // current inventory.
-func loadInventoryForAdd(cmd *cobra.Command, args []string) (*devicetypes.Inventory, error) {
+func loadInventoryForAdd(cmd *cli.Command, args []string) (*devicetypes.Inventory, error) {
 	if err := datastores.SetDeviceStore(cmd, args); err != nil {
 		return nil, fmt.Errorf("failed to set device store: %w", err)
 	}

@@ -1,9 +1,9 @@
 package commands
 
-import "github.com/spf13/cobra"
+import "github.com/Cray-HPE/cani/internal/cli"
 
 // addAuthFlags adds CSM authentication flags common to import and export.
-func addAuthFlags(cmd *cobra.Command) {
+func addAuthFlags(cmd *cli.Command) {
 	cmd.Flags().BoolP("use-simulator", "S", false,
 		"Use simulation mode (localhost:8443, no auth, skip TLS verification)")
 	cmd.Flags().BoolP("insecure", "k", false,
@@ -42,8 +42,8 @@ func addAuthFlags(cmd *cobra.Command) {
 	cmd.MarkFlagsRequiredTogether("csm-keycloak-username", "csm-keycloak-password", "csm-api-host")
 }
 
-func NewImportCommand(base *cobra.Command) (*cobra.Command, error) {
-	cmd := &cobra.Command{}
+func NewImportCommand(base *cli.Command) (*cli.Command, error) {
+	cmd := &cli.Command{}
 	cmd.Flags().String("sls-file", "", "Path to SLS dumpstate JSON file")
 	cmd.Flags().String("smd-file", "", "Path to SMD state components JSON file")
 	cmd.Flags().Bool("ignore-validation", false,
@@ -52,8 +52,8 @@ func NewImportCommand(base *cobra.Command) (*cobra.Command, error) {
 	return cmd, nil
 }
 
-func NewExportCommand(base *cobra.Command) (*cobra.Command, error) {
-	cmd := &cobra.Command{}
+func NewExportCommand(base *cli.Command) (*cli.Command, error) {
+	cmd := &cli.Command{}
 	cmd.Flags().Bool("commit", false, "Push changes to the remote CSM system")
 	cmd.Flags().Bool("dryrun", false, "Perform a dry run without applying changes")
 	cmd.Flags().String("headers", "Type,Vlan,Role,SubRole,Status,Nid,Alias,Name,ID",
@@ -70,22 +70,22 @@ func NewExportCommand(base *cobra.Command) (*cobra.Command, error) {
 	return cmd, nil
 }
 
-func NewShowCommand(base *cobra.Command) (*cobra.Command, error) {
+func NewShowCommand(base *cli.Command) (*cli.Command, error) {
 	// TODO: Add show-specific flags or subcommands
-	return &cobra.Command{}, nil
+	return &cli.Command{}, nil
 }
 
-func NewAddCommand(base *cobra.Command) (*cobra.Command, error) {
+func NewAddCommand(base *cli.Command) (*cli.Command, error) {
 	// TODO: Add add-specific flags or subcommands
 	return nil, nil
 }
 
-func NewRemoveCommand(base *cobra.Command) (*cobra.Command, error) {
+func NewRemoveCommand(base *cli.Command) (*cli.Command, error) {
 	// TODO: Add remove-specific flags or subcommands
-	return &cobra.Command{}, nil
+	return &cli.Command{}, nil
 }
 
-func NewUpdateCommand(base *cobra.Command) (*cobra.Command, error) {
+func NewUpdateCommand(base *cli.Command) (*cli.Command, error) {
 	// Provider-specific logic belongs in import/export only.
 	return nil, nil
 }

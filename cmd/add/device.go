@@ -31,6 +31,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/nameexpand"
 	"github.com/Cray-HPE/cani/internal/util/placement"
 	"github.com/Cray-HPE/cani/internal/util/resolve"
@@ -38,12 +39,11 @@ import (
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
-	"github.com/spf13/cobra"
 )
 
 // newDeviceCommand creates the "add device" subcommand.
-func newDeviceCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func newDeviceCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "device <slug-or-part-number>",
 		Short: "Add device(s) to the inventory.",
 		Long:  "Add one or more devices to the inventory by slug or part number.",
@@ -62,7 +62,7 @@ func newDeviceCommand() *cobra.Command {
 	return cmd
 }
 
-func addDevice(cmd *cobra.Command, args []string) error {
+func addDevice(cmd *cli.Command, args []string) error {
 	qty, _ := cmd.Flags().GetInt("qty")
 	if qty < 1 {
 		qty = 1
@@ -84,7 +84,7 @@ func addDevice(cmd *cobra.Command, args []string) error {
 }
 
 // addDeviceStrategy handles multi-rack auto-placement with %{FILL}/%{SPREAD}.
-func addDeviceStrategy(cmd *cobra.Command, result *lookupResult, qty int, nameArg string, strategy placement.Strategy) error {
+func addDeviceStrategy(cmd *cli.Command, result *lookupResult, qty int, nameArg string, strategy placement.Strategy) error {
 	face, _ := cmd.Flags().GetString("face")
 	locationArg, _ := cmd.Flags().GetString("location")
 	zoneArg, _ := cmd.Flags().GetString("zone")
@@ -205,7 +205,7 @@ func addDeviceStrategy(cmd *cobra.Command, result *lookupResult, qty int, nameAr
 }
 
 // addDeviceLiteral handles the original single-rack flow.
-func addDeviceLiteral(cmd *cobra.Command, result *lookupResult, qty int, nameArg, rackArg string) error {
+func addDeviceLiteral(cmd *cli.Command, result *lookupResult, qty int, nameArg, rackArg string) error {
 	parentArg, _ := cmd.Flags().GetString("parent")
 	position, _ := cmd.Flags().GetInt("position")
 	face, _ := cmd.Flags().GetString("face")

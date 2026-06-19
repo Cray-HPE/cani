@@ -71,7 +71,7 @@ func loadSpineLeafInventory(t *testing.T) *devicetypes.Inventory {
 }
 
 // newTestProvider creates a Nautobot provider wired to the local instance,
-// bypassing cobra/viper config loading.
+// bypassing cli/config config loading.
 func newTestProvider(t *testing.T) *Exporter {
 	t.Helper()
 	client, err := NewNautobotClient(testNautobotURL, testNautobotToken)

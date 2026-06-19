@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/provider/csm/client"
-	"github.com/spf13/cobra"
 )
 
 // providerGetter returns the Csm singleton to store raw SLS/SMD data.
@@ -29,7 +29,7 @@ func SetProviderGetter(getter func() interface {
 // Import reads SLS and SMD/HSM data from either JSON files or the live
 // CSM API, parses them, and stores the raw data on the provider singleton.
 // No transformation is done here; that happens in the transform step.
-func Import(cmd *cobra.Command, args []string) error {
+func Import(cmd *cli.Command, args []string) error {
 	p := providerGetter()
 	p.ClearRawData()
 
@@ -46,7 +46,7 @@ func Import(cmd *cobra.Command, args []string) error {
 
 // shouldUseAPI returns true when the user wants a live API import
 // (--use-simulator or explicit --csm-api-host).
-func shouldUseAPI(cmd *cobra.Command) (bool, error) {
+func shouldUseAPI(cmd *cli.Command) (bool, error) {
 	sim, _ := cmd.Flags().GetBool("use-simulator")
 	if sim {
 		return true, nil
@@ -55,12 +55,12 @@ func shouldUseAPI(cmd *cobra.Command) (bool, error) {
 }
 
 // ShouldUseAPI is an exported wrapper around shouldUseAPI.
-func ShouldUseAPI(cmd *cobra.Command) (bool, error) {
+func ShouldUseAPI(cmd *cli.Command) (bool, error) {
 	return shouldUseAPI(cmd)
 }
 
 // importFromAPI fetches SLS and SMD data from the live CSM APIs.
-func importFromAPI(cmd *cobra.Command, p interface {
+func importFromAPI(cmd *cli.Command, p interface {
 	SetSls(sls *SlsDumpstate)
 	SetSmd(smd *SmdComponentList)
 },
@@ -103,7 +103,7 @@ func importFromAPI(cmd *cobra.Command, p interface {
 }
 
 // buildClient creates an authenticated client.Client from CLI flags.
-func buildClient(cmd *cobra.Command) (*client.Client, error) {
+func buildClient(cmd *cli.Command) (*client.Client, error) {
 	sim, _ := cmd.Flags().GetBool("use-simulator")
 	insecure, _ := cmd.Flags().GetBool("insecure")
 	host, _ := cmd.Flags().GetString("csm-api-host")
@@ -141,7 +141,7 @@ func buildClient(cmd *cobra.Command) (*client.Client, error) {
 }
 
 // importFromFiles reads SLS and SMD data from local JSON files.
-func importFromFiles(cmd *cobra.Command, p interface {
+func importFromFiles(cmd *cli.Command, p interface {
 	SetSls(sls *SlsDumpstate)
 	SetSmd(smd *SmdComponentList)
 },

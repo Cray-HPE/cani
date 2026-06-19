@@ -30,14 +30,14 @@ import (
 	"log"
 	"strings"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
-	"github.com/spf13/cobra"
 )
 
-func newIPCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func newIPCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "ip <cidr>",
 		Short: "Add an IP address to the inventory.",
 		Long: `Add an IP address to the inventory in CIDR notation (host/mask).
@@ -46,7 +46,7 @@ Examples:
   cani alpha add ip 10.0.1.1/24 --interface "switch1:vlan100" --status active
   cani alpha add ip 10.0.1.10/24 --dns-name "node1-ilo.example.com"
   cani alpha add ip 10.0.1.254/24 --interface "router1:vlan100" --role vip`,
-		Args: cobra.ExactArgs(1),
+		Args: cli.ExactArgs(1),
 		RunE: addIP,
 	}
 
@@ -59,7 +59,7 @@ Examples:
 	return cmd
 }
 
-func addIP(cmd *cobra.Command, args []string) error {
+func addIP(cmd *cli.Command, args []string) error {
 	cidr := args[0]
 
 	if err := datastores.SetDeviceStore(cmd, args); err != nil {
@@ -97,7 +97,7 @@ func addIP(cmd *cobra.Command, args []string) error {
 }
 
 // applyIPFlags copies optional IP-address fields from CLI flags when set.
-func applyIPFlags(cmd *cobra.Command, addr *devicetypes.CaniIPAddress) {
+func applyIPFlags(cmd *cli.Command, addr *devicetypes.CaniIPAddress) {
 	if cmd.Flags().Changed("type") {
 		t, _ := cmd.Flags().GetString("type")
 		addr.Type = devicetypes.IPAddressType(t)
@@ -122,7 +122,7 @@ func applyIPFlags(cmd *cobra.Command, addr *devicetypes.CaniIPAddress) {
 
 // resolveIPInterfaces resolves each --interface reference to an interface UUID,
 // auto-creating a virtual interface when the port does not already exist.
-func resolveIPInterfaces(cmd *cobra.Command, inventory *devicetypes.Inventory, addr *devicetypes.CaniIPAddress) error {
+func resolveIPInterfaces(cmd *cli.Command, inventory *devicetypes.Inventory, addr *devicetypes.CaniIPAddress) error {
 	if !cmd.Flags().Changed(flagInterface) {
 		return nil
 	}

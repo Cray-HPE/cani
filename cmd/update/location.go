@@ -30,20 +30,20 @@ import (
 	"log"
 	"strings"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/resolve"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
-	"github.com/spf13/cobra"
 )
 
 // newLocationCommand creates the "update location" subcommand.
-func newLocationCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func newLocationCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "location <uuid-or-name>",
 		Short: "Update a location in the inventory.",
 		Long:  "Update a location's fields by UUID or name.",
-		Args:  cobra.ExactArgs(1),
+		Args:  cli.ExactArgs(1),
 		RunE:  updateLocation,
 	}
 
@@ -55,7 +55,7 @@ func newLocationCommand() *cobra.Command {
 	return cmd
 }
 
-func updateLocation(cmd *cobra.Command, args []string) error {
+func updateLocation(cmd *cli.Command, args []string) error {
 	if err := datastores.SetDeviceStore(cmd, args); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
 	}
@@ -107,7 +107,7 @@ func updateLocation(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func applySetToLocation(cmd *cobra.Command, loc *devicetypes.CaniLocationType) error {
+func applySetToLocation(cmd *cli.Command, loc *devicetypes.CaniLocationType) error {
 	sets, _ := cmd.Flags().GetStringArray("set")
 	pairs, err := parseSetFlags(sets)
 	if err != nil {

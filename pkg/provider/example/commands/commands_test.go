@@ -3,11 +3,11 @@ package commands
 import (
 	"testing"
 
-	"github.com/spf13/cobra"
+	"github.com/Cray-HPE/cani/internal/cli"
 )
 
 func TestNewImportCommand(t *testing.T) {
-	base := &cobra.Command{Use: "import"}
+	base := &cli.Command{Use: "import"}
 	cmd, err := NewImportCommand(base)
 	if err != nil {
 		t.Fatalf("NewImportCommand() error = %v", err)
@@ -36,7 +36,7 @@ func TestNewImportCommand(t *testing.T) {
 }
 
 func TestNewExportCommand(t *testing.T) {
-	base := &cobra.Command{Use: "export"}
+	base := &cli.Command{Use: "export"}
 	cmd, err := NewExportCommand(base)
 	if err != nil {
 		t.Fatalf("NewExportCommand() error = %v", err)
@@ -47,7 +47,7 @@ func TestNewExportCommand(t *testing.T) {
 }
 
 func TestNewShowCommand(t *testing.T) {
-	base := &cobra.Command{Use: "show"}
+	base := &cli.Command{Use: "show"}
 	cmd, err := NewShowCommand(base)
 	if err != nil {
 		t.Fatalf("NewShowCommand() error = %v", err)
@@ -58,7 +58,7 @@ func TestNewShowCommand(t *testing.T) {
 }
 
 func TestNewAddCommand(t *testing.T) {
-	base := &cobra.Command{Use: "add"}
+	base := &cli.Command{Use: "add"}
 	cmd, err := NewAddCommand(base)
 	if err != nil {
 		t.Fatalf("NewAddCommand() error = %v", err)
@@ -69,7 +69,7 @@ func TestNewAddCommand(t *testing.T) {
 }
 
 func TestNewRemoveCommand(t *testing.T) {
-	base := &cobra.Command{Use: "remove"}
+	base := &cli.Command{Use: "remove"}
 	cmd, err := NewRemoveCommand(base)
 	if err != nil {
 		t.Fatalf("NewRemoveCommand() error = %v", err)
@@ -80,7 +80,7 @@ func TestNewRemoveCommand(t *testing.T) {
 }
 
 func TestNewUpdateCommand(t *testing.T) {
-	base := &cobra.Command{Use: "update"}
+	base := &cli.Command{Use: "update"}
 	cmd, err := NewUpdateCommand(base)
 	if err != nil {
 		t.Fatalf("NewUpdateCommand() error = %v", err)

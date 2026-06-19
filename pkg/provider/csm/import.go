@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	import_ "github.com/Cray-HPE/cani/pkg/provider/csm/import"
-	"github.com/spf13/cobra"
 )
 
 // Import reads raw SLS and SMD data from JSON files and stores it on the
 // provider singleton. This is the "Extract" step in ETL.
 // When stdin is piped and no API/file flags are set, it performs a CSV import.
-func (p *Csm) Import(ctx context.Context, cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+func (p *Csm) Import(ctx context.Context, cmd *cli.Command, args []string, inventory *devicetypes.Inventory) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}

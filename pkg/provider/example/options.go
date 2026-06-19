@@ -1,6 +1,6 @@
 package example
 
-import "github.com/spf13/cobra"
+import "github.com/Cray-HPE/cani/internal/cli"
 
 // Options holds the provider's configuration options.
 // These are written to the config file with YAML comments preserved.
@@ -64,7 +64,7 @@ func (p *Example) GetImportDefaults() map[string]any {
 
 // BindImportFlags binds CLI flags to Viper for the import command.
 // This enables precedence: CLI flags > env vars > config file > defaults.
-func (p *Example) BindImportFlags(cmd *cobra.Command) error {
+func (p *Example) BindImportFlags(cmd *cli.Command) error {
 	// TODO: Bind import-related flags
 	// Example:
 	// viper.BindPFlag("example.import.source", cmd.Flags().Lookup("source"))
@@ -89,7 +89,7 @@ func (p *Example) GetExportDefaults() map[string]any {
 
 // BindExportFlags binds CLI flags to Viper for the export command.
 // This enables precedence: CLI flags > env vars > config file > defaults.
-func (p *Example) BindExportFlags(cmd *cobra.Command) error {
+func (p *Example) BindExportFlags(cmd *cli.Command) error {
 	// TODO: Bind export-related flags
 	// Example:
 	// viper.BindPFlag("example.export.format", cmd.Flags().Lookup("format"))

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/spf13/cobra"
+	"github.com/Cray-HPE/cani/internal/cli"
 )
 
 func fixtureDir() string {
@@ -115,9 +115,9 @@ func TestDecodeExtraProperties_Empty(t *testing.T) {
 	}
 }
 
-// newTestCmd builds a cobra.Command with the flags that import.go reads.
-func newTestCmd() *cobra.Command {
-	cmd := &cobra.Command{Use: "test"}
+// newTestCmd builds a cli.Command with the flags that import.go reads.
+func newTestCmd() *cli.Command {
+	cmd := &cli.Command{Use: "test"}
 	cmd.Flags().Bool("use-simulator", false, "")
 	cmd.Flags().String("csm-api-host", "", "")
 	cmd.Flags().String("sls-file", "", "")

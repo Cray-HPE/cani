@@ -29,23 +29,23 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/resolve"
 	"github.com/Cray-HPE/cani/pkg/datastores"
-	"github.com/spf13/cobra"
 )
 
 // newLocationCommand creates the "remove location" subcommand.
-func newLocationCommand() *cobra.Command {
-	return &cobra.Command{
+func newLocationCommand() *cli.Command {
+	return &cli.Command{
 		Use:   "location <uuid-or-name>",
 		Short: "Remove a location from the inventory.",
 		Long:  "Remove a location by UUID or name.",
-		Args:  cobra.ExactArgs(1),
+		Args:  cli.ExactArgs(1),
 		RunE:  removeLocation,
 	}
 }
 
-func removeLocation(cmd *cobra.Command, args []string) error {
+func removeLocation(cmd *cli.Command, args []string) error {
 	if err := datastores.SetDeviceStore(cmd, args); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
 	}

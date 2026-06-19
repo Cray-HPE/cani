@@ -30,14 +30,14 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
-	"github.com/spf13/cobra"
 )
 
-func newVLANCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func newVLANCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "vlan <vid>",
 		Short: "Add a VLAN to the inventory.",
 		Long: `Add a VLAN (layer-2 domain) to the inventory.
@@ -45,7 +45,7 @@ func newVLANCommand() *cobra.Command {
 Examples:
   cani alpha add vlan 100 --name "Management" --status active
   cani alpha add vlan 200 --name "BMC" --status active --location "Zone-A"`,
-		Args: cobra.ExactArgs(1),
+		Args: cli.ExactArgs(1),
 		RunE: addVLAN,
 	}
 
@@ -56,7 +56,7 @@ Examples:
 	return cmd
 }
 
-func addVLAN(cmd *cobra.Command, args []string) error {
+func addVLAN(cmd *cli.Command, args []string) error {
 	vid, err := strconv.Atoi(args[0])
 	if err != nil {
 		return fmt.Errorf("invalid VLAN ID %q: must be an integer", args[0])

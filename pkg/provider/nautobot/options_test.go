@@ -28,8 +28,8 @@ package nautobot
 import (
 	"testing"
 
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+	"github.com/Cray-HPE/cani/internal/cli"
+	"github.com/Cray-HPE/cani/internal/config"
 )
 
 func TestGetDefaultOptions(t *testing.T) {
@@ -135,7 +135,7 @@ func TestGetExportDefaults(t *testing.T) {
 
 func TestBindImportFlags(t *testing.T) {
 	p := New()
-	cmd := &cobra.Command{}
+	cmd := &cli.Command{}
 	cmd.Flags().String("default-location", "", "")
 	cmd.Flags().String("default-role", "", "")
 	cmd.Flags().String("default-status", "", "")
@@ -148,7 +148,7 @@ func TestBindImportFlags(t *testing.T) {
 
 func TestBindExportFlags(t *testing.T) {
 	p := New()
-	cmd := &cobra.Command{}
+	cmd := &cli.Command{}
 	cmd.Flags().Bool("create-device-types", true, "")
 	cmd.Flags().Bool("create-location-types", true, "")
 	cmd.Flags().Bool("create-module-types", true, "")
@@ -164,17 +164,24 @@ func TestBindExportFlags(t *testing.T) {
 	}
 }
 
-func TestLoadOptionsFromViper(t *testing.T) {
-	t.Run("loads URL and token from viper", func(t *testing.T) {
-		v := viper.New()
-		viper.Reset()
-		defer viper.Reset()
+// setNautobotConfig installs an in-memory config.Cfg whose nautobot provider
+// section is m, restoring the previous singleton on cleanup.
+func setNautobotConfig(t *testing.T, m map[string]any) {
+	t.Helper()
+	prev := config.Cfg
+	config.Cfg = &config.Config{Providers: map[string]map[string]any{providerSlug: m}}
+	t.Cleanup(func() { config.Cfg = prev })
+}
 
-		viper.Set("nautobot.url", "http://nb.example.com/api")
-		viper.Set("nautobot.token", "secret-token")
+func TestLoadOptionsFromEnv(t *testing.T) {
+	t.Run("loads URL and token from config", func(t *testing.T) {
+		setNautobotConfig(t, map[string]any{
+			"url":   "http://nb.example.com/api",
+			"token": "secret-token",
+		})
 
 		p := New()
-		p.LoadOptionsFromViper()
+		p.LoadOptionsFromEnv()
 
 		if p.Options.URL != "http://nb.example.com/api" {
 			t.Errorf("URL = %q, want %q", p.Options.URL, "http://nb.example.com/api")
@@ -182,17 +189,13 @@ func TestLoadOptionsFromViper(t *testing.T) {
 		if p.Options.Token != "secret-token" {
 			t.Errorf("Token = %q, want %q", p.Options.Token, "secret-token")
 		}
-		_ = v
 	})
 
 	t.Run("loads default location from primary key", func(t *testing.T) {
-		viper.Reset()
-		defer viper.Reset()
-
-		viper.Set("nautobot.default_location", "Site-A")
+		setNautobotConfig(t, map[string]any{"default_location": "Site-A"})
 
 		p := New()
-		p.LoadOptionsFromViper()
+		p.LoadOptionsFromEnv()
 
 		if p.Options.DefaultLocation != "Site-A" {
 			t.Errorf("DefaultLocation = %q, want %q", p.Options.DefaultLocation, "Site-A")
@@ -200,29 +203,41 @@ func TestLoadOptionsFromViper(t *testing.T) {
 	})
 
 	t.Run("falls back to legacy import key", func(t *testing.T) {
-		viper.Reset()
-		defer viper.Reset()
-
-		viper.Set("nautobot.import.default_location", "Legacy-Site")
+		setNautobotConfig(t, map[string]any{
+			"import": map[string]any{"default_location": "Legacy-Site"},
+		})
 
 		p := New()
-		p.LoadOptionsFromViper()
+		p.LoadOptionsFromEnv()
 
 		if p.Options.DefaultLocation != "Legacy-Site" {
 			t.Errorf("DefaultLocation = %q, want %q", p.Options.DefaultLocation, "Legacy-Site")
 		}
 	})
 
-	t.Run("loads export options from viper", func(t *testing.T) {
-		viper.Reset()
-		defer viper.Reset()
-
-		viper.Set("nautobot.export.merge", true)
-		viper.Set("nautobot.export.dry_run", true)
-		viper.Set("nautobot.export.create_device_types", true)
+	t.Run("environment variable overrides config", func(t *testing.T) {
+		setNautobotConfig(t, map[string]any{"url": "http://config.example.com/api"})
+		t.Setenv("CANI_NAUTOBOT_URL", "http://env.example.com/api")
 
 		p := New()
-		p.LoadOptionsFromViper()
+		p.LoadOptionsFromEnv()
+
+		if p.Options.URL != "http://env.example.com/api" {
+			t.Errorf("URL = %q, want env override", p.Options.URL)
+		}
+	})
+
+	t.Run("loads export options from config", func(t *testing.T) {
+		setNautobotConfig(t, map[string]any{
+			"export": map[string]any{
+				"merge":               true,
+				"dry_run":             true,
+				"create_device_types": true,
+			},
+		})
+
+		p := New()
+		p.LoadOptionsFromEnv()
 
 		if !p.Options.Export.Merge {
 			t.Error("Export.Merge should be true")
@@ -236,14 +251,13 @@ func TestLoadOptionsFromViper(t *testing.T) {
 	})
 
 	t.Run("initializes nil Import/Export sub-structs", func(t *testing.T) {
-		viper.Reset()
-		defer viper.Reset()
+		setNautobotConfig(t, map[string]any{})
 
 		p := New()
 		p.Options.Import = nil
 		p.Options.Export = nil
 
-		p.LoadOptionsFromViper()
+		p.LoadOptionsFromEnv()
 
 		if p.Options.Import == nil {
 			t.Error("Import should be initialized")

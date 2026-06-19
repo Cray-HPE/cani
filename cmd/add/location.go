@@ -30,17 +30,17 @@ import (
 	"log"
 	"strings"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
-	"github.com/spf13/cobra"
 )
 
 const flagContentTypes = "content-types"
 
 // newLocationCommand creates the "add location" subcommand.
-func newLocationCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func newLocationCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "location <slug>",
 		Short: "Add a location to the inventory.",
 		Long: `Add a location to the inventory using a registered location type slug.
@@ -51,7 +51,7 @@ Examples:
   cani alpha add location section --name "Section A"
 
 Use -L to list available location type slugs.`,
-		Args: func(cmd *cobra.Command, args []string) error {
+		Args: func(cmd *cli.Command, args []string) error {
 			if cmd.Flags().Changed("list-supported-types") {
 				return nil
 			}
@@ -71,7 +71,7 @@ Use -L to list available location type slugs.`,
 	return cmd
 }
 
-func addLocation(cmd *cobra.Command, args []string) error {
+func addLocation(cmd *cli.Command, args []string) error {
 	if cmd.Flags().Changed("list-supported-types") {
 		return listTypesForNoun(cmd, NounLocation)
 	}
@@ -105,7 +105,7 @@ func addLocation(cmd *cobra.Command, args []string) error {
 }
 
 // buildLocation creates a CaniLocationType from a slug and required --name flag.
-func buildLocation(cmd *cobra.Command, args []string) (*devicetypes.CaniLocationType, error) {
+func buildLocation(cmd *cli.Command, args []string) (*devicetypes.CaniLocationType, error) {
 	result, _ := lookupBySlugOrPart(NounLocation, args[0])
 	if result == nil || result.Location == nil {
 		return nil, fmt.Errorf("unknown location type slug: %s (use -L to list available types)", args[0])
@@ -123,7 +123,7 @@ func buildLocation(cmd *cobra.Command, args []string) (*devicetypes.CaniLocation
 }
 
 // applyLocationFlags overrides location fields from CLI flags when set.
-func applyLocationFlags(cmd *cobra.Command, loc *devicetypes.CaniLocationType) {
+func applyLocationFlags(cmd *cli.Command, loc *devicetypes.CaniLocationType) {
 	if cmd.Flags().Changed(flagDescription) {
 		loc.Description, _ = cmd.Flags().GetString(flagDescription)
 	}
@@ -137,7 +137,7 @@ func applyLocationFlags(cmd *cobra.Command, loc *devicetypes.CaniLocationType) {
 
 // resolveParent sets the parent UUID from the --parent flag.
 // Accepts a UUID directly or looks up a location by name.
-func resolveParent(cmd *cobra.Command, loc *devicetypes.CaniLocationType, inv *devicetypes.Inventory) {
+func resolveParent(cmd *cli.Command, loc *devicetypes.CaniLocationType, inv *devicetypes.Inventory) {
 	parentArg, _ := cmd.Flags().GetString("parent")
 	if parentArg == "" {
 		return

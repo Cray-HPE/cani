@@ -29,14 +29,14 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
-	"github.com/spf13/cobra"
 )
 
 // newInterfaceCommand creates the "update interface" subcommand.
-func newInterfaceCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func newInterfaceCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "interface [uuid]",
 		Short: "Update interface properties.",
 		Long: `Update one or more interfaces on a device or module.
@@ -63,7 +63,7 @@ Examples:
   # Target a specific module's interface (disambiguates names shared with the
   # parent device or sibling modules, e.g. multiple "HSN 0" ports on one node)
   cani update interface --module CX7-server-01 --name "HSN 0" --mac aa:bb:cc:dd:ee:ff`,
-		Args: cobra.MaximumNArgs(1),
+		Args: cli.MaximumNArgs(1),
 		RunE: updateInterface,
 	}
 
@@ -78,7 +78,7 @@ Examples:
 	return cmd
 }
 
-func updateInterface(cmd *cobra.Command, args []string) error {
+func updateInterface(cmd *cli.Command, args []string) error {
 	if err := datastores.SetDeviceStore(cmd, args); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
 	}
@@ -126,7 +126,7 @@ type interfaceUpdates struct {
 }
 
 // parseInterfaceUpdates reads and validates the --role/--label/--mac flags.
-func parseInterfaceUpdates(cmd *cobra.Command) (interfaceUpdates, error) {
+func parseInterfaceUpdates(cmd *cli.Command) (interfaceUpdates, error) {
 	role, _ := cmd.Flags().GetString("role")
 	label, _ := cmd.Flags().GetString("label")
 	mac, _ := cmd.Flags().GetString("mac")
@@ -154,7 +154,7 @@ func parseInterfaceUpdates(cmd *cobra.Command) (interfaceUpdates, error) {
 
 // applyInterfaceUpdates applies the changed fields to each target interface
 // (and its backing spec when present).
-func applyInterfaceUpdates(cmd *cobra.Command, targets []interfaceTarget, u interfaceUpdates) {
+func applyInterfaceUpdates(cmd *cli.Command, targets []interfaceTarget, u interfaceUpdates) {
 	roleChanged := cmd.Flags().Changed("role")
 	labelChanged := cmd.Flags().Changed("label")
 	macChanged := cmd.Flags().Changed("mac")

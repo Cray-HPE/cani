@@ -30,10 +30,10 @@ import (
 	"log"
 	"regexp"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/config"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -43,8 +43,8 @@ var (
 )
 
 // NewCommand creates the classify command.
-func NewCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func NewCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "classify",
 		Short: "Classify unclassified devices in the inventory",
 		Long: `Scan the local inventory for devices that have no device type slug or
@@ -70,7 +70,7 @@ Examples:
 }
 
 // runClassify is the main entry point for the classify command.
-func runClassify(cmd *cobra.Command, args []string) error {
+func runClassify(cmd *cli.Command, args []string) error {
 	if err := datastores.SetDeviceStore(cmd, args); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
 	}

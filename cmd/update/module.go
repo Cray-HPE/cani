@@ -29,19 +29,19 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/resolve"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
-	"github.com/spf13/cobra"
 )
 
 // newModuleCommand creates the "update module" subcommand.
-func newModuleCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func newModuleCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "module <uuid-or-name>",
 		Short: "Update a module in the inventory.",
 		Long:  "Update a module's fields by UUID or name.",
-		Args:  cobra.ExactArgs(1),
+		Args:  cli.ExactArgs(1),
 		RunE:  updateModule,
 	}
 
@@ -54,7 +54,7 @@ func newModuleCommand() *cobra.Command {
 	return cmd
 }
 
-func updateModule(cmd *cobra.Command, args []string) error {
+func updateModule(cmd *cli.Command, args []string) error {
 	if err := datastores.SetDeviceStore(cmd, args); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
 	}
@@ -99,7 +99,7 @@ func updateModule(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func applySetToModule(cmd *cobra.Command, mod *devicetypes.CaniModuleType) error {
+func applySetToModule(cmd *cli.Command, mod *devicetypes.CaniModuleType) error {
 	sets, _ := cmd.Flags().GetStringArray("set")
 	pairs, err := parseSetFlags(sets)
 	if err != nil {

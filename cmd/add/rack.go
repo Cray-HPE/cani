@@ -29,16 +29,16 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/nameexpand"
 	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/google/uuid"
-	"github.com/spf13/cobra"
 )
 
 // newRackAddCommand creates the "add rack" subcommand.
-func newRackAddCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func newRackAddCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "rack <slug-or-part-number>",
 		Short: "Add rack(s) to the inventory.",
 		Long:  "Add one or more racks to the inventory by slug or part number.",
@@ -52,7 +52,7 @@ func newRackAddCommand() *cobra.Command {
 	return cmd
 }
 
-func addRack(cmd *cobra.Command, args []string) error {
+func addRack(cmd *cli.Command, args []string) error {
 	qty, _ := cmd.Flags().GetInt("qty")
 	if qty < 1 {
 		qty = 1

@@ -26,30 +26,25 @@
 package commands
 
 import (
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+	"github.com/Cray-HPE/cani/internal/cli"
 )
 
 // NewImportCommand creates the "import" command for the Nautobot provider.
 // The caller is responsible for setting RunE on the returned command.
-func NewImportCommand(base *cobra.Command) (*cobra.Command, error) {
-	cmd := &cobra.Command{}
+func NewImportCommand(base *cli.Command) (*cli.Command, error) {
+	cmd := &cli.Command{}
 
 	cmd.Flags().String("default-location", "", "Default location for imported devices")
 	cmd.Flags().String("default-role", "", "Default role for imported devices")
 	cmd.Flags().String("default-status", "Active", "Default status for imported devices")
-
-	_ = viper.BindPFlag("nautobot.import.default_location", cmd.Flags().Lookup("default-location"))
-	_ = viper.BindPFlag("nautobot.import.default_role", cmd.Flags().Lookup("default-role"))
-	_ = viper.BindPFlag("nautobot.import.default_status", cmd.Flags().Lookup("default-status"))
 
 	return cmd, nil
 }
 
 // NewExportCommand creates the "export" command for the Nautobot provider.
 // The caller is responsible for setting RunE on the returned command.
-func NewExportCommand(base *cobra.Command) (*cobra.Command, error) {
-	cmd := &cobra.Command{}
+func NewExportCommand(base *cli.Command) (*cli.Command, error) {
+	cmd := &cli.Command{}
 
 	cmd.Flags().Bool("create-device-types", true, "Create missing device types in Nautobot")
 	cmd.Flags().Bool("create-location-types", true, "Create missing location types in Nautobot")
@@ -59,15 +54,6 @@ func NewExportCommand(base *cobra.Command) (*cobra.Command, error) {
 	cmd.Flags().Bool("create-roles", true, "Create missing roles in Nautobot")
 	cmd.Flags().Bool("merge", false, "Merge with existing devices instead of skipping conflicts")
 	cmd.Flags().Bool("dry-run", false, "Log planned actions without making API calls")
-
-	_ = viper.BindPFlag("nautobot.export.create_device_types", cmd.Flags().Lookup("create-device-types"))
-	_ = viper.BindPFlag("nautobot.export.create_location_types", cmd.Flags().Lookup("create-location-types"))
-	_ = viper.BindPFlag("nautobot.export.create_module_types", cmd.Flags().Lookup("create-module-types"))
-	_ = viper.BindPFlag("nautobot.export.create_locations", cmd.Flags().Lookup("create-locations"))
-	_ = viper.BindPFlag("nautobot.export.create_statuses", cmd.Flags().Lookup("create-statuses"))
-	_ = viper.BindPFlag("nautobot.export.create_roles", cmd.Flags().Lookup("create-roles"))
-	_ = viper.BindPFlag("nautobot.export.merge", cmd.Flags().Lookup("merge"))
-	_ = viper.BindPFlag("nautobot.export.dry_run", cmd.Flags().Lookup("dry-run"))
 
 	return cmd, nil
 }

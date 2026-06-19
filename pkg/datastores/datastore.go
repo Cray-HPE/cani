@@ -31,8 +31,8 @@ import (
 	stdlog "log"
 	"os"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
-	"github.com/spf13/cobra"
 )
 
 var ErrHardwareNotFound = errors.New("hardware not found")
@@ -63,7 +63,7 @@ const (
 var Datastore DeviceStore
 
 // SetDeviceStore returns the appropriate datastore implementation
-func SetDeviceStore(cmd *cobra.Command, args []string) error {
+func SetDeviceStore(cmd *cli.Command, args []string) error {
 	storeType := cmd.Root().PersistentFlags().Lookup("datastore").Value.String()
 	switch StoreType(storeType) {
 

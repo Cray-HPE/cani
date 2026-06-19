@@ -3,12 +3,12 @@ package nautobot
 import (
 	"context"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/provider"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/Cray-HPE/cani/pkg/provider/nautobot/commands"
 	imprt "github.com/Cray-HPE/cani/pkg/provider/nautobot/import"
 	"github.com/Cray-HPE/cani/pkg/provider/nautobot/logcolor"
-	"github.com/spf13/cobra"
 )
 
 var nautobotProvider *Nautobot
@@ -30,7 +30,7 @@ func init() {
 }
 
 // NewProviderCmd creates provider-specific CLI commands.
-func (p *Nautobot) NewProviderCmd(base *cobra.Command) (*cobra.Command, error) {
+func (p *Nautobot) NewProviderCmd(base *cli.Command) (*cli.Command, error) {
 	switch base.Name() {
 	case "import":
 		cmd, err := commands.NewImportCommand(base)

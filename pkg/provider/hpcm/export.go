@@ -28,14 +28,14 @@ package hpcm
 import (
 	"context"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/provider/hpcm/export"
-	"github.com/spf13/cobra"
 )
 
 // Export syncs the local CANI inventory to an external system.
 // This is the "Load" step in ETL.
-func (p *Hpcm) Export(ctx context.Context, cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+func (p *Hpcm) Export(ctx context.Context, cmd *cli.Command, args []string, inventory *devicetypes.Inventory) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}

@@ -29,13 +29,13 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
-	"github.com/spf13/cobra"
 )
 
 // applyScalarFields applies simple string field updates from changed flags.
-func applyScalarFields(cmd *cobra.Command, device *devicetypes.CaniDeviceType) {
+func applyScalarFields(cmd *cli.Command, device *devicetypes.CaniDeviceType) {
 	if cmd.Flags().Changed("name") {
 		device.Name, _ = cmd.Flags().GetString("name")
 	}
@@ -51,7 +51,7 @@ func applyScalarFields(cmd *cobra.Command, device *devicetypes.CaniDeviceType) {
 }
 
 // applyPositionUpdate handles --position/--face changes, including swap logic.
-func applyPositionUpdate(cmd *cobra.Command, inventory *devicetypes.Inventory, id uuid.UUID, device *devicetypes.CaniDeviceType) error {
+func applyPositionUpdate(cmd *cli.Command, inventory *devicetypes.Inventory, id uuid.UUID, device *devicetypes.CaniDeviceType) error {
 	if !cmd.Flags().Changed(flagPosition) && !cmd.Flags().Changed("face") {
 		return nil
 	}
@@ -73,7 +73,7 @@ func applyPositionUpdate(cmd *cobra.Command, inventory *devicetypes.Inventory, i
 }
 
 // applyParentUpdate handles a --parent change.
-func applyParentUpdate(cmd *cobra.Command, inventory *devicetypes.Inventory, device *devicetypes.CaniDeviceType) error {
+func applyParentUpdate(cmd *cli.Command, inventory *devicetypes.Inventory, device *devicetypes.CaniDeviceType) error {
 	if !cmd.Flags().Changed("parent") {
 		return nil
 	}
@@ -87,7 +87,7 @@ func applyParentUpdate(cmd *cobra.Command, inventory *devicetypes.Inventory, dev
 }
 
 // applyTagsAndMetadata handles --tag and --metadata changes.
-func applyTagsAndMetadata(cmd *cobra.Command, device *devicetypes.CaniDeviceType) error {
+func applyTagsAndMetadata(cmd *cli.Command, device *devicetypes.CaniDeviceType) error {
 	if cmd.Flags().Changed("tag") {
 		tags, _ := cmd.Flags().GetStringArray("tag")
 		device.Tags = tags
@@ -102,7 +102,7 @@ func applyTagsAndMetadata(cmd *cobra.Command, device *devicetypes.CaniDeviceType
 }
 
 // applyPrimaryIPs handles --primary-ipv4 and --primary-ipv6 changes.
-func applyPrimaryIPs(cmd *cobra.Command, inventory *devicetypes.Inventory, device *devicetypes.CaniDeviceType) error {
+func applyPrimaryIPs(cmd *cli.Command, inventory *devicetypes.Inventory, device *devicetypes.CaniDeviceType) error {
 	if cmd.Flags().Changed("primary-ipv4") {
 		ref, _ := cmd.Flags().GetString("primary-ipv4")
 		ipID, rerr := resolveIPAddress(inventory, ref)
@@ -122,7 +122,7 @@ func applyPrimaryIPs(cmd *cobra.Command, inventory *devicetypes.Inventory, devic
 	return nil
 }
 
-func applySetToDevice(cmd *cobra.Command, device *devicetypes.CaniDeviceType) error {
+func applySetToDevice(cmd *cli.Command, device *devicetypes.CaniDeviceType) error {
 	sets, _ := cmd.Flags().GetStringArray("set")
 	pairs, err := parseSetFlags(sets)
 	if err != nil {

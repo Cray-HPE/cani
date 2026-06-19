@@ -33,15 +33,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/config"
-	"github.com/spf13/cobra"
 )
 
 // TestSetDeviceStoreJSON verifies the datastore factory selects JSON storage.
 //
 // Why it matters: command startup depends on SetDeviceStore wiring the global
 // datastore implementation before CRUD commands load or save inventory data.
-// Inputs: a cobra root command whose datastore flag is json. Outputs: nil error
+// Inputs: a cli root command whose datastore flag is json. Outputs: nil error
 // and a global Datastore containing a *JSONStore.
 // Data choice: json is the only implemented datastore type in this package.
 func TestSetDeviceStoreJSON(t *testing.T) {
@@ -55,7 +55,7 @@ func TestSetDeviceStoreJSON(t *testing.T) {
 		Datastore = nil
 	}()
 
-	root := &cobra.Command{}
+	root := &cli.Command{}
 	root.PersistentFlags().String("datastore", "json", "datastore type")
 
 	if err := SetDeviceStore(root, nil); err != nil {
@@ -75,7 +75,7 @@ func TestSetDeviceStoreJSON(t *testing.T) {
 //
 // Why it matters: accepting an unknown datastore type would leave command CRUD
 // operations without a reliable persistence backend.
-// Inputs: a cobra root command whose datastore flag is unsupported. Outputs: an
+// Inputs: a cli root command whose datastore flag is unsupported. Outputs: an
 // error that names the unsupported type and no JSON datastore selection.
 // Data choice: "unsupported" is outside the StoreType constants and exercises
 // the default branch.
@@ -83,7 +83,7 @@ func TestSetDeviceStoreUnsupported(t *testing.T) {
 	Datastore = nil
 	defer func() { Datastore = nil }()
 
-	root := &cobra.Command{}
+	root := &cli.Command{}
 	root.PersistentFlags().String("datastore", "unsupported", "datastore type")
 
 	err := SetDeviceStore(root, nil)

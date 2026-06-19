@@ -36,12 +36,12 @@ import (
 	"github.com/Cray-HPE/cani/cmd/serve"
 	"github.com/Cray-HPE/cani/cmd/show"
 	"github.com/Cray-HPE/cani/cmd/update"
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/provider"
-	"github.com/spf13/cobra"
 )
 
 var (
-	rootCmd *cobra.Command
+	rootCmd *cli.Command
 	cfgFile string
 )
 

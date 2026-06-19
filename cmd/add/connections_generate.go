@@ -29,15 +29,15 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/nameexpand"
 	"github.com/Cray-HPE/cani/pkg/devicetypes/connections"
-	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
 
 // newGenerateCommand creates the "add connections generate" subcommand.
-func newGenerateCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func newGenerateCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "generate <pattern>",
 		Short: "Generate a connection map from a topology pattern.",
 		Long: `Generate a connection map YAML file from a named topology pattern.
@@ -48,7 +48,7 @@ Examples:
   cani alpha add connections generate star --hub switch-01 --spokes "node-{01..48}" > topo.yaml
   cani alpha add connections generate leaf-spine --leaves "leaf-{01..04}" --spines "spine-{01..02}"
   cani alpha add connections generate ring --devices "sw-{01..08}"`,
-		Args: cobra.ExactArgs(1),
+		Args: cli.ExactArgs(1),
 		RunE: generateTopology,
 	}
 
@@ -75,7 +75,7 @@ Examples:
 	return cmd
 }
 
-func generateTopology(cmd *cobra.Command, args []string) error {
+func generateTopology(cmd *cli.Command, args []string) error {
 	pattern := args[0]
 	cableType, _ := cmd.Flags().GetString("cable-type")
 	cableColor, _ := cmd.Flags().GetString("cable-color")
@@ -113,7 +113,7 @@ func generateTopology(cmd *cobra.Command, args []string) error {
 	return enc.Encode(cm)
 }
 
-func generateStarFromFlags(cmd *cobra.Command) ([]connections.ConnectionEntry, error) {
+func generateStarFromFlags(cmd *cli.Command) ([]connections.ConnectionEntry, error) {
 	hub, _ := cmd.Flags().GetString("hub")
 	hubPorts, _ := cmd.Flags().GetString("hub-ports")
 	spokes, _ := cmd.Flags().GetString("spokes")
@@ -127,7 +127,7 @@ func generateStarFromFlags(cmd *cobra.Command) ([]connections.ConnectionEntry, e
 	})
 }
 
-func generateLeafSpineFromFlags(cmd *cobra.Command) ([]connections.ConnectionEntry, error) {
+func generateLeafSpineFromFlags(cmd *cli.Command) ([]connections.ConnectionEntry, error) {
 	leaves, _ := cmd.Flags().GetStringSlice("leaves")
 	spines, _ := cmd.Flags().GetStringSlice("spines")
 	uplinks, _ := cmd.Flags().GetInt("uplinks-per-leaf")
@@ -142,7 +142,7 @@ func generateLeafSpineFromFlags(cmd *cobra.Command) ([]connections.ConnectionEnt
 	})
 }
 
-func generateRingFromFlags(cmd *cobra.Command) ([]connections.ConnectionEntry, error) {
+func generateRingFromFlags(cmd *cli.Command) ([]connections.ConnectionEntry, error) {
 	devices, _ := cmd.Flags().GetStringSlice("devices")
 	portA, _ := cmd.Flags().GetString("port-a")
 	portB, _ := cmd.Flags().GetString("port-b")

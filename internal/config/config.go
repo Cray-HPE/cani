@@ -108,6 +108,26 @@ func GetNestedInt(providerName string, defaultValue int, keys ...string) int {
 	return defaultValue
 }
 
+// HasTopLevelKey reports whether the loaded config file explicitly contained the
+// given top-level key.  It lets callers distinguish a value that came from the
+// file from a struct zero value, preserving flag defaults during precedence
+// resolution (the role viper's config layer previously played).
+func HasTopLevelKey(name string) bool {
+	if Cfg == nil || Cfg.RootNode == nil || len(Cfg.RootNode.Content) == 0 {
+		return false
+	}
+	mapping := Cfg.RootNode.Content[0]
+	if mapping.Kind != yaml.MappingNode {
+		return false
+	}
+	for i := 0; i+1 < len(mapping.Content); i += 2 {
+		if mapping.Content[i].Value == name {
+			return true
+		}
+	}
+	return false
+}
+
 // Load reads or creates the config at path.
 // It preserves the YAML node tree for comment and ordering preservation on save.
 func Load(path string) error {

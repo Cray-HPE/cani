@@ -1,6 +1,6 @@
 package hpcm
 
-import "github.com/spf13/cobra"
+import "github.com/Cray-HPE/cani/internal/cli"
 
 // Options holds the provider's configuration options.
 // These are written to the config file with YAML comments preserved.
@@ -62,7 +62,7 @@ func (p *Hpcm) GetImportDefaults() map[string]any {
 
 // BindImportFlags binds CLI flags to Viper for the import command.
 // This enables precedence: CLI flags > env vars > config file > defaults.
-func (p *Hpcm) BindImportFlags(cmd *cobra.Command) error {
+func (p *Hpcm) BindImportFlags(cmd *cli.Command) error {
 	// TODO: Bind import-related flags
 	// Example:
 	// viper.BindPFlag("hpcm.import.source", cmd.Flags().Lookup("source"))
@@ -87,7 +87,7 @@ func (p *Hpcm) GetExportDefaults() map[string]any {
 
 // BindExportFlags binds CLI flags to Viper for the export command.
 // This enables precedence: CLI flags > env vars > config file > defaults.
-func (p *Hpcm) BindExportFlags(cmd *cobra.Command) error {
+func (p *Hpcm) BindExportFlags(cmd *cli.Command) error {
 	// TODO: Bind export-related flags
 	// Example:
 	// viper.BindPFlag("hpcm.export.format", cmd.Flags().Lookup("format"))

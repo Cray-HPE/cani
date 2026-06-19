@@ -26,10 +26,9 @@
 package nautobot
 
 import (
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/config"
 	"github.com/Cray-HPE/cani/internal/provider"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // NautobotOpts holds the options for the Nautobot provider
@@ -100,11 +99,9 @@ func (p *Nautobot) GetImportDefaults() map[string]any {
 	return provider.StructToMapAll(&NautobotImportOpts{})
 }
 
-// BindImportFlags binds CLI flags to Viper for the import command
-func (p *Nautobot) BindImportFlags(cmd *cobra.Command) error {
-	_ = viper.BindPFlag("nautobot.default_location", cmd.Flags().Lookup("default-location"))
-	_ = viper.BindPFlag("nautobot.default_role", cmd.Flags().Lookup("default-role"))
-	_ = viper.BindPFlag("nautobot.default_status", cmd.Flags().Lookup("default-status"))
+// BindImportFlags satisfies HasImportOptions.  Import flags are read directly
+// from cmd.Flags() in the import path, so no binding is required.
+func (p *Nautobot) BindImportFlags(cmd *cli.Command) error {
 	return nil
 }
 
@@ -129,47 +126,41 @@ func (p *Nautobot) GetExportDefaults() map[string]any {
 	})
 }
 
-// BindExportFlags binds CLI flags to Viper for the export command
-func (p *Nautobot) BindExportFlags(cmd *cobra.Command) error {
-	_ = viper.BindPFlag("nautobot.export.create_device_types", cmd.Flags().Lookup("create-device-types"))
-	_ = viper.BindPFlag("nautobot.export.create_location_types", cmd.Flags().Lookup("create-location-types"))
-	_ = viper.BindPFlag("nautobot.export.create_module_types", cmd.Flags().Lookup("create-module-types"))
-	_ = viper.BindPFlag("nautobot.export.create_locations", cmd.Flags().Lookup("create-locations"))
-	_ = viper.BindPFlag("nautobot.export.create_statuses", cmd.Flags().Lookup("create-statuses"))
-	_ = viper.BindPFlag("nautobot.export.create_roles", cmd.Flags().Lookup("create-roles"))
-	_ = viper.BindPFlag("nautobot.export.merge", cmd.Flags().Lookup("merge"))
-	_ = viper.BindPFlag("nautobot.export.dry_run", cmd.Flags().Lookup("dry-run"))
+// BindExportFlags satisfies HasExportOptions.  Export flags are read directly
+// from cmd.Flags() via applyFlagOverrides, so no binding is required.
+func (p *Nautobot) BindExportFlags(cmd *cli.Command) error {
 	return nil
 }
 
-// LoadOptionsFromViper loads options from Viper (handles precedence: CLI > env > config > defaults)
-func (p *Nautobot) LoadOptionsFromViper() {
-	if url := viper.GetString("nautobot.url"); url != "" {
+// LoadOptionsFromEnv loads options from environment variables and the config
+// file (precedence: env var > config file > defaults).
+func (p *Nautobot) LoadOptionsFromEnv() {
+	if url := config.LookupString(providerSlug, "url"); url != "" {
 		p.Options.URL = url
 	}
-	if token := viper.GetString("nautobot.token"); token != "" {
+	if token := config.LookupString(providerSlug, "token"); token != "" {
 		p.Options.Token = token
 	}
 
-	p.loadDefaultsFromViper()
-	p.loadExportOptsFromViper()
+	p.loadDefaultsFromEnv()
+	p.loadExportOptsFromEnv()
 }
 
-// loadDefaultsFromViper loads provider-global defaults from Viper with legacy fallback.
-func (p *Nautobot) loadDefaultsFromViper() {
-	if loc := viper.GetString("nautobot.default_location"); loc != "" {
+// loadDefaultsFromEnv loads provider-global defaults from env/config with legacy fallback.
+func (p *Nautobot) loadDefaultsFromEnv() {
+	if loc := config.LookupString(providerSlug, "default_location"); loc != "" {
 		p.Options.DefaultLocation = loc
-	} else if loc := viper.GetString("nautobot.import.default_location"); loc != "" {
+	} else if loc := config.LookupString(providerSlug, "import", "default_location"); loc != "" {
 		p.Options.DefaultLocation = loc
 	}
-	if role := viper.GetString("nautobot.default_role"); role != "" {
+	if role := config.LookupString(providerSlug, "default_role"); role != "" {
 		p.Options.DefaultRole = role
-	} else if role := viper.GetString("nautobot.import.default_role"); role != "" {
+	} else if role := config.LookupString(providerSlug, "import", "default_role"); role != "" {
 		p.Options.DefaultRole = role
 	}
-	if status := viper.GetString("nautobot.default_status"); status != "" {
+	if status := config.LookupString(providerSlug, "default_status"); status != "" {
 		p.Options.DefaultStatus = status
-	} else if status := viper.GetString("nautobot.import.default_status"); status != "" {
+	} else if status := config.LookupString(providerSlug, "import", "default_status"); status != "" {
 		p.Options.DefaultStatus = status
 	}
 
@@ -178,19 +169,19 @@ func (p *Nautobot) loadDefaultsFromViper() {
 	}
 }
 
-// loadExportOptsFromViper loads export-specific options from Viper.
-func (p *Nautobot) loadExportOptsFromViper() {
+// loadExportOptsFromEnv loads export-specific options from env/config.
+func (p *Nautobot) loadExportOptsFromEnv() {
 	if p.Options.Export == nil {
 		p.Options.Export = &NautobotExportOpts{}
 	}
-	p.Options.Export.CreateDeviceTypes = viper.GetBool("nautobot.export.create_device_types")
-	p.Options.Export.CreateLocationTypes = viper.GetBool("nautobot.export.create_location_types")
-	p.Options.Export.CreateModuleTypes = viper.GetBool("nautobot.export.create_module_types")
-	p.Options.Export.CreateLocations = viper.GetBool("nautobot.export.create_locations")
-	p.Options.Export.CreateStatuses = viper.GetBool("nautobot.export.create_statuses")
-	p.Options.Export.CreateRoles = viper.GetBool("nautobot.export.create_roles")
-	p.Options.Export.Merge = viper.GetBool("nautobot.export.merge")
-	p.Options.Export.DryRun = viper.GetBool("nautobot.export.dry_run")
+	p.Options.Export.CreateDeviceTypes = config.LookupBool(providerSlug, "export", "create_device_types")
+	p.Options.Export.CreateLocationTypes = config.LookupBool(providerSlug, "export", "create_location_types")
+	p.Options.Export.CreateModuleTypes = config.LookupBool(providerSlug, "export", "create_module_types")
+	p.Options.Export.CreateLocations = config.LookupBool(providerSlug, "export", "create_locations")
+	p.Options.Export.CreateStatuses = config.LookupBool(providerSlug, "export", "create_statuses")
+	p.Options.Export.CreateRoles = config.LookupBool(providerSlug, "export", "create_roles")
+	p.Options.Export.Merge = config.LookupBool(providerSlug, "export", "merge")
+	p.Options.Export.DryRun = config.LookupBool(providerSlug, "export", "dry_run")
 }
 
 // loadOptionsFromConfig loads the Nautobot options from the config file
