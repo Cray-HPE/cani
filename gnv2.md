@@ -242,7 +242,7 @@ graph TB
 | 1/1/30 | FORGE-3507u43L | 1/1/30 | ISL (VSX) | 100G DAC 3m |
 | 1/1/31 | FORGE-3507u43L | 1/1/31 | ISL (VSX) | 100G DAC 3m |
 | 1/1/32 | FORGE-3507u43L | 1/1/32 | ISL (VSX) | 100G DAC 3m |
-| mgmt   | FORGE-3701u47M | Port 2 | Management | CAT6 3m |
+| mgmt   | FORGE-3507u37M | Port 2 | Management | CAT6 3m |
 
 ### FORGE-3507u43L — Leaf-2 (Aruba 8325-32C, 32× 100G QSFP28)
 
@@ -267,7 +267,7 @@ graph TB
 | 1/1/30 | FORGE-3507u44L | 1/1/30 | ISL (VSX) | 100G DAC 3m |
 | 1/1/31 | FORGE-3507u44L | 1/1/31 | ISL (VSX) | 100G DAC 3m |
 | 1/1/32 | FORGE-3507u44L | 1/1/32 | ISL (VSX) | 100G DAC 3m |
-| mgmt   | FORGE-3701u47M | Port 1 | Management | CAT6 3m |
+| mgmt   | FORGE-3507u37M | Port 1 | Management | CAT6 3m |
 
 ### FORGE-3507u46S — Spine-1 (Aruba 9300-32D, 32× 400G QSFP-DD + 2× 10G SFP+)
 
@@ -279,7 +279,7 @@ graph TB
 | 1/1/4 | FORGE-3701u46L | 1/1/29 | x3701 Leaf downlink | 100G AOC 15m |
 | 1/1/29 | BBR-3508u46 | 1/1/9 | BB Leaf uplink | 100G AOC 15m |
 | 1/1/31 | BBR-3516u46 | 1/1/9 | BB Leaf uplink | 100G AOC 15m |
-| mgmt   | FORGE-3701u47M | Port 4 | Management | CAT6 3m |
+| mgmt   | FORGE-3507u37M | Port 4 | Management | CAT6 3m |
 
 ### FORGE-3507u45S — Spine-2 (Aruba 9300-32D, 32× 400G QSFP-DD + 2× 10G SFP+)
 
@@ -291,7 +291,7 @@ graph TB
 | 1/1/4 | FORGE-3701u46L | 1/1/28 | x3701 Leaf downlink | 100G AOC 15m |
 | 1/1/29 | BBR-3508u46 | 1/1/10 | BB Leaf uplink | 100G AOC 15m |
 | 1/1/31 | BBR-3516u46 | 1/1/10 | BB Leaf uplink | 100G AOC 15m |
-| mgmt   | FORGE-3701u47M | Port 3 | Management | CAT6 3m |
+| mgmt   | FORGE-3507u37M | Port 3 | Management | CAT6 3m |
 
 ### BBR-3508u46 — Router-1 (Aruba 8325-32C 32-PORT 100G QSFP+/QSFP28)
 
@@ -322,7 +322,7 @@ graph TB
 | 1/1/30 | FORGE-3701u45L | 1/1/30 | ISL (VSX) | 100G DAC 3m |
 | 1/1/31 | FORGE-3701u45L | 1/1/31 | ISL (VSX) | 100G DAC 3m |
 | 1/1/32 | FORGE-3701u45L | 1/1/32 | ISL (VSX) | 100G DAC 3m |
-| mgmt   | FORGE-3701u47M | Port 7 | Management | CAT6 3m |
+| mgmt   | FORGE-3507u37M | Port 7 | Management | CAT6 3m |
 
 ### FORGE-3701u45L — Leaf (Aruba 8325-32C, 32× 100G QSFP28)
 
@@ -337,7 +337,7 @@ graph TB
 | 1/1/30 | FORGE-3701u46L | 1/1/30 | ISL (VSX) | 100G DAC 3m |
 | 1/1/31 | FORGE-3701u46L | 1/1/31 | ISL (VSX) | 100G DAC 3m |
 | 1/1/32 | FORGE-3701u46L | 1/1/32 | ISL (VSX) | 100G DAC 3m |
-| mgmt   | FORGE-3701u47M | Port 6 | Management | CAT6 3m |
+| mgmt   | FORGE-3507u37M | Port 6 | Management | CAT6 3m |
 
 ### BBR-3516u46 — BB Leaf (Aruba 8325-32C, 32× 100G QSFP28)
 
@@ -353,7 +353,7 @@ graph TB
 | 1/1/9 | FORGE-3507u46S | 1/1/29 | Spine-1 downlink | 100G AOC 15m |
 | 1/1/10 | FORGE-3507u45S | 1/1/29 | Spine-2 downlink | 100G AOC 15m |
 
-### FORGE-3701u47M — Mgmt (Aruba 6300M, 48× 1G + 4× 25G SFP28)
+### FORGE-3507u37M — Mgmt (Aruba 6300M, 48× 1G + 4× 25G SFP28)
 
 | Port | Remote Device  | Remote Port | Function   | Cable   |
 |------|----------------|-------------|------------|---------|
@@ -395,6 +395,6 @@ graph TB
 | 48 | GH-3701u10 | iLO | Management | CAT6 3m |
 | 49 | FORGE-3507u44L | 1/1/10 | Leaf uplink | 10G DAC 3m |
 | 50 | FORGE-3507u43L | 1/1/10 | Leaf uplink | 10G DAC 3m |
-| mgmt | FORGE-3701u47M | Port 5 | Management | CAT6 3m |
+| mgmt | FORGE-3507u37M | Port 5 | Management | CAT6 3m |
 
 ---
