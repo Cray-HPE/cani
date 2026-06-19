@@ -1,6 +1,7 @@
 package csm
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -12,7 +13,11 @@ import (
 // Import reads raw SLS and SMD data from JSON files and stores it on the
 // provider singleton. This is the "Extract" step in ETL.
 // When stdin is piped and no API/file flags are set, it performs a CSV import.
-func (p *Csm) Import(cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+func (p *Csm) Import(ctx context.Context, cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	useAPI, err := import_.ShouldUseAPI(cmd)
 	if err != nil {
 		return err

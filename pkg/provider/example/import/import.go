@@ -2,6 +2,7 @@ package import_
 
 import (
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -31,14 +32,15 @@ func SetProviderGetter(getter func() interface {
 }
 
 // GetProvider returns the Example singleton via the registered getter.
-func GetProvider() interface {
+// It returns an error when the parent package has not registered a getter.
+func GetProvider() (interface {
 	ClearRecords()
 	SetRecords(records []CsvRecord)
-} {
+}, error) {
 	if providerGetter == nil {
-		panic("providerGetter not set; ensure example package init() calls SetProviderGetter")
+		return nil, errors.New("providerGetter not set; ensure example package init() calls SetProviderGetter")
 	}
-	return providerGetter()
+	return providerGetter(), nil
 }
 
 // systemProviderGetter returns the Example singleton for system CSV operations.
@@ -58,15 +60,16 @@ func SetSystemProviderGetter(getter func() interface {
 }
 
 // GetSystemProvider returns the Example singleton for system CSV operations.
-func GetSystemProvider() interface {
+// It returns an error when the parent package has not registered a getter.
+func GetSystemProvider() (interface {
 	SetSystemRecords(data *SystemCSV)
 	ClearSystemRecords()
 	IsSystemImport() bool
-} {
+}, error) {
 	if systemProviderGetter == nil {
-		panic("systemProviderGetter not set; ensure example package init() calls SetSystemProviderGetter")
+		return nil, errors.New("systemProviderGetter not set; ensure example package init() calls SetSystemProviderGetter")
 	}
-	return systemProviderGetter()
+	return systemProviderGetter(), nil
 }
 
 // peekCSVHeader reads the first line of a CSV file and returns the header fields.
@@ -250,7 +253,10 @@ func importSystemCSV(cmd *cobra.Command, args []string, inventory *devicetypes.I
 		return nil
 	}
 
-	prov := GetSystemProvider()
+	prov, err := GetSystemProvider()
+	if err != nil {
+		return err
+	}
 	prov.ClearSystemRecords()
 	prov.SetSystemRecords(data)
 
@@ -286,7 +292,10 @@ func importBOMCSV(cmd *cobra.Command, args []string, inventory *devicetypes.Inve
 	}
 
 	// Get the singleton Example provider to store raw records
-	prov := GetProvider()
+	prov, err := GetProvider()
+	if err != nil {
+		return err
+	}
 	prov.ClearRecords()
 	prov.SetRecords(records)
 

@@ -72,7 +72,7 @@ func runExtractPhase(ctx *etlContext) error {
 		visual.PrintProviderOperation(fmt.Sprintf("Importing data from provider %s", ctx.provider.Slug()), ctx.opts)
 	}
 
-	if err := importer.Import(ctx.cmd, ctx.args, ctx.inventory); err != nil {
+	if err := importer.Import(ctx.cmd.Context(), ctx.cmd, ctx.args, ctx.inventory); err != nil {
 		return fmt.Errorf("extract phase: failed to import from %s: %w", ctx.provider.Slug(), err)
 	}
 
@@ -100,7 +100,7 @@ func runTransformPhase(ctx *etlContext) error {
 		visual.PrintProviderOperation(fmt.Sprintf("Transforming data from provider %s", ctx.provider.Slug()), ctx.opts)
 	}
 
-	result, err := ctx.provider.Transform(*ctx.inventory)
+	result, err := ctx.provider.Transform(ctx.cmd.Context(), *ctx.inventory)
 	if err != nil {
 		return fmt.Errorf("transform phase: failed to transform data from %s: %w", ctx.provider.Slug(), err)
 	}

@@ -168,6 +168,8 @@ func (p *{{.StructName}}) BindExportFlags(cmd *cobra.Command) error {
 const importWrapperTemplate = `package {{.PackageName}}
 
 import (
+	"context"
+
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	import_ "github.com/Cray-HPE/cani/pkg/provider/{{.PackageName}}/import"
 	"github.com/spf13/cobra"
@@ -175,7 +177,10 @@ import (
 
 // Import syncs the local CANI inventory from an external system.
 // This is the "Extract" step in ETL.
-func (p *{{.StructName}}) Import(cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+func (p *{{.StructName}}) Import(ctx context.Context, cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	return import_.Import(cmd, args, inventory)
 }
 `
@@ -183,6 +188,8 @@ func (p *{{.StructName}}) Import(cmd *cobra.Command, args []string, inventory *d
 const exportWrapperTemplate = `package {{.PackageName}}
 
 import (
+	"context"
+
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/provider/{{.PackageName}}/export"
 	"github.com/spf13/cobra"
@@ -190,7 +197,10 @@ import (
 
 // Export syncs the local CANI inventory to an external system.
 // This is the "Load" step in ETL.
-func (p *{{.StructName}}) Export(cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+func (p *{{.StructName}}) Export(ctx context.Context, cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	// Common patterns:
 	//   - Compare local inventory with external system
 	//   - Create/update/delete resources in external system
@@ -202,13 +212,18 @@ func (p *{{.StructName}}) Export(cmd *cobra.Command, args []string, inventory *d
 const transformWrapperTemplate = `package {{.PackageName}}
 
 import (
+	"context"
+
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/provider/{{.PackageName}}/transform"
 )
 
 // Transform converts imported data into CANI's inventory format.
 // Returns a TransformResult containing devices, racks, and cables.
-func (p *{{.StructName}}) Transform(existing devicetypes.Inventory) (*devicetypes.TransformResult, error) {
+func (p *{{.StructName}}) Transform(ctx context.Context, existing devicetypes.Inventory) (*devicetypes.TransformResult, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	return transform.Transform(existing)
 }
 `

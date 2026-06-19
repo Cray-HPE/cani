@@ -20,10 +20,10 @@ type fakeProvider struct {
 	data    RawData
 }
 
-func (f *fakeProvider) ClearRawData()                                      { f.cleared = true }
-func (f *fakeProvider) SetRawData(d RawData)                               { f.data = d }
-func (f *fakeProvider) GetClient() *nautobotapi.ClientWithResponses        { return f.client }
-func (f *fakeProvider) GetContext() context.Context                        { return f.ctx }
+func (f *fakeProvider) ClearRawData()                               { f.cleared = true }
+func (f *fakeProvider) SetRawData(d RawData)                        { f.data = d }
+func (f *fakeProvider) GetClient() *nautobotapi.ClientWithResponses { return f.client }
+func (f *fakeProvider) GetContext() context.Context                 { return f.ctx }
 
 // setProviderGetterForTest installs a fake providerGetter and returns a
 // cleanup function that restores the original.
@@ -58,29 +58,24 @@ func TestSetProviderGetter(t *testing.T) {
 		return &fakeProvider{ctx: context.Background()}
 	})
 
-	GetProvider()
+	if _, err := GetProvider(); err != nil {
+		t.Fatalf("GetProvider returned unexpected error: %v", err)
+	}
 	if !called {
 		t.Error("expected getter to be called")
 	}
 }
 
-func TestGetProvider_PanicsWhenNotSet(t *testing.T) {
+func TestGetProvider_ErrorsWhenNotSet(t *testing.T) {
 	old := providerGetter
 	defer func() { providerGetter = old }()
 	providerGetter = nil
 
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic when providerGetter is nil")
-		}
-		msg, ok := r.(string)
-		if !ok || !strings.Contains(msg, "providerGetter not set") {
-			t.Errorf("unexpected panic value: %v", r)
-		}
-	}()
-
-	GetProvider()
+	if _, err := GetProvider(); err == nil {
+		t.Fatal("expected error when providerGetter is nil")
+	} else if !strings.Contains(err.Error(), "providerGetter not set") {
+		t.Errorf("unexpected error value: %v", err)
+	}
 }
 
 // --- Import ---

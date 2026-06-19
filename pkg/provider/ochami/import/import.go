@@ -1,6 +1,7 @@
 package import_
 
 import (
+	"errors"
 	"log"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
@@ -24,14 +25,15 @@ func SetProviderGetter(getter func() interface {
 }
 
 // GetProvider returns the Example singleton via the registered getter.
-func GetProvider() interface {
+// It returns an error when the parent package has not registered a getter.
+func GetProvider() (interface {
 	ClearRecords()
 	SetRecords(records []JSONDeviceRecord)
-} {
+}, error) {
 	if providerGetter == nil {
-		panic("providerGetter not set; ensure example package init() calls SetProviderGetter")
+		return nil, errors.New("providerGetter not set; ensure example package init() calls SetProviderGetter")
 	}
-	return providerGetter()
+	return providerGetter(), nil
 }
 
 func Import(cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
@@ -62,7 +64,10 @@ func ImportOchamiDevices(cmd *cobra.Command, args []string, inventory *devicetyp
 	// TODO: add step through output option here
 
 	// Get the singleton Example provider to store raw records
-	prov := GetProvider()
+	prov, err := GetProvider()
+	if err != nil {
+		return err
+	}
 	prov.ClearRecords()
 	prov.SetRecords(records)
 

@@ -26,6 +26,8 @@
 package provider
 
 import (
+	"context"
+
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/spf13/cobra"
 )
@@ -36,7 +38,8 @@ type Provider interface {
 	// CANI will load the existing inventory from the datastore and pass it to Transform in case the provider needs to
 	// check for existing devices or racks.
 	// Returns a devicetypes.TransformResult containing devices, racks, and cables (nil maps indicate not applicable)
-	Transform(existing devicetypes.Inventory) (*devicetypes.TransformResult, error)
+	// ctx carries cancellation and deadlines from the command layer.
+	Transform(ctx context.Context, existing devicetypes.Inventory) (*devicetypes.TransformResult, error)
 
 	// NewProviderCmd returns a new cobra.Command for the provider
 	// This is used to add provider-specific info the the CLI
@@ -52,7 +55,8 @@ type Provider interface {
 type Exporter interface {
 	// Export syncs the local inventory to the external system
 	// Returns information about what was created, updated, skipped, or errored
-	Export(cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error
+	// ctx carries cancellation and deadlines from the command layer.
+	Export(ctx context.Context, cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error
 }
 
 // Exporter is an optional interface that providers can implement to support
@@ -61,7 +65,8 @@ type Importer interface {
 	// Import syncs the local inventory from an external system or source
 	// This usually imports data into the local inventory from files or APIs
 	// and saves it into the provider struct for later processing in Transform()
-	Import(cmd *cobra.Command, args []string, existing *devicetypes.Inventory) error
+	// ctx carries cancellation and deadlines from the command layer.
+	Import(ctx context.Context, cmd *cobra.Command, args []string, existing *devicetypes.Inventory) error
 }
 
 // HasOptions is an optional interface that providers can implement

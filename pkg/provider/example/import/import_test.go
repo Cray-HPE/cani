@@ -554,65 +554,57 @@ func setBOMProvider(t *testing.T, fake *fakeProvider) {
 	t.Cleanup(func() { providerGetter = nil })
 }
 
-// TestGetProvider_PanicsWhenUnset verifies GetProvider panics when no getter has
-// been registered.
+// TestGetProvider_ErrorsWhenUnset verifies GetProvider returns an error when no
+// getter has been registered.
 //
 // Why it matters: the import layer depends on the parent package injecting the
 // provider singleton, so a missing registration is a programming error that must
-// fail loudly rather than nil-deref later.
-// Inputs: providerGetter set to nil. Outputs: a recovered panic.
-// Data choice: nil is the only state that trips the guard, isolating the panic
+// surface as an error rather than nil-deref later.
+// Inputs: providerGetter set to nil. Outputs: a non-nil error.
+// Data choice: nil is the only state that trips the guard, isolating the error
 // path.
-func TestGetProvider_PanicsWhenUnset(t *testing.T) {
+func TestGetProvider_ErrorsWhenUnset(t *testing.T) {
 	old := providerGetter
 	t.Cleanup(func() { providerGetter = old })
 	providerGetter = nil
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Error("expected panic when providerGetter is unset")
-			return
-		}
-		if got := r.(string); !strings.Contains(got, "providerGetter not set") {
-			t.Errorf("panic = %q, want providerGetter not set", got)
-		}
-	}()
-	GetProvider()
+	if _, err := GetProvider(); err == nil {
+		t.Error("expected error when providerGetter is unset")
+	} else if !strings.Contains(err.Error(), "providerGetter not set") {
+		t.Errorf("error = %q, want providerGetter not set", err)
+	}
 }
 
 // TestSystemProviderGetter verifies the system provider round-trips through the
-// setter/getter and that retrieval panics when unset.
+// setter/getter and that retrieval errors when unset.
 //
 // Why it matters: system CSV import resolves the provider singleton through this
 // indirection to break an import cycle, so a registered getter must return the
-// same instance and a missing one must fail loudly.
+// same instance and a missing one must surface an error.
 // Inputs: a fakeSystemProvider via the setter, then a nil getter. Outputs: the
-// identical provider instance, then a recovered panic.
+// identical provider instance, then a non-nil error.
 // Data choice: identity comparison proves the exact registered value is
 // returned; nil is the only state that trips the guard.
 func TestSystemProviderGetter(t *testing.T) {
 	t.Run("set and get round-trips the provider", func(t *testing.T) {
 		fake := &fakeSystemProvider{isSystem: true}
 		newSystemProvider(t, fake)
-		if got := GetSystemProvider(); got != fake {
+		got, err := GetSystemProvider()
+		if err != nil {
+			t.Fatalf("GetSystemProvider returned unexpected error: %v", err)
+		}
+		if got != fake {
 			t.Error("GetSystemProvider did not return the registered provider")
 		}
 	})
-	t.Run("panics when unset", func(t *testing.T) {
+	t.Run("errors when unset", func(t *testing.T) {
 		old := systemProviderGetter
 		t.Cleanup(func() { systemProviderGetter = old })
 		systemProviderGetter = nil
-		defer func() {
-			r := recover()
-			if r == nil {
-				t.Error("expected panic when systemProviderGetter is unset")
-				return
-			}
-			if got := r.(string); !strings.Contains(got, "systemProviderGetter not set") {
-				t.Errorf("panic = %q, want systemProviderGetter not set", got)
-			}
-		}()
-		GetSystemProvider()
+		if _, err := GetSystemProvider(); err == nil {
+			t.Error("expected error when systemProviderGetter is unset")
+		} else if !strings.Contains(err.Error(), "systemProviderGetter not set") {
+			t.Errorf("error = %q, want systemProviderGetter not set", err)
+		}
 	})
 }
 
