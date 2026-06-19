@@ -109,8 +109,14 @@ func (s *JSONStore) Load() (*devicetypes.Inventory, error) {
 }
 
 // Save writes the inventory to disk, creating directories as needed.
+//
+// The write is atomic: the inventory is marshalled to a temporary file in the
+// destination directory, flushed to stable storage, and renamed into place.
+// A crash or power loss mid-write therefore leaves the previous inventory
+// intact rather than a partially written, corrupt file.
 func (s *JSONStore) Save(inventory *devicetypes.Inventory) error {
-	if err := os.MkdirAll(filepath.Dir(s.Path), 0700); err != nil {
+	dir := filepath.Dir(s.Path)
+	if err := os.MkdirAll(dir, 0700); err != nil {
 		return fmt.Errorf("creating inventory directory: %w", err)
 	}
 
@@ -119,8 +125,42 @@ func (s *JSONStore) Save(inventory *devicetypes.Inventory) error {
 		return fmt.Errorf("encoding inventory: %w", err)
 	}
 
-	if err := os.WriteFile(s.Path, data, 0600); err != nil {
+	return s.writeAtomic(dir, data)
+}
+
+// writeAtomic writes data to a temporary file in dir and renames it onto
+// s.Path. The temporary file is removed on any failure before the rename so
+// no partial files are left behind. Placing the temporary file in the same
+// directory as the destination keeps the rename on a single filesystem, which
+// is what makes it atomic.
+func (s *JSONStore) writeAtomic(dir string, data []byte) error {
+	tmp, err := os.CreateTemp(dir, ".inventory-*.tmp")
+	if err != nil {
+		return fmt.Errorf("creating temporary inventory file: %w", err)
+	}
+	tmpPath := tmp.Name()
+	// Best-effort cleanup; a successful rename removes tmpPath first, making
+	// this a no-op in the happy path.
+	defer func() { _ = os.Remove(tmpPath) }()
+
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
 		return fmt.Errorf("writing inventory file: %w", err)
+	}
+
+	// Flush file contents to disk before the rename so the rename cannot
+	// expose a truncated file after a crash.
+	if err := tmp.Sync(); err != nil {
+		_ = tmp.Close()
+		return fmt.Errorf("syncing inventory file: %w", err)
+	}
+
+	if err := tmp.Close(); err != nil {
+		return fmt.Errorf("closing inventory file: %w", err)
+	}
+
+	if err := os.Rename(tmpPath, s.Path); err != nil {
+		return fmt.Errorf("replacing inventory file: %w", err)
 	}
 
 	return nil
