@@ -1,0 +1,7 @@
+{
+  // Exclude the inlined third-party oapi-codegen runtime/types packages from
+  // SonarLint standalone analysis, the same way vendored code is ignored. The
+  // code under internal/openapi is copied upstream (Apache-2.0) and is kept
+  // byte-for-byte, so its cognitive-complexity findings are not actionable here.
+  "sonarlint.analysisExcludesStandalone": "internal/openapi/**"
+}
