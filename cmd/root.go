@@ -152,9 +152,7 @@ func setupDomain(cmd *cli.Command, args []string) error {
 	// 3) hand each plugin its own section of the map
 	for name, p := range provider.GetProviders() {
 		if cfgSection, ok := config.Cfg.Providers[name]; ok {
-			if c, ok := p.(interface {
-				Configure(map[string]any) error
-			}); ok {
+			if c, ok := p.(provider.Configurer); ok {
 				if err := c.Configure(cfgSection); err != nil {
 					return fmt.Errorf("configuring provider %s: %w", name, err)
 				}
