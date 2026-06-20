@@ -35,6 +35,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/util/nameexpand"
 	"github.com/Cray-HPE/cani/internal/util/placement"
 	"github.com/Cray-HPE/cani/internal/util/resolve"
+	"github.com/Cray-HPE/cani/internal/util/store"
 	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
@@ -111,7 +112,7 @@ func addDeviceStrategy(cmd *cli.Command, result *lookupResult, qty int, nameArg 
 		return fmt.Errorf("strategy placement requires template naming (%%{RACK}, %%{U}, etc.) or no --name flag")
 	}
 
-	if err := datastores.SetDeviceStore(cmd, nil); err != nil {
+	if err := store.Setup(cmd); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
 	}
 	inventory, err := datastores.Datastore.Load()
@@ -220,7 +221,7 @@ func addDeviceLiteral(cmd *cli.Command, result *lookupResult, qty int, nameArg, 
 		return fmt.Errorf("name resolution failed: %w", err)
 	}
 
-	if err := datastores.SetDeviceStore(cmd, nil); err != nil {
+	if err := store.Setup(cmd); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
 	}
 

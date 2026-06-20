@@ -32,6 +32,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/util/resolve"
+	"github.com/Cray-HPE/cani/internal/util/store"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
@@ -101,7 +102,7 @@ func updateDevice(cmd *cli.Command, args []string) error {
 // loadDeviceForUpdate sets the device store, loads the inventory, and resolves
 // the target device from args.
 func loadDeviceForUpdate(cmd *cli.Command, args []string) (*devicetypes.Inventory, uuid.UUID, *devicetypes.CaniDeviceType, error) {
-	if err := datastores.SetDeviceStore(cmd, args); err != nil {
+	if err := store.Setup(cmd); err != nil {
 		return nil, uuid.Nil, nil, fmt.Errorf("failed to set device store: %w", err)
 	}
 

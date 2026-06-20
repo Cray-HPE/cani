@@ -33,6 +33,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/config"
 	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/Cray-HPE/cani/internal/util/store"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/visual"
@@ -215,7 +216,7 @@ func initializeDatastore(ctx *etlContext) error {
 		visual.PrintCaniOperation("Initializing inventory datastore", ctx.opts)
 	}
 
-	if err := datastores.SetDeviceStore(ctx.cmd, ctx.args); err != nil {
+	if err := store.Setup(ctx.cmd); err != nil {
 		return fmt.Errorf("init: failed to set device store: %w", err)
 	}
 

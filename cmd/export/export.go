@@ -31,6 +31,7 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/Cray-HPE/cani/internal/util/store"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 )
 
@@ -94,7 +95,7 @@ func addProviderSubcommands(exportCmd *cli.Command) {
 // runExport is the main entry point for the export command.
 func runExport(cmd *cli.Command, args []string, p provider.Provider) error {
 	// Load the inventory from the datastore
-	if err := datastores.SetDeviceStore(cmd, args); err != nil {
+	if err := store.Setup(cmd); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
 	}
 

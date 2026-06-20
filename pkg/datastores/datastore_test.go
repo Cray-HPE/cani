@@ -33,7 +33,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/config"
 )
 
@@ -41,8 +40,8 @@ import (
 //
 // Why it matters: command startup depends on SetDeviceStore wiring the global
 // datastore implementation before CRUD commands load or save inventory data.
-// Inputs: a cli root command whose datastore flag is json. Outputs: nil error
-// and a global Datastore containing a *JSONStore.
+// Inputs: the json store type string. Outputs: nil error and a global Datastore
+// containing a *JSONStore.
 // Data choice: json is the only implemented datastore type in this package.
 func TestSetDeviceStoreJSON(t *testing.T) {
 	original := config.Cfg
@@ -55,10 +54,7 @@ func TestSetDeviceStoreJSON(t *testing.T) {
 		Datastore = nil
 	}()
 
-	root := &cli.Command{}
-	root.PersistentFlags().String("datastore", "json", "datastore type")
-
-	if err := SetDeviceStore(root, nil); err != nil {
+	if err := SetDeviceStore("json"); err != nil {
 		t.Fatalf("SetDeviceStore() returned unexpected error: %v", err)
 	}
 
@@ -75,18 +71,15 @@ func TestSetDeviceStoreJSON(t *testing.T) {
 //
 // Why it matters: accepting an unknown datastore type would leave command CRUD
 // operations without a reliable persistence backend.
-// Inputs: a cli root command whose datastore flag is unsupported. Outputs: an
-// error that names the unsupported type and no JSON datastore selection.
+// Inputs: the unsupported store type string. Outputs: an error that names the
+// unsupported type and no JSON datastore selection.
 // Data choice: "unsupported" is outside the StoreType constants and exercises
 // the default branch.
 func TestSetDeviceStoreUnsupported(t *testing.T) {
 	Datastore = nil
 	defer func() { Datastore = nil }()
 
-	root := &cli.Command{}
-	root.PersistentFlags().String("datastore", "unsupported", "datastore type")
-
-	err := SetDeviceStore(root, nil)
+	err := SetDeviceStore("unsupported")
 	if err == nil {
 		t.Fatal("SetDeviceStore() expected error for unsupported type, got nil")
 	}

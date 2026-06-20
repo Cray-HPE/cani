@@ -31,6 +31,7 @@ import (
 	"strings"
 
 	"github.com/Cray-HPE/cani/internal/cli"
+	"github.com/Cray-HPE/cani/internal/util/store"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
@@ -139,7 +140,7 @@ func buildEntry(cmd *cli.Command, name string) devicetypes.MetadataEntry {
 }
 
 func saveMetadata(cmd *cli.Command, kind string, entry devicetypes.MetadataEntry) error {
-	if err := datastores.SetDeviceStore(cmd, nil); err != nil {
+	if err := store.Setup(cmd); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
 	}
 	inventory, err := datastores.Datastore.Load()
