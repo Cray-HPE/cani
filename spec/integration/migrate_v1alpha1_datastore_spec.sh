@@ -24,18 +24,18 @@
 #
 Describe 'INTEGRATION:'
 
-It 'migrates a v1alpha1 datastore to v1alpha2'
+It 'migrates a v1alpha1 datastore to v1alpha3'
 	BeforeCall 'setup_datastore_migration_env canitestdb_v1alpha1.json'
 	When call bin/cani alpha show --config "$CANI_CONF"
 	The status should equal 0
 	The stdout should be present
 	The stderr should include 'creating default config'
-	The stderr should include 'Migrated datastore from v1alpha1 to v1alpha2'
+	The stderr should include 'Migrated datastore from v1alpha1 to v1alpha3'
 	The file "$CANI_CONF" should be exist
 	The file "$CANI_DS" should be exist
 	The file "$CANI_DS.canisave" should be exist
 	The contents of file "$CANI_DS" should include '"schemaVersion"'
-	The contents of file "$CANI_DS" should include '"v1alpha2"'
+	The contents of file "$CANI_DS" should include '"v1alpha3"'
 	The contents of file "$CANI_DS" should include '"devices"'
 	The contents of file "$CANI_DS" should include '"locations"'
 	The contents of file "$CANI_DS" should include '"racks"'
