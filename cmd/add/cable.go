@@ -32,6 +32,7 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/nameexpand"
+	"github.com/Cray-HPE/cani/internal/util/store"
 	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
@@ -105,7 +106,7 @@ func addCable(cmd *cli.Command, args []string) error {
 		return fmt.Errorf("name resolution failed: %w", err)
 	}
 
-	if err := datastores.SetDeviceStore(cmd, args); err != nil {
+	if err := store.Setup(cmd); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
 	}
 

@@ -33,6 +33,7 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/config"
+	"github.com/Cray-HPE/cani/internal/util/store"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
@@ -59,7 +60,7 @@ that can be reviewed, edited, and applied later with --apply-plan.`,
 }
 
 func updateOrphans(cmd *cli.Command, args []string) error {
-	if err := datastores.SetDeviceStore(cmd, args); err != nil {
+	if err := store.Setup(cmd); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
 	}
 

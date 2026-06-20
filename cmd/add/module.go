@@ -33,6 +33,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/nameexpand"
 	"github.com/Cray-HPE/cani/internal/util/placement"
+	"github.com/Cray-HPE/cani/internal/util/store"
 	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
@@ -116,7 +117,7 @@ type moduleAddOpts struct {
 
 // loadModuleInventory sets the device store from flags and loads the inventory.
 func loadModuleInventory(cmd *cli.Command) (*devicetypes.Inventory, error) {
-	if err := datastores.SetDeviceStore(cmd, nil); err != nil {
+	if err := store.Setup(cmd); err != nil {
 		return nil, fmt.Errorf("failed to set device store: %w", err)
 	}
 	inventory, err := datastores.Datastore.Load()

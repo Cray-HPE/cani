@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023-2026 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2026 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -23,52 +23,24 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package remove
+
+// Package store adapts CLI flags to the pkg/datastores backend selection. It
+// lives in the command layer so that pkg/datastores stays free of any CLI
+// dependency: flag parsing happens here, the persistence package only receives
+// a resolved store type.
+package store
 
 import (
-	"fmt"
-	"log"
-
 	"github.com/Cray-HPE/cani/internal/cli"
-	"github.com/Cray-HPE/cani/internal/util/resolve"
-	"github.com/Cray-HPE/cani/internal/util/store"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 )
 
-// newModuleCommand creates the "remove module" subcommand.
-func newModuleCommand() *cli.Command {
-	return &cli.Command{
-		Use:   "module <uuid-or-name>",
-		Short: "Remove a module from the inventory.",
-		Long:  "Remove a module by UUID or name.",
-		Args:  cli.ExactArgs(1),
-		RunE:  removeModule,
-	}
-}
+// datastoreFlag is the persistent root flag that selects the datastore backend.
+const datastoreFlag = "datastore"
 
-func removeModule(cmd *cli.Command, args []string) error {
-	if err := store.Setup(cmd); err != nil {
-		return fmt.Errorf("failed to set device store: %w", err)
-	}
-
-	inventory, err := datastores.Datastore.Load()
-	if err != nil {
-		return fmt.Errorf("failed to load inventory: %w", err)
-	}
-
-	id, err := resolve.Module(inventory, args[0])
-	if err != nil {
-		return err
-	}
-
-	if err := inventory.RemoveModule(id); err != nil {
-		return fmt.Errorf("failed to remove module: %w", err)
-	}
-
-	if err := datastores.Datastore.Save(inventory); err != nil {
-		return fmt.Errorf("failed to save inventory: %w", err)
-	}
-
-	log.Printf("Removed module %s", id)
-	return nil
+// Setup resolves the datastore type from the root command's persistent
+// "datastore" flag and selects the matching backend in pkg/datastores.
+func Setup(cmd *cli.Command) error {
+	storeType := cmd.Root().PersistentFlags().Lookup(datastoreFlag).Value.String()
+	return datastores.SetDeviceStore(storeType)
 }

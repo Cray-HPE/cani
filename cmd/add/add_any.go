@@ -31,6 +31,7 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/nameexpand"
+	"github.com/Cray-HPE/cani/internal/util/store"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
@@ -84,7 +85,7 @@ func resolveNamesFromFlags(cmd *cli.Command, qty int) ([]string, error) {
 // loadInventoryForAdd sets the device store from the command and loads the
 // current inventory.
 func loadInventoryForAdd(cmd *cli.Command, args []string) (*devicetypes.Inventory, error) {
-	if err := datastores.SetDeviceStore(cmd, args); err != nil {
+	if err := store.Setup(cmd); err != nil {
 		return nil, fmt.Errorf("failed to set device store: %w", err)
 	}
 

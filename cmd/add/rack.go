@@ -31,6 +31,7 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/nameexpand"
+	"github.com/Cray-HPE/cani/internal/util/store"
 	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/google/uuid"
@@ -78,7 +79,7 @@ func addRack(cmd *cli.Command, args []string) error {
 
 	locationArg, _ := cmd.Flags().GetString("location")
 
-	if err := datastores.SetDeviceStore(cmd, args); err != nil {
+	if err := store.Setup(cmd); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
 	}
 

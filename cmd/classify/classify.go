@@ -32,6 +32,7 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/config"
+	"github.com/Cray-HPE/cani/internal/util/store"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
@@ -71,7 +72,7 @@ Examples:
 
 // runClassify is the main entry point for the classify command.
 func runClassify(cmd *cli.Command, args []string) error {
-	if err := datastores.SetDeviceStore(cmd, args); err != nil {
+	if err := store.Setup(cmd); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
 	}
 

@@ -31,6 +31,7 @@ import (
 	"strconv"
 
 	"github.com/Cray-HPE/cani/internal/cli"
+	"github.com/Cray-HPE/cani/internal/util/store"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
@@ -70,7 +71,7 @@ func addVLAN(cmd *cli.Command, args []string) error {
 		return fmt.Errorf("--name is required")
 	}
 
-	if err := datastores.SetDeviceStore(cmd, args); err != nil {
+	if err := store.Setup(cmd); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
 	}
 

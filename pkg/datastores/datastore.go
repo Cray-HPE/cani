@@ -31,7 +31,6 @@ import (
 	stdlog "log"
 	"os"
 
-	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
 
@@ -62,9 +61,11 @@ const (
 
 var Datastore DeviceStore
 
-// SetDeviceStore returns the appropriate datastore implementation
-func SetDeviceStore(cmd *cli.Command, args []string) error {
-	storeType := cmd.Root().PersistentFlags().Lookup("datastore").Value.String()
+// SetDeviceStore selects the datastore implementation for storeType and assigns
+// it to the package-level Datastore. Resolving storeType from CLI flags or
+// configuration is the command layer's responsibility, which keeps this
+// persistence package free of any CLI dependency.
+func SetDeviceStore(storeType string) error {
 	switch StoreType(storeType) {
 
 	case StoreTypeJSON:
@@ -73,11 +74,6 @@ func SetDeviceStore(cmd *cli.Command, args []string) error {
 
 	// TODO: Implement Postgres datastore
 	// case StoreTypePostgres:
-	// 	// Get connection string from config/environment/flags
-	// 	connStr := ""
-	// 	if cmd.Root().PersistentFlags().Lookup("pg-conn") != nil {
-	// 		connStr = cmd.Root().PersistentFlags().Lookup("pg-conn").Value.String()
-	// 	}
 	// 	Datastore = NewPostgresStore(connStr)
 	// 	return nil
 
