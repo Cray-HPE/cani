@@ -37,7 +37,6 @@ import (
 	"github.com/Cray-HPE/cani/cmd/show"
 	"github.com/Cray-HPE/cani/cmd/update"
 	"github.com/Cray-HPE/cani/internal/cli"
-	"github.com/Cray-HPE/cani/internal/provider"
 )
 
 var (
@@ -76,20 +75,4 @@ func Init() {
 		updateCmd,
 		classifyCmd,
 	)
-
-	// Let providers decorate import and export commands only.
-	// Normal CRUD operations (add, remove, update, show) use
-	// cmd/ + pkg/devicetypes + pkg/datastores without provider hooks.
-	for _, caniCmd := range alphaCmd.Commands() {
-		switch caniCmd.Name() {
-		case "import", "export":
-			for _, p := range provider.GetProviders() {
-				if providerCmd, err := p.NewProviderCmd(caniCmd); err == nil {
-					if providerCmd == nil {
-						continue
-					}
-				}
-			}
-		}
-	}
 }
