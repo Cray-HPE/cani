@@ -28,8 +28,8 @@ package export
 import (
 	"testing"
 
+	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
 	"github.com/google/uuid"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // TestToUUID verifies that toUUID converts an *openapi_types.UUID to a

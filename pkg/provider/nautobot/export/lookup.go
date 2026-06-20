@@ -32,10 +32,10 @@ import (
 	"strings"
 	"sync"
 
+	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/google/uuid"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // Nautobot content-type identifiers used when assigning statuses and roles.

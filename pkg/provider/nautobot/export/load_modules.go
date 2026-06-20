@@ -30,10 +30,10 @@ import (
 	"fmt"
 	"net/http"
 
+	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/google/uuid"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // loadModules exports CaniModuleType records to Nautobot as Module objects.
