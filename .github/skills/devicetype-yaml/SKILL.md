@@ -94,6 +94,12 @@ Place a `---` separator after the license block, before the YAML content.
 
 ## Templates
 
+> **Field key casing (NetBox parity):** component-collection keys are **kebab-case**
+> (`console-ports`, `power-ports`, `module-bays`, `device-bays`, `allowed-children`,
+> `hardware-type`); scalar fields keep NetBox's snake_case (`part_number`, `u_height`,
+> `is_full_depth`, `weight_unit`). Do not convert the kebab-case keys to snake_case —
+> the loader and the bundled library files depend on them.
+
 ### Device Type
 
 ```yaml

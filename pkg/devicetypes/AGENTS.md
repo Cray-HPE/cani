@@ -64,6 +64,16 @@ The devicetypes package is a **foundational piece** of CANI. It defines the data
 | `Type` | Hardware classification enum (`rack`, `chassis`, `blade`, `node`, `switch`, `nic`, `cable`, etc.) |
 | `Category` | Higher-level grouping (`device`, `module`, `cable`, `rack`, `fru`) |
 
+## Tag Conventions
+
+The `Cani*Type` YAML/JSON tags mirror the upstream **NetBox devicetype-library** schema (the source of truth), not an internal house style:
+
+- **Component-collection keys are kebab-case** and must stay that way: `console-ports`, `power-ports`, `module-bays`, `device-bays`, `allowed-children`, `hardware-type`. The embedded library (`device-types/`, `rack-types/`, `module-types/`, …) and the loader depend on these exact keys — renaming them to snake_case breaks loading every bundled type.
+- **Scalar fields keep NetBox's snake_case** names: `part_number`, `u_height`, `is_full_depth`, `subdevice_role`, `weight_unit`, and entry sub-fields like `mgmt_only`, `maximum_draw`.
+- **JSON tags are camelCase** (`partNumber`, `uHeight`).
+
+Do not "standardize" the kebab-case keys to snake_case; it is intentional NetBox parity.
+
 ## Relationship Model
 
 All relationships use single-direction FKs on the child object. Reverse pointers are rebuilt at load time by `VerifyParentChildRelationships()`.
