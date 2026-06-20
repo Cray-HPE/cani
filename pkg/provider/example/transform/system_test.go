@@ -1039,6 +1039,43 @@ func TestTransformSystem_LocationTypeColumn(t *testing.T) {
 	}
 }
 
+// TestTransformSystem_DoesNotPolluteInventory verifies the transform leaves the
+// caller's inventory maps unchanged, adding new objects only to the result.
+//
+// Why it matters: the merge phase deduplicates by name, so the transform must
+// not pre-insert new-UUID entries into the shared inventory maps; doing so would
+// short-circuit dedup and duplicate every object on re-import.
+// Inputs: an empty inventory and a SystemCSV with one rack and one device.
+// Outputs: result holds the rack and device; the passed inventory's maps stay
+// empty.
+// Data choice: starting from an empty inventory makes any post-transform entry
+// in the caller's maps a clear pollution signal.
+func TestTransformSystem_DoesNotPolluteInventory(t *testing.T) {
+	inv := *devicetypes.NewInventory()
+	data := &import_.SystemCSV{
+		SectionDefaults: make(map[string]import_.SystemRecord),
+		Racks: []import_.SystemRecord{
+			{Section: "rack", PartNumber: "hpe-48u-800mmx1200mm-g2-enterprise-shock-rack", Name: "x3701", Qty: 1, Status: "Available"},
+		},
+		Devices: []import_.SystemRecord{
+			{Section: "device", PartNumber: "hpe-xd670", Name: "GH-x3701u34", Qty: 1, Rack: "x3701", Position: 34},
+		},
+	}
+	result, err := TransformSystem(inv, data)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Racks) != 1 || len(result.Devices) != 1 {
+		t.Fatalf("expected 1 rack and 1 device in result, got %d racks %d devices", len(result.Racks), len(result.Devices))
+	}
+	if len(inv.Racks) != 0 {
+		t.Errorf("caller inventory Racks polluted: %d, want 0", len(inv.Racks))
+	}
+	if len(inv.Devices) != 0 {
+		t.Errorf("caller inventory Devices polluted: %d, want 0", len(inv.Devices))
+	}
+}
+
 // TestTransformSystem_RackWithLocation verifies a rack is parented to a
 // location created in the same import batch.
 //
