@@ -62,12 +62,11 @@ func (p *Example) GetImportDefaults() map[string]any {
 	}
 }
 
-// BindImportFlags binds CLI flags to Viper for the import command.
+// BindImportFlags registers the import command's CLI flags.
 // This enables precedence: CLI flags > env vars > config file > defaults.
 func (p *Example) BindImportFlags(cmd *cli.Command) error {
-	// TODO: Bind import-related flags
-	// Example:
-	// viper.BindPFlag("example.import.source", cmd.Flags().Lookup("source"))
+	// TODO: Bind import-related flags.
+	// Read the flag directly, e.g. cmd.Flags().GetString("source").
 	return nil
 }
 
@@ -87,11 +86,10 @@ func (p *Example) GetExportDefaults() map[string]any {
 	}
 }
 
-// BindExportFlags binds CLI flags to Viper for the export command.
+// BindExportFlags registers the export command's CLI flags.
 // This enables precedence: CLI flags > env vars > config file > defaults.
 func (p *Example) BindExportFlags(cmd *cli.Command) error {
-	// TODO: Bind export-related flags
-	// Example:
-	// viper.BindPFlag("example.export.format", cmd.Flags().Lookup("format"))
+	// TODO: Bind export-related flags.
+	// Read the flag directly, e.g. cmd.Flags().GetString("format").
 	return nil
 }

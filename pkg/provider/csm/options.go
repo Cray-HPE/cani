@@ -92,7 +92,7 @@ func (p *Csm) GetImportDefaults() map[string]any {
 	}
 }
 
-// BindImportFlags binds CLI flags to Viper for the import command.
+// BindImportFlags registers the import command's CLI flags.
 // This enables precedence: CLI flags > env vars > config file > defaults.
 func (p *Csm) BindImportFlags(cmd *cli.Command) error {
 	// Flags are read directly in the import package via cmd.Flags().GetString()
@@ -111,7 +111,7 @@ func (p *Csm) GetExportDefaults() map[string]any {
 	return map[string]any{}
 }
 
-// BindExportFlags binds CLI flags to Viper for the export command.
+// BindExportFlags registers the export command's CLI flags.
 // This enables precedence: CLI flags > env vars > config file > defaults.
 func (p *Csm) BindExportFlags(cmd *cli.Command) error {
 	// Auth flags are read directly via cmd.Flags() in the export package.
