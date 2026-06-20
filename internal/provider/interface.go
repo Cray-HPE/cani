@@ -59,8 +59,8 @@ type Exporter interface {
 	Export(ctx context.Context, cmd *cli.Command, args []string, inventory *devicetypes.Inventory) error
 }
 
-// Exporter is an optional interface that providers can implement to support
-// syncing the local inventory to an external system (the "Load" step in ETL)
+// Importer is an optional interface that providers can implement to support
+// extracting data from an external system or source (the "Extract" step in ETL)
 type Importer interface {
 	// Import syncs the local inventory from an external system or source
 	// This usually imports data into the local inventory from files or APIs

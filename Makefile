@@ -218,7 +218,7 @@ etest: bin venv ## Run edge-case tests
 
 cover:
 	$(INFO) "running tests with coverage"
-	go test -coverprofile=coverage.out ./... || true
+	go test -coverprofile=coverage.out $$(go list ./... | grep -v -e '/pkg/nautobot$$' -e '/internal/openapi/') || true
 	go tool cover -html=coverage.out -o coverage.html
 	$(OK) "coverage report generated: coverage.html"
 # ──────────────────────────────────────────────────────────────────────────────

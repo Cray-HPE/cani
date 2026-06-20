@@ -1,3 +1,5 @@
+// Code generated from github.com/oapi-codegen/runtime; DO NOT EDIT.
+
 package runtime
 
 import (
