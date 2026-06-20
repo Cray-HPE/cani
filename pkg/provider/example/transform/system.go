@@ -17,6 +17,7 @@ import (
 // Uses a 6-pass algorithm: roles → racks → devices → modules → interfaces → connections.
 func TransformSystem(existing devicetypes.Inventory, data *import_.SystemCSV) (*devicetypes.TransformResult, error) {
 	initInventoryMaps(&existing)
+	isolateInventoryMaps(&existing)
 
 	result := &devicetypes.TransformResult{
 		Locations: make(map[uuid.UUID]*devicetypes.CaniLocationType),
@@ -77,6 +78,32 @@ func TransformSystem(existing devicetypes.Inventory, data *import_.SystemCSV) (*
 		len(data.Roles), len(result.Locations), len(result.Racks), len(result.Devices), len(result.Modules), len(result.Cables))
 
 	return result, nil
+}
+
+// isolateInventoryMaps replaces the maps the transform mutates during resolution
+// with shallow copies. Existing entries stay visible for intra-import lookups,
+// but new entries added while transforming do not leak into the caller's
+// inventory. This lets the merge phase deduplicate new objects by name instead
+// of being short-circuited by a polluted UUID match, making re-import of the
+// same system CSV idempotent.
+func isolateInventoryMaps(inv *devicetypes.Inventory) {
+	locations := make(map[uuid.UUID]*devicetypes.CaniLocationType, len(inv.Locations))
+	for k, v := range inv.Locations {
+		locations[k] = v
+	}
+	inv.Locations = locations
+
+	racks := make(map[uuid.UUID]*devicetypes.CaniRackType, len(inv.Racks))
+	for k, v := range inv.Racks {
+		racks[k] = v
+	}
+	inv.Racks = racks
+
+	devices := make(map[uuid.UUID]*devicetypes.CaniDeviceType, len(inv.Devices))
+	for k, v := range inv.Devices {
+		devices[k] = v
+	}
+	inv.Devices = devices
 }
 
 // validateReferences checks that device, rack, and location role and status
