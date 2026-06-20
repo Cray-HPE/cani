@@ -664,6 +664,38 @@ func TestImportSystemCSV_NoRecords(t *testing.T) {
 	}
 }
 
+// TestImportSystemCSV_LocationsOnly verifies a system CSV whose only data rows
+// are locations is persisted rather than skipped as empty.
+//
+// Why it matters: locations and interfaces are valid inventory the transform
+// consumes, so a locations-only (or interfaces-only) file must not be discarded
+// by the empty-import short-circuit, which previously counted neither section.
+// Inputs: a temp CSV with a header and two location rows. Outputs: nil error;
+// the provider receives data carrying both locations.
+// Data choice: two location rows and no other section prove the total now
+// includes locations, where the previous count would have been zero.
+func TestImportSystemCSV_LocationsOnly(t *testing.T) {
+	fake := &fakeSystemProvider{}
+	newSystemProvider(t, fake)
+	t.Cleanup(func() { commands.CsvFlag = "" })
+	dir := t.TempDir()
+	path := dir + "/locations-only.csv"
+	content := "Section,Name,Role\nlocation,DC01,dc\nlocation,L3,level\n"
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+	commands.CsvFlag = path
+	if err := ImportCSV(nil, nil, &devicetypes.Inventory{}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if fake.data == nil {
+		t.Fatal("expected locations-only CSV to persist records")
+	}
+	if len(fake.data.Locations) != 2 {
+		t.Errorf("Locations = %d, want 2", len(fake.data.Locations))
+	}
+}
+
 // TestImportBOMCSV_StepMode verifies BOM import drives the step-through prompt
 // once per record and then stores the records.
 //
