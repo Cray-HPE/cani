@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/Cray-HPE/cani/internal/config"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	import_ "github.com/Cray-HPE/cani/pkg/provider/example/import"
 	"github.com/google/uuid"
@@ -144,6 +145,68 @@ func TestNormalizeContentType(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestValidateReferences verifies catalog reference validation warns on unknown
+// role/status references, errors under strict mode, and skips validation when a
+// catalog is empty or absent.
+//
+// Why it matters: referential integrity catches typos in device roles and
+// statuses, but only when the operator defines a catalog; an empty or absent
+// catalog must not block imports that rely on export-time auto-creation.
+// Inputs: a result whose metadata defines one role and one status plus devices
+// referencing a known and an unknown value, exercised under non-strict and
+// strict config, plus nil-metadata and empty-catalog results. Outputs: nil
+// (warn-only), an error (strict), and nil (skipped) respectively.
+// Data choice: one known and one unknown reference isolate the membership check;
+// toggling config.Cfg.Strict proves the warn-vs-error policy.
+func TestValidateReferences(t *testing.T) {
+	oldCfg := config.Cfg
+	t.Cleanup(func() { config.Cfg = oldCfg })
+
+	build := func() *devicetypes.TransformResult {
+		return &devicetypes.TransformResult{
+			Metadata: &devicetypes.InventoryMetadata{
+				Roles:    []devicetypes.MetadataEntry{{Name: "ComputeNode"}},
+				Statuses: []devicetypes.MetadataEntry{{Name: "Active"}},
+			},
+			Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
+				uuid.New(): {Name: "good", ObjectMeta: devicetypes.ObjectMeta{Role: "ComputeNode", Status: "Active"}},
+				uuid.New(): {Name: "bad", ObjectMeta: devicetypes.ObjectMeta{Role: "Nope", Status: "Active"}},
+			},
+		}
+	}
+
+	t.Run("warn only when not strict", func(t *testing.T) {
+		config.Cfg = &config.Config{Strict: false}
+		if err := validateReferences(build()); err != nil {
+			t.Errorf("non-strict should not error, got %v", err)
+		}
+	})
+	t.Run("error under strict", func(t *testing.T) {
+		config.Cfg = &config.Config{Strict: true}
+		if err := validateReferences(build()); err == nil {
+			t.Error("strict should error on unknown reference")
+		}
+	})
+	t.Run("nil metadata skips", func(t *testing.T) {
+		config.Cfg = &config.Config{Strict: true}
+		if err := validateReferences(&devicetypes.TransformResult{}); err != nil {
+			t.Errorf("nil metadata should skip, got %v", err)
+		}
+	})
+	t.Run("empty catalog allows any reference", func(t *testing.T) {
+		config.Cfg = &config.Config{Strict: true}
+		result := &devicetypes.TransformResult{
+			Metadata: &devicetypes.InventoryMetadata{},
+			Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
+				uuid.New(): {Name: "x", ObjectMeta: devicetypes.ObjectMeta{Role: "Anything", Status: "Whatever"}},
+			},
+		}
+		if err := validateReferences(result); err != nil {
+			t.Errorf("empty catalog should allow any reference, got %v", err)
+		}
+	})
 }
 
 // TestTransformSystem_Racks verifies the rack pass creates one rack per row with
