@@ -41,6 +41,7 @@ type SystemCSV struct {
 	Defaults        SystemRecord            // global _defaults row
 	SectionDefaults map[string]SystemRecord // per-section defaults (e.g. device_defaults)
 	Roles           []SystemRecord
+	Statuses        []SystemRecord
 	Locations       []SystemRecord
 	Racks           []SystemRecord
 	Devices         []SystemRecord
@@ -139,6 +140,8 @@ func ParseSystemCSV(filePath string) (*SystemCSV, error) {
 		switch section {
 		case "role":
 			result.Roles = append(result.Roles, rec)
+		case "status":
+			result.Statuses = append(result.Statuses, rec)
 		case "location":
 			result.Locations = append(result.Locations, rec)
 		case "rack":

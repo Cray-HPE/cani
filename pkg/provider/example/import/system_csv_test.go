@@ -169,6 +169,39 @@ func TestParseSystemCSV_RoleFields(t *testing.T) {
 	}
 }
 
+// TestParseSystemCSV_StatusSection verifies status rows are bucketed into the
+// Statuses slice with their content types preserved.
+//
+// Why it matters: statuses are a first-class catalog the transform turns into
+// metadata, so the parser must route `status` rows separately from roles and
+// keep their content-type column intact.
+// Inputs: a temp CSV with one status row carrying two content types. Outputs: a
+// single Statuses record named "Planned".
+// Data choice: a status row with two comma-separated content types proves both
+// section routing and that the ContentTypes column is captured verbatim.
+func TestParseSystemCSV_StatusSection(t *testing.T) {
+	dir := t.TempDir()
+	path := dir + "/status.csv"
+	content := "Section,Name,ContentTypes\n" +
+		"status,Planned,\"dcim.device,dcim.rack\"\n"
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+	data, err := ParseSystemCSV(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(data.Statuses) != 1 {
+		t.Fatalf("Statuses = %d, want 1", len(data.Statuses))
+	}
+	if data.Statuses[0].Name != "Planned" {
+		t.Errorf("status Name = %q, want %q", data.Statuses[0].Name, "Planned")
+	}
+	if data.Statuses[0].ContentTypes != "dcim.device,dcim.rack" {
+		t.Errorf("status ContentTypes = %q, want %q", data.Statuses[0].ContentTypes, "dcim.device,dcim.rack")
+	}
+}
+
 // TestParseSystemCSV_DeviceFields verifies a device row preserves part number,
 // rack placement, role, face, and serial values.
 //

@@ -48,6 +48,71 @@ func TestTransformSystem_Roles(t *testing.T) {
 	}
 }
 
+// TestTransformSystem_Statuses verifies the metadata pass registers statuses
+// from the `status` section, including when no roles are present.
+//
+// Why it matters: statuses are a first-class Nautobot catalog with content
+// types, so the importer must register them up front even for a status-only
+// file, mirroring how roles are handled.
+// Inputs: a SystemCSV with two status rows and no roles. Outputs:
+// result.Metadata.Statuses with parsed content types and empty Roles.
+// Data choice: Active (one content type) and Planned ("dcim.device,dcim.rack")
+// prove name capture and content-type splitting, while omitting roles proves the
+// metadata is built from statuses alone.
+func TestTransformSystem_Statuses(t *testing.T) {
+	data := &import_.SystemCSV{
+		SectionDefaults: make(map[string]import_.SystemRecord),
+		Statuses: []import_.SystemRecord{
+			{Section: "status", Name: "Active", ContentTypes: "dcim.device"},
+			{Section: "status", Name: "Planned", ContentTypes: "dcim.device,dcim.rack"},
+		},
+	}
+
+	result, err := TransformSystem(devicetypes.Inventory{}, data)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Metadata == nil {
+		t.Fatal("expected Metadata to be set from statuses alone")
+	}
+	if len(result.Metadata.Roles) != 0 {
+		t.Errorf("expected 0 roles, got %d", len(result.Metadata.Roles))
+	}
+	if len(result.Metadata.Statuses) != 2 {
+		t.Fatalf("expected 2 statuses, got %d", len(result.Metadata.Statuses))
+	}
+	if result.Metadata.Statuses[0].Name != "Active" {
+		t.Errorf("first status = %q, want %q", result.Metadata.Statuses[0].Name, "Active")
+	}
+	if len(result.Metadata.Statuses[1].ContentTypes) != 2 {
+		t.Errorf("Planned should have 2 content types, got %d", len(result.Metadata.Statuses[1].ContentTypes))
+	}
+}
+
+// TestTransformSystem_MetadataMissingName verifies a catalog row without a Name
+// fails the metadata pass with a kind-specific error.
+//
+// Why it matters: roles and statuses are keyed by Name, so a nameless catalog
+// row cannot be registered and must abort the import with a clear message naming
+// the offending section kind.
+// Inputs: a SystemCSV with one status row missing its Name. Outputs: a non-nil
+// error equal to the wrapped "status record missing Name" message.
+// Data choice: an empty-Name status isolates the shared missing-name guard and
+// proves the kind label is threaded into the message.
+func TestTransformSystem_MetadataMissingName(t *testing.T) {
+	data := &import_.SystemCSV{
+		SectionDefaults: make(map[string]import_.SystemRecord),
+		Statuses: []import_.SystemRecord{
+			{Section: "status", ContentTypes: "dcim.device"},
+		},
+	}
+	_, err := TransformSystem(devicetypes.Inventory{}, data)
+	if err == nil || err.Error() != "transformMetadata: status record missing Name" {
+		t.Fatalf("error = %v, want 'transformMetadata: status record missing Name'", err)
+	}
+}
+
 // TestTransformSystem_Racks verifies the rack pass creates one rack per row with
 // the library U-height and the row's status.
 //
