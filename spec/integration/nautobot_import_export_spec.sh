@@ -128,7 +128,10 @@ print('rack_location_matches=' + str(rack.get('location') == location.get('id'))
 print('compute_status=' + compute.get('status', ''))
 print('compute_role=' + compute.get('role', ''))
 print('spine_role=' + spine.get('role', ''))
-print('compute_location_matches=' + str(compute.get('location') == location.get('id')))
+# device.Location is derived from the rack via Parent and not persisted; resolve
+# the device location through its parent rack instead.
+compute_rack = next((r for r in inv.get('racks', {}).values() if r.get('id') == compute.get('parent')), {})
+print('compute_location_matches=' + str(compute_rack.get('location') == location.get('id')))
 print('compute_comments=' + compute.get('comments', ''))
 print('interface_count=' + str(len(iface_ids)))
 print('interfaces_at_least_two=' + str(len(iface_ids) >= 2))
