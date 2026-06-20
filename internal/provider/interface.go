@@ -80,6 +80,15 @@ type HasOptions interface {
 	GetOptionsStruct() any
 }
 
+// Configurer is an optional interface that providers can implement to receive
+// their own section of the configuration file at startup.  The command layer
+// calls Configure once per registered provider, passing the provider's
+// Cfg.Providers[slug] map, so the provider can decode and validate its
+// settings before any command runs.  Returning an error aborts startup.
+type Configurer interface {
+	Configure(options map[string]any) error
+}
+
 // HasImportOptions is an optional interface that providers can implement
 // to expose import-specific configuration options that correlate to CLI flags
 type HasImportOptions interface {
