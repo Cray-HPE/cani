@@ -23,15 +23,23 @@ Every provider must implement `Provider`:
 
 ## Optional Interfaces
 
-Providers can implement these for additional capabilities:
+Providers implement only the capabilities they support; the command layer
+type-asserts each one, so unimplemented interfaces degrade gracefully:
 
 | Interface | Purpose |
 |-----------|---------|
-| `Importer` | Extract data from external systems (Extract step`) |
-| `Exporter` | Sync local inventory to external system (Load step) |
+| `Importer` | Extract data from an external system or source (Extract step) |
+| `Exporter` | Sync local inventory to an external system (Load step) |
 | `HasOptions` | Expose default configuration options |
+| `Configurer` | Receive and validate the provider's config section at startup |
 | `HasImportOptions` | Import-specific config/flags |
 | `HasExportOptions` | Export-specific config/flags |
+| `DeviceStager` | Auto-stage an existing device during `add` |
+| `RackStager` | Create a new device hierarchy under a staged rack |
+| `RackPostAddHook` | Run provider logic after a rack is added |
+| `MetadataApplier` | Merge generic `--metadata` pairs into provider storage |
+| `DeviceUpdateFlagProvider` | Contribute provider-specific `update device` flags |
+| `StagedDeviceDescriber` | Supply human-readable staged-device description lines |
 
 ## Provider Registry
 
