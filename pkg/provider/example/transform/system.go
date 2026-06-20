@@ -226,8 +226,12 @@ func transformSystemLocations(data *import_.SystemCSV, result *devicetypes.Trans
 		if rec.Name == "" {
 			return nil, fmt.Errorf("location record missing Name")
 		}
-		if rec.Role == "" {
-			return nil, fmt.Errorf("location %q missing Role (location type: dc, level, section)", rec.Name)
+		locType := rec.LocationType
+		if locType == "" {
+			locType = rec.Role
+		}
+		if locType == "" {
+			return nil, fmt.Errorf("location %q missing LocationType (e.g. dc, level, section)", rec.Name)
 		}
 
 		id := uuid.New()
@@ -236,7 +240,7 @@ func transformSystemLocations(data *import_.SystemCSV, result *devicetypes.Trans
 		loc := &devicetypes.CaniLocationType{
 			ID:           id,
 			Name:         rec.Name,
-			LocationType: rec.Role,
+			LocationType: locType,
 			ContentTypes: contentTypes,
 			ObjectMeta:   devicetypes.ObjectMeta{Status: rec.Status},
 		}
