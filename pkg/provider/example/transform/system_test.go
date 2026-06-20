@@ -254,6 +254,44 @@ func TestTransformSystem_InterfaceMACUnknownTarget(t *testing.T) {
 	}
 }
 
+// TestTransformSystem_InterfaceMACExistingDevice verifies an interface row
+// annotates a device that already exists in the inventory, not only devices
+// created in the same import.
+//
+// Why it matters: operators run incremental imports, so a later interface-only
+// file must set MAC addresses on hardware imported in an earlier run rather than
+// silently skip it.
+// Inputs: an inventory pre-seeded with device "node-existing" (interface iLO, no
+// MAC) and a SystemCSV carrying only an interface row for that device. Outputs:
+// the seeded device's iLO interface gains the normalized MAC.
+// Data choice: the device lives only in the inventory (absent from the batch),
+// so a set MAC can come only from the inventory fallback; the hyphen-uppercase
+// input also proves normalization.
+func TestTransformSystem_InterfaceMACExistingDevice(t *testing.T) {
+	inv := *devicetypes.NewInventory()
+	devID := uuid.New()
+	inv.Devices[devID] = &devicetypes.CaniDeviceType{
+		ID:         devID,
+		Name:       "node-existing",
+		Interfaces: []devicetypes.InterfaceSpec{{Name: "iLO"}},
+	}
+
+	data := &import_.SystemCSV{
+		SectionDefaults: make(map[string]import_.SystemRecord),
+		Interfaces: []import_.SystemRecord{
+			{Section: "interface", Device: "node-existing", Name: "iLO", MacAddress: "AA-BB-CC-DD-EE-09"},
+		},
+	}
+
+	if _, err := TransformSystem(inv, data); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if got := inv.Devices[devID].Interfaces[0].MacAddress; got != "aa:bb:cc:dd:ee:09" {
+		t.Errorf("existing device iLO MAC = %q, want %q", got, "aa:bb:cc:dd:ee:09")
+	}
+}
+
 // TestTransformSystem_Modules verifies the module pass attaches modules to their
 // parent devices, canonicalizing bay names and synthesizing module names.
 //
@@ -1438,6 +1476,41 @@ func TestFindResultInterfaceSpec(t *testing.T) {
 	})
 	t.Run("not found", func(t *testing.T) {
 		if spec := findResultInterfaceSpec(result, "nope", "eth0"); spec != nil {
+			t.Error("expected nil for unknown owner")
+		}
+	})
+}
+
+// TestFindInventoryInterfaceSpec verifies inventory interface-spec lookup across
+// the nil-inventory, device-match, module-match, and not-found paths.
+//
+// Why it matters: applying interface metadata to pre-existing hardware relies on
+// resolving the spec from the inventory's device or module maps, and a nil
+// inventory must be tolerated rather than panic.
+// Inputs: a nil inventory, then an inventory holding device dev1/eth0 and module
+// mod1/port0, queried for each owner and a missing one. Outputs: nil for the nil
+// inventory and the miss; non-nil specs for the device and module hits.
+// Data choice: distinct owner and interface names make each lookup a single
+// unambiguous branch, and the nil inventory isolates the guard clause.
+func TestFindInventoryInterfaceSpec(t *testing.T) {
+	if spec := findInventoryInterfaceSpec(nil, "dev1", "eth0"); spec != nil {
+		t.Error("expected nil for a nil inventory")
+	}
+	inv := devicetypes.NewInventory()
+	inv.Devices[uuid.New()] = &devicetypes.CaniDeviceType{Name: "dev1", Interfaces: []devicetypes.InterfaceSpec{{Name: "eth0"}}}
+	inv.Modules[uuid.New()] = &devicetypes.CaniModuleType{Name: "mod1", Interfaces: []devicetypes.InterfaceSpec{{Name: "port0"}}}
+	t.Run("device interface", func(t *testing.T) {
+		if spec := findInventoryInterfaceSpec(inv, "dev1", "eth0"); spec == nil {
+			t.Error("expected to find device interface eth0")
+		}
+	})
+	t.Run("module interface", func(t *testing.T) {
+		if spec := findInventoryInterfaceSpec(inv, "mod1", "port0"); spec == nil {
+			t.Error("expected to find module interface port0")
+		}
+	})
+	t.Run("not found", func(t *testing.T) {
+		if spec := findInventoryInterfaceSpec(inv, "nope", "eth0"); spec != nil {
 			t.Error("expected nil for unknown owner")
 		}
 	})
