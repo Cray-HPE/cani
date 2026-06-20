@@ -1408,16 +1408,19 @@ func TestResolveSystemModuleBayName(t *testing.T) {
 }
 
 // TestSynthesizeSystemModuleName verifies synthesized module names across the
-// guard, GPU, ConnectX, and fallthrough branches.
+// guard, GPU, ConnectX, and deterministic-fallback branches.
 //
-// Why it matters: modules without an explicit name need a deterministic
-// synthesized name for GPUs and ConnectX NICs, while every other shape must
-// yield an empty string so the caller keeps the existing name.
-// Inputs: nil module, already-named module, nil device, a GPU with and without a
-// bay name, a ConnectX-6 module, and an unrelated module. Outputs: empty strings
-// for the guards/GPU-without-bay/other cases and formatted names otherwise.
+// Why it matters: a module without an explicit name must never be left blank
+// (blank-named modules are dropped from summaries and collide when Qty > 1), so
+// only the nil-module and already-named guards return empty; every other shape
+// yields a deterministic name from the GPU, ConnectX, or slug/device/bay
+// fallback.
+// Inputs: nil module, already-named module, a nil-device GPU, a GPU with and
+// without a bay, a ConnectX-6 module, and an unrelated module. Outputs: empty
+// for the two guards and a formatted name for every other case.
 // Data choice: the GPU type, a "connectx-6" slug, and a plain slug select each
-// naming branch precisely.
+// branch, while the nil-device and no-bay rows exercise the fallback's optional
+// device and bay segments.
 func TestSynthesizeSystemModuleName(t *testing.T) {
 	dev := &devicetypes.CaniDeviceType{Name: "node-a"}
 	tests := []struct {
@@ -1428,11 +1431,11 @@ func TestSynthesizeSystemModuleName(t *testing.T) {
 	}{
 		{"nil module", nil, dev, ""},
 		{"already named", &devicetypes.CaniModuleType{Name: "preset"}, dev, ""},
-		{"nil device", &devicetypes.CaniModuleType{Type: devicetypes.TypeGPU, ModuleBayName: "GPU 0"}, nil, ""},
-		{"gpu without bay", &devicetypes.CaniModuleType{Type: devicetypes.TypeGPU}, dev, ""},
+		{"nil device falls back to slug and bay", &devicetypes.CaniModuleType{Type: devicetypes.TypeGPU, ModuleBayName: "GPU 0"}, nil, "module-GPU 0"},
+		{"gpu without bay falls back to device", &devicetypes.CaniModuleType{Type: devicetypes.TypeGPU}, dev, "module-node-a"},
 		{"gpu with bay", &devicetypes.CaniModuleType{Type: devicetypes.TypeGPU, ModuleBayName: "GPU 0"}, dev, "gpu-node-a-GPU 0"},
 		{"connectx six", &devicetypes.CaniModuleType{Slug: "nvidia-connectx-6-dx-100gbe"}, dev, "CX6-node-a"},
-		{"other module", &devicetypes.CaniModuleType{Slug: "some-other-nic"}, dev, ""},
+		{"other module falls back to slug and device", &devicetypes.CaniModuleType{Slug: "some-other-nic"}, dev, "some-other-nic-node-a"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

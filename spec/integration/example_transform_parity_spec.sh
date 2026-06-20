@@ -151,7 +151,7 @@ Describe 'INTEGRATION: example transform parity'
   It 'transforms matrix system CSV into locations roles hardware and cables'
     When call example_matrix_transform_summary
     The status should equal 0
-    The output should include 'counts=locations:1,racks:1,devices:6,modules:18,cables:6'
+    The output should include 'counts=locations:1,racks:1,devices:6,modules:20,cables:6'
     The output should include 'roles=ComputeNode,ServiceNode,ManagementSwitch,HSNSwitch'
     The output should include 'location=matrix-site|site|Active|rack,device,module'
     The output should include 'rack=matrix-rack|hpe-48u-800mmx1200mm-g2-enterprise-shock-rack|48|Active|matrix-site|devices:6'
@@ -159,7 +159,7 @@ Describe 'INTEGRATION: example transform parity'
     The output should include 'device_service=matrix-serv-01|hpe-proliant-dl380-gen11-8sff|ServiceNode|Active|SN-SERV-01|11|front|matrix-rack|matrix-site|ifaces:7'
     The output should include 'device_mgmt=matrix-mgmt-sw|hpe-aruba-2930f-48g-4sfp|ManagementSwitch|Active|SN-MGMT-SW|48|rear|matrix-rack|matrix-site|ifaces:52'
     The output should include 'device_hsn=matrix-hsn-sw|nvidia-infiniband-ndr-64-port-osfp-switch|HSNSwitch|Active|SN-HSN-SW|42|rear|matrix-rack|matrix-site|ifaces:65'
-    The output should include 'modules=matrix-gpu-01:8,matrix-gpu-02:8,matrix-serv-01:1,matrix-serv-02:1'
+    The output should include 'modules=matrix-gpu-01:9,matrix-gpu-02:9,matrix-serv-01:1,matrix-serv-02:1'
     The output should include 'hpe-3m-cat6-stp|blue|3|m:4'
     The output should include 'hpe-ib-ndr-osfp-dac-cable|black|2|m:2'
   End
