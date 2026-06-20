@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Cray-HPE/cani/internal/config"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/devicetypes/connections"
 	import_ "github.com/Cray-HPE/cani/pkg/provider/example/import"
@@ -67,10 +68,73 @@ func TransformSystem(existing devicetypes.Inventory, data *import_.SystemCSV) (*
 		return nil, fmt.Errorf("transformSystemConnections: %w", err)
 	}
 
+	// Pass 5: Validate catalog references
+	if err = validateReferences(result); err != nil {
+		return nil, err
+	}
+
 	log.Printf("System CSV transformed: %d roles, %d locations, %d racks, %d devices, %d modules, %d cables",
 		len(data.Roles), len(result.Locations), len(result.Racks), len(result.Devices), len(result.Modules), len(result.Cables))
 
 	return result, nil
+}
+
+// validateReferences checks that device, rack, and location role and status
+// references resolve against the metadata catalog defined by the same import.
+// Unknown references are logged as warnings; under strict mode any unresolved
+// reference aborts the import. A catalog that is empty is treated as
+// "not validated" so imports relying on export-time auto-creation still work.
+func validateReferences(result *devicetypes.TransformResult) error {
+	if result.Metadata == nil {
+		return nil
+	}
+	roles := metadataNameSet(result.Metadata.Roles)
+	statuses := metadataNameSet(result.Metadata.Statuses)
+
+	var problems []string
+	for _, dev := range result.Devices {
+		if dev == nil {
+			continue
+		}
+		problems = appendUnknownRef(problems, roles, dev.Role, "device", dev.Name, "role")
+		problems = appendUnknownRef(problems, statuses, dev.Status, "device", dev.Name, "status")
+	}
+	for _, rack := range result.Racks {
+		if rack != nil {
+			problems = appendUnknownRef(problems, statuses, rack.Status, "rack", rack.Name, "status")
+		}
+	}
+	for _, loc := range result.Locations {
+		if loc != nil {
+			problems = appendUnknownRef(problems, statuses, loc.Status, "location", loc.Name, "status")
+		}
+	}
+
+	for _, p := range problems {
+		log.Printf("WARN: %s", p)
+	}
+	if len(problems) > 0 && config.Cfg != nil && config.Cfg.Strict {
+		return fmt.Errorf("system CSV has %d unresolved catalog reference(s)", len(problems))
+	}
+	return nil
+}
+
+// metadataNameSet builds a set of catalog entry names for membership checks.
+func metadataNameSet(entries []devicetypes.MetadataEntry) map[string]bool {
+	set := make(map[string]bool, len(entries))
+	for _, e := range entries {
+		set[e.Name] = true
+	}
+	return set
+}
+
+// appendUnknownRef records a problem when ref is non-empty, the catalog is
+// non-empty, and ref is absent from it; an empty catalog allows any reference.
+func appendUnknownRef(problems []string, catalog map[string]bool, ref, kind, name, field string) []string {
+	if ref == "" || len(catalog) == 0 || catalog[ref] {
+		return problems
+	}
+	return append(problems, fmt.Sprintf("%s %q references unknown %s %q", kind, name, field, ref))
 }
 
 // transformMetadata builds the role and status catalog from the system CSV's
