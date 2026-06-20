@@ -202,6 +202,38 @@ func TestParseSystemCSV_StatusSection(t *testing.T) {
 	}
 }
 
+// TestParseSystemCSV_RoleColorDescription verifies a role row's Color and
+// Description columns are parsed into the record.
+//
+// Why it matters: roles support a display color and description; the parser must
+// capture both columns so the transform can thread them into the catalog.
+// Inputs: a temp CSV with a role row setting Color and Description. Outputs: the
+// parsed role record with both fields.
+// Data choice: a single role with a color and a description isolates the new
+// column parsing from other sections.
+func TestParseSystemCSV_RoleColorDescription(t *testing.T) {
+	dir := t.TempDir()
+	path := dir + "/role.csv"
+	content := "Section,Name,Color,Description\n" +
+		"role,ComputeNode,blue,GPU compute nodes\n"
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+	data, err := ParseSystemCSV(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(data.Roles) != 1 {
+		t.Fatalf("Roles = %d, want 1", len(data.Roles))
+	}
+	if data.Roles[0].Color != "blue" {
+		t.Errorf("role Color = %q, want %q", data.Roles[0].Color, "blue")
+	}
+	if data.Roles[0].Description != "GPU compute nodes" {
+		t.Errorf("role Description = %q, want %q", data.Roles[0].Description, "GPU compute nodes")
+	}
+}
+
 // TestParseSystemCSV_DeviceFields verifies a device row preserves part number,
 // rack placement, role, face, and serial values.
 //
@@ -340,6 +372,7 @@ func TestNormalizeSystemHeader(t *testing.T) {
 		{"Module Bay", "bay"},
 		{"U Position", "position"},
 		{"Cable Color", "color"},
+		{"Description", "description"},
 	}
 
 	for _, tt := range tests {

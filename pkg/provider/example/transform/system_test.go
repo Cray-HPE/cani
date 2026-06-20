@@ -91,6 +91,39 @@ func TestTransformSystem_Statuses(t *testing.T) {
 	}
 }
 
+// TestTransformSystem_RoleColorDescription verifies role rows carry Color and
+// Description into the metadata catalog.
+//
+// Why it matters: Nautobot roles support a display color and description, so the
+// importer must thread those optional columns into the catalog entry instead of
+// dropping them.
+// Inputs: a SystemCSV with one role row setting Color and Description. Outputs:
+// result.Metadata.Roles[0] with both fields populated.
+// Data choice: a non-empty color and description on a single role isolate the
+// new field mapping without other sections.
+func TestTransformSystem_RoleColorDescription(t *testing.T) {
+	data := &import_.SystemCSV{
+		SectionDefaults: make(map[string]import_.SystemRecord),
+		Roles: []import_.SystemRecord{
+			{Section: "role", Name: "ComputeNode", Color: "blue", Description: "GPU compute nodes"},
+		},
+	}
+	result, err := TransformSystem(devicetypes.Inventory{}, data)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Metadata.Roles) != 1 {
+		t.Fatalf("expected 1 role, got %d", len(result.Metadata.Roles))
+	}
+	role := result.Metadata.Roles[0]
+	if role.Color != "blue" {
+		t.Errorf("role Color = %q, want %q", role.Color, "blue")
+	}
+	if role.Description != "GPU compute nodes" {
+		t.Errorf("role Description = %q, want %q", role.Description, "GPU compute nodes")
+	}
+}
+
 // TestTransformSystem_MetadataMissingName verifies a catalog row without a Name
 // fails the metadata pass with a kind-specific error.
 //

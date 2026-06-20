@@ -34,6 +34,7 @@ type SystemRecord struct {
 	Location     string // location name (racks)
 	ContentTypes string // comma-separated content types (roles)
 	MacAddress   string // MAC address (interfaces)
+	Description  string // free-text description (roles, statuses)
 }
 
 // SystemCSV holds parsed system CSV data grouped by section.
@@ -74,6 +75,7 @@ type systemColumnIndex struct {
 	location     int
 	contentTypes int
 	macAddress   int
+	description  int
 }
 
 // IsSystemCSV returns true if the header row contains a "Section" column,
@@ -187,6 +189,7 @@ func parseSystemHeader(header []string) (systemColumnIndex, error) {
 		location:     -1,
 		contentTypes: -1,
 		macAddress:   -1,
+		description:  -1,
 	}
 
 	for i, col := range header {
@@ -235,6 +238,8 @@ func parseSystemHeader(header []string) (systemColumnIndex, error) {
 			idx.contentTypes = i
 		case "macaddress":
 			idx.macAddress = i
+		case "description":
+			idx.description = i
 		}
 	}
 
@@ -297,6 +302,8 @@ func normalizeSystemHeader(col string) string {
 		return "contenttypes"
 	case "macaddress", "mac", "macaddr", "hwaddr", "hardwareaddress":
 		return "macaddress"
+	case "description", "desc":
+		return "description"
 	default:
 		return lower
 	}
@@ -355,6 +362,7 @@ func parseSystemRow(row []string, idx systemColumnIndex, lineNum int) (SystemRec
 		Location:     getColumnValue(row, idx.location),
 		ContentTypes: getColumnValue(row, idx.contentTypes),
 		MacAddress:   getColumnValue(row, idx.macAddress),
+		Description:  getColumnValue(row, idx.description),
 	}, nil
 }
 
