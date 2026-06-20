@@ -254,6 +254,13 @@ func importSystemCSV(cmd *cli.Command, args []string, inventory *devicetypes.Inv
 		return nil
 	}
 
+	// Show step-through output if step mode is enabled
+	if config.Cfg != nil && config.Cfg.StepMode {
+		if err := stepSystemRecords(data); err != nil {
+			return err
+		}
+	}
+
 	prov, err := GetSystemProvider()
 	if err != nil {
 		return err
@@ -267,6 +274,71 @@ func importSystemCSV(cmd *cli.Command, args []string, inventory *devicetypes.Inv
 		len(data.Devices), len(data.Modules), len(data.Interfaces), len(data.Connections))
 
 	return nil
+}
+
+// stepSystemRecords drives an interactive per-record prompt for each parsed
+// system record when step mode is enabled, in pipeline order. A closed input
+// stream aborts the import with a step-interrupted error.
+func stepSystemRecords(data *SystemCSV) error {
+	opts := visual.ETLOptions{NoColor: config.Cfg.NoColor}
+	records := collectSystemStepRecords(data)
+	for i, rec := range records {
+		raw := formatSystemRecordRaw(rec)
+		parsed := formatSystemRecordParsed(rec)
+		if err := visual.PromptCSVRowStepRaw(i+1, len(records), raw, parsed, opts); err != nil {
+			return fmt.Errorf("step interrupted: %w", err)
+		}
+	}
+	return nil
+}
+
+// collectSystemStepRecords flattens the system CSV buckets into a single ordered
+// slice matching the transform pipeline order.
+func collectSystemStepRecords(data *SystemCSV) []SystemRecord {
+	var all []SystemRecord
+	all = append(all, data.Roles...)
+	all = append(all, data.Statuses...)
+	all = append(all, data.Locations...)
+	all = append(all, data.Racks...)
+	all = append(all, data.Devices...)
+	all = append(all, data.Modules...)
+	all = append(all, data.Interfaces...)
+	all = append(all, data.Connections...)
+	return all
+}
+
+// formatSystemRecordRaw creates a compact string of a system record's identity
+// fields for step-through display.
+func formatSystemRecordRaw(rec SystemRecord) string {
+	parts := []string{rec.Section}
+	if rec.Name != "" {
+		parts = append(parts, rec.Name)
+	}
+	if rec.PartNumber != "" {
+		parts = append(parts, rec.PartNumber)
+	}
+	return fmt.Sprintf("%s", parts)
+}
+
+// formatSystemRecordParsed creates a descriptive string of a parsed system
+// record keyed by its section.
+func formatSystemRecordParsed(rec SystemRecord) string {
+	switch rec.Section {
+	case "connection":
+		return fmt.Sprintf("cable %s: %s:%s ↔ %s:%s", rec.PartNumber, rec.ADevice, rec.APort, rec.BDevice, rec.BPort)
+	case "device":
+		return fmt.Sprintf("device %s (%s) @ %s U%d %s", rec.Name, rec.PartNumber, rec.Rack, rec.Position, rec.Face)
+	case "module":
+		return fmt.Sprintf("module %s in %s bay %s", rec.PartNumber, rec.Device, rec.Bay)
+	case "interface":
+		return fmt.Sprintf("interface %s on %s mac=%s", rec.Name, rec.Device, rec.MacAddress)
+	case "rack":
+		return fmt.Sprintf("rack %s (%s)", rec.Name, rec.PartNumber)
+	case "location":
+		return fmt.Sprintf("location %s type=%s parent=%s", rec.Name, rec.Role, rec.Location)
+	default:
+		return fmt.Sprintf("%s %s", rec.Section, rec.Name)
+	}
 }
 
 // importBOMCSV parses a traditional BOM CSV and stores raw records on the provider.
