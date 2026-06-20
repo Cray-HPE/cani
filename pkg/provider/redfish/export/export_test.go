@@ -34,7 +34,7 @@ func TestExportWritesNodeAsServiceRoot(t *testing.T) {
 		},
 	}}
 
-	output, err := captureStdout(t, func() error { return Export(inventory) })
+	output, err := captureStdout(t, func() error { return Export(inventory, false) })
 	if err != nil {
 		t.Fatalf("Export() error = %v, want nil", err)
 	}
@@ -92,7 +92,7 @@ func TestExportSkipsNilAndNonNodeDevices(t *testing.T) {
 		uuid.Nil: nil,
 	}}
 
-	output, err := captureStdout(t, func() error { return Export(inventory) })
+	output, err := captureStdout(t, func() error { return Export(inventory, false) })
 	if err != nil {
 		t.Fatalf("Export() error = %v, want nil", err)
 	}
@@ -116,7 +116,7 @@ func TestExportSkipsNilAndNonNodeDevices(t *testing.T) {
 // Data choice: a zero-value inventory exercises the no-devices path without map
 // initialization noise.
 func TestExportEmptyInventoryWritesNull(t *testing.T) {
-	output, err := captureStdout(t, func() error { return Export(devicetypes.Inventory{}) })
+	output, err := captureStdout(t, func() error { return Export(devicetypes.Inventory{}, false) })
 	if err != nil {
 		t.Fatalf("Export() error = %v, want nil", err)
 	}
@@ -152,13 +152,36 @@ func TestExportReturnsEncodeError(t *testing.T) {
 		uuid.New(): {Name: "node-03", Type: devicetypes.TypeNode},
 	}}
 
-	err = Export(inventory)
+	err = Export(inventory, false)
 
 	if err == nil {
 		t.Fatal("Export() error = nil, want encoding error")
 	}
 	if !strings.Contains(err.Error(), "encoding Redfish ServiceRoots") {
 		t.Errorf("Export() error = %q, want Redfish encoding context", err.Error())
+	}
+}
+
+// TestExportDryRunWritesNoPayload verifies dry-run mode emits no Redfish JSON to
+// stdout, matching the dry-run semantics other providers' exporters honor.
+//
+// Why it matters: a uniform --dry-run contract lets operators preview an export
+// without producing the wire payload, regardless of which provider they target.
+// Inputs: an inventory with one node device and dryRun=true. Outputs: empty
+// stdout and a nil error.
+// Data choice: a single node device would otherwise produce exactly one
+// ServiceRoot, so empty stdout proves the payload was suppressed, not merely absent.
+func TestExportDryRunWritesNoPayload(t *testing.T) {
+	inventory := devicetypes.Inventory{Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
+		uuid.New(): {Name: "node-dry", Type: devicetypes.TypeNode},
+	}}
+
+	output, err := captureStdout(t, func() error { return Export(inventory, true) })
+	if err != nil {
+		t.Fatalf("Export() dry-run error = %v, want nil", err)
+	}
+	if strings.TrimSpace(output) != "" {
+		t.Errorf("Export() dry-run stdout = %q, want empty", output)
 	}
 }
 

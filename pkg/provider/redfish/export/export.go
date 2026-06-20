@@ -3,6 +3,7 @@ package export
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
@@ -36,7 +37,11 @@ type hpeManager struct {
 // Export writes the inventory devices as a Redfish-compatible JSON array of
 // ServiceRoot objects to stdout. Only "node" type devices are exported
 // (Redfish is BMC-discovery, switches are excluded).
-func Export(existing devicetypes.Inventory) error {
+//
+// When dryRun is true, Export reports how many ServiceRoots would be written
+// (to the log) and emits no payload, matching the dry-run semantics honored by
+// other providers' exporters.
+func Export(existing devicetypes.Inventory, dryRun bool) error {
 	var roots []serviceRoot
 	for _, dev := range existing.Devices {
 		if dev == nil {
@@ -64,6 +69,11 @@ func Export(existing devicetypes.Inventory) error {
 			},
 		}
 		roots = append(roots, r)
+	}
+
+	if dryRun {
+		log.Printf("[dry-run] would export %d Redfish ServiceRoot(s); no payload written", len(roots))
+		return nil
 	}
 
 	enc := json.NewEncoder(os.Stdout)
