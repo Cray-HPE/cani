@@ -247,7 +247,8 @@ func importSystemCSV(cmd *cli.Command, args []string, inventory *devicetypes.Inv
 		return fmt.Errorf("failed to parse system CSV: %w", err)
 	}
 
-	total := len(data.Roles) + len(data.Racks) + len(data.Devices) + len(data.Modules) + len(data.Connections)
+	total := len(data.Roles) + len(data.Locations) + len(data.Racks) +
+		len(data.Devices) + len(data.Modules) + len(data.Interfaces) + len(data.Connections)
 	if total == 0 {
 		log.Println("No valid records found in system CSV")
 		return nil
@@ -260,9 +261,10 @@ func importSystemCSV(cmd *cli.Command, args []string, inventory *devicetypes.Inv
 	prov.ClearSystemRecords()
 	prov.SetSystemRecords(data)
 
-	log.Printf("Parsed system CSV from %s: %d roles, %d racks, %d devices, %d modules, %d connections",
+	log.Printf("Parsed system CSV from %s: %d roles, %d locations, %d racks, %d devices, %d modules, %d interfaces, %d connections",
 		commands.CsvFlag,
-		len(data.Roles), len(data.Racks), len(data.Devices), len(data.Modules), len(data.Connections))
+		len(data.Roles), len(data.Locations), len(data.Racks),
+		len(data.Devices), len(data.Modules), len(data.Interfaces), len(data.Connections))
 
 	return nil
 }
