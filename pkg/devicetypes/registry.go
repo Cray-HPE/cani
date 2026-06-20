@@ -122,7 +122,7 @@ func ClassifyForNautobot(hardwareType string) Category {
 		return CategoryRack
 	case TypeCable:
 		return CategoryCable
-	case TypeNIC, TypeGPU, TypeCPU, TypeMemory, TypePowerSupply:
+	case TypeNIC, TypeGPU, TypeCPU, TypeMemory, TypePowerSupply, TypeModule, TypeAdapter, TypeTransceiver:
 		return CategoryModule
 	case TypeFru:
 		return CategoryFru
