@@ -25,20 +25,50 @@
  */
 package provider
 
-var providers = map[string]Provider{}
+import (
+	"fmt"
+	"sync"
+)
+
+var (
+	mu        sync.RWMutex
+	providers = map[string]Provider{}
+)
 
 // Register makes a plugin available under name.
 // This should be called in the plugin's init() function.
+//
+// Register panics if p is nil or if name was already registered: both indicate
+// a wiring bug that should fail loudly at startup rather than silently
+// overwrite an existing provider.
 func Register(name string, p Provider) {
+	mu.Lock()
+	defer mu.Unlock()
+	if p == nil {
+		panic("provider: Register provider is nil")
+	}
+	if _, dup := providers[name]; dup {
+		panic(fmt.Sprintf("provider: Register called twice for provider %q", name))
+	}
 	providers[name] = p
 }
 
 // GetProvider returns a registered plugin or nil.
 func GetProvider(name string) Provider {
+	mu.RLock()
+	defer mu.RUnlock()
 	return providers[name]
 }
 
-// All returns every registered plugin
+// GetProviders returns a snapshot of every registered plugin. The returned map
+// is a copy, so callers may range over it safely while providers register and
+// cannot mutate the registry through it.
 func GetProviders() map[string]Provider {
-	return providers
+	mu.RLock()
+	defer mu.RUnlock()
+	out := make(map[string]Provider, len(providers))
+	for name, p := range providers {
+		out[name] = p
+	}
+	return out
 }

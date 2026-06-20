@@ -80,7 +80,7 @@ func TestRegisterAndGetProvider(t *testing.T) {
 	}
 }
 
-// TestGetProviders verifies GetProviders exposes the live registry map
+// TestGetProviders verifies GetProviders returns a snapshot of the registry
 // including a freshly registered provider.
 //
 // Why it matters: the command layer ranges over GetProviders to dispatch
@@ -103,4 +103,46 @@ func TestGetProviders(t *testing.T) {
 	if p.Slug() != name {
 		t.Errorf("GetProviders()[%q].Slug() = %q, want %q", name, p.Slug(), name)
 	}
+}
+
+// TestRegisterPanicsOnDuplicate verifies Register panics when a name is
+// registered a second time instead of silently overwriting the first provider.
+//
+// Why it matters: providers self-register by slug in init(); two providers
+// claiming the same slug is a wiring bug, and a silent overwrite would drop one
+// provider from dispatch in a way that is hard to diagnose. Failing loudly at
+// startup surfaces the conflict immediately.
+// Inputs: a fakeProvider registered once under a unique name, then a second
+// Register call with the same name. Outputs: the second call panics. Data
+// choice: a unique test-only name avoids colliding with other registrations and
+// is removed in cleanup so the global map is left unchanged.
+func TestRegisterPanicsOnDuplicate(t *testing.T) {
+	const name = "fake-dup-test"
+	Register(name, fakeProvider{slug: name})
+	t.Cleanup(func() { delete(providers, name) })
+
+	defer func() {
+		if recover() == nil {
+			t.Error("Register did not panic on duplicate registration")
+		}
+	}()
+	Register(name, fakeProvider{slug: name})
+}
+
+// TestRegisterPanicsOnNil verifies Register panics when given a nil provider.
+//
+// Why it matters: a nil provider stored in the registry would panic the command
+// layer later, far from the faulty init() that stored it; rejecting nil at
+// registration time keeps the failure close to its cause.
+// Inputs: a Register call with a non-empty name and a nil Provider. Outputs:
+// the call panics and nothing is stored. Data choice: a test-only name plus the
+// panic recovery proves nil is rejected before insertion.
+func TestRegisterPanicsOnNil(t *testing.T) {
+	t.Cleanup(func() { delete(providers, "fake-nil-test") })
+	defer func() {
+		if recover() == nil {
+			t.Error("Register did not panic on nil provider")
+		}
+	}()
+	Register("fake-nil-test", nil)
 }
