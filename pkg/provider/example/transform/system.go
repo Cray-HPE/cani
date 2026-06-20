@@ -166,6 +166,8 @@ func metadataEntriesFromRecords(data *import_.SystemCSV, records []import_.Syste
 		}
 		entries = append(entries, devicetypes.MetadataEntry{
 			Name:         rec.Name,
+			Color:        rec.Color,
+			Description:  rec.Description,
 			ContentTypes: parseContentTypes(rec.ContentTypes),
 		})
 	}
