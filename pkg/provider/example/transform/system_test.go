@@ -981,15 +981,15 @@ func TestTransformSystem_LocationParentFromInventory(t *testing.T) {
 // Inputs: SystemCSV variants each containing one invalid location row. Outputs:
 // a non-nil error from TransformSystem in every case.
 // Data choice: the three rows isolate the three distinct guards — missing Name,
-// missing Role, and an unresolvable parent — so each error branch is proven
-// independently rather than masked by a single combined failure.
+// missing location type, and an unresolvable parent — so each error branch is
+// proven independently rather than masked by a single combined failure.
 func TestTransformSystem_LocationErrors(t *testing.T) {
 	tests := []struct {
 		name string
 		loc  import_.SystemRecord
 	}{
 		{"missing name", import_.SystemRecord{Section: "location", Role: "dc"}},
-		{"missing role", import_.SystemRecord{Section: "location", Name: "dc1"}},
+		{"missing location type", import_.SystemRecord{Section: "location", Name: "dc1"}},
 		{"unknown parent", import_.SystemRecord{Section: "location", Name: "row-a", Role: "section", Location: "ghost-dc"}},
 	}
 	for _, tt := range tests {
@@ -1002,6 +1002,40 @@ func TestTransformSystem_LocationErrors(t *testing.T) {
 				t.Fatalf("expected error for %s location row", tt.name)
 			}
 		})
+	}
+}
+
+// TestTransformSystem_LocationTypeColumn verifies the explicit LocationType field
+// sets the location type and takes precedence over the Role alias.
+//
+// Why it matters: the Role column historically doubled as the location type; an
+// explicit LocationType column disambiguates the two, and when both are present
+// the explicit column must win.
+// Inputs: one location using only LocationType and one setting both LocationType
+// and a different Role. Outputs: both locations carry their LocationType value.
+// Data choice: a LocationType-only row proves the new column works alone, while a
+// row whose Role differs proves precedence.
+func TestTransformSystem_LocationTypeColumn(t *testing.T) {
+	data := &import_.SystemCSV{
+		SectionDefaults: make(map[string]import_.SystemRecord),
+		Locations: []import_.SystemRecord{
+			{Section: "location", Name: "dc1", LocationType: "dc"},
+			{Section: "location", Name: "row-a", LocationType: "section", Role: "ComputeNode", Location: "dc1"},
+		},
+	}
+	result, err := TransformSystem(*devicetypes.NewInventory(), data)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	byName := map[string]string{}
+	for _, loc := range result.Locations {
+		byName[loc.Name] = loc.LocationType
+	}
+	if byName["dc1"] != "dc" {
+		t.Errorf("dc1 LocationType = %q, want %q", byName["dc1"], "dc")
+	}
+	if byName["row-a"] != "section" {
+		t.Errorf("row-a LocationType = %q, want %q (explicit column wins over Role)", byName["row-a"], "section")
 	}
 }
 

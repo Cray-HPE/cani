@@ -234,6 +234,36 @@ func TestParseSystemCSV_RoleColorDescription(t *testing.T) {
 	}
 }
 
+// TestParseSystemCSV_LocationTypeColumn verifies an explicit LocationType column
+// is parsed into the record.
+//
+// Why it matters: the location type previously rode on the Role column; a
+// dedicated LocationType column must be recognized so location rows no longer
+// overload Role.
+// Inputs: a temp CSV with a location row using a LocationType column. Outputs:
+// the parsed location record with LocationType set.
+// Data choice: a location row with only Section, Name, and LocationType isolates
+// the new column from the Role alias.
+func TestParseSystemCSV_LocationTypeColumn(t *testing.T) {
+	dir := t.TempDir()
+	path := dir + "/loc.csv"
+	content := "Section,Name,LocationType\n" +
+		"location,DC01,dc\n"
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+	data, err := ParseSystemCSV(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(data.Locations) != 1 {
+		t.Fatalf("Locations = %d, want 1", len(data.Locations))
+	}
+	if data.Locations[0].LocationType != "dc" {
+		t.Errorf("LocationType = %q, want %q", data.Locations[0].LocationType, "dc")
+	}
+}
+
 // TestParseSystemCSV_DeviceFields verifies a device row preserves part number,
 // rack placement, role, face, and serial values.
 //
@@ -373,6 +403,7 @@ func TestNormalizeSystemHeader(t *testing.T) {
 		{"U Position", "position"},
 		{"Cable Color", "color"},
 		{"Description", "description"},
+		{"Location Type", "locationtype"},
 	}
 
 	for _, tt := range tests {
