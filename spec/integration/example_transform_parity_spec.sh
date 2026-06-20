@@ -153,7 +153,7 @@ Describe 'INTEGRATION: example transform parity'
     The status should equal 0
     The output should include 'counts=locations:1,racks:1,devices:6,modules:20,cables:6'
     The output should include 'roles=ComputeNode,ServiceNode,ManagementSwitch,HSNSwitch'
-    The output should include 'location=matrix-site|site|Active|rack,device,module'
+    The output should include 'location=matrix-site|site|Active|dcim.rack,dcim.device,dcim.module'
     The output should include 'rack=matrix-rack|hpe-48u-800mmx1200mm-g2-enterprise-shock-rack|48|Active|matrix-site|devices:6'
     The output should include 'device_gpu=matrix-gpu-01|hpe-xd670|ComputeNode|Active|SN-GPU-01|34|front|matrix-rack|matrix-site|ifaces:3'
     The output should include 'device_service=matrix-serv-01|hpe-proliant-dl380-gen11-8sff|ServiceNode|Active|SN-SERV-01|11|front|matrix-rack|matrix-site|ifaces:7'
