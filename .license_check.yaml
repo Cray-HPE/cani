@@ -2,3 +2,5 @@ add_exclude:
   - ".license_check.yaml"
   - "vendor"
   - "pkg/sls-client"
+  # Inlined third-party oapi-codegen runtime/types (Apache-2.0 headers preserved).
+  - "internal/openapi"
