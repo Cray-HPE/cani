@@ -826,6 +826,89 @@ func TestImportSystemCSV_StepModeInterrupted(t *testing.T) {
 	}
 }
 
+// TestFormatSystemRecordParsed verifies each section renders its own descriptive
+// parsed string for the step-through prompt.
+//
+// Why it matters: step mode shows operators a per-record summary, so each section
+// must produce a readable, section-appropriate description rather than a generic
+// fallback.
+// Inputs: one record per section (connection, device, module, interface, rack,
+// location) plus a role for the default branch. Outputs: the parsed string.
+// Data choice: one representative record per branch covers every switch arm.
+func TestFormatSystemRecordParsed(t *testing.T) {
+	tests := []struct {
+		name string
+		rec  SystemRecord
+		want string
+	}{
+		{"connection", SystemRecord{Section: "connection", PartNumber: "cat6", ADevice: "a", APort: "1", BDevice: "b", BPort: "2"}, "cable cat6: a:1 ↔ b:2"},
+		{"device", SystemRecord{Section: "device", Name: "n1", PartNumber: "xd670", Rack: "r1", Position: 34, Face: "front"}, "device n1 (xd670) @ r1 U34 front"},
+		{"module", SystemRecord{Section: "module", PartNumber: "h100", Device: "n1", Bay: "GPU0"}, "module h100 in n1 bay GPU0"},
+		{"interface", SystemRecord{Section: "interface", Name: "iLO", Device: "n1", MacAddress: "aa:bb"}, "interface iLO on n1 mac=aa:bb"},
+		{"rack", SystemRecord{Section: "rack", Name: "r1", PartNumber: "shock-rack"}, "rack r1 (shock-rack)"},
+		{"location", SystemRecord{Section: "location", Name: "dc1", Role: "dc", Location: "site"}, "location dc1 type=dc parent=site"},
+		{"role default", SystemRecord{Section: "role", Name: "ComputeNode"}, "role ComputeNode"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := formatSystemRecordParsed(tt.rec); got != tt.want {
+				t.Errorf("formatSystemRecordParsed(%s) = %q, want %q", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+// TestFormatSystemRecordRaw verifies the compact raw label includes the section
+// and the available identity fields.
+//
+// Why it matters: the raw view orients the operator before the parsed detail, so
+// it must include the section plus name and/or part number when present.
+// Inputs: a fully identified record, a name-only record, and a part-number-only
+// record. Outputs: the bracketed compact label.
+// Data choice: the three shapes exercise the name and part-number branches and
+// their omission.
+func TestFormatSystemRecordRaw(t *testing.T) {
+	tests := []struct {
+		name string
+		rec  SystemRecord
+		want string
+	}{
+		{"name and part", SystemRecord{Section: "device", Name: "n1", PartNumber: "xd670"}, "[device n1 xd670]"},
+		{"name only", SystemRecord{Section: "role", Name: "ComputeNode"}, "[role ComputeNode]"},
+		{"part only", SystemRecord{Section: "module", PartNumber: "h100"}, "[module h100]"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := formatSystemRecordRaw(tt.rec); got != tt.want {
+				t.Errorf("formatSystemRecordRaw(%s) = %q, want %q", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+// TestCollectSystemStepRecords verifies all section buckets are flattened in
+// pipeline order.
+//
+// Why it matters: step mode walks every parsed record once, so the collector
+// must include each section exactly once and preserve the role→device order.
+// Inputs: a SystemCSV with one record in each of two buckets (role, device).
+// Outputs: a two-element slice ordered roles-before-devices.
+// Data choice: two distinct sections prove both inclusion and ordering without
+// ambiguity.
+func TestCollectSystemStepRecords(t *testing.T) {
+	data := &SystemCSV{
+		Roles:   []SystemRecord{{Section: "role", Name: "ComputeNode"}},
+		Devices: []SystemRecord{{Section: "device", Name: "n1"}},
+	}
+	got := collectSystemStepRecords(data)
+	if len(got) != 2 {
+		t.Fatalf("len = %d, want 2", len(got))
+	}
+	if got[0].Section != "role" || got[1].Section != "device" {
+		t.Errorf("order = [%s, %s], want [role, device]", got[0].Section, got[1].Section)
+	}
+}
+
 // TestImport_MergeError verifies Import surfaces a merge failure from a YAML file
 // that parses but contains an invalid UUID key.
 //
