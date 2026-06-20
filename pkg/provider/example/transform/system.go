@@ -25,10 +25,10 @@ func TransformSystem(existing devicetypes.Inventory, data *import_.SystemCSV) (*
 		Cables:    make(map[uuid.UUID]*devicetypes.CaniCableType),
 	}
 
-	// Pass 0: Roles
-	meta, err := transformRoles(data)
+	// Pass 0: Roles and statuses (metadata catalog)
+	meta, err := transformMetadata(data)
 	if err != nil {
-		return nil, fmt.Errorf("transformRoles: %w", err)
+		return nil, fmt.Errorf("transformMetadata: %w", err)
 	}
 	result.Metadata = meta
 
@@ -73,32 +73,55 @@ func TransformSystem(existing devicetypes.Inventory, data *import_.SystemCSV) (*
 	return result, nil
 }
 
-// transformRoles creates MetadataEntry items from role records.
-func transformRoles(data *import_.SystemCSV) (*devicetypes.InventoryMetadata, error) {
-	if len(data.Roles) == 0 {
+// transformMetadata builds the role and status catalog from the system CSV's
+// `role` and `status` sections. It returns nil when neither section is present.
+func transformMetadata(data *import_.SystemCSV) (*devicetypes.InventoryMetadata, error) {
+	roles, err := metadataEntriesFromRecords(data, data.Roles, "role")
+	if err != nil {
+		return nil, err
+	}
+	statuses, err := metadataEntriesFromRecords(data, data.Statuses, "status")
+	if err != nil {
+		return nil, err
+	}
+	if len(roles) == 0 && len(statuses) == 0 {
 		return nil, nil
 	}
-	meta := &devicetypes.InventoryMetadata{}
-	for _, rec := range data.Roles {
+	return &devicetypes.InventoryMetadata{Roles: roles, Statuses: statuses}, nil
+}
+
+// metadataEntriesFromRecords converts catalog records (roles or statuses) into
+// MetadataEntry items, applying defaults and parsing content types. The kind is
+// used only for the missing-name error message.
+func metadataEntriesFromRecords(data *import_.SystemCSV, records []import_.SystemRecord, kind string) ([]devicetypes.MetadataEntry, error) {
+	var entries []devicetypes.MetadataEntry
+	for _, rec := range records {
 		rec = data.ApplyDefaults(rec)
 		if rec.Name == "" {
-			return nil, fmt.Errorf("role record missing Name")
+			return nil, fmt.Errorf("%s record missing Name", kind)
 		}
-		var contentTypes []string
-		if rec.ContentTypes != "" {
-			for _, ct := range strings.Split(rec.ContentTypes, ",") {
-				ct = strings.TrimSpace(ct)
-				if ct != "" {
-					contentTypes = append(contentTypes, ct)
-				}
-			}
-		}
-		meta.Roles = append(meta.Roles, devicetypes.MetadataEntry{
+		entries = append(entries, devicetypes.MetadataEntry{
 			Name:         rec.Name,
-			ContentTypes: contentTypes,
+			ContentTypes: parseContentTypes(rec.ContentTypes),
 		})
 	}
-	return meta, nil
+	return entries, nil
+}
+
+// parseContentTypes splits a comma-separated content-type string into a trimmed,
+// non-empty slice.
+func parseContentTypes(s string) []string {
+	if s == "" {
+		return nil
+	}
+	var out []string
+	for _, ct := range strings.Split(s, ",") {
+		ct = strings.TrimSpace(ct)
+		if ct != "" {
+			out = append(out, ct)
+		}
+	}
+	return out
 }
 
 // transformSystemLocations creates locations from system CSV location records.
