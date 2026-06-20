@@ -391,23 +391,37 @@ func resolveSystemModuleBayName(device *devicetypes.CaniDeviceType, requestedBay
 }
 
 func synthesizeSystemModuleName(module *devicetypes.CaniModuleType, device *devicetypes.CaniDeviceType) string {
-	if module == nil || module.Name != "" || device == nil {
+	if module == nil || module.Name != "" {
 		return ""
 	}
 
 	lowerSlug := strings.ToLower(module.Slug)
-	if module.Type == devicetypes.TypeGPU || strings.Contains(lowerSlug, "gpu") {
-		if module.ModuleBayName == "" {
-			return ""
-		}
+	if device != nil && module.ModuleBayName != "" && (module.Type == devicetypes.TypeGPU || strings.Contains(lowerSlug, "gpu")) {
 		return fmt.Sprintf("gpu-%s-%s", device.Name, module.ModuleBayName)
 	}
 
-	if strings.Contains(lowerSlug, "connectx-6") {
+	if device != nil && strings.Contains(lowerSlug, "connectx-6") {
 		return fmt.Sprintf("CX6-%s", device.Name)
 	}
 
-	return ""
+	return fallbackSystemModuleName(module, device)
+}
+
+// fallbackSystemModuleName builds a deterministic name from the module slug,
+// parent device, and bay so a module is never left unnamed. Unnamed modules are
+// dropped from datastore summaries and collide when a row sets Qty > 1.
+func fallbackSystemModuleName(module *devicetypes.CaniModuleType, device *devicetypes.CaniDeviceType) string {
+	base := module.Slug
+	if base == "" {
+		base = "module"
+	}
+	if device != nil {
+		base = fmt.Sprintf("%s-%s", base, device.Name)
+	}
+	if module.ModuleBayName != "" {
+		base = fmt.Sprintf("%s-%s", base, module.ModuleBayName)
+	}
+	return base
 }
 
 // transformSystemInterfaces applies per-interface metadata (currently MAC
