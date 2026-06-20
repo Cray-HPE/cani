@@ -215,31 +215,39 @@ orphan_plan_summary() {
   setup_orphan_env
   bin/cani alpha update orphans --apply-plan "$FIXTURES/cani/orphan_plan.json" --config "$CANI_CONF" >/dev/null 2>&1 || return $?
 
-  python3 - <<'PY'
+  # Reload through cani so the derived rack membership is rebuilt from the
+  # authoritative parent link (reverse indices are no longer persisted to disk).
+  _rack_view="$(bin/cani alpha show rack test-rack --format classic --no-color --config "$CANI_CONF" 2>/dev/null)" || return $?
+  case "$_rack_view" in
+    *orphan-device*) _in_rack=True ;;
+    *) _in_rack=False ;;
+  esac
+
+  CANI_RACK_HAS_ORPHAN="$_in_rack" python3 - <<'PY'
 import json
 import os
 
 device_id = "bbbb1111-2222-3333-4444-555566667777"
 rack_id = "58f00e62-0b30-4435-9c78-98f5aa3649f1"
-location_id = "f9e5d985-376f-4bb1-8249-a7e82647b7f9"
 
 with open(os.environ["CANI_DS"], encoding="utf-8") as f:
     inv = json.load(f)
 
 device = inv.get("devices", {}).get(device_id, {})
-rack = inv.get("racks", {}).get(rack_id, {})
 interfaces = [
     iface for iface in inv.get("interfaces", {}).values()
     if iface.get("deviceId") == device_id
 ]
 
+# device.Parent is the authoritative container FK; the derived rack/location
+# fields are rebuilt on load and intentionally not written to disk.
 print("orphan_device=" + "|".join([
-    device.get("parent", ""), device.get("rack", ""), device.get("location", ""),
+    device.get("parent", ""),
     str(device.get("rackPosition", "")), device.get("face", ""),
 ]))
-print("rack_contains_device=" + str(device_id in rack.get("devices", [])))
+print("parent_is_rack=" + str(device.get("parent") == rack_id))
 print("interface_count=" + str(len(interfaces)))
-print("location_match=" + str(device.get("location") == location_id))
+print("rack_contains_device=" + os.environ["CANI_RACK_HAS_ORPHAN"])
 PY
 }
 
@@ -266,10 +274,10 @@ Describe 'INTEGRATION: devicetypes ShellSpec parity'
   It 'applies an orphan resolve plan and rebuilds relationships'
     When call orphan_plan_summary
     The status should equal 0
-    The output should include 'orphan_device=58f00e62-0b30-4435-9c78-98f5aa3649f1|58f00e62-0b30-4435-9c78-98f5aa3649f1|f9e5d985-376f-4bb1-8249-a7e82647b7f9|5|front'
-    The output should include 'rack_contains_device=True'
+    The output should include 'orphan_device=58f00e62-0b30-4435-9c78-98f5aa3649f1|5|front'
+    The output should include 'parent_is_rack=True'
     The output should include 'interface_count=1'
-    The output should include 'location_match=True'
+    The output should include 'rack_contains_device=True'
   End
 
 End

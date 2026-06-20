@@ -324,6 +324,46 @@ func mapLegacyType(legacyType string) devicetypes.Type {
 	}
 }
 
+// v1alpha2Probe extracts the pre-v1alpha3 device link fields from raw datastore
+// JSON. Earlier schemas persisted the derived rack / parentDevice FKs; v1alpha3
+// makes them non-serialized, so the migration must read them from the raw bytes
+// to recover the authoritative Parent FK.
+type v1alpha2Probe struct {
+	Devices map[uuid.UUID]struct {
+		Parent       uuid.UUID `json:"parent"`
+		Rack         uuid.UUID `json:"rack"`
+		ParentDevice uuid.UUID `json:"parentDevice"`
+	} `json:"devices"`
+}
+
+// migrateV1Alpha2 upgrades a v1alpha2 inventory to v1alpha3 in place. It
+// back-fills each device's authoritative Parent FK from the legacy derived
+// fields (parent -> parentDevice -> rack, in priority order) when Parent is
+// unset, then stamps the schema version. The immediate container wins, so a
+// blade with both a parent chassis and a rack resolves to the chassis and lets
+// RebuildDerivedState cascade the rack. Reverse indices are rebuilt separately.
+func migrateV1Alpha2(raw []byte, inv *devicetypes.Inventory) {
+	var probe v1alpha2Probe
+	_ = json.Unmarshal(raw, &probe) // best-effort: absent fields decode as uuid.Nil
+
+	for id, dev := range inv.Devices {
+		if dev == nil || dev.Parent != uuid.Nil {
+			continue
+		}
+		link := probe.Devices[id]
+		switch {
+		case link.Parent != uuid.Nil:
+			dev.Parent = link.Parent
+		case link.ParentDevice != uuid.Nil:
+			dev.Parent = link.ParentDevice
+		case link.Rack != uuid.Nil:
+			dev.Parent = link.Rack
+		}
+	}
+
+	inv.SchemaVersion = devicetypes.SchemaVersionV1Alpha3
+}
+
 // migrateInventoryMetadata detects the old inventory-level "providerMetadata"
 // key (used by intermediate builds before the ObjectMeta refactor) and
 // converts it to the typed Metadata field. Returns true if migration occurred.

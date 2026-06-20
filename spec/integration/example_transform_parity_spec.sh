@@ -48,8 +48,11 @@ def names(entries):
 
 def device_line(name):
     device = devices.get(name, {})
-    rack = next((rack_name for rack_name, rack in racks.items() if rack.get("id") == device.get("rack")), "")
-    loc = next((loc_name for loc_name, loc in locations.items() if loc.get("id") == device.get("location")), "")
+    # device.Parent is the authoritative container FK; the derived rack/location
+    # fields are rebuilt on load and not persisted, so resolve names via Parent.
+    rack_obj = next((r for r in racks.values() if r.get("id") == device.get("parent")), {})
+    rack = rack_obj.get("name", "")
+    loc = next((loc_name for loc_name, loc in locations.items() if loc.get("id") == rack_obj.get("location")), "")
     return "|".join([
         name,
         device.get("slug", ""),
@@ -81,10 +84,13 @@ for cable in inv.get("cables", {}).values():
 
 site = locations.get("matrix-site", {})
 rack = racks.get("matrix-rack", {})
+# rack.Devices is a derived reverse index rebuilt on load; count rack members
+# from the authoritative device.Parent links instead.
+rack_device_count = sum(1 for device in devices.values() if device.get("parent") == rack.get("id"))
 print("counts=" + ",".join(f"{key}:{len(inv.get(key, {}))}" for key in ["locations", "racks", "devices", "modules", "cables"]))
 print("roles=" + names(inv.get("metadata", {}).get("roles", [])))
 print("location=" + "|".join([site.get("name", ""), site.get("locationType", ""), site.get("status", ""), ",".join(site.get("contentTypes", []))]))
-print("rack=" + "|".join([rack.get("name", ""), rack.get("slug", ""), str(rack.get("uHeight", "")), rack.get("status", ""), site.get("id", "") == rack.get("location", "") and site.get("name", ""), "devices:" + str(len(rack.get("devices", [])))]))
+print("rack=" + "|".join([rack.get("name", ""), rack.get("slug", ""), str(rack.get("uHeight", "")), rack.get("status", ""), site.get("id", "") == rack.get("location", "") and site.get("name", ""), "devices:" + str(rack_device_count)]))
 print("device_gpu=" + device_line("matrix-gpu-01"))
 print("device_service=" + device_line("matrix-serv-01"))
 print("device_mgmt=" + device_line("matrix-mgmt-sw"))

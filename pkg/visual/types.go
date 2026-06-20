@@ -53,7 +53,7 @@ type RackSlot struct {
 
 // RackView represents a rack visualization
 type RackView struct {
-	Rack                *devicetypes.CaniDeviceType
+	Rack                *devicetypes.CaniRackType
 	Height              int               // Total rack height in U
 	Slots               map[int]*RackSlot // U position -> slot info (1-indexed)
 	UnpositionedDevices []*devicetypes.CaniDeviceType
@@ -68,7 +68,7 @@ type RenderOptions struct {
 }
 
 // NewRackView creates a new RackView for the given rack
-func NewRackView(rack *devicetypes.CaniDeviceType, height int) *RackView {
+func NewRackView(rack *devicetypes.CaniRackType, height int) *RackView {
 	return &RackView{
 		Rack:                rack,
 		Height:              height,

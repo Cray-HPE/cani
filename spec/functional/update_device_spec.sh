@@ -67,8 +67,23 @@ Describe 'cani alpha update device'
   # ── --swap flag ─────────────────────────────────────────────────
 
   Describe '--swap'
-    It 'requires device to be in a rack'
+    It 'swaps two devices when the target slot is occupied'
       When call bin/cani alpha update device test-device-2 --position 1 --swap --config "$CANI_CONF"
+      The status should equal 0
+      The stderr should include 'Swapped positions'
+    End
+
+    It 'rejects moving onto an occupied slot without --swap'
+      When call bin/cani alpha update device test-device-2 --position 1 --config "$CANI_CONF"
+      The status should equal 1
+      The stderr should include 'use --swap'
+    End
+  End
+
+  Describe '--swap on an unracked device'
+    Before 'setup_orphan_env'
+    It 'requires the device to be in a rack'
+      When call bin/cani alpha update device orphan-device --position 1 --swap --config "$CANI_CONF"
       The status should equal 1
       The stderr should include 'is not assigned to a rack'
     End

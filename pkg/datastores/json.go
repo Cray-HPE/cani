@@ -53,8 +53,10 @@ func NewJSONStore() *JSONStore {
 
 // Load reads the inventory from disk.
 // Returns an empty inventory when the file does not exist yet.
-// If a v1alpha1 (legacy) datastore is detected, it is automatically
-// migrated to v1alpha2 and the original is backed up to .canisave.
+// Legacy (v1alpha1) datastores are migrated to the current schema and backed up
+// to .canisave; v1alpha2 datastores are migrated to v1alpha3 the same way.
+// Derived reverse indices and FK fields are rebuilt from the authoritative
+// forward FKs on every load, so persisted derived values are never trusted.
 func (s *JSONStore) Load() (*devicetypes.Inventory, error) {
 	if _, err := os.Stat(s.Path); os.IsNotExist(err) {
 		return devicetypes.NewInventory(), nil
@@ -65,25 +67,42 @@ func (s *JSONStore) Load() (*devicetypes.Inventory, error) {
 		return nil, fmt.Errorf("reading inventory file: %w", err)
 	}
 
-	// Detect and migrate legacy (v1alpha1) datastores.
 	if isLegacyDatastore(data) {
-		if err := backupDatastore(s.Path); err != nil {
-			return nil, fmt.Errorf("backing up legacy datastore: %w", err)
-		}
+		return s.loadLegacy(data)
+	}
+	return s.loadCurrent(data)
+}
 
-		inventory, err := migrateV1Alpha1(data)
-		if err != nil {
-			return nil, fmt.Errorf("migrating v1alpha1 datastore: %w", err)
-		}
-
-		if err := s.Save(inventory); err != nil {
-			return nil, fmt.Errorf("saving migrated datastore: %w", err)
-		}
-
-		log.Printf("Migrated datastore from v1alpha1 to v1alpha2; backup at %s.canisave", s.Path)
-		return inventory, nil
+// loadLegacy migrates a v1alpha1 datastore through to the current schema,
+// rebuilds derived state, and persists the result after backing up the original.
+func (s *JSONStore) loadLegacy(data []byte) (*devicetypes.Inventory, error) {
+	if err := backupDatastore(s.Path); err != nil {
+		return nil, fmt.Errorf("backing up legacy datastore: %w", err)
 	}
 
+	inventory, err := migrateV1Alpha1(data)
+	if err != nil {
+		return nil, fmt.Errorf("migrating v1alpha1 datastore: %w", err)
+	}
+
+	// migrateV1Alpha1 sets Parent on every device, so the v1alpha2->v1alpha3
+	// back-fill is a no-op here; it only advances the schema version.
+	migrateV1Alpha2(data, inventory)
+	inventory.RebuildDerivedState()
+
+	if err := s.Save(inventory); err != nil {
+		return nil, fmt.Errorf("saving migrated datastore: %w", err)
+	}
+
+	log.Printf("Migrated datastore from v1alpha1 to %s; backup at %s.canisave",
+		inventory.SchemaVersion, s.Path)
+	return inventory, nil
+}
+
+// loadCurrent parses a v1alpha2-or-newer datastore, applies the metadata and
+// relationship migrations as needed, rebuilds derived state, and persists when a
+// migration occurred.
+func (s *JSONStore) loadCurrent(data []byte) (*devicetypes.Inventory, error) {
 	inventory := devicetypes.NewInventory()
 	if err := json.Unmarshal(data, inventory); err != nil {
 		return nil, fmt.Errorf("parsing inventory: %w", err)
@@ -94,16 +113,28 @@ func (s *JSONStore) Load() (*devicetypes.Inventory, error) {
 		inventory.SchemaVersion = devicetypes.SchemaVersionV1Alpha2
 	}
 
-	// Migrate legacy inventory-level providerMetadata to the typed
-	// Metadata field if the old JSON key is present.
-	if migrateInventoryMetadata(data, inventory) {
-		if err := s.Save(inventory); err != nil {
-			return nil, fmt.Errorf("saving metadata-migrated datastore: %w", err)
+	metaMigrated := migrateInventoryMetadata(data, inventory)
+	relMigrated := inventory.SchemaVersion == devicetypes.SchemaVersionV1Alpha2
+	if relMigrated {
+		if err := backupDatastore(s.Path); err != nil {
+			return nil, fmt.Errorf("backing up datastore: %w", err)
 		}
-		log.Printf("Migrated inventory-level providerMetadata to metadata")
+		migrateV1Alpha2(data, inventory)
 	}
 
 	inventory.RebuildProviderKeyIndex()
+	inventory.RebuildDerivedState()
+
+	if metaMigrated || relMigrated {
+		if err := s.Save(inventory); err != nil {
+			return nil, fmt.Errorf("saving migrated datastore: %w", err)
+		}
+		if relMigrated {
+			log.Printf("Migrated datastore from v1alpha2 to v1alpha3; backup at %s.canisave", s.Path)
+		} else {
+			log.Printf("Migrated inventory-level providerMetadata to metadata")
+		}
+	}
 
 	return inventory, nil
 }

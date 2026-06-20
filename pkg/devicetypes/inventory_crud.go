@@ -547,20 +547,23 @@ func mergeFruProperties(existing, incoming *CaniFruType) {
 
 // --- Relationship verification ---
 
-// VerifyParentChildRelationships rebuilds all bidirectional parent-child
-// references across the full inventory hierarchy:
+// RebuildDerivedState reconstructs all bidirectional parent-child references
+// across the full inventory hierarchy from the authoritative forward FKs:
 //
 //	Location → Child Locations  (Location.Parent ↔ Location.Children)
 //	Location → Racks            (Rack.Location   ↔ Location.Racks)
 //	Rack     → Devices          (Device.Parent   ↔ Rack.Devices)
 //	Device   → Child Devices    (Device.Parent   ↔ Device.Children)
 //
-// It also validates (without mutating) module, FRU, and cable references
-// and detects circular parent chains.
+// It also rebuilds the derived Device.Rack/Location/ParentDevice FK fields,
+// validates (without mutating) module, FRU, and cable references, and detects
+// circular parent chains.
 //
-// The function clears and rebuilds all reverse lists from scratch so that
-// only setting a Parent field is required; all other references are derived.
-func (inv *Inventory) VerifyParentChildRelationships() *RelationshipResult {
+// The reverse lists are cleared and rebuilt from scratch so that only setting a
+// Parent field is required; all other references are derived. Unlike
+// VerifyParentChildRelationships it performs no logging, making it safe to run on
+// every datastore load so persisted derived values are never trusted.
+func (inv *Inventory) RebuildDerivedState() *RelationshipResult {
 	result := &RelationshipResult{}
 
 	result.merge(inv.rebuildLocationRelationships())
@@ -574,6 +577,15 @@ func (inv *Inventory) VerifyParentChildRelationships() *RelationshipResult {
 	result.merge(inv.detectCircularLocationRefs())
 	result.merge(inv.detectCircularDeviceRefs())
 
+	return result
+}
+
+// VerifyParentChildRelationships rebuilds derived state (see RebuildDerivedState)
+// and logs a summary of fixes, warnings, and errors. Mutation commands call this
+// so operators see what changed; load paths call RebuildDerivedState directly to
+// stay silent.
+func (inv *Inventory) VerifyParentChildRelationships() *RelationshipResult {
+	result := inv.RebuildDerivedState()
 	result.logSummary()
 	return result
 }

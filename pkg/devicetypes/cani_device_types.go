@@ -48,13 +48,14 @@ type CaniDeviceType struct {
 	// Inventory state
 	Platform string      `json:"platform,omitempty" yaml:"platform,omitempty"` // OS/firmware platform
 	Parent   uuid.UUID   `json:"parent" yaml:"parent,omitempty"`
-	Children []uuid.UUID `json:"children,omitempty" yaml:"children,omitempty"`
+	Children []uuid.UUID `json:"-" yaml:"-"` // reverse index; rebuilt from child Device.Parent at load time
 	Frus     []uuid.UUID `json:"frus,omitempty" yaml:"frus,omitempty"`
 
-	// Explicit FK fields for Nautobot export (derived from Parent at load time)
-	Rack         uuid.UUID `json:"rack,omitempty" yaml:"rack,omitempty"`                  // FK to CaniRackType
-	Location     uuid.UUID `json:"location,omitempty" yaml:"location,omitempty"`          // FK to CaniLocationType
-	ParentDevice uuid.UUID `json:"parentDevice,omitempty" yaml:"parent_device,omitempty"` // FK to parent device (blade→chassis)
+	// Explicit FK fields for Nautobot export, derived from Parent at load time.
+	// Non-serialized: rebuilt by RebuildDerivedState so persisted values cannot drift.
+	Rack         uuid.UUID `json:"-" yaml:"-"` // FK to CaniRackType
+	Location     uuid.UUID `json:"-" yaml:"-"` // FK to CaniLocationType
+	ParentDevice uuid.UUID `json:"-" yaml:"-"` // FK to parent device (blade→chassis)
 
 	// Rack placement
 	RackPosition int    `json:"rackPosition,omitempty" yaml:"rack_position,omitempty"`

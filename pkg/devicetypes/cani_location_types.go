@@ -16,8 +16,8 @@ type CaniLocationType struct {
 	Slug         string      `json:"slug,omitempty" yaml:"slug,omitempty"`
 	LocationType string      `json:"locationType" yaml:"location_type"` // site, building, floor, room, etc.
 	Parent       uuid.UUID   `json:"parent,omitempty" yaml:"parent,omitempty"`
-	Children     []uuid.UUID `json:"children,omitempty" yaml:"children,omitempty"` // child locations; rebuilt from Parent at load time
-	Racks        []uuid.UUID `json:"racks,omitempty" yaml:"racks,omitempty"`       // racks at this location; rebuilt from CaniRackType.Location at load time
+	Children     []uuid.UUID `json:"-" yaml:"-"` // reverse index; rebuilt from child Location.Parent at load time
+	Racks        []uuid.UUID `json:"-" yaml:"-"` // reverse index; rebuilt from CaniRackType.Location at load time
 
 	// Shared metadata (status, role, tags, tenant, custom fields, external IDs, provider metadata)
 	ObjectMeta `yaml:",inline"`

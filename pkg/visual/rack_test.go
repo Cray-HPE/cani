@@ -476,11 +476,11 @@ func TestDeviceWithoutPosition(t *testing.T) {
 	rackID := uuid.MustParse("00000000-0000-0000-0007-000000000001")
 	serverID := uuid.MustParse("00000000-0000-0000-0008-000000000001")
 	inventory := devicetypes.NewInventory()
-	inventory.Devices[rackID] = &devicetypes.CaniDeviceType{
-		ID:       rackID,
-		Name:     "Test-Rack",
-		Type:     devicetypes.Rack,
-		Children: []uuid.UUID{serverID},
+	inventory.Racks[rackID] = &devicetypes.CaniRackType{
+		ID:      rackID,
+		Name:    "Test-Rack",
+		UHeight: 6,
+		Devices: []uuid.UUID{serverID},
 	}
 	inventory.Devices[serverID] = &devicetypes.CaniDeviceType{
 		ID:     serverID,

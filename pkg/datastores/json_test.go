@@ -438,6 +438,8 @@ func TestSaveHappyPath(t *testing.T) {
 	if err := json.Unmarshal(data, loaded); err != nil {
 		t.Fatalf("saved file contains invalid JSON: %v", err)
 	}
+	// Reverse indices and derived FKs are not serialized; rebuild them as Load does.
+	loaded.RebuildDerivedState()
 	assertCreatedCRUDInventory(t, loaded, ids)
 }
 
@@ -574,5 +576,7 @@ func TestSaveIsAtomic(t *testing.T) {
 	if err := json.Unmarshal(data, loaded); err != nil {
 		t.Fatalf("saved file contains invalid JSON: %v", err)
 	}
+	// Reverse indices and derived FKs are not serialized; rebuild them as Load does.
+	loaded.RebuildDerivedState()
 	assertCreatedCRUDInventory(t, loaded, ids)
 }

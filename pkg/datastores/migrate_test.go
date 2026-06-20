@@ -523,8 +523,8 @@ func TestLoadMigratesLegacyDatastore(t *testing.T) {
 		t.Fatalf("Load: %v", err)
 	}
 
-	if inv.SchemaVersion != devicetypes.SchemaVersionV1Alpha2 {
-		t.Errorf("SchemaVersion = %q, want %q", inv.SchemaVersion, devicetypes.SchemaVersionV1Alpha2)
+	if inv.SchemaVersion != devicetypes.SchemaVersionV1Alpha3 {
+		t.Errorf("SchemaVersion = %q, want %q", inv.SchemaVersion, devicetypes.SchemaVersionV1Alpha3)
 	}
 
 	// Backup must exist.
@@ -532,7 +532,7 @@ func TestLoadMigratesLegacyDatastore(t *testing.T) {
 		t.Error("expected .canisave backup file to exist")
 	}
 
-	// The on-disk file should now be v1alpha2.
+	// The on-disk file should now be v1alpha3.
 	reread, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("re-reading migrated file: %v", err)
@@ -551,6 +551,58 @@ func TestLoadMigratesLegacyDatastore(t *testing.T) {
 	}
 	if saved.Devices[nodeID].Name != inv.Devices[nodeID].Name {
 		t.Fatalf("migrated on-disk node name = %q, want %q", saved.Devices[nodeID].Name, inv.Devices[nodeID].Name)
+	}
+}
+
+// ---------- migrateV1Alpha2 ----------
+
+// TestMigrateV1Alpha2BackfillsParent verifies the v1alpha2->v1alpha3 migration
+// recovers the authoritative Parent FK from the legacy derived fields.
+//
+// Why it matters: v1alpha3 stops serializing the derived rack/parentDevice FKs,
+// so existing datastores would lose every device->container link unless the
+// migration reads those fields from the raw JSON and folds them into Parent.
+// Inputs: raw v1alpha2 JSON with one device linked only by rack, one linked by
+// both parentDevice and rack, and one already carrying an explicit parent.
+// Outputs: each device's Parent resolved by the parent->parentDevice->rack
+// priority, and the schema version stamped to v1alpha3.
+// Data choice: the three devices isolate the rack fallback, the immediate-parent
+// precedence over rack, and the untouched explicit-parent case.
+func TestMigrateV1Alpha2BackfillsParent(t *testing.T) {
+	rackID := uuid.MustParse("11111111-0000-0000-0000-000000000001")
+	chassisID := uuid.MustParse("22222222-0000-0000-0000-000000000001")
+	existingParent := uuid.MustParse("33333333-0000-0000-0000-000000000001")
+	rackChildID := uuid.MustParse("aaaaaaaa-0000-0000-0000-000000000001")
+	bladeID := uuid.MustParse("bbbbbbbb-0000-0000-0000-000000000001")
+	keepID := uuid.MustParse("cccccccc-0000-0000-0000-000000000001")
+
+	raw := []byte(`{
+		"schemaVersion": "v1alpha2",
+		"devices": {
+			"aaaaaaaa-0000-0000-0000-000000000001": {"id": "aaaaaaaa-0000-0000-0000-000000000001", "name": "rack-child", "rack": "11111111-0000-0000-0000-000000000001"},
+			"bbbbbbbb-0000-0000-0000-000000000001": {"id": "bbbbbbbb-0000-0000-0000-000000000001", "name": "blade", "rack": "11111111-0000-0000-0000-000000000001", "parentDevice": "22222222-0000-0000-0000-000000000001"},
+			"cccccccc-0000-0000-0000-000000000001": {"id": "cccccccc-0000-0000-0000-000000000001", "name": "explicit", "parent": "33333333-0000-0000-0000-000000000001"}
+		}
+	}`)
+
+	inv := devicetypes.NewInventory()
+	if err := json.Unmarshal(raw, inv); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+
+	migrateV1Alpha2(raw, inv)
+
+	if got := inv.Devices[rackChildID].Parent; got != rackID {
+		t.Errorf("rack-child Parent = %s, want %s (rack fallback)", got, rackID)
+	}
+	if got := inv.Devices[bladeID].Parent; got != chassisID {
+		t.Errorf("blade Parent = %s, want %s (parentDevice precedence)", got, chassisID)
+	}
+	if got := inv.Devices[keepID].Parent; got != existingParent {
+		t.Errorf("explicit Parent = %s, want %s (untouched)", got, existingParent)
+	}
+	if inv.SchemaVersion != devicetypes.SchemaVersionV1Alpha3 {
+		t.Errorf("SchemaVersion = %q, want %q", inv.SchemaVersion, devicetypes.SchemaVersionV1Alpha3)
 	}
 }
 
