@@ -108,20 +108,46 @@ func metadataEntriesFromRecords(data *import_.SystemCSV, records []import_.Syste
 	return entries, nil
 }
 
-// parseContentTypes splits a comma-separated content-type string into a trimmed,
-// non-empty slice.
+// parseContentTypes splits a comma-separated content-type string and normalizes
+// each entry to Nautobot's "<app>.<model>" form, dropping empties.
 func parseContentTypes(s string) []string {
 	if s == "" {
 		return nil
 	}
 	var out []string
 	for _, ct := range strings.Split(s, ",") {
-		ct = strings.TrimSpace(ct)
-		if ct != "" {
-			out = append(out, ct)
+		if norm := normalizeContentType(ct); norm != "" {
+			out = append(out, norm)
 		}
 	}
 	return out
+}
+
+// ipamBareContentTypes are unqualified content-type model names that belong to
+// the Nautobot ipam app rather than dcim.
+var ipamBareContentTypes = map[string]bool{
+	"prefix":    true,
+	"ipaddress": true,
+	"vlan":      true,
+	"vlangroup": true,
+	"namespace": true,
+	"vrf":       true,
+}
+
+// normalizeContentType converts a system CSV content type into Nautobot's
+// "<app>.<model>" form. Values already containing a dot pass through unchanged;
+// a bare model name is prefixed with its app label, defaulting to dcim and using
+// ipam for IP-address-management models.
+func normalizeContentType(ct string) string {
+	ct = strings.TrimSpace(ct)
+	if ct == "" || strings.Contains(ct, ".") {
+		return ct
+	}
+	lower := strings.ToLower(ct)
+	if ipamBareContentTypes[lower] {
+		return "ipam." + lower
+	}
+	return "dcim." + lower
 }
 
 // transformSystemLocations creates locations from system CSV location records.
@@ -139,15 +165,7 @@ func transformSystemLocations(data *import_.SystemCSV, result *devicetypes.Trans
 		}
 
 		id := uuid.New()
-		var contentTypes []string
-		if rec.ContentTypes != "" {
-			for _, ct := range strings.Split(rec.ContentTypes, ",") {
-				ct = strings.TrimSpace(ct)
-				if ct != "" {
-					contentTypes = append(contentTypes, ct)
-				}
-			}
-		}
+		contentTypes := parseContentTypes(rec.ContentTypes)
 
 		loc := &devicetypes.CaniLocationType{
 			ID:           id,

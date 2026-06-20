@@ -113,6 +113,39 @@ func TestTransformSystem_MetadataMissingName(t *testing.T) {
 	}
 }
 
+// TestNormalizeContentType verifies bare content-type names are qualified with
+// their app label while already-qualified values pass through unchanged.
+//
+// Why it matters: system CSV authors may write short names like "rack" or fully
+// qualified ones like "dcim.device"; the datastore must store a single
+// consistent "<app>.<model>" form so roles, statuses, and locations agree.
+// Inputs: bare dcim and ipam model names, an already-qualified value, a
+// mixed-case padded name, and an empty string. Outputs: the normalized type.
+// Data choice: "rack"->dcim, "prefix"->ipam, "dcim.device" passthrough, " Rack "
+// for trim+case, and "" for the empty guard cover every branch.
+func TestNormalizeContentType(t *testing.T) {
+	tests := []struct {
+		in   string
+		want string
+	}{
+		{"rack", "dcim.rack"},
+		{"device", "dcim.device"},
+		{"interface", "dcim.interface"},
+		{"prefix", "ipam.prefix"},
+		{"vlan", "ipam.vlan"},
+		{"dcim.device", "dcim.device"},
+		{" Rack ", "dcim.rack"},
+		{"", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.in, func(t *testing.T) {
+			if got := normalizeContentType(tt.in); got != tt.want {
+				t.Errorf("normalizeContentType(%q) = %q, want %q", tt.in, got, tt.want)
+			}
+		})
+	}
+}
+
 // TestTransformSystem_Racks verifies the rack pass creates one rack per row with
 // the library U-height and the row's status.
 //

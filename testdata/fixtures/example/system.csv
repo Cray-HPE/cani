@@ -4,6 +4,12 @@ _defaults,,,,,,,,Active,,,,,,,,,,,,
 role,,ComputeNode,,,,,,,,,,,,,,,,,,dcim.device
 role,,ManagementSwitch,,,,,,,,,,,,,,,,,,dcim.device
 role,,HSNSwitch,,,,,,,,,,,,,,,,,,dcim.device
+# Locations
+location,,DC01,,,,,dc,,,,,,,,,,,,,"dcim.rack,dcim.device,dcim.module"
+location,,L3,,,,,level,,,,,,,,,,,,DC01,"dcim.rack,dcim.device,dcim.module"
+location,,BAY1,,,,,section,,,,,,,,,,,,L3,"dcim.rack,dcim.device,dcim.module"
+location,,BAY2,,,,,section,,,,,,,,,,,,L3,"dcim.rack,dcim.device,dcim.module"
+location,,BAY3,,,,,section,,,,,,,,,,,,L3,"dcim.rack,dcim.device,dcim.module"
 # Racks
 rack,hpe-48u-800mmx1200mm-g2-enterprise-shock-rack,x3701,1,,,,,Available,,,,,,,,,,,,
 rack,hpe-48u-800mmx1200mm-g2-enterprise-shock-rack,x3702,1,,,,,Available,,,,,,,,,,,,
