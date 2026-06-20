@@ -28,9 +28,9 @@ package transform
 import (
 	"testing"
 
+	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/google/uuid"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // TestMapRacks verifies MapRacks converts racks, resolves each rack's status

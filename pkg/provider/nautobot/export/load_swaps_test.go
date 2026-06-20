@@ -3,9 +3,9 @@ package export
 import (
 	"testing"
 
+	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/google/uuid"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // --- remoteSlotKey ---

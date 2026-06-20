@@ -235,7 +235,7 @@ tidy: ## Tidy and vendor modules
 .PHONY: tools
 tools: ## Install code-generation tools
 	$(INFO) "installing tools"
-	go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
+	go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.5.1
 	$(OK) "tools installed"
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -247,6 +247,9 @@ nautobot_client: ## Regenerate the Nautobot API client
 	$(INFO) "generating Nautobot client"
 	curl -sS https://raw.githubusercontent.com/nautobot/go-nautobot/refs/heads/main/api/openapi.yaml > pkg/nautobot/openapi.yml
 	oapi-codegen -package nautobot -generate client,models,std-http -o pkg/nautobot/nautobot_api.go ./pkg/nautobot/openapi.yml
+	# Repoint the generated runtime imports to the vendored-in internal packages
+	# (drops the external github.com/oapi-codegen/runtime module dependency).
+	perl -i -pe 's{"github.com/oapi-codegen/runtime/types"}{"github.com/Cray-HPE/cani/internal/openapi/types"}g; s{"github.com/oapi-codegen/runtime"}{"github.com/Cray-HPE/cani/internal/openapi/runtime"}g' pkg/nautobot/nautobot_api.go
 	$(OK) "Nautobot client generated"
 
 .PHONY: generate-swagger-sls-client

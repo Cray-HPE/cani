@@ -28,10 +28,10 @@ package transform
 import (
 	"testing"
 
+	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/google/uuid"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // TestTransform verifies Transform dispatches to the legacy copy path when raw
