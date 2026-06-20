@@ -761,6 +761,71 @@ func TestImportBOMCSV_StepModeInterrupted(t *testing.T) {
 	}
 }
 
+// TestImportSystemCSV_StepMode verifies system CSV import drives the step-through
+// prompt once and then stores the parsed data.
+//
+// Why it matters: step mode is the operator's interactive review path for system
+// imports too, so each record must pause for confirmation before being persisted.
+// Inputs: a one-record system CSV (single role), StepMode enabled, and a stdin
+// holding one newline. Outputs: nil error; the provider receives the data.
+// Data choice: exactly one record keeps the run to a single prompt, which is all
+// a fresh-per-row reader over a pipe can satisfy without hitting EOF.
+func TestImportSystemCSV_StepMode(t *testing.T) {
+	fake := &fakeSystemProvider{}
+	newSystemProvider(t, fake)
+	config.Cfg = &config.Config{StepMode: true, NoColor: true}
+	t.Cleanup(func() {
+		config.Cfg = nil
+		commands.CsvFlag = ""
+	})
+	dir := t.TempDir()
+	path := dir + "/one.csv"
+	if err := os.WriteFile(path, []byte("Section,Name\nrole,ComputeNode\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	commands.CsvFlag = path
+	withStdin(t, "\n")
+	if err := ImportCSV(nil, nil, &devicetypes.Inventory{}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if fake.data == nil {
+		t.Fatal("expected system records to be set after stepping")
+	}
+}
+
+// TestImportSystemCSV_StepModeInterrupted verifies system CSV import aborts when
+// the step prompt's input stream closes.
+//
+// Why it matters: if the operator's input ends mid-review, the import must stop
+// and surface the interruption rather than silently persist unreviewed records.
+// Inputs: a one-record system CSV, StepMode enabled, and an empty stdin that
+// returns EOF. Outputs: a non-nil "step interrupted" error.
+// Data choice: empty stdin is the minimal way to force the first prompt read to
+// fail immediately.
+func TestImportSystemCSV_StepModeInterrupted(t *testing.T) {
+	fake := &fakeSystemProvider{}
+	newSystemProvider(t, fake)
+	config.Cfg = &config.Config{StepMode: true, NoColor: true}
+	t.Cleanup(func() {
+		config.Cfg = nil
+		commands.CsvFlag = ""
+	})
+	dir := t.TempDir()
+	path := dir + "/one.csv"
+	if err := os.WriteFile(path, []byte("Section,Name\nrole,ComputeNode\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	commands.CsvFlag = path
+	withStdin(t, "")
+	err := ImportCSV(nil, nil, &devicetypes.Inventory{})
+	if err == nil {
+		t.Fatal("expected error when step prompt is interrupted")
+	}
+	if !strings.Contains(err.Error(), "step interrupted") {
+		t.Errorf("error = %q, want containing 'step interrupted'", err.Error())
+	}
+}
+
 // TestImport_MergeError verifies Import surfaces a merge failure from a YAML file
 // that parses but contains an invalid UUID key.
 //
