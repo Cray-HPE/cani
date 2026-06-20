@@ -70,7 +70,7 @@ Developers can define how data is imported, what fields map to what, and they do
 
 ## Command Hierarchy
 
-CLI built with Cobra (`github.com/spf13/cobra`) and Viper for config. Entry point is `main.go` → `init.go:Setup()` → `root.go`.
+CLI built with the standard-library-only `internal/cli` framework (no Cobra/Viper). Entry point: `main.go` (`init()` calls `cmd.Init()`, `main()` calls `cmd.Execute()`) → `cmd/init.go:Init()` assembles the tree via `newRootCommand()` in `cmd/root.go`.
 
 ```
 cani (root)
@@ -222,7 +222,7 @@ Each noun subcommand is a stub (not yet implemented). The parent `show` command 
 ## Key Patterns
 
 ### Factory Functions
-Each subpackage exports a `NewXxxCommand() *cobra.Command` function (e.g., `add.NewAddCommand()`). These are assembled in `init.go:Setup()`.
+Each subpackage exports a `NewCommand() *cli.Command` function (e.g., `add.NewCommand()`). These are assembled in `cmd/init.go:Init()`.
 
 ### Noun Command Files
 Each noun has its own file per verb (e.g., `add/device.go` exports `newDeviceCommand()`—lowercase/unexported). One file per noun, one function per noun.
@@ -243,7 +243,7 @@ Providers implement `NewProviderCmd()` to decorate commands. Registered via blan
 
 | File | Purpose |
 |------|---------|
-| `root.go` | Root command, Viper config, `--config`/`--debug` flags |
+| `root.go` | Root command (`newRootCommand`), config wiring, `--config`/`--debug` flags |
 | `init.go` | Assembles command tree, integrates providers |
 | `import.go` | ETL pipeline (Extract → Transform → Load) |
 | `add/validate_noun.go` | Slug/part-number validation and `--list-supported-types` |
@@ -265,11 +265,12 @@ All providers must implement:
 
 ```go
 type Provider interface {
-    // Transform converts imported data into CANI's format (ETL "Transform" step)
-    Transform(existing devicetypes.Inventory) (*devicetypes.TransformResult, error)
+    // Transform converts imported data into CANI's format (ETL "Transform" step).
+    // ctx carries cancellation/deadlines from the command layer.
+    Transform(ctx context.Context, existing devicetypes.Inventory) (*devicetypes.TransformResult, error)
 
     // NewProviderCmd customizes CLI commands for this provider
-    NewProviderCmd(base *cobra.Command) (*cobra.Command, error)
+    NewProviderCmd(base *cli.Command) (*cli.Command, error)
 
     // Slug returns the provider's identifier (e.g., "example", "nautobot")
     Slug() string
@@ -338,7 +339,7 @@ Implement `HasOptions`, `HasImportOptions`, or `HasExportOptions` for auto-popul
 Switch on command name to customize each subcommand:
 
 ```go
-func (p *Example) NewProviderCmd(base *cobra.Command) (*cobra.Command, error) {
+func (p *Example) NewProviderCmd(base *cli.Command) (*cli.Command, error) {
     switch base.Name() {
     case "import":
         return commands.NewImportCommand(base)

@@ -60,7 +60,7 @@ func (p *Redfish) GetImportDefaults() map[string]any {
 	}
 }
 
-// BindImportFlags binds CLI flags to Viper for the import command.
+// BindImportFlags registers the import command's CLI flags.
 // This enables precedence: CLI flags > env vars > config file > defaults.
 func (p *Redfish) BindImportFlags(cmd *cli.Command) error {
 	return nil
@@ -82,11 +82,10 @@ func (p *Redfish) GetExportDefaults() map[string]any {
 	}
 }
 
-// BindExportFlags binds CLI flags to Viper for the export command.
+// BindExportFlags registers the export command's CLI flags.
 // This enables precedence: CLI flags > env vars > config file > defaults.
 func (p *Redfish) BindExportFlags(cmd *cli.Command) error {
-	// TODO: Bind export-related flags
-	// Example:
-	// viper.BindPFlag("redfish.export.format", cmd.Flags().Lookup("format"))
+	// TODO: Bind export-related flags.
+	// Read the flag directly, e.g. cmd.Flags().GetString("format").
 	return nil
 }

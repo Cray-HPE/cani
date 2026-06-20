@@ -91,7 +91,7 @@ type HasImportOptions interface {
 	// These are auto-populated in the config file if they do not exist
 	GetImportDefaults() map[string]any
 
-	// BindImportFlags binds CLI flags to Viper for the import command
+	// BindImportFlags registers the import command's CLI flags
 	// This enables the precedence: CLI flags > env vars > config file > defaults
 	BindImportFlags(cmd *cli.Command) error
 }
@@ -107,7 +107,7 @@ type HasExportOptions interface {
 	// These are auto-populated in the config file if they do not exist
 	GetExportDefaults() map[string]any
 
-	// BindExportFlags binds CLI flags to Viper for the export command
+	// BindExportFlags registers the export command's CLI flags
 	// This enables the precedence: CLI flags > env vars > config file > defaults
 	BindExportFlags(cmd *cli.Command) error
 }
