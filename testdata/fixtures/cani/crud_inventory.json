@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "v1alpha2",
+  "schemaVersion": "v1alpha3",
   "locations": {
     "0249b742-abc6-4326-b521-de2e758d3216": {
       "id": "0249b742-abc6-4326-b521-de2e758d3216",
@@ -17,9 +17,6 @@
       "name": "test-site",
       "locationType": "site",
       "parent": "00000000-0000-0000-0000-000000000000",
-      "racks": [
-        "58f00e62-0b30-4435-9c78-98f5aa3649f1"
-      ],
       "status": "Active"
     }
   },
@@ -31,7 +28,7 @@
       "manufacturer": "HPE",
       "model": "EX2000",
       "type": "cabinet",
-      "uHeight": 0,
+      "uHeight": 42,
       "deviceBays": [
         {
           "name": "Chassis 0",
@@ -125,12 +122,9 @@
         }
       ],
       "status": "Staged",
-      "parent": "00000000-0000-0000-0000-000000000000",
-      "rack": "58f00e62-0b30-4435-9c78-98f5aa3649f1",
+      "parent": "58f00e62-0b30-4435-9c78-98f5aa3649f1",
       "rackPosition": 1,
-      "rackFace": "front",
-      "location": "f9e5d985-376f-4bb1-8249-a7e82647b7f9",
-      "parentDevice": "00000000-0000-0000-0000-000000000000"
+      "face": "front"
     },
     "b7a1c3d4-5e6f-7890-abcd-ef1234567890": {
       "id": "b7a1c3d4-5e6f-7890-abcd-ef1234567890",
@@ -181,12 +175,9 @@
         }
       ],
       "status": "Staged",
-      "parent": "00000000-0000-0000-0000-000000000000",
-      "rack": "58f00e62-0b30-4435-9c78-98f5aa3649f1",
+      "parent": "58f00e62-0b30-4435-9c78-98f5aa3649f1",
       "rackPosition": 2,
-      "rackFace": "front",
-      "location": "f9e5d985-376f-4bb1-8249-a7e82647b7f9",
-      "parentDevice": "00000000-0000-0000-0000-000000000000"
+      "face": "front"
     }
   },
   "modules": {

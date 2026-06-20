@@ -99,13 +99,9 @@ func newRackPalette(noColor bool) rackPalette {
 
 // BuildRackVisualization creates a RackView from inventory for a specific rack
 func BuildRackVisualization(inv *devicetypes.Inventory, rackID uuid.UUID) (*RackView, error) {
-	rack, ok := inv.Devices[rackID]
+	rack, ok := inv.Racks[rackID]
 	if !ok {
 		return nil, fmt.Errorf("rack %s not found in inventory", rackID)
-	}
-
-	if rack.Type != devicetypes.Rack {
-		return nil, fmt.Errorf("device %s is not a rack (type: %s)", rack.Name, rack.Type)
 	}
 
 	// Determine rack height
@@ -113,15 +109,9 @@ func BuildRackVisualization(inv *devicetypes.Inventory, rackID uuid.UUID) (*Rack
 
 	rackView := NewRackView(rack, height)
 
-	// Process children
-	for _, childID := range rack.Children {
-		device, ok := inv.Devices[childID]
-		if !ok || device == nil {
-			continue
-		}
-
-		// Skip nested racks
-		if device.Type == devicetypes.Rack {
+	// Process devices mounted directly in the rack (Parent == rackID).
+	for _, device := range inv.GetDevicesInRack(rackID) {
+		if device == nil {
 			continue
 		}
 
@@ -142,12 +132,12 @@ func BuildRackVisualization(inv *devicetypes.Inventory, rackID uuid.UUID) (*Rack
 	return rackView, nil
 }
 
-// FindAllRacks finds all rack-type devices in the inventory
-func FindAllRacks(inv *devicetypes.Inventory) []*devicetypes.CaniDeviceType {
-	var racks []*devicetypes.CaniDeviceType
-	for _, device := range inv.Devices {
-		if device != nil && device.Type == devicetypes.Rack {
-			racks = append(racks, device)
+// FindAllRacks returns all racks in the inventory.
+func FindAllRacks(inv *devicetypes.Inventory) []*devicetypes.CaniRackType {
+	var racks []*devicetypes.CaniRackType
+	for _, rack := range inv.Racks {
+		if rack != nil {
+			racks = append(racks, rack)
 		}
 	}
 	return racks
@@ -196,11 +186,11 @@ func RenderAllRacksTo(w io.Writer, inv *devicetypes.Inventory, opts RenderOption
 
 // filterRacksByName returns racks whose name contains filter (case-insensitive).
 // An empty filter returns the input unchanged.
-func filterRacksByName(racks []*devicetypes.CaniDeviceType, filter string) []*devicetypes.CaniDeviceType {
+func filterRacksByName(racks []*devicetypes.CaniRackType, filter string) []*devicetypes.CaniRackType {
 	if filter == "" {
 		return racks
 	}
-	var filtered []*devicetypes.CaniDeviceType
+	var filtered []*devicetypes.CaniRackType
 	for _, rack := range racks {
 		if strings.Contains(strings.ToLower(rack.Name), strings.ToLower(filter)) {
 			filtered = append(filtered, rack)
@@ -347,7 +337,12 @@ func printRackCableLine(w io.Writer, cable *devicetypes.CaniCableType, inv *devi
 }
 
 // getRackHeight determines the height of a rack in U
-func getRackHeight(rack *devicetypes.CaniDeviceType) int {
+func getRackHeight(rack *devicetypes.CaniRackType) int {
+	// Prefer the rack's explicit height.
+	if rack.UHeight > 0 {
+		return rack.UHeight
+	}
+
 	// First try device type lookup
 	if rack.Slug != "" {
 		if dt, ok := devicetypes.GetBySlug(rack.Slug); ok && dt.UHeight > 0 {
@@ -454,8 +449,8 @@ func findCablesForRack(rv *RackView, inv *devicetypes.Inventory) []*devicetypes.
 	// Build a set of device IDs in this rack
 	rackDeviceIDs := make(map[uuid.UUID]bool)
 	rackDeviceIDs[rv.Rack.ID] = true
-	for _, childID := range rv.Rack.Children {
-		rackDeviceIDs[childID] = true
+	for _, deviceID := range rv.Rack.Devices {
+		rackDeviceIDs[deviceID] = true
 	}
 
 	var cables []*devicetypes.CaniCableType

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "v1alpha2",
+  "schemaVersion": "v1alpha3",
   "locations": {
     "a0000001-0000-0000-0000-000000000001": {
       "id": "a0000001-0000-0000-0000-000000000001",
@@ -13,11 +13,7 @@
       "contactEmail": "ops@example.com",
       "latitude": "37.3318",
       "longitude": "-122.0312",
-      "timeZone": "America/Los_Angeles",
-      "children": [
-        "a0000001-0000-0000-0000-000000000002"
-      ],
-      "racks": []
+      "timeZone": "America/Los_Angeles"
     },
     "a0000001-0000-0000-0000-000000000002": {
       "id": "a0000001-0000-0000-0000-000000000002",
@@ -25,11 +21,7 @@
       "locationType": "section",
       "parent": "a0000001-0000-0000-0000-000000000001",
       "status": "Active",
-      "description": "Primary compute room",
-      "racks": [
-        "b0000001-0000-0000-0000-000000000001",
-        "b0000001-0000-0000-0000-000000000002"
-      ]
+      "description": "Primary compute room"
     }
   },
   "racks": {
@@ -48,15 +40,7 @@
       "facilityId": "DC01-A01",
       "manufacturer": "HPE",
       "model": "HPE G2 Advanced 48U",
-      "description": "Primary compute rack, Row A Position 01",
-      "devices": [
-        "c0000001-0000-0000-0000-000000000001",
-        "c0000001-0000-0000-0000-000000000003",
-        "c0000001-0000-0000-0000-000000000005",
-        "c0000001-0000-0000-0000-000000000006",
-        "c0000001-0000-0000-0000-000000000009",
-        "c0000001-0000-0000-0000-000000000011"
-      ]
+      "description": "Primary compute rack, Row A Position 01"
     },
     "b0000001-0000-0000-0000-000000000002": {
       "id": "b0000001-0000-0000-0000-000000000002",
@@ -73,15 +57,7 @@
       "facilityId": "DC01-A02",
       "manufacturer": "HPE",
       "model": "HPE G2 Advanced 48U",
-      "description": "Secondary compute rack, Row A Position 02",
-      "devices": [
-        "c0000001-0000-0000-0000-000000000002",
-        "c0000001-0000-0000-0000-000000000004",
-        "c0000001-0000-0000-0000-000000000007",
-        "c0000001-0000-0000-0000-000000000008",
-        "c0000001-0000-0000-0000-000000000010",
-        "c0000001-0000-0000-0000-000000000012"
-      ]
+      "description": "Secondary compute rack, Row A Position 02"
     }
   },
   "devices": {
@@ -91,12 +67,9 @@
       "slug": "hpe-aruba-6300m-48g-4sfp56",
       "manufacturer": "HPE",
       "model": "Aruba 6300M-48G-4SFP56",
-      "type": "switch",
       "type": "Switch",
       "status": "Active",
       "role": "Spine Switch",
-      "rack": "b0000001-0000-0000-0000-000000000001",
-      "location": "a0000001-0000-0000-0000-000000000002",
       "rackPosition": 47,
       "face": "front",
       "uHeight": 1,
@@ -175,7 +148,8 @@
       ],
       "providerMetadata": {
         "role": "Spine Switch"
-      }
+      },
+      "parent": "b0000001-0000-0000-0000-000000000001"
     },
     "c0000001-0000-0000-0000-000000000002": {
       "id": "c0000001-0000-0000-0000-000000000002",
@@ -183,12 +157,9 @@
       "slug": "hpe-aruba-6300m-48g-4sfp56",
       "manufacturer": "HPE",
       "model": "Aruba 6300M-48G-4SFP56",
-      "type": "switch",
       "type": "Switch",
       "status": "Active",
       "role": "Spine Switch",
-      "rack": "b0000001-0000-0000-0000-000000000002",
-      "location": "a0000001-0000-0000-0000-000000000002",
       "rackPosition": 47,
       "face": "front",
       "uHeight": 1,
@@ -267,7 +238,8 @@
       ],
       "providerMetadata": {
         "role": "Spine Switch"
-      }
+      },
+      "parent": "b0000001-0000-0000-0000-000000000002"
     },
     "c0000001-0000-0000-0000-000000000003": {
       "id": "c0000001-0000-0000-0000-000000000003",
@@ -275,12 +247,9 @@
       "slug": "hpe-aruba-6200f-48g-4sfpp",
       "manufacturer": "HPE",
       "model": "Aruba 6200F-48G-4SFP+",
-      "type": "switch",
       "type": "MgmtSwitch",
       "status": "Active",
       "role": "Leaf Switch",
-      "rack": "b0000001-0000-0000-0000-000000000001",
-      "location": "a0000001-0000-0000-0000-000000000002",
       "rackPosition": 45,
       "face": "front",
       "uHeight": 1,
@@ -331,7 +300,8 @@
       ],
       "providerMetadata": {
         "role": "Leaf Switch"
-      }
+      },
+      "parent": "b0000001-0000-0000-0000-000000000001"
     },
     "c0000001-0000-0000-0000-000000000004": {
       "id": "c0000001-0000-0000-0000-000000000004",
@@ -339,12 +309,9 @@
       "slug": "hpe-aruba-6200f-48g-4sfpp",
       "manufacturer": "HPE",
       "model": "Aruba 6200F-48G-4SFP+",
-      "type": "switch",
       "type": "MgmtSwitch",
       "status": "Active",
       "role": "Leaf Switch",
-      "rack": "b0000001-0000-0000-0000-000000000002",
-      "location": "a0000001-0000-0000-0000-000000000002",
       "rackPosition": 45,
       "face": "front",
       "uHeight": 1,
@@ -395,7 +362,8 @@
       ],
       "providerMetadata": {
         "role": "Leaf Switch"
-      }
+      },
+      "parent": "b0000001-0000-0000-0000-000000000002"
     },
     "c0000001-0000-0000-0000-000000000005": {
       "id": "c0000001-0000-0000-0000-000000000005",
@@ -403,12 +371,9 @@
       "slug": "hpe-proliant-dl360-gen11",
       "manufacturer": "HPE",
       "model": "ProLiant DL360 Gen11",
-      "type": "node",
       "type": "Node",
       "status": "Active",
       "role": "Server",
-      "rack": "b0000001-0000-0000-0000-000000000001",
-      "location": "a0000001-0000-0000-0000-000000000002",
       "rackPosition": 1,
       "face": "front",
       "uHeight": 1,
@@ -447,7 +412,8 @@
       ],
       "providerMetadata": {
         "role": "Server"
-      }
+      },
+      "parent": "b0000001-0000-0000-0000-000000000001"
     },
     "c0000001-0000-0000-0000-000000000006": {
       "id": "c0000001-0000-0000-0000-000000000006",
@@ -455,12 +421,9 @@
       "slug": "hpe-proliant-dl360-gen11",
       "manufacturer": "HPE",
       "model": "ProLiant DL360 Gen11",
-      "type": "node",
       "type": "Node",
       "status": "Active",
       "role": "Server",
-      "rack": "b0000001-0000-0000-0000-000000000001",
-      "location": "a0000001-0000-0000-0000-000000000002",
       "rackPosition": 2,
       "face": "front",
       "uHeight": 1,
@@ -499,7 +462,8 @@
       ],
       "providerMetadata": {
         "role": "Server"
-      }
+      },
+      "parent": "b0000001-0000-0000-0000-000000000001"
     },
     "c0000001-0000-0000-0000-000000000007": {
       "id": "c0000001-0000-0000-0000-000000000007",
@@ -507,12 +471,9 @@
       "slug": "hpe-proliant-dl360-gen11",
       "manufacturer": "HPE",
       "model": "ProLiant DL360 Gen11",
-      "type": "node",
       "type": "Node",
       "status": "Active",
       "role": "Server",
-      "rack": "b0000001-0000-0000-0000-000000000002",
-      "location": "a0000001-0000-0000-0000-000000000002",
       "rackPosition": 1,
       "face": "front",
       "uHeight": 1,
@@ -551,7 +512,8 @@
       ],
       "providerMetadata": {
         "role": "Server"
-      }
+      },
+      "parent": "b0000001-0000-0000-0000-000000000002"
     },
     "c0000001-0000-0000-0000-000000000008": {
       "id": "c0000001-0000-0000-0000-000000000008",
@@ -559,12 +521,9 @@
       "slug": "hpe-proliant-dl360-gen11",
       "manufacturer": "HPE",
       "model": "ProLiant DL360 Gen11",
-      "type": "node",
       "type": "Node",
       "status": "Active",
       "role": "Server",
-      "rack": "b0000001-0000-0000-0000-000000000002",
-      "location": "a0000001-0000-0000-0000-000000000002",
       "rackPosition": 2,
       "face": "front",
       "uHeight": 1,
@@ -603,7 +562,8 @@
       ],
       "providerMetadata": {
         "role": "Server"
-      }
+      },
+      "parent": "b0000001-0000-0000-0000-000000000002"
     },
     "c0000001-0000-0000-0000-000000000009": {
       "id": "c0000001-0000-0000-0000-000000000009",
@@ -611,12 +571,9 @@
       "slug": "hpe-proliant-dl380-gen11",
       "manufacturer": "HPE",
       "model": "ProLiant DL380 Gen11",
-      "type": "node",
       "type": "Node",
       "status": "Active",
       "role": "Storage Server",
-      "rack": "b0000001-0000-0000-0000-000000000001",
-      "location": "a0000001-0000-0000-0000-000000000002",
       "rackPosition": 3,
       "face": "front",
       "uHeight": 2,
@@ -651,7 +608,8 @@
       ],
       "providerMetadata": {
         "role": "Storage Server"
-      }
+      },
+      "parent": "b0000001-0000-0000-0000-000000000001"
     },
     "c0000001-0000-0000-0000-000000000010": {
       "id": "c0000001-0000-0000-0000-000000000010",
@@ -659,12 +617,9 @@
       "slug": "hpe-proliant-dl380-gen11",
       "manufacturer": "HPE",
       "model": "ProLiant DL380 Gen11",
-      "type": "node",
       "type": "Node",
       "status": "Active",
       "role": "Storage Server",
-      "rack": "b0000001-0000-0000-0000-000000000002",
-      "location": "a0000001-0000-0000-0000-000000000002",
       "rackPosition": 3,
       "face": "front",
       "uHeight": 2,
@@ -699,7 +654,8 @@
       ],
       "providerMetadata": {
         "role": "Storage Server"
-      }
+      },
+      "parent": "b0000001-0000-0000-0000-000000000002"
     },
     "c0000001-0000-0000-0000-000000000011": {
       "id": "c0000001-0000-0000-0000-000000000011",
@@ -707,12 +663,9 @@
       "slug": "hpe-proliant-dl385-gen11",
       "manufacturer": "HPE",
       "model": "ProLiant DL385 Gen11",
-      "type": "node",
       "type": "Node",
       "status": "Active",
       "role": "GPU Node",
-      "rack": "b0000001-0000-0000-0000-000000000001",
-      "location": "a0000001-0000-0000-0000-000000000002",
       "rackPosition": 5,
       "face": "front",
       "uHeight": 2,
@@ -751,7 +704,8 @@
       ],
       "providerMetadata": {
         "role": "GPU Node"
-      }
+      },
+      "parent": "b0000001-0000-0000-0000-000000000001"
     },
     "c0000001-0000-0000-0000-000000000012": {
       "id": "c0000001-0000-0000-0000-000000000012",
@@ -759,12 +713,9 @@
       "slug": "hpe-proliant-dl385-gen11",
       "manufacturer": "HPE",
       "model": "ProLiant DL385 Gen11",
-      "type": "node",
       "type": "Node",
       "status": "Active",
       "role": "GPU Node",
-      "rack": "b0000001-0000-0000-0000-000000000002",
-      "location": "a0000001-0000-0000-0000-000000000002",
       "rackPosition": 5,
       "face": "front",
       "uHeight": 2,
@@ -803,7 +754,8 @@
       ],
       "providerMetadata": {
         "role": "GPU Node"
-      }
+      },
+      "parent": "b0000001-0000-0000-0000-000000000002"
     }
   },
   "modules": {

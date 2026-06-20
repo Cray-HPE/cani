@@ -67,6 +67,10 @@ func loadSpineLeafInventory(t *testing.T) *devicetypes.Inventory {
 	if err := json.Unmarshal(data, &inv); err != nil {
 		t.Fatalf("unmarshal fixture: %v", err)
 	}
+	// Reverse indices and derived FKs (device.Rack, rack.Devices) are not
+	// serialized; rebuild them from the forward FKs as production Load does so
+	// the export pipeline sees device->rack placement.
+	inv.RebuildDerivedState()
 	return &inv
 }
 

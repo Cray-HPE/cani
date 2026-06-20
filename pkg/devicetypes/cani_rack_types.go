@@ -57,8 +57,8 @@ type CaniRackType struct {
 	FacilityId    string                       `json:"facilityId,omitempty" yaml:"facility_id,omitempty"`
 	DescUnits     bool                         `json:"descUnits,omitempty" yaml:"desc_units,omitempty"` // Descending unit numbering
 	Comments      string                       `json:"comments,omitempty" yaml:"comments,omitempty"`
-	Devices       []uuid.UUID                  `json:"devices,omitempty" yaml:"devices,omitempty"`              // rebuilt from CaniDeviceType.Rack at load time
-	OccupiedSlots map[int]map[string]uuid.UUID `json:"occupiedSlots,omitempty" yaml:"occupied_slots,omitempty"` // rebuilt from CaniDeviceType.RackPosition + .Face at load time
+	Devices       []uuid.UUID                  `json:"-" yaml:"-"` // reverse index; rebuilt from CaniDeviceType.Parent at load time
+	OccupiedSlots map[int]map[string]uuid.UUID `json:"-" yaml:"-"` // reverse index; rebuilt from CaniDeviceType.RackPosition + .Face at load time
 
 	// ProviderDefaults holds provider-specific defaults from the hardware
 	// type YAML (e.g. CSM class, starting ordinal, VLAN ranges).
