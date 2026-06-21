@@ -33,9 +33,23 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// TestMapLocations verifies MapLocations converts locations, resolves status
+// names and parent links to CANI UUIDs, builds the Nautobot->CANI UUID map, and
+// skips nil-Id locations.
+//
+// Why it matters: locations are the first entity imported and seed the UUID map
+// every later mapper (racks, devices) depends on; parent links must be rewritten
+// from Nautobot to CANI UUIDs, and a parent outside the import set must resolve
+// to uuid.Nil rather than dangle.
+// Inputs: nil, a nil-Id location, a single location, a parent/child pair, a child
+// with an unknown parent, and a location with custom fields. Outputs: the CANI
+// location map and the Nautobot->CANI UUID map, including status name fields.
+// Data choice: a two-element parent/child pair proves cross-referencing rewrites
+// the child's parent to the parent's CANI UUID, and the unknown-parent case
+// proves the second-pass resolution falls back to uuid.Nil.
 func TestMapLocations(t *testing.T) {
 	t.Run("empty input returns empty maps", func(t *testing.T) {
-		locs, nbMap := MapLocations(nil)
+		locs, nbMap := MapLocations(nil, nil)
 		if len(locs) != 0 {
 			t.Errorf("expected 0 locations, got %d", len(locs))
 		}
@@ -48,7 +62,7 @@ func TestMapLocations(t *testing.T) {
 		raw := []nautobotapi.Location{
 			{Name: "orphan", Id: nil, Status: makeStatusRefFromUUID(uuid.New()), LocationType: makeStatusRefFromUUID(uuid.New())},
 		}
-		locs, nbMap := MapLocations(raw)
+		locs, nbMap := MapLocations(raw, nil)
 		if len(locs) != 0 {
 			t.Errorf("expected 0 locations, got %d", len(locs))
 		}
@@ -62,6 +76,8 @@ func TestMapLocations(t *testing.T) {
 		oaID := openapi_types.UUID(nbID)
 		desc := "Test datacenter"
 		facility := "DC-1"
+		statusID := uuid.MustParse("12121212-1212-1212-1212-121212121212")
+		statusNameMap := map[uuid.UUID]string{statusID: "Active"}
 
 		raw := []nautobotapi.Location{
 			{
@@ -69,12 +85,12 @@ func TestMapLocations(t *testing.T) {
 				Name:         "Site-A",
 				Description:  &desc,
 				Facility:     &facility,
-				Status:       makeStatusRefFromUUID(uuid.New()),
+				Status:       makeStatusRefFromUUID(statusID),
 				LocationType: makeStatusRefFromUUID(uuid.New()),
 			},
 		}
 
-		locs, nbMap := MapLocations(raw)
+		locs, nbMap := MapLocations(raw, statusNameMap)
 		if len(locs) != 1 {
 			t.Fatalf("expected 1 location, got %d", len(locs))
 		}
@@ -95,6 +111,9 @@ func TestMapLocations(t *testing.T) {
 		}
 		if loc.Facility != "DC-1" {
 			t.Errorf("Facility = %q, want %q", loc.Facility, "DC-1")
+		}
+		if loc.Status != "Active" {
+			t.Errorf("Status = %q, want %q", loc.Status, "Active")
 		}
 		if loc.ObjectMeta.ExternalIDs["nautobot"] != nbID {
 			t.Errorf("ExternalIDs[nautobot] = %s, want %s", loc.ObjectMeta.ExternalIDs["nautobot"], nbID)
@@ -124,7 +143,7 @@ func TestMapLocations(t *testing.T) {
 			},
 		}
 
-		locs, nbMap := MapLocations(raw)
+		locs, nbMap := MapLocations(raw, nil)
 		if len(locs) != 2 {
 			t.Fatalf("expected 2 locations, got %d", len(locs))
 		}
@@ -154,7 +173,7 @@ func TestMapLocations(t *testing.T) {
 			},
 		}
 
-		locs, nbMap := MapLocations(raw)
+		locs, nbMap := MapLocations(raw, nil)
 		childCaniID := nbMap[childNBID]
 		child := locs[childCaniID]
 
@@ -178,7 +197,7 @@ func TestMapLocations(t *testing.T) {
 			},
 		}
 
-		locs, nbMap := MapLocations(raw)
+		locs, nbMap := MapLocations(raw, nil)
 		caniID := nbMap[nbID]
 		loc := locs[caniID]
 

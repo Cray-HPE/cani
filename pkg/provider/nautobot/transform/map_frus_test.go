@@ -33,6 +33,20 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// TestMapFrus verifies MapFrus converts inventory items to CANI FRUs, resolving
+// the device reference to a CANI UUID, preserving parent and manufacturer
+// references, and skipping items with a nil Id.
+//
+// Why it matters: FRUs are imported after devices and hang off them; the device
+// reference must be re-pointed to the CANI device while unknown devices degrade
+// to uuid.Nil, so a FRU is never attached to a device that was not imported.
+// Inputs: a device lookup map plus inventory items that are nil-Id, fully
+// populated, reference an unknown device, carry a parent, and carry a
+// manufacturer. Outputs: the CANI FRU map with name, label, serial, part, and
+// resolved references.
+// Data choice: a known device UUID proves resolution, an unknown UUID proves the
+// miss leaves Device at uuid.Nil, and separate parent/manufacturer cases prove
+// those references are retained as their Nautobot UUIDs.
 func TestMapFrus(t *testing.T) {
 	devNBID := uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 	devCaniID := uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
@@ -178,4 +192,42 @@ func TestMapFrus(t *testing.T) {
 			}
 		}
 	})
+}
+
+// TestMapFrus_CustomFields verifies MapFrus copies a FRU's custom fields through
+// to the mapped CaniFruType.
+//
+// Why it matters: inventory items (FRUs) frequently carry site-specific custom
+// fields (revision, firmware, warranty); the transform must preserve them so the
+// imported CANI inventory does not lose operator metadata.
+// Inputs: a single inventory item with a non-nil CustomFields map.
+// Outputs: the mapped CaniFruType whose CustomFields entry is asserted.
+// Data choice: a single keyed value ("rev":"A1") is the minimal map that proves
+// the pointer is dereferenced and the contents are carried, not just allocated.
+func TestMapFrus_CustomFields(t *testing.T) {
+	itemID := uuid.MustParse("cccccccc-0000-0000-0000-000000000001")
+	oaItemID := openapi_types.UUID(itemID)
+	cf := map[string]interface{}{"rev": "A1"}
+
+	raw := []nautobotapi.InventoryItem{
+		{
+			Id:           &oaItemID,
+			Name:         "cf-fru",
+			CustomFields: &cf,
+			Device:       makeStatusRefFromUUID(uuid.New()),
+		},
+	}
+
+	got := MapFrus(raw, map[uuid.UUID]uuid.UUID{})
+	if len(got) != 1 {
+		t.Fatalf("expected 1 FRU, got %d", len(got))
+	}
+	for _, fru := range got {
+		if fru.CustomFields == nil {
+			t.Fatal("expected CustomFields to be set")
+		}
+		if fru.CustomFields["rev"] != "A1" {
+			t.Errorf("CustomFields[rev] = %v, want %q", fru.CustomFields["rev"], "A1")
+		}
+	}
 }

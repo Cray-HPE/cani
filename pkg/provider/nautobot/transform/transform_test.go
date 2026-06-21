@@ -34,6 +34,21 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// TestTransform verifies Transform dispatches to the legacy copy path when raw
+// data is nil and to the raw-mapping path otherwise, wiring locations, racks, and
+// devices end to end.
+//
+// Why it matters: Transform is the package entry point that turns a Nautobot
+// import into a CANI TransformResult; it must preserve the legacy behavior for
+// nil input while running the full mapper pipeline (with status/role resolution
+// and rack/device-type linking) for raw input.
+// Inputs: an existing inventory with nil raw, an empty RawData, and a populated
+// RawData with one location/rack/device plus statuses and roles. Outputs: the
+// TransformResult, asserted by entity counts, resolved location/rack/device
+// links, and device model/status/role.
+// Data choice: the end-to-end case threads a single device through device-type,
+// status, and role lookups so the assertions prove the pipeline resolves
+// "DL380", "Active", and "Compute" rather than passing UUIDs straight through.
 func TestTransform(t *testing.T) {
 	t.Run("nil raw data uses legacy path", func(t *testing.T) {
 		devID := uuid.New()
@@ -109,6 +124,7 @@ func TestTransform(t *testing.T) {
 					Name:       &devName,
 					Status:     makeStatusRefFromUUID(statusID),
 					DeviceType: makeStatusRefFromUUID(dtNBID),
+					Location:   makeStatusRefFromUUID(locNBID),
 					Rack:       &rackRef,
 					Role: func() nautobotapi.BulkWritableCableRequestStatus {
 						r := makeStatusRefFromUUID(roleID)
@@ -144,6 +160,28 @@ func TestTransform(t *testing.T) {
 			t.Errorf("expected 1 device, got %d", len(result.Devices))
 		}
 
+		var locID uuid.UUID
+		for id, loc := range result.Locations {
+			locID = id
+			if loc.Name != "Site-A" {
+				t.Errorf("Location.Name = %q, want %q", loc.Name, "Site-A")
+			}
+			if loc.Status != "Active" {
+				t.Errorf("Location.Status = %q, want %q", loc.Status, "Active")
+			}
+		}
+
+		var rackID uuid.UUID
+		for id, rack := range result.Racks {
+			rackID = id
+			if rack.Location != locID {
+				t.Errorf("Rack.Location = %s, want location CANI ID %s", rack.Location, locID)
+			}
+			if rack.Status != "Active" {
+				t.Errorf("Rack.Status = %q, want %q", rack.Status, "Active")
+			}
+		}
+
 		// Verify device has correct model and role.
 		for _, dev := range result.Devices {
 			if dev.Name != "compute-001" {
@@ -151,6 +189,12 @@ func TestTransform(t *testing.T) {
 			}
 			if dev.Model != "DL380" {
 				t.Errorf("Device.Model = %q, want %q", dev.Model, "DL380")
+			}
+			if dev.Parent != rackID {
+				t.Errorf("Device.Parent = %s, want rack CANI ID %s", dev.Parent, rackID)
+			}
+			if dev.Location != locID {
+				t.Errorf("Device.Location = %s, want location CANI ID %s", dev.Location, locID)
 			}
 			if dev.ObjectMeta.Status != "Active" {
 				t.Errorf("Device.Status = %q, want %q", dev.ObjectMeta.Status, "Active")
@@ -162,6 +206,17 @@ func TestTransform(t *testing.T) {
 	})
 }
 
+// TestTransformLegacy verifies transformLegacy copies existing inventory devices
+// into the result unchanged.
+//
+// Why it matters: when no raw Nautobot data is supplied, Transform falls back to
+// this path, so the existing in-memory devices must be carried into the
+// TransformResult without loss.
+// Inputs: an empty inventory and an inventory holding two devices. Outputs: the
+// TransformResult's device map, asserted by count, IDs, and names.
+// Data choice: two devices prove every entry is copied rather than a single-item
+// case that could pass by coincidence, and the empty case proves the path is safe
+// with no devices.
 func TestTransformLegacy(t *testing.T) {
 	t.Run("empty inventory returns empty result", func(t *testing.T) {
 		result, err := transformLegacy(devicetypes.Inventory{})
@@ -189,6 +244,12 @@ func TestTransformLegacy(t *testing.T) {
 		}
 		if len(result.Devices) != 2 {
 			t.Errorf("expected 2 devices, got %d", len(result.Devices))
+		}
+		if result.Devices[id1] == nil || result.Devices[id1].Name != "server-1" {
+			t.Errorf("device %s = %#v, want server-1", id1, result.Devices[id1])
+		}
+		if result.Devices[id2] == nil || result.Devices[id2].Name != "server-2" {
+			t.Errorf("device %s = %#v, want server-2", id2, result.Devices[id2])
 		}
 	})
 }

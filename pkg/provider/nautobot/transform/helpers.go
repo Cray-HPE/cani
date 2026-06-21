@@ -35,6 +35,21 @@ func tenantRefID(ref *nautobotapi.BulkWritableCircuitRequestTenant) uuid.UUID {
 	return uuid.UUID(u)
 }
 
+// resolveTenantRefName looks up the name for a tenant-style reference by UUID.
+// It falls back to the reference URL when the target object was not fetched.
+func resolveTenantRefName(ref *nautobotapi.BulkWritableCircuitRequestTenant, nameMap map[uuid.UUID]string) string {
+	id := tenantRefID(ref)
+	if id != uuid.Nil {
+		if name, ok := nameMap[id]; ok {
+			return name
+		}
+	}
+	if ref == nil {
+		return ""
+	}
+	return strVal(ref.Url)
+}
+
 // directUUID converts an openapi_types.UUID pointer to uuid.UUID.
 func directUUID(id *openapi_types.UUID) uuid.UUID {
 	if id == nil {
