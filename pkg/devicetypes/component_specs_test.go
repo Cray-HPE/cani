@@ -362,3 +362,50 @@ func TestDeviceBaySpecYAMLExtra(t *testing.T) {
 		t.Errorf("Extra[\"ordinal\"] = %d, want 3", n)
 	}
 }
+
+// TestDeviceBaySlugRefSlugs verifies Slugs normalizes the Slug field from a
+// single string, a list of strings, and an unsupported type.
+//
+// Why it matters: device-bay YAML allows "slug" to be either a scalar or a
+// sequence, so the accessor must flatten both into a uniform []string for
+// downstream allowed-type checks.
+// Inputs: Slug set to "blade", to []interface{}{"a","b"}, and to an int.
+// Outputs: ["blade"], ["a","b"], and nil respectively.
+// Data choice: the list case includes a non-string element implicitly excluded
+// elsewhere; here the int-typed Slug proves the default branch returns nil
+// rather than panicking on an unexpected YAML shape.
+func TestDeviceBaySlugRefSlugs(t *testing.T) {
+	if got := (DeviceBaySlugRef{Slug: "blade"}).Slugs(); len(got) != 1 || got[0] != "blade" {
+		t.Errorf("Slugs(string) = %v, want [blade]", got)
+	}
+	list := DeviceBaySlugRef{Slug: []interface{}{"a", "b", 7}}.Slugs()
+	if len(list) != 2 || list[0] != "a" || list[1] != "b" {
+		t.Errorf("Slugs(list) = %v, want [a b] (non-strings skipped)", list)
+	}
+	if got := (DeviceBaySlugRef{Slug: 42}).Slugs(); got != nil {
+		t.Errorf("Slugs(int) = %v, want nil", got)
+	}
+}
+
+// TestDeviceBaySlugRefAllowedTypes verifies AllowedTypes normalizes the Types
+// field from a single string, a list of strings, and an unsupported type.
+//
+// Why it matters: the "types" key constrains which hardware can occupy a bay
+// and is likewise either scalar or sequence, so the accessor must flatten both
+// to []string for validation.
+// Inputs: Types set to "server", to []interface{}{"x","y"}, and to nil.
+// Outputs: ["server"], ["x","y"], and nil respectively.
+// Data choice: nil Types (the common "no constraint" case) drives the default
+// branch, proving an unconstrained bay yields an empty allow-list.
+func TestDeviceBaySlugRefAllowedTypes(t *testing.T) {
+	if got := (DeviceBaySlugRef{Types: "server"}).AllowedTypes(); len(got) != 1 || got[0] != "server" {
+		t.Errorf("AllowedTypes(string) = %v, want [server]", got)
+	}
+	list := DeviceBaySlugRef{Types: []interface{}{"x", "y", 0}}.AllowedTypes()
+	if len(list) != 2 || list[0] != "x" || list[1] != "y" {
+		t.Errorf("AllowedTypes(list) = %v, want [x y] (non-strings skipped)", list)
+	}
+	if got := (DeviceBaySlugRef{Types: nil}).AllowedTypes(); got != nil {
+		t.Errorf("AllowedTypes(nil) = %v, want nil", got)
+	}
+}

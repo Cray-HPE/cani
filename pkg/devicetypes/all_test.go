@@ -839,3 +839,43 @@ func TestInventoryFindNameReturnsFalseForMissing(t *testing.T) {
 		t.Error("expected ok=false for missing device name")
 	}
 }
+
+// ---------- AllLocationTypes / GetLocationTypeBySlug ----------
+
+// TestAllLocationTypesAndGetBySlug verifies the location-type registry returns
+// the full map and resolves a known slug, while reporting false for an unknown
+// slug.
+//
+// Why it matters: location types drive how cani builds the site hierarchy, so
+// the registry accessors must expose registered definitions and clearly signal
+// misses so callers can fail fast.
+// Inputs: a registry seeded with one "site" definition; lookups for "site" and
+// "missing". Outputs: a map containing "site"; (definition,true) for "site";
+// (zero,false) for "missing".
+// Data choice: a single registered slug plus one absent slug exercises both the
+// hit and miss branches without depending on the embedded library's contents,
+// and the registry is saved/restored to avoid leaking into other tests.
+func TestAllLocationTypesAndGetBySlug(t *testing.T) {
+	orig := allLocationTypes
+	defer func() { allLocationTypes = orig }()
+	allLocationTypes = map[string]LocationTypeDefinition{
+		"site": {Name: "Site", Slug: "site", Nestable: true},
+	}
+
+	all := AllLocationTypes()
+	if _, ok := all["site"]; !ok {
+		t.Errorf("AllLocationTypes() missing %q, got %v", "site", all)
+	}
+
+	lt, ok := GetLocationTypeBySlug("site")
+	if !ok {
+		t.Fatal("GetLocationTypeBySlug(\"site\") ok = false, want true")
+	}
+	if lt.Name != "Site" {
+		t.Errorf("GetLocationTypeBySlug name = %q, want %q", lt.Name, "Site")
+	}
+
+	if _, ok := GetLocationTypeBySlug("missing"); ok {
+		t.Error("GetLocationTypeBySlug(\"missing\") ok = true, want false")
+	}
+}

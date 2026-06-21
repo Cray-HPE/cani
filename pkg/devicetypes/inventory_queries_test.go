@@ -988,3 +988,249 @@ func TestAvailableModuleBaysAllOccupied(t *testing.T) {
 		t.Errorf("expected 0 available bays, got %d", len(got))
 	}
 }
+
+// TestAllRacksSortedSkipsNil verifies AllRacks returns every non-nil rack in
+// name order and that a nil inventory yields nil.
+//
+// Why it matters: AllRacks backs rack listings and views, so it must present a
+// stable, alphabetical ordering and tolerate nil maps/receivers without
+// panicking.
+// Inputs: an inventory with racks "bravo" and "alpha" plus a nil map entry;
+// separately, a nil *Inventory. Outputs: ["alpha","bravo"] for the populated
+// case; nil for the nil receiver.
+// Data choice: inserting "bravo" before "alpha" proves the sort runs rather
+// than echoing map order, and the nil entry exercises the skip branch.
+func TestAllRacksSortedSkipsNil(t *testing.T) {
+	inv := NewInventory()
+	inv.Racks[uuid.New()] = &CaniRackType{Name: "bravo"}
+	inv.Racks[uuid.New()] = &CaniRackType{Name: "alpha"}
+	inv.Racks[uuid.New()] = nil
+
+	got := inv.AllRacks()
+	if len(got) != 2 {
+		t.Fatalf("expected 2 racks, got %d", len(got))
+	}
+	if got[0].Name != "alpha" || got[1].Name != "bravo" {
+		t.Errorf("AllRacks() order = [%q %q], want [alpha bravo]", got[0].Name, got[1].Name)
+	}
+
+	var nilInv *Inventory
+	if got := nilInv.AllRacks(); got != nil {
+		t.Errorf("nil Inventory AllRacks() = %v, want nil", got)
+	}
+}
+
+// TestGetCablesForDeviceNilAndBSide verifies GetCablesForDevice returns nil for
+// a nil receiver, skips nil cable entries, and matches on the B-side termination.
+//
+// Why it matters: a device can sit on either end of a cable, so a query that
+// only checked the A-side would miss half the topology; nil guards also prevent
+// panics on partially built inventories.
+// Inputs: a nil inventory; then a real inventory holding a nil cable and a cable
+// whose TerminationBDevice is the queried device. Outputs: nil for the nil
+// receiver and exactly the B-side cable for the populated case. Data choice:
+// placing the device only on the B-side forces the second half of the OR
+// condition that the existing A-side test never reaches.
+func TestGetCablesForDeviceNilAndBSide(t *testing.T) {
+	var nilInv *Inventory
+	if got := nilInv.GetCablesForDevice(uuid.New()); got != nil {
+		t.Errorf("nil inventory = %v, want nil", got)
+	}
+
+	inv := NewInventory()
+	devID := uuid.New()
+	inv.Cables[uuid.New()] = nil
+	bID := uuid.New()
+	inv.Cables[bID] = &CaniCableType{ID: bID, Label: "b-link", TerminationBDevice: devID}
+
+	got := inv.GetCablesForDevice(devID)
+	if len(got) != 1 || got[0].ID != bID {
+		t.Fatalf("GetCablesForDevice = %v, want the B-side cable %s", got, bID)
+	}
+}
+
+// TestGetInterfaceByIDNilAndModuleOwned verifies GetInterfaceByID returns nil for
+// a nil receiver and resolves a module-owned interface by falling through to the
+// module search.
+//
+// Why it matters: interfaces can live on a device directly or on one of its
+// modules; the lookup must transparently find both so cabling and queries work
+// regardless of where the port is mounted.
+// Inputs: a nil inventory; then an inventory whose index maps the interface to a
+// device that lacks it directly, while a child module actually owns it. Outputs:
+// nil/nil for the nil receiver and the module's interface spec plus parent
+// device for the populated case. Data choice: keeping the interface off the
+// device but on its module drives the findInterfaceInModules fallback that the
+// device-owned test bypasses.
+func TestGetInterfaceByIDNilAndModuleOwned(t *testing.T) {
+	var nilInv *Inventory
+	if spec, dev := nilInv.GetInterfaceByID(uuid.New()); spec != nil || dev != nil {
+		t.Errorf("nil inventory = (%v, %v), want (nil, nil)", spec, dev)
+	}
+
+	inv := NewInventory()
+	devID := uuid.New()
+	modID := uuid.New()
+	ifaceID := uuid.New()
+	inv.Devices[devID] = &CaniDeviceType{ID: devID, Name: "switch-1"} // no direct interface
+	inv.Modules[modID] = &CaniModuleType{
+		ID:           modID,
+		ParentDevice: devID,
+		Interfaces:   []InterfaceSpec{{ID: ifaceID, Name: "ge-0/0/1", Type: "1000base-t"}},
+	}
+	inv.Interfaces[ifaceID] = &CaniInterface{ID: ifaceID, DeviceID: devID}
+
+	spec, dev := inv.GetInterfaceByID(ifaceID)
+	if spec == nil || spec.Name != "ge-0/0/1" {
+		t.Fatalf("spec = %v, want the module interface ge-0/0/1", spec)
+	}
+	if dev == nil || dev.ID != devID {
+		t.Errorf("parent device = %v, want %s", dev, devID)
+	}
+}
+
+// TestParentExistsAllKinds verifies parentExists reports membership across all
+// four entity maps (device, module, rack, location) and rejects an unknown UUID.
+//
+// Why it matters: referential-integrity checks accept any of these as a valid
+// parent, so each map must be consulted; a regression that dropped one would let
+// dangling references slip through validation.
+// Inputs: an inventory seeded with one device, module, rack, and location, each
+// probed by its UUID, plus an unrelated UUID. Outputs: true for all four seeded
+// IDs and false for the stranger. Data choice: one entry per map is the minimum
+// that independently exercises every return-true branch.
+func TestParentExistsAllKinds(t *testing.T) {
+	inv := NewInventory()
+	devID, modID, rackID, locID := uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	inv.Devices[devID] = &CaniDeviceType{ID: devID}
+	inv.Modules[modID] = &CaniModuleType{ID: modID}
+	inv.Racks[rackID] = &CaniRackType{ID: rackID}
+	inv.Locations[locID] = &CaniLocationType{ID: locID}
+
+	for name, id := range map[string]uuid.UUID{"device": devID, "module": modID, "rack": rackID, "location": locID} {
+		if !inv.parentExists(id) {
+			t.Errorf("parentExists(%s) = false, want true", name)
+		}
+	}
+	if inv.parentExists(uuid.New()) {
+		t.Error("parentExists(unknown) = true, want false")
+	}
+}
+
+// TestFindersNilReceiver verifies the name/label finders and cross-reference
+// queries return nil when called on a nil inventory.
+//
+// Why it matters: these helpers are invoked on optional inventories that may be
+// nil before load; the nil-receiver guard must prevent a panic and yield a clean
+// empty result so callers can treat "no inventory" like "no match".
+// Inputs: a nil *Inventory receiver against every finder. Outputs: nil from each.
+// Data choice: covering the whole finder family in one test exercises each
+// function's identical nil-guard branch that the populated tests never hit.
+func TestFindersNilReceiver(t *testing.T) {
+	var inv *Inventory
+	id := uuid.New()
+	if inv.FindLocationByName("x") != nil {
+		t.Error("FindLocationByName(nil) should be nil")
+	}
+	if inv.FindLocationByNameOrID("x") != nil {
+		t.Error("FindLocationByNameOrID(nil) should be nil")
+	}
+	if inv.FindRackByName("x") != nil {
+		t.Error("FindRackByName(nil) should be nil")
+	}
+	if inv.FindModuleByName("x") != nil {
+		t.Error("FindModuleByName(nil) should be nil")
+	}
+	if inv.FindFruByName("x") != nil {
+		t.Error("FindFruByName(nil) should be nil")
+	}
+	if inv.FindCableByLabel("x") != nil {
+		t.Error("FindCableByLabel(nil) should be nil")
+	}
+	if inv.FindDeviceByNameOrID("x") != nil {
+		t.Error("FindDeviceByNameOrID(nil) should be nil")
+	}
+	if inv.GetDevicesInRack(id) != nil {
+		t.Error("GetDevicesInRack(nil) should be nil")
+	}
+	if inv.GetModulesForDevice(id) != nil {
+		t.Error("GetModulesForDevice(nil) should be nil")
+	}
+	if inv.RacksByLocation(id) != nil {
+		t.Error("RacksByLocation(nil) should be nil")
+	}
+	if inv.DevicesBySlug("x") != nil {
+		t.Error("DevicesBySlug(nil) should be nil")
+	}
+	if inv.Exists("x") {
+		t.Error("Exists(nil) should be false")
+	}
+	if _, ok := inv.FindName("x"); ok {
+		t.Error("FindName(nil) should be false")
+	}
+}
+
+// TestFindByNameOrIDBranches verifies the NameOrID finders reject an empty ref,
+// resolve a valid UUID string, and that FindConnectableByNameOrID falls back to
+// a module match.
+//
+// Why it matters: callers pass either a UUID or a human name interchangeably, so
+// both resolution paths must work, and an empty ref must fail fast rather than
+// scan; connectable resolution must reach modules so cables can terminate on
+// them.
+// Inputs: a populated inventory queried with "" (empty), valid UUID strings for
+// a location and device, a module name, and an unknown name. Outputs: nil for
+// empty, the matching entities for UUIDs, the module's ID, and uuid.Nil for the
+// unknown. Data choice: distinct seeded entities isolate the UUID-parse-success
+// branch and the device-miss→module-hit fallback that name-only tests skip.
+func TestFindByNameOrIDBranches(t *testing.T) {
+	inv := NewInventory()
+	locID := uuid.New()
+	inv.Locations[locID] = &CaniLocationType{ID: locID, Name: "site-a"}
+	devID := uuid.New()
+	inv.Devices[devID] = &CaniDeviceType{ID: devID, Name: "dev-a"}
+	modID := uuid.New()
+	inv.Modules[modID] = &CaniModuleType{ID: modID, Name: "mod-a"}
+
+	if inv.FindLocationByNameOrID("") != nil {
+		t.Error("empty ref should yield nil location")
+	}
+	if inv.FindDeviceByNameOrID("") != nil {
+		t.Error("empty ref should yield nil device")
+	}
+	if got := inv.FindLocationByNameOrID(locID.String()); got == nil || got.ID != locID {
+		t.Error("FindLocationByNameOrID should resolve a valid UUID")
+	}
+	if got := inv.FindDeviceByNameOrID(devID.String()); got == nil || got.ID != devID {
+		t.Error("FindDeviceByNameOrID should resolve a valid UUID")
+	}
+	if got := inv.FindConnectableByNameOrID("mod-a"); got != modID {
+		t.Errorf("FindConnectableByNameOrID(module) = %s, want %s", got, modID)
+	}
+	if got := inv.FindConnectableByNameOrID("nope"); got != uuid.Nil {
+		t.Errorf("FindConnectableByNameOrID(unknown) = %s, want uuid.Nil", got)
+	}
+}
+
+// TestValidateSkipsNilEntries verifies Validate tolerates nil entries in every
+// entity map and reports no broken references.
+//
+// Why it matters: maps can briefly hold nil slots during incremental builds, and
+// validation must skip them rather than dereference a nil pointer and crash.
+// Inputs: an inventory with a single nil entry seeded into Devices, Locations,
+// Racks, Modules, Cables, and Frus. Outputs: a nil error from Validate. Data
+// choice: one nil per map drives the nil-continue guard inside all six
+// validate*Refs helpers in a single pass.
+func TestValidateSkipsNilEntries(t *testing.T) {
+	inv := NewInventory()
+	inv.Devices[uuid.New()] = nil
+	inv.Locations[uuid.New()] = nil
+	inv.Racks[uuid.New()] = nil
+	inv.Modules[uuid.New()] = nil
+	inv.Cables[uuid.New()] = nil
+	inv.Frus[uuid.New()] = nil
+
+	if err := inv.Validate(); err != nil {
+		t.Errorf("Validate with only nil entries should pass, got: %v", err)
+	}
+}

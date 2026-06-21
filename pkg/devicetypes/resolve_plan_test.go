@@ -232,3 +232,26 @@ func TestPlaceDeviceInRackExplicitSlot(t *testing.T) {
 		t.Errorf("Face = %q, want %q", dev.Face, FaceRear)
 	}
 }
+
+// TestWritePlanWriteError verifies WritePlan surfaces an error when the target
+// path cannot be written.
+//
+// Why it matters: callers persist a resolve plan before applying it, so a failed
+// write must be reported (not silently swallowed) to avoid acting on a plan that
+// was never saved.
+// Inputs: a valid plan and a path inside a non-existent directory. Outputs: a
+// non-nil error mentioning the write failure. Data choice: nesting the file
+// under a missing directory triggers the os.WriteFile error branch
+// deterministically without needing special permissions.
+func TestWritePlanWriteError(t *testing.T) {
+	plan := &ResolvePlan{
+		Assignments: []PlanAssignment{
+			{OrphanID: uuid.New(), OrphanName: "dev1", OrphanKind: "device"},
+		},
+	}
+	badPath := filepath.Join(t.TempDir(), "missing-subdir", "plan.json")
+
+	if err := WritePlan(badPath, plan); err == nil {
+		t.Error("WritePlan to a path under a missing directory should return an error")
+	}
+}
