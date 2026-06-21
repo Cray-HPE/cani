@@ -146,15 +146,20 @@ func assertMgmtOnly(t *testing.T, byName map[string]sentInterface, name string, 
 }
 
 // TestSendInterfaceBatch_PayloadAndCache is a round-trip test for the bulk
-// interface create path — the mechanism every export uses to populate device
-// interfaces in Nautobot. It verifies three things that the export depends on
-// but that no prior test exercised:
+// interface create path that every export uses to populate device interfaces in
+// Nautobot. It verifies the POSTed JSON carries the correct device/name/type/
+// status per interface, the array response is parsed back into Interface
+// objects, and the created interfaces are cached by device+name so cable
+// creation (Phase 6) can resolve them.
 //
-//  1. the JSON payload POSTed to Nautobot carries the correct device, name,
-//     type and status for every interface in the batch;
-//  2. the array response is parsed back into Interface objects; and
-//  3. the created interfaces are cached by device+name so cable creation
-//     (Phase 6) can resolve them.
+// Why it matters: interfaces are the anchor points for cabling and IP
+// assignment; a wrong payload or a missing cache entry breaks every later phase.
+// Inputs: a context, a batch of bulkInterfaceItem, and a status ref. Outputs:
+// the parsed created interfaces and an error; side effects are the captured POST
+// and the populated interface cache.
+// Data choice: two interfaces (iLO, eth0) on one device exercise batching and
+// per-name indexing, and distinct returned IDs let the cache assertions prove
+// each interface was stored under its own key.
 func TestSendInterfaceBatch_PayloadAndCache(t *testing.T) {
 	id0, id1 := uuid.New(), uuid.New()
 	rec := &capturedRequest{}
@@ -204,14 +209,18 @@ func TestSendInterfaceBatch_PayloadAndCache(t *testing.T) {
 }
 
 // TestInterfaceExport_PreservesMgmtOnly guards a data-fidelity guarantee: an
-// interface flagged management-only in the cani inventory (e.g. iLO/BMC) must
-// be exported to Nautobot with mgmt_only=true. Nautobot models mgmt_only as a
-// first-class field that is distinct from interface role, so dropping it
-// silently changes the meaning of the device in the source of truth.
+// interface flagged management-only in cani (e.g. iLO/BMC) must be exported with
+// mgmt_only=true. Nautobot models mgmt_only as a first-class field distinct from
+// interface role, so dropping it silently changes the device's meaning in the
+// source of truth. The test drives the real path: getDeviceInterfaceSpecs builds
+// specs from the device and sendInterfaceBatch serializes them to the wire.
 //
-// The test drives the real export path: getDeviceInterfaceSpecs builds the
-// specs from the device, and sendInterfaceBatch serializes them to the wire
-// format which is captured and inspected.
+// Why it matters: the BMC/management port must remain identifiable in Nautobot
+// for out-of-band tooling; losing the flag misrepresents the hardware.
+// Inputs: a CaniDeviceType with one mgmt-only and one data interface. Outputs:
+// the captured POST body, asserted to preserve mgmt_only per interface.
+// Data choice: iLO (mgmt-only) and eth0 (data port) are the canonical pairing on
+// real nodes, so the test asserts true for iLO and false for eth0.
 func TestInterfaceExport_PreservesMgmtOnly(t *testing.T) {
 	mgmt := true
 	dev := &devicetypes.CaniDeviceType{

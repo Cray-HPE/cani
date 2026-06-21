@@ -32,6 +32,16 @@ import (
 	"github.com/google/uuid"
 )
 
+// TestTopologicalSortLocations verifies locations are ordered parents-before-
+// children, that an empty map yields an empty slice, and nil entries are skipped.
+//
+// Why it matters: Nautobot locations form a hierarchy (site -> building ->
+// floor) and a child cannot be created before its parent exists, so the export
+// must create them in dependency order.
+// Inputs: a map of location ID -> *CaniLocationType. Outputs: an ordered slice.
+// Data choice: the parent ("Building-A") is listed after the child ("Floor-1")
+// in the map so the test proves true reordering; the nil entry guards sparse
+// inventory.
 func TestTopologicalSortLocations(t *testing.T) {
 	t.Run("parents come before children", func(t *testing.T) {
 		parentID := uuid.New()
@@ -96,6 +106,15 @@ func TestTopologicalSortLocations(t *testing.T) {
 	})
 }
 
+// TestMakeTenantRef verifies a UUID round-trips into the Nautobot reference type
+// used for parent/tenant foreign keys, and that a nil UUID still yields a
+// non-nil ref.
+//
+// Why it matters: location parents and similar FKs are written as ID references;
+// a corrupted ID would attach the exported object to the wrong parent or none.
+// Inputs: a uuid.UUID. Outputs: a *ref whose embedded ID decodes to the input.
+// Data choice: a fixed all-twos UUID gives a deterministic round-trip check and
+// uuid.Nil confirms the helper does not return nil for the zero value.
 func TestMakeTenantRef(t *testing.T) {
 	t.Run("creates ref from valid UUID", func(t *testing.T) {
 		id := uuid.MustParse("22222222-2222-2222-2222-222222222222")

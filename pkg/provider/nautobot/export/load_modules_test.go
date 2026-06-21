@@ -29,6 +29,15 @@ import (
 	"testing"
 )
 
+// TestDerefString verifies the nil-safe string dereference helper returns the
+// pointed-to value or "" for a nil pointer.
+//
+// Why it matters: many optional Nautobot fields arrive as *string; this helper
+// keeps the export from panicking and emits "" rather than a null when a field
+// is absent.
+// Inputs: a *string. Outputs: a string.
+// Data choice: a non-nil "hello" pointer and an explicit nil cover the only two
+// branches the helper has.
 func TestDerefString(t *testing.T) {
 	val := "hello"
 

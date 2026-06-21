@@ -30,6 +30,16 @@ import (
 	"testing"
 )
 
+// TestNewNautobotClient verifies the Nautobot API client constructor accepts a
+// valid URL/token pair and rejects calls that omit either credential.
+//
+// Why it matters: every export to Nautobot flows through this client, so a
+// missing endpoint or token must fail fast at construction rather than surface
+// as a confusing error partway through pushing devices.
+// Inputs: a base URL and an API token. Outputs: a *NautobotClient and an error.
+// Data choice: a localhost API URL stands in for a real Nautobot instance; the
+// two empty-string cases isolate each required credential so the test can assert
+// the specific validation message instead of a generic failure.
 func TestNewNautobotClient(t *testing.T) {
 	tests := []struct {
 		name      string

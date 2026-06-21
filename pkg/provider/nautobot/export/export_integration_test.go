@@ -107,10 +107,18 @@ func newTestProvider(t *testing.T) *Exporter {
 	}
 }
 
-// TestExportSpineLeafDryRun loads the spine-leaf fixture and runs a dry-run
-// export to verify device type resolution, location/rack/device mapping.
-// Phases 3-6 (interfaces, modules, FRUs, cables) require real device IDs that
-// only exist after a live create, so they are logged but not failed on here.
+// TestExportSpineLeafDryRun verifies a dry-run export of the spine-leaf fixture
+// resolves device types and maps locations, racks, and devices, asserting 12
+// devices and 2 racks created.
+//
+// Why it matters: this end-to-end run drives the real phase pipeline and the
+// community device-type library against a (skippable) live Nautobot, catching
+// wiring regressions that fake-server unit tests miss; dry-run validates the
+// read/mapping path without mutating Nautobot.
+// Inputs: spine_leaf_inventory.json with DryRun=true. Outputs: populated
+// LoadResult counts; phases 3-6 need real device IDs so they are only logged.
+// Data choice: the spine-leaf fixture is a small but complete fabric whose exact
+// 12-device, 2-rack shape makes the count assertions meaningful.
 func TestExportSpineLeafDryRun(t *testing.T) {
 	skipUnlessNautobot(t)
 	ensureTypesLoaded(t)
@@ -264,7 +272,17 @@ func TestExportSpineLeafDryRun(t *testing.T) {
 	}
 }
 
-// TestExportSpineLeafLive runs the full export against a live Nautobot instance.
+// TestExportSpineLeafLive verifies the full seven-phase export of the spine-leaf
+// fixture succeeds against a live Nautobot, failing on any phase error.
+//
+// Why it matters: only a live run exercises the real creates (locations, racks,
+// devices, interfaces, modules, FRUs, cables) and their dependency ordering,
+// confirming the exporter actually persists a coherent topology end to end.
+// Inputs: spine_leaf_inventory.json with DryRun=false; gated by CANI_LIVE_TEST=1
+// and a reachable Nautobot. Outputs: a LoadResult whose accumulated Errors must
+// be empty.
+// Data choice: reusing the same spine-leaf fixture as the dry-run keeps the
+// read-path and write-path tests comparable on identical data.
 func TestExportSpineLeafLive(t *testing.T) {
 	if os.Getenv("CANI_LIVE_TEST") == "" {
 		t.Skip("set CANI_LIVE_TEST=1 to run live export tests")

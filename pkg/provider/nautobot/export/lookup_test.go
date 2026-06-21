@@ -32,6 +32,16 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// TestToUUID verifies that toUUID converts an *openapi_types.UUID to a
+// uuid.UUID, mapping a nil pointer to uuid.Nil.
+//
+// Why it matters: Nautobot's generated API returns optional UUID pointers; safe
+// conversion lets the exporter cache resolved object IDs without risking a nil
+// dereference when a field is absent.
+// Inputs (table): a valid UUID pointer and a nil pointer. Outputs: the wrapped
+// uuid.UUID, or uuid.Nil for the nil case.
+// Data choice: a fixed all-ones UUID makes the comparison deterministic, and the
+// nil case exercises the guard clause directly.
 func TestToUUID(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -63,6 +73,16 @@ func TestToUUID(t *testing.T) {
 	}
 }
 
+// TestNewLookupCache verifies that NewLookupCache initializes every per-type
+// cache map and stores the supplied client reference.
+//
+// Why it matters: the export dedupes Nautobot lookups through these maps; a nil
+// map would panic on the first write when caching a resolved object, and a wrong
+// client would send requests to the wrong server.
+// Inputs: a NautobotClient. Outputs: a *LookupCache with all maps non-nil and
+// client set to the input.
+// Data choice: a localhost client suffices because the constructor performs no
+// HTTP; sub-tests assert each map plus the client pointer individually.
 func TestNewLookupCache(t *testing.T) {
 	t.Run("initializes all cache maps", func(t *testing.T) {
 		client, _ := NewNautobotClient("http://localhost/api", "token")
@@ -107,6 +127,16 @@ func TestNewLookupCache(t *testing.T) {
 	})
 }
 
+// TestInterfaceCacheKey verifies that interfaceCacheKey builds a
+// "deviceID:ifaceName" key, including when the interface name is empty.
+//
+// Why it matters: interfaces are cached per device-and-name so cable creation can
+// later resolve both endpoints; a stable, collision-free key prevents wiring
+// cables to the wrong interface during export.
+// Inputs (table): a device UUID and an interface name. Outputs: the joined key
+// string.
+// Data choice: fixed all-a/all-b UUIDs make the expected strings deterministic,
+// and the empty-name case confirms the ":" separator is still emitted.
 func TestInterfaceCacheKey(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -138,6 +168,16 @@ func TestInterfaceCacheKey(t *testing.T) {
 	}
 }
 
+// TestNormalizeInterfaceName verifies that normalizeInterfaceName lowercases the
+// name, strips a known leading prefix, and trims leftover separators.
+//
+// Why it matters: interface names vary by vendor (port/eth/GigabitEthernet), and
+// normalization lets the exporter match cani interface names to their Nautobot
+// counterparts consistently.
+// Inputs (table): assorted interface-name spellings. Outputs: the normalized
+// remainder.
+// Data choice: the "ethernet0" -> "ernet0" case intentionally documents that
+// "eth" is matched before "ethernet" in the prefix list (a real ordering quirk).
 func TestNormalizeInterfaceName(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -186,6 +226,16 @@ func TestNormalizeInterfaceName(t *testing.T) {
 	}
 }
 
+// TestExtractPortNumber verifies that extractPortNumber returns the first numeric
+// run found in an interface name, or "" when the name has no digits.
+//
+// Why it matters: port numbers key interface matching across heterogeneous naming
+// schemes, so consistent extraction keeps cani-to-Nautobot interface mapping
+// aligned.
+// Inputs (table): simple, prefixed, hierarchical, and non-numeric names. Outputs:
+// the first number segment, or "".
+// Data choice: "1/0/1" and "GigabitEthernet1/0/1" assert the first-segment rule,
+// while "mgmt" covers the no-digit branch returning "".
 func TestExtractPortNumber(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -229,6 +279,15 @@ func TestExtractPortNumber(t *testing.T) {
 	}
 }
 
+// TestFindNameByID verifies that FindNameByID returns "(none)" for the nil UUID,
+// the cached display name for a known ID, and the UUID string for an unknown ID.
+//
+// Why it matters: this resolves IDs to human-readable names for export logging
+// and diff output; the fallbacks keep messages meaningful instead of blank or
+// misleading when a name is not cached.
+// Inputs: a cacheType ("location") and a UUID. Outputs: a display string.
+// Data choice: a cached "SiteA" exercises the hit path, a fixed all-threes UUID
+// exercises the uncached fallback, and uuid.Nil exercises the guard.
 func TestFindNameByID(t *testing.T) {
 	t.Run("nil UUID returns none", func(t *testing.T) {
 		client, _ := NewNautobotClient("http://localhost/api", "token")
@@ -268,6 +327,16 @@ func TestFindNameByID(t *testing.T) {
 	})
 }
 
+// TestCacheLocation verifies that CacheLocation stores a location by name and
+// overwrites an existing entry when the same name is cached again.
+//
+// Why it matters: locations sit at the top of the export dependency order, so
+// caching (with last-write-wins) ensures racks and devices resolve to the current
+// location ID without re-querying Nautobot.
+// Inputs: a name and a *CachedItem. Outputs: an entry in the locations map
+// (verified under the cache's read lock).
+// Data choice: the overwrite sub-test uses distinct old/new UUIDs to prove the
+// second write replaces the first.
 func TestCacheLocation(t *testing.T) {
 	t.Run("stores and retrieves location", func(t *testing.T) {
 		client, _ := NewNautobotClient("http://localhost/api", "token")

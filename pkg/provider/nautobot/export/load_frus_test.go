@@ -32,6 +32,16 @@ import (
 	"github.com/google/uuid"
 )
 
+// TestTopologicalSortFrus verifies FRUs are ordered parents-before-children,
+// that an empty map yields an empty slice, and that nil entries are skipped.
+//
+// Why it matters: FRUs (field-replaceable units) nest via parent references and
+// Nautobot rejects a child inventory-item whose parent does not yet exist, so
+// the export must create parents first.
+// Inputs: a map of FRU ID -> *CaniFruType. Outputs: a slice in creation order.
+// Data choice: a deliberately out-of-order map (child listed before parent)
+// proves the sort reorders rather than echoing map order; the nil entry guards
+// against panics from sparse inventory.
 func TestTopologicalSortFrus(t *testing.T) {
 	t.Run("parents come before children", func(t *testing.T) {
 		parentID := uuid.New()

@@ -33,6 +33,17 @@ import (
 	"github.com/google/uuid"
 )
 
+// TestValidateInventory verifies the pre-export guard accepts inventory holding
+// at least one exportable device and rejects nil, empty, or system-only input.
+//
+// Why it matters: ValidateInventory is the gate that stops a pointless or
+// destructive export; "system" devices are internal cani bookkeeping and must
+// never be pushed to Nautobot as real hardware.
+// Inputs: a *devicetypes.Inventory. Outputs: an error (nil when exportable).
+// Data choice: a "node" device represents real exportable hardware while the
+// "system" device ("sys-root") exercises the filter that distinguishes cani's
+// internal root from exportable nodes; nil and empty maps cover the boundary
+// cases so each rejection message can be asserted individually.
 func TestValidateInventory(t *testing.T) {
 	deviceID := uuid.New()
 
