@@ -1,6 +1,7 @@
 package import_
 
 import (
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -11,6 +12,15 @@ import (
 	"github.com/google/uuid"
 )
 
+// TestImport verifies Import handles missing files, missing paths, and valid
+// YAML inventory files through the file-based path.
+//
+// Why it matters: Import is the example provider entry point, so it must no-op
+// cleanly without a file, fail on unreadable files, and merge valid YAML data.
+// Inputs: empty FileFlag, a nonexistent path, and the inventory YAML fixture.
+// Outputs: nil or non-nil errors according to the path state.
+// Data choice: the fixture exercises the real YAML import path, while the empty
+// and bad paths isolate the early-return and read-error branches.
 func TestImport(t *testing.T) {
 	t.Cleanup(func() {
 		commands.FileFlag = ""
@@ -55,6 +65,15 @@ func TestImport(t *testing.T) {
 	}
 }
 
+// TestImportYAMLInvalidContent verifies Import returns a parse error for a YAML
+// file with invalid syntax.
+//
+// Why it matters: malformed YAML should fail before any merge into inventory,
+// preserving the existing inventory state.
+// Inputs: a temp file containing invalid YAML. Outputs: a non-nil error naming
+// YAML parsing.
+// Data choice: the deliberately malformed token is the smallest local fixture
+// that reaches yaml.Unmarshal's error branch.
 func TestImportYAMLInvalidContent(t *testing.T) {
 	t.Cleanup(func() {
 		commands.FileFlag = ""
@@ -80,6 +99,15 @@ func TestImportYAMLInvalidContent(t *testing.T) {
 	}
 }
 
+// TestImportCSVRouting verifies Import gives CsvFlag precedence over FileFlag
+// and stores parsed BOM records through the CSV provider path.
+//
+// Why it matters: CLI callers can pass both flags, and CSV imports should not be
+// shadowed by a stale YAML file flag.
+// Inputs: CsvFlag set to the cables fixture and FileFlag set to an unused path.
+// Outputs: nil error and non-empty provider records.
+// Data choice: the cables fixture has known valid BOM rows, proving the CSV
+// route ran and persisted records.
 func TestImportCSVRouting(t *testing.T) {
 	fake := &fakeProvider{}
 	SetProviderGetter(func() interface {
@@ -109,6 +137,14 @@ func TestImportCSVRouting(t *testing.T) {
 	}
 }
 
+// TestImportCSVEmptyFile verifies ImportCSV wraps the parser error for a
+// header-only BOM CSV.
+//
+// Why it matters: a CSV with no data rows should be reported as invalid input,
+// not treated as an empty successful import.
+// Inputs: the empty.csv fixture containing only a header. Outputs: a non-nil
+// wrapped parse error.
+// Data choice: a header-only file isolates the parser's minimum-row guard.
 func TestImportCSVEmptyFile(t *testing.T) {
 	fake := &fakeProvider{}
 	SetProviderGetter(func() interface {
@@ -135,6 +171,17 @@ func TestImportCSVEmptyFile(t *testing.T) {
 	}
 }
 
+// TestMergeYAMLInventory verifies mergeYAMLInventory merges each YAML section,
+// migrates legacy rack slots, and rejects invalid UUID keys.
+//
+// Why it matters: file imports convert YAML string keys into typed inventory
+// maps, so every section must land under the intended UUID and malformed keys
+// must abort clearly.
+// Inputs: YAML inventory structs with valid locations, racks, devices, cables,
+// nil sections, and invalid keys for each section. Outputs: mutated inventory or
+// an error.
+// Data choice: one UUID per section proves each map merge, and the legacy slot
+// map proves rack migration remains wired.
 func TestMergeYAMLInventory(t *testing.T) {
 	locID := uuid.New()
 	rackID := uuid.New()
@@ -279,6 +326,15 @@ type fakeProvider struct{ records []CsvRecord }
 func (f *fakeProvider) ClearRecords()            { f.records = nil }
 func (f *fakeProvider) SetRecords(r []CsvRecord) { f.records = r }
 
+// TestImportCSV verifies ImportCSV stores valid BOM records and returns an error
+// for an unreadable CSV path.
+//
+// Why it matters: BOM CSV import is the raw-record handoff to transform, so it
+// must persist parsed records only after successful parsing.
+// Inputs: the cables fixture and a nonexistent CSV path. Outputs: nil or
+// non-nil errors.
+// Data choice: the fixture proves the provider handoff path, while the missing
+// file proves the wrapped open-error path.
 func TestImportCSV(t *testing.T) {
 	fake := &fakeProvider{}
 	SetProviderGetter(func() interface {
@@ -324,6 +380,15 @@ func TestImportCSV(t *testing.T) {
 	}
 }
 
+// TestFormatRawCSVRecord verifies formatRawCSVRecord builds the compact raw row
+// summary used by step mode.
+//
+// Why it matters: step mode shows this string to operators before persisting
+// records, so quantity, config group, and cable endpoint details must be visible.
+// Inputs: device, multi-quantity, config-group, and cable CsvRecord values.
+// Outputs: formatted raw summary strings.
+// Data choice: each record sets one optional display component, isolating the
+// formatter branches.
 func TestFormatRawCSVRecord(t *testing.T) {
 
 	tests := []struct {
@@ -370,11 +435,21 @@ func TestFormatRawCSVRecord(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := formatRawCSVRecord(tt.record)
 			if got != tt.expected {
-				t.Errorf("formatParsedRecord() = %q, want %q", got, tt.expected)
+				t.Errorf("formatRawCSVRecord() = %q, want %q", got, tt.expected)
 			}
 		})
 	}
 }
+
+// TestFormatParsedRecord verifies formatParsedRecord describes BOM records as
+// cable or device rows for step mode.
+//
+// Why it matters: operators rely on the parsed summary to confirm the importer's
+// interpretation of each raw row.
+// Inputs: an explicit cable record plus single- and multi-quantity device
+// records. Outputs: formatted parsed summary strings.
+// Data choice: the cable record proves endpoint formatting, and the two device
+// quantities prove singular and multiplication text.
 func TestFormatParsedRecord(t *testing.T) {
 
 	tests := []struct {
@@ -417,5 +492,376 @@ func TestFormatParsedRecord(t *testing.T) {
 				t.Errorf("formatParsedRecord() = %q, want %q", got, tt.expected)
 			}
 		})
+	}
+}
+
+// withStdin redirects os.Stdin to a pipe preloaded with input for the duration
+// of the test, then restores the original during cleanup.
+func withStdin(t *testing.T, input string) {
+	t.Helper()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe: %v", err)
+	}
+	old := os.Stdin
+	os.Stdin = r
+	t.Cleanup(func() {
+		os.Stdin = old
+		_ = r.Close()
+	})
+	go func() {
+		_, _ = io.WriteString(w, input)
+		_ = w.Close()
+	}()
+}
+
+// fakeSystemProvider records the system CSV data handed to it so tests can assert
+// the import wired ClearSystemRecords/SetSystemRecords correctly.
+type fakeSystemProvider struct {
+	data     *SystemCSV
+	isSystem bool
+	cleared  bool
+}
+
+func (f *fakeSystemProvider) SetSystemRecords(d *SystemCSV) { f.data = d }
+func (f *fakeSystemProvider) ClearSystemRecords()           { f.cleared = true }
+func (f *fakeSystemProvider) IsSystemImport() bool          { return f.isSystem }
+
+// newSystemProvider registers fake as the system provider and clears the getter
+// during cleanup, sparing each test the verbose interface literal.
+func newSystemProvider(t *testing.T, fake *fakeSystemProvider) {
+	t.Helper()
+	SetSystemProviderGetter(func() interface {
+		SetSystemRecords(data *SystemCSV)
+		ClearSystemRecords()
+		IsSystemImport() bool
+	} {
+		return fake
+	})
+	t.Cleanup(func() { systemProviderGetter = nil })
+}
+
+// setBOMProvider registers fake as the BOM record provider and clears the getter
+// during cleanup.
+func setBOMProvider(t *testing.T, fake *fakeProvider) {
+	t.Helper()
+	SetProviderGetter(func() interface {
+		ClearRecords()
+		SetRecords(records []CsvRecord)
+	} {
+		return fake
+	})
+	t.Cleanup(func() { providerGetter = nil })
+}
+
+// TestGetProvider_PanicsWhenUnset verifies GetProvider panics when no getter has
+// been registered.
+//
+// Why it matters: the import layer depends on the parent package injecting the
+// provider singleton, so a missing registration is a programming error that must
+// fail loudly rather than nil-deref later.
+// Inputs: providerGetter set to nil. Outputs: a recovered panic.
+// Data choice: nil is the only state that trips the guard, isolating the panic
+// path.
+func TestGetProvider_PanicsWhenUnset(t *testing.T) {
+	old := providerGetter
+	t.Cleanup(func() { providerGetter = old })
+	providerGetter = nil
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Error("expected panic when providerGetter is unset")
+			return
+		}
+		if got := r.(string); !strings.Contains(got, "providerGetter not set") {
+			t.Errorf("panic = %q, want providerGetter not set", got)
+		}
+	}()
+	GetProvider()
+}
+
+// TestSystemProviderGetter verifies the system provider round-trips through the
+// setter/getter and that retrieval panics when unset.
+//
+// Why it matters: system CSV import resolves the provider singleton through this
+// indirection to break an import cycle, so a registered getter must return the
+// same instance and a missing one must fail loudly.
+// Inputs: a fakeSystemProvider via the setter, then a nil getter. Outputs: the
+// identical provider instance, then a recovered panic.
+// Data choice: identity comparison proves the exact registered value is
+// returned; nil is the only state that trips the guard.
+func TestSystemProviderGetter(t *testing.T) {
+	t.Run("set and get round-trips the provider", func(t *testing.T) {
+		fake := &fakeSystemProvider{isSystem: true}
+		newSystemProvider(t, fake)
+		if got := GetSystemProvider(); got != fake {
+			t.Error("GetSystemProvider did not return the registered provider")
+		}
+	})
+	t.Run("panics when unset", func(t *testing.T) {
+		old := systemProviderGetter
+		t.Cleanup(func() { systemProviderGetter = old })
+		systemProviderGetter = nil
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Error("expected panic when systemProviderGetter is unset")
+				return
+			}
+			if got := r.(string); !strings.Contains(got, "systemProviderGetter not set") {
+				t.Errorf("panic = %q, want systemProviderGetter not set", got)
+			}
+		}()
+		GetSystemProvider()
+	})
+}
+
+// TestImportCSV_SystemRouting verifies ImportCSV detects a system CSV header and
+// stores the parsed system data on the provider.
+//
+// Why it matters: one import entry point serves both BOM and system CSV formats,
+// so a header carrying a Section column must route to the system parser and
+// persist its grouped records.
+// Inputs: the system.csv fixture and a fakeSystemProvider. Outputs: nil error;
+// the provider receives cleared-then-set data with 6 devices.
+// Data choice: the shared fixture has a known shape (6 devices), making the
+// routed-and-parsed assertion unambiguous.
+func TestImportCSV_SystemRouting(t *testing.T) {
+	fake := &fakeSystemProvider{}
+	newSystemProvider(t, fake)
+	t.Cleanup(func() { commands.CsvFlag = "" })
+	commands.CsvFlag = "../../../../testdata/fixtures/example/system.csv"
+	if err := ImportCSV(nil, nil, &devicetypes.Inventory{}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if fake.data == nil {
+		t.Fatal("expected system records to be set on the provider")
+	}
+	if !fake.cleared {
+		t.Error("expected ClearSystemRecords before SetSystemRecords")
+	}
+	if len(fake.data.Devices) != 6 {
+		t.Errorf("Devices = %d, want 6", len(fake.data.Devices))
+	}
+}
+
+// TestImportSystemCSV_NoRecords verifies a system CSV with no data sections is a
+// no-op that leaves the provider untouched.
+//
+// Why it matters: a defaults-only file carries no inventory, so the import must
+// skip persisting rather than store an empty payload.
+// Inputs: a temp CSV with a header and a single _defaults row. Outputs: nil
+// error; the provider's data is never set.
+// Data choice: a lone _defaults row is the smallest input that parses cleanly yet
+// yields zero section records, exercising the total==0 short-circuit.
+func TestImportSystemCSV_NoRecords(t *testing.T) {
+	fake := &fakeSystemProvider{}
+	newSystemProvider(t, fake)
+	t.Cleanup(func() { commands.CsvFlag = "" })
+	dir := t.TempDir()
+	path := dir + "/defaults-only.csv"
+	if err := os.WriteFile(path, []byte("Section,Status\n_defaults,Active\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	commands.CsvFlag = path
+	if err := ImportCSV(nil, nil, &devicetypes.Inventory{}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if fake.data != nil {
+		t.Error("expected no records to be set for a defaults-only CSV")
+	}
+}
+
+// TestImportBOMCSV_StepMode verifies BOM import drives the step-through prompt
+// once per record and then stores the records.
+//
+// Why it matters: step mode is the operator's interactive review path, so each
+// record must pause for confirmation before being persisted.
+// Inputs: a one-row temp CSV, StepMode enabled, and a stdin holding one newline.
+// Outputs: nil error; the provider receives the single record.
+// Data choice: exactly one record keeps the run to a single prompt, which is all
+// a fresh-per-row reader over a pipe can satisfy without hitting EOF.
+func TestImportBOMCSV_StepMode(t *testing.T) {
+	fake := &fakeProvider{}
+	setBOMProvider(t, fake)
+	config.Cfg = &config.Config{StepMode: true, NoColor: true}
+	t.Cleanup(func() {
+		config.Cfg = nil
+		commands.CsvFlag = ""
+	})
+	dir := t.TempDir()
+	path := dir + "/one.csv"
+	if err := os.WriteFile(path, []byte("PartNumber,Description,Quantity\nP1,Widget,1\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	commands.CsvFlag = path
+	withStdin(t, "\n")
+	if err := ImportCSV(nil, nil, nil); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(fake.records) != 1 {
+		t.Errorf("records = %d, want 1", len(fake.records))
+	}
+}
+
+// TestImportBOMCSV_StepModeInterrupted verifies BOM import aborts when the step
+// prompt's input stream closes.
+//
+// Why it matters: if the operator's input ends mid-review, the import must stop
+// and surface the interruption rather than silently persist unreviewed records.
+// Inputs: a one-row temp CSV, StepMode enabled, and an empty stdin that returns
+// EOF. Outputs: a non-nil "step interrupted" error.
+// Data choice: empty stdin is the minimal way to force the first prompt read to
+// fail immediately.
+func TestImportBOMCSV_StepModeInterrupted(t *testing.T) {
+	fake := &fakeProvider{}
+	setBOMProvider(t, fake)
+	config.Cfg = &config.Config{StepMode: true, NoColor: true}
+	t.Cleanup(func() {
+		config.Cfg = nil
+		commands.CsvFlag = ""
+	})
+	dir := t.TempDir()
+	path := dir + "/one.csv"
+	if err := os.WriteFile(path, []byte("PartNumber,Description,Quantity\nP1,Widget,1\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	commands.CsvFlag = path
+	withStdin(t, "")
+	err := ImportCSV(nil, nil, nil)
+	if err == nil {
+		t.Fatal("expected error when step prompt is interrupted")
+	}
+	if !strings.Contains(err.Error(), "step interrupted") {
+		t.Errorf("error = %q, want containing 'step interrupted'", err.Error())
+	}
+}
+
+// TestImport_MergeError verifies Import surfaces a merge failure from a YAML file
+// that parses but contains an invalid UUID key.
+//
+// Why it matters: YAML import maps string UUID keys onto inventory, so a
+// malformed key must abort with a clear error instead of producing a corrupt
+// inventory.
+// Inputs: a temp YAML file with a non-UUID location key. Outputs: a non-nil
+// "invalid location UUID" error.
+// Data choice: syntactically valid YAML with one bad key isolates merge-time
+// validation from parse errors.
+func TestImport_MergeError(t *testing.T) {
+	t.Cleanup(func() {
+		commands.FileFlag = ""
+		commands.CsvFlag = ""
+	})
+	dir := t.TempDir()
+	path := dir + "/bad-uuid.yaml"
+	if err := os.WriteFile(path, []byte("locations:\n  not-a-uuid:\n    Name: DC1\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	commands.CsvFlag = ""
+	commands.FileFlag = path
+	err := Import(nil, nil, &devicetypes.Inventory{})
+	if err == nil {
+		t.Fatal("expected error for invalid location UUID")
+	}
+	if !strings.Contains(err.Error(), "invalid location UUID") {
+		t.Errorf("error = %q, want containing 'invalid location UUID'", err.Error())
+	}
+}
+
+// TestPeekCSVHeader verifies the header peek returns the first row and errors on
+// a missing file.
+//
+// Why it matters: format auto-detection reads only the header to choose between
+// the BOM and system parsers, so it must return the columns and fail cleanly when
+// the file is absent.
+// Inputs: the system.csv fixture, then a nonexistent path. Outputs: the header
+// slice, then a non-nil error.
+// Data choice: the fixture's first column is the known "Section" sentinel; a
+// missing path is the simplest open failure.
+func TestPeekCSVHeader(t *testing.T) {
+	t.Run("returns header fields", func(t *testing.T) {
+		got, err := peekCSVHeader("../../../../testdata/fixtures/example/system.csv")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(got) == 0 || got[0] != "Section" {
+			t.Errorf("header = %v, want first column 'Section'", got)
+		}
+	})
+	t.Run("errors on missing file", func(t *testing.T) {
+		if _, err := peekCSVHeader("nonexistent.csv"); err == nil {
+			t.Error("expected error for missing file")
+		}
+	})
+	t.Run("errors on empty file", func(t *testing.T) {
+		dir := t.TempDir()
+		path := dir + "/empty.csv"
+		if err := os.WriteFile(path, []byte(""), 0644); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := peekCSVHeader(path); err == nil {
+			t.Error("expected error for empty file")
+		}
+	})
+}
+
+// TestImportCSV_SystemParseError verifies a system-routed CSV that fails to parse
+// surfaces a wrapped error.
+//
+// Why it matters: detection routes a Section header to the system parser, so a
+// truncated system file must fail with a clear, wrapped message instead of a
+// silent no-op.
+// Inputs: a temp CSV with a Section header but no data rows. Outputs: a non-nil
+// "failed to parse system CSV" error.
+// Data choice: a header-only file is the smallest input that detects as system
+// yet fails the parser's row-count guard.
+func TestImportCSV_SystemParseError(t *testing.T) {
+	fake := &fakeSystemProvider{}
+	newSystemProvider(t, fake)
+	t.Cleanup(func() { commands.CsvFlag = "" })
+	dir := t.TempDir()
+	path := dir + "/headeronly.csv"
+	if err := os.WriteFile(path, []byte("Section,Name\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	commands.CsvFlag = path
+	err := ImportCSV(nil, nil, &devicetypes.Inventory{})
+	if err == nil {
+		t.Fatal("expected error for unparseable system CSV")
+	}
+	if !strings.Contains(err.Error(), "failed to parse system CSV") {
+		t.Errorf("error = %q, want containing 'failed to parse system CSV'", err.Error())
+	}
+}
+
+// TestImportBOMCSV_NoValidRecords verifies a BOM CSV whose data rows are all
+// malformed is a no-op that stores nothing.
+//
+// Why it matters: when every row is dropped the import has nothing to persist, so
+// it must log and return nil rather than store an empty record set on the
+// provider.
+// Inputs: a temp CSV with a valid header and a single zero-quantity row, and a
+// fakeProvider. Outputs: nil error; the provider receives no records.
+// Data choice: a lone invalid row guarantees ParseCSV returns zero records with
+// no error, exercising the empty-records short-circuit.
+func TestImportBOMCSV_NoValidRecords(t *testing.T) {
+	fake := &fakeProvider{}
+	setBOMProvider(t, fake)
+	config.Cfg = &config.Config{}
+	t.Cleanup(func() {
+		config.Cfg = nil
+		commands.CsvFlag = ""
+	})
+	dir := t.TempDir()
+	path := dir + "/allbad.csv"
+	if err := os.WriteFile(path, []byte("PartNumber,Description,Quantity\nP1,Widget,0\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	commands.CsvFlag = path
+	if err := ImportCSV(nil, nil, nil); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if fake.records != nil {
+		t.Errorf("expected no records stored, got %d", len(fake.records))
 	}
 }
