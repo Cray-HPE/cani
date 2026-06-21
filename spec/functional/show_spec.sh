@@ -25,6 +25,71 @@
 
 # ── show command ────────────────────────────────────────────────────
 
+#shellcheck disable=SC2317
+setup_unicode_rack_env() {
+  setup_crud_env
+  python3 - <<'PY'
+import json
+import os
+
+path = os.environ["CANI_DS"]
+with open(path, encoding="utf-8") as f:
+  inv = json.load(f)
+
+rack_id = None
+rack_obj = None
+for candidate_id, rack in inv.get("racks", {}).items():
+  if rack.get("name") == "test-rack":
+    rack_id = candidate_id
+    rack_obj = rack
+    rack["uHeight"] = 4
+    rack["devices"] = []
+    break
+
+for device_id, device in inv.get("devices", {}).items():
+  if device.get("name") == "test-device":
+    device["name"] = "node-\u03bc-01"
+    if rack_id is not None:
+      device["parent"] = rack_id
+      device["rack"] = rack_id
+      if rack_obj is not None:
+        rack_obj["devices"].append(device_id)
+        rack_device = dict(rack_obj)
+        rack_device["type"] = "rack"
+        rack_device["children"] = [device_id]
+        inv["devices"][rack_id] = rack_device
+    break
+
+with open(path, "w", encoding="utf-8") as f:
+  json.dump(inv, f, indent=2)
+PY
+}
+
+#shellcheck disable=SC2317
+rack_lines_have_consistent_width() {
+  _rack_output="$(bin/cani alpha show rack test-rack --format classic --no-color --config "$CANI_CONF")" || return $?
+  RACK_OUTPUT="$_rack_output" python3 - <<'PY'
+import os
+import sys
+
+text = os.environ["RACK_OUTPUT"]
+if "node-\u03bc-01" not in text:
+  print("unicode device name missing")
+  sys.exit(1)
+
+prefixes = tuple(chr(v) for v in (0x250c, 0x2502, 0x251c, 0x2514))
+box_lines = [line for line in text.splitlines() if line.startswith(prefixes)]
+if not box_lines:
+  print("rack box output missing")
+  sys.exit(1)
+
+widths = {len(line) for line in box_lines}
+if len(widths) != 1:
+  print("inconsistent widths: " + ",".join(str(v) for v in sorted(widths)))
+  sys.exit(1)
+PY
+}
+
 Describe 'cani alpha show'
 
   # ── help & flags ────────────────────────────────────────────────
@@ -151,6 +216,15 @@ Describe 'cani alpha show'
       When call bin/cani alpha show rack test-rack --labels --config "$CANI_CONF"
       The status should equal 0
       The stdout should be present
+    End
+  End
+
+  Describe 'rack visual unicode width'
+    Before 'setup_unicode_rack_env'
+
+    It 'keeps rack border lines aligned with unicode device names'
+      When call rack_lines_have_consistent_width
+      The status should equal 0
     End
   End
 

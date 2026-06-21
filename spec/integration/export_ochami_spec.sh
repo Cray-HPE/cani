@@ -36,6 +36,14 @@ It 'export ochami matches fixture'
 	When call bin/cani alpha --config "$CANI_CONF" export ochami
 	The status should equal 0
 	The stderr should include 'Export completed successfully'
+	The stdout should include 'bmcs:'
+	The stdout should include 'nodes:'
+	The stdout should include '      mac:'
+	The stdout should include '      ip:'
+	The stdout should not include 'boot_mac:'
+	The stdout should not include 'nid:'
+	The stdout should not include 'hostname:'
+	The stdout should not include 'host_aliases:'
 	The stdout should satisfy fixture 'ochami/nodes_bmcs_v1alpha1.yml'
 End
 
