@@ -51,6 +51,7 @@ package devicetypes
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -850,5 +851,234 @@ func TestVerifyIdempotentNoDuplicateChildren(t *testing.T) {
 	}
 	if len(inv.Racks[rackID].Devices) != 1 {
 		t.Fatalf("expected 1 device, got %d", len(inv.Racks[rackID].Devices))
+	}
+}
+
+// TestFindInterfaceIDByPort verifies FindInterfaceIDByPort resolves a port name
+// to its interface UUID across a device's own interfaces, an attached module's
+// interfaces, and a directly addressed module.
+//
+// Why it matters: cable termination resolution looks up ports by name, so the
+// function must search a device's interfaces, then fall back to its modules,
+// and also accept a module ID directly — returning uuid.Nil when nothing
+// matches.
+// Inputs: a device with port "eth0", a module (parented to that device) with
+// port "mgmt0", and queries for "eth0", "mgmt0", a direct module-ID lookup of
+// "mgmt0", and a missing port. Outputs: the matching interface UUIDs, and
+// uuid.Nil for the miss and for an unknown device.
+// Data choice: distinct port names on the device vs. the module prove the
+// device-first / module-fallback ordering, and the direct module-ID query
+// exercises the early module branch that a device-only test would skip.
+func TestFindInterfaceIDByPort(t *testing.T) {
+	inv := NewInventory()
+	devID := uuid.New()
+	modID := uuid.New()
+	ethID := uuid.New()
+	mgmtID := uuid.New()
+
+	inv.Devices[devID] = &CaniDeviceType{
+		ID:   devID,
+		Name: "dev",
+		Interfaces: []InterfaceSpec{
+			{ID: ethID, Name: "eth0", Type: InterfacesElemTypeA1000BaseT},
+		},
+	}
+	inv.Modules[modID] = &CaniModuleType{
+		ID:           modID,
+		Name:         "nic",
+		ParentDevice: devID,
+		Interfaces: []InterfaceSpec{
+			{ID: mgmtID, Name: "mgmt0", Type: InterfacesElemTypeA1000BaseT},
+		},
+	}
+
+	if got := inv.FindInterfaceIDByPort(devID, "eth0"); got != ethID {
+		t.Errorf("device port lookup = %v, want %v", got, ethID)
+	}
+	if got := inv.FindInterfaceIDByPort(devID, "mgmt0"); got != mgmtID {
+		t.Errorf("module-fallback lookup = %v, want %v", got, mgmtID)
+	}
+	if got := inv.FindInterfaceIDByPort(modID, "mgmt0"); got != mgmtID {
+		t.Errorf("direct module lookup = %v, want %v", got, mgmtID)
+	}
+	if got := inv.FindInterfaceIDByPort(devID, "nope"); got != uuid.Nil {
+		t.Errorf("missing port = %v, want uuid.Nil", got)
+	}
+	if got := inv.FindInterfaceIDByPort(uuid.New(), "eth0"); got != uuid.Nil {
+		t.Errorf("unknown device = %v, want uuid.Nil", got)
+	}
+}
+
+// TestLogSummaryDebugLogsFixedAndWarnings verifies logSummary emits Fixed and
+// Warning entries only when Debug is enabled, while Errors are always logged.
+//
+// Why it matters: relationship rebuilds can produce large fix/warning lists;
+// gating them behind Debug keeps normal runs quiet, and a regression that
+// always or never logs would either spam operators or hide diagnostics.
+// Inputs: a result carrying one Fixed, one Warning, and one Error, invoked once
+// with Debug=true. Outputs: no panic and full traversal of the Debug-only
+// loops. Data choice: enabling Debug here is the only way to execute the Fixed
+// and Warnings branches that the existing Debug=false test cannot reach.
+func TestLogSummaryDebugLogsFixedAndWarnings(t *testing.T) {
+	orig := Debug
+	Debug = true
+	t.Cleanup(func() { Debug = orig })
+
+	r := &RelationshipResult{
+		Fixed:    []string{"fixed-item"},
+		Warnings: []string{"warning-item"},
+		Errors:   []error{fmt.Errorf("error-item")},
+	}
+	r.logSummary()
+}
+
+// TestValidateModuleRelationshipsNilAndNoParent verifies validateModuleRelationships
+// skips nil module entries and warns (without erroring) on a module that has no
+// parent device assigned.
+//
+// Why it matters: import data frequently contains modules not yet attached to a
+// device; these must surface as warnings rather than hard errors, and nil map
+// slots must never panic the validator.
+// Inputs: an inventory with a nil module entry and a module whose ParentDevice
+// is uuid.Nil. Outputs: no errors and exactly one warning. Data choice: pairing
+// the nil entry with an unparented module covers both the continue guard and the
+// warning branch that the happy-path and missing-device tests skip.
+func TestValidateModuleRelationshipsNilAndNoParent(t *testing.T) {
+	inv := NewInventory()
+	inv.Modules[uuid.New()] = nil
+	inv.Modules[uuid.New()] = &CaniModuleType{Name: "floating"}
+
+	res := inv.validateModuleRelationships()
+	if res.HasErrors() {
+		t.Fatalf("unexpected errors: %v", res.Errors)
+	}
+	if len(res.Warnings) != 1 {
+		t.Fatalf("expected 1 warning for unparented module, got %d: %v", len(res.Warnings), res.Warnings)
+	}
+}
+
+// TestRebuildCableRelationships verifies rebuildCableRelationships removes cables
+// whose endpoint devices were deleted and resolves termination interface UUIDs
+// from device + port names.
+//
+// Why it matters: after devices are removed or re-imported, cable terminations
+// must be re-resolved or pruned so the topology stays consistent; stale cables
+// would otherwise reference non-existent endpoints.
+// Inputs: an inventory with a device that has an "eth0" interface plus a cable
+// whose A-side names that device/port and whose B-side references a deleted
+// device. Outputs: the stale cable removed and, for a second valid cable, the
+// A-side TerminationA UUID resolved to the interface ID. Data choice: combining
+// a delete case and a resolve case in one inventory exercises both the prune
+// branch and the port-resolution branch of the loop.
+func TestRebuildCableRelationships(t *testing.T) {
+	inv := NewInventory()
+	devID := uuid.New()
+	ethID := uuid.New()
+	inv.Devices[devID] = &CaniDeviceType{
+		ID:   devID,
+		Name: "dev",
+		Interfaces: []InterfaceSpec{
+			{ID: ethID, Name: "eth0", Type: InterfacesElemTypeA1000BaseT},
+		},
+	}
+
+	staleID := uuid.New()
+	inv.Cables[staleID] = &CaniCableType{
+		Label:              "stale",
+		TerminationADevice: devID,
+		TerminationBDevice: uuid.New(), // deleted device -> cable pruned
+	}
+
+	resolveID := uuid.New()
+	inv.Cables[resolveID] = &CaniCableType{
+		Label:              "resolve",
+		TerminationADevice: devID,
+		TerminationAPort:   "eth0",
+	}
+
+	res := inv.rebuildCableRelationships()
+
+	if _, ok := inv.Cables[staleID]; ok {
+		t.Error("expected stale cable to be removed")
+	}
+	if inv.Cables[resolveID].TerminationA != ethID {
+		t.Errorf("TerminationA = %v, want resolved %v", inv.Cables[resolveID].TerminationA, ethID)
+	}
+	if len(res.Fixed) == 0 {
+		t.Error("expected Fixed entries for prune + resolve")
+	}
+}
+
+// TestRebuildCableRelationshipsBSideAndNoChange verifies rebuildCableRelationships
+// resolves the B-side termination and records no fix when a termination is
+// already correct.
+//
+// Why it matters: the B-side resolution branch mirrors the A-side and must work
+// independently, while an already-resolved cable should produce no spurious
+// "fixed" noise on repeated rebuilds (idempotency).
+// Inputs: an inventory with a device owning "eth1"; one cable whose B-side names
+// that device/port (needs resolving) and whose A-side TerminationA is already
+// set to the correct interface UUID. Outputs: TerminationB resolved to the
+// interface ID and no Fixed entry for the already-correct A-side. Data choice:
+// pre-setting TerminationA to the right value exercises the equality guard that
+// skips the redundant fix, isolating it from the B-side resolution.
+func TestRebuildCableRelationshipsBSideAndNoChange(t *testing.T) {
+	inv := NewInventory()
+	devID := uuid.New()
+	eth1ID := uuid.New()
+	inv.Devices[devID] = &CaniDeviceType{
+		ID:   devID,
+		Name: "dev",
+		Interfaces: []InterfaceSpec{
+			{ID: eth1ID, Name: "eth1", Type: InterfacesElemTypeA1000BaseT},
+		},
+	}
+
+	cableID := uuid.New()
+	inv.Cables[cableID] = &CaniCableType{
+		Label:              "b-resolve",
+		TerminationADevice: devID,
+		TerminationAPort:   "eth1",
+		TerminationA:       eth1ID, // already correct -> no fix
+		TerminationBDevice: devID,
+		TerminationBPort:   "eth1", // needs resolving
+	}
+
+	res := inv.rebuildCableRelationships()
+
+	if inv.Cables[cableID].TerminationB != eth1ID {
+		t.Errorf("TerminationB = %v, want resolved %v", inv.Cables[cableID].TerminationB, eth1ID)
+	}
+	for _, f := range res.Fixed {
+		if strings.Contains(f, "termination A") {
+			t.Errorf("unexpected fix for already-correct A-side: %q", f)
+		}
+	}
+}
+
+// TestUUIDSetsEqual verifies uuidSetsEqual reports equality only when both sets
+// hold exactly the same UUIDs.
+//
+// Why it matters: relationship rebuilds compare expected vs. actual child sets
+// to decide whether a change occurred; a faulty comparison would either report
+// phantom changes or silently drop real ones.
+// Inputs: two identical sets, a shorter set, and a same-length set with one
+// differing element. Outputs: true for the identical pair and false for the
+// length-mismatch and element-mismatch cases. Data choice: separating the
+// length and membership differences exercises both early-return branches of the
+// helper.
+func TestUUIDSetsEqual(t *testing.T) {
+	a := uuid.New()
+	b := uuid.New()
+	set := map[uuid.UUID]bool{a: true, b: true}
+
+	if !uuidSetsEqual(set, map[uuid.UUID]bool{a: true, b: true}) {
+		t.Error("identical sets should be equal")
+	}
+	if uuidSetsEqual(set, map[uuid.UUID]bool{a: true}) {
+		t.Error("different-length sets should not be equal")
+	}
+	if uuidSetsEqual(set, map[uuid.UUID]bool{a: true, uuid.New(): true}) {
+		t.Error("same-length sets with a different element should not be equal")
 	}
 }

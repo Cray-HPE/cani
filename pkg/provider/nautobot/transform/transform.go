@@ -61,12 +61,15 @@ func Transform(existing devicetypes.Inventory, raw *RawData) (*devicetypes.Trans
 
 // transformRaw runs all entity mappers against raw API data.
 func transformRaw(raw *RawData) (*devicetypes.TransformResult, error) {
+	statusNameMap := BuildStatusNameMap(raw.Statuses)
+	roleNameMap := BuildRoleNameMap(raw.Roles)
+
 	// 1. Locations – also produces Nautobot→CANI UUID map.
-	locations, locationMap := MapLocations(raw.Locations)
+	locations, locationMap := MapLocations(raw.Locations, statusNameMap)
 	clog.Detail("  Transformed %d locations", len(locations))
 
 	// 2. Racks.
-	racks, rackMap := MapRacks(raw.Racks, locationMap)
+	racks, rackMap := MapRacks(raw.Racks, locationMap, statusNameMap, roleNameMap)
 	clog.Detail("  Transformed %d racks", len(racks))
 
 	// 3. Pre-build lookup tables needed by devices, cables, modules.
@@ -74,19 +77,17 @@ func transformRaw(raw *RawData) (*devicetypes.TransformResult, error) {
 	deviceTypeMap := BuildDeviceTypeMap(raw.DeviceTypes)
 	ifaceMap := BuildInterfaceMap(raw.Interfaces)
 	moduleBayMap := BuildModuleBayMap(raw.ModuleBays)
-	statusNameMap := BuildStatusNameMap(raw.Statuses)
-	roleNameMap := BuildRoleNameMap(raw.Roles)
 
 	// 4. Devices.
 	devices, deviceMap := MapDevices(raw.Devices, rackMap, locationMap, deviceTypeMap, ifacesByDevice, statusNameMap, roleNameMap)
 	clog.Detail("  Transformed %d devices", len(devices))
 
 	// 5. Cables.
-	cables := MapCables(raw.Cables, deviceMap, ifaceMap)
+	cables := MapCables(raw.Cables, deviceMap, ifaceMap, statusNameMap)
 	clog.Detail("  Transformed %d cables", len(cables))
 
 	// 6. Modules.
-	modules := MapModules(raw.Modules, moduleBayMap, deviceMap)
+	modules := MapModules(raw.Modules, moduleBayMap, deviceMap, locationMap, statusNameMap, roleNameMap)
 	clog.Detail("  Transformed %d modules", len(modules))
 
 	// 7. FRUs (inventory items).

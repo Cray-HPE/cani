@@ -14,6 +14,7 @@ func MapCables(
 	raw []nautobotapi.Cable,
 	deviceMap map[uuid.UUID]uuid.UUID,
 	ifaceMap map[uuid.UUID]ifaceRef,
+	statusNameMap map[uuid.UUID]string,
 ) map[uuid.UUID]*devicetypes.CaniCableType {
 	result := make(map[uuid.UUID]*devicetypes.CaniCableType, len(raw))
 
@@ -27,7 +28,7 @@ func MapCables(
 		caniCable := &devicetypes.CaniCableType{
 			ID:         caniID,
 			Label:      strVal(cable.Label),
-			ObjectMeta: devicetypes.ObjectMeta{Status: strVal(cable.Status.Url)},
+			ObjectMeta: devicetypes.ObjectMeta{Status: resolveRefName(cable.Status, statusNameMap)},
 			Color:      strVal(cable.Color),
 		}
 
@@ -49,6 +50,7 @@ func MapCables(
 		termAIfaceID := uuid.UUID(cable.TerminationAId)
 		if ref, ok := ifaceMap[termAIfaceID]; ok {
 			if caniDevID, ok2 := deviceMap[ref.deviceID]; ok2 {
+				caniCable.TerminationA = termAIfaceID
 				caniCable.TerminationADevice = caniDevID
 				caniCable.TerminationAPort = ref.name
 			}
@@ -59,6 +61,7 @@ func MapCables(
 		termBIfaceID := uuid.UUID(cable.TerminationBId)
 		if ref, ok := ifaceMap[termBIfaceID]; ok {
 			if caniDevID, ok2 := deviceMap[ref.deviceID]; ok2 {
+				caniCable.TerminationB = termBIfaceID
 				caniCable.TerminationBDevice = caniDevID
 				caniCable.TerminationBPort = ref.name
 			}

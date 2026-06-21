@@ -312,3 +312,54 @@ func TestIndexDeviceMetadataSkipsNonMap(t *testing.T) {
 		t.Errorf("expected empty index for non-map metadata, got %v", idx)
 	}
 }
+
+// TestUnindexDeviceEarlyReturn verifies unindexDevice returns harmlessly when
+// the device is nil or carries no provider metadata.
+//
+// Why it matters: unindex runs during device removal on inventories that may be
+// only partially populated, so the guard must prevent nil-map panics rather
+// than assume every device is indexed.
+// Inputs: a device with no ProviderMetadata and a nil device pointer. Outputs:
+// no panic and no state change. Data choice: the two guard inputs are the only
+// ways to reach the early-return branch without side effects.
+func TestUnindexDeviceEarlyReturn(t *testing.T) {
+	inv := NewInventory()
+	inv.unindexDevice(uuid.New(), &CaniDeviceType{Name: "no-meta"})
+	inv.unindexDevice(uuid.New(), nil)
+}
+
+// TestUnindexDeviceSkipBranches verifies unindexDevice ignores non-map provider
+// values, unindexed providers, empty values, and unknown keys without disturbing
+// a legitimately indexed entry.
+//
+// Why it matters: device metadata is free-form, so unindex must defensively skip
+// shapes it cannot act on; a regression that mishandled them could delete the
+// wrong index entry and break provider-key lookups after a removal.
+// Inputs: an inventory indexed with one real hpcm key, then an unindex call
+// whose metadata mixes a non-map provider, an unindexed provider, an empty
+// value, and an unknown key. Outputs: the original index entry still resolves.
+// Data choice: each malformed entry maps one-to-one onto a continue branch,
+// while the surviving lookup proves none of them touched the real entry.
+func TestUnindexDeviceSkipBranches(t *testing.T) {
+	inv := NewInventory()
+	id := uuid.New()
+	inv.indexDevice(id, &CaniDeviceType{
+		ID: id,
+		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
+			"hpcm": map[string]any{"hpcm_uuid": "keep-me"},
+		}},
+	})
+
+	inv.unindexDevice(id, &CaniDeviceType{
+		ID: id,
+		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
+			"bad":     "not-a-map",                                   // non-map provider -> skip
+			"redfish": map[string]any{"x": "y"},                      // provider absent from index -> skip
+			"hpcm":    map[string]any{"hpcm_uuid": "", "other": "z"}, // empty value + unknown key -> skip
+		}},
+	})
+
+	if got := inv.lookupProviderKey("hpcm", "hpcm_uuid", "keep-me"); got != id {
+		t.Errorf("real entry should survive skip-only unindex, got %s", got)
+	}
+}

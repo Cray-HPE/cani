@@ -391,3 +391,200 @@ func TestLoadAllFailsOnBadDir(t *testing.T) {
 		t.Error("expected error when device-types dir is unreadable, got nil")
 	}
 }
+
+// TestLoadAllWithDirsAndEmptyEntries verifies LoadAll skips empty source
+// entries, loads types from a valid local directory, and ignores an empty repo
+// entry without touching git.
+//
+// Why it matters: operators pass dir/repo lists that often contain blank
+// entries; LoadAll must tolerate them and still register types from the real
+// directory, which is the common multi-source startup path.
+// Inputs: typesDirs of {"", validRoot} where validRoot has a device-types
+// YAML, and typesRepos of {""}. Outputs: no error and the directory's slug
+// registered. Data choice: pairing a blank entry with a real one in the same
+// slice exercises both the continue guard and the successful load branch, while
+// the blank repo covers the repo-loop guard without needing network access.
+func TestLoadAllWithDirsAndEmptyEntries(t *testing.T) {
+	resetRegistries()
+	defer func() { _ = loadAllEmbedded() }()
+
+	root := mkTmpDir(t)
+	writeYAML(t, filepath.Join(root, "device-types", "d.yaml"),
+		"slug: loadall-dev\nmanufacturer: Test\n")
+
+	err := LoadAll([]string{"", root}, []string{""}, false, false)
+	if err != nil {
+		t.Fatalf("LoadAll returned error: %v", err)
+	}
+	if _, ok := allDeviceTypes["loadall-dev"]; !ok {
+		t.Error("expected loadall-dev to be registered from valid dir")
+	}
+}
+
+// ---------- loader skip branches (empty slug + duplicate) ----------
+
+// TestLoadDeviceTypesFromDirSkipsEmptyAndDuplicate verifies loadDeviceTypesFromDir
+// skips documents with an empty slug and does not overwrite an already-registered
+// slug.
+//
+// Why it matters: device-type sources are layered by priority, so a lower-
+// priority directory must never clobber a slug already loaded, and malformed
+// slug-less docs must be ignored rather than registered as blanks.
+// Inputs: a pre-registered "dup-dev" (empty Model) and a one-file, two-document
+// YAML whose first doc has an empty slug and whose second re-declares "dup-dev"
+// with Model "Y". Outputs: no error and "dup-dev" retaining its original empty
+// Model. Data choice: the multi-document file exercises forEachYAMLDoc while
+// hitting both the empty-slug and duplicate-skip guards in one load.
+func TestLoadDeviceTypesFromDirSkipsEmptyAndDuplicate(t *testing.T) {
+	resetRegistries()
+	defer func() { _ = loadAllEmbedded() }()
+
+	RegisterDeviceType(CaniDeviceType{Slug: "dup-dev"})
+
+	dir := mkTmpDir(t)
+	writeYAML(t, filepath.Join(dir, "d.yaml"),
+		"slug: \"\"\nmodel: X\n---\nslug: dup-dev\nmodel: Y\n")
+
+	if err := loadDeviceTypesFromDir(dir, "src"); err != nil {
+		t.Fatalf("loadDeviceTypesFromDir error: %v", err)
+	}
+	if allDeviceTypes["dup-dev"].Model != "" {
+		t.Errorf("duplicate slug overwrote existing: %+v", allDeviceTypes["dup-dev"])
+	}
+}
+
+// TestLoadTypesFromDirSkipBranches verifies the module, cable, rack, and FRU
+// directory loaders all skip empty-slug and already-registered entries.
+//
+// Why it matters: each kind shares the same priority-layering contract as
+// devices, so a duplicate or slug-less file in a lower-priority directory must
+// be ignored for every type, not just device types.
+// Inputs: for each loader, a pre-registered "dup-<kind>" plus a directory
+// holding an empty-slug file and a duplicate-slug file. Outputs: no error and
+// the registry size unchanged after loading. Data choice: a separate empty and
+// duplicate file per loader (single-document loaders) isolates both guard
+// branches that the happy-path and invalid-YAML tests leave uncovered.
+func TestLoadTypesFromDirSkipBranches(t *testing.T) {
+	resetRegistries()
+	defer func() { _ = loadAllEmbedded() }()
+
+	RegisterModuleType(CaniModuleType{Slug: "dup-mod"})
+	RegisterCableType(CaniCableType{Slug: "dup-cable"})
+	RegisterRackType(CaniRackType{Slug: "dup-rack"})
+	RegisterFruType(CaniFruType{Slug: "dup-fru"})
+
+	mkDir := func(dup string) string {
+		dir := mkTmpDir(t)
+		writeYAML(t, filepath.Join(dir, "empty.yaml"), "slug: \"\"\nmodel: X\n")
+		writeYAML(t, filepath.Join(dir, "dup.yaml"), "slug: "+dup+"\nmodel: Y\n")
+		return dir
+	}
+
+	if err := loadModuleTypesFromDir(mkDir("dup-mod"), "src"); err != nil {
+		t.Fatalf("loadModuleTypesFromDir error: %v", err)
+	}
+	if err := loadCableTypesFromDir(mkDir("dup-cable"), "src"); err != nil {
+		t.Fatalf("loadCableTypesFromDir error: %v", err)
+	}
+	if err := loadRackTypesFromDir(mkDir("dup-rack"), "src"); err != nil {
+		t.Fatalf("loadRackTypesFromDir error: %v", err)
+	}
+	if err := loadFruTypesFromDir(mkDir("dup-fru"), "src"); err != nil {
+		t.Fatalf("loadFruTypesFromDir error: %v", err)
+	}
+
+	if allModuleTypes["dup-mod"].Model != "" || allCableTypes["dup-cable"].Model != "" ||
+		allRackTypes["dup-rack"].Model != "" || allFruTypes["dup-fru"].Model != "" {
+		t.Error("a duplicate slug overwrote an existing registered type")
+	}
+}
+
+// ---------- loadLocationTypesFromDir ----------
+
+// TestLoadLocationTypesFromDirHappyPath verifies loadLocationTypesFromDir parses
+// a location-type YAML file and registers it with the given source.
+//
+// Why it matters: location types define the site hierarchy; without this loader
+// path, directory-supplied location definitions would never reach the registry.
+// Inputs: a directory with a "test-loc-loader" location YAML and source
+// "test-source". Outputs: the slug present in allLocationTypes with its Source
+// set. Data choice: a single named location type mirrors the existing per-kind
+// loader tests and proves both parsing and registration succeed.
+func TestLoadLocationTypesFromDirHappyPath(t *testing.T) {
+	t.Cleanup(func() { delete(allLocationTypes, "test-loc-loader") })
+
+	dir := mkTmpDir(t)
+	writeYAML(t, filepath.Join(dir, "loc.yaml"),
+		"slug: test-loc-loader\nname: Test Location\n")
+
+	if err := loadLocationTypesFromDir(dir, "test-source"); err != nil {
+		t.Fatalf("loadLocationTypesFromDir returned error: %v", err)
+	}
+	lt, ok := allLocationTypes["test-loc-loader"]
+	if !ok {
+		t.Fatal("expected test-loc-loader in allLocationTypes")
+	}
+	if lt.Source != "test-source" {
+		t.Errorf("Source = %q, want %q", lt.Source, "test-source")
+	}
+}
+
+// TestLoadLocationTypesFromDirInvalidYAML verifies loadLocationTypesFromDir logs
+// and skips malformed YAML without returning an error or registering anything.
+//
+// Why it matters: a single corrupt location file must not abort loading the
+// rest of the library, matching the resilient behavior of the other loaders.
+// Inputs: a directory with one invalid YAML file. Outputs: a nil error and no
+// "bad" slug registered. Data choice: reusing the same invalid-YAML fixture as
+// the sibling loader tests keeps the failure mode consistent and targets the
+// unmarshal-error branch.
+func TestLoadLocationTypesFromDirInvalidYAML(t *testing.T) {
+	dir := mkTmpDir(t)
+	writeYAML(t, filepath.Join(dir, "bad.yaml"), "{{{{not valid yaml")
+
+	if err := loadLocationTypesFromDir(dir, "test-source"); err != nil {
+		t.Fatalf("expected no error for invalid YAML, got: %v", err)
+	}
+}
+
+// TestLoadTypesFromDirDebugLogging verifies the device and location loaders
+// register valid types and execute their Debug log path when Debug is enabled.
+//
+// Why it matters: operators troubleshooting library loading rely on the Debug
+// log lines, so those branches must run without altering the registration
+// outcome; this also confirms a fresh slug loads cleanly atop the embedded set.
+// Inputs: Debug toggled on, plus temp dirs holding one valid device YAML and one
+// valid location YAML with fresh slugs. Outputs: both slugs registered under the
+// given source. Data choice: enabling Debug is the only way to reach the
+// conditional log statements, and unique slugs avoid colliding with the embedded
+// library while cleanup removes exactly them.
+func TestLoadTypesFromDirDebugLogging(t *testing.T) {
+	orig := Debug
+	Debug = true
+	t.Cleanup(func() { Debug = orig })
+
+	devDir := mkTmpDir(t)
+	writeYAML(t, filepath.Join(devDir, "dev.yaml"),
+		"slug: dbg-dev-loader\nmanufacturer: Acme\nmodel: D1\n")
+	locDir := mkTmpDir(t)
+	writeYAML(t, filepath.Join(locDir, "loc.yaml"),
+		"slug: dbg-loc-loader\nname: Debug Location\n")
+	t.Cleanup(func() {
+		delete(allDeviceTypes, "dbg-dev-loader")
+		delete(allLocationTypes, "dbg-loc-loader")
+	})
+
+	if err := loadDeviceTypesFromDir(devDir, "dbg-source"); err != nil {
+		t.Fatalf("loadDeviceTypesFromDir: %v", err)
+	}
+	if err := loadLocationTypesFromDir(locDir, "dbg-source"); err != nil {
+		t.Fatalf("loadLocationTypesFromDir: %v", err)
+	}
+
+	if _, ok := allDeviceTypes["dbg-dev-loader"]; !ok {
+		t.Error("expected dbg-dev-loader registered with Debug on")
+	}
+	if _, ok := allLocationTypes["dbg-loc-loader"]; !ok {
+		t.Error("expected dbg-loc-loader registered with Debug on")
+	}
+}

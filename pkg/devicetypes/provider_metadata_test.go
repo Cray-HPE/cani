@@ -270,3 +270,118 @@ func TestMergePropertiesWithMetadata(t *testing.T) {
 		t.Errorf("bmc_fqdn = %v, want host.example.com", redfishMeta["bmc_fqdn"])
 	}
 }
+
+// TestGetProviderMetaTopLevelPlainKey verifies GetProviderMeta returns a
+// top-level non-map value directly, before scanning any provider sub-maps.
+//
+// Why it matters: some metadata is stored flat (not under a provider name), so
+// the fast-path that returns a plain top-level key must work and must not be
+// shadowed by the sub-map scan.
+// Inputs: metadata holding a plain "tag" key alongside a "redfish" sub-map.
+// Outputs: the plain value for "tag", and the nested value for a sub-map key.
+// Data choice: mixing a scalar top-level key with a map entry exercises both the
+// isMap skip guard and the plain-key return that an all-sub-map fixture misses.
+func TestGetProviderMetaTopLevelPlainKey(t *testing.T) {
+	dev := &CaniDeviceType{
+		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
+			"tag":     "flat-value",
+			"redfish": map[string]any{"redfish_uuid": "abc-123"},
+		}},
+	}
+
+	if v, ok := dev.GetProviderMeta("tag"); !ok || v != "flat-value" {
+		t.Errorf("GetProviderMeta(tag) = %v, %v; want flat-value, true", v, ok)
+	}
+	if v, ok := dev.GetProviderMeta("redfish_uuid"); !ok || v != "abc-123" {
+		t.Errorf("GetProviderMeta(redfish_uuid) = %v, %v; want abc-123, true", v, ok)
+	}
+}
+
+// TestGetImportSource verifies GetImportSource returns the stored string,
+// empty when the provider sub-map is absent, and empty when the value is not a
+// string.
+//
+// Why it matters: import_source records provenance used during reconciliation;
+// callers rely on a clean empty string (never a panic) for missing or
+// malformed values.
+// Inputs: a meta with redfish.import_source set to a string, a query for an
+// absent "csm" provider, and a meta whose import_source is an int. Outputs: the
+// string, "", and "" respectively. Data choice: the int value forces the failed
+// string type-assertion branch distinct from the missing-sub-map branch.
+func TestGetImportSource(t *testing.T) {
+	good := &ObjectMeta{ProviderMetadata: map[string]any{
+		"redfish": map[string]any{"import_source": "inv.json"},
+	}}
+	if got := good.GetImportSource("redfish"); got != "inv.json" {
+		t.Errorf("GetImportSource(redfish) = %q, want inv.json", got)
+	}
+	if got := good.GetImportSource("csm"); got != "" {
+		t.Errorf("GetImportSource(absent) = %q, want empty", got)
+	}
+
+	badType := &ObjectMeta{ProviderMetadata: map[string]any{
+		"redfish": map[string]any{"import_source": 42},
+	}}
+	if got := badType.GetImportSource("redfish"); got != "" {
+		t.Errorf("GetImportSource(non-string) = %q, want empty", got)
+	}
+}
+
+// TestProviderMetadataEdgeCases verifies the sub-map accessors and mutators
+// handle nil receivers, absent keys, non-map values, and lazy creation.
+//
+// Why it matters: provider metadata is read and written on partially populated
+// objects throughout import/merge; every accessor must degrade to a safe empty
+// result and every mutator must create or replace storage without panicking.
+// Inputs: a nil *ObjectMeta, an empty meta, and a meta mixing a scalar key with
+// a real sub-map, exercised through GetProviderSubMap, SetProviderMeta, and
+// FlattenProviderMetadata. Outputs: (nil,false) for invalid reads, freshly
+// created/replaced sub-maps for writes, and a flattened map combining scalar and
+// nested keys. Data choice: a scalar stored where a provider sub-map is expected
+// forces the non-map type-assertion and replace branches that map-only fixtures
+// never reach.
+func TestProviderMetadataEdgeCases(t *testing.T) {
+	var nilMeta *ObjectMeta
+	if sub, ok := nilMeta.GetProviderSubMap("redfish"); ok || sub != nil {
+		t.Error("GetProviderSubMap(nil receiver) should be (nil,false)")
+	}
+	if _, ok := (&ObjectMeta{}).GetProviderSubMap("redfish"); ok {
+		t.Error("GetProviderSubMap(nil map) should be false")
+	}
+
+	meta := &ObjectMeta{ProviderMetadata: map[string]any{
+		"scalar":  "not-a-map",
+		"redfish": map[string]any{"k": "v"},
+	}}
+	if _, ok := meta.GetProviderSubMap("absent"); ok {
+		t.Error("GetProviderSubMap(absent key) should be false")
+	}
+	if _, ok := meta.GetProviderSubMap("scalar"); ok {
+		t.Error("GetProviderSubMap(non-map value) should be false")
+	}
+	if sub, ok := meta.GetProviderSubMap("redfish"); !ok || sub["k"] != "v" {
+		t.Error("GetProviderSubMap(map value) should resolve")
+	}
+
+	nilMeta.SetProviderMeta("redfish", "k", "v") // nil receiver must not panic
+
+	created := &ObjectMeta{}
+	created.SetProviderMeta("csm", "id", "x1")
+	if sub, _ := created.GetProviderSubMap("csm"); sub["id"] != "x1" {
+		t.Error("SetProviderMeta should create a sub-map")
+	}
+
+	replace := &ObjectMeta{ProviderMetadata: map[string]any{"csm": "was-scalar"}}
+	replace.SetProviderMeta("csm", "id", "x2")
+	if sub, ok := replace.GetProviderSubMap("csm"); !ok || sub["id"] != "x2" {
+		t.Error("SetProviderMeta should replace a non-map value with a sub-map")
+	}
+
+	if (&ObjectMeta{}).FlattenProviderMetadata() != nil {
+		t.Error("FlattenProviderMetadata(nil map) should be nil")
+	}
+	flat := meta.FlattenProviderMetadata()
+	if flat["scalar"] != "not-a-map" || flat["k"] != "v" {
+		t.Errorf("FlattenProviderMetadata mixed = %v", flat)
+	}
+}

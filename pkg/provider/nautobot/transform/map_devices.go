@@ -39,11 +39,11 @@ func MapDevices(
 		nbToCani[nbID] = caniID
 
 		caniDev := &devicetypes.CaniDeviceType{
-			ID:          caniID,
-			Name:        strVal(dev.Name),
-			ObjectMeta:  devicetypes.ObjectMeta{Status: resolveRefName(dev.Status, statusNameMap), ExternalIDs: map[string]uuid.UUID{"nautobot": nbID}},
-			Serial:      strVal(dev.Serial),
-			Description: strVal(dev.Comments),
+			ID:         caniID,
+			Name:       strVal(dev.Name),
+			ObjectMeta: devicetypes.ObjectMeta{Status: resolveRefName(dev.Status, statusNameMap), ExternalIDs: map[string]uuid.UUID{"nautobot": nbID}},
+			Serial:     strVal(dev.Serial),
+			Comments:   strVal(dev.Comments),
 		}
 		if dev.AssetTag != nil {
 			caniDev.AssetTag = *dev.AssetTag
@@ -71,6 +71,12 @@ func MapDevices(
 			}
 		}
 
+		// Resolve explicit location.
+		locNBID := refIDVal(dev.Location)
+		if caniLocID, ok := locationMap[locNBID]; ok {
+			caniDev.Location = caniLocID
+		}
+
 		// Rack position and face.
 		// Nautobot requires rack, position, and face to be set together;
 		// default face to "front" when a position is present.
@@ -91,12 +97,16 @@ func MapDevices(
 				if iface.MgmtOnly != nil {
 					mgmt = *iface.MgmtOnly
 				}
+				ifaceID := directUUID(iface.Id)
+				if ifaceID == uuid.Nil {
+					ifaceID = uuid.New()
+				}
 				ifaceType := ""
 				if iface.Type.Value != nil {
 					ifaceType = string(*iface.Type.Value)
 				}
 				spec := devicetypes.InterfaceSpec{
-					ID:         uuid.New(),
+					ID:         ifaceID,
 					Name:       iface.Name,
 					Type:       devicetypes.InterfacesElemType(ifaceType),
 					Label:      strVal(iface.Label),
@@ -107,9 +117,8 @@ func MapDevices(
 			}
 		}
 
-		// Infer hardware type from role/device type.
-		if dev.Role.Url != nil {
-			caniDev.Role = resolveRefName(dev.Role, roleNameMap)
+		if roleName := resolveRefName(dev.Role, roleNameMap); roleName != "" {
+			caniDev.Role = roleName
 		}
 
 		if dev.CustomFields != nil {

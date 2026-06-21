@@ -12,6 +12,14 @@ import (
 
 // ---------- isLegacyDatastore ----------
 
+// TestIsLegacyDatastoreV1Alpha1 verifies a v1alpha1 datastore fixture is detected as legacy.
+//
+// Why it matters: JSONStore.Load only backs up and migrates old CRUD inventory
+// data when this detector recognizes the legacy file shape.
+// Inputs: the canitestdb_v1alpha1.json fixture. Outputs: true from
+// isLegacyDatastore.
+// Data choice: the fixture is a representative legacy datastore with Hardware
+// records and an explicit v1alpha1 schema version.
 func TestIsLegacyDatastoreV1Alpha1(t *testing.T) {
 	raw, err := os.ReadFile("../../testdata/fixtures/cani/legacy/canitestdb_v1alpha1.json")
 	if err != nil {
@@ -22,6 +30,14 @@ func TestIsLegacyDatastoreV1Alpha1(t *testing.T) {
 	}
 }
 
+// TestIsLegacyDatastoreV1Alpha2 verifies a current inventory is not treated as legacy.
+//
+// Why it matters: current datastore files must load normally so CRUD data is not
+// unnecessarily backed up or rewritten through the legacy migration path.
+// Inputs: a freshly marshaled v1alpha2-or-newer Inventory. Outputs: false from
+// isLegacyDatastore.
+// Data choice: devicetypes.NewInventory provides the canonical current datastore
+// shape used by JSONStore.Save.
 func TestIsLegacyDatastoreV1Alpha2(t *testing.T) {
 	inv := devicetypes.NewInventory()
 	data, _ := json.Marshal(inv)
@@ -30,12 +46,27 @@ func TestIsLegacyDatastoreV1Alpha2(t *testing.T) {
 	}
 }
 
+// TestIsLegacyDatastoreInvalidJSON verifies malformed JSON is not classified as legacy.
+//
+// Why it matters: invalid datastore contents should surface as parse errors in
+// Load instead of being routed into migration.
+// Inputs: invalid JSON bytes. Outputs: false from isLegacyDatastore.
+// Data choice: the malformed object is the smallest input that exercises the
+// detector's unmarshal guard.
 func TestIsLegacyDatastoreInvalidJSON(t *testing.T) {
 	if isLegacyDatastore([]byte("{bad json}")) {
 		t.Error("invalid JSON should not be detected as legacy")
 	}
 }
 
+// TestIsLegacyDatastoreEmptyHardware verifies schema alone is not enough for legacy detection.
+//
+// Why it matters: migration requires Hardware records; classifying a file without
+// them as migratable would risk producing incomplete inventory state.
+// Inputs: JSON with SchemaVersion v1alpha1 and no Hardware key. Outputs: false
+// from isLegacyDatastore.
+// Data choice: the fixture isolates the missing Hardware condition from all
+// other legacy fields.
 func TestIsLegacyDatastoreEmptyHardware(t *testing.T) {
 	raw := []byte(`{"SchemaVersion":"v1alpha1"}`)
 	if isLegacyDatastore(raw) {
@@ -54,6 +85,54 @@ func loadFixture(t *testing.T) []byte {
 	return raw
 }
 
+func assertMetadataInt(t *testing.T, csm map[string]any, key string, want int) {
+	t.Helper()
+
+	got, ok := metadataInt(csm[key])
+	if !ok {
+		t.Fatalf("%s unexpected type %T", key, csm[key])
+	}
+	if got != want {
+		t.Fatalf("%s = %d, want %d", key, got, want)
+	}
+}
+
+func metadataInt(value any) (int, bool) {
+	switch v := value.(type) {
+	case int:
+		return v, true
+	case float64:
+		return int(v), true
+	default:
+		return 0, false
+	}
+}
+
+func assertMetadataStringSlice(t *testing.T, csm map[string]any, key string, want []string) {
+	t.Helper()
+
+	got, ok := csm[key].([]string)
+	if !ok {
+		t.Fatalf("%s unexpected type %T", key, csm[key])
+	}
+	if len(got) != len(want) {
+		t.Fatalf("%s length = %d, want %d", key, len(got), len(want))
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("%s = %v, want %v", key, got, want)
+		}
+	}
+}
+
+// TestMigrateSchemaVersion verifies v1alpha1 migration writes the current schema version.
+//
+// Why it matters: migrated CRUD inventory must be saved in the new datastore
+// schema so future loads skip the legacy migration path.
+// Inputs: the legacy canitest fixture. Outputs: an Inventory whose SchemaVersion
+// is v1alpha2.
+// Data choice: the fixture contains enough legacy hardware records to exercise a
+// real migration rather than a schema-only probe.
 func TestMigrateSchemaVersion(t *testing.T) {
 	inv, err := migrateV1Alpha1(loadFixture(t))
 	if err != nil {
@@ -64,6 +143,13 @@ func TestMigrateSchemaVersion(t *testing.T) {
 	}
 }
 
+// TestMigrateProvider verifies the legacy provider field is preserved.
+//
+// Why it matters: provider-specific CRUD/import data relies on the inventory's
+// provider identity after migration.
+// Inputs: the legacy canitest fixture. Outputs: an Inventory with Provider csm.
+// Data choice: the fixture's Provider value is csm, matching the metadata stored
+// on the migrated hardware records.
 func TestMigrateProvider(t *testing.T) {
 	inv, err := migrateV1Alpha1(loadFixture(t))
 	if err != nil {
@@ -74,6 +160,14 @@ func TestMigrateProvider(t *testing.T) {
 	}
 }
 
+// TestMigrateSystemBecomesLocation verifies the legacy System record becomes a location.
+//
+// Why it matters: migrated devices and racks need a valid location hierarchy so
+// later CRUD operations can preserve physical placement.
+// Inputs: the legacy canitest fixture. Outputs: a system location with active
+// status at the legacy System UUID.
+// Data choice: the fixed System UUID identifies the root hardware record in the
+// fixture and makes the location mapping explicit.
 func TestMigrateSystemBecomesLocation(t *testing.T) {
 	inv, err := migrateV1Alpha1(loadFixture(t))
 	if err != nil {
@@ -92,6 +186,14 @@ func TestMigrateSystemBecomesLocation(t *testing.T) {
 	}
 }
 
+// TestMigrateCabinetCreatesDeviceAndRack verifies a cabinet produces both device and rack records.
+//
+// Why it matters: legacy cabinet data has to remain addressable as hardware while
+// also creating the rack parent used by child device placement.
+// Inputs: the legacy canitest fixture. Outputs: a cabinet device whose parent is
+// a migrated rack with matching cabinet content.
+// Data choice: the fixture cabinet has a stable UUID, name, vendor, and model so
+// identity and descriptive fields can be asserted directly.
 func TestMigrateCabinetCreatesDeviceAndRack(t *testing.T) {
 	inv, err := migrateV1Alpha1(loadFixture(t))
 	if err != nil {
@@ -111,11 +213,26 @@ func TestMigrateCabinetCreatesDeviceAndRack(t *testing.T) {
 		t.Fatal("No racks created for cabinet")
 	}
 	// The cabinet device should point at the rack.
-	if _, ok := inv.Racks[dev.Parent]; !ok {
+	rack, ok := inv.Racks[dev.Parent]
+	if !ok {
 		t.Errorf("Cabinet device parent %v does not exist in Racks", dev.Parent)
+	}
+	if rack != nil && rack.Name != dev.Name {
+		t.Errorf("Rack Name = %q, want cabinet device name %q", rack.Name, dev.Name)
+	}
+	if rack != nil && rack.UHeight != 42 {
+		t.Errorf("Rack UHeight = %d, want 42", rack.UHeight)
 	}
 }
 
+// TestMigrateCabinetHMNVlan verifies cabinet CSM metadata keeps the HMN VLAN.
+//
+// Why it matters: data integrity for migrated cabinets includes provider-specific
+// metadata used by later import/export workflows.
+// Inputs: the legacy canitest fixture. Outputs: cabinet ProviderMetadata.csm with
+// hmnVlan equal to 1513.
+// Data choice: VLAN 1513 is the fixture value and is distinctive enough to catch
+// missing or mis-typed metadata.
 func TestMigrateCabinetHMNVlan(t *testing.T) {
 	inv, err := migrateV1Alpha1(loadFixture(t))
 	if err != nil {
@@ -131,20 +248,17 @@ func TestMigrateCabinetHMNVlan(t *testing.T) {
 	if !ok {
 		t.Fatal("Cabinet csm metadata missing hmnVlan")
 	}
-	// JSON numbers unmarshal as float64 through intermediate map[string]any.
-	if v, ok := vlan.(int); ok {
-		if v != 1513 {
-			t.Errorf("hmnVlan = %d, want 1513", v)
-		}
-	} else if v, ok := vlan.(float64); ok {
-		if int(v) != 1513 {
-			t.Errorf("hmnVlan = %v, want 1513", v)
-		}
-	} else {
-		t.Errorf("hmnVlan unexpected type %T", vlan)
-	}
+	assertMetadataInt(t, map[string]any{"hmnVlan": vlan}, "hmnVlan", 1513)
 }
 
+// TestMigrateNodeBladeMapped verifies legacy NodeBlade records map to blade devices.
+//
+// Why it matters: preserving device type during migration keeps downstream CRUD,
+// classification, and export behavior from treating blades as generic devices.
+// Inputs: the legacy canitest fixture. Outputs: a migrated device with TypeBlade
+// at the legacy NodeBlade UUID.
+// Data choice: the fixture's NodeBlade UUID isolates the type-mapping case from
+// cabinet and node migration cases.
 func TestMigrateNodeBladeMapped(t *testing.T) {
 	inv, err := migrateV1Alpha1(loadFixture(t))
 	if err != nil {
@@ -160,6 +274,14 @@ func TestMigrateNodeBladeMapped(t *testing.T) {
 	}
 }
 
+// TestMigrateNodeMetadata verifies node role and subrole metadata are preserved.
+//
+// Why it matters: migrated node provider metadata informs later selection,
+// classification, and export decisions after datastore load.
+// Inputs: the legacy canitest fixture. Outputs: the node's csm metadata contains
+// role Compute and subRole Worker.
+// Data choice: the fixture node carries both fields, proving multiple metadata
+// keys survive migration.
 func TestMigrateNodeMetadata(t *testing.T) {
 	inv, err := migrateV1Alpha1(loadFixture(t))
 	if err != nil {
@@ -182,6 +304,14 @@ func TestMigrateNodeMetadata(t *testing.T) {
 	}
 }
 
+// TestMigrateNodeNidAndAliases verifies node NID and alias metadata are preserved.
+//
+// Why it matters: NID and aliases are provider identity data that must survive
+// migration for idempotent imports and user-facing lookups.
+// Inputs: the legacy canitest fixture. Outputs: csm metadata with nid 1001 and
+// alias nid001001.
+// Data choice: the fixture includes numeric and list-shaped metadata so the test
+// covers both decoded value forms.
 func TestMigrateNodeNidAndAliases(t *testing.T) {
 	inv, err := migrateV1Alpha1(loadFixture(t))
 	if err != nil {
@@ -190,39 +320,18 @@ func TestMigrateNodeNidAndAliases(t *testing.T) {
 	nodeID := uuid.MustParse("00000001-0000-0000-0000-000000000005")
 	csm, _ := inv.Devices[nodeID].GetProviderSubMap("csm")
 
-	nid := csm["nid"]
-	switch v := nid.(type) {
-	case int:
-		if v != 1001 {
-			t.Errorf("nid = %d, want 1001", v)
-		}
-	case float64:
-		if int(v) != 1001 {
-			t.Errorf("nid = %v, want 1001", v)
-		}
-	default:
-		t.Errorf("nid unexpected type %T", nid)
-	}
-
-	aliases, ok := csm["aliases"]
-	if !ok {
-		t.Fatal("Node missing aliases in csm metadata")
-	}
-	list, ok := aliases.([]string)
-	if !ok {
-		// Could be []interface{} after JSON round-trip
-		if iface, ok := aliases.([]interface{}); ok {
-			if len(iface) != 1 {
-				t.Errorf("aliases length = %d, want 1", len(iface))
-			}
-		} else {
-			t.Errorf("aliases unexpected type %T", aliases)
-		}
-	} else if len(list) != 1 || list[0] != "nid001001" {
-		t.Errorf("aliases = %v, want [nid001001]", list)
-	}
+	assertMetadataInt(t, csm, "nid", 1001)
+	assertMetadataStringSlice(t, csm, "aliases", []string{"nid001001"})
 }
 
+// TestMigrateLocationOrdinalInMetadata verifies legacy location ordinals move into metadata.
+//
+// Why it matters: location ordinal is part of CSM placement identity and must not
+// be dropped when legacy hardware becomes new inventory records.
+// Inputs: the legacy canitest fixture. Outputs: cabinet csm metadata with
+// locationOrdinal 3000.
+// Data choice: cabinet ordinal 3000 is the fixture value and identifies the
+// cabinet placement branch.
 func TestMigrateLocationOrdinalInMetadata(t *testing.T) {
 	inv, err := migrateV1Alpha1(loadFixture(t))
 	if err != nil {
@@ -230,21 +339,17 @@ func TestMigrateLocationOrdinalInMetadata(t *testing.T) {
 	}
 	cabinetID := uuid.MustParse("00000001-0000-0000-0000-000000000002")
 	csm, _ := inv.Devices[cabinetID].GetProviderSubMap("csm")
-	ord := csm["locationOrdinal"]
-	switch v := ord.(type) {
-	case int:
-		if v != 3000 {
-			t.Errorf("locationOrdinal = %d, want 3000", v)
-		}
-	case float64:
-		if int(v) != 3000 {
-			t.Errorf("locationOrdinal = %v, want 3000", v)
-		}
-	default:
-		t.Errorf("locationOrdinal unexpected type %T", ord)
-	}
+	assertMetadataInt(t, csm, "locationOrdinal", 3000)
 }
 
+// TestMigrateDeviceCount verifies migration creates the expected inventory object counts.
+//
+// Why it matters: object counts catch broad data loss across the legacy System,
+// Cabinet, Chassis, NodeBlade, and Node records.
+// Inputs: the five-record legacy canitest fixture. Outputs: four devices, one
+// location, and one rack.
+// Data choice: the fixture mixes records that migrate to different inventory maps
+// so the counts prove the high-level split.
 func TestMigrateDeviceCount(t *testing.T) {
 	inv, err := migrateV1Alpha1(loadFixture(t))
 	if err != nil {
@@ -265,6 +370,14 @@ func TestMigrateDeviceCount(t *testing.T) {
 
 // ---------- backupDatastore ----------
 
+// TestBackupDatastore verifies backupDatastore copies a datastore to .canisave.
+//
+// Why it matters: legacy migration must preserve the original datastore before
+// rewriting CRUD inventory data on disk.
+// Inputs: a temporary canidb.json file containing known JSON bytes. Outputs: a
+// .canisave file with identical bytes.
+// Data choice: the small JSON payload makes byte-for-byte backup integrity easy
+// to assert.
 func TestBackupDatastore(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "canidb.json")
@@ -288,6 +401,14 @@ func TestBackupDatastore(t *testing.T) {
 
 // ---------- mapLegacyType ----------
 
+// TestMapLegacyType verifies known legacy hardware types map to current types.
+//
+// Why it matters: migrated devices need the right current Type values for CRUD,
+// classification, and export behavior after datastore migration.
+// Inputs: representative legacy hardware type strings. Outputs: the expected
+// devicetypes.Type values.
+// Data choice: the table covers cabinet, chassis, node, switch, PDU, CDU, and
+// module mappings that have explicit switch cases.
 func TestMapLegacyType(t *testing.T) {
 	tests := []struct {
 		input string
@@ -316,6 +437,14 @@ func TestMapLegacyType(t *testing.T) {
 
 // ---------- round-trip ----------
 
+// TestMigrateRoundTrip verifies migrated inventory content survives JSON encoding and decoding.
+//
+// Why it matters: after migration, JSONStore.Save writes this structure back to
+// disk; identity, relationships, and metadata must remain intact on reload.
+// Inputs: the migrated legacy canitest fixture encoded to JSON and decoded into a
+// new Inventory. Outputs: matching schema, provider, counts, IDs, and metadata.
+// Data choice: the fixture contains locations, racks, devices, and CSM metadata,
+// giving the round trip meaningful data-integrity coverage.
 func TestMigrateRoundTrip(t *testing.T) {
 	inv, err := migrateV1Alpha1(loadFixture(t))
 	if err != nil {
@@ -348,10 +477,34 @@ func TestMigrateRoundTrip(t *testing.T) {
 	if len(loaded.Locations) != len(inv.Locations) {
 		t.Errorf("round-trip location count = %d, want %d", len(loaded.Locations), len(inv.Locations))
 	}
+	nodeID := uuid.MustParse("00000001-0000-0000-0000-000000000005")
+	node, ok := loaded.Devices[nodeID]
+	if !ok {
+		t.Fatalf("round-trip node %s missing", nodeID)
+	}
+	wantNode := inv.Devices[nodeID]
+	if node.Name != wantNode.Name || node.Type != wantNode.Type {
+		t.Errorf("round-trip node = %q/%q, want %q/%q", node.Name, node.Type, wantNode.Name, wantNode.Type)
+	}
+	csm, ok := node.GetProviderSubMap("csm")
+	if !ok {
+		t.Fatal("round-trip node missing csm provider metadata")
+	}
+	if role, _ := csm["role"].(string); role != "Compute" {
+		t.Errorf("round-trip node role = %q, want Compute", role)
+	}
 }
 
 // ---------- Load integration ----------
 
+// TestLoadMigratesLegacyDatastore verifies Load backs up and rewrites legacy datastores.
+//
+// Why it matters: users opening old datastore files should keep their original
+// data and receive a current inventory file with migrated CRUD records.
+// Inputs: a temporary copy of the legacy canitest datastore. Outputs: a migrated
+// inventory, .canisave backup, and non-legacy on-disk JSON.
+// Data choice: copying the fixture into t.TempDir isolates the rewrite while
+// exercising the real JSONStore.Load migration path.
 func TestLoadMigratesLegacyDatastore(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "canidb.json")
@@ -387,10 +540,30 @@ func TestLoadMigratesLegacyDatastore(t *testing.T) {
 	if isLegacyDatastore(reread) {
 		t.Error("on-disk file should no longer be detected as legacy")
 	}
+
+	var saved devicetypes.Inventory
+	if err := json.Unmarshal(reread, &saved); err != nil {
+		t.Fatalf("unmarshaling migrated file: %v", err)
+	}
+	nodeID := uuid.MustParse("00000001-0000-0000-0000-000000000005")
+	if saved.Devices[nodeID] == nil {
+		t.Fatalf("migrated on-disk file missing node %s", nodeID)
+	}
+	if saved.Devices[nodeID].Name != inv.Devices[nodeID].Name {
+		t.Fatalf("migrated on-disk node name = %q, want %q", saved.Devices[nodeID].Name, inv.Devices[nodeID].Name)
+	}
 }
 
 // ---------- migrateInventoryMetadata ----------
 
+// TestMigrateInventoryMetadataFromOldFormat verifies old providerMetadata catalogs move into Metadata.
+//
+// Why it matters: inventory-level roles, statuses, and tags must remain
+// available after loading datastores written by intermediate builds.
+// Inputs: v1alpha2 JSON with providerMetadata.nautobot roles, statuses, and tags.
+// Outputs: true from migration and populated Inventory.Metadata slices.
+// Data choice: one entry of each metadata kind proves all three catalog branches
+// are merged.
 func TestMigrateInventoryMetadataFromOldFormat(t *testing.T) {
 	raw := []byte(`{
 		"schemaVersion": "v1alpha2",
@@ -424,6 +597,13 @@ func TestMigrateInventoryMetadataFromOldFormat(t *testing.T) {
 	}
 }
 
+// TestMigrateInventoryMetadataNoOp verifies absent old metadata leaves inventory unchanged.
+//
+// Why it matters: normal current datastores should not be rewritten when the old
+// providerMetadata catalog key is missing.
+// Inputs: v1alpha2 JSON with devices and no providerMetadata. Outputs: false from
+// migrateInventoryMetadata.
+// Data choice: the minimal current-shape JSON isolates the no-op branch.
 func TestMigrateInventoryMetadataNoOp(t *testing.T) {
 	raw := []byte(`{"schemaVersion": "v1alpha2", "devices": {}}`)
 	inv := devicetypes.NewInventory()
@@ -432,6 +612,13 @@ func TestMigrateInventoryMetadataNoOp(t *testing.T) {
 	}
 }
 
+// TestMigrateInventoryMetadataSkipsWhenTypedExists verifies typed Metadata wins over old catalogs.
+//
+// Why it matters: loading a datastore that already has current metadata should
+// not overwrite user-visible roles, statuses, or tags with stale providerMetadata.
+// Inputs: JSON containing both old providerMetadata and current metadata roles.
+// Outputs: false from migration and preservation of the existing role.
+// Data choice: conflicting role names make overwrite bugs visible.
 func TestMigrateInventoryMetadataSkipsWhenTypedExists(t *testing.T) {
 	raw := []byte(`{
 		"schemaVersion": "v1alpha2",

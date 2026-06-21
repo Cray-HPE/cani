@@ -2,13 +2,24 @@ package import_
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 )
 
+// TestParseCSV verifies ParseCSV reads BOM CSV files, returns parsed records,
+// and surfaces file/header errors.
+//
+// Why it matters: BOM CSV import depends on ParseCSV to preserve row identity and
+// reject unusable input before records reach the provider.
+// Inputs: the cables fixture, a missing path, a fixture missing a required
+// column, and a header-only fixture. Outputs: parsed CsvRecord slices or wrapped
+// errors.
+// Data choice: the cables fixture has five known records, and each error fixture
+// isolates one parser failure path.
 func TestParseCSV(t *testing.T) {
 
-	good_cable_response := []CsvRecord{
+	goodCableResponse := []CsvRecord{
 		{PartNumber: "P9K58A", Description: "HPE 48U 800mmx1200mm G2 Enterprise Shock Rack", Quantity: 2, ConfigGroup: "0100"},
 		{PartNumber: "R9G23A", Description: "HPE Aruba Networking 8360-48Y6C v2 Power-to-Port Airflow 5 Fans 2 PSU Attached Bundle", Quantity: 2, ConfigGroup: "0200"},
 		{PartNumber: "P67287-B21", Description: "XD670", Quantity: 6, ConfigGroup: "0300"},
@@ -26,7 +37,7 @@ func TestParseCSV(t *testing.T) {
 			name:      "Test good data in cables.csv",
 			path:      "../../../../testdata/fixtures/example/cables.csv",
 			expectErr: false,
-			expected:  good_cable_response,
+			expected:  goodCableResponse,
 			errorMsg:  "",
 		},
 		{
@@ -69,6 +80,9 @@ func TestParseCSV(t *testing.T) {
 			if err != nil {
 				t.Errorf("Error: %e", err)
 			}
+			if len(got) != len(tt.expected) {
+				t.Fatalf("ParseCSV() returned %d records, want %d", len(got), len(tt.expected))
+			}
 
 			for i, row := range got {
 				if row != tt.expected[i] {
@@ -82,6 +96,16 @@ func TestParseCSV(t *testing.T) {
 	}
 }
 
+// TestParseHeader verifies parseHeader recognizes required and optional BOM CSV
+// columns, including aliases, and errors when required columns are missing.
+//
+// Why it matters: header parsing defines how every later row cell is interpreted,
+// so aliases and missing-column errors must be deterministic.
+// Inputs: standard headers, alias headers, optional cable headers, and headers
+// missing PartNumber, Description, or Quantity. Outputs: column indexes or
+// errors.
+// Data choice: the table uses the smallest headers that prove each required
+// index and each missing-column guard.
 func TestParseHeader(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -167,6 +191,16 @@ func TestParseHeader(t *testing.T) {
 	}
 }
 
+// TestNormalizeHeader verifies BOM CSV header aliases normalize to canonical
+// parser keys.
+//
+// Why it matters: exported BOMs use several naming conventions, and import must
+// route them to the same CsvRecord fields.
+// Inputs: aliases for product, description, quantity, config, cable endpoint,
+// type, and length fields plus unknown and separator-heavy headers. Outputs:
+// normalized header strings.
+// Data choice: representative aliases and whitespace/separator variants prove
+// both synonym mapping and cleanup behavior.
 func TestNormalizeHeader(t *testing.T) {
 	tests := []struct {
 		input string
@@ -231,6 +265,16 @@ func TestNormalizeHeader(t *testing.T) {
 	}
 }
 
+// TestParseRow verifies parseRow converts a data row into CsvRecord fields and
+// rejects malformed row values.
+//
+// Why it matters: row parsing is the last validation step before raw records are
+// stored for transform, so invalid rows must be skipped and valid optional cable
+// fields must survive.
+// Inputs: valid rows with and without config groups, malformed rows, and a row
+// with explicit cable endpoint fields. Outputs: CsvRecord values or errors.
+// Data choice: each malformed row trips one guard, while the cable row proves all
+// optional endpoint columns are copied.
 func TestParseRow(t *testing.T) {
 	baseIdx := columnIndex{
 		partNumber:   0,
@@ -370,6 +414,15 @@ func TestParseRow(t *testing.T) {
 	}
 }
 
+// TestGetColumnValue verifies getColumnValue trims an in-range cell and returns
+// empty for absent optional columns.
+//
+// Why it matters: optional BOM columns should not panic or leak whitespace when
+// a row is shorter than the header map.
+// Inputs: rows with valid, padded, out-of-range, and negative indexes. Outputs:
+// the extracted string.
+// Data choice: the cases cover the helper's two guard branches and its trim
+// behavior with minimal row data.
 func TestGetColumnValue(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -414,6 +467,14 @@ func TestGetColumnValue(t *testing.T) {
 
 }
 
+// TestIsCableRecord verifies IsCableRecord classifies only records with both
+// source and destination devices as explicit cable records.
+//
+// Why it matters: cable records are routed away from device/rack transform logic,
+// so partial endpoint data must not be misclassified.
+// Inputs: records with both endpoints, one endpoint, or no endpoints. Outputs:
+// boolean classification results.
+// Data choice: the table isolates each endpoint presence combination.
 func TestIsCableRecord(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -459,6 +520,15 @@ func TestIsCableRecord(t *testing.T) {
 	}
 }
 
+// TestIsConfigParent verifies isConfigParent recognizes top-level config groups
+// ending in 00.
+//
+// Why it matters: config groups drive rack/device hierarchy, so parent groups
+// must be detected predictably.
+// Inputs: a parent group, a child group, and a too-short group. Outputs: boolean
+// parent classification results.
+// Data choice: 0200 and 0315 model the normal parent/child pattern; "1" covers
+// the length guard.
 func TestIsConfigParent(t *testing.T) {
 	tests := []struct {
 		configGroup string
@@ -489,6 +559,15 @@ func TestIsConfigParent(t *testing.T) {
 
 }
 
+// TestGetConfigParentGroup verifies getConfigParentGroup maps child config
+// groups to their parent group names.
+//
+// Why it matters: transform uses this relationship to parent devices under the
+// correct rack group.
+// Inputs: a parent group, a child group, and a too-short group. Outputs: the
+// derived parent group string.
+// Data choice: 0200 proves an existing parent remains stable, 0315 proves suffix
+// replacement, and "1" proves the guard path.
 func TestGetConfigParentGroup(t *testing.T) {
 	tests := []struct {
 		configGroup string
@@ -518,6 +597,15 @@ func TestGetConfigParentGroup(t *testing.T) {
 	}
 }
 
+// TestGetConfigGroupPrefix verifies getConfigGroupPrefix extracts the two-digit
+// config group prefix when present.
+//
+// Why it matters: prefix comparisons decide which groups are racks, devices, and
+// related cable groups.
+// Inputs: three-character, four-character, and too-short group strings. Outputs:
+// the two-character prefix or empty string.
+// Data choice: 020 and 0315 prove the helper only needs the first two
+// characters, while "1" proves the length guard.
 func TestGetConfigGroupPrefix(t *testing.T) {
 	tests := []struct {
 		configGroup string
@@ -546,4 +634,62 @@ func TestGetConfigGroupPrefix(t *testing.T) {
 		})
 	}
 
+}
+
+// TestParseCSV_SkipsMalformedRows verifies ParseCSV drops rows that fail row
+// validation while keeping the valid ones.
+//
+// Why it matters: a BOM CSV exported by hand often has stray bad rows, so the
+// parser must skip them with a warning and still return the usable records rather
+// than failing the whole import.
+// Inputs: a temp CSV with one valid row, one empty-PartNumber row, and one
+// zero-Quantity row. Outputs: a single CsvRecord for the valid row, nil error.
+// Data choice: the two bad rows trip the empty-PartNumber and Quantity<1 guards
+// respectively, proving both skip branches; the lone good row makes the surviving
+// record unambiguous.
+func TestParseCSV_SkipsMalformedRows(t *testing.T) {
+	dir := t.TempDir()
+	path := dir + "/mixed.csv"
+	content := "PartNumber,Description,Quantity\n" +
+		"P1,Good Widget,2\n" +
+		",Missing PN,1\n" +
+		"P3,Another,0\n"
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+	got, err := ParseCSV(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("expected 1 valid record, got %d", len(got))
+	}
+	if got[0].PartNumber != "P1" || got[0].Quantity != 2 {
+		t.Errorf("record = %+v, want PartNumber P1 Quantity 2", got[0])
+	}
+}
+
+// TestParseCSV_ReadError verifies a CSV the encoding/csv reader rejects surfaces
+// a wrapped read error.
+//
+// Why it matters: a corrupt export with broken quoting cannot be parsed at all,
+// so the import must fail loudly with a wrapped error rather than return partial
+// data.
+// Inputs: a temp CSV whose data row contains a bare double-quote in an unquoted
+// field. Outputs: a non-nil "failed to read CSV" error.
+// Data choice: a bare quote is the simplest input that makes the standard CSV
+// reader's ReadAll fail, isolating the read-error wrap.
+func TestParseCSV_ReadError(t *testing.T) {
+	dir := t.TempDir()
+	path := dir + "/malformed.csv"
+	if err := os.WriteFile(path, []byte("PartNumber,Description,Quantity\na\"b,c,1\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := ParseCSV(path)
+	if err == nil {
+		t.Fatal("expected error for malformed CSV quoting")
+	}
+	if !strings.Contains(err.Error(), "failed to read CSV") {
+		t.Errorf("error = %q, want containing 'failed to read CSV'", err.Error())
+	}
 }

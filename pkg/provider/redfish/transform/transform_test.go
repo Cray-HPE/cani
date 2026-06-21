@@ -49,6 +49,18 @@ func testRoot() import_.ServiceRoot {
 	}
 }
 
+// TestBuildDeviceFromRoot verifies a CaniDeviceType built from a ServiceRoot maps
+// the core fields, nests all metadata under the "redfish" key, and stamps an
+// import source.
+//
+// Why it matters: buildDeviceFromRoot is the first step of the Redfish import
+// that turns a raw BMC response into a CANI device, so its field and metadata
+// mapping is what the rest of the inventory depends on.
+// Inputs: a full testRoot() and a nil existing inventory. Outputs: a device whose
+// Name, Manufacturer, Type, generated ID, and nested redfish metadata are
+// asserted.
+// Data choice: the HPE iLO root populates every optional metadata key (bmc_*,
+// product_tag, system_family) so the full expected key set can be checked at once.
 func TestBuildDeviceFromRoot(t *testing.T) {
 	root := testRoot()
 	dev := buildDeviceFromRoot(root, nil)
@@ -95,6 +107,16 @@ func TestBuildDeviceFromRoot(t *testing.T) {
 	}
 }
 
+// TestBuildLookupQueries verifies lookup-query building orders the Product field
+// first and also includes the HPE product tag and the vendor+product
+// combination.
+//
+// Why it matters: these queries drive the device-type library match, so the most
+// specific string must be tried first to maximize classification accuracy.
+// Inputs: a full testRoot(). Outputs: the ordered query slice, checked for its
+// first element and for membership of the tag and combined queries.
+// Data choice: the root carries both a PRODTAG and distinct Vendor and Product
+// values so the tag and combined-query branches each produce a checkable string.
 func TestBuildLookupQueries(t *testing.T) {
 	root := testRoot()
 	queries := buildLookupQueries(root)
@@ -122,6 +144,15 @@ func TestBuildLookupQueries(t *testing.T) {
 	}
 }
 
+// TestBuildLookupQueriesNoDuplicates verifies lookup-query building never emits
+// the same query string twice.
+//
+// Why it matters: duplicate queries waste library lookups and could skew match
+// scoring, so deduplication keeps enrichment efficient and deterministic.
+// Inputs: a full testRoot(). Outputs: the query slice, scanned for repeats with a
+// seen-set.
+// Data choice: an HPE root whose vendor and product strings overlap is the case
+// most likely to generate collisions, so it exercises the dedup guard.
 func TestBuildLookupQueriesNoDuplicates(t *testing.T) {
 	root := testRoot()
 	queries := buildLookupQueries(root)
@@ -134,20 +165,48 @@ func TestBuildLookupQueriesNoDuplicates(t *testing.T) {
 	}
 }
 
+// TestTransformRoots verifies transforming one ServiceRoot yields exactly one
+// device with the expected identity and no non-device core inventory objects.
+//
+// Why it matters: transformRoots is the core conversion loop of the Redfish
+// import, so each root must map to the correct CANI device entry without
+// fabricating Nautobot-equivalent records that are not present in ServiceRoot.
+// Inputs: a one-element root slice and a nil existing inventory. Outputs: a
+// TransformResult whose single device identity, map key, and empty non-device
+// buckets are asserted.
+// Data choice: a single root isolates the one-root-to-one-device contract, and
+// the full HPE root makes the resulting device fields concrete.
 func TestTransformRoots(t *testing.T) {
 	roots := []import_.ServiceRoot{testRoot()}
 	result, err := transformRoots(roots, nil)
 	if err != nil {
 		t.Fatalf("transformRoots() error: %v", err)
 	}
-	if len(result.Devices) != 1 {
-		t.Errorf("expected 1 device, got %d", len(result.Devices))
+	deviceID, dev := singleResultDevice(t, result)
+	if dev.ID != deviceID {
+		t.Errorf("device map key = %s, but device.ID = %s", deviceID, dev.ID)
 	}
-	if len(result.Modules) != 0 {
-		t.Errorf("expected 0 modules, got %d", len(result.Modules))
+	if dev.Name != wantProduct {
+		t.Errorf("device Name = %q, want %q", dev.Name, wantProduct)
 	}
+	if dev.Manufacturer != "HPE" {
+		t.Errorf("device Manufacturer = %q, want %q", dev.Manufacturer, "HPE")
+	}
+	if dev.Type == "" {
+		t.Error("device Type is empty, want a CANI hardware type")
+	}
+	assertUnsupportedCoreTypesEmpty(t, result)
 }
 
+// TestTransformRootsEmpty verifies transforming an empty root slice returns a
+// result with no devices and no error.
+//
+// Why it matters: importing from a source with nothing to offer must be a
+// graceful no-op rather than an error that aborts the import pipeline.
+// Inputs: an empty root slice and a nil existing inventory. Outputs: a
+// TransformResult with zero devices and a nil error.
+// Data choice: an empty slice is the canonical "nothing to import" signal the
+// conversion loop must tolerate.
 func TestTransformRootsEmpty(t *testing.T) {
 	result, err := transformRoots([]import_.ServiceRoot{}, nil)
 	if err != nil {
@@ -158,6 +217,18 @@ func TestTransformRootsEmpty(t *testing.T) {
 	}
 }
 
+// TestApplyDeviceDefaults verifies applying library defaults fills empty device
+// fields while preserving values already set, and replaces the placeholder
+// "server" type with the library's "node".
+//
+// Why it matters: enrichment must complete a bare device from the matched library
+// entry without clobbering data already discovered from the BMC.
+// Inputs: a device with Name, Manufacturer, and a "server" type set, plus a fully
+// populated library entry. Outputs: a device whose Slug, PartNumber, Model, and
+// UHeight come from the library, whose Manufacturer stays "HPE", and whose Type
+// becomes "node".
+// Data choice: a differing library Manufacturer proves the keep-existing rule,
+// while the server-to-node pairing exercises the placeholder-type replacement.
 func TestApplyDeviceDefaults(t *testing.T) {
 	dev := &devicetypes.CaniDeviceType{
 		Name:         "test",
@@ -194,6 +265,15 @@ func TestApplyDeviceDefaults(t *testing.T) {
 	}
 }
 
+// TestBuildProviderMetadata verifies provider-metadata building nests all Redfish
+// fields under the "redfish" key with the expected values.
+//
+// Why it matters: this metadata is how later re-imports identify the device and
+// how operators trace its origin, so the keys and values must be exact.
+// Inputs: a full testRoot(). Outputs: the nested redfish sub-map, checked for
+// seven key and value pairs.
+// Data choice: the HPE iLO root supplies real version, UUID, BMC, tag, and family
+// values so every asserted key has a concrete expected value.
 func TestBuildProviderMetadata(t *testing.T) {
 	root := testRoot()
 	meta := buildProviderMetadata(root)
@@ -225,9 +305,23 @@ func TestBuildProviderMetadata(t *testing.T) {
 	}
 }
 
+// TestBuildRootStepInfo verifies step-info building copies the position, raw
+// name and type, match score, library slug, and concrete field mappings into the
+// display struct.
+//
+// Why it matters: StepMode shows operators how each raw field maps to CANI before
+// committing, so the display struct must carry the right summary values and the
+// right source-to-target mapping details.
+// Inputs: a stepInput with num and total of 1, the built device, a test slug, and
+// a score of 85. Outputs: a NodeStepInfo whose header fields and selected
+// mapping contents are asserted.
+// Data choice: a score of 85 and a distinct test slug are recognizable markers
+// that prove the values are passed through rather than defaulted; setting the
+// device slug mirrors the real enrichment path when LibSlug is non-empty.
 func TestBuildRootStepInfo(t *testing.T) {
 	root := testRoot()
 	dev := buildDeviceFromRoot(root, nil)
+	dev.Slug = wantTestSlug
 	info := buildRootStepInfo(stepInput{
 		Num:        1,
 		Total:      1,
@@ -255,8 +349,31 @@ func TestBuildRootStepInfo(t *testing.T) {
 	if len(info.Mappings) == 0 {
 		t.Error("expected non-empty Mappings")
 	}
+	assertMappingValue(t, info.Mappings, "Name", wantProduct)
+	assertMappingValue(t, info.Mappings, "Manufacturer", "HPE")
+	assertMappingValue(t, info.Mappings, "ProviderMetadata[redfish][redfish_uuid]", root.UUID)
+	slugMapping, ok := findMapping(info.Mappings, "Slug")
+	if !ok {
+		t.Fatal("expected Slug mapping")
+	}
+	if !slugMapping.IsDerived {
+		t.Error("Slug mapping IsDerived = false, want true")
+	}
+	if slugMapping.TargetValue != wantTestSlug {
+		t.Errorf("Slug mapping TargetValue = %q, want %q", slugMapping.TargetValue, wantTestSlug)
+	}
 }
 
+// TestIdempotentReimport verifies re-importing the same root against an inventory
+// that already contains it reuses the existing device UUID.
+//
+// Why it matters: idempotent imports are essential so repeated syncs update the
+// device in place instead of creating duplicates.
+// Inputs: testRoot() imported once with a nil inventory, then again with an
+// inventory holding that first device. Outputs: the second device's ID, asserted
+// equal to the first.
+// Data choice: reusing the same root for both imports isolates the dedup behavior
+// to the inventory argument alone.
 func TestIdempotentReimport(t *testing.T) {
 	root := testRoot()
 
@@ -282,6 +399,17 @@ func TestIdempotentReimport(t *testing.T) {
 	}
 }
 
+// TestIdempotentNoMatchGeneratesNewID verifies importing a root whose
+// redfish_uuid matches no existing device produces a new UUID rather than reusing
+// an unrelated device.
+//
+// Why it matters: the dedup logic must distinguish distinct hardware, or separate
+// servers would be conflated under a single identity.
+// Inputs: testRoot() and an inventory whose only device has a different
+// redfish_uuid. Outputs: the new device's ID, asserted not equal to the unrelated
+// device's ID.
+// Data choice: an all-zeros redfish_uuid is an unmistakably different value,
+// guaranteeing the no-match branch.
 func TestIdempotentNoMatchGeneratesNewID(t *testing.T) {
 	root := testRoot()
 

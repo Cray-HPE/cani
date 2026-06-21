@@ -32,6 +32,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
@@ -66,6 +67,7 @@ const (
 
 // Shared format string and placeholder values.
 const (
+	fmtQuint   = "%s%s%s%s%s\n"
 	fmtTriple  = "%s%s%s\n"
 	valUnknown = "unknown"
 )
@@ -225,7 +227,7 @@ func RenderRackASCII(w io.Writer, rv *RackView, opts RenderOptions) error {
 	fmt.Fprintf(w, fmtTriple, boxVertical, c.bold(titlePadded), boxVertical)
 
 	// Print header separator
-	fmt.Fprintf(w, "%s%s%s%s%s\n",
+	fmt.Fprintf(w, fmtQuint,
 		boxTeeRight,
 		strings.Repeat(boxHorizontal, uColumnWidth),
 		boxTeeDown,
@@ -234,11 +236,11 @@ func RenderRackASCII(w io.Writer, rv *RackView, opts RenderOptions) error {
 
 	// Print U positions from top to bottom
 	for u := rv.Height; u >= 1; u-- {
-		uLabel := fmt.Sprintf("U%-3d", u)
+		uLabel := fmt.Sprintf(" U%-3d", u)
 		content := slotContent(rv.GetSlot(u), c)
 		contentPadded := padRight(content, innerWidth-uColumnWidth-1, opts.NoColor)
 
-		fmt.Fprintf(w, "%s %s %s%s%s\n",
+		fmt.Fprintf(w, fmtQuint,
 			boxVertical,
 			c.cyan(uLabel),
 			boxVertical,
@@ -247,7 +249,7 @@ func RenderRackASCII(w io.Writer, rv *RackView, opts RenderOptions) error {
 	}
 
 	// Print bottom border
-	fmt.Fprintf(w, "%s%s%s%s%s\n",
+	fmt.Fprintf(w, fmtQuint,
 		boxBottomLeft,
 		strings.Repeat(boxHorizontal, uColumnWidth),
 		boxTeeUp,
@@ -440,7 +442,7 @@ func visibleLength(s string) int {
 	// Remove ANSI escape codes
 	re := regexp.MustCompile(`\x1b\[[0-9;]*m`)
 	clean := re.ReplaceAllString(s, "")
-	return len(clean)
+	return utf8.RuneCountInString(clean)
 }
 
 // findCablesForRack returns all cables where at least one termination is a device in the rack

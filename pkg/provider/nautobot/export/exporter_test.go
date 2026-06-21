@@ -29,6 +29,17 @@ import (
 	"testing"
 )
 
+// TestNewExporter verifies the Exporter constructor wires its collaborators and
+// preserves caller options, including the nil-options case.
+//
+// Why it matters: the Exporter is the entry point for pushing cani inventory to
+// Nautobot; if it drops the client, cache, or options the whole export runs
+// against the wrong target or with the wrong defaults.
+// Inputs: a client, a lookup cache, and an *ExporterOpts (possibly nil).
+// Outputs: a wired *Exporter.
+// Data choice: one case supplies full options (location/role/status/dry-run) to
+// confirm they are retained; the nil-options case confirms the constructor does
+// not fabricate defaults, matching how callers opt out of overrides.
 func TestNewExporter(t *testing.T) {
 	tests := []struct {
 		name   string

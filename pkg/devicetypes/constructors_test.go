@@ -492,3 +492,78 @@ func TestNewFruFromPartNumberUnknownPN(t *testing.T) {
 		t.Errorf("error should mention the part number, got: %v", err)
 	}
 }
+
+// ---------- NewLocationFromSlug ----------
+
+// TestNewLocationFromSlugHappyPath verifies NewLocationFromSlug builds a
+// location instance from a registered location-type definition, copying its
+// template fields and assigning a fresh UUID and Active status.
+//
+// Why it matters: operators create locations by slug, so the constructor must
+// faithfully project the library template (name, slug, nestable, content types,
+// description) onto a new inventory object.
+// Inputs: a registry seeded with a "datacenter" definition; a call for
+// "datacenter". Outputs: a non-nil location with a fresh UUID, Status "Active",
+// and template-derived fields.
+// Data choice: a Nestable definition with content types proves those specific
+// fields are carried over rather than defaulted, and the registry is restored
+// afterward to avoid cross-test leakage.
+func TestNewLocationFromSlugHappyPath(t *testing.T) {
+	orig := allLocationTypes
+	defer func() { allLocationTypes = orig }()
+	allLocationTypes = map[string]LocationTypeDefinition{
+		"datacenter": {
+			Name:         "Data Center",
+			Slug:         "datacenter",
+			Nestable:     true,
+			ContentTypes: []string{"dcim.rack"},
+			Description:  "a data center",
+		},
+	}
+
+	loc, err := NewLocationFromSlug("datacenter")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if loc.ID == uuid.Nil {
+		t.Error("expected non-nil UUID")
+	}
+	if loc.Status != "Active" {
+		t.Errorf("Status = %q, want %q", loc.Status, "Active")
+	}
+	if loc.LocationType != "datacenter" || loc.Slug != "datacenter" {
+		t.Errorf("LocationType/Slug = %q/%q, want datacenter", loc.LocationType, loc.Slug)
+	}
+	if !loc.Nestable {
+		t.Error("expected Nestable to be carried over from the definition")
+	}
+	if len(loc.ContentTypes) != 1 || loc.ContentTypes[0] != "dcim.rack" {
+		t.Errorf("ContentTypes = %v, want [dcim.rack]", loc.ContentTypes)
+	}
+}
+
+// TestNewLocationFromSlugUnknown verifies NewLocationFromSlug returns an error
+// and a nil location when the slug is not registered.
+//
+// Why it matters: constructing a location from an unknown type must fail loudly
+// so callers do not proceed with an empty, invalid location.
+// Inputs: an empty registry and a call for "nope". Outputs: a nil location and
+// a non-nil error mentioning the slug.
+// Data choice: an empty registry guarantees the miss, and asserting the slug
+// appears in the message confirms an actionable error.
+func TestNewLocationFromSlugUnknown(t *testing.T) {
+	orig := allLocationTypes
+	defer func() { allLocationTypes = orig }()
+	allLocationTypes = map[string]LocationTypeDefinition{}
+
+	loc, err := NewLocationFromSlug("nope")
+	if err == nil {
+		t.Fatal("expected error for unknown slug")
+	}
+	if loc != nil {
+		t.Error("expected nil location on error")
+	}
+	if !strings.Contains(err.Error(), "nope") {
+		t.Errorf("error should mention the slug, got: %v", err)
+	}
+}

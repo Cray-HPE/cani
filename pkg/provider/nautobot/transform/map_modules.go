@@ -12,6 +12,9 @@ func MapModules(
 	raw []nautobotapi.Module,
 	moduleBayMap map[uuid.UUID]moduleBayRef,
 	deviceMap map[uuid.UUID]uuid.UUID,
+	locationMap map[uuid.UUID]uuid.UUID,
+	statusNameMap map[uuid.UUID]string,
+	roleNameMap map[uuid.UUID]string,
 ) map[uuid.UUID]*devicetypes.CaniModuleType {
 	result := make(map[uuid.UUID]*devicetypes.CaniModuleType, len(raw))
 
@@ -25,7 +28,7 @@ func MapModules(
 		m := &devicetypes.CaniModuleType{
 			ID:         caniID,
 			Serial:     strVal(mod.Serial),
-			ObjectMeta: devicetypes.ObjectMeta{Status: strVal(mod.Status.Url)},
+			ObjectMeta: devicetypes.ObjectMeta{Status: resolveRefName(mod.Status, statusNameMap)},
 		}
 
 		if mod.AssetTag != nil {
@@ -45,14 +48,14 @@ func MapModules(
 
 		// Location.
 		if mod.Location != nil {
-			m.Location = tenantRefID(mod.Location)
+			locNBID := tenantRefID(mod.Location)
+			if caniLocID, ok := locationMap[locNBID]; ok {
+				m.Location = caniLocID
+			}
 		}
 
 		if mod.Role != nil {
-			roleID := tenantRefID(mod.Role)
-			if roleID != uuid.Nil {
-				m.Role = roleID.String()
-			}
+			m.Role = resolveTenantRefName(mod.Role, roleNameMap)
 		}
 
 		if mod.CustomFields != nil {

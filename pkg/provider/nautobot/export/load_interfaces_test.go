@@ -8,6 +8,16 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// TestCacheCreatedInterfaces_MatchesByPosition verifies a bulk-created
+// interface is cached under the device ID and name of the batch item at the
+// same slice index, carrying the Nautobot ID returned in the response.
+//
+// Why it matters: Phase 6 cable creation resolves endpoints via this cache;
+// position-based matching is how freshly POSTed interfaces (Nautobot returns
+// results in request order) acquire their remote IDs without a lookup.
+// Inputs: a one-item batch and one created Interface named "eth0". Outputs: a
+// cache entry retrievable by GetInterfaceByDeviceAndName.
+// Data choice: matching names keep the focus on the position-to-ID mapping.
 func TestCacheCreatedInterfaces_MatchesByPosition(t *testing.T) {
 	cache := NewLookupCache(nil)
 	e := &Exporter{Cache: cache}
@@ -40,6 +50,16 @@ func TestCacheCreatedInterfaces_MatchesByPosition(t *testing.T) {
 	}
 }
 
+// TestCacheCreatedInterfaces_SkipsNilID verifies an interface returned with a
+// nil Id is not written to the cache.
+//
+// Why it matters: a created interface without a usable Nautobot ID is worthless
+// for later cable/IP assignment, so caching it would plant a broken reference
+// that silently misdirects downstream phases.
+// Inputs: a one-item batch and one created Interface whose Id is nil. Outputs:
+// the internal interfaces map is asserted to hold no entry for that key.
+// Data choice: the test reads the map directly because
+// GetInterfaceByDeviceAndName would fall through to a live API call on a miss.
 func TestCacheCreatedInterfaces_SkipsNilID(t *testing.T) {
 	cache := NewLookupCache(nil)
 	e := &Exporter{Cache: cache}
@@ -67,6 +87,16 @@ func TestCacheCreatedInterfaces_SkipsNilID(t *testing.T) {
 	}
 }
 
+// TestCacheCreatedInterfaces_MultipleBatch verifies position-based caching
+// across several devices: each created interface lands under its own batch
+// item's device/name with the matching Nautobot ID.
+//
+// Why it matters: real exports send interfaces for many devices in one batch,
+// and each must cache against the correct device so cables wire the right ports.
+// Inputs: a two-item batch (dev1/eth0, dev2/mgmt0) and two created Interfaces.
+// Outputs: two independent, correctly-keyed cache entries.
+// Data choice: distinct device IDs and names prove entries do not collide or
+// cross-contaminate.
 func TestCacheCreatedInterfaces_MultipleBatch(t *testing.T) {
 	cache := NewLookupCache(nil)
 	e := &Exporter{Cache: cache}
@@ -100,6 +130,16 @@ func TestCacheCreatedInterfaces_MultipleBatch(t *testing.T) {
 	}
 }
 
+// TestCacheCreatedInterfaces_MoreCreatedThanBatch verifies the overflow branch:
+// when Nautobot returns more interfaces than were sent, the extra item is
+// cached using uuid.Nil for the device and the name from the response body.
+//
+// Why it matters: it defends the cache against a length mismatch so a
+// surprising response cannot index past the batch slice and panic mid-export.
+// Inputs: a one-item batch but two created Interfaces (eth0, eth1). Outputs:
+// eth0 keyed by its real device; eth1 keyed by (uuid.Nil, response name).
+// Data choice: a deliberate batch/response size skew is the only way to reach
+// the fallback path.
 func TestCacheCreatedInterfaces_MoreCreatedThanBatch(t *testing.T) {
 	cache := NewLookupCache(nil)
 	e := &Exporter{Cache: cache}
@@ -138,6 +178,14 @@ func TestCacheCreatedInterfaces_MoreCreatedThanBatch(t *testing.T) {
 	}
 }
 
+// TestCacheCreatedInterfaces_EmptySlices verifies the method is a safe no-op
+// for nil and empty inputs (no panic, nothing cached).
+//
+// Why it matters: an empty bulk batch (e.g. a device with no new interfaces)
+// is a normal case, so the export must not crash when there is nothing to do.
+// Inputs: (nil, nil) and ([]bulkInterfaceItem{}, []nautobotapi.Interface{}).
+// Outputs: none — the test passes as long as neither call panics.
+// Data choice: both empty-input shapes exercise the loop's zero-iteration path.
 func TestCacheCreatedInterfaces_EmptySlices(t *testing.T) {
 	cache := NewLookupCache(nil)
 	e := &Exporter{Cache: cache}

@@ -238,6 +238,9 @@ func inferHardwareType(description string) string {
 
 // initInventoryMaps ensures inventory maps are initialized.
 func initInventoryMaps(inventory *devicetypes.Inventory) {
+	if inventory.Locations == nil {
+		inventory.Locations = make(map[uuid.UUID]*devicetypes.CaniLocationType)
+	}
 	if inventory.Racks == nil {
 		inventory.Racks = make(map[uuid.UUID]*devicetypes.CaniRackType)
 	}

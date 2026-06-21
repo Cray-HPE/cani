@@ -8,7 +8,7 @@ import (
 
 // MapLocations converts Nautobot Location objects to CANI locations.
 // It builds a mapping from Nautobot location UUID → CANI location UUID.
-func MapLocations(raw []nautobotapi.Location) (map[uuid.UUID]*devicetypes.CaniLocationType, map[uuid.UUID]uuid.UUID) {
+func MapLocations(raw []nautobotapi.Location, statusNameMap map[uuid.UUID]string) (map[uuid.UUID]*devicetypes.CaniLocationType, map[uuid.UUID]uuid.UUID) {
 	result := make(map[uuid.UUID]*devicetypes.CaniLocationType, len(raw))
 	// nbToCani maps Nautobot UUID → CANI UUID for cross-referencing.
 	nbToCani := make(map[uuid.UUID]uuid.UUID, len(raw))
@@ -25,7 +25,7 @@ func MapLocations(raw []nautobotapi.Location) (map[uuid.UUID]*devicetypes.CaniLo
 			ID:              caniID,
 			Name:            loc.Name,
 			LocationType:    strVal(loc.LocationType.Url), // will be enriched below
-			ObjectMeta:      devicetypes.ObjectMeta{Status: strVal(loc.Status.Url), ExternalIDs: map[string]uuid.UUID{"nautobot": nbID}},
+			ObjectMeta:      devicetypes.ObjectMeta{Status: resolveRefName(loc.Status, statusNameMap), ExternalIDs: map[string]uuid.UUID{"nautobot": nbID}},
 			Description:     strVal(loc.Description),
 			Facility:        strVal(loc.Facility),
 			PhysicalAddress: strVal(loc.PhysicalAddress),

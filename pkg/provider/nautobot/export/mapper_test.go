@@ -32,6 +32,17 @@ import (
 	"github.com/google/uuid"
 )
 
+// TestMakeStatusRef verifies a status UUID round-trips into the Nautobot status
+// reference union type used by write requests.
+//
+// Why it matters: every device/cable/interface the export writes carries a
+// status reference; if the UUID is mangled when wrapped in the API union the
+// remote object would be created with the wrong (or no) status.
+// Inputs: a uuid.UUID. Outputs: a status ref whose embedded ID must decode back
+// to the original UUID.
+// Data choice: a fixed all-ones UUID makes the round-trip assertion readable and
+// uuid.Nil confirms the helper still produces a well-formed ref for the zero
+// value.
 func TestMakeStatusRef(t *testing.T) {
 	tests := []struct {
 		name string
@@ -64,6 +75,15 @@ func TestMakeStatusRef(t *testing.T) {
 	}
 }
 
+// TestResolveFace verifies rack-face resolution maps "rear" to rear and defaults
+// everything else (including empty and unknown values) to front.
+//
+// Why it matters: rack-mounted devices exported to Nautobot must declare a
+// mounting face; defaulting unknown/empty input to front keeps the export from
+// failing on incomplete cani data while preserving an explicit "rear".
+// Inputs: a face string. Outputs: a *RackFace decoding to a FaceEnum.
+// Data choice: "rear" (the one non-default), "" (missing data) and "top" (an
+// invalid value) cover the explicit, empty, and fallback branches.
 func TestResolveFace(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -104,6 +124,16 @@ func TestResolveFace(t *testing.T) {
 	}
 }
 
+// TestNewDeviceMapper verifies the mapper constructor stores its cache and
+// defaults by reference.
+//
+// Why it matters: the DeviceMapper turns cani devices into Nautobot write
+// requests; it must share the live lookup cache (so resolved IDs are reused) and
+// honor the caller's default location/role/status.
+// Inputs: a *LookupCache and *MapperOpts. Outputs: a wired *DeviceMapper.
+// Data choice: one case provides populated defaults and one provides an empty
+// struct to confirm the constructor stores whatever it is given without
+// substituting its own values.
 func TestNewDeviceMapper(t *testing.T) {
 	tests := []struct {
 		name     string

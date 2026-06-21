@@ -264,3 +264,120 @@ func TestRemoveCableNotFound(t *testing.T) {
 		t.Error("RemoveCable(non-existent) should return an error")
 	}
 }
+
+// TestAddRackLocationContentTypeRejected verifies AddRack refuses a rack whose
+// target location does not permit "rack" content.
+//
+// Why it matters: locations can restrict what they hold (e.g. a "floor" that
+// only allows rooms); inserting a rack there would violate the inventory's
+// containment rules and must fail before the rack is stored.
+// Inputs: an inventory with a location whose ContentTypes excludes "rack" and a
+// rack pointing at it. Outputs: a non-nil error and the rack absent from the
+// map. Data choice: a ContentTypes list of just {"device"} guarantees the
+// permitted-type loop falls through to the rejection branch.
+func TestAddRackLocationContentTypeRejected(t *testing.T) {
+	inv := NewInventory()
+	locID := uuid.New()
+	inv.Locations[locID] = &CaniLocationType{
+		ID:           locID,
+		Name:         "device-only",
+		LocationType: "room",
+		ContentTypes: []string{"device"},
+	}
+
+	rack := &CaniRackType{ID: uuid.New(), Name: "rack-x", Location: locID}
+	if err := inv.AddRack(rack); err == nil {
+		t.Error("AddRack should fail when location forbids rack content")
+	}
+	if _, ok := inv.Racks[rack.ID]; ok {
+		t.Error("rejected rack must not be stored")
+	}
+}
+
+// TestAddRackLocationContentTypeAllowed verifies AddRack accepts a rack whose
+// target location explicitly permits "rack" content.
+//
+// Why it matters: the content-type guard must allow valid placements, not just
+// reject invalid ones, so a correctly-typed location accepts the rack and wires
+// up parent/child relationships.
+// Inputs: an inventory with a location whose ContentTypes includes "rack" and a
+// matching rack. Outputs: no error and the rack present in the map. Data choice:
+// listing "rack" among the allowed types drives the early-return success branch
+// inside ValidateContentType that the rejection test cannot reach.
+func TestAddRackLocationContentTypeAllowed(t *testing.T) {
+	inv := NewInventory()
+	locID := uuid.New()
+	inv.Locations[locID] = &CaniLocationType{
+		ID:           locID,
+		Name:         "rack-room",
+		LocationType: "room",
+		ContentTypes: []string{"rack"},
+	}
+
+	rack := &CaniRackType{ID: uuid.New(), Name: "rack-ok", Location: locID}
+	if err := inv.AddRack(rack); err != nil {
+		t.Fatalf("AddRack unexpected error: %v", err)
+	}
+	if _, ok := inv.Racks[rack.ID]; !ok {
+		t.Error("permitted rack must be stored")
+	}
+}
+
+// TestRemoveLocationHasChildren verifies RemoveLocation refuses to delete a
+// location that still has child locations.
+//
+// Why it matters: deleting a parent with live children would strand the
+// children's Parent pointers, so the operation must fail until the subtree is
+// cleared.
+// Inputs: a location whose Children slice holds one UUID. Outputs: a non-nil
+// error and the location still present. Data choice: a single child UUID is the
+// minimum needed to trip the len(loc.Children) > 0 guard without involving racks.
+func TestRemoveLocationHasChildren(t *testing.T) {
+	inv := NewInventory()
+	id := uuid.New()
+	inv.Locations[id] = &CaniLocationType{
+		ID:       id,
+		Name:     "parent-site",
+		Children: []uuid.UUID{uuid.New()},
+	}
+
+	if err := inv.RemoveLocation(id); err == nil {
+		t.Error("RemoveLocation should fail when location has child locations")
+	}
+	if _, ok := inv.Locations[id]; !ok {
+		t.Error("location with children must not be removed")
+	}
+}
+
+// TestRemoveLocationUnlinksFromParent verifies RemoveLocation detaches a leaf
+// location from its parent's Children list before deleting it.
+//
+// Why it matters: a removed child must not linger in its parent's Children
+// slice, or later traversals would dereference a non-existent location.
+// Inputs: a parent location listing one child plus that empty child location.
+// Outputs: the child removed from the inventory and absent from the parent's
+// Children. Data choice: giving the child a valid Parent pointer exercises the
+// parent-unlink branch that a parentless removal would skip.
+func TestRemoveLocationUnlinksFromParent(t *testing.T) {
+	inv := NewInventory()
+	parentID := uuid.New()
+	childID := uuid.New()
+	inv.Locations[parentID] = &CaniLocationType{
+		ID:       parentID,
+		Name:     "parent",
+		Children: []uuid.UUID{childID},
+	}
+	inv.Locations[childID] = &CaniLocationType{ID: childID, Name: "child", Parent: parentID}
+
+	if err := inv.RemoveLocation(childID); err != nil {
+		t.Fatalf("RemoveLocation unexpected error: %v", err)
+	}
+	if _, ok := inv.Locations[childID]; ok {
+		t.Error("child location should be removed")
+	}
+	for _, id := range inv.Locations[parentID].Children {
+		if id == childID {
+			t.Error("child UUID must be unlinked from parent's Children")
+		}
+	}
+}

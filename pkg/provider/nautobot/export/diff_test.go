@@ -32,6 +32,16 @@ import (
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 )
 
+// TestComparePosition verifies comparePosition emits a FieldDiff only when a
+// meaningful local rack position differs from the remote one.
+//
+// Why it matters: under --merge this decides whether an existing Nautobot device
+// gets its U-position rewritten; treating a zero local position as "unset"
+// prevents cani from clobbering a position it never tracked.
+// Inputs: a CaniDeviceType (RackPosition) and a nautobotapi.Device (Position
+// pointer). Outputs: a []FieldDiff, empty when no change is warranted.
+// Data choice: cases cover differ, match, local-zero (skip), and remote-nil
+// (treated as 0) to pin every branch of the guard.
 func TestComparePosition(t *testing.T) {
 	pos42 := 42
 	pos10 := 10
@@ -81,6 +91,16 @@ func TestComparePosition(t *testing.T) {
 	}
 }
 
+// TestCompareFace verifies compareFace emits a FieldDiff only when a non-empty
+// local rack face differs from the remote face value.
+//
+// Why it matters: rack face (front/rear) drives device placement in Nautobot;
+// skipping an empty local face avoids overwriting remote data cani has no
+// opinion about, while real differences must be flagged for a merge update.
+// Inputs: a CaniDeviceType (Face string) and a nautobotapi.Device whose Face
+// holds an optional value pointer. Outputs: a []FieldDiff.
+// Data choice: front-vs-rear mismatch, matching rear, and empty-local cover the
+// diff, no-diff, and skip branches respectively.
 func TestCompareFace(t *testing.T) {
 	frontVal := nautobotapi.DeviceFaceValue("front")
 	rearVal := nautobotapi.DeviceFaceValue("rear")
@@ -128,6 +148,14 @@ func TestCompareFace(t *testing.T) {
 	}
 }
 
+// TestPtrStr verifies ptrStr dereferences a *string, yielding "" for nil.
+//
+// Why it matters: Nautobot API models expose most fields as pointers, and diff
+// rendering reads them constantly; a nil-safe accessor keeps the exporter from
+// panicking on absent optional fields such as Name or Display.
+// Inputs: a *string (set, then nil). Outputs: the dereferenced value or "".
+// Data choice: present and nil are the helper's only two branches, so the table
+// exhaustively covers it.
 func TestPtrStr(t *testing.T) {
 	val := "hello"
 
@@ -158,6 +186,15 @@ func TestPtrStr(t *testing.T) {
 	}
 }
 
+// TestOrNone verifies orNone returns its input unchanged, or "(none)" when empty.
+//
+// Why it matters: merge diffs are printed for operators, and showing "(none)"
+// instead of a blank makes a missing remote value (e.g. an unset rack or face)
+// legible in the change report.
+// Inputs: a string (non-empty, then empty). Outputs: the same string or the
+// "(none)" sentinel.
+// Data choice: non-empty and empty are the helper's only two branches, so the
+// table is complete.
 func TestOrNone(t *testing.T) {
 	tests := []struct {
 		name     string

@@ -2,6 +2,8 @@ package devicetypes
 
 import (
 	"testing"
+
+	"github.com/google/uuid"
 )
 
 func TestExpandChildrenEX235A(t *testing.T) {
@@ -56,5 +58,47 @@ func TestExpandChildrenEX235A(t *testing.T) {
 	t.Logf("Created %d children from blade", len(children))
 	for _, c := range children {
 		t.Logf("  %s slug=%s type=%s parent=%s", c.ID, c.Slug, c.Type, c.Parent)
+	}
+}
+
+// TestExpandBaysSkipBranches verifies expandBays ignores bays with no default,
+// an empty slug list, or an unresolvable slug, and expands only the valid bay.
+//
+// Why it matters: device-bay defaults are author-supplied and frequently sparse
+// or stale; expansion must tolerate every malformed shape and still wire up the
+// bays that do resolve, or whole device trees would fail to materialize.
+// Inputs: a parent device with four bays — nil default, empty slug, unknown
+// slug, and one referencing a freshly registered child slug. Outputs: exactly
+// one accumulated child whose Parent points back at the device. Data choice:
+// one bay per skip branch plus a single valid bay isolates each continue path
+// and the successful append+recurse in a single call.
+func TestExpandBaysSkipBranches(t *testing.T) {
+	RegisterDeviceType(CaniDeviceType{Slug: "expand-bay-child", Model: "Child", Manufacturer: "TestCo"})
+	t.Cleanup(func() { delete(allDeviceTypes, "expand-bay-child") })
+
+	parent := &CaniDeviceType{
+		ID:   uuid.New(),
+		Name: "parent",
+		DeviceBays: []DeviceBaySpec{
+			{Name: "nil-default", Default: nil},
+			{Name: "empty-slug", Default: &DeviceBaySlugRef{Slug: nil}},
+			{Name: "bad-slug", Default: &DeviceBaySlugRef{Slug: "no-such-slug-zzz-9999"}},
+			{Name: "good", Default: &DeviceBaySlugRef{Slug: "expand-bay-child"}},
+		},
+	}
+
+	acc := make(map[uuid.UUID]*CaniDeviceType)
+	expandBays(parent, acc)
+
+	if len(acc) != 1 {
+		t.Fatalf("acc size = %d, want 1 (only the valid bay expands)", len(acc))
+	}
+	if len(parent.Children) != 1 {
+		t.Errorf("parent.Children = %d, want 1", len(parent.Children))
+	}
+	for _, child := range acc {
+		if child.Parent != parent.ID {
+			t.Errorf("child.Parent = %s, want %s", child.Parent, parent.ID)
+		}
 	}
 }

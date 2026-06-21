@@ -1,6 +1,8 @@
 package transform
 
 import (
+	"io"
+	"os"
 	"testing"
 
 	"github.com/Cray-HPE/cani/internal/config"
@@ -15,6 +17,35 @@ import (
 type fakeRecordProvider struct{ records []import_.CsvRecord }
 
 func (f *fakeRecordProvider) GetRecords() []import_.CsvRecord { return f.records }
+
+// withStdin redirects os.Stdin to a pipe preloaded with input for the duration
+// of the test, then restores it. An empty input yields immediate EOF, which
+// drives interactive prompts to return an error.
+func withStdin(t *testing.T, input string) {
+	t.Helper()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe: %v", err)
+	}
+	old := os.Stdin
+	os.Stdin = r
+	t.Cleanup(func() {
+		os.Stdin = old
+		_ = r.Close()
+	})
+	go func() {
+		_, _ = io.WriteString(w, input)
+		_ = w.Close()
+	}()
+}
+
+type fakeSystemProvider struct {
+	data     *import_.SystemCSV
+	isSystem bool
+}
+
+func (f *fakeSystemProvider) GetSystemRecords() *import_.SystemCSV { return f.data }
+func (f *fakeSystemProvider) IsSystemImport() bool                 { return f.isSystem }
 
 // setupTransformTest saves and restores providerGetter and config.Cfg, then
 // sets a fakeRecordProvider with the given records.
@@ -35,6 +66,16 @@ func setupTransformTest(t *testing.T, records []import_.CsvRecord) {
 
 // --- Transform entry point tests ---
 
+// TestSetProviderGetter verifies the setter installs a non-nil record-provider
+// accessor that the package can invoke.
+//
+// Why it matters: the transform layer is decoupled from the provider singleton
+// to avoid an import cycle, so the parent package must inject CSV record access
+// through this setter before a flat-CSV import can run.
+// Inputs: a getter closure that records its invocation. Outputs: a non-nil
+// providerGetter that runs the closure when called.
+// Data choice: a boolean tripwire is the minimal observable proof the injected
+// getter is the one stored and called.
 func TestSetProviderGetter(t *testing.T) {
 	old := providerGetter
 	t.Cleanup(func() { providerGetter = old })
@@ -54,6 +95,111 @@ func TestSetProviderGetter(t *testing.T) {
 	}
 }
 
+// TestSetSystemProviderGetter verifies the setter installs a non-nil system
+// provider accessor that the package can invoke.
+//
+// Why it matters: the transform layer is decoupled from the provider singleton
+// to avoid an import cycle, so the parent package must be able to inject system
+// CSV access through this setter before any system import can run.
+// Inputs: a getter closure that records its invocation. Outputs: a non-nil
+// systemProviderGetter that, when called, runs the closure.
+// Data choice: a boolean tripwire is the minimal observable proof the injected
+// getter is the one actually stored and called.
+func TestSetSystemProviderGetter(t *testing.T) {
+	old := systemProviderGetter
+	t.Cleanup(func() { systemProviderGetter = old })
+
+	called := false
+	SetSystemProviderGetter(func() interface {
+		GetSystemRecords() *import_.SystemCSV
+		IsSystemImport() bool
+	} {
+		called = true
+		return &fakeSystemProvider{}
+	})
+
+	if systemProviderGetter == nil {
+		t.Fatal("systemProviderGetter should not be nil after SetSystemProviderGetter")
+	}
+	systemProviderGetter()
+	if !called {
+		t.Error("expected systemProviderGetter to be called")
+	}
+}
+
+// TestTransform_SystemCSVRouting verifies Transform dispatches to the system
+// transform only when the provider reports a system import.
+//
+// Why it matters: a single Transform entry point serves both the flat CSV and
+// the richer system CSV formats, so it must branch on IsSystemImport to avoid
+// running the wrong pipeline against the wrong data shape.
+// Inputs: a system provider toggled true then false, paired with matching
+// records. Outputs: one rack from the system pipeline when true, one rack from
+// the flat-CSV pipeline when false.
+// Data choice: a single rack in each branch is the smallest output that proves
+// which pipeline ran, and a real rack slug keeps the system path's library
+// lookup realistic.
+func TestTransform_SystemCSVRouting(t *testing.T) {
+	t.Run("routes to system transform when IsSystemImport is true", func(t *testing.T) {
+		oldSys := systemProviderGetter
+		t.Cleanup(func() { systemProviderGetter = oldSys })
+
+		data := &import_.SystemCSV{
+			SectionDefaults: make(map[string]import_.SystemRecord),
+			Racks: []import_.SystemRecord{
+				{Section: "rack", PartNumber: "hpe-48u-800mmx1200mm-g2-enterprise-shock-rack", Name: "x3701", Qty: 1, Status: "Available"},
+			},
+		}
+		SetSystemProviderGetter(func() interface {
+			GetSystemRecords() *import_.SystemCSV
+			IsSystemImport() bool
+		} {
+			return &fakeSystemProvider{data: data, isSystem: true}
+		})
+
+		result, err := Transform(devicetypes.Inventory{})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(result.Racks) != 1 {
+			t.Errorf("expected 1 rack from system transform, got %d", len(result.Racks))
+		}
+	})
+
+	t.Run("falls through to CSV transform when IsSystemImport is false", func(t *testing.T) {
+		oldSys := systemProviderGetter
+		t.Cleanup(func() { systemProviderGetter = oldSys })
+		SetSystemProviderGetter(func() interface {
+			GetSystemRecords() *import_.SystemCSV
+			IsSystemImport() bool
+		} {
+			return &fakeSystemProvider{isSystem: false}
+		})
+
+		setupTransformTest(t, []import_.CsvRecord{
+			{PartNumber: "FAKE-RACK-PN", Description: "48U Rack Cabinet", Quantity: 1, ConfigGroup: "0100"},
+		})
+
+		result, err := Transform(devicetypes.Inventory{})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(result.Racks) != 1 {
+			t.Errorf("expected 1 rack from CSV transform, got %d", len(result.Racks))
+		}
+	})
+}
+
+// TestTransform verifies Transform guards a nil provider, no-ops on empty input,
+// builds racks and devices from records, and propagates a classification error.
+//
+// Why it matters: Transform is the flat-CSV entry point, so it must reject a
+// missing provider, stay a no-op when there is nothing to import, produce
+// inventory from rows, and surface unclassifiable rows.
+// Inputs: a nil providerGetter, nil records, a rack+server batch, and an
+// unclassifiable memory-kit row. Outputs: errors or a populated TransformResult.
+// Data choice: a 48U rack plus a quantity-2 server prove count expansion, while
+// the DDR5 memory kit is a real description that classifies to nothing.
 func TestTransform(t *testing.T) {
 	t.Run("nil provider getter", func(t *testing.T) {
 		old := providerGetter
@@ -105,6 +251,17 @@ func TestTransform(t *testing.T) {
 
 // --- Classification tests ---
 
+// TestClassifyRecords verifies records are bucketed into racks, devices, or
+// cables, with an error for an unclassifiable row.
+//
+// Why it matters: classification is the first transform step that routes each
+// row to its builder, so every hardware category and the reject path must be
+// correct.
+// Inputs: a table of single- and mixed-type record batches. Outputs: per-category
+// counts or an error.
+// Data choice: one row per category (rack, cable-by-endpoint,
+// cable-by-description, switch, node), an unclassifiable memory kit, and a mixed
+// batch cover every branch.
 func TestClassifyRecords(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -166,6 +323,17 @@ func TestClassifyRecords(t *testing.T) {
 
 // --- Item creation tests ---
 
+// TestCreateItemsFromRecord verifies a record expands into N items of its
+// hardware type, registers them in inventory, and indexes them by config group.
+//
+// Why it matters: this is the per-row fan-out that builds inventory and the group
+// indexes auto-cabling later relies on, so counts, inventory insertion, and
+// grouping must all hold.
+// Inputs: a quantity-2 rack row (group 0100), a quantity-3 node row (group
+// 0200), and a node row with no config group. Outputs: created items, inventory
+// entries, and group-index entries.
+// Data choice: distinct quantities prove per-type expansion; the no-group row
+// proves grouping is skipped when ConfigGroup is empty.
 func TestCreateItemsFromRecord(t *testing.T) {
 	t.Run("creates rack items", func(t *testing.T) {
 		inv := &devicetypes.Inventory{
@@ -234,6 +402,15 @@ func TestCreateItemsFromRecord(t *testing.T) {
 	})
 }
 
+// TestCreateRackWithoutLibraryMatch verifies a rack whose part number is not in
+// the library is created with the default 48U height and still indexed.
+//
+// Why it matters: unknown rack parts must not break the import, so the builder
+// falls back to a sane default height and registers the rack normally.
+// Inputs: a rack record with a fake part number and group 0100. Outputs: a rack
+// with the given ID, UHeight 48, present in inventory and the group index.
+// Data choice: a fake part number guarantees the library miss, isolating the
+// default-height fallback.
 func TestCreateRackWithoutLibraryMatch(t *testing.T) {
 	inv := &devicetypes.Inventory{Racks: make(map[uuid.UUID]*devicetypes.CaniRackType)}
 	racksByGroup := make(map[string][]uuid.UUID)
@@ -256,6 +433,15 @@ func TestCreateRackWithoutLibraryMatch(t *testing.T) {
 	}
 }
 
+// TestBuildDeviceFromRecord verifies a device is built from a record with its
+// ID, name, part number, and hardware type populated.
+//
+// Why it matters: even without a library match a device must carry its
+// identifying fields so later passes can place and name it.
+// Inputs: a device record with a fake part number and the name "DL380-001".
+// Outputs: a device with matching ID, Name, PartNumber, and Type "node".
+// Data choice: a fake part number keeps the test on the no-library path so only
+// the record-derived fields are asserted.
 func TestBuildDeviceFromRecord(t *testing.T) {
 	id := uuid.New()
 	rec := import_.CsvRecord{PartNumber: "TEST-FAKE-PN", Description: "HPE ProLiant DL380", ConfigGroup: "0200"}
@@ -275,6 +461,18 @@ func TestBuildDeviceFromRecord(t *testing.T) {
 	}
 }
 
+// TestPopulateFromDeviceType verifies library device-type fields are copied onto
+// a device, but an empty type does not overwrite the existing type.
+//
+// Why it matters: library population enriches a bare device with manufacturer,
+// model, ports, bays, and interfaces, so every field must copy while a blank
+// library type must not clobber a known one.
+// Inputs: a device plus a fully populated device type, and a switch device plus
+// a device type with an empty Type. Outputs: the device with all fields copied,
+// or its original type preserved.
+// Data choice: a device type carrying one of every collection (interfaces,
+// console/power ports, bays, identifications) proves each copy; the empty-Type
+// case proves the guard.
 func TestPopulateFromDeviceType(t *testing.T) {
 	t.Run("copies all fields", func(t *testing.T) {
 		device := &devicetypes.CaniDeviceType{Name: "original", Slug: "old-slug"}
@@ -368,6 +566,15 @@ func TestPopulateFromDeviceType(t *testing.T) {
 	})
 }
 
+// TestGetDeviceUHeight verifies U-height resolution returns 0 when neither the
+// part number nor the slug is in the library.
+//
+// Why it matters: placement needs a height, so an unknown device must report 0
+// rather than guess, signaling the caller to clamp.
+// Inputs: a device with unknown part number and slug, and a wholly empty device.
+// Outputs: 0 in both cases.
+// Data choice: fake and empty identifiers both miss the library, isolating the
+// not-found return.
 func TestGetDeviceUHeight(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -387,6 +594,16 @@ func TestGetDeviceUHeight(t *testing.T) {
 
 // --- Rack position and zone tests ---
 
+// TestDeviceTypePriority verifies each hardware type maps to a rack-fill
+// priority (0 bottom, 1 middle, 2 top), with unknown defaulting to 1.
+//
+// Why it matters: rack placement orders devices by these priorities, so power
+// gear sinks to the bottom, switches rise to the top, and compute fills the
+// middle.
+// Inputs: representative type strings including empty. Outputs: the integer
+// priority.
+// Data choice: pdu/cdu (0), node/blade/chassis and empty (1), and the switch
+// family (2) cover every tier and the default.
 func TestDeviceTypePriority(t *testing.T) {
 	tests := []struct {
 		hwType string
@@ -406,6 +623,15 @@ func TestDeviceTypePriority(t *testing.T) {
 	}
 }
 
+// TestSortDevicesByRackPriority verifies a device ID slice is sorted in place
+// into non-decreasing rack priority.
+//
+// Why it matters: placement consumes a priority-ordered list, so the sort must
+// group power gear first and switches last regardless of input order.
+// Inputs: an unordered five-device slice spanning all three priority tiers.
+// Outputs: the slice reordered so priority never decreases.
+// Data choice: one device per type (switch, node, pdu, blade, cdu) proves the
+// two priority-0 devices lead and the priority-2 switch trails.
 func TestSortDevicesByRackPriority(t *testing.T) {
 	inv := &devicetypes.Inventory{Devices: make(map[uuid.UUID]*devicetypes.CaniDeviceType)}
 
@@ -439,6 +665,14 @@ func TestSortDevicesByRackPriority(t *testing.T) {
 	}
 }
 
+// TestGroupDevicesByZone verifies devices are partitioned into bottom, middle,
+// and top zones by hardware type.
+//
+// Why it matters: zone partitioning drives top-down vs bottom-up rack fill, so
+// power gear, compute, and switches must land in the right zone.
+// Inputs: a pdu, cdu, node, and switch. Outputs: bottom (2), middle (1), top (1).
+// Data choice: one device per zone with two in the bottom proves both the
+// multi-member and single-member partitions.
 func TestGroupDevicesByZone(t *testing.T) {
 	inv := &devicetypes.Inventory{Devices: make(map[uuid.UUID]*devicetypes.CaniDeviceType)}
 
@@ -461,6 +695,15 @@ func TestGroupDevicesByZone(t *testing.T) {
 	}
 }
 
+// TestRackPositionOrdering verifies config-group parenting places a PDU at the
+// rack bottom, a switch at the top, and a node just below the switch.
+//
+// Why it matters: this is the end-to-end placement contract operators expect, so
+// a mixed device set must fill from both ends of the rack toward the middle.
+// Inputs: a 48U rack and a switch/node/PDU group wired via
+// assignConfigGroupParenting. Outputs: PDU at U1, switch at U48, node at U47.
+// Data choice: a full 48U rack with one device per zone makes the exact
+// bottom/top/below-top positions unambiguous.
 func TestRackPositionOrdering(t *testing.T) {
 	resetRackPositionStates()
 	inv := &devicetypes.Inventory{
@@ -491,6 +734,16 @@ func TestRackPositionOrdering(t *testing.T) {
 	}
 }
 
+// TestRackZonesFillCorrectly verifies a small rack fills bottom-up for power
+// gear and top-down for switches, with compute below the switches.
+//
+// Why it matters: the zone fill must pack each end without collision so a dense
+// rack lays out deterministically.
+// Inputs: a 10U rack and two PDUs, two switches, and a node via
+// assignConfigGroupParenting. Outputs: PDUs at U1/U2, switches at U10/U9, node
+// at U8.
+// Data choice: a tight 10U rack with five devices forces adjacent placements
+// that expose any off-by-one in either fill direction.
 func TestRackZonesFillCorrectly(t *testing.T) {
 	resetRackPositionStates()
 	inv := &devicetypes.Inventory{
@@ -528,6 +781,15 @@ func TestRackZonesFillCorrectly(t *testing.T) {
 	}
 }
 
+// TestLinkDeviceToRack verifies linking tolerates a missing device or a missing
+// rack without panicking.
+//
+// Why it matters: stale IDs can appear during incremental imports, so linking
+// must degrade safely rather than dereference a nil device or rack.
+// Inputs: an empty inventory with a random device ID, and an inventory with a
+// device but a missing rack ID. Outputs: no panic.
+// Data choice: the two missing-target cases isolate the device-nil and rack-nil
+// guards independently.
 func TestLinkDeviceToRack(t *testing.T) {
 	t.Run("missing device does not panic", func(t *testing.T) {
 		inv := &devicetypes.Inventory{
@@ -549,6 +811,15 @@ func TestLinkDeviceToRack(t *testing.T) {
 
 // --- Config group and parenting helpers ---
 
+// TestFindParentRackIDs verifies only racks in the 01XX config group are
+// returned as parent rack IDs.
+//
+// Why it matters: devices parent to racks in the rack group, so the helper must
+// select 01XX racks and ignore other groups.
+// Inputs: an empty map, a 0100 group with two racks, and a 0200 group. Outputs:
+// the count of parent rack IDs.
+// Data choice: 0100 with two racks proves selection; the 0200-only map proves
+// non-rack groups are excluded.
 func TestFindParentRackIDs(t *testing.T) {
 	rack1, rack2, device1 := uuid.New(), uuid.New(), uuid.New()
 	tests := []struct {
@@ -569,6 +840,14 @@ func TestFindParentRackIDs(t *testing.T) {
 	}
 }
 
+// TestShouldLinkToRacks verifies a config group should link to racks only when
+// it is a non-rack, well-formed group.
+//
+// Why it matters: rack-group devices are the racks themselves, so only other
+// groups (devices, cables) should be parented to racks.
+// Inputs: rack, device, cable, and malformed group strings. Outputs: a boolean.
+// Data choice: 0100 (false), 0200/0300/0900 (true), and short/empty strings
+// (false) cover the rack-group exclusion and the malformed guards.
 func TestShouldLinkToRacks(t *testing.T) {
 	tests := []struct {
 		group string
@@ -586,6 +865,15 @@ func TestShouldLinkToRacks(t *testing.T) {
 	}
 }
 
+// TestGetConfigGroupPrefixTransform verifies the config-group prefix is the
+// first two characters, or empty for malformed groups.
+//
+// Why it matters: prefixes drive rack/device/cable grouping decisions, so a
+// four-digit group must yield its two-digit prefix and short inputs must yield
+// empty.
+// Inputs: four-digit groups and short/empty strings. Outputs: the prefix string.
+// Data choice: 0100/0200/0315 prove the two-char slice; "1" and "" prove the
+// too-short guard.
 func TestGetConfigGroupPrefixTransform(t *testing.T) {
 	tests := []struct{ input, want string }{
 		{"0100", "01"}, {"0200", "02"}, {"0315", "03"},
@@ -602,6 +890,15 @@ func TestGetConfigGroupPrefixTransform(t *testing.T) {
 
 // --- Step info and field mapping tests ---
 
+// TestBuildTransformStepInfo verifies step-through display info reports the
+// hardware type, record quantity, and created items for racks and devices.
+//
+// Why it matters: step mode shows operators what each row produced, so the info
+// must reflect the type and the created objects.
+// Inputs: a quantity-2 record with one created rack, and the same with one
+// created device. Outputs: a step-info struct.
+// Data choice: one created item per case with Quantity 2 proves the display
+// reads both the record quantity and the created-items list.
 func TestBuildTransformStepInfo(t *testing.T) {
 	rec := import_.CsvRecord{PartNumber: "FAKE-PN", Description: "Test Device", Quantity: 2, ConfigGroup: "0300"}
 
@@ -633,6 +930,15 @@ func TestBuildTransformStepInfo(t *testing.T) {
 	})
 }
 
+// TestBuildFieldMappings verifies field mappings include a ConfigGroup row only
+// when the record has one.
+//
+// Why it matters: step mode shows the source-to-target field mapping per row, so
+// an absent ConfigGroup must drop its mapping rather than show a blank.
+// Inputs: a record with ConfigGroup 0200 and one without. Outputs: four mappings
+// vs three, with the expected source/target labels.
+// Data choice: asserting the PartNumber/Name/ConfigGroup/HardwareType order and
+// the 4-vs-3 count proves the conditional ConfigGroup mapping.
 func TestBuildFieldMappings(t *testing.T) {
 	t.Run("with config group", func(t *testing.T) {
 		rec := import_.CsvRecord{PartNumber: "FAKE-PN", Description: "Some Device Description", ConfigGroup: "0200"}
@@ -667,6 +973,15 @@ func TestBuildFieldMappings(t *testing.T) {
 
 // --- Metadata tests ---
 
+// TestBuildProviderMetadata verifies provider metadata records the source CSV,
+// part number, and config group under an "example" key.
+//
+// Why it matters: the example provider stamps origin metadata on every item so a
+// later export can trace it back, so these fields must be captured.
+// Inputs: commands.CsvFlag "test.csv" and a record with PartNumber/ConfigGroup.
+// Outputs: an "example" metadata map with Source, PartNumber, ConfigGroup.
+// Data choice: a set CsvFlag plus a concrete part number and group prove all
+// three provenance fields are wired through.
 func TestBuildProviderMetadata(t *testing.T) {
 	commands.CsvFlag = "test.csv"
 	t.Cleanup(func() { commands.CsvFlag = "" })
@@ -689,10 +1004,23 @@ func TestBuildProviderMetadata(t *testing.T) {
 	}
 }
 
+// TestInitInventoryMaps verifies inventory map initialization creates the
+// Locations/Racks/Devices/Cables maps when nil and leaves populated maps intact.
+//
+// Why it matters: the transform writes into these maps, so they must exist even
+// when callers pass a zero-value inventory, but re-initializing must never drop
+// an existing entry during an incremental import.
+// Inputs: an empty inventory and one with a pre-populated Racks map. Outputs:
+// non-nil maps, or the preserved entry.
+// Data choice: a pre-seeded rack proves the preserve path while the empty
+// inventory proves the create path.
 func TestInitInventoryMaps(t *testing.T) {
 	t.Run("initializes nil maps", func(t *testing.T) {
 		inv := devicetypes.Inventory{}
 		initInventoryMaps(&inv)
+		if inv.Locations == nil {
+			t.Error("expected Locations map to be initialized")
+		}
 		if inv.Racks == nil {
 			t.Error("expected Racks map to be initialized")
 		}
@@ -718,6 +1046,15 @@ func TestInitInventoryMaps(t *testing.T) {
 
 // --- Summary tests ---
 
+// TestBuildTransformSummary verifies the transform summary lists rack names and
+// groups devices under their parent rack.
+//
+// Why it matters: the summary is the operator-facing rollup after an import, so
+// it must name each rack and attribute devices to the right one.
+// Inputs: an inventory with one rack and a device parented to it. Outputs: a
+// summary with one rack name and one device under "Rack-001".
+// Data choice: a single parented device is the smallest input proving the
+// rack-to-device grouping.
 func TestBuildTransformSummary(t *testing.T) {
 	rackID, deviceID := uuid.New(), uuid.New()
 	inv := &devicetypes.Inventory{
@@ -734,6 +1071,15 @@ func TestBuildTransformSummary(t *testing.T) {
 	}
 }
 
+// TestBuildNewItemsSummary verifies the new-items summary groups created devices
+// under their parent rack, filing parentless devices under an empty key.
+//
+// Why it matters: after a partial import the operator needs to see which new
+// devices landed in which rack and which are orphaned.
+// Inputs: created items with a rack-parented device, and created items with an
+// unparented device. Outputs: a summary keyed by rack name, or by empty string.
+// Data choice: one parented and one orphan device prove both the named-rack
+// grouping and the empty-key fallback.
 func TestBuildNewItemsSummary(t *testing.T) {
 	t.Run("with parent rack", func(t *testing.T) {
 		rackID := uuid.New()
@@ -767,6 +1113,15 @@ func TestBuildNewItemsSummary(t *testing.T) {
 
 // --- Utility function tests ---
 
+// TestGenerateName verifies a name is built from a description, truncated to 30
+// characters and suffixed with an ordinal only when more than one item shares it.
+//
+// Why it matters: device and rack names must be unique and length-bounded, so
+// bulk rows get -NNN suffixes and long descriptions are clipped.
+// Inputs: short and long descriptions with various index/total values. Outputs:
+// the name string.
+// Data choice: single vs first/second-of-three prove suffixing; the 48-char
+// description with total 1 and 2 proves truncation with and without a suffix.
 func TestGenerateName(t *testing.T) {
 	tests := []struct {
 		name, description string
@@ -789,6 +1144,15 @@ func TestGenerateName(t *testing.T) {
 	}
 }
 
+// TestSlugify verifies a string is slugified to lowercase with spaces becoming
+// dashes and special characters removed.
+//
+// Why it matters: slugs key library lookups and URLs, so the transform must
+// produce stable, lowercase, punctuation-free slugs.
+// Inputs: mixed-case strings with spaces, dashes, and special characters.
+// Outputs: the slug.
+// Data choice: caps, existing dashes, "Special!@#$Characters", empty, and
+// multi-space runs cover lowering, dash mapping, stripping, and the empty case.
 func TestSlugify(t *testing.T) {
 	tests := []struct{ input, want string }{
 		{"HPE Cat6 Cable", "hpe-cat6-cable"},
@@ -808,6 +1172,15 @@ func TestSlugify(t *testing.T) {
 	}
 }
 
+// TestTruncateName verifies a name longer than 30 characters is clipped to 30,
+// while shorter names pass through unchanged.
+//
+// Why it matters: downstream systems bound name length, so the transform must
+// clip without altering compliant names.
+// Inputs: short, exactly-30, over-30, and empty strings. Outputs: the (possibly
+// clipped) name.
+// Data choice: the exactly-30 and 31-char cases pin the boundary; empty proves
+// the no-op.
 func TestTruncateName(t *testing.T) {
 	tests := []struct{ name, input, want string }{
 		{"short string", "Hello", "Hello"},
@@ -821,5 +1194,295 @@ func TestTruncateName(t *testing.T) {
 				t.Errorf("truncateName(%q) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
+	}
+}
+
+// --- Library-backed classification and creation ---
+
+// TestClassifyRecords_FromLibrary verifies a part number resolved by the device
+// library drives classification, including the default device branch.
+//
+// Why it matters: the library is the authoritative source of hardware type, so
+// a recognized part number must take precedence over description heuristics, and
+// any library type outside the explicit rack/cable buckets must still land as a
+// device rather than being dropped.
+// Inputs: one record whose part number resolves to a mgmt-switch in the library.
+// Outputs: exactly one classified device.
+// Data choice: FG-4401F is a real Fortinet entry typed "mgmt-switch", which is
+// not in the explicit case list, so it exercises the default-to-device branch.
+func TestClassifyRecords_FromLibrary(t *testing.T) {
+	got, err := classifyRecords([]import_.CsvRecord{
+		{PartNumber: "FG-4401F", Description: "ignored description", Quantity: 1},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got.devices) != 1 {
+		t.Errorf("expected 1 device, got %d (racks=%d cables=%d)", len(got.devices), len(got.racks), len(got.cables))
+	}
+}
+
+// TestCreateRack_FromLibrary verifies a rack record whose part number resolves
+// in the device registry inherits that entry's slug and U-height.
+//
+// Why it matters: when a record's part number is known, the created rack should
+// reflect library specs instead of defaulting, so downstream placement uses the
+// correct height.
+// Inputs: a rack record carrying the real part number P67287-B21. Outputs: a
+// rack with the library slug hpe-xd670 and U-height 5.
+// Data choice: P67287-B21 is a real registry entry with a non-default U-height,
+// so a successful lookup is observably different from the 48U fallback.
+func TestCreateRack_FromLibrary(t *testing.T) {
+	inv := &devicetypes.Inventory{Racks: map[uuid.UUID]*devicetypes.CaniRackType{}}
+	id := uuid.New()
+	rec := import_.CsvRecord{PartNumber: "P67287-B21", Description: "Custom Rack", ConfigGroup: "0100"}
+	rack := createRack(inv, id, "r", rec, map[string][]uuid.UUID{})
+	if rack.Slug != "hpe-xd670" {
+		t.Errorf("Slug = %q, want %q", rack.Slug, "hpe-xd670")
+	}
+	if rack.UHeight != 5 {
+		t.Errorf("UHeight = %d, want 5", rack.UHeight)
+	}
+}
+
+// TestBuildDeviceFromRecord_FromLibrary verifies a device record with a known
+// part number is populated from the library entry.
+//
+// Why it matters: library population fills in manufacturer, model, interfaces,
+// and U-height that the bare CSV record lacks, so a recognized part number must
+// trigger that copy.
+// Inputs: a device record carrying part number P67287-B21. Outputs: a device
+// with the library slug hpe-xd670 and U-height 5.
+// Data choice: P67287-B21 resolves to hpe-xd670 (U-height 5), making the
+// library copy observable against the record's own empty specs.
+func TestBuildDeviceFromRecord_FromLibrary(t *testing.T) {
+	id := uuid.New()
+	rec := import_.CsvRecord{PartNumber: "P67287-B21", Description: "HPE XD670"}
+	device := buildDeviceFromRecord(id, "xd670-001", rec, "blade")
+	if device.Slug != "hpe-xd670" {
+		t.Errorf("Slug = %q, want %q", device.Slug, "hpe-xd670")
+	}
+	if device.UHeight != 5 {
+		t.Errorf("UHeight = %d, want 5", device.UHeight)
+	}
+}
+
+// TestGetDeviceUHeight_FromLibrary verifies U-height resolution by part number
+// and by slug against the device library.
+//
+// Why it matters: rack placement needs each device's true height; the resolver
+// must try part number first and fall back to slug so devices identified either
+// way are sized correctly.
+// Inputs: one device keyed only by part number, another keyed only by slug.
+// Outputs: U-height 5 for both.
+// Data choice: P67287-B21 and hpe-xd670 are the part number and slug of the same
+// real 5U entry, isolating each lookup path while expecting the same height.
+func TestGetDeviceUHeight_FromLibrary(t *testing.T) {
+	t.Run("by part number", func(t *testing.T) {
+		d := &devicetypes.CaniDeviceType{PartNumber: "P67287-B21"}
+		if got := getDeviceUHeight(d); got != 5 {
+			t.Errorf("getDeviceUHeight = %d, want 5", got)
+		}
+	})
+	t.Run("by slug", func(t *testing.T) {
+		d := &devicetypes.CaniDeviceType{Slug: "hpe-xd670"}
+		if got := getDeviceUHeight(d); got != 5 {
+			t.Errorf("getDeviceUHeight = %d, want 5", got)
+		}
+	})
+}
+
+// --- Placement edge cases ---
+
+// TestGroupDevicesByZone_NilDevice verifies an ID absent from inventory is
+// treated as a middle-zone device.
+//
+// Why it matters: stale or dangling device IDs must not crash zone partitioning;
+// the safe default is the middle zone so the device still gets a placement
+// attempt.
+// Inputs: a device ID that is not present in the inventory map. Outputs: that ID
+// sorted into the middle zone, with bottom and top empty.
+// Data choice: a never-registered UUID guarantees the nil-lookup branch without
+// depending on any device state.
+func TestGroupDevicesByZone_NilDevice(t *testing.T) {
+	inv := &devicetypes.Inventory{Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{}}
+	bottom, middle, top := groupDevicesByZone(inv, []uuid.UUID{uuid.New()})
+	if len(bottom) != 0 || len(top) != 0 || len(middle) != 1 {
+		t.Errorf("unknown device zoning = bottom %d, middle %d, top %d; want 0,1,0", len(bottom), len(middle), len(top))
+	}
+}
+
+// TestDistributeDevicesToRacks_NilRack verifies a target rack ID missing from
+// inventory is skipped without panicking.
+//
+// Why it matters: rack distribution must tolerate a stale rack reference rather
+// than dereference a nil rack, so a bad ID simply yields no placement.
+// Inputs: one device and a rack-ID list whose only entry is absent from the
+// inventory. Outputs: the device left unplaced (RackPosition 0) and no panic.
+// Data choice: a single missing rack ID isolates the nil-rack guard in both the
+// state-init loop and the link step.
+func TestDistributeDevicesToRacks_NilRack(t *testing.T) {
+	resetRackPositionStates()
+	devID := uuid.New()
+	inv := &devicetypes.Inventory{
+		Racks:   map[uuid.UUID]*devicetypes.CaniRackType{},
+		Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{devID: {ID: devID, Type: devicetypes.Type("node")}},
+	}
+	distributeDevicesToRacks(inv, []uuid.UUID{devID}, []uuid.UUID{uuid.New()})
+	if inv.Devices[devID].RackPosition != 0 {
+		t.Errorf("expected device unplaced, got position %d", inv.Devices[devID].RackPosition)
+	}
+}
+
+// TestAssignRackPosition_Overflow verifies devices that exceed remaining rack
+// space are left unplaced in both the top-down and bottom-up fill directions.
+//
+// Why it matters: a full rack must refuse further devices rather than assign
+// invalid or overlapping U positions, protecting downstream layout integrity.
+// Inputs: a 1U rack and successive switch (top) and PDU (bottom) placements.
+// Outputs: the first switch placed at U1, the second switch and the PDU left at
+// position 0.
+// Data choice: a 1U rack is the smallest space that fits exactly one device,
+// forcing the very next placement in each direction to hit the won't-fit guard.
+func TestAssignRackPosition_Overflow(t *testing.T) {
+	resetRackPositionStates()
+	rack := &devicetypes.CaniRackType{ID: uuid.New(), UHeight: 1}
+
+	first := &devicetypes.CaniDeviceType{ID: uuid.New(), Type: devicetypes.Type("switch")}
+	assignRackPosition(first, rack, zoneTop)
+	if first.RackPosition != 1 {
+		t.Fatalf("first switch position = %d, want 1", first.RackPosition)
+	}
+
+	second := &devicetypes.CaniDeviceType{ID: uuid.New(), Type: devicetypes.Type("switch")}
+	assignRackPosition(second, rack, zoneTop)
+	if second.RackPosition != 0 {
+		t.Errorf("second switch should not fit, got position %d", second.RackPosition)
+	}
+
+	pdu := &devicetypes.CaniDeviceType{ID: uuid.New(), Type: devicetypes.Type("pdu")}
+	assignRackPosition(pdu, rack, zoneBottom)
+	if pdu.RackPosition != 0 {
+		t.Errorf("pdu should not fit in full rack, got position %d", pdu.RackPosition)
+	}
+}
+
+// --- Transform entry: step mode and cable errors ---
+
+// TestTransform_StepModeRack verifies Transform drives the rack step-through
+// prompt when step mode is enabled and a rack is created.
+//
+// Why it matters: step mode is the operator's interactive review path, so each
+// created rack must pause for confirmation rather than streaming past unseen.
+// Inputs: a single rack record, StepMode enabled, and a stdin holding one
+// newline. Outputs: one rack with no error.
+// Data choice: exactly one record keeps the run to a single prompt, which is the
+// most a fresh-per-call bufio reader over a pipe can satisfy without EOF; P9K58A
+// is a real rack part number so classification routes it through the rack pass.
+func TestTransform_StepModeRack(t *testing.T) {
+	setupTransformTest(t, []import_.CsvRecord{
+		{PartNumber: "P9K58A", Description: "HPE 48U Rack", Quantity: 1, ConfigGroup: "0100"},
+	})
+	config.Cfg.StepMode = true
+	config.Cfg.NoColor = true
+	withStdin(t, "\n")
+
+	result, err := Transform(devicetypes.Inventory{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Racks) != 1 {
+		t.Errorf("expected 1 rack, got %d", len(result.Racks))
+	}
+}
+
+// TestTransform_StepModeDevice verifies Transform drives the device step-through
+// prompt and resolves device hardware type from the library.
+//
+// Why it matters: the device pass must both pause for review in step mode and
+// classify a recognized part number via the library so the created device is
+// correctly typed.
+// Inputs: a single device record keyed by a real part number, StepMode enabled,
+// and a stdin holding one newline. Outputs: one device with no error.
+// Data choice: P67287-B21 resolves to a blade in the library, exercising the
+// library hardware-type branch, and one record keeps the run to a single prompt.
+func TestTransform_StepModeDevice(t *testing.T) {
+	setupTransformTest(t, []import_.CsvRecord{
+		{PartNumber: "P67287-B21", Description: "HPE XD670", Quantity: 1, ConfigGroup: "0300"},
+	})
+	config.Cfg.StepMode = true
+	config.Cfg.NoColor = true
+	withStdin(t, "\n")
+
+	result, err := Transform(devicetypes.Inventory{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Devices) != 1 {
+		t.Errorf("expected 1 device, got %d", len(result.Devices))
+	}
+}
+
+// TestTransform_StepModeRackInterrupted verifies Transform aborts when the rack
+// step prompt is interrupted.
+//
+// Why it matters: if the operator's input stream closes mid-review, Transform
+// must stop and surface the interruption rather than silently continue past an
+// unconfirmed rack.
+// Inputs: a single rack record, StepMode enabled, and an empty stdin that
+// returns EOF on the first read. Outputs: a non-nil error from Transform.
+// Data choice: empty stdin is the minimal way to force the prompt's read to fail
+// immediately, exercising the rack-step interrupt branch.
+func TestTransform_StepModeRackInterrupted(t *testing.T) {
+	setupTransformTest(t, []import_.CsvRecord{
+		{PartNumber: "P9K58A", Description: "HPE 48U Rack", Quantity: 1, ConfigGroup: "0100"},
+	})
+	config.Cfg.StepMode = true
+	config.Cfg.NoColor = true
+	withStdin(t, "")
+
+	if _, err := Transform(devicetypes.Inventory{}); err == nil {
+		t.Fatal("expected error when rack step prompt is interrupted")
+	}
+}
+
+// TestTransform_StepModeDeviceInterrupted verifies Transform aborts when the
+// device step prompt is interrupted.
+//
+// Why it matters: an interrupted input stream during the device review must halt
+// the import so a half-reviewed device set is never committed.
+// Inputs: a single device record, StepMode enabled, and an empty stdin that
+// returns EOF on the first read. Outputs: a non-nil error from Transform.
+// Data choice: P67287-B21 routes through the device pass, and empty stdin forces
+// the device-step prompt read to fail, exercising the device-step interrupt branch.
+func TestTransform_StepModeDeviceInterrupted(t *testing.T) {
+	setupTransformTest(t, []import_.CsvRecord{
+		{PartNumber: "P67287-B21", Description: "HPE XD670", Quantity: 1, ConfigGroup: "0300"},
+	})
+	config.Cfg.StepMode = true
+	config.Cfg.NoColor = true
+	withStdin(t, "")
+
+	if _, err := Transform(devicetypes.Inventory{}); err == nil {
+		t.Fatal("expected error when device step prompt is interrupted")
+	}
+}
+
+// TestTransform_CableError verifies Transform surfaces a cable-pass failure as a
+// wrapped error.
+//
+// Why it matters: a cable referencing a missing device must abort the import so
+// the operator fixes the data rather than receiving a partial, inconsistent
+// inventory.
+// Inputs: one explicit cable record naming devices that do not exist. Outputs: a
+// non-nil error from Transform.
+// Data choice: both endpoints are ghosts so the cable pass fails on the first
+// lookup, exercising the transformCables error-wrap path in Transform.
+func TestTransform_CableError(t *testing.T) {
+	setupTransformTest(t, []import_.CsvRecord{
+		{Description: "link", Quantity: 1, SourceDevice: "ghost-a", SourcePort: "e0", DestDevice: "ghost-b", DestPort: "e0"},
+	})
+	if _, err := Transform(devicetypes.Inventory{}); err == nil {
+		t.Fatal("expected error from transformCables for missing devices")
 	}
 }

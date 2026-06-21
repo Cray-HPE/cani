@@ -45,6 +45,15 @@ Describe 'cani alpha export'
     End
   End
 
+  Describe 'nautobot --help'
+    Parameters:value --create-device-types --create-location-types --create-module-types --create-locations --create-roles --create-statuses --dry-run --merge
+    It "has $1 flag"
+      When call bin/cani alpha export nautobot --help
+      The status should equal 0
+      The stdout should include "$1"
+    End
+  End
+
   Describe 'argument validation'
     It 'fails with no arguments'
       When call bin/cani alpha export

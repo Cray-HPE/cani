@@ -33,6 +33,18 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// TestBuildInterfaceMap verifies BuildInterfaceMap indexes interfaces by UUID to
+// their (device UUID, name), skipping interfaces with a nil Id and recording a
+// nil device UUID when the interface has no device.
+//
+// Why it matters: cable terminations reference interfaces by UUID; MapCables uses
+// this map to resolve each end to a device and port, so a missing interface Id
+// must be skipped and a deviceless interface must still index by name.
+// Inputs: nil, a nil-Id interface, an interface with a device ref, and an
+// interface with no device. Outputs: the UUID->ifaceRef map.
+// Data choice: distinct interface and device UUIDs prove the device link is
+// captured, while the deviceless case proves the nil-device guard yields
+// uuid.Nil rather than panicking.
 func TestBuildInterfaceMap(t *testing.T) {
 	t.Run("empty input returns empty map", func(t *testing.T) {
 		got := BuildInterfaceMap(nil)
@@ -90,6 +102,20 @@ func TestBuildInterfaceMap(t *testing.T) {
 	})
 }
 
+// TestMapCables verifies MapCables converts cables and resolves status plus both
+// terminations to CANI interface IDs and device/port pairs, skipping nil-Id
+// cables and leaving terminations empty when an interface reference is unknown.
+//
+// Why it matters: cables are imported after devices and interfaces; each
+// termination must preserve the imported interface UUID and resolve to the CANI
+// device plus port name, so unresolved references must degrade to empty rather
+// than wire a cable to the wrong device.
+// Inputs: device and interface lookup maps plus cables that are nil-Id, fully
+// resolvable, and reference unknown interfaces. Outputs: the CANI cable map with
+// label, color, type, length/unit, and both termination device/port fields.
+// Data choice: two distinct devices and named interfaces (eth0/eth1) prove each
+// termination resolves to its own end, and unknown UUIDs prove the miss path
+// leaves both termination devices at uuid.Nil.
 func TestMapCables(t *testing.T) {
 	devANBID := uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 	devACaniID := uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
@@ -108,7 +134,7 @@ func TestMapCables(t *testing.T) {
 	}
 
 	t.Run("empty input returns empty map", func(t *testing.T) {
-		got := MapCables(nil, deviceMap, ifaceMap)
+		got := MapCables(nil, deviceMap, ifaceMap, nil)
 		if len(got) != 0 {
 			t.Errorf("expected 0, got %d", len(got))
 		}
@@ -119,7 +145,7 @@ func TestMapCables(t *testing.T) {
 			{Id: nil, Status: makeStatusRefFromUUID(uuid.New()),
 				TerminationAId: openapi_types.UUID(ifaceAID), TerminationBId: openapi_types.UUID(ifaceBID)},
 		}
-		got := MapCables(raw, deviceMap, ifaceMap)
+		got := MapCables(raw, deviceMap, ifaceMap, nil)
 		if len(got) != 0 {
 			t.Errorf("expected 0, got %d", len(got))
 		}
@@ -131,6 +157,7 @@ func TestMapCables(t *testing.T) {
 		label := "uplink-1"
 		color := "blue"
 		length := float64(3)
+		statusID := uuid.MustParse("77777777-7777-7777-7777-777777777777")
 		cableType := nautobotapi.CableTypeValue("cat6")
 		lengthUnit := nautobotapi.CableLengthUnitValue("m")
 		termAType := "dcim.interface"
@@ -141,7 +168,7 @@ func TestMapCables(t *testing.T) {
 				Id:               &oaCableID,
 				Label:            &label,
 				Color:            &color,
-				Status:           makeStatusRefFromUUID(uuid.New()),
+				Status:           makeStatusRefFromUUID(statusID),
 				TerminationAId:   openapi_types.UUID(ifaceAID),
 				TerminationBId:   openapi_types.UUID(ifaceBID),
 				TerminationAType: termAType,
@@ -152,7 +179,7 @@ func TestMapCables(t *testing.T) {
 			},
 		}
 
-		got := MapCables(raw, deviceMap, ifaceMap)
+		got := MapCables(raw, deviceMap, ifaceMap, map[uuid.UUID]string{statusID: "Connected"})
 		if len(got) != 1 {
 			t.Fatalf("expected 1, got %d", len(got))
 		}
@@ -173,11 +200,20 @@ func TestMapCables(t *testing.T) {
 			if cable.LengthUnit != "m" {
 				t.Errorf("LengthUnit = %q, want %q", cable.LengthUnit, "m")
 			}
+			if cable.Status != "Connected" {
+				t.Errorf("Status = %q, want %q", cable.Status, "Connected")
+			}
+			if cable.TerminationA != ifaceAID {
+				t.Errorf("TerminationA = %s, want %s", cable.TerminationA, ifaceAID)
+			}
 			if cable.TerminationADevice != devACaniID {
 				t.Errorf("TerminationADevice = %s, want %s", cable.TerminationADevice, devACaniID)
 			}
 			if cable.TerminationAPort != "eth0" {
 				t.Errorf("TerminationAPort = %q, want %q", cable.TerminationAPort, "eth0")
+			}
+			if cable.TerminationB != ifaceBID {
+				t.Errorf("TerminationB = %s, want %s", cable.TerminationB, ifaceBID)
 			}
 			if cable.TerminationBDevice != devBCaniID {
 				t.Errorf("TerminationBDevice = %s, want %s", cable.TerminationBDevice, devBCaniID)
@@ -209,10 +245,16 @@ func TestMapCables(t *testing.T) {
 			},
 		}
 
-		got := MapCables(raw, deviceMap, ifaceMap)
+		got := MapCables(raw, deviceMap, ifaceMap, nil)
 		for _, cable := range got {
+			if cable.TerminationA != uuid.Nil {
+				t.Errorf("TerminationA = %s, want Nil", cable.TerminationA)
+			}
 			if cable.TerminationADevice != uuid.Nil {
 				t.Errorf("TerminationADevice = %s, want Nil", cable.TerminationADevice)
+			}
+			if cable.TerminationB != uuid.Nil {
+				t.Errorf("TerminationB = %s, want Nil", cable.TerminationB)
 			}
 			if cable.TerminationBDevice != uuid.Nil {
 				t.Errorf("TerminationBDevice = %s, want Nil", cable.TerminationBDevice)
@@ -235,7 +277,7 @@ func TestMapCables(t *testing.T) {
 			},
 		}
 
-		got := MapCables(raw, deviceMap, ifaceMap)
+		got := MapCables(raw, deviceMap, ifaceMap, nil)
 		for _, cable := range got {
 			if cable.CustomFields == nil {
 				t.Fatal("expected CustomFields to be set")

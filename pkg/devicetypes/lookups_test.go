@@ -521,3 +521,39 @@ func TestTokenizeCamelNumPlainToken(t *testing.T) {
 		t.Errorf("tokenizeCamelNum(\"blade\") = %v, want [blade]", tokens)
 	}
 }
+
+// ---------- fuzzyMatchModule ----------
+
+// TestFuzzyMatchModuleTieBreakAndReject verifies fuzzyMatchModule breaks score
+// ties by preferring the shorter slug and rejects matches below the accept
+// threshold.
+//
+// Why it matters: when two modules match a query equally, the shorter (more
+// specific) slug is the better answer; and weak matches must be rejected so the
+// caller does not act on a coincidental substring hit.
+// Inputs: two registered modules sharing the exact Model the query names (both
+// score 100) but with different slug lengths, then an unrelated query. Outputs:
+// the shorter-slug module with a positive score, and an empty module with score
+// 0 for the unrelated query. Data choice: identical Models force an exact-match
+// tie so only the slug-length tie-break can decide, isolating that branch.
+func TestFuzzyMatchModuleTieBreakAndReject(t *testing.T) {
+	RegisterModuleType(CaniModuleType{Slug: "zzfuzz-module-aaaa-long", Model: "zzfuzzmodel", Manufacturer: "TestCo"})
+	RegisterModuleType(CaniModuleType{Slug: "zzfuzz-b", Model: "zzfuzzmodel", Manufacturer: "TestCo"})
+	t.Cleanup(func() {
+		delete(allModuleTypes, "zzfuzz-module-aaaa-long")
+		delete(allModuleTypes, "zzfuzz-b")
+	})
+
+	best, score := fuzzyMatchModule("zzfuzzmodel")
+	if score <= 0 {
+		t.Fatalf("expected positive score for exact model match, got %d", score)
+	}
+	if best.Slug != "zzfuzz-b" {
+		t.Errorf("tie-break slug = %q, want shorter zzfuzz-b", best.Slug)
+	}
+
+	noMatch, zero := fuzzyMatchModule("qzqzqz-nomatch-9999")
+	if zero != 0 || noMatch.Slug != "" {
+		t.Errorf("unrelated query = (%q, %d), want (\"\", 0)", noMatch.Slug, zero)
+	}
+}

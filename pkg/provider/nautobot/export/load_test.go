@@ -32,6 +32,17 @@ import (
 	"github.com/google/uuid"
 )
 
+// TestGenerateDeviceNames verifies generateDeviceNames assigns a cani-prefixed
+// name derived from the serial to unnamed devices while leaving already-named
+// devices untouched.
+//
+// Why it matters: Nautobot requires every device to have a name, so the
+// exporter must synthesize stable names for inventory entries that lack one
+// without clobbering names operators already set.
+// Inputs: an Inventory with one unnamed node (serial "SN123") and one already
+// named "my-server". Outputs: in-place names "cani-SN123" and "my-server".
+// Data choice: a populated serial exercises the highest-priority naming source,
+// while the pre-named device guards the no-overwrite branch.
 func TestGenerateDeviceNames(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -87,6 +98,17 @@ func TestGenerateDeviceNames(t *testing.T) {
 	}
 }
 
+// TestDisambiguateDeviceNames verifies disambiguateDeviceNames suffixes
+// colliding device names to make them unique and leaves singleton names alone.
+//
+// Why it matters: Nautobot enforces name uniqueness per location+tenant, so two
+// inventory devices sharing a name must be split before export or one create
+// will fail.
+// Inputs: subtests with two nodes both named "server" (serials SN-A/SN-B) and a
+// lone "unique-server". Outputs: the duplicates become distinct names; the
+// unique name is unchanged.
+// Data choice: distinct serials let the function append serial-based suffixes,
+// its primary disambiguation strategy.
 func TestDisambiguateDeviceNames(t *testing.T) {
 	t.Run("duplicate names get suffixed", func(t *testing.T) {
 		id1 := uuid.New()
@@ -123,6 +145,16 @@ func TestDisambiguateDeviceNames(t *testing.T) {
 	})
 }
 
+// TestSetExternalID verifies setExternalID lazily allocates a nil map and
+// overwrites an existing provider entry.
+//
+// Why it matters: the exporter records the Nautobot UUID it assigns under the
+// "nautobot" external-ID key so later phases and re-runs can correlate local
+// inventory with remote records; that map is often nil on first write.
+// Inputs: subtests passing a nil map, then a map with a stale "nautobot" UUID.
+// Outputs: an initialized map and the key updated to the new UUID.
+// Data choice: the nil-map and existing-key cases cover both branches of the
+// pointer-to-map helper.
 func TestSetExternalID(t *testing.T) {
 	t.Run("initializes nil map and sets value", func(t *testing.T) {
 		var m map[string]uuid.UUID
@@ -151,6 +183,16 @@ func TestSetExternalID(t *testing.T) {
 	})
 }
 
+// TestContainsInfiniband verifies containsInfiniband flags models whose name
+// contains InfiniBand markers (NDR, HDR, MCX) and rejects ordinary models.
+//
+// Why it matters: InfiniBand hardware drives extra ib* interfaces during export,
+// so detecting it from the model string controls which interfaces get created
+// in Nautobot.
+// Inputs: device models such as "Quantum-2 NDR Switch", "ConnectX-7 HDR",
+// "MCX75310AAS-NEAT", "ProLiant DL380", and "". Outputs: the matching bool.
+// Data choice: each true case targets one substring marker, while the ProLiant
+// and empty models confirm there are no false positives.
 func TestContainsInfiniband(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -194,6 +236,16 @@ func TestContainsInfiniband(t *testing.T) {
 	}
 }
 
+// TestMapInterfaceType verifies mapInterfaceType normalizes devicetypes
+// interface strings to Nautobot enum values, passes unknown values through, and
+// defaults empty input to 1000base-t.
+//
+// Why it matters: Nautobot rejects interface creates whose type is not a known
+// enum, so the exporter must translate library types into accepted values.
+// Inputs: representative types (1000base-t, 10gbase-x-sfpp, 400gbase-x-osfp,
+// infiniband-ndr), an unknown "custom-type", and "". Outputs: the mapped string.
+// Data choice: the samples span copper, SFP+, OSFP, and InfiniBand families plus
+// the unknown and empty edge cases the default branch handles.
 func TestMapInterfaceType(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -242,6 +294,16 @@ func TestMapInterfaceType(t *testing.T) {
 	}
 }
 
+// TestGetSpeedForType verifies getSpeedForType returns the correct Kbps speed
+// per interface type and falls back to 1Gbps for unknown types.
+//
+// Why it matters: Nautobot stores interface speed alongside type, so exported
+// interfaces need accurate speeds to reflect real link capacity.
+// Inputs: types 100base-tx, 1000base-t, 400gbase-x-osfp, infiniband-hdr, and an
+// unknown type. Outputs: speeds in Kbps (e.g. 400000000 for 400G, 200000000 for
+// HDR) and the 1000000 default.
+// Data choice: the cases cover the fast-ethernet, gigabit, 400G, and InfiniBand
+// rungs plus the default branch.
 func TestGetSpeedForType(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -285,6 +347,18 @@ func TestGetSpeedForType(t *testing.T) {
 	}
 }
 
+// TestGetDeviceInterfaceSpecs verifies getDeviceInterfaceSpecs prefers a
+// device's explicitly instantiated interfaces and otherwise falls back to
+// type-based defaults.
+//
+// Why it matters: these specs become the interfaces created in Nautobot, so the
+// exporter must honor library-provided interfaces yet still give bare devices
+// (like a PDU) a sane default management port.
+// Inputs: subtests with a node carrying eth0/eth1 interfaces and a cabinet-pdu
+// with none. Outputs: the two explicit specs, or a single "mgmt0" spec for the
+// PDU.
+// Data choice: a node with two interfaces checks order/type preservation, while
+// the PDU exercises the simplest single-interface default branch.
 func TestGetDeviceInterfaceSpecs(t *testing.T) {
 	t.Run("device with explicit interfaces uses those", func(t *testing.T) {
 		device := &devicetypes.CaniDeviceType{
@@ -324,6 +398,18 @@ func TestGetDeviceInterfaceSpecs(t *testing.T) {
 	})
 }
 
+// TestResolveCableType verifies resolveCableType resolves a Nautobot cable type
+// from an explicit type, a category, or a connector, and returns nil when none
+// match.
+//
+// Why it matters: Nautobot cables carry a typed enum, and the exporter must
+// derive it from whichever cabling hint the inventory provides without guessing
+// for genuinely unknown cables.
+// Inputs: subtests with CableType "cat6", CableCategory "dac-passive",
+// ConnectorType "rj45", and an all-unknown cable. Outputs: a non-nil cable type
+// for the first three, nil for the last.
+// Data choice: each populated field targets one resolution tier in priority
+// order, and the all-unknown cable confirms the nil fallthrough.
 func TestResolveCableType(t *testing.T) {
 	t.Run("explicit cable type resolves", func(t *testing.T) {
 		cable := &devicetypes.CaniCableType{CableType: "cat6"}
@@ -363,6 +449,15 @@ func TestResolveCableType(t *testing.T) {
 	})
 }
 
+// TestColorNameToHex verifies colorNameToHex maps known color names to 6-digit
+// hex, strips a leading '#', and lowercases pass-through values.
+//
+// Why it matters: Nautobot stores cable colors as hex codes, so human-friendly
+// color names from the inventory must be converted before export.
+// Inputs: "red", "Blue", "aa11bb", "#00ff00", and "Magenta". Outputs: hex such
+// as "ff0000"/"0000ff", the unchanged/normalized hex, and lowercased "magenta".
+// Data choice: the cases cover a named color, case-insensitivity, bare hex,
+// hash-prefixed hex, and an unknown name that falls through as lowercase.
 func TestColorNameToHex(t *testing.T) {
 	tests := []struct {
 		name     string
