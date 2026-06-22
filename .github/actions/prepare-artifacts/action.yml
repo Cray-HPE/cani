@@ -25,6 +25,10 @@ inputs:
   STREAM:
     required: true
     type: string
+  EXPECTED_ARCHES:
+    description: "Number of distinct CPU architectures expected to publish a non-src RPM (matches the Jenkinsfile.github build matrix). The wait loop blocks until this many arches are present so a release is never published with a missing architecture."
+    required: false
+    default: "2"
 runs:
   using: "composite"
   steps:
@@ -36,18 +40,33 @@ runs:
           ORG: hpe
           STREAM: ${{ inputs.STREAM }}
           WAIT: 45
+          EXPECTED_ARCHES: ${{ inputs.EXPECTED_ARCHES }}
+          MAX_ATTEMPTS: 40
       run: |
           sudo apt-get install -y rename
 
-          # Wait for our RPM(s) to finish building and publishing.
+          # Wait for our non-src RPM(s) to finish building and publishing.
+          # Jenkinsfile.github builds one RPM per architecture (x86_64 + aarch64) on independent
+          # agents, so the two arch RPMs can land in Artifactory seconds-to-minutes apart. Block
+          # until EVERY expected architecture is present (not just the first one); otherwise the
+          # release can be published with a missing architecture (see the v0.6.5 incident).
           echo Looking for "vcs.branch=${{ github.ref_name }};rpm.metadata.name=${GITHUB_REPOSITORY#*/}"
-          while ! jf rt s --fail-no-op=true "${REPOSITORY}/${ORG}/${STREAM}/" --props "vcs.branch=${{ github.ref_name }};rpm.metadata.name=${GITHUB_REPOSITORY#*/}" --exclude-props "rpm.metadata.arch=src"; do
-           echo "Waiting for artifacts to be available; retrying in ${WAIT} seconds ... " >&2
+          attempt=0
+          while true; do
+           arches=$(jf rt s "${REPOSITORY}/${ORG}/${STREAM}/" --props "vcs.branch=${{ github.ref_name }};rpm.metadata.name=${GITHUB_REPOSITORY#*/}" --exclude-props "rpm.metadata.arch=src" | jq -r '[.[].props["rpm.metadata.arch"]?[]?] | unique | length')
+           arches=${arches:-0}
+           if [ "${arches}" -ge "${EXPECTED_ARCHES}" ]; then
+             echo "Found all ${EXPECTED_ARCHES} expected architecture(s); proceeding."
+             break
+           fi
+           attempt=$((attempt + 1))
+           if [ "${attempt}" -ge "${MAX_ATTEMPTS}" ]; then
+             echo "ERROR: only ${arches}/${EXPECTED_ARCHES} architecture(s) published after ${MAX_ATTEMPTS} attempts; aborting so a partial release is not created." >&2
+             exit 1
+           fi
+           echo "Found ${arches}/${EXPECTED_ARCHES} architecture(s) so far; retrying in ${WAIT} seconds ... " >&2
            sleep ${WAIT}
           done
-
-          # Give parallel builds a chance incase they published at slightly different times.
-          sleep ${WAIT}
 
           # Make a workspace
           DIR_DOWNLOAD=$(mktemp -d)
