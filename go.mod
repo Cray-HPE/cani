@@ -2,6 +2,8 @@ module github.com/Cray-HPE/cani
 
 go 1.25
 
+toolchain go1.26.4
+
 require (
 	github.com/google/uuid v1.6.0
 	gopkg.in/ini.v1 v1.67.1
