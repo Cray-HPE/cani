@@ -2,6 +2,7 @@ package imprt
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
@@ -44,29 +45,30 @@ func SetProviderGetter(getter func() interface {
 }
 
 // GetProvider returns the Nautobot singleton via the registered getter.
-func GetProvider() interface {
+// It returns an error when the parent package has not registered a getter.
+func GetProvider() (interface {
 	ClearRawData()
 	SetRawData(RawData)
 	GetClient() *nautobotapi.ClientWithResponses
 	GetContext() context.Context
-} {
+}, error) {
 	if providerGetter == nil {
-		panic("providerGetter not set; ensure nautobot package init() calls SetProviderGetter")
+		return nil, errors.New("providerGetter not set; ensure nautobot package init() calls SetProviderGetter")
 	}
-	return providerGetter()
+	return providerGetter(), nil
 }
 
 // Import fetches all entity types from the Nautobot API and stores
 // the raw responses on the provider struct via the setter.
 func Import(cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
-	prov := GetProvider()
+	prov, err := GetProvider()
+	if err != nil {
+		return err
+	}
 	ctx := prov.GetContext()
 	client := prov.GetClient()
 
-	var (
-		d   RawData
-		err error
-	)
+	var d RawData
 
 	d.Locations, err = FetchLocations(ctx, client)
 	if err != nil {

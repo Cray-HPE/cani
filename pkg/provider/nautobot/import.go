@@ -17,7 +17,11 @@ import (
 // Import implements the provider.Importer interface.
 // It delegates to the import subpackage to fetch all entity types from
 // the Nautobot API and stores the raw responses for later use by Transform().
-func (p *Nautobot) Import(cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+func (p *Nautobot) Import(ctx context.Context, cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	if err := import_.Import(cmd, args, inventory); err != nil {
 		return fmt.Errorf("nautobot import failed: %w", err)
 	}

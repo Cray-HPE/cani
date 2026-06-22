@@ -117,7 +117,7 @@ func runExport(cmd *cobra.Command, args []string, p provider.Provider) error {
 		p.Slug(), len(inv.Locations), len(inv.Racks), len(inv.Devices), len(inv.Modules))
 
 	// Call the provider's Export method to sync to external system
-	if err := exporter.Export(cmd, args, inv); err != nil {
+	if err := exporter.Export(cmd.Context(), cmd, args, inv); err != nil {
 		// Save inventory even on error so external IDs are persisted
 		_ = datastores.Datastore.Save(inv)
 		return fmt.Errorf("export failed: %w", err)

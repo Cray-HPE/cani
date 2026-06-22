@@ -36,7 +36,10 @@ import (
 
 // Export implements the provider.Exporter interface.
 // It syncs the local inventory to Nautobot.
-func (p *Nautobot) Export(cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+func (p *Nautobot) Export(ctx context.Context, cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if err := p.setupExportFromConfig(cmd); err != nil {
 		return err
 	}

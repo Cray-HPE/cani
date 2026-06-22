@@ -26,6 +26,8 @@
 package nautobot
 
 import (
+	"context"
+
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/provider/nautobot/transform"
 )
@@ -34,7 +36,11 @@ import (
 // When raw data has been fetched (via Import()), it is passed to the
 // transform package for full entity mapping.  Otherwise the legacy
 // copy-existing-devices path is used.
-func (p *Nautobot) Transform(existing devicetypes.Inventory) (*devicetypes.TransformResult, error) {
+func (p *Nautobot) Transform(ctx context.Context, existing devicetypes.Inventory) (*devicetypes.TransformResult, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
 	var raw *transform.RawData
 	if len(p.rawDevices) > 0 || len(p.rawLocations) > 0 {
 		raw = &transform.RawData{

@@ -38,6 +38,42 @@
 # Unique datastore path per test to avoid interference.
 ie_ds() { echo "/tmp/.cani/ie_test_${1}.json"; }
 
+# Write a tiny CANI datastore that exercises OpenCHAMI export from legacy CSM
+# metadata without requiring an external provider.
+#shellcheck disable=SC2317
+write_ochami_boot_mac_inventory() {
+  _ie_ds="$1"
+  mkdir -p "$(dirname "$_ie_ds")"
+  cat >"$_ie_ds" <<'JSON'
+{
+  "schemaVersion": "v1alpha2",
+  "locations": {},
+  "racks": {},
+  "devices": {
+    "11111111-1111-1111-1111-111111111111": {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "name": "node-fallback",
+      "type": "node",
+      "status": "Active",
+      "providerMetadata": {
+        "csm": {
+          "xname": "x9000c1s0b0n0",
+          "ip": "10.9.0.1",
+          "boot_mac": "aa:bb:cc:dd:ee:09",
+          "nid": 1000,
+          "aliases": ["nid001000"]
+        }
+      }
+    }
+  },
+  "modules": {},
+  "cables": {},
+  "frus": {},
+  "interfaces": {}
+}
+JSON
+}
+
 # Import a fixture for the given provider into the given datastore.
 #shellcheck disable=SC2317
 import_fixture() {
@@ -186,6 +222,15 @@ Describe 'show device after import'
     The stdout should include 'Total: 6 device(s)'
   End
 
+  It 'example reports matrix-site location'
+    When call bin/cani alpha show location \
+      --config "$CANI_CONF" \
+      --datastore-path "$(ie_ds show_example)"
+    The status should equal 0
+    The stdout should include 'matrix-site'
+    The stdout should include 'Total: 1 location(s)'
+  End
+
   It 'ochami reports 26 devices'
     When call bin/cani alpha show device \
       --config "$CANI_CONF" \
@@ -216,6 +261,32 @@ Describe 'show device after import'
       --datastore-path "$(ie_ds show_csm)"
     The status should equal 0
     The stdout should include 'Total: 15 device(s)'
+  End
+End
+
+Describe 'ochami export FileFormat'
+  BeforeAll 'setup_test_env'
+  AfterAll  'teardown_test_env'
+
+  #shellcheck disable=SC2317
+  _setup_ochami_boot_mac() { write_ochami_boot_mac_inventory "$(ie_ds ochami_boot_mac)"; }
+  BeforeAll '_setup_ochami_boot_mac'
+
+  It 'exports boot_mac as mac and omits legacy node fields'
+    When call bin/cani alpha export ochami \
+      --config "$CANI_CONF" \
+      --datastore-path "$(ie_ds ochami_boot_mac)"
+    The status should equal 0
+    The stderr should include 'Export completed successfully'
+    The stdout should include 'bmcs: []'
+    The stdout should include 'nodes:'
+    The stdout should include 'xname: x9000c1s0b0n0'
+    The stdout should include 'mac: aa:bb:cc:dd:ee:09'
+    The stdout should include 'ip: 10.9.0.1'
+    The stdout should not include 'boot_mac:'
+    The stdout should not include 'nid:'
+    The stdout should not include 'hostname:'
+    The stdout should not include 'host_aliases:'
   End
 End
 

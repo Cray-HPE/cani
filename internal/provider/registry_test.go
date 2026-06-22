@@ -26,6 +26,7 @@
 package provider
 
 import (
+	"context"
 	"testing"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
@@ -39,7 +40,7 @@ type fakeProvider struct {
 	slug string
 }
 
-func (f fakeProvider) Transform(existing devicetypes.Inventory) (*devicetypes.TransformResult, error) {
+func (f fakeProvider) Transform(ctx context.Context, existing devicetypes.Inventory) (*devicetypes.TransformResult, error) {
 	return nil, nil
 }
 

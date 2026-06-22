@@ -5,6 +5,7 @@ package datastores
 // | NewJSONStore | TestNewJSONStoreHappyPath           | TestNewJSONStoreNilConfig |
 // | Load         | TestLoadHappyPath                  | TestLoadInvalidJSON       |
 // | Save         | TestSaveHappyPath                  | TestSaveInvalidPath       |
+// | Save (atomic)| TestSaveIsAtomic                   |                           |
 // | Save/Load    | TestJSONStorePersistsCRUDMutations |                           |
 
 import (
@@ -521,4 +522,57 @@ func TestSaveInvalidPath(t *testing.T) {
 	if !strings.Contains(err.Error(), "creating inventory directory") {
 		t.Fatalf("Save() error = %v, want creating inventory directory context", err)
 	}
+}
+
+// TestSaveIsAtomic verifies Save replaces the inventory atomically and leaves
+// no temporary files behind.
+//
+// Why it matters: the datastore is the source of truth for inventory; a crash
+// mid-write must never corrupt it or litter the directory with partial files.
+// Inputs: two successive Saves to the same path, then inspection of the file
+// mode and the directory contents.
+// Outputs: a 0600 file containing the inventory and a directory free of
+// .inventory-*.tmp scratch files.
+// Data choice: re-saving over an existing file exercises the temp-file + rename
+// replacement path, which is exactly where a non-atomic write would corrupt data.
+func TestSaveIsAtomic(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "inventory.json")
+	store := &JSONStore{Path: path}
+
+	first, _ := newCRUDInventory(t)
+	if err := store.Save(first); err != nil {
+		t.Fatalf("first Save() returned unexpected error: %v", err)
+	}
+
+	second, ids := newCRUDInventory(t)
+	if err := store.Save(second); err != nil {
+		t.Fatalf("second Save() returned unexpected error: %v", err)
+	}
+
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("stat saved file: %v", err)
+	}
+	if perm := info.Mode().Perm(); perm != 0600 {
+		t.Fatalf("saved file mode = %o, want 600", perm)
+	}
+
+	leftovers, err := filepath.Glob(filepath.Join(dir, ".inventory-*.tmp"))
+	if err != nil {
+		t.Fatalf("globbing temp files: %v", err)
+	}
+	if len(leftovers) != 0 {
+		t.Fatalf("Save() left temporary files behind: %v", leftovers)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading saved file: %v", err)
+	}
+	loaded := devicetypes.NewInventory()
+	if err := json.Unmarshal(data, loaded); err != nil {
+		t.Fatalf("saved file contains invalid JSON: %v", err)
+	}
+	assertCreatedCRUDInventory(t, loaded, ids)
 }

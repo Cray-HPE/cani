@@ -1,7 +1,24 @@
 package export
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
+type stringerValue string
+
+func (s stringerValue) String() string { return string(s) }
+
+// TestExtractString verifies metadata string extraction accepts strings and
+// fmt.Stringer values while rejecting missing or non-string values.
+//
+// Why it matters: Ochami export builds OpenCHAMI xname, mac, and ip fields from
+// untyped provider metadata, so only deliberate string-like values should become
+// YAML fields.
+// Inputs: metadata maps with present, fmt.Stringer, missing, nil, and wrong-type
+// xname values. Outputs: the extracted string or an empty string.
+// Data choice: xname is the primary OpenCHAMI identifier and a representative
+// string metadata key.
 func TestExtractString(t *testing.T) {
 	tests := []struct {
 		name string
@@ -10,6 +27,7 @@ func TestExtractString(t *testing.T) {
 		want string
 	}{
 		{"present", map[string]any{"xname": "x3000c0s1b0"}, "xname", "x3000c0s1b0"},
+		{"stringer", map[string]any{"xname": stringerValue("x3000c0s2b0")}, "xname", "x3000c0s2b0"},
 		{"missing", map[string]any{"other": "val"}, "xname", ""},
 		{"nil map", nil, "xname", ""},
 		{"wrong type", map[string]any{"xname": 123}, "xname", ""},
@@ -24,6 +42,16 @@ func TestExtractString(t *testing.T) {
 	}
 }
 
+// TestExtractIntPtr verifies metadata integer pointer extraction accepts int,
+// float64, and numeric string values while rejecting absent or invalid values.
+//
+// Why it matters: older Ochami export metadata included numeric node IDs in an
+// untyped map, and this helper should preserve only parseable values.
+// Inputs: metadata maps with int, float64, numeric string, bad string, missing,
+// nil, and wrong-type values. Outputs: an integer pointer for parseable values or
+// nil.
+// Data choice: the cases mirror common YAML/JSON round-trip representations for
+// numeric fields.
 func TestExtractIntPtr(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -38,6 +66,7 @@ func TestExtractIntPtr(t *testing.T) {
 		{"bad string", map[string]any{"nid": "abc"}, "nid", true, 0},
 		{"missing", map[string]any{}, "nid", true, 0},
 		{"nil map", nil, "nid", true, 0},
+		{"wrong type", map[string]any{"nid": []string{"7"}}, "nid", true, 0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -58,6 +87,16 @@ func TestExtractIntPtr(t *testing.T) {
 	}
 }
 
+// TestExtractStringSlice verifies metadata string-slice extraction accepts native
+// string slices and YAML/JSON round-tripped []any values.
+//
+// Why it matters: older Ochami export metadata included host aliases as an
+// untyped list, and callers should get deterministic []string values only from
+// list-like metadata.
+// Inputs: metadata maps with []string, []any, missing, nil, and wrong-type
+// host_aliases values. Outputs: a string slice or nil.
+// Data choice: host_aliases is the representative list field and exercises both
+// native and round-tripped collection shapes.
 func TestExtractStringSlice(t *testing.T) {
 	tests := []struct {
 		name string
@@ -74,19 +113,8 @@ func TestExtractStringSlice(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := extractStringSlice(tt.meta, tt.key)
-			if tt.want == nil {
-				if got != nil {
-					t.Errorf("expected nil, got %v", got)
-				}
-				return
-			}
-			if len(got) != len(tt.want) {
-				t.Fatalf("len = %d, want %d", len(got), len(tt.want))
-			}
-			for i := range got {
-				if got[i] != tt.want[i] {
-					t.Errorf("[%d] = %q, want %q", i, got[i], tt.want[i])
-				}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("extractStringSlice(%v, %q) = %v, want %v", tt.meta, tt.key, got, tt.want)
 			}
 		})
 	}
