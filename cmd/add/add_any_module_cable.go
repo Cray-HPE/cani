@@ -29,14 +29,14 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
-	"github.com/spf13/cobra"
 )
 
 // addAnyModule adds module(s) using the resolved module type.
-func addAnyModule(cmd *cobra.Command, args []string, mod *devicetypes.CaniModuleType, qty int) error {
+func addAnyModule(cmd *cli.Command, args []string, mod *devicetypes.CaniModuleType, qty int) error {
 	parentArg, _ := cmd.Flags().GetString("parent")
 	statusArg, _ := cmd.Flags().GetString("status")
 	serialArg, _ := cmd.Flags().GetString("serial")
@@ -104,7 +104,7 @@ func setModuleParent(m *devicetypes.CaniModuleType, parentArg string) {
 }
 
 // addAnyCable adds cable(s) using the resolved cable type.
-func addAnyCable(cmd *cobra.Command, args []string, cable *devicetypes.CaniCableType, qty int) error {
+func addAnyCable(cmd *cli.Command, args []string, cable *devicetypes.CaniCableType, qty int) error {
 	statusArg, _ := cmd.Flags().GetString("status")
 
 	names, err := resolveNamesFromFlags(cmd, qty)

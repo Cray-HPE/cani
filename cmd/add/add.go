@@ -29,17 +29,17 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
-	"github.com/spf13/cobra"
 )
 
 // NewCommand creates the parent "add" command.
 // When called with a slug or part number argument, it searches all registries
 // (rack, device, module, cable) and adds the matching hardware type.
 // Subcommands restrict to their specific type and reject mismatches.
-func NewCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func NewCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "add [slug-or-part-number]",
 		Short: "Add items to the inventory",
 		Long: `Add items to the inventory.
@@ -49,8 +49,8 @@ When called with a slug or part number, searches all hardware registries
 
 Use subcommands (rack, device, module, cable, location) to constrain
 to a specific type; subcommands reject slugs that do not match their type.`,
-		Args: cobra.ArbitraryArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		Args: cli.ArbitraryArgs,
+		RunE: func(cmd *cli.Command, args []string) error {
 			if cmd.Flags().Changed("list-supported-types") {
 				return listAllSupportedTypes(cmd)
 			}
@@ -95,7 +95,7 @@ to a specific type; subcommands reject slugs that do not match their type.`,
 }
 
 // listAllSupportedTypes prints all available hardware types from every registry.
-func listAllSupportedTypes(cmd *cobra.Command) error {
+func listAllSupportedTypes(cmd *cli.Command) error {
 	cmd.SetOut(os.Stderr)
 	entries := devicetypes.ListAllAvailableTypes()
 	printTypeTable(cmd, entries)

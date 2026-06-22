@@ -3,7 +3,7 @@ package example
 import (
 	"testing"
 
-	"github.com/spf13/cobra"
+	"github.com/Cray-HPE/cani/internal/cli"
 )
 
 func TestGetDefaultOptions(t *testing.T) {
@@ -40,7 +40,7 @@ func TestGetImportDefaults(t *testing.T) {
 
 func TestBindImportFlags(t *testing.T) {
 	p := New()
-	cmd := &cobra.Command{Use: "test"}
+	cmd := &cli.Command{Use: "test"}
 	if err := p.BindImportFlags(cmd); err != nil {
 		t.Errorf("BindImportFlags() error = %v", err)
 	}
@@ -64,7 +64,7 @@ func TestGetExportDefaults(t *testing.T) {
 
 func TestBindExportFlags(t *testing.T) {
 	p := New()
-	cmd := &cobra.Command{Use: "test"}
+	cmd := &cli.Command{Use: "test"}
 	if err := p.BindExportFlags(cmd); err != nil {
 		t.Errorf("BindExportFlags() error = %v", err)
 	}

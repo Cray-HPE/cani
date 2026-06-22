@@ -6,11 +6,11 @@ import (
 	"log"
 	"os"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/config"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/provider/redfish/commands"
 	"github.com/Cray-HPE/cani/pkg/visual"
-	"github.com/spf13/cobra"
 )
 
 // providerGetter returns the Redfish singleton to store raw roots.
@@ -31,7 +31,7 @@ func SetProviderGetter(getter func() interface {
 // Import reads Redfish ServiceRoot JSON from --root file or stdin,
 // parses it (single object or array), deduplicates by UUID, and stores
 // on the provider singleton. No transformation is done here.
-func Import(cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+func Import(cmd *cli.Command, args []string, inventory *devicetypes.Inventory) error {
 	data, err := readInput(commands.RootFlag)
 	if err != nil {
 		return err

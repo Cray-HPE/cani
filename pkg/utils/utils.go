@@ -25,15 +25,15 @@
  */
 package utils
 
-import "github.com/spf13/cobra"
+import "github.com/Cray-HPE/cani/internal/cli"
 
-func CloneCommand(cmd *cobra.Command) (newCmd *cobra.Command) {
+func CloneCommand(cmd *cli.Command) (newCmd *cli.Command) {
 	if cmd == nil {
 		return nil
 	}
 
 	// copy certain fields, omitting some currently not in use by cani
-	newCmd = &cobra.Command{
+	newCmd = &cli.Command{
 		Use:       cmd.Use,
 		Short:     cmd.Short,
 		Long:      cmd.Long,

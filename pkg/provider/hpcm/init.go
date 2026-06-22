@@ -26,11 +26,11 @@
 package hpcm
 
 import (
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/provider/hpcm/commands"
 	import_ "github.com/Cray-HPE/cani/pkg/provider/hpcm/import"
 	"github.com/Cray-HPE/cani/pkg/provider/hpcm/transform"
-	"github.com/spf13/cobra"
 )
 
 // instance is the singleton provider instance
@@ -59,7 +59,7 @@ func init() {
 // NewProviderCmd returns provider-specific CLI commands.
 // This is called for each base command (import, add, show, etc.) to allow
 // the provider to customize or extend the command.
-func (p *Hpcm) NewProviderCmd(base *cobra.Command) (*cobra.Command, error) {
+func (p *Hpcm) NewProviderCmd(base *cli.Command) (*cli.Command, error) {
 	// Switch on the base command name to provide customizations
 	switch base.Name() {
 	case "import":

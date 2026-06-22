@@ -6,16 +6,16 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/provider/csm/client"
 	import_ "github.com/Cray-HPE/cani/pkg/provider/csm/import"
-	"github.com/spf13/cobra"
 )
 
 // Export reconciles the local CANI inventory with the live CSM system.
 // When --commit is set it pushes changes; otherwise it previews them.
 // When no API target is specified, it writes CSV to stdout.
-func Export(cmd *cobra.Command, inventory devicetypes.Inventory) error {
+func Export(cmd *cli.Command, inventory devicetypes.Inventory) error {
 	format, _ := cmd.Flags().GetString("format")
 
 	switch format {
@@ -29,7 +29,7 @@ func Export(cmd *cobra.Command, inventory devicetypes.Inventory) error {
 }
 
 // exportSLSJSON handles the sls-json format by reconciling and dumping JSON.
-func exportSLSJSON(cmd *cobra.Command, inventory devicetypes.Inventory) error {
+func exportSLSJSON(cmd *cli.Command, inventory devicetypes.Inventory) error {
 	c, err := buildClient(cmd)
 	if err != nil {
 		return fmt.Errorf("building CSM client: %w", err)
@@ -54,7 +54,7 @@ func exportSLSJSON(cmd *cobra.Command, inventory devicetypes.Inventory) error {
 }
 
 // exportCSVOrAPI either writes CSV to stdout or does API reconcile.
-func exportCSVOrAPI(cmd *cobra.Command, inventory devicetypes.Inventory) error {
+func exportCSVOrAPI(cmd *cli.Command, inventory devicetypes.Inventory) error {
 	useAPI, err := shouldUseAPI(cmd)
 	if err != nil {
 		return err
@@ -76,7 +76,7 @@ func exportCSVOrAPI(cmd *cobra.Command, inventory devicetypes.Inventory) error {
 
 // exportCSV writes the inventory as CSV to stdout, filtered by
 // --headers, --type, and --all flags.
-func exportCSV(cmd *cobra.Command, inventory devicetypes.Inventory) error {
+func exportCSV(cmd *cli.Command, inventory devicetypes.Inventory) error {
 	headersStr, _ := cmd.Flags().GetString("headers")
 	typesStr, _ := cmd.Flags().GetString("type")
 	allTypes, _ := cmd.Flags().GetBool("all")
@@ -219,7 +219,7 @@ func deleteHardware(c *client.Client, xname string) error {
 
 // shouldUseAPI returns true when the user wants a live API export.
 // It checks for -S, explicit --csm-api-host, or --commit.
-func shouldUseAPI(cmd *cobra.Command) (bool, error) {
+func shouldUseAPI(cmd *cli.Command) (bool, error) {
 	sim, _ := cmd.Flags().GetBool("use-simulator")
 	if sim {
 		return true, nil
@@ -232,7 +232,7 @@ func shouldUseAPI(cmd *cobra.Command) (bool, error) {
 }
 
 // buildClient creates an authenticated client.Client from CLI flags.
-func buildClient(cmd *cobra.Command) (*client.Client, error) {
+func buildClient(cmd *cli.Command) (*client.Client, error) {
 	sim, _ := cmd.Flags().GetBool("use-simulator")
 	insecure, _ := cmd.Flags().GetBool("insecure")
 	host, _ := cmd.Flags().GetString("csm-api-host")

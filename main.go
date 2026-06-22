@@ -35,7 +35,7 @@ import (
 )
 
 // Run all package init functions in a specific order
-// this is mainly due to all cobra commands needing flags and other settings
+// this is mainly due to all cli commands needing flags and other settings
 // to be set during init
 func init() {
 	// load the config and generate root commands

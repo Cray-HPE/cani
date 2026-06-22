@@ -3,13 +3,13 @@ package csm
 import (
 	"testing"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
-	"github.com/spf13/cobra"
 )
 
 func TestRegisterAndApplyDeviceUpdateFlags(t *testing.T) {
 	p := New()
-	cmd := &cobra.Command{}
+	cmd := &cli.Command{}
 	p.RegisterDeviceUpdateFlags(cmd)
 
 	if cmd.Flags().Lookup("nid") == nil {
@@ -46,7 +46,7 @@ func TestRegisterAndApplyDeviceUpdateFlags(t *testing.T) {
 
 func TestApplyDeviceUpdateFlagsNoChange(t *testing.T) {
 	p := New()
-	cmd := &cobra.Command{}
+	cmd := &cli.Command{}
 	p.RegisterDeviceUpdateFlags(cmd)
 
 	dev := &devicetypes.CaniDeviceType{}

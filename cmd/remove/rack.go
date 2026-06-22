@@ -29,23 +29,23 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/resolve"
 	"github.com/Cray-HPE/cani/pkg/datastores"
-	"github.com/spf13/cobra"
 )
 
 // newRackCommand creates the "remove rack" subcommand.
-func newRackRemoveCommand() *cobra.Command {
-	return &cobra.Command{
+func newRackRemoveCommand() *cli.Command {
+	return &cli.Command{
 		Use:   "rack <uuid-or-name>",
 		Short: "Remove a rack from the inventory.",
 		Long:  "Remove a rack by UUID or name.",
-		Args:  cobra.ExactArgs(1),
+		Args:  cli.ExactArgs(1),
 		RunE:  removeRack,
 	}
 }
 
-func removeRack(cmd *cobra.Command, args []string) error {
+func removeRack(cmd *cli.Command, args []string) error {
 	if err := datastores.SetDeviceStore(cmd, args); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
 	}

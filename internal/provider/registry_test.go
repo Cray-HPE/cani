@@ -29,8 +29,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
-	"github.com/spf13/cobra"
 )
 
 // fakeProvider is a minimal Provider implementation used to exercise the
@@ -44,7 +44,7 @@ func (f fakeProvider) Transform(ctx context.Context, existing devicetypes.Invent
 	return nil, nil
 }
 
-func (f fakeProvider) NewProviderCmd(base *cobra.Command) (*cobra.Command, error) {
+func (f fakeProvider) NewProviderCmd(base *cli.Command) (*cli.Command, error) {
 	return nil, nil
 }
 

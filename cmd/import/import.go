@@ -30,12 +30,12 @@ import (
 	"log"
 	"strings"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/config"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/visual"
-	"github.com/spf13/cobra"
 )
 
 // Phase constants
@@ -62,7 +62,7 @@ var ErrAborted = fmt.Errorf("aborted by user")
 //
 // The inventory field is mutated by each phase and passed to the next.
 type etlContext struct {
-	cmd       *cobra.Command
+	cmd       *cli.Command
 	args      []string
 	provider  provider.Provider
 	inventory *devicetypes.Inventory
@@ -72,7 +72,7 @@ type etlContext struct {
 
 // newETLContext creates and initializes the ETL context.
 // It validates flags and propagates settings to the global config.
-func newETLContext(cmd *cobra.Command, args []string, p provider.Provider) (*etlContext, error) {
+func newETLContext(cmd *cli.Command, args []string, p provider.Provider) (*etlContext, error) {
 	if err := validatePhaseFlag(); err != nil {
 		return nil, err
 	}
@@ -102,13 +102,13 @@ func ValidPhases() []string {
 }
 
 // NewCommand creates the import command with provider subcommands
-func NewCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func NewCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "import PROVIDER [flags]",
 		Short: "Import assets into the inventory",
 		Long:  `Import assets into the inventory from an external source using a provider.`,
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		Args:  cli.ExactArgs(1),
+		RunE: func(cmd *cli.Command, args []string) error {
 			cmd.Help()
 			return nil
 		},
@@ -126,13 +126,13 @@ func NewCommand() *cobra.Command {
 }
 
 // addProviderSubcommands adds a subcommand for each registered provider
-func addProviderSubcommands(importCmd *cobra.Command) {
+func addProviderSubcommands(importCmd *cli.Command) {
 	for _, p := range provider.GetProviders() {
 		// Get provider-specific import command (with flags)
 		providerImportCmd, err := p.NewProviderCmd(importCmd)
 		if err != nil || providerImportCmd == nil {
 			// Provider doesn't support import, create a basic subcommand
-			providerImportCmd = &cobra.Command{}
+			providerImportCmd = &cli.Command{}
 		}
 
 		p := p // capture for closure
@@ -141,7 +141,7 @@ func addProviderSubcommands(importCmd *cobra.Command) {
 
 		// Wrap the provider's RunE with the ETL logic
 		origRunE := providerImportCmd.RunE
-		providerImportCmd.RunE = func(cmd *cobra.Command, args []string) error {
+		providerImportCmd.RunE = func(cmd *cli.Command, args []string) error {
 			// 1) Run provider's validation/setup if it has one
 			if origRunE != nil {
 				if err := origRunE(cmd, args); err != nil {
@@ -176,7 +176,7 @@ func validatePhaseFlag() error {
 //  1. Extract: provider.Import() populates ctx.inventory with raw data
 //  2. Transform: provider.Transform() converts data and merges into ctx.inventory
 //  3. Load: Datastore.Save() persists ctx.inventory to disk
-func runImportETL(cmd *cobra.Command, args []string, p provider.Provider) error {
+func runImportETL(cmd *cli.Command, args []string, p provider.Provider) error {
 	ctx, err := newETLContext(cmd, args, p)
 	if err != nil {
 		return err

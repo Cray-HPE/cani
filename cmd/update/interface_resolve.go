@@ -30,16 +30,16 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/resolve"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
-	"github.com/spf13/cobra"
 )
 
 // resolveInterfaces finds the target interface(s) based on either:
 //   - A positional UUID argument
 //   - --device + --name flags (name supports glob patterns)
-func resolveInterfaces(cmd *cobra.Command, args []string, inv *devicetypes.Inventory) ([]interfaceTarget, error) {
+func resolveInterfaces(cmd *cli.Command, args []string, inv *devicetypes.Inventory) ([]interfaceTarget, error) {
 	// Case 1: Positional UUID argument
 	if len(args) == 1 {
 		id, err := uuid.Parse(args[0])

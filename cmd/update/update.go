@@ -26,16 +26,16 @@
 package update
 
 import (
-	"github.com/spf13/cobra"
+	"github.com/Cray-HPE/cani/internal/cli"
 )
 
 // NewCommand creates the parent "update" command.
-func NewCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func NewCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "update",
 		Short: "Update items in the inventory.",
 		Long:  `Update items in the inventory.`,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cli.Command, args []string) error {
 			cmd.Help()
 			return nil
 		},

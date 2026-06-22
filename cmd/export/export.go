@@ -29,19 +29,19 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/datastores"
-	"github.com/spf13/cobra"
 )
 
 // NewCommand creates the parent "export" command with provider subcommands
-func NewCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func NewCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "export PROVIDER [flags]",
 		Short: "Export inventory to an external provider",
 		Long:  `Export the CANI inventory to an external provider using a provider.`,
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		Args:  cli.ExactArgs(1),
+		RunE: func(cmd *cli.Command, args []string) error {
 			cmd.Help()
 			return nil
 		},
@@ -61,13 +61,13 @@ func NewCommand() *cobra.Command {
 }
 
 // addProviderSubcommands adds a subcommand for each registered provider
-func addProviderSubcommands(exportCmd *cobra.Command) {
+func addProviderSubcommands(exportCmd *cli.Command) {
 	for _, p := range provider.GetProviders() {
 		// Get provider-specific export command (with flags)
 		providerExportCmd, err := p.NewProviderCmd(exportCmd)
 		if err != nil || providerExportCmd == nil {
 			// Provider doesn't support export, create a basic subcommand
-			providerExportCmd = &cobra.Command{}
+			providerExportCmd = &cli.Command{}
 		}
 
 		p := p // capture for closure
@@ -76,7 +76,7 @@ func addProviderSubcommands(exportCmd *cobra.Command) {
 
 		// Wrap the provider's RunE with the export logic
 		origRunE := providerExportCmd.RunE
-		providerExportCmd.RunE = func(cmd *cobra.Command, args []string) error {
+		providerExportCmd.RunE = func(cmd *cli.Command, args []string) error {
 			// 1) Run provider's validation/setup if it has one
 			if origRunE != nil {
 				if err := origRunE(cmd, args); err != nil {
@@ -92,7 +92,7 @@ func addProviderSubcommands(exportCmd *cobra.Command) {
 }
 
 // runExport is the main entry point for the export command.
-func runExport(cmd *cobra.Command, args []string, p provider.Provider) error {
+func runExport(cmd *cli.Command, args []string, p provider.Provider) error {
 	// Load the inventory from the datastore
 	if err := datastores.SetDeviceStore(cmd, args); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)

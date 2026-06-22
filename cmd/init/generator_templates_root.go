@@ -7,7 +7,7 @@ const initTemplate = `package {{.PackageName}}
 import (
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/provider/{{.PackageName}}/commands"
-	"github.com/spf13/cobra"
+	"github.com/Cray-HPE/cani/internal/cli"
 )
 
 // instance is the singleton provider instance
@@ -21,7 +21,7 @@ func init() {
 // NewProviderCmd returns provider-specific CLI commands.
 // This is called for each base command (import, add, show, etc.) to allow
 // the provider to customize or extend the command.
-func (p *{{.StructName}}) NewProviderCmd(base *cobra.Command) (*cobra.Command, error) {
+func (p *{{.StructName}}) NewProviderCmd(base *cli.Command) (*cli.Command, error) {
 	// Switch on the base command name to provide customizations
 	switch base.Name() {
 	case "import":
@@ -68,7 +68,7 @@ func (p *{{.StructName}}) Slug() string {
 
 const optionsTemplate = `package {{.PackageName}}
 
-import "github.com/spf13/cobra"
+import "github.com/Cray-HPE/cani/internal/cli"
 
 // Options holds the provider's configuration options.
 // These are written to the config file with YAML comments preserved.
@@ -130,12 +130,11 @@ func (p *{{.StructName}}) GetImportDefaults() map[string]any {
 	}
 }
 
-// BindImportFlags binds CLI flags to Viper for the import command.
-// This enables precedence: CLI flags > env vars > config file > defaults.
-func (p *{{.StructName}}) BindImportFlags(cmd *cobra.Command) error {
-	// TODO: Bind import-related flags
-	// Example:
-	// viper.BindPFlag("{{.Slug}}.import.source", cmd.Flags().Lookup("source"))
+// BindImportFlags satisfies HasImportOptions.  Import flags are read directly
+// from cmd.Flags() where they are used, so no binding is required.
+func (p *{{.StructName}}) BindImportFlags(cmd *cli.Command) error {
+	// TODO: read import-related flags where needed, e.g.
+	// source, _ := cmd.Flags().GetString("source")
 	return nil
 }
 
@@ -155,12 +154,11 @@ func (p *{{.StructName}}) GetExportDefaults() map[string]any {
 	}
 }
 
-// BindExportFlags binds CLI flags to Viper for the export command.
-// This enables precedence: CLI flags > env vars > config file > defaults.
-func (p *{{.StructName}}) BindExportFlags(cmd *cobra.Command) error {
-	// TODO: Bind export-related flags
-	// Example:
-	// viper.BindPFlag("{{.Slug}}.export.format", cmd.Flags().Lookup("format"))
+// BindExportFlags satisfies HasExportOptions.  Export flags are read directly
+// from cmd.Flags() where they are used, so no binding is required.
+func (p *{{.StructName}}) BindExportFlags(cmd *cli.Command) error {
+	// TODO: read export-related flags where needed, e.g.
+	// format, _ := cmd.Flags().GetString("format")
 	return nil
 }
 `
@@ -172,12 +170,12 @@ import (
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	import_ "github.com/Cray-HPE/cani/pkg/provider/{{.PackageName}}/import"
-	"github.com/spf13/cobra"
+	"github.com/Cray-HPE/cani/internal/cli"
 )
 
 // Import syncs the local CANI inventory from an external system.
 // This is the "Extract" step in ETL.
-func (p *{{.StructName}}) Import(ctx context.Context, cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+func (p *{{.StructName}}) Import(ctx context.Context, cmd *cli.Command, args []string, inventory *devicetypes.Inventory) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -192,12 +190,12 @@ import (
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/provider/{{.PackageName}}/export"
-	"github.com/spf13/cobra"
+	"github.com/Cray-HPE/cani/internal/cli"
 )
 
 // Export syncs the local CANI inventory to an external system.
 // This is the "Load" step in ETL.
-func (p *{{.StructName}}) Export(ctx context.Context, cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+func (p *{{.StructName}}) Export(ctx context.Context, cmd *cli.Command, args []string, inventory *devicetypes.Inventory) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}

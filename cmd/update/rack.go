@@ -30,20 +30,20 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/resolve"
 	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
-	"github.com/spf13/cobra"
 )
 
 // newRackUpdateCommand creates the "update rack" subcommand.
-func newRackUpdateCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func newRackUpdateCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "rack <uuid-or-name>",
 		Short: "Update a rack in the inventory.",
 		Long:  "Update a rack's fields by UUID or name.",
-		Args:  cobra.ExactArgs(1),
+		Args:  cli.ExactArgs(1),
 		RunE:  updateRack,
 	}
 
@@ -57,7 +57,7 @@ func newRackUpdateCommand() *cobra.Command {
 	return cmd
 }
 
-func updateRack(cmd *cobra.Command, args []string) error {
+func updateRack(cmd *cli.Command, args []string) error {
 	if err := datastores.SetDeviceStore(cmd, args); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
 	}
@@ -103,7 +103,7 @@ func updateRack(cmd *cobra.Command, args []string) error {
 }
 
 // applyRackScalarFlags applies the simple scalar rack flags when set.
-func applyRackScalarFlags(cmd *cobra.Command, rack *devicetypes.CaniRackType) error {
+func applyRackScalarFlags(cmd *cli.Command, rack *devicetypes.CaniRackType) error {
 	if cmd.Flags().Changed("name") {
 		rack.Name, _ = cmd.Flags().GetString("name")
 	}
@@ -128,7 +128,7 @@ func applyRackScalarFlags(cmd *cobra.Command, rack *devicetypes.CaniRackType) er
 }
 
 // applyRackLocation resolves and applies the --location flag when set.
-func applyRackLocation(cmd *cobra.Command, inventory *devicetypes.Inventory, rack *devicetypes.CaniRackType) error {
+func applyRackLocation(cmd *cli.Command, inventory *devicetypes.Inventory, rack *devicetypes.CaniRackType) error {
 	if !cmd.Flags().Changed(flagLocation) {
 		return nil
 	}
@@ -142,7 +142,7 @@ func applyRackLocation(cmd *cobra.Command, inventory *devicetypes.Inventory, rac
 }
 
 // applyRackTagsMetadata applies the --tag and --metadata flags when set.
-func applyRackTagsMetadata(cmd *cobra.Command, rack *devicetypes.CaniRackType) error {
+func applyRackTagsMetadata(cmd *cli.Command, rack *devicetypes.CaniRackType) error {
 	if cmd.Flags().Changed("tag") {
 		tags, _ := cmd.Flags().GetStringArray("tag")
 		rack.Tags = tags
@@ -156,7 +156,7 @@ func applyRackTagsMetadata(cmd *cobra.Command, rack *devicetypes.CaniRackType) e
 	return nil
 }
 
-func applySetToRack(cmd *cobra.Command, rack *devicetypes.CaniRackType) error {
+func applySetToRack(cmd *cli.Command, rack *devicetypes.CaniRackType) error {
 	sets, _ := cmd.Flags().GetStringArray("set")
 	pairs, err := parseSetFlags(sets)
 	if err != nil {

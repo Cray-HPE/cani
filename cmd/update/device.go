@@ -29,21 +29,21 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/util/resolve"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
-	"github.com/spf13/cobra"
 )
 
 // newDeviceCommand creates the "update device" subcommand.
-func newDeviceCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func newDeviceCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "device <uuid-or-name>",
 		Short: "Update a device in the inventory.",
 		Long:  "Update a device's fields by UUID or name.",
-		Args:  cobra.ExactArgs(1),
+		Args:  cli.ExactArgs(1),
 		RunE:  updateDevice,
 	}
 
@@ -68,7 +68,7 @@ func newDeviceCommand() *cobra.Command {
 	return cmd
 }
 
-func updateDevice(cmd *cobra.Command, args []string) error {
+func updateDevice(cmd *cli.Command, args []string) error {
 	inventory, id, device, err := loadDeviceForUpdate(cmd, args)
 	if err != nil {
 		return err
@@ -100,7 +100,7 @@ func updateDevice(cmd *cobra.Command, args []string) error {
 
 // loadDeviceForUpdate sets the device store, loads the inventory, and resolves
 // the target device from args.
-func loadDeviceForUpdate(cmd *cobra.Command, args []string) (*devicetypes.Inventory, uuid.UUID, *devicetypes.CaniDeviceType, error) {
+func loadDeviceForUpdate(cmd *cli.Command, args []string) (*devicetypes.Inventory, uuid.UUID, *devicetypes.CaniDeviceType, error) {
 	if err := datastores.SetDeviceStore(cmd, args); err != nil {
 		return nil, uuid.Nil, nil, fmt.Errorf("failed to set device store: %w", err)
 	}
@@ -136,7 +136,7 @@ func finalizeDeviceUpdate(inventory *devicetypes.Inventory, id uuid.UUID, device
 
 // applyProviderDeviceFlags lets each registered provider apply its own
 // device-update flags to the device.
-func applyProviderDeviceFlags(cmd *cobra.Command, device *devicetypes.CaniDeviceType) error {
+func applyProviderDeviceFlags(cmd *cli.Command, device *devicetypes.CaniDeviceType) error {
 	for _, p := range provider.GetProviders() {
 		fp, ok := p.(provider.DeviceUpdateFlagProvider)
 		if !ok {

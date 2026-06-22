@@ -30,12 +30,12 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/visual"
-	"github.com/spf13/cobra"
 )
 
-func showSingleRack(cmd *cobra.Command, inv *devicetypes.Inventory, arg string) error {
+func showSingleRack(cmd *cli.Command, inv *devicetypes.Inventory, arg string) error {
 	rack, err := findRackByNameOrUUID(arg, inv)
 	if err != nil {
 		return err
@@ -84,18 +84,18 @@ func showSingleRack(cmd *cobra.Command, inv *devicetypes.Inventory, arg string) 
 }
 
 // newCableCommand creates the "show cable" subcommand.
-func newCableCommand() *cobra.Command {
-	return &cobra.Command{
+func newCableCommand() *cli.Command {
+	return &cli.Command{
 		Use:     "cable [label|uuid]",
 		Aliases: []string{"cables"},
 		Short:   "List cables in the inventory.",
 		Long:    "List cables, or show a single cable by label or UUID.",
-		Args:    cobra.MaximumNArgs(1),
+		Args:    cli.MaximumNArgs(1),
 		RunE:    showCables,
 	}
 }
 
-func showCables(cmd *cobra.Command, args []string) error {
+func showCables(cmd *cli.Command, args []string) error {
 	inv, err := loadInventory(cmd, args)
 	if err != nil {
 		return err
@@ -128,7 +128,7 @@ func showCables(cmd *cobra.Command, args []string) error {
 	}
 }
 
-func showSingleCable(cmd *cobra.Command, inv *devicetypes.Inventory, arg string) error {
+func showSingleCable(cmd *cli.Command, inv *devicetypes.Inventory, arg string) error {
 	cable, err := findCableByLabelOrUUID(arg, inv)
 	if err != nil {
 		return err
@@ -149,18 +149,18 @@ func showSingleCable(cmd *cobra.Command, inv *devicetypes.Inventory, arg string)
 }
 
 // newFruCommand creates the "show fru" subcommand.
-func newFruCommand() *cobra.Command {
-	return &cobra.Command{
+func newFruCommand() *cli.Command {
+	return &cli.Command{
 		Use:     "fru [name|uuid]",
 		Aliases: []string{"frus"},
 		Short:   "List FRUs in the inventory.",
 		Long:    "List field-replaceable units, or show a single FRU by name or UUID.",
-		Args:    cobra.MaximumNArgs(1),
+		Args:    cli.MaximumNArgs(1),
 		RunE:    showFrus,
 	}
 }
 
-func showFrus(cmd *cobra.Command, args []string) error {
+func showFrus(cmd *cli.Command, args []string) error {
 	inv, err := loadInventory(cmd, args)
 	if err != nil {
 		return err
@@ -193,7 +193,7 @@ func showFrus(cmd *cobra.Command, args []string) error {
 	}
 }
 
-func showSingleFru(cmd *cobra.Command, inv *devicetypes.Inventory, arg string) error {
+func showSingleFru(cmd *cli.Command, inv *devicetypes.Inventory, arg string) error {
 	fru, err := findFruByNameOrUUID(arg, inv)
 	if err != nil {
 		return err
@@ -214,18 +214,18 @@ func showSingleFru(cmd *cobra.Command, inv *devicetypes.Inventory, arg string) e
 }
 
 // newInterfaceCommand creates the "show interface" subcommand.
-func newInterfaceCommand() *cobra.Command {
-	return &cobra.Command{
+func newInterfaceCommand() *cli.Command {
+	return &cli.Command{
 		Use:     "interface [name|uuid]",
 		Aliases: []string{"interfaces"},
 		Short:   "List interfaces in the inventory.",
 		Long:    "List interfaces, or show a single interface by name or UUID.",
-		Args:    cobra.MaximumNArgs(1),
+		Args:    cli.MaximumNArgs(1),
 		RunE:    showInterfaces,
 	}
 }
 
-func showInterfaces(cmd *cobra.Command, args []string) error {
+func showInterfaces(cmd *cli.Command, args []string) error {
 	inv, err := loadInventory(cmd, args)
 	if err != nil {
 		return err
@@ -258,7 +258,7 @@ func showInterfaces(cmd *cobra.Command, args []string) error {
 	}
 }
 
-func showSingleInterface(cmd *cobra.Command, inv *devicetypes.Inventory, arg string) error {
+func showSingleInterface(cmd *cli.Command, inv *devicetypes.Inventory, arg string) error {
 	iface, err := findInterfaceByNameOrUUID(arg, inv)
 	if err != nil {
 		return err

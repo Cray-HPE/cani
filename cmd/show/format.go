@@ -29,15 +29,15 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/visual"
-	"github.com/spf13/cobra"
 )
 
 // validWithValues lists the accepted tokens for the --with flag.
 var validWithValues = []string{"modules", "interfaces", "cables", "empty-us", "roles"}
 
 // validateWithFlag checks that every --with token is recognised.
-func validateWithFlag(cmd *cobra.Command) error {
+func validateWithFlag(cmd *cli.Command) error {
 	vals, _ := cmd.Flags().GetStringSlice("with")
 	for _, v := range vals {
 		if !contains(validWithValues, v) {
@@ -49,7 +49,7 @@ func validateWithFlag(cmd *cobra.Command) error {
 }
 
 // treeFilterFromCmd builds a TreeFilter from the --with flag.
-func treeFilterFromCmd(cmd *cobra.Command) visual.TreeFilter {
+func treeFilterFromCmd(cmd *cli.Command) visual.TreeFilter {
 	vals, _ := cmd.Flags().GetStringSlice("with")
 	set := make(map[string]bool, len(vals))
 	for _, v := range vals {

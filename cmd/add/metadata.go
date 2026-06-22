@@ -30,14 +30,14 @@ import (
 	"log"
 	"strings"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
-	"github.com/spf13/cobra"
 )
 
 // newMetadataCommand creates the "add metadata" subcommand group.
-func newMetadataCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func newMetadataCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "metadata",
 		Short: "Create metadata definitions (roles, statuses, tags) in the local inventory.",
 		Long: `Create metadata definitions in the local inventory.
@@ -64,41 +64,41 @@ Use a subcommand to create a specific metadata type:
 
 // rejectMetadataFlag enforces mutual exclusivity: the "add metadata"
 // subcommand cannot be combined with the --metadata flag.
-func rejectMetadataFlag(cmd *cobra.Command) error {
+func rejectMetadataFlag(cmd *cli.Command) error {
 	if f := cmd.Flags().Lookup("metadata"); f != nil && f.Changed {
 		return fmt.Errorf("--metadata flag cannot be used with the 'add metadata' subcommand; they are mutually exclusive")
 	}
 	return nil
 }
 
-func newMetadataRoleCommand() *cobra.Command {
-	return &cobra.Command{
+func newMetadataRoleCommand() *cli.Command {
+	return &cli.Command{
 		Use:   "role <name>",
 		Short: "Create a role definition in the inventory.",
-		Args:  cobra.ExactArgs(1),
+		Args:  cli.ExactArgs(1),
 		RunE:  addMetadataRole,
 	}
 }
 
-func newMetadataStatusCommand() *cobra.Command {
-	return &cobra.Command{
+func newMetadataStatusCommand() *cli.Command {
+	return &cli.Command{
 		Use:   "status <name>",
 		Short: "Create a status definition in the inventory.",
-		Args:  cobra.ExactArgs(1),
+		Args:  cli.ExactArgs(1),
 		RunE:  addMetadataStatus,
 	}
 }
 
-func newMetadataTagCommand() *cobra.Command {
-	return &cobra.Command{
+func newMetadataTagCommand() *cli.Command {
+	return &cli.Command{
 		Use:   "tag <name>",
 		Short: "Create a tag definition in the inventory.",
-		Args:  cobra.ExactArgs(1),
+		Args:  cli.ExactArgs(1),
 		RunE:  addMetadataTag,
 	}
 }
 
-func addMetadataRole(cmd *cobra.Command, args []string) error {
+func addMetadataRole(cmd *cli.Command, args []string) error {
 	if err := rejectMetadataFlag(cmd); err != nil {
 		return err
 	}
@@ -107,7 +107,7 @@ func addMetadataRole(cmd *cobra.Command, args []string) error {
 	return saveMetadata(cmd, "roles", entry)
 }
 
-func addMetadataStatus(cmd *cobra.Command, args []string) error {
+func addMetadataStatus(cmd *cli.Command, args []string) error {
 	if err := rejectMetadataFlag(cmd); err != nil {
 		return err
 	}
@@ -119,14 +119,14 @@ func addMetadataStatus(cmd *cobra.Command, args []string) error {
 	return saveMetadata(cmd, "statuses", entry)
 }
 
-func addMetadataTag(cmd *cobra.Command, args []string) error {
+func addMetadataTag(cmd *cli.Command, args []string) error {
 	if err := rejectMetadataFlag(cmd); err != nil {
 		return err
 	}
 	return saveMetadata(cmd, "tags", buildEntry(cmd, args[0]))
 }
 
-func buildEntry(cmd *cobra.Command, name string) devicetypes.MetadataEntry {
+func buildEntry(cmd *cli.Command, name string) devicetypes.MetadataEntry {
 	ct, _ := cmd.Flags().GetStringSlice("content-types")
 	color, _ := cmd.Flags().GetString("color")
 	desc, _ := cmd.Flags().GetString("description")
@@ -138,7 +138,7 @@ func buildEntry(cmd *cobra.Command, name string) devicetypes.MetadataEntry {
 	}
 }
 
-func saveMetadata(cmd *cobra.Command, kind string, entry devicetypes.MetadataEntry) error {
+func saveMetadata(cmd *cli.Command, kind string, entry devicetypes.MetadataEntry) error {
 	if err := datastores.SetDeviceStore(cmd, nil); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
 	}

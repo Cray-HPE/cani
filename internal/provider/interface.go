@@ -28,8 +28,8 @@ package provider
 import (
 	"context"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
-	"github.com/spf13/cobra"
 )
 
 type Provider interface {
@@ -41,10 +41,10 @@ type Provider interface {
 	// ctx carries cancellation and deadlines from the command layer.
 	Transform(ctx context.Context, existing devicetypes.Inventory) (*devicetypes.TransformResult, error)
 
-	// NewProviderCmd returns a new cobra.Command for the provider
+	// NewProviderCmd returns a new cli.Command for the provider
 	// This is used to add provider-specific info the the CLI
 	// This is usually a switch statement that returns a command for each command the provider supports
-	NewProviderCmd(base *cobra.Command) (*cobra.Command, error)
+	NewProviderCmd(base *cli.Command) (*cli.Command, error)
 
 	// Slug simply returns the provider's slug, which is used to identify it in the system
 	Slug() string
@@ -56,7 +56,7 @@ type Exporter interface {
 	// Export syncs the local inventory to the external system
 	// Returns information about what was created, updated, skipped, or errored
 	// ctx carries cancellation and deadlines from the command layer.
-	Export(ctx context.Context, cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error
+	Export(ctx context.Context, cmd *cli.Command, args []string, inventory *devicetypes.Inventory) error
 }
 
 // Exporter is an optional interface that providers can implement to support
@@ -66,7 +66,7 @@ type Importer interface {
 	// This usually imports data into the local inventory from files or APIs
 	// and saves it into the provider struct for later processing in Transform()
 	// ctx carries cancellation and deadlines from the command layer.
-	Import(ctx context.Context, cmd *cobra.Command, args []string, existing *devicetypes.Inventory) error
+	Import(ctx context.Context, cmd *cli.Command, args []string, existing *devicetypes.Inventory) error
 }
 
 // HasOptions is an optional interface that providers can implement
@@ -93,7 +93,7 @@ type HasImportOptions interface {
 
 	// BindImportFlags binds CLI flags to Viper for the import command
 	// This enables the precedence: CLI flags > env vars > config file > defaults
-	BindImportFlags(cmd *cobra.Command) error
+	BindImportFlags(cmd *cli.Command) error
 }
 
 // HasExportOptions is an optional interface that providers can implement
@@ -109,7 +109,7 @@ type HasExportOptions interface {
 
 	// BindExportFlags binds CLI flags to Viper for the export command
 	// This enables the precedence: CLI flags > env vars > config file > defaults
-	BindExportFlags(cmd *cobra.Command) error
+	BindExportFlags(cmd *cli.Command) error
 }
 
 // DeviceStager is an optional interface that providers can implement to
@@ -156,11 +156,11 @@ type MetadataApplier interface {
 // provider-specific flags (e.g. CSM's --nid/--alias) out of cmd/.
 type DeviceUpdateFlagProvider interface {
 	// RegisterDeviceUpdateFlags adds the provider's flags to cmd.
-	RegisterDeviceUpdateFlags(cmd *cobra.Command)
+	RegisterDeviceUpdateFlags(cmd *cli.Command)
 
 	// ApplyDeviceUpdateFlags reads any changed provider flags from cmd
 	// and applies them to device.  It is a no-op when no flags changed.
-	ApplyDeviceUpdateFlags(cmd *cobra.Command, device *devicetypes.CaniDeviceType) error
+	ApplyDeviceUpdateFlags(cmd *cli.Command, device *devicetypes.CaniDeviceType) error
 }
 
 // StagedDeviceDescriber is an optional interface that providers can implement

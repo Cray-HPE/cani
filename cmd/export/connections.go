@@ -29,15 +29,15 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes/connections"
-	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
 
 // newConnectionsCommand creates the "export connections" subcommand.
-func newConnectionsCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func newConnectionsCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "connections",
 		Short: "Export current cable connections as YAML or CSV.",
 		Long: `Export all cable connections from the inventory as a YAML or CSV file.
@@ -46,14 +46,14 @@ The output can be edited and re-applied with 'cani alpha add connections'.
 Example:
   cani alpha export connections > topology.yaml
   cani alpha export connections --format csv > topology.csv`,
-		Args: cobra.NoArgs,
+		Args: cli.NoArgs,
 		RunE: exportConnections,
 	}
 	cmd.Flags().String("format", "yaml", "Output format: yaml or csv")
 	return cmd
 }
 
-func exportConnections(cmd *cobra.Command, args []string) error {
+func exportConnections(cmd *cli.Command, args []string) error {
 	if err := datastores.SetDeviceStore(cmd, args); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
 	}

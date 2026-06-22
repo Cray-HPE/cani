@@ -26,17 +26,17 @@
 package alpha
 
 import (
-	"github.com/spf13/cobra"
+	"github.com/Cray-HPE/cani/internal/cli"
 )
 
 // NewCommand creates the parent "alpha" command
-func NewCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func NewCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "alpha",
 		Short: "Run commands that are considered unstable.",
 		Long:  `Run commands that are considered unstable.`,
-		Args:  cobra.ArbitraryArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		Args:  cli.ArbitraryArgs,
+		RunE: func(cmd *cli.Command, args []string) error {
 			cmd.Help()
 			return nil
 		},

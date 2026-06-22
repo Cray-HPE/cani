@@ -7,12 +7,12 @@ import (
 	"log"
 	"os"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/config"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/provider/example/commands"
 	"github.com/Cray-HPE/cani/pkg/visual"
 	"github.com/google/uuid"
-	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
 
@@ -111,7 +111,7 @@ type yamlRackType struct {
 	ProviderMetadata map[string]any    `yaml:"ProviderMetadata,omitempty"`
 }
 
-func Import(cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+func Import(cmd *cli.Command, args []string, inventory *devicetypes.Inventory) error {
 	// Check CSV flag first (takes precedence)
 	if commands.CsvFlag != "" {
 		return ImportCSV(cmd, args, inventory)
@@ -227,7 +227,7 @@ func mergeYAMLInventory(dst *devicetypes.Inventory, src *yamlInventory) error {
 // Auto-detects system CSV format (multi-section with Section column) vs
 // traditional BOM CSV format. Does NOT create inventory objects; that is the
 // responsibility of the transform phase.
-func ImportCSV(cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+func ImportCSV(cmd *cli.Command, args []string, inventory *devicetypes.Inventory) error {
 	// Peek at header to detect format
 	header, err := peekCSVHeader(commands.CsvFlag)
 	if err != nil {
@@ -241,7 +241,7 @@ func ImportCSV(cmd *cobra.Command, args []string, inventory *devicetypes.Invento
 }
 
 // importSystemCSV parses a system CSV and stores the grouped data on the provider.
-func importSystemCSV(cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+func importSystemCSV(cmd *cli.Command, args []string, inventory *devicetypes.Inventory) error {
 	data, err := ParseSystemCSV(commands.CsvFlag)
 	if err != nil {
 		return fmt.Errorf("failed to parse system CSV: %w", err)
@@ -268,7 +268,7 @@ func importSystemCSV(cmd *cobra.Command, args []string, inventory *devicetypes.I
 }
 
 // importBOMCSV parses a traditional BOM CSV and stores raw records on the provider.
-func importBOMCSV(cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+func importBOMCSV(cmd *cli.Command, args []string, inventory *devicetypes.Inventory) error {
 	records, err := ParseCSV(commands.CsvFlag)
 	if err != nil {
 		return fmt.Errorf("failed to parse CSV: %w", err)

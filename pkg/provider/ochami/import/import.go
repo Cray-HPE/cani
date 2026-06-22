@@ -4,9 +4,9 @@ import (
 	"errors"
 	"log"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/provider/ochami/commands"
-	"github.com/spf13/cobra"
 )
 
 // providerGetter is used to get the Example singleton from the parent package.
@@ -36,7 +36,7 @@ func GetProvider() (interface {
 	return providerGetter(), nil
 }
 
-func Import(cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+func Import(cmd *cli.Command, args []string, inventory *devicetypes.Inventory) error {
 	// Common patterns:
 	//   - Parse files or query APIs to get data
 	//   - Store data in provider struct for later processing in Transform()
@@ -50,7 +50,7 @@ func Import(cmd *cobra.Command, args []string, inventory *devicetypes.Inventory)
 	return nil
 }
 
-func ImportOchamiDevices(cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+func ImportOchamiDevices(cmd *cli.Command, args []string, inventory *devicetypes.Inventory) error {
 	records, err := ParseJson(commands.JsonFileFlag)
 	if err != nil {
 		return err

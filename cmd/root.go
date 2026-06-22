@@ -30,20 +30,20 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/config"
 	"github.com/Cray-HPE/cani/internal/core"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
-func newRootCommand() *cobra.Command {
+func newRootCommand() *cli.Command {
 	// Create a new root command
 	// This is where you would set up the command's name, usage, and description.
-	cmd := &cobra.Command{
+	cmd := &cli.Command{
 		Use:               core.App,
 		Short:             core.ShortDescription,
 		Long:              core.LongDescription,
@@ -64,59 +64,72 @@ func newRootCommand() *cobra.Command {
 	cmd.PersistentFlags().Bool("types-repo-pull", false, "pull latest changes from types repos on startup")
 	cmd.PersistentFlags().Bool("strict", true, "require a resolved device type (slug) for all devices")
 
-	// Bind debug flag to Viper for config/env/flag precedence
-	_ = viper.BindPFlag("debug", cmd.PersistentFlags().Lookup("debug"))
-	_ = viper.BindPFlag("types_dirs", cmd.PersistentFlags().Lookup("types-dirs"))
-	_ = viper.BindPFlag("types_repos", cmd.PersistentFlags().Lookup("types-repos"))
-	_ = viper.BindPFlag("types_repo_clone", cmd.PersistentFlags().Lookup("types-repo-clone"))
-	_ = viper.BindPFlag("types_repo_pull", cmd.PersistentFlags().Lookup("types-repo-pull"))
-	_ = viper.BindPFlag("strict", cmd.PersistentFlags().Lookup("strict"))
-
 	return cmd
 }
 
-// initViper initializes Viper for config/env/flag binding
-// This sets up the precedence: CLI flags > env vars > config file > defaults
-func initViper() {
-	home, _ := os.UserHomeDir()
-	configDir := filepath.Join(home, "."+core.App)
-
-	viper.SetConfigName(core.App)
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(configDir)
-
-	// Enable environment variable support with CANI_ prefix
-	// e.g., CANI_NAUTOBOT_IMPORT_URL maps to nautobot.import.url
-	viper.SetEnvPrefix("CANI")
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	viper.AutomaticEnv()
-
-	// Read config file if it exists (errors are ignored, config may not exist yet)
-	_ = viper.ReadInConfig()
+// envKeyFor maps a config YAML key to its CANI_-prefixed environment variable
+// name (e.g. "types_repo_pull" -> "CANI_TYPES_REPO_PULL").
+func envKeyFor(yamlKey string) string {
+	return "CANI_" + strings.ToUpper(yamlKey)
 }
 
-func setupDomain(cmd *cobra.Command, args []string) error {
-	// Initialize Viper for config/env/flag binding
-	initViper()
-
-	// Load all hardware type libraries from YAML once at startup
-	devicetypes.Debug = viper.GetBool("debug")
-	typesDirs := viper.GetStringSlice("types_dirs")
-	typesRepos := viper.GetStringSlice("types_repos")
-	typesRepoClone := viper.GetBool("types_repo_clone")
-	typesRepoPull := viper.GetBool("types_repo_pull")
-	if err := devicetypes.LoadAll(typesDirs, typesRepos, typesRepoClone, typesRepoPull); err != nil {
-		return fmt.Errorf("loading device type libraries: %w", err)
+// resolveBool resolves a global boolean setting with precedence
+// CLI flag > env var > config file > flag default.
+func resolveBool(cmd *cli.Command, flagName, yamlKey string, configVal bool) bool {
+	if cmd.Flags().Changed(flagName) {
+		v, _ := cmd.Flags().GetBool(flagName)
+		return v
 	}
+	if s, ok := os.LookupEnv(envKeyFor(yamlKey)); ok {
+		if b, err := strconv.ParseBool(s); err == nil {
+			return b
+		}
+	}
+	if config.HasTopLevelKey(yamlKey) {
+		return configVal
+	}
+	v, _ := cmd.Flags().GetBool(flagName)
+	return v
+}
 
-	// 1) load or create the config
+// resolveStringSlice resolves a global string-slice setting with precedence
+// CLI flag > env var (comma-separated) > config file > flag default.
+func resolveStringSlice(cmd *cli.Command, flagName, yamlKey string, configVal []string) []string {
+	if cmd.Flags().Changed(flagName) {
+		v, _ := cmd.Flags().GetStringSlice(flagName)
+		return v
+	}
+	if s, ok := os.LookupEnv(envKeyFor(yamlKey)); ok {
+		return strings.Split(s, ",")
+	}
+	if config.HasTopLevelKey(yamlKey) {
+		return configVal
+	}
+	v, _ := cmd.Flags().GetStringSlice(flagName)
+	return v
+}
+
+func setupDomain(cmd *cli.Command, args []string) error {
+	// 1) load or create the config first so file values are available for
+	// precedence resolution below.
 	if err := config.Load(cfgFile); err != nil {
 		return err
 	}
 
-	// Apply flag precedence: CLI > env > config > default
-	config.Cfg.Debug = viper.GetBool("debug")
-	config.Cfg.Strict = viper.GetBool("strict")
+	// Apply precedence (CLI flag > env var > config file > default) for the
+	// global settings that were previously managed by viper.
+	config.Cfg.Debug = resolveBool(cmd, "debug", "debug", config.Cfg.Debug)
+	config.Cfg.Strict = resolveBool(cmd, "strict", "strict", config.Cfg.Strict)
+	typesDirs := resolveStringSlice(cmd, "types-dirs", "types_dirs", config.Cfg.TypesDirs)
+	typesRepos := resolveStringSlice(cmd, "types-repos", "types_repos", config.Cfg.TypesRepos)
+	typesRepoClone := resolveBool(cmd, "types-repo-clone", "types_repo_clone", config.Cfg.TypesRepoClone)
+	typesRepoPull := resolveBool(cmd, "types-repo-pull", "types_repo_pull", config.Cfg.TypesRepoPull)
+
+	// Load all hardware type libraries from YAML once at startup.
+	devicetypes.Debug = config.Cfg.Debug
+	if err := devicetypes.LoadAll(typesDirs, typesRepos, typesRepoClone, typesRepoPull); err != nil {
+		return fmt.Errorf("loading device type libraries: %w", err)
+	}
 
 	// 2) ensure every registered provider has a key in Conf.Providers
 	for name := range provider.GetProviders() {
@@ -158,13 +171,13 @@ func Execute() {
 	}
 }
 
-// RootCommand returns the root cobra.Command for doc generation and testing.
-func RootCommand() *cobra.Command {
+// RootCommand returns the root cli.Command for doc generation and testing.
+func RootCommand() *cli.Command {
 	return rootCmd
 }
 
 // runRoot is the main entrypoint for the cani command
-func runRoot(cmd *cobra.Command, args []string) error {
+func runRoot(cmd *cli.Command, args []string) error {
 	if len(args) == 0 {
 		cmd.Help()
 	}

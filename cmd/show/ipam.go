@@ -28,23 +28,23 @@ package show
 import (
 	"sort"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/visual"
-	"github.com/spf13/cobra"
 )
 
 // newVLANShowCommand creates the "show vlan" subcommand.
-func newVLANShowCommand() *cobra.Command {
-	return &cobra.Command{
+func newVLANShowCommand() *cli.Command {
+	return &cli.Command{
 		Use:     "vlan",
 		Aliases: []string{"vlans"},
 		Short:   "List VLANs in the inventory.",
-		Args:    cobra.NoArgs,
+		Args:    cli.NoArgs,
 		RunE:    showVLANs,
 	}
 }
 
-func showVLANs(cmd *cobra.Command, args []string) error {
+func showVLANs(cmd *cli.Command, args []string) error {
 	inv, err := loadInventory(cmd, args)
 	if err != nil {
 		return err
@@ -69,19 +69,19 @@ func showVLANs(cmd *cobra.Command, args []string) error {
 }
 
 // newPrefixShowCommand creates the "show prefix" subcommand.
-func newPrefixShowCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func newPrefixShowCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:     "prefix",
 		Aliases: []string{"prefixes"},
 		Short:   "List IP prefixes in the inventory.",
-		Args:    cobra.NoArgs,
+		Args:    cli.NoArgs,
 		RunE:    showPrefixes,
 	}
 	cmd.Flags().Bool("tree", false, "Display prefixes as a hierarchy tree")
 	return cmd
 }
 
-func showPrefixes(cmd *cobra.Command, args []string) error {
+func showPrefixes(cmd *cli.Command, args []string) error {
 	inv, err := loadInventory(cmd, args)
 	if err != nil {
 		return err
@@ -112,19 +112,19 @@ func showPrefixes(cmd *cobra.Command, args []string) error {
 }
 
 // newIPShowCommand creates the "show ip" subcommand.
-func newIPShowCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func newIPShowCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:     "ip",
 		Aliases: []string{"ips", "ipaddress"},
 		Short:   "List IP addresses in the inventory.",
-		Args:    cobra.NoArgs,
+		Args:    cli.NoArgs,
 		RunE:    showIPAddresses,
 	}
 	cmd.Flags().String("prefix", "", "Filter to IPs within a specific prefix (CIDR)")
 	return cmd
 }
 
-func showIPAddresses(cmd *cobra.Command, args []string) error {
+func showIPAddresses(cmd *cli.Command, args []string) error {
 	inv, err := loadInventory(cmd, args)
 	if err != nil {
 		return err

@@ -29,14 +29,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/provider/nautobot/export"
-	"github.com/spf13/cobra"
 )
 
 // Export implements the provider.Exporter interface.
 // It syncs the local inventory to Nautobot.
-func (p *Nautobot) Export(ctx context.Context, cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+func (p *Nautobot) Export(ctx context.Context, cmd *cli.Command, args []string, inventory *devicetypes.Inventory) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -48,7 +48,7 @@ func (p *Nautobot) Export(ctx context.Context, cmd *cobra.Command, args []string
 
 // setupExportFromConfig initialises the Nautobot client, lookup cache and
 // exporter from config values and command-line flag overrides.
-func (p *Nautobot) setupExportFromConfig(cmd *cobra.Command) error {
+func (p *Nautobot) setupExportFromConfig(cmd *cli.Command) error {
 	if err := p.loadOptionsFromConfig(); err != nil {
 		return fmt.Errorf("failed to load nautobot config: %w", err)
 	}
@@ -101,7 +101,7 @@ func (p *Nautobot) setupExportFromConfig(cmd *cobra.Command) error {
 }
 
 // applyFlagOverrides applies command-line flag overrides to Options.
-func (p *Nautobot) applyFlagOverrides(cmd *cobra.Command) {
+func (p *Nautobot) applyFlagOverrides(cmd *cli.Command) {
 	if cmd.Flags().Changed("default-location") {
 		p.Options.DefaultLocation, _ = cmd.Flags().GetString("default-location")
 	}
@@ -123,7 +123,7 @@ func (p *Nautobot) applyFlagOverrides(cmd *cobra.Command) {
 }
 
 // applyCacheFlags applies create_* flags from config and CLI overrides to the cache.
-func (p *Nautobot) applyCacheFlags(cmd *cobra.Command, cache *export.LookupCache) {
+func (p *Nautobot) applyCacheFlags(cmd *cli.Command, cache *export.LookupCache) {
 	// Apply config values first
 	if p.Options.Export != nil {
 		if p.Options.Export.CreateDeviceTypes {

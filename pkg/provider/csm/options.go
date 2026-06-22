@@ -1,6 +1,6 @@
 package csm
 
-import "github.com/spf13/cobra"
+import "github.com/Cray-HPE/cani/internal/cli"
 
 // Options holds the provider's configuration options.
 // These are written to the config file with YAML comments preserved.
@@ -94,7 +94,7 @@ func (p *Csm) GetImportDefaults() map[string]any {
 
 // BindImportFlags binds CLI flags to Viper for the import command.
 // This enables precedence: CLI flags > env vars > config file > defaults.
-func (p *Csm) BindImportFlags(cmd *cobra.Command) error {
+func (p *Csm) BindImportFlags(cmd *cli.Command) error {
 	// Flags are read directly in the import package via cmd.Flags().GetString()
 	return nil
 }
@@ -113,7 +113,7 @@ func (p *Csm) GetExportDefaults() map[string]any {
 
 // BindExportFlags binds CLI flags to Viper for the export command.
 // This enables precedence: CLI flags > env vars > config file > defaults.
-func (p *Csm) BindExportFlags(cmd *cobra.Command) error {
+func (p *Csm) BindExportFlags(cmd *cli.Command) error {
 	// Auth flags are read directly via cmd.Flags() in the export package.
 	return nil
 }

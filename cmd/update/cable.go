@@ -29,19 +29,19 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/resolve"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
-	"github.com/spf13/cobra"
 )
 
 // newCableCommand creates the "update cable" subcommand.
-func newCableCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func newCableCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "cable <uuid-or-label>",
 		Short: "Update a cable in the inventory.",
 		Long:  "Update a cable's fields by UUID or label.",
-		Args:  cobra.ExactArgs(1),
+		Args:  cli.ExactArgs(1),
 		RunE:  updateCable,
 	}
 
@@ -53,7 +53,7 @@ func newCableCommand() *cobra.Command {
 	return cmd
 }
 
-func updateCable(cmd *cobra.Command, args []string) error {
+func updateCable(cmd *cli.Command, args []string) error {
 	if err := datastores.SetDeviceStore(cmd, args); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
 	}
@@ -95,7 +95,7 @@ func updateCable(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func applySetToCable(cmd *cobra.Command, cable *devicetypes.CaniCableType) error {
+func applySetToCable(cmd *cli.Command, cable *devicetypes.CaniCableType) error {
 	sets, _ := cmd.Flags().GetStringArray("set")
 	pairs, err := parseSetFlags(sets)
 	if err != nil {

@@ -31,15 +31,15 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/config"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
-	"github.com/spf13/cobra"
 )
 
-func newOrphansCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func newOrphansCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "orphans",
 		Short: "Interactively assign parents to orphaned items.",
 		Long: `Walk all orphaned racks and devices and interactively prompt
@@ -48,7 +48,7 @@ hardware-type affinity, and provider metadata.
 
 In --dry-run mode the assignments are written to a JSON plan file
 that can be reviewed, edited, and applied later with --apply-plan.`,
-		Args: cobra.NoArgs,
+		Args: cli.NoArgs,
 		RunE: updateOrphans,
 	}
 
@@ -58,7 +58,7 @@ that can be reviewed, edited, and applied later with --apply-plan.`,
 	return cmd
 }
 
-func updateOrphans(cmd *cobra.Command, args []string) error {
+func updateOrphans(cmd *cli.Command, args []string) error {
 	if err := datastores.SetDeviceStore(cmd, args); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
 	}
@@ -189,7 +189,7 @@ func updateOrphans(cmd *cobra.Command, args []string) error {
 }
 
 // applyOrphanPlanFromFile loads a plan file and applies it to the inventory.
-func applyOrphanPlanFromFile(cmd *cobra.Command, inv *devicetypes.Inventory, path string) error {
+func applyOrphanPlanFromFile(cmd *cli.Command, inv *devicetypes.Inventory, path string) error {
 	plan, err := devicetypes.ReadPlan(path)
 	if err != nil {
 		return err
@@ -240,7 +240,7 @@ func lookupParentInfo(inv *devicetypes.Inventory, id uuid.UUID) (string, string)
 }
 
 // printOrphanSummary writes the assignment summary to stdout.
-func printOrphanSummary(cmd *cobra.Command, plan *devicetypes.ResolvePlan) {
+func printOrphanSummary(cmd *cli.Command, plan *devicetypes.ResolvePlan) {
 	fmt.Fprintf(cmd.OutOrStdout(), "\n── Summary ──\n")
 	for _, a := range plan.Assignments {
 		pos := ""

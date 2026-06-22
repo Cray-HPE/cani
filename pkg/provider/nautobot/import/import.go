@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
-	"github.com/spf13/cobra"
 )
 
 // RawData holds all raw API responses fetched during import.
@@ -60,7 +60,7 @@ func GetProvider() (interface {
 
 // Import fetches all entity types from the Nautobot API and stores
 // the raw responses on the provider struct via the setter.
-func Import(cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+func Import(cmd *cli.Command, args []string, inventory *devicetypes.Inventory) error {
 	prov, err := GetProvider()
 	if err != nil {
 		return err

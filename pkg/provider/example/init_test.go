@@ -3,7 +3,7 @@ package example
 import (
 	"testing"
 
-	"github.com/spf13/cobra"
+	"github.com/Cray-HPE/cani/internal/cli"
 )
 
 func TestGetInstance(t *testing.T) {
@@ -30,7 +30,7 @@ func TestNewProviderCmd(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			base := &cobra.Command{Use: tt.cmdName}
+			base := &cli.Command{Use: tt.cmdName}
 			cmd, err := p.NewProviderCmd(base)
 			if err != nil {
 				t.Fatalf("NewProviderCmd(%q) error = %v", tt.cmdName, err)
@@ -44,7 +44,7 @@ func TestNewProviderCmd(t *testing.T) {
 
 func TestNewProviderCmdImportFlags(t *testing.T) {
 	p := New()
-	base := &cobra.Command{Use: "import"}
+	base := &cli.Command{Use: "import"}
 
 	cmd, err := p.NewProviderCmd(base)
 	if err != nil {
@@ -60,7 +60,7 @@ func TestNewProviderCmdImportFlags(t *testing.T) {
 
 func TestNewProviderCmdUnknown(t *testing.T) {
 	p := New()
-	base := &cobra.Command{Use: "unknown"}
+	base := &cli.Command{Use: "unknown"}
 
 	cmd, err := p.NewProviderCmd(base)
 	if err != nil {

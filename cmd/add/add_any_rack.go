@@ -29,10 +29,10 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
-	"github.com/spf13/cobra"
 )
 
 // rackAttrs carries the per-rack attributes applied to each new rack.
@@ -45,7 +45,7 @@ type rackAttrs struct {
 }
 
 // addAnyRack adds rack(s) using the resolved rack type.
-func addAnyRack(cmd *cobra.Command, args []string, rack *devicetypes.CaniRackType, qty int) error {
+func addAnyRack(cmd *cli.Command, args []string, rack *devicetypes.CaniRackType, qty int) error {
 	statusArg, _ := cmd.Flags().GetString("status")
 	serialArg, _ := cmd.Flags().GetString("serial")
 	locationArg, _ := cmd.Flags().GetString("location")

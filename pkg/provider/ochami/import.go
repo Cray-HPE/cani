@@ -3,14 +3,14 @@ package ochami
 import (
 	"context"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	import_ "github.com/Cray-HPE/cani/pkg/provider/ochami/import"
-	"github.com/spf13/cobra"
 )
 
 // Import syncs the local CANI inventory from an external system.
 // This is the "Extract" step in ETL.
-func (p *Ochami) Import(ctx context.Context, cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+func (p *Ochami) Import(ctx context.Context, cmd *cli.Command, args []string, inventory *devicetypes.Inventory) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}

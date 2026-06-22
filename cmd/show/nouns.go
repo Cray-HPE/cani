@@ -30,23 +30,23 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/visual"
-	"github.com/spf13/cobra"
 )
 
 // newLocationCommand creates the "show location" subcommand.
-func newLocationCommand() *cobra.Command {
-	return &cobra.Command{
+func newLocationCommand() *cli.Command {
+	return &cli.Command{
 		Use:   "location [name|uuid]",
 		Short: "List locations in the inventory.",
 		Long:  "List locations, or show a single location by name or UUID.",
-		Args:  cobra.MaximumNArgs(1),
+		Args:  cli.MaximumNArgs(1),
 		RunE:  showLocations,
 	}
 }
 
-func showLocations(cmd *cobra.Command, args []string) error {
+func showLocations(cmd *cli.Command, args []string) error {
 	inv, err := loadInventory(cmd, args)
 	if err != nil {
 		return err
@@ -79,7 +79,7 @@ func showLocations(cmd *cobra.Command, args []string) error {
 	}
 }
 
-func showSingleLocation(cmd *cobra.Command, inv *devicetypes.Inventory, arg string) error {
+func showSingleLocation(cmd *cli.Command, inv *devicetypes.Inventory, arg string) error {
 	loc, err := findLocationByNameOrUUID(arg, inv)
 	if err != nil {
 		return err
@@ -100,11 +100,11 @@ func showSingleLocation(cmd *cobra.Command, inv *devicetypes.Inventory, arg stri
 }
 
 // newRackShowCommand creates the "show rack" subcommand.
-func newRackShowCommand() *cobra.Command {
+func newRackShowCommand() *cli.Command {
 	// Merge base formats with rack-specific visual formats.
 	rackFormats := append(BaseFormats(), visual.ValidRackFormats()...)
 
-	cmd := &cobra.Command{
+	cmd := &cli.Command{
 		Use:   "rack [name|uuid]",
 		Short: "List racks in the inventory.",
 		Long: fmt.Sprintf(`List racks, or show a single rack by name or UUID.
@@ -127,9 +127,9 @@ Examples:
   cani show rack -o json                # JSON output
 
 Valid formats: %s`, strings.Join(rackFormats, ", ")),
-		Args: cobra.MaximumNArgs(1),
+		Args: cli.MaximumNArgs(1),
 		RunE: showRacks,
-		PreRunE: func(cmd *cobra.Command, args []string) error {
+		PreRunE: func(cmd *cli.Command, args []string) error {
 			formatKey, _ := cmd.Flags().GetString("format")
 			if !contains(rackFormats, formatKey) {
 				return fmt.Errorf("invalid format '%s'. Valid options: %s",
@@ -147,7 +147,7 @@ Valid formats: %s`, strings.Join(rackFormats, ", ")),
 	return cmd
 }
 
-func showRacks(cmd *cobra.Command, args []string) error {
+func showRacks(cmd *cli.Command, args []string) error {
 	inv, err := loadInventory(cmd, args)
 	if err != nil {
 		return err

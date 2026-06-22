@@ -33,15 +33,15 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/spf13/cobra"
+	"github.com/Cray-HPE/cani/internal/cli"
 )
 
 // NewCommand creates the "init" command for generating provider scaffolds
-func NewCommand() *cobra.Command {
+func NewCommand() *cli.Command {
 	var outputDir string
 	var force bool
 
-	cmd := &cobra.Command{
+	cmd := &cli.Command{
 		Use:   "init <provider-name>",
 		Short: "Generate a new provider scaffold",
 		Long: `Generate a new provider scaffold with stubbed implementations.
@@ -54,8 +54,8 @@ Example:
   cani init mycloud
   cani init mycloud --output ./custom/path
   cani init mycloud --force  # Overwrite existing directory`,
-		Args: cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		Args: cli.ExactArgs(1),
+		RunE: func(cmd *cli.Command, args []string) error {
 			providerName := strings.ToLower(args[0])
 
 			// Validate provider name

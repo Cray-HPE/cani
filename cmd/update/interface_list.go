@@ -28,9 +28,9 @@ package update
 import (
 	"fmt"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/resolve"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
-	"github.com/spf13/cobra"
 )
 
 // interfaceRowFormat is the column layout shared by the interface listing
@@ -38,7 +38,7 @@ import (
 const interfaceRowFormat = "  %-20s %-24s %-20s %s\n"
 
 // listDeviceInterfaces prints all interfaces for a device (and its modules).
-func listDeviceInterfaces(cmd *cobra.Command, inv *devicetypes.Inventory) error {
+func listDeviceInterfaces(cmd *cli.Command, inv *devicetypes.Inventory) error {
 	deviceRef, _ := cmd.Flags().GetString("device")
 	if deviceRef == "" {
 		return fmt.Errorf("--device is required with -L/--list")

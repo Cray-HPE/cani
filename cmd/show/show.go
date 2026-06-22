@@ -31,11 +31,11 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/visual"
 	"github.com/google/uuid"
-	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
 
@@ -43,12 +43,12 @@ import (
 var baseFormats = []string{"table", "json", "tree"}
 
 // NewCommand creates the parent "show" command.
-func NewCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func NewCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "show",
 		Short: "Show items from the inventory",
 		Long:  `Show items from the inventory.`,
-		Args:  cobra.NoArgs,
+		Args:  cli.NoArgs,
 		RunE:  show,
 	}
 
@@ -68,7 +68,7 @@ func NewCommand() *cobra.Command {
 		"Include extra detail in tree output (modules, interfaces, cables, empty-us)")
 
 	// Add validation
-	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
+	cmd.PreRunE = func(cmd *cli.Command, args []string) error {
 
 		sortKey, _ := cmd.Flags().GetString("sort")
 		if !contains(validSortKeys, sortKey) {
@@ -102,7 +102,7 @@ func NewCommand() *cobra.Command {
 }
 
 // loadInventory loads the inventory from a file or the configured datastore.
-func loadInventory(cmd *cobra.Command, args []string) (*devicetypes.Inventory, error) {
+func loadInventory(cmd *cli.Command, args []string) (*devicetypes.Inventory, error) {
 	filePath, _ := cmd.Flags().GetString("file")
 	if filePath != "" {
 		return loadInventoryFromFile(filePath)
@@ -114,7 +114,7 @@ func loadInventory(cmd *cobra.Command, args []string) (*devicetypes.Inventory, e
 	return datastores.Datastore.Load()
 }
 
-func show(cmd *cobra.Command, args []string) error {
+func show(cmd *cli.Command, args []string) error {
 	inv, err := loadInventory(cmd, args)
 	if err != nil {
 		return err

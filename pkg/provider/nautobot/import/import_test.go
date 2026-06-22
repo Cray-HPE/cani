@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
-	"github.com/spf13/cobra"
 )
 
 // fakeProvider implements the provider interface expected by Import.
@@ -149,7 +149,7 @@ func TestImport_Success(t *testing.T) {
 	}
 	setProviderGetterForTest(t, fp)
 
-	cmd := &cobra.Command{}
+	cmd := &cli.Command{}
 	if err := Import(cmd, nil, nil); err != nil {
 		t.Fatalf("Import: %v", err)
 	}
@@ -210,7 +210,7 @@ func TestImport_PropagatesFirstFetchError(t *testing.T) {
 	}
 	setProviderGetterForTest(t, fp)
 
-	cmd := &cobra.Command{}
+	cmd := &cli.Command{}
 	err = Import(cmd, nil, nil)
 	if err == nil {
 		t.Fatal("expected error when server returns 500")
@@ -256,7 +256,7 @@ func TestImport_PropagatesLaterFetchError(t *testing.T) {
 	}
 	setProviderGetterForTest(t, fp)
 
-	cmd := &cobra.Command{}
+	cmd := &cli.Command{}
 	err = Import(cmd, nil, nil)
 	if err == nil {
 		t.Fatal("expected error when device-types fetch fails")
@@ -284,7 +284,7 @@ func TestImport_CancelledContext(t *testing.T) {
 	}
 	setProviderGetterForTest(t, fp)
 
-	cmd := &cobra.Command{}
+	cmd := &cli.Command{}
 	err = Import(cmd, nil, nil)
 	if err == nil {
 		t.Fatal("expected error with cancelled context")

@@ -4,38 +4,38 @@ package init
 
 const commandsSubpkgTemplate = `package commands
 
-import "github.com/spf13/cobra"
+import "github.com/Cray-HPE/cani/internal/cli"
 
-func NewImportCommand(base *cobra.Command) (*cobra.Command, error) {
+func NewImportCommand(base *cli.Command) (*cli.Command, error) {
 	// TODO: Add import-specific flags or subcommands
 	// Example:
 	// base.Flags().String("source", "", "Source file to import")
-	return &cobra.Command{}, nil
+	return &cli.Command{}, nil
 }
 
-func NewExportCommand(base *cobra.Command) (*cobra.Command, error) {
+func NewExportCommand(base *cli.Command) (*cli.Command, error) {
 	// TODO: Add export-specific flags or subcommands
-	return &cobra.Command{}, nil
+	return &cli.Command{}, nil
 }
 
-func NewShowCommand(base *cobra.Command) (*cobra.Command, error) {
+func NewShowCommand(base *cli.Command) (*cli.Command, error) {
 	// TODO: Add show-specific flags or subcommands
-	return &cobra.Command{}, nil
+	return &cli.Command{}, nil
 }
 
-func NewAddCommand(base *cobra.Command) (*cobra.Command, error) {
+func NewAddCommand(base *cli.Command) (*cli.Command, error) {
 	// TODO: Add add-specific flags or subcommands
-	return &cobra.Command{}, nil
+	return &cli.Command{}, nil
 }
 
-func NewRemoveCommand(base *cobra.Command) (*cobra.Command, error) {
+func NewRemoveCommand(base *cli.Command) (*cli.Command, error) {
 	// TODO: Add remove-specific flags or subcommands
-	return &cobra.Command{}, nil
+	return &cli.Command{}, nil
 }
 
-func NewUpdateCommand(base *cobra.Command) (*cobra.Command, error) {
+func NewUpdateCommand(base *cli.Command) (*cli.Command, error) {
 	// TODO: Add update-specific flags or subcommands
-	return &cobra.Command{}, nil
+	return &cli.Command{}, nil
 }
 `
 
@@ -56,10 +56,10 @@ const importSubpkgTemplate = `package import_
 
 import (
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
-	"github.com/spf13/cobra"
+	"github.com/Cray-HPE/cani/internal/cli"
 )
 
-func Import(cmd *cobra.Command, args []string, inventory *devicetypes.Inventory) error {
+func Import(cmd *cli.Command, args []string, inventory *devicetypes.Inventory) error {
 	// Common patterns:
 	//   - Parse files or query APIs to get data
 	//   - Store data in provider struct for later processing in Transform()

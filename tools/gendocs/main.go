@@ -11,7 +11,8 @@ import (
 	_ "github.com/Cray-HPE/cani/pkg/provider/nautobot"
 	_ "github.com/Cray-HPE/cani/pkg/provider/ochami"
 	_ "github.com/Cray-HPE/cani/pkg/provider/redfish"
-	doc "github.com/spf13/cobra/doc"
+
+	"github.com/Cray-HPE/cani/internal/cli"
 )
 
 func main() {
@@ -31,9 +32,8 @@ func main() {
 
 	cmd.Init()
 	root := cmd.RootCommand()
-	root.DisableAutoGenTag = true
 
-	if err := doc.GenMarkdownTree(root, dir); err != nil {
+	if err := cli.GenMarkdownTree(root, dir); err != nil {
 		fmt.Fprintf(os.Stderr, "error generating docs: %v\n", err)
 		os.Exit(1)
 	}

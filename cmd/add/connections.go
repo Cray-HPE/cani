@@ -33,17 +33,17 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/devicetypes/connections"
 	"github.com/google/uuid"
-	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
 
 // newConnectionsCommand creates the "add connections" subcommand.
-func newConnectionsCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func newConnectionsCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "connections <file.yaml|file.csv>",
 		Short: "Add cable connections from a YAML connection map or CSV file.",
 		Long: `Add cable connections from a declarative YAML file or a CSV file.
@@ -67,7 +67,7 @@ Examples:
   cani alpha add connections interfaces.csv --dry-run
   cani alpha add connections cables.csv --dry-run
   cani alpha add connections generate star --hub switch-01 --spokes "node-{01..48}"`,
-		Args: cobra.MaximumNArgs(1),
+		Args: cli.MaximumNArgs(1),
 		RunE: addConnections,
 	}
 
@@ -78,7 +78,7 @@ Examples:
 	return cmd
 }
 
-func addConnections(cmd *cobra.Command, args []string) error {
+func addConnections(cmd *cli.Command, args []string) error {
 	if len(args) == 0 {
 		return cmd.Help()
 	}

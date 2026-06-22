@@ -29,14 +29,14 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
-	"github.com/spf13/cobra"
 )
 
-func newPrefixCommand() *cobra.Command {
-	cmd := &cobra.Command{
+func newPrefixCommand() *cli.Command {
+	cmd := &cli.Command{
 		Use:   "prefix <cidr>",
 		Short: "Add an IP prefix (subnet) to the inventory.",
 		Long: `Add an IP prefix to the inventory in CIDR notation.
@@ -45,7 +45,7 @@ Examples:
   cani alpha add prefix 10.0.0.0/16 --type container --role infrastructure
   cani alpha add prefix 10.0.1.0/24 --type network --role management --vlan "Management"
   cani alpha add prefix 10.0.1.128/25 --type pool --role dhcp-pool`,
-		Args: cobra.ExactArgs(1),
+		Args: cli.ExactArgs(1),
 		RunE: addPrefix,
 	}
 
@@ -59,7 +59,7 @@ Examples:
 	return cmd
 }
 
-func addPrefix(cmd *cobra.Command, args []string) error {
+func addPrefix(cmd *cli.Command, args []string) error {
 	cidr := args[0]
 
 	if err := datastores.SetDeviceStore(cmd, args); err != nil {
