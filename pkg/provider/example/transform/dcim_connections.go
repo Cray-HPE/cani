@@ -10,13 +10,13 @@ import (
 	import_ "github.com/Cray-HPE/cani/pkg/provider/example/import"
 )
 
-// transformSystemConnections resolves connection records into cables.
-func transformSystemConnections(data *import_.SystemCSV, result *devicetypes.TransformResult, inv *devicetypes.Inventory) error {
+// transformDcimConnections resolves connection records into cables.
+func transformDcimConnections(data *import_.DcimCSV, result *devicetypes.TransformResult, inv *devicetypes.Inventory) error {
 	if len(data.Connections) == 0 {
 		return nil
 	}
 
-	// Build a ConnectionMap from system CSV connection records
+	// Build a ConnectionMap from DCIM CSV connection records
 	cm := &connections.ConnectionMap{
 		Version: "v1",
 	}

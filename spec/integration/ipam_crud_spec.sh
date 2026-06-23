@@ -25,19 +25,19 @@
 
 # ── IPAM CRUD integration ──────────────────────────────────────────
 #
-# Imports the example system.csv, then adds VLANs, prefixes, and IPs,
+# Imports the example dcim.csv, then adds VLANs, prefixes, and IPs,
 # verifying each step with "show" commands.
 
 IPAM_DS="/tmp/.cani/ipam_integration_test.json"
 
 Describe 'IPAM integration'
 
-  # ── setup: import the system.csv ─────────────────────────────────
+  # ── setup: import the dcim.csv ─────────────────────────────────
 
   Describe 'setup'
-    It 'imports the system.csv fixture'
+    It 'imports the dcim.csv fixture'
       When call bin/cani alpha import example \
-        --csv testdata/fixtures/example/system.csv \
+        --csv testdata/fixtures/example/dcim.csv \
         --config "$CANI_CONF" --datastore-path "$IPAM_DS"
       The status should equal 0
       The stderr should include 'Import completed successfully'

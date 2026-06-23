@@ -67,6 +67,7 @@ nav:
   - Getting Started:
     - Importing Data: getting_started/importing.md
     - ETL Pipeline: getting_started/importing_provider_data.md
+    - DCIM CSV: getting_started/dcim_csv.md
     - Adding Hardware: getting_started/adding_hardware.md
     - Updating Hardware: getting_started/updating_hardware.md
     - Classifying Devices: getting_started/classify.md

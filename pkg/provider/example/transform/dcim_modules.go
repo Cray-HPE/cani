@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// transformSystemModules creates modules from system CSV module records.
-func transformSystemModules(data *import_.SystemCSV, result *devicetypes.TransformResult, inv *devicetypes.Inventory) error {
+// transformDcimModules creates modules from DCIM CSV module records.
+func transformDcimModules(data *import_.DcimCSV, result *devicetypes.TransformResult, inv *devicetypes.Inventory) error {
 	for _, rec := range data.Modules {
 		rec = data.ApplyDefaults(rec)
 
@@ -47,11 +47,11 @@ func transformSystemModules(data *import_.SystemCSV, result *devicetypes.Transfo
 			}
 
 			if rec.Bay != "" {
-				module.ModuleBayName = resolveSystemModuleBayName(parentDevice, rec.Bay)
+				module.ModuleBayName = resolveDcimModuleBayName(parentDevice, rec.Bay)
 			}
 
 			if module.Name == "" {
-				module.Name = synthesizeSystemModuleName(module, parentDevice)
+				module.Name = synthesizeDcimModuleName(module, parentDevice)
 			}
 
 			result.Modules[id] = module
@@ -75,7 +75,7 @@ func populateModuleFromType(module *devicetypes.CaniModuleType, mt *devicetypes.
 	module.Interfaces = append([]devicetypes.InterfaceSpec(nil), mt.Interfaces...)
 }
 
-func resolveSystemModuleBayName(device *devicetypes.CaniDeviceType, requestedBay string) string {
+func resolveDcimModuleBayName(device *devicetypes.CaniDeviceType, requestedBay string) string {
 	if device == nil || requestedBay == "" {
 		return requestedBay
 	}
@@ -89,7 +89,7 @@ func resolveSystemModuleBayName(device *devicetypes.CaniDeviceType, requestedBay
 	return requestedBay
 }
 
-func synthesizeSystemModuleName(module *devicetypes.CaniModuleType, device *devicetypes.CaniDeviceType) string {
+func synthesizeDcimModuleName(module *devicetypes.CaniModuleType, device *devicetypes.CaniDeviceType) string {
 	if module == nil || module.Name != "" {
 		return ""
 	}
@@ -103,13 +103,13 @@ func synthesizeSystemModuleName(module *devicetypes.CaniModuleType, device *devi
 		return fmt.Sprintf("CX6-%s", device.Name)
 	}
 
-	return fallbackSystemModuleName(module, device)
+	return fallbackDcimModuleName(module, device)
 }
 
-// fallbackSystemModuleName builds a deterministic name from the module slug,
+// fallbackDcimModuleName builds a deterministic name from the module slug,
 // parent device, and bay so a module is never left unnamed. Unnamed modules are
 // dropped from datastore summaries and collide when a row sets Qty > 1.
-func fallbackSystemModuleName(module *devicetypes.CaniModuleType, device *devicetypes.CaniDeviceType) string {
+func fallbackDcimModuleName(module *devicetypes.CaniModuleType, device *devicetypes.CaniDeviceType) string {
 	base := module.Slug
 	if base == "" {
 		base = "module"

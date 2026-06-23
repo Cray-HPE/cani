@@ -10,27 +10,27 @@ import (
 	"github.com/google/uuid"
 )
 
-// TestTransformSystem_Roles verifies the role pass populates result metadata
+// TestTransformDcim_Roles verifies the role pass populates result metadata
 // with named roles and their parsed content types.
 //
 // Why it matters: roles are referenced by devices later in the import, so the
 // importer must register them up front with their content-type associations
 // intact.
-// Inputs: a SystemCSV with two role rows, one single- and one multi-content-type.
+// Inputs: a DcimCSV with two role rows, one single- and one multi-content-type.
 // Outputs: result.Metadata.Roles.
 // Data choice: ComputeNode (one content type) and Gateway
 // ("dcim.device,dcim.rack") prove both name capture and the comma-split of
 // content types.
-func TestTransformSystem_Roles(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Roles: []import_.SystemRecord{
+func TestTransformDcim_Roles(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Roles: []import_.DcimRecord{
 			{Section: "role", Name: "ComputeNode", ContentTypes: "dcim.device"},
 			{Section: "role", Name: "Gateway", ContentTypes: "dcim.device,dcim.rack"},
 		},
 	}
 
-	result, err := TransformSystem(devicetypes.Inventory{}, data)
+	result, err := TransformDcim(devicetypes.Inventory{}, data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -49,27 +49,27 @@ func TestTransformSystem_Roles(t *testing.T) {
 	}
 }
 
-// TestTransformSystem_Statuses verifies the metadata pass registers statuses
+// TestTransformDcim_Statuses verifies the metadata pass registers statuses
 // from the `status` section, including when no roles are present.
 //
 // Why it matters: statuses are a first-class Nautobot catalog with content
 // types, so the importer must register them up front even for a status-only
 // file, mirroring how roles are handled.
-// Inputs: a SystemCSV with two status rows and no roles. Outputs:
+// Inputs: a DcimCSV with two status rows and no roles. Outputs:
 // result.Metadata.Statuses with parsed content types and empty Roles.
 // Data choice: Active (one content type) and Planned ("dcim.device,dcim.rack")
 // prove name capture and content-type splitting, while omitting roles proves the
 // metadata is built from statuses alone.
-func TestTransformSystem_Statuses(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Statuses: []import_.SystemRecord{
+func TestTransformDcim_Statuses(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Statuses: []import_.DcimRecord{
 			{Section: "status", Name: "Active", ContentTypes: "dcim.device"},
 			{Section: "status", Name: "Planned", ContentTypes: "dcim.device,dcim.rack"},
 		},
 	}
 
-	result, err := TransformSystem(devicetypes.Inventory{}, data)
+	result, err := TransformDcim(devicetypes.Inventory{}, data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -91,24 +91,24 @@ func TestTransformSystem_Statuses(t *testing.T) {
 	}
 }
 
-// TestTransformSystem_RoleColorDescription verifies role rows carry Color and
+// TestTransformDcim_RoleColorDescription verifies role rows carry Color and
 // Description into the metadata catalog.
 //
 // Why it matters: Nautobot roles support a display color and description, so the
 // importer must thread those optional columns into the catalog entry instead of
 // dropping them.
-// Inputs: a SystemCSV with one role row setting Color and Description. Outputs:
+// Inputs: a DcimCSV with one role row setting Color and Description. Outputs:
 // result.Metadata.Roles[0] with both fields populated.
 // Data choice: a non-empty color and description on a single role isolate the
 // new field mapping without other sections.
-func TestTransformSystem_RoleColorDescription(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Roles: []import_.SystemRecord{
+func TestTransformDcim_RoleColorDescription(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Roles: []import_.DcimRecord{
 			{Section: "role", Name: "ComputeNode", Color: "blue", Description: "GPU compute nodes"},
 		},
 	}
-	result, err := TransformSystem(devicetypes.Inventory{}, data)
+	result, err := TransformDcim(devicetypes.Inventory{}, data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -124,24 +124,24 @@ func TestTransformSystem_RoleColorDescription(t *testing.T) {
 	}
 }
 
-// TestTransformSystem_MetadataMissingName verifies a catalog row without a Name
+// TestTransformDcim_MetadataMissingName verifies a catalog row without a Name
 // fails the metadata pass with a kind-specific error.
 //
 // Why it matters: roles and statuses are keyed by Name, so a nameless catalog
 // row cannot be registered and must abort the import with a clear message naming
 // the offending section kind.
-// Inputs: a SystemCSV with one status row missing its Name. Outputs: a non-nil
+// Inputs: a DcimCSV with one status row missing its Name. Outputs: a non-nil
 // error equal to the wrapped "status record missing Name" message.
 // Data choice: an empty-Name status isolates the shared missing-name guard and
 // proves the kind label is threaded into the message.
-func TestTransformSystem_MetadataMissingName(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Statuses: []import_.SystemRecord{
+func TestTransformDcim_MetadataMissingName(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Statuses: []import_.DcimRecord{
 			{Section: "status", ContentTypes: "dcim.device"},
 		},
 	}
-	_, err := TransformSystem(devicetypes.Inventory{}, data)
+	_, err := TransformDcim(devicetypes.Inventory{}, data)
 	if err == nil || err.Error() != "transformMetadata: status record missing Name" {
 		t.Fatalf("error = %v, want 'transformMetadata: status record missing Name'", err)
 	}
@@ -150,7 +150,7 @@ func TestTransformSystem_MetadataMissingName(t *testing.T) {
 // TestNormalizeContentType verifies bare content-type names are qualified with
 // their app label while already-qualified values pass through unchanged.
 //
-// Why it matters: system CSV authors may write short names like "rack" or fully
+// Why it matters: DCIM CSV authors may write short names like "rack" or fully
 // qualified ones like "dcim.device"; the datastore must store a single
 // consistent "<app>.<model>" form so roles, statuses, and locations agree.
 // Inputs: bare dcim and ipam model names, an already-qualified value, a
@@ -242,7 +242,7 @@ func TestValidateReferences(t *testing.T) {
 	})
 }
 
-// TestTransformSystem_Racks verifies the rack pass creates one rack per row with
+// TestTransformDcim_Racks verifies the rack pass creates one rack per row with
 // the library U-height and the row's status.
 //
 // Why it matters: racks are the parents for device placement, so each row must
@@ -251,16 +251,16 @@ func TestValidateReferences(t *testing.T) {
 // names, statuses, and U-heights set.
 // Data choice: two distinct names on the same 48U slug prove independent racks
 // are created and the library U-height is applied to each.
-func TestTransformSystem_Racks(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Racks: []import_.SystemRecord{
+func TestTransformDcim_Racks(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Racks: []import_.DcimRecord{
 			{Section: "rack", PartNumber: "hpe-48u-800mmx1200mm-g2-enterprise-shock-rack", Name: "x3701", Qty: 1, Status: "Available"},
 			{Section: "rack", PartNumber: "hpe-48u-800mmx1200mm-g2-enterprise-shock-rack", Name: "x3702", Qty: 1, Status: "Available"},
 		},
 	}
 
-	result, err := TransformSystem(devicetypes.Inventory{}, data)
+	result, err := TransformDcim(devicetypes.Inventory{}, data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -284,7 +284,7 @@ func TestTransformSystem_Racks(t *testing.T) {
 	}
 }
 
-// TestTransformSystem_Devices verifies the device pass creates a device parented
+// TestTransformDcim_Devices verifies the device pass creates a device parented
 // to its rack with role, status, serial, position, and face copied from the row.
 //
 // Why it matters: devices are the core inventory objects, so the importer must
@@ -294,18 +294,18 @@ func TestTransformSystem_Racks(t *testing.T) {
 // Data choice: a real device part number at U34 front with a serial proves
 // library typing plus a faithful copy of every per-device field and the rack
 // parent link.
-func TestTransformSystem_Devices(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Racks: []import_.SystemRecord{
+func TestTransformDcim_Devices(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Racks: []import_.DcimRecord{
 			{Section: "rack", PartNumber: "hpe-48u-800mmx1200mm-g2-enterprise-shock-rack", Name: "x3701", Qty: 1, Status: "Available"},
 		},
-		Devices: []import_.SystemRecord{
+		Devices: []import_.DcimRecord{
 			{Section: "device", PartNumber: "hpe-xd670", Name: "GH-x3701u34", Qty: 1, Rack: "x3701", Position: 34, Face: "front", Role: "ComputeNode", Status: "Active", Serial: "ABC123"},
 		},
 	}
 
-	result, err := TransformSystem(devicetypes.Inventory{}, data)
+	result, err := TransformDcim(devicetypes.Inventory{}, data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -339,7 +339,7 @@ func TestTransformSystem_Devices(t *testing.T) {
 	}
 }
 
-// TestTransformSystem_DeviceUnknownRack verifies the device pass errors when a
+// TestTransformDcim_DeviceUnknownRack verifies the device pass errors when a
 // device references a rack that does not exist.
 //
 // Why it matters: a device must land in a real rack, so a dangling rack
@@ -348,21 +348,21 @@ func TestTransformSystem_Devices(t *testing.T) {
 // Outputs: a non-nil error.
 // Data choice: omitting the rack section entirely guarantees the reference is
 // unresolved, isolating the unknown-rack guard.
-func TestTransformSystem_DeviceUnknownRack(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Devices: []import_.SystemRecord{
+func TestTransformDcim_DeviceUnknownRack(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Devices: []import_.DcimRecord{
 			{Section: "device", PartNumber: "hpe-xd670", Name: "node1", Qty: 1, Rack: "nonexistent"},
 		},
 	}
 
-	_, err := TransformSystem(devicetypes.Inventory{}, data)
+	_, err := TransformDcim(devicetypes.Inventory{}, data)
 	if err == nil {
 		t.Fatal("expected error for unknown rack reference")
 	}
 }
 
-// TestTransformSystem_InterfaceMAC verifies an interface row's MAC is normalized
+// TestTransformDcim_InterfaceMAC verifies an interface row's MAC is normalized
 // to lowercase colon form and applied to only the named device.
 //
 // Why it matters: per-interface metadata personalizes a shared device-type
@@ -373,23 +373,23 @@ func TestTransformSystem_DeviceUnknownRack(t *testing.T) {
 // empty on the other.
 // Data choice: the hyphen-uppercase input proves normalization; a second
 // identical-type device proves the interface slice is cloned per device.
-func TestTransformSystem_InterfaceMAC(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Racks: []import_.SystemRecord{
+func TestTransformDcim_InterfaceMAC(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Racks: []import_.DcimRecord{
 			{Section: "rack", PartNumber: "hpe-48u-800mmx1200mm-g2-enterprise-shock-rack", Name: "x3701", Qty: 1, Status: "Available"},
 		},
-		Devices: []import_.SystemRecord{
+		Devices: []import_.DcimRecord{
 			{Section: "device", PartNumber: "hpe-xd670", Name: "GH-x3701u34", Qty: 1, Rack: "x3701", Position: 34, Face: "front", Role: "ComputeNode", Status: "Active"},
 			{Section: "device", PartNumber: "hpe-xd670", Name: "GH-x3701u26", Qty: 1, Rack: "x3701", Position: 26, Face: "front", Role: "ComputeNode", Status: "Active"},
 		},
-		Interfaces: []import_.SystemRecord{
+		Interfaces: []import_.DcimRecord{
 			// Hyphen form must be normalized to lowercase colon form.
 			{Section: "interface", Device: "GH-x3701u34", Name: "iLO", MacAddress: "AA-BB-CC-DD-EE-01"},
 		},
 	}
 
-	result, err := TransformSystem(devicetypes.Inventory{}, data)
+	result, err := TransformDcim(devicetypes.Inventory{}, data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -419,36 +419,36 @@ func TestTransformSystem_InterfaceMAC(t *testing.T) {
 	}
 }
 
-// TestTransformSystem_InterfaceMACUnknownTarget verifies an interface row naming
+// TestTransformDcim_InterfaceMACUnknownTarget verifies an interface row naming
 // a non-existent interface is skipped with a warning rather than failing.
 //
 // Why it matters: a single bad interface row should not abort an otherwise valid
 // import, so an unknown interface name is tolerated and skipped.
 // Inputs: a device plus an interface row with an unknown Name. Outputs: no error
-// from TransformSystem.
+// from TransformDcim.
 // Data choice: a valid device with one unmatched interface name isolates the
 // skip path without any other failure source.
-func TestTransformSystem_InterfaceMACUnknownTarget(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Racks: []import_.SystemRecord{
+func TestTransformDcim_InterfaceMACUnknownTarget(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Racks: []import_.DcimRecord{
 			{Section: "rack", PartNumber: "hpe-48u-800mmx1200mm-g2-enterprise-shock-rack", Name: "x3701", Qty: 1, Status: "Available"},
 		},
-		Devices: []import_.SystemRecord{
+		Devices: []import_.DcimRecord{
 			{Section: "device", PartNumber: "hpe-xd670", Name: "GH-x3701u34", Qty: 1, Rack: "x3701", Position: 34, Face: "front", Role: "ComputeNode", Status: "Active"},
 		},
-		Interfaces: []import_.SystemRecord{
+		Interfaces: []import_.DcimRecord{
 			// Unknown interface name -> warn + skip, not a hard error.
 			{Section: "interface", Device: "GH-x3701u34", Name: "does-not-exist", MacAddress: "aa:bb:cc:dd:ee:ff"},
 		},
 	}
 
-	if _, err := TransformSystem(devicetypes.Inventory{}, data); err != nil {
+	if _, err := TransformDcim(devicetypes.Inventory{}, data); err != nil {
 		t.Fatalf("unknown interface target should be skipped, got error: %v", err)
 	}
 }
 
-// TestTransformSystem_InterfaceMACExistingDevice verifies an interface row
+// TestTransformDcim_InterfaceMACExistingDevice verifies an interface row
 // annotates a device that already exists in the inventory, not only devices
 // created in the same import.
 //
@@ -456,12 +456,12 @@ func TestTransformSystem_InterfaceMACUnknownTarget(t *testing.T) {
 // file must set MAC addresses on hardware imported in an earlier run rather than
 // silently skip it.
 // Inputs: an inventory pre-seeded with device "node-existing" (interface iLO, no
-// MAC) and a SystemCSV carrying only an interface row for that device. Outputs:
+// MAC) and a DcimCSV carrying only an interface row for that device. Outputs:
 // the seeded device's iLO interface gains the normalized MAC.
 // Data choice: the device lives only in the inventory (absent from the batch),
 // so a set MAC can come only from the inventory fallback; the hyphen-uppercase
 // input also proves normalization.
-func TestTransformSystem_InterfaceMACExistingDevice(t *testing.T) {
+func TestTransformDcim_InterfaceMACExistingDevice(t *testing.T) {
 	inv := *devicetypes.NewInventory()
 	devID := uuid.New()
 	inv.Devices[devID] = &devicetypes.CaniDeviceType{
@@ -470,14 +470,14 @@ func TestTransformSystem_InterfaceMACExistingDevice(t *testing.T) {
 		Interfaces: []devicetypes.InterfaceSpec{{Name: "iLO"}},
 	}
 
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Interfaces: []import_.SystemRecord{
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Interfaces: []import_.DcimRecord{
 			{Section: "interface", Device: "node-existing", Name: "iLO", MacAddress: "AA-BB-CC-DD-EE-09"},
 		},
 	}
 
-	if _, err := TransformSystem(inv, data); err != nil {
+	if _, err := TransformDcim(inv, data); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -486,7 +486,7 @@ func TestTransformSystem_InterfaceMACExistingDevice(t *testing.T) {
 	}
 }
 
-// TestTransformSystem_Modules verifies the module pass attaches modules to their
+// TestTransformDcim_Modules verifies the module pass attaches modules to their
 // parent devices, canonicalizing bay names and synthesizing module names.
 //
 // Why it matters: modules such as GPUs and NICs hang off devices, so the
@@ -496,24 +496,24 @@ func TestTransformSystem_InterfaceMACExistingDevice(t *testing.T) {
 // (bay PCIe5). Outputs: result.Modules with parent, bay name, and name set.
 // Data choice: GPU0→"GPU 0" with name "gpu-...-GPU 0" proves bay canonicalization
 // and GPU naming; the ConnectX-6 proves the "CX6-<device>" naming branch.
-func TestTransformSystem_Modules(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Racks: []import_.SystemRecord{
+func TestTransformDcim_Modules(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Racks: []import_.DcimRecord{
 			{Section: "rack", PartNumber: "hpe-48u-800mmx1200mm-g2-enterprise-shock-rack", Name: "x3701", Qty: 1, Status: "Available"},
 			{Section: "rack", PartNumber: "hpe-48u-800mmx1200mm-g2-enterprise-shock-rack", Name: "x3507", Qty: 1, Status: "Available"},
 		},
-		Devices: []import_.SystemRecord{
+		Devices: []import_.DcimRecord{
 			{Section: "device", PartNumber: "hpe-xd670", Name: "GH-x3701u34", Qty: 1, Rack: "x3701", Position: 34, Face: "front"},
 			{Section: "device", PartNumber: "hpe-proliant-dl380-gen11-8sff", Name: "SERV-x3507u21", Qty: 1, Rack: "x3507", Position: 21, Face: "front"},
 		},
-		Modules: []import_.SystemRecord{
+		Modules: []import_.DcimRecord{
 			{Section: "module", PartNumber: "nvidia-h100-sxm-gpu", Qty: 1, Device: "GH-x3701u34", Bay: "GPU0"},
 			{Section: "module", PartNumber: "nvidia-connectx-6-dx-100gbe-2p-qsfp28", Qty: 1, Device: "SERV-x3507u21", Bay: "PCIe5"},
 		},
 	}
 
-	result, err := TransformSystem(devicetypes.Inventory{}, data)
+	result, err := TransformDcim(devicetypes.Inventory{}, data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -558,52 +558,52 @@ func TestTransformSystem_Modules(t *testing.T) {
 	}
 }
 
-// TestTransformSystem_ManualParity verifies a CSV-driven import produces the
+// TestTransformDcim_ManualParity verifies a CSV-driven import produces the
 // same racks, devices, and modules as a result hand-built from the library
 // constructors.
 //
 // Why it matters: it pins the importer's output to the canonical
 // library-constructed shape, guarding against drift in slug resolution,
 // placement, or naming.
-// Inputs: a full SystemCSV (2 racks, 2 devices, 2 modules) and an equivalent
+// Inputs: a full DcimCSV (2 racks, 2 devices, 2 modules) and an equivalent
 // manually built TransformResult. Outputs: equality of normalized parity
 // snapshots via reflect.DeepEqual.
 // Data choice: real slugs (xd670, proliant, h100, connectx-6) with placement and
 // bays let the snapshot compare slug, status, U-height, rack position, face,
 // role, and bay across both construction paths.
-func TestTransformSystem_ManualParity(t *testing.T) {
-	data := &import_.SystemCSV{
-		Defaults:        import_.SystemRecord{Section: "_defaults", Status: "Active"},
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Racks: []import_.SystemRecord{
+func TestTransformDcim_ManualParity(t *testing.T) {
+	data := &import_.DcimCSV{
+		Defaults:        import_.DcimRecord{Section: "_defaults", Status: "Active"},
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Racks: []import_.DcimRecord{
 			{Section: "rack", PartNumber: "hpe-48u-800mmx1200mm-g2-enterprise-shock-rack", Name: "x3701", Qty: 1, Status: "Available"},
 			{Section: "rack", PartNumber: "hpe-48u-800mmx1200mm-g2-enterprise-shock-rack", Name: "x3507", Qty: 1, Status: "Available"},
 		},
-		Devices: []import_.SystemRecord{
+		Devices: []import_.DcimRecord{
 			{Section: "device", PartNumber: "hpe-xd670", Name: "GH-x3701u34", Qty: 1, Rack: "x3701", Position: 34, Face: "front", Role: "ComputeNode"},
 			{Section: "device", PartNumber: "hpe-proliant-dl380-gen11-8sff", Name: "SERV-x3507u21", Qty: 1, Rack: "x3507", Position: 21, Face: "front", Role: "ServiceNode"},
 		},
-		Modules: []import_.SystemRecord{
+		Modules: []import_.DcimRecord{
 			{Section: "module", PartNumber: "nvidia-h100-sxm-gpu", Qty: 1, Device: "GH-x3701u34", Bay: "GPU0"},
 			{Section: "module", PartNumber: "nvidia-connectx-6-dx-100gbe-2p-qsfp28", Qty: 1, Device: "SERV-x3507u21", Bay: "PCIe5"},
 		},
 	}
 
-	imported, err := TransformSystem(devicetypes.Inventory{}, data)
+	imported, err := TransformDcim(devicetypes.Inventory{}, data)
 	if err != nil {
 		t.Fatalf("unexpected import error: %v", err)
 	}
 
 	manual := buildManualParityResult(t)
 
-	importedSnapshot := normalizeSystemParity(imported)
-	manualSnapshot := normalizeSystemParity(manual)
+	importedSnapshot := normalizeDcimParity(imported)
+	manualSnapshot := normalizeDcimParity(manual)
 	if !reflect.DeepEqual(importedSnapshot, manualSnapshot) {
 		t.Fatalf("import/manual parity mismatch\nimported: %#v\nmanual: %#v", importedSnapshot, manualSnapshot)
 	}
 }
 
-type systemParitySnapshot struct {
+type dcimParitySnapshot struct {
 	Racks   map[string]rackParitySnapshot
 	Devices map[string]deviceParitySnapshot
 	Modules map[string]moduleParitySnapshot
@@ -712,8 +712,8 @@ func buildManualParityResult(t *testing.T) *devicetypes.TransformResult {
 	}
 }
 
-func normalizeSystemParity(result *devicetypes.TransformResult) systemParitySnapshot {
-	snapshot := systemParitySnapshot{
+func normalizeDcimParity(result *devicetypes.TransformResult) dcimParitySnapshot {
+	snapshot := dcimParitySnapshot{
 		Racks:   make(map[string]rackParitySnapshot),
 		Devices: make(map[string]deviceParitySnapshot),
 		Modules: make(map[string]moduleParitySnapshot),
@@ -765,28 +765,28 @@ func normalizeSystemParity(result *devicetypes.TransformResult) systemParitySnap
 	return snapshot
 }
 
-// TestTransformSystem_Defaults verifies rows inherit the global _defaults status
+// TestTransformDcim_Defaults verifies rows inherit the global _defaults status
 // when they omit their own.
 //
 // Why it matters: operators set a status once in _defaults, so racks and devices
 // that leave status blank must pick it up rather than ship blank.
-// Inputs: a SystemCSV with _defaults Status "Active" and a rack and device that
+// Inputs: a DcimCSV with _defaults Status "Active" and a rack and device that
 // omit status. Outputs: both objects with Status "Active".
 // Data choice: leaving status blank on both a rack and a device proves the
 // global default reaches each object type.
-func TestTransformSystem_Defaults(t *testing.T) {
-	data := &import_.SystemCSV{
-		Defaults:        import_.SystemRecord{Section: "_defaults", Status: "Active"},
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Racks: []import_.SystemRecord{
+func TestTransformDcim_Defaults(t *testing.T) {
+	data := &import_.DcimCSV{
+		Defaults:        import_.DcimRecord{Section: "_defaults", Status: "Active"},
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Racks: []import_.DcimRecord{
 			{Section: "rack", PartNumber: "hpe-48u-800mmx1200mm-g2-enterprise-shock-rack", Name: "x3701", Qty: 1},
 		},
-		Devices: []import_.SystemRecord{
+		Devices: []import_.DcimRecord{
 			{Section: "device", PartNumber: "hpe-xd670", Name: "node1", Qty: 1, Rack: "x3701", Position: 10, Face: "front"},
 		},
 	}
 
-	result, err := TransformSystem(devicetypes.Inventory{}, data)
+	result, err := TransformDcim(devicetypes.Inventory{}, data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -806,7 +806,7 @@ func TestTransformSystem_Defaults(t *testing.T) {
 	}
 }
 
-// TestTransformSystem_RackQtyMultiple verifies a rack row with quantity N
+// TestTransformDcim_RackQtyMultiple verifies a rack row with quantity N
 // expands into N racks with sequential one-based name suffixes.
 //
 // Why it matters: operators request identical racks in bulk, so a quantity must
@@ -815,15 +815,15 @@ func TestTransformSystem_Defaults(t *testing.T) {
 // rack-3.
 // Data choice: Qty 3 is the smallest quantity that proves both the count and the
 // sequential one-based suffixing.
-func TestTransformSystem_RackQtyMultiple(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Racks: []import_.SystemRecord{
+func TestTransformDcim_RackQtyMultiple(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Racks: []import_.DcimRecord{
 			{Section: "rack", PartNumber: "hpe-48u-800mmx1200mm-g2-enterprise-shock-rack", Name: "rack", Qty: 3, Status: "Available"},
 		},
 	}
 
-	result, err := TransformSystem(devicetypes.Inventory{}, data)
+	result, err := TransformDcim(devicetypes.Inventory{}, data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -843,20 +843,20 @@ func TestTransformSystem_RackQtyMultiple(t *testing.T) {
 	}
 }
 
-// TestTransformSystem_EmptyData verifies an empty system batch transforms into
+// TestTransformDcim_EmptyData verifies an empty DCIM batch transforms into
 // an empty result without error.
 //
 // Why it matters: an import with no rows is a valid no-op, so the importer must
 // return cleanly rather than fail or fabricate objects.
-// Inputs: a SystemCSV with only an empty SectionDefaults map. Outputs: zero
+// Inputs: a DcimCSV with only an empty SectionDefaults map. Outputs: zero
 // racks and zero devices, nil error.
 // Data choice: a wholly empty batch is the minimal input proving the no-op path.
-func TestTransformSystem_EmptyData(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
+func TestTransformDcim_EmptyData(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
 	}
 
-	result, err := TransformSystem(devicetypes.Inventory{}, data)
+	result, err := TransformDcim(devicetypes.Inventory{}, data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -871,28 +871,28 @@ func TestTransformSystem_EmptyData(t *testing.T) {
 
 // --- Location tests ---
 
-// TestTransformSystem_Locations verifies the location pass builds a parented
-// hierarchy with parsed content types from system CSV location rows.
+// TestTransformDcim_Locations verifies the location pass builds a parented
+// hierarchy with parsed content types from DCIM CSV location rows.
 //
 // Why it matters: locations are the topmost dependency in an inventory; racks
 // and devices hang off them, so the importer must create them first and wire
 // each child to its parent by name before anything else resolves.
-// Inputs: a zero-value inventory plus a SystemCSV with a top-level "dc" location
+// Inputs: a zero-value inventory plus a DcimCSV with a top-level "dc" location
 // and a "section" child that references it. Outputs: result.Locations populated
 // with parent links set.
 // Data choice: a two-level dc→section hierarchy is the smallest input that
 // proves both top-level (nil parent) and child (resolved parent) handling, and
 // the comma-separated ContentTypes proves the split-and-trim logic.
-func TestTransformSystem_Locations(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Locations: []import_.SystemRecord{
+func TestTransformDcim_Locations(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Locations: []import_.DcimRecord{
 			{Section: "location", Name: "dc1", Role: "dc", ContentTypes: "dcim.rack, dcim.device"},
 			{Section: "location", Name: "row-a", Role: "section", Location: "dc1"},
 		},
 	}
 
-	result, err := TransformSystem(devicetypes.Inventory{}, data)
+	result, err := TransformDcim(devicetypes.Inventory{}, data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -929,31 +929,31 @@ func TestTransformSystem_Locations(t *testing.T) {
 	}
 }
 
-// TestTransformSystem_LocationParentFromInventory verifies a new location
+// TestTransformDcim_LocationParentFromInventory verifies a new location
 // resolves its parent against locations already present in the inventory.
 //
 // Why it matters: imports are incremental, so a section added in a later batch
 // must attach to a datacenter created in an earlier one; the resolver therefore
 // falls back to the existing inventory when the parent is absent from the
 // current batch.
-// Inputs: an inventory pre-seeded with a "dc-existing" location and a SystemCSV
+// Inputs: an inventory pre-seeded with a "dc-existing" location and a DcimCSV
 // whose only location references it. Outputs: the new location's Parent set to
 // the pre-seeded UUID.
 // Data choice: seeding the parent only in the inventory (never in the batch)
 // forces the findLocationByName fallback path rather than the in-batch map.
-func TestTransformSystem_LocationParentFromInventory(t *testing.T) {
+func TestTransformDcim_LocationParentFromInventory(t *testing.T) {
 	inv := devicetypes.NewInventory()
 	existingID := uuid.New()
 	inv.Locations[existingID] = &devicetypes.CaniLocationType{ID: existingID, Name: "dc-existing", LocationType: "dc"}
 
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Locations: []import_.SystemRecord{
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Locations: []import_.DcimRecord{
 			{Section: "location", Name: "row-b", Role: "section", Location: "dc-existing"},
 		},
 	}
 
-	result, err := TransformSystem(*inv, data)
+	result, err := TransformDcim(*inv, data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -972,40 +972,40 @@ func TestTransformSystem_LocationParentFromInventory(t *testing.T) {
 	}
 }
 
-// TestTransformSystem_LocationErrors verifies the location pass rejects rows
+// TestTransformDcim_LocationErrors verifies the location pass rejects rows
 // that are missing required fields or reference an unknown parent.
 //
 // Why it matters: a malformed location would silently break the parent chain
 // for every rack and device beneath it, so the importer must fail fast with a
 // clear error instead of producing a corrupt topology.
-// Inputs: SystemCSV variants each containing one invalid location row. Outputs:
-// a non-nil error from TransformSystem in every case.
+// Inputs: DcimCSV variants each containing one invalid location row. Outputs:
+// a non-nil error from TransformDcim in every case.
 // Data choice: the three rows isolate the three distinct guards — missing Name,
 // missing location type, and an unresolvable parent — so each error branch is
 // proven independently rather than masked by a single combined failure.
-func TestTransformSystem_LocationErrors(t *testing.T) {
+func TestTransformDcim_LocationErrors(t *testing.T) {
 	tests := []struct {
 		name string
-		loc  import_.SystemRecord
+		loc  import_.DcimRecord
 	}{
-		{"missing name", import_.SystemRecord{Section: "location", Role: "dc"}},
-		{"missing location type", import_.SystemRecord{Section: "location", Name: "dc1"}},
-		{"unknown parent", import_.SystemRecord{Section: "location", Name: "row-a", Role: "section", Location: "ghost-dc"}},
+		{"missing name", import_.DcimRecord{Section: "location", Role: "dc"}},
+		{"missing location type", import_.DcimRecord{Section: "location", Name: "dc1"}},
+		{"unknown parent", import_.DcimRecord{Section: "location", Name: "row-a", Role: "section", Location: "ghost-dc"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			data := &import_.SystemCSV{
-				SectionDefaults: make(map[string]import_.SystemRecord),
-				Locations:       []import_.SystemRecord{tt.loc},
+			data := &import_.DcimCSV{
+				SectionDefaults: make(map[string]import_.DcimRecord),
+				Locations:       []import_.DcimRecord{tt.loc},
 			}
-			if _, err := TransformSystem(*devicetypes.NewInventory(), data); err == nil {
+			if _, err := TransformDcim(*devicetypes.NewInventory(), data); err == nil {
 				t.Fatalf("expected error for %s location row", tt.name)
 			}
 		})
 	}
 }
 
-// TestTransformSystem_LocationTypeColumn verifies the explicit LocationType field
+// TestTransformDcim_LocationTypeColumn verifies the explicit LocationType field
 // sets the location type and takes precedence over the Role alias.
 //
 // Why it matters: the Role column historically doubled as the location type; an
@@ -1015,15 +1015,15 @@ func TestTransformSystem_LocationErrors(t *testing.T) {
 // and a different Role. Outputs: both locations carry their LocationType value.
 // Data choice: a LocationType-only row proves the new column works alone, while a
 // row whose Role differs proves precedence.
-func TestTransformSystem_LocationTypeColumn(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Locations: []import_.SystemRecord{
+func TestTransformDcim_LocationTypeColumn(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Locations: []import_.DcimRecord{
 			{Section: "location", Name: "dc1", LocationType: "dc"},
 			{Section: "location", Name: "row-a", LocationType: "section", Role: "ComputeNode", Location: "dc1"},
 		},
 	}
-	result, err := TransformSystem(*devicetypes.NewInventory(), data)
+	result, err := TransformDcim(*devicetypes.NewInventory(), data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1039,29 +1039,29 @@ func TestTransformSystem_LocationTypeColumn(t *testing.T) {
 	}
 }
 
-// TestTransformSystem_DoesNotPolluteInventory verifies the transform leaves the
+// TestTransformDcim_DoesNotPolluteInventory verifies the transform leaves the
 // caller's inventory maps unchanged, adding new objects only to the result.
 //
 // Why it matters: the merge phase deduplicates by name, so the transform must
 // not pre-insert new-UUID entries into the shared inventory maps; doing so would
 // short-circuit dedup and duplicate every object on re-import.
-// Inputs: an empty inventory and a SystemCSV with one rack and one device.
+// Inputs: an empty inventory and a DcimCSV with one rack and one device.
 // Outputs: result holds the rack and device; the passed inventory's maps stay
 // empty.
 // Data choice: starting from an empty inventory makes any post-transform entry
 // in the caller's maps a clear pollution signal.
-func TestTransformSystem_DoesNotPolluteInventory(t *testing.T) {
+func TestTransformDcim_DoesNotPolluteInventory(t *testing.T) {
 	inv := *devicetypes.NewInventory()
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Racks: []import_.SystemRecord{
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Racks: []import_.DcimRecord{
 			{Section: "rack", PartNumber: "hpe-48u-800mmx1200mm-g2-enterprise-shock-rack", Name: "x3701", Qty: 1, Status: "Available"},
 		},
-		Devices: []import_.SystemRecord{
+		Devices: []import_.DcimRecord{
 			{Section: "device", PartNumber: "hpe-xd670", Name: "GH-x3701u34", Qty: 1, Rack: "x3701", Position: 34},
 		},
 	}
-	result, err := TransformSystem(inv, data)
+	result, err := TransformDcim(inv, data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1076,29 +1076,29 @@ func TestTransformSystem_DoesNotPolluteInventory(t *testing.T) {
 	}
 }
 
-// TestTransformSystem_RackWithLocation verifies a rack is parented to a
+// TestTransformDcim_RackWithLocation verifies a rack is parented to a
 // location created in the same import batch.
 //
 // Why it matters: racks must live inside a location for the exported topology
 // to be valid, so the rack pass has to resolve the location name produced by
 // the earlier location pass and stamp its UUID onto the rack.
-// Inputs: a SystemCSV with one "dc1" location and one rack referencing it by
+// Inputs: a DcimCSV with one "dc1" location and one rack referencing it by
 // name. Outputs: the rack's Location field set to the dc1 UUID.
 // Data choice: a single location and rack keep the assertion unambiguous, and
 // referencing the location by name (not UUID) exercises the name→ID resolution
 // the CSV format relies on.
-func TestTransformSystem_RackWithLocation(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Locations: []import_.SystemRecord{
+func TestTransformDcim_RackWithLocation(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Locations: []import_.DcimRecord{
 			{Section: "location", Name: "dc1", Role: "dc"},
 		},
-		Racks: []import_.SystemRecord{
+		Racks: []import_.DcimRecord{
 			{Section: "rack", PartNumber: "hpe-48u-800mmx1200mm-g2-enterprise-shock-rack", Name: "x3701", Qty: 1, Location: "dc1", Status: "Available"},
 		},
 	}
 
-	result, err := TransformSystem(*devicetypes.NewInventory(), data)
+	result, err := TransformDcim(*devicetypes.NewInventory(), data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1127,32 +1127,32 @@ func TestTransformSystem_RackWithLocation(t *testing.T) {
 
 // --- Connection tests ---
 
-// TestTransformSystem_Connections verifies the connection pass resolves device
+// TestTransformDcim_Connections verifies the connection pass resolves device
 // names into a cable carrying the declared endpoints and cable properties.
 //
 // Why it matters: connections are the last pass and depend on every device
 // already existing, so the importer must resolve both endpoint names to UUIDs
 // and copy the cable's type, color, length, and unit onto the created cable.
-// Inputs: a SystemCSV with two devices and one connection between them carrying
+// Inputs: a DcimCSV with two devices and one connection between them carrying
 // type/color/length/unit. Outputs: a single cable with matching termination
 // UUIDs, ports, and properties.
 // Data choice: two distinct device names prove name→UUID resolution on both
 // ends, and populating every cable property field proves each is propagated
 // rather than dropped.
-func TestTransformSystem_Connections(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Devices: []import_.SystemRecord{
+func TestTransformDcim_Connections(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Devices: []import_.DcimRecord{
 			{Section: "device", PartNumber: "hpe-xd670", Name: "node-a", Qty: 1},
 			{Section: "device", PartNumber: "hpe-xd670", Name: "node-b", Qty: 1},
 		},
-		Connections: []import_.SystemRecord{
+		Connections: []import_.DcimRecord{
 			{Section: "connection", ADevice: "node-a", APort: "eth0", BDevice: "node-b", BPort: "eth0",
 				PartNumber: "cat6", Color: "blue", Length: "5", LengthUnit: "m", Status: "Connected"},
 		},
 	}
 
-	result, err := TransformSystem(*devicetypes.NewInventory(), data)
+	result, err := TransformDcim(*devicetypes.NewInventory(), data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1193,32 +1193,32 @@ func TestTransformSystem_Connections(t *testing.T) {
 	}
 }
 
-// TestTransformSystem_ConnectionDefaults verifies cable defaults from the
+// TestTransformDcim_ConnectionDefaults verifies cable defaults from the
 // connection section fill in properties a connection row leaves blank.
 //
 // Why it matters: operators set section-wide defaults (e.g. a house color or
 // length unit) once rather than on every row, so the importer must apply the
 // connection section defaults to each cable that does not override them.
-// Inputs: a SystemCSV with a connection section default for color/unit/status
+// Inputs: a DcimCSV with a connection section default for color/unit/status
 // and one connection that omits those fields. Outputs: a cable that inherits
 // the defaulted color, length unit, and status.
 // Data choice: leaving exactly the defaulted fields blank on the connection row
 // proves inheritance is sourced from the section defaults, not the row.
-func TestTransformSystem_ConnectionDefaults(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: map[string]import_.SystemRecord{
+func TestTransformDcim_ConnectionDefaults(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: map[string]import_.DcimRecord{
 			"connection": {Section: "connection", Color: "green", LengthUnit: "ft", Status: "Planned"},
 		},
-		Devices: []import_.SystemRecord{
+		Devices: []import_.DcimRecord{
 			{Section: "device", PartNumber: "hpe-xd670", Name: "node-a", Qty: 1},
 			{Section: "device", PartNumber: "hpe-xd670", Name: "node-b", Qty: 1},
 		},
-		Connections: []import_.SystemRecord{
+		Connections: []import_.DcimRecord{
 			{Section: "connection", ADevice: "node-a", APort: "eth0", BDevice: "node-b", BPort: "eth0", PartNumber: "cat6"},
 		},
 	}
 
-	result, err := TransformSystem(*devicetypes.NewInventory(), data)
+	result, err := TransformDcim(*devicetypes.NewInventory(), data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1242,54 +1242,54 @@ func TestTransformSystem_ConnectionDefaults(t *testing.T) {
 	}
 }
 
-// TestTransformSystem_ConnectionUnknownDevice verifies the connection pass
+// TestTransformDcim_ConnectionUnknownDevice verifies the connection pass
 // fails when no connection can be resolved against the inventory.
 //
 // Why it matters: a connection naming a device that was never imported would
 // otherwise yield zero cables silently; surfacing an error lets the operator
 // fix the typo instead of shipping an incomplete topology.
-// Inputs: a SystemCSV with one device and a connection whose B endpoint names a
-// non-existent device. Outputs: a non-nil error from TransformSystem.
+// Inputs: a DcimCSV with one device and a connection whose B endpoint names a
+// non-existent device. Outputs: a non-nil error from TransformDcim.
 // Data choice: a single unresolvable endpoint drives the "no connections
 // resolved" branch, the strictest failure the resolver reports.
-func TestTransformSystem_ConnectionUnknownDevice(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Devices: []import_.SystemRecord{
+func TestTransformDcim_ConnectionUnknownDevice(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Devices: []import_.DcimRecord{
 			{Section: "device", PartNumber: "hpe-xd670", Name: "node-a", Qty: 1},
 		},
-		Connections: []import_.SystemRecord{
+		Connections: []import_.DcimRecord{
 			{Section: "connection", ADevice: "node-a", APort: "eth0", BDevice: "ghost", BPort: "eth0"},
 		},
 	}
-	if _, err := TransformSystem(*devicetypes.NewInventory(), data); err == nil {
+	if _, err := TransformDcim(*devicetypes.NewInventory(), data); err == nil {
 		t.Fatal("expected error when all connections fail to resolve")
 	}
 }
 
-// TestTransformSystem_RoleMissingName verifies the role pass rejects a role row
+// TestTransformDcim_RoleMissingName verifies the role pass rejects a role row
 // without a Name.
 //
 // Why it matters: roles are referenced by name from device rows, so an unnamed
 // role is unreferenceable and must be rejected rather than stored as a dangling
 // entry.
-// Inputs: a SystemCSV with one role row that has content types but no Name.
-// Outputs: a non-nil error from TransformSystem.
+// Inputs: a DcimCSV with one role row that has content types but no Name.
+// Outputs: a non-nil error from TransformDcim.
 // Data choice: supplying ContentTypes while omitting Name isolates the missing
 // Name guard so the failure cannot be attributed to an otherwise empty row.
-func TestTransformSystem_RoleMissingName(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Roles: []import_.SystemRecord{
+func TestTransformDcim_RoleMissingName(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Roles: []import_.DcimRecord{
 			{Section: "role", ContentTypes: "dcim.device"},
 		},
 	}
-	if _, err := TransformSystem(*devicetypes.NewInventory(), data); err == nil {
+	if _, err := TransformDcim(*devicetypes.NewInventory(), data); err == nil {
 		t.Fatal("expected error for role missing Name")
 	}
 }
 
-// TestTransformSystem_RackByPartNumber verifies a rack row whose identifier is a
+// TestTransformDcim_RackByPartNumber verifies a rack row whose identifier is a
 // catalog part number (not a slug) is resolved through the part-number lookup.
 //
 // Why it matters: operators may identify racks by orderable part number; the
@@ -1299,14 +1299,14 @@ func TestTransformSystem_RoleMissingName(t *testing.T) {
 // rack with a U-height greater than zero sourced from the rack type.
 // Data choice: P9K58A is the orderable part number of a real 48U rack type whose
 // slug differs, so success proves the part-number branch ran, not slug lookup.
-func TestTransformSystem_RackByPartNumber(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Racks: []import_.SystemRecord{
+func TestTransformDcim_RackByPartNumber(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Racks: []import_.DcimRecord{
 			{Section: "rack", PartNumber: "P9K58A", Name: "x4000", Qty: 1, Status: "Available"},
 		},
 	}
-	result, err := TransformSystem(*devicetypes.NewInventory(), data)
+	result, err := TransformDcim(*devicetypes.NewInventory(), data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1320,28 +1320,28 @@ func TestTransformSystem_RackByPartNumber(t *testing.T) {
 	}
 }
 
-// TestTransformSystem_RackMissingPartNumber verifies a rack row without a part
-// number is rejected and surfaced as a wrapped TransformSystem error.
+// TestTransformDcim_RackMissingPartNumber verifies a rack row without a part
+// number is rejected and surfaced as a wrapped TransformDcim error.
 //
 // Why it matters: a rack with no part number cannot be sized, so the importer
 // must fail loudly rather than emit an unusable zero-height rack.
 // Inputs: one rack row with an empty PartNumber. Outputs: a non-nil error from
-// TransformSystem.
+// TransformDcim.
 // Data choice: leaving only PartNumber blank isolates the missing-part-number
 // guard from any other validation.
-func TestTransformSystem_RackMissingPartNumber(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Racks: []import_.SystemRecord{
+func TestTransformDcim_RackMissingPartNumber(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Racks: []import_.DcimRecord{
 			{Section: "rack", Name: "x4000", Qty: 1},
 		},
 	}
-	if _, err := TransformSystem(*devicetypes.NewInventory(), data); err == nil {
+	if _, err := TransformDcim(*devicetypes.NewInventory(), data); err == nil {
 		t.Fatal("expected error for rack missing PartNumber")
 	}
 }
 
-// TestTransformSystem_RackLocationFromInventory verifies a rack inherits a
+// TestTransformDcim_RackLocationFromInventory verifies a rack inherits a
 // location that exists only in the pre-existing inventory, not the current batch.
 //
 // Why it matters: incremental imports reference locations created in prior runs,
@@ -1351,18 +1351,18 @@ func TestTransformSystem_RackMissingPartNumber(t *testing.T) {
 // that location. Outputs: a rack whose Location points at the seeded location ID.
 // Data choice: the location is placed only in the inventory (absent from the
 // batch) so a correct parent can only come from the inventory fallback path.
-func TestTransformSystem_RackLocationFromInventory(t *testing.T) {
+func TestTransformDcim_RackLocationFromInventory(t *testing.T) {
 	inv := *devicetypes.NewInventory()
 	locID := uuid.New()
 	inv.Locations[locID] = &devicetypes.CaniLocationType{ID: locID, Name: "dc1"}
 
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Racks: []import_.SystemRecord{
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Racks: []import_.DcimRecord{
 			{Section: "rack", PartNumber: "hpe-48u-800mmx1200mm-g2-enterprise-shock-rack", Name: "x4000", Qty: 1, Location: "dc1"},
 		},
 	}
-	result, err := TransformSystem(inv, data)
+	result, err := TransformDcim(inv, data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1380,31 +1380,31 @@ func TestTransformSystem_RackLocationFromInventory(t *testing.T) {
 	}
 }
 
-// TestTransformSystem_DeviceMissingPartNumber verifies a device row without a
+// TestTransformDcim_DeviceMissingPartNumber verifies a device row without a
 // part number is rejected.
 //
 // Why it matters: a device with no part number cannot be typed or sized, so the
 // importer must fail rather than create an untyped device.
 // Inputs: a rack plus a device row with an empty PartNumber. Outputs: a non-nil
-// error from TransformSystem.
+// error from TransformDcim.
 // Data choice: a valid rack ensures the failure is attributable to the device's
 // missing part number, not a rack problem.
-func TestTransformSystem_DeviceMissingPartNumber(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Racks: []import_.SystemRecord{
+func TestTransformDcim_DeviceMissingPartNumber(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Racks: []import_.DcimRecord{
 			{Section: "rack", PartNumber: "hpe-48u-800mmx1200mm-g2-enterprise-shock-rack", Name: "x4000", Qty: 1},
 		},
-		Devices: []import_.SystemRecord{
+		Devices: []import_.DcimRecord{
 			{Section: "device", Name: "node1", Qty: 1, Rack: "x4000"},
 		},
 	}
-	if _, err := TransformSystem(*devicetypes.NewInventory(), data); err == nil {
+	if _, err := TransformDcim(*devicetypes.NewInventory(), data); err == nil {
 		t.Fatal("expected error for device missing PartNumber")
 	}
 }
 
-// TestTransformSystem_DeviceByPartNumberAndQty verifies device resolution by
+// TestTransformDcim_DeviceByPartNumberAndQty verifies device resolution by
 // part number and multi-quantity naming in a single pass.
 //
 // Why it matters: operators identify devices by orderable part number and often
@@ -1414,17 +1414,17 @@ func TestTransformSystem_DeviceMissingPartNumber(t *testing.T) {
 // two devices whose names are unique.
 // Data choice: P67287-B21 is a real part number whose slug differs, and Qty 2 is
 // the smallest quantity that forces name suffixing.
-func TestTransformSystem_DeviceByPartNumberAndQty(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Racks: []import_.SystemRecord{
+func TestTransformDcim_DeviceByPartNumberAndQty(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Racks: []import_.DcimRecord{
 			{Section: "rack", PartNumber: "hpe-48u-800mmx1200mm-g2-enterprise-shock-rack", Name: "x4000", Qty: 1},
 		},
-		Devices: []import_.SystemRecord{
+		Devices: []import_.DcimRecord{
 			{Section: "device", PartNumber: "P67287-B21", Name: "node", Qty: 2, Rack: "x4000"},
 		},
 	}
-	result, err := TransformSystem(*devicetypes.NewInventory(), data)
+	result, err := TransformDcim(*devicetypes.NewInventory(), data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1443,7 +1443,7 @@ func TestTransformSystem_DeviceByPartNumberAndQty(t *testing.T) {
 	}
 }
 
-// TestTransformSystem_DevicePlacementEdges verifies default face selection,
+// TestTransformDcim_DevicePlacementEdges verifies default face selection,
 // minimum-height clamping, and the placement-failure warning path.
 //
 // Why it matters: a device row may omit a face, reference an unknown type with
@@ -1455,18 +1455,18 @@ func TestTransformSystem_DeviceByPartNumberAndQty(t *testing.T) {
 // Outputs: two devices created with no error, the first faced "front".
 // Data choice: an unknown part number guarantees a zero U-height to exercise the
 // clamp, and U100 in a 48U rack guarantees the placement-failure warning.
-func TestTransformSystem_DevicePlacementEdges(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Racks: []import_.SystemRecord{
+func TestTransformDcim_DevicePlacementEdges(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Racks: []import_.DcimRecord{
 			{Section: "rack", PartNumber: "hpe-48u-800mmx1200mm-g2-enterprise-shock-rack", Name: "x4000", Qty: 1},
 		},
-		Devices: []import_.SystemRecord{
+		Devices: []import_.DcimRecord{
 			{Section: "device", PartNumber: "UNKNOWN-PN", Name: "noface", Qty: 1, Rack: "x4000", Position: 10},
 			{Section: "device", PartNumber: "UNKNOWN-PN", Name: "overflow", Qty: 1, Rack: "x4000", Position: 100, Face: "front"},
 		},
 	}
-	result, err := TransformSystem(*devicetypes.NewInventory(), data)
+	result, err := TransformDcim(*devicetypes.NewInventory(), data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1480,7 +1480,7 @@ func TestTransformSystem_DevicePlacementEdges(t *testing.T) {
 	}
 }
 
-// TestTransformSystem_ModuleByPartNumber verifies a module row keyed by part
+// TestTransformDcim_ModuleByPartNumber verifies a module row keyed by part
 // number resolves through the part-number lookup.
 //
 // Why it matters: modules are commonly identified by orderable part number, so
@@ -1489,20 +1489,20 @@ func TestTransformSystem_DevicePlacementEdges(t *testing.T) {
 // single module attached to the device.
 // Data choice: P42351-B21 is a real NIC module part number whose slug differs,
 // proving the part-number branch resolved the type.
-func TestTransformSystem_ModuleByPartNumber(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Racks: []import_.SystemRecord{
+func TestTransformDcim_ModuleByPartNumber(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Racks: []import_.DcimRecord{
 			{Section: "rack", PartNumber: "hpe-48u-800mmx1200mm-g2-enterprise-shock-rack", Name: "x4000", Qty: 1},
 		},
-		Devices: []import_.SystemRecord{
+		Devices: []import_.DcimRecord{
 			{Section: "device", PartNumber: "hpe-xd670", Name: "node1", Qty: 1, Rack: "x4000", Position: 1},
 		},
-		Modules: []import_.SystemRecord{
+		Modules: []import_.DcimRecord{
 			{Section: "module", PartNumber: "P42351-B21", Qty: 1, Device: "node1", Bay: "PCIe1"},
 		},
 	}
-	result, err := TransformSystem(*devicetypes.NewInventory(), data)
+	result, err := TransformDcim(*devicetypes.NewInventory(), data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1511,79 +1511,79 @@ func TestTransformSystem_ModuleByPartNumber(t *testing.T) {
 	}
 }
 
-// TestTransformSystem_ModuleUnknownDevice verifies a module referencing a
-// non-existent device fails as a wrapped TransformSystem error.
+// TestTransformDcim_ModuleUnknownDevice verifies a module referencing a
+// non-existent device fails as a wrapped TransformDcim error.
 //
 // Why it matters: a module must attach to a real parent device; a dangling
 // reference indicates a data error the operator needs to fix before import.
 // Inputs: a module row whose Device names a device that was never created.
-// Outputs: a non-nil error from TransformSystem.
+// Outputs: a non-nil error from TransformDcim.
 // Data choice: omitting the device section entirely guarantees the reference is
 // unresolved, isolating the unknown-device guard.
-func TestTransformSystem_ModuleUnknownDevice(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Modules: []import_.SystemRecord{
+func TestTransformDcim_ModuleUnknownDevice(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Modules: []import_.DcimRecord{
 			{Section: "module", PartNumber: "P42351-B21", Qty: 1, Device: "ghost", Bay: "PCIe1"},
 		},
 	}
-	if _, err := TransformSystem(*devicetypes.NewInventory(), data); err == nil {
+	if _, err := TransformDcim(*devicetypes.NewInventory(), data); err == nil {
 		t.Fatal("expected error for module referencing unknown device")
 	}
 }
 
-// TestTransformSystem_InterfaceSkips verifies interface rows missing an owner,
+// TestTransformDcim_InterfaceSkips verifies interface rows missing an owner,
 // missing a name, or carrying an invalid MAC are warned and skipped, not fatal.
 //
 // Why it matters: a single malformed interface row should not abort an otherwise
 // valid import; the pass must tolerate and skip each malformed shape.
 // Inputs: a device plus three interface rows — no Device, no Name, and a valid
-// target with an unparseable MAC. Outputs: no error from TransformSystem.
+// target with an unparseable MAC. Outputs: no error from TransformDcim.
 // Data choice: each row isolates one skip branch (missing owner, missing name,
 // MAC normalization failure) while the valid device keeps the run otherwise sound.
-func TestTransformSystem_InterfaceSkips(t *testing.T) {
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Racks: []import_.SystemRecord{
+func TestTransformDcim_InterfaceSkips(t *testing.T) {
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Racks: []import_.DcimRecord{
 			{Section: "rack", PartNumber: "hpe-48u-800mmx1200mm-g2-enterprise-shock-rack", Name: "x4000", Qty: 1},
 		},
-		Devices: []import_.SystemRecord{
+		Devices: []import_.DcimRecord{
 			{Section: "device", PartNumber: "hpe-xd670", Name: "node1", Qty: 1, Rack: "x4000", Position: 1},
 		},
-		Interfaces: []import_.SystemRecord{
+		Interfaces: []import_.DcimRecord{
 			{Section: "interface", Name: "orphan", MacAddress: "aa:bb:cc:dd:ee:ff"},
 			{Section: "interface", Device: "node1", MacAddress: "aa:bb:cc:dd:ee:ff"},
 			{Section: "interface", Device: "node1", Name: "iLO", MacAddress: "ZZ-NOT-A-MAC"},
 		},
 	}
-	if _, err := TransformSystem(*devicetypes.NewInventory(), data); err != nil {
+	if _, err := TransformDcim(*devicetypes.NewInventory(), data); err != nil {
 		t.Fatalf("malformed interface rows should be skipped, got error: %v", err)
 	}
 }
 
-// TestTransformSystem_ConnectionGlobalStatusDefault verifies a global default
+// TestTransformDcim_ConnectionGlobalStatusDefault verifies a global default
 // status is applied to cables produced by the connection pass.
 //
 // Why it matters: operators may set a single global status (e.g. "Planned") for
 // an entire import; the connection pass must thread that default into the cable
 // defaults so every cable inherits it.
-// Inputs: a SystemCSV whose global Defaults set Status and a connection that
+// Inputs: a DcimCSV whose global Defaults set Status and a connection that
 // omits status. Outputs: a single cable with Status "Planned".
 // Data choice: the status lives only in global Defaults (no connection section
 // defaults), isolating the global-status branch of the cable defaults builder.
-func TestTransformSystem_ConnectionGlobalStatusDefault(t *testing.T) {
-	data := &import_.SystemCSV{
-		Defaults:        import_.SystemRecord{Status: "Planned"},
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Devices: []import_.SystemRecord{
+func TestTransformDcim_ConnectionGlobalStatusDefault(t *testing.T) {
+	data := &import_.DcimCSV{
+		Defaults:        import_.DcimRecord{Status: "Planned"},
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Devices: []import_.DcimRecord{
 			{Section: "device", PartNumber: "hpe-xd670", Name: "node-a", Qty: 1},
 			{Section: "device", PartNumber: "hpe-xd670", Name: "node-b", Qty: 1},
 		},
-		Connections: []import_.SystemRecord{
+		Connections: []import_.DcimRecord{
 			{Section: "connection", ADevice: "node-a", APort: "eth0", BDevice: "node-b", BPort: "eth0", PartNumber: "cat6"},
 		},
 	}
-	result, err := TransformSystem(*devicetypes.NewInventory(), data)
+	result, err := TransformDcim(*devicetypes.NewInventory(), data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1597,7 +1597,7 @@ func TestTransformSystem_ConnectionGlobalStatusDefault(t *testing.T) {
 	}
 }
 
-// TestTransformSystem_DeviceRackFromInventory verifies a device parents to a
+// TestTransformDcim_DeviceRackFromInventory verifies a device parents to a
 // rack that exists only in the pre-existing inventory.
 //
 // Why it matters: incremental imports place new devices into racks from prior
@@ -1607,18 +1607,18 @@ func TestTransformSystem_ConnectionGlobalStatusDefault(t *testing.T) {
 // naming that rack. Outputs: a device whose Parent is the seeded rack ID.
 // Data choice: the rack is only in the inventory (absent from the batch) so a
 // correct parent can come only from the inventory fallback.
-func TestTransformSystem_DeviceRackFromInventory(t *testing.T) {
+func TestTransformDcim_DeviceRackFromInventory(t *testing.T) {
 	inv := *devicetypes.NewInventory()
 	rackID := uuid.New()
 	inv.Racks[rackID] = &devicetypes.CaniRackType{ID: rackID, Name: "existing-rack", UHeight: 48}
 
-	data := &import_.SystemCSV{
-		SectionDefaults: make(map[string]import_.SystemRecord),
-		Devices: []import_.SystemRecord{
+	data := &import_.DcimCSV{
+		SectionDefaults: make(map[string]import_.DcimRecord),
+		Devices: []import_.DcimRecord{
 			{Section: "device", PartNumber: "hpe-xd670", Name: "node1", Qty: 1, Rack: "existing-rack", Position: 1},
 		},
 	}
-	result, err := TransformSystem(inv, data)
+	result, err := TransformDcim(inv, data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1636,7 +1636,7 @@ func TestTransformSystem_DeviceRackFromInventory(t *testing.T) {
 	}
 }
 
-// TestResolveSystemModuleBayName verifies bay-name canonicalization, including
+// TestResolveDcimModuleBayName verifies bay-name canonicalization, including
 // the nil-device, empty-bay, matched, and unmatched fallthrough paths.
 //
 // Why it matters: module bay names from CSV must be normalized to the device's
@@ -1647,7 +1647,7 @@ func TestTransformSystem_DeviceRackFromInventory(t *testing.T) {
 // canonical bay name for a position match.
 // Data choice: a device whose bay Position "GPU0" maps to Name "GPU 0" exercises
 // the position-match branch, while "ZZZ" exercises the unmatched fallthrough.
-func TestResolveSystemModuleBayName(t *testing.T) {
+func TestResolveDcimModuleBayName(t *testing.T) {
 	dev := &devicetypes.CaniDeviceType{
 		ModuleBays: []devicetypes.ModuleBaySpec{{Name: "GPU 0", Position: "GPU0"}},
 	}
@@ -1665,14 +1665,14 @@ func TestResolveSystemModuleBayName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := resolveSystemModuleBayName(tt.device, tt.requested); got != tt.want {
-				t.Errorf("resolveSystemModuleBayName(%v, %q) = %q, want %q", tt.device, tt.requested, got, tt.want)
+			if got := resolveDcimModuleBayName(tt.device, tt.requested); got != tt.want {
+				t.Errorf("resolveDcimModuleBayName(%v, %q) = %q, want %q", tt.device, tt.requested, got, tt.want)
 			}
 		})
 	}
 }
 
-// TestSynthesizeSystemModuleName verifies synthesized module names across the
+// TestSynthesizeDcimModuleName verifies synthesized module names across the
 // guard, GPU, ConnectX, and deterministic-fallback branches.
 //
 // Why it matters: a module without an explicit name must never be left blank
@@ -1686,7 +1686,7 @@ func TestResolveSystemModuleBayName(t *testing.T) {
 // Data choice: the GPU type, a "connectx-6" slug, and a plain slug select each
 // branch, while the nil-device and no-bay rows exercise the fallback's optional
 // device and bay segments.
-func TestSynthesizeSystemModuleName(t *testing.T) {
+func TestSynthesizeDcimModuleName(t *testing.T) {
 	dev := &devicetypes.CaniDeviceType{Name: "node-a"}
 	tests := []struct {
 		name   string
@@ -1704,8 +1704,8 @@ func TestSynthesizeSystemModuleName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := synthesizeSystemModuleName(tt.module, tt.device); got != tt.want {
-				t.Errorf("synthesizeSystemModuleName = %q, want %q", got, tt.want)
+			if got := synthesizeDcimModuleName(tt.module, tt.device); got != tt.want {
+				t.Errorf("synthesizeDcimModuleName = %q, want %q", got, tt.want)
 			}
 		})
 	}

@@ -515,30 +515,30 @@ func withStdin(t *testing.T, input string) {
 	}()
 }
 
-// fakeSystemProvider records the system CSV data handed to it so tests can assert
-// the import wired ClearSystemRecords/SetSystemRecords correctly.
-type fakeSystemProvider struct {
-	data     *SystemCSV
-	isSystem bool
-	cleared  bool
+// fakeDcimProvider records the DCIM CSV data handed to it so tests can assert
+// the import wired ClearDcimRecords/SetDcimRecords correctly.
+type fakeDcimProvider struct {
+	data    *DcimCSV
+	isDcim  bool
+	cleared bool
 }
 
-func (f *fakeSystemProvider) SetSystemRecords(d *SystemCSV) { f.data = d }
-func (f *fakeSystemProvider) ClearSystemRecords()           { f.cleared = true }
-func (f *fakeSystemProvider) IsSystemImport() bool          { return f.isSystem }
+func (f *fakeDcimProvider) SetDcimRecords(d *DcimCSV) { f.data = d }
+func (f *fakeDcimProvider) ClearDcimRecords()         { f.cleared = true }
+func (f *fakeDcimProvider) IsDcimImport() bool        { return f.isDcim }
 
-// newSystemProvider registers fake as the system provider and clears the getter
+// newDcimProvider registers fake as the DCIM provider and clears the getter
 // during cleanup, sparing each test the verbose interface literal.
-func newSystemProvider(t *testing.T, fake *fakeSystemProvider) {
+func newDcimProvider(t *testing.T, fake *fakeDcimProvider) {
 	t.Helper()
-	SetSystemProviderGetter(func() interface {
-		SetSystemRecords(data *SystemCSV)
-		ClearSystemRecords()
-		IsSystemImport() bool
+	SetDcimProviderGetter(func() interface {
+		SetDcimRecords(data *DcimCSV)
+		ClearDcimRecords()
+		IsDcimImport() bool
 	} {
 		return fake
 	})
-	t.Cleanup(func() { systemProviderGetter = nil })
+	t.Cleanup(func() { dcimProviderGetter = nil })
 }
 
 // setBOMProvider registers fake as the BOM record provider and clears the getter
@@ -574,70 +574,70 @@ func TestGetProvider_ErrorsWhenUnset(t *testing.T) {
 	}
 }
 
-// TestSystemProviderGetter verifies the system provider round-trips through the
+// TestDcimProviderGetter verifies the DCIM provider round-trips through the
 // setter/getter and that retrieval errors when unset.
 //
-// Why it matters: system CSV import resolves the provider singleton through this
+// Why it matters: DCIM CSV import resolves the provider singleton through this
 // indirection to break an import cycle, so a registered getter must return the
 // same instance and a missing one must surface an error.
-// Inputs: a fakeSystemProvider via the setter, then a nil getter. Outputs: the
+// Inputs: a fakeDcimProvider via the setter, then a nil getter. Outputs: the
 // identical provider instance, then a non-nil error.
 // Data choice: identity comparison proves the exact registered value is
 // returned; nil is the only state that trips the guard.
-func TestSystemProviderGetter(t *testing.T) {
+func TestDcimProviderGetter(t *testing.T) {
 	t.Run("set and get round-trips the provider", func(t *testing.T) {
-		fake := &fakeSystemProvider{isSystem: true}
-		newSystemProvider(t, fake)
-		got, err := GetSystemProvider()
+		fake := &fakeDcimProvider{isDcim: true}
+		newDcimProvider(t, fake)
+		got, err := GetDcimProvider()
 		if err != nil {
-			t.Fatalf("GetSystemProvider returned unexpected error: %v", err)
+			t.Fatalf("GetDcimProvider returned unexpected error: %v", err)
 		}
 		if got != fake {
-			t.Error("GetSystemProvider did not return the registered provider")
+			t.Error("GetDcimProvider did not return the registered provider")
 		}
 	})
 	t.Run("errors when unset", func(t *testing.T) {
-		old := systemProviderGetter
-		t.Cleanup(func() { systemProviderGetter = old })
-		systemProviderGetter = nil
-		if _, err := GetSystemProvider(); err == nil {
-			t.Error("expected error when systemProviderGetter is unset")
-		} else if !strings.Contains(err.Error(), "systemProviderGetter not set") {
-			t.Errorf("error = %q, want systemProviderGetter not set", err)
+		old := dcimProviderGetter
+		t.Cleanup(func() { dcimProviderGetter = old })
+		dcimProviderGetter = nil
+		if _, err := GetDcimProvider(); err == nil {
+			t.Error("expected error when dcimProviderGetter is unset")
+		} else if !strings.Contains(err.Error(), "dcimProviderGetter not set") {
+			t.Errorf("error = %q, want dcimProviderGetter not set", err)
 		}
 	})
 }
 
-// TestImportCSV_SystemRouting verifies ImportCSV detects a system CSV header and
-// stores the parsed system data on the provider.
+// TestImportCSV_DcimRouting verifies ImportCSV detects a DCIM CSV header and
+// stores the parsed DCIM data on the provider.
 //
-// Why it matters: one import entry point serves both BOM and system CSV formats,
-// so a header carrying a Section column must route to the system parser and
+// Why it matters: one import entry point serves both BOM and DCIM CSV formats,
+// so a header carrying a Section column must route to the DCIM parser and
 // persist its grouped records.
-// Inputs: the system.csv fixture and a fakeSystemProvider. Outputs: nil error;
+// Inputs: the dcim.csv fixture and a fakeDcimProvider. Outputs: nil error;
 // the provider receives cleared-then-set data with 6 devices.
 // Data choice: the shared fixture has a known shape (6 devices), making the
 // routed-and-parsed assertion unambiguous.
-func TestImportCSV_SystemRouting(t *testing.T) {
-	fake := &fakeSystemProvider{}
-	newSystemProvider(t, fake)
+func TestImportCSV_DcimRouting(t *testing.T) {
+	fake := &fakeDcimProvider{}
+	newDcimProvider(t, fake)
 	t.Cleanup(func() { commands.CsvFlag = "" })
-	commands.CsvFlag = "../../../../testdata/fixtures/example/system.csv"
+	commands.CsvFlag = "../../../../testdata/fixtures/example/dcim.csv"
 	if err := ImportCSV(nil, nil, &devicetypes.Inventory{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if fake.data == nil {
-		t.Fatal("expected system records to be set on the provider")
+		t.Fatal("expected DCIM records to be set on the provider")
 	}
 	if !fake.cleared {
-		t.Error("expected ClearSystemRecords before SetSystemRecords")
+		t.Error("expected ClearDcimRecords before SetDcimRecords")
 	}
 	if len(fake.data.Devices) != 6 {
 		t.Errorf("Devices = %d, want 6", len(fake.data.Devices))
 	}
 }
 
-// TestImportSystemCSV_NoRecords verifies a system CSV with no data sections is a
+// TestImportDcimCSV_NoRecords verifies a DCIM CSV with no data sections is a
 // no-op that leaves the provider untouched.
 //
 // Why it matters: a defaults-only file carries no inventory, so the import must
@@ -646,9 +646,9 @@ func TestImportCSV_SystemRouting(t *testing.T) {
 // error; the provider's data is never set.
 // Data choice: a lone _defaults row is the smallest input that parses cleanly yet
 // yields zero section records, exercising the total==0 short-circuit.
-func TestImportSystemCSV_NoRecords(t *testing.T) {
-	fake := &fakeSystemProvider{}
-	newSystemProvider(t, fake)
+func TestImportDcimCSV_NoRecords(t *testing.T) {
+	fake := &fakeDcimProvider{}
+	newDcimProvider(t, fake)
 	t.Cleanup(func() { commands.CsvFlag = "" })
 	dir := t.TempDir()
 	path := dir + "/defaults-only.csv"
@@ -664,7 +664,7 @@ func TestImportSystemCSV_NoRecords(t *testing.T) {
 	}
 }
 
-// TestImportSystemCSV_LocationsOnly verifies a system CSV whose only data rows
+// TestImportDcimCSV_LocationsOnly verifies a DCIM CSV whose only data rows
 // are locations is persisted rather than skipped as empty.
 //
 // Why it matters: locations and interfaces are valid inventory the transform
@@ -674,9 +674,9 @@ func TestImportSystemCSV_NoRecords(t *testing.T) {
 // the provider receives data carrying both locations.
 // Data choice: two location rows and no other section prove the total now
 // includes locations, where the previous count would have been zero.
-func TestImportSystemCSV_LocationsOnly(t *testing.T) {
-	fake := &fakeSystemProvider{}
-	newSystemProvider(t, fake)
+func TestImportDcimCSV_LocationsOnly(t *testing.T) {
+	fake := &fakeDcimProvider{}
+	newDcimProvider(t, fake)
 	t.Cleanup(func() { commands.CsvFlag = "" })
 	dir := t.TempDir()
 	path := dir + "/locations-only.csv"
@@ -761,18 +761,18 @@ func TestImportBOMCSV_StepModeInterrupted(t *testing.T) {
 	}
 }
 
-// TestImportSystemCSV_StepMode verifies system CSV import drives the step-through
+// TestImportDcimCSV_StepMode verifies DCIM CSV import drives the step-through
 // prompt once and then stores the parsed data.
 //
-// Why it matters: step mode is the operator's interactive review path for system
+// Why it matters: step mode is the operator's interactive review path for DCIM
 // imports too, so each record must pause for confirmation before being persisted.
-// Inputs: a one-record system CSV (single role), StepMode enabled, and a stdin
+// Inputs: a one-record DCIM CSV (single role), StepMode enabled, and a stdin
 // holding one newline. Outputs: nil error; the provider receives the data.
 // Data choice: exactly one record keeps the run to a single prompt, which is all
 // a fresh-per-row reader over a pipe can satisfy without hitting EOF.
-func TestImportSystemCSV_StepMode(t *testing.T) {
-	fake := &fakeSystemProvider{}
-	newSystemProvider(t, fake)
+func TestImportDcimCSV_StepMode(t *testing.T) {
+	fake := &fakeDcimProvider{}
+	newDcimProvider(t, fake)
 	config.Cfg = &config.Config{StepMode: true, NoColor: true}
 	t.Cleanup(func() {
 		config.Cfg = nil
@@ -789,22 +789,22 @@ func TestImportSystemCSV_StepMode(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if fake.data == nil {
-		t.Fatal("expected system records to be set after stepping")
+		t.Fatal("expected DCIM records to be set after stepping")
 	}
 }
 
-// TestImportSystemCSV_StepModeInterrupted verifies system CSV import aborts when
+// TestImportDcimCSV_StepModeInterrupted verifies DCIM CSV import aborts when
 // the step prompt's input stream closes.
 //
 // Why it matters: if the operator's input ends mid-review, the import must stop
 // and surface the interruption rather than silently persist unreviewed records.
-// Inputs: a one-record system CSV, StepMode enabled, and an empty stdin that
+// Inputs: a one-record DCIM CSV, StepMode enabled, and an empty stdin that
 // returns EOF. Outputs: a non-nil "step interrupted" error.
 // Data choice: empty stdin is the minimal way to force the first prompt read to
 // fail immediately.
-func TestImportSystemCSV_StepModeInterrupted(t *testing.T) {
-	fake := &fakeSystemProvider{}
-	newSystemProvider(t, fake)
+func TestImportDcimCSV_StepModeInterrupted(t *testing.T) {
+	fake := &fakeDcimProvider{}
+	newDcimProvider(t, fake)
 	config.Cfg = &config.Config{StepMode: true, NoColor: true}
 	t.Cleanup(func() {
 		config.Cfg = nil
@@ -826,7 +826,7 @@ func TestImportSystemCSV_StepModeInterrupted(t *testing.T) {
 	}
 }
 
-// TestFormatSystemRecordParsed verifies each section renders its own descriptive
+// TestFormatDcimRecordParsed verifies each section renders its own descriptive
 // parsed string for the step-through prompt.
 //
 // Why it matters: step mode shows operators a per-record summary, so each section
@@ -835,30 +835,30 @@ func TestImportSystemCSV_StepModeInterrupted(t *testing.T) {
 // Inputs: one record per section (connection, device, module, interface, rack,
 // location) plus a role for the default branch. Outputs: the parsed string.
 // Data choice: one representative record per branch covers every switch arm.
-func TestFormatSystemRecordParsed(t *testing.T) {
+func TestFormatDcimRecordParsed(t *testing.T) {
 	tests := []struct {
 		name string
-		rec  SystemRecord
+		rec  DcimRecord
 		want string
 	}{
-		{"connection", SystemRecord{Section: "connection", PartNumber: "cat6", ADevice: "a", APort: "1", BDevice: "b", BPort: "2"}, "cable cat6: a:1 ↔ b:2"},
-		{"device", SystemRecord{Section: "device", Name: "n1", PartNumber: "xd670", Rack: "r1", Position: 34, Face: "front"}, "device n1 (xd670) @ r1 U34 front"},
-		{"module", SystemRecord{Section: "module", PartNumber: "h100", Device: "n1", Bay: "GPU0"}, "module h100 in n1 bay GPU0"},
-		{"interface", SystemRecord{Section: "interface", Name: "iLO", Device: "n1", MacAddress: "aa:bb"}, "interface iLO on n1 mac=aa:bb"},
-		{"rack", SystemRecord{Section: "rack", Name: "r1", PartNumber: "shock-rack"}, "rack r1 (shock-rack)"},
-		{"location", SystemRecord{Section: "location", Name: "dc1", Role: "dc", Location: "site"}, "location dc1 type=dc parent=site"},
-		{"role default", SystemRecord{Section: "role", Name: "ComputeNode"}, "role ComputeNode"},
+		{"connection", DcimRecord{Section: "connection", PartNumber: "cat6", ADevice: "a", APort: "1", BDevice: "b", BPort: "2"}, "cable cat6: a:1 ↔ b:2"},
+		{"device", DcimRecord{Section: "device", Name: "n1", PartNumber: "xd670", Rack: "r1", Position: 34, Face: "front"}, "device n1 (xd670) @ r1 U34 front"},
+		{"module", DcimRecord{Section: "module", PartNumber: "h100", Device: "n1", Bay: "GPU0"}, "module h100 in n1 bay GPU0"},
+		{"interface", DcimRecord{Section: "interface", Name: "iLO", Device: "n1", MacAddress: "aa:bb"}, "interface iLO on n1 mac=aa:bb"},
+		{"rack", DcimRecord{Section: "rack", Name: "r1", PartNumber: "shock-rack"}, "rack r1 (shock-rack)"},
+		{"location", DcimRecord{Section: "location", Name: "dc1", Role: "dc", Location: "site"}, "location dc1 type=dc parent=site"},
+		{"role default", DcimRecord{Section: "role", Name: "ComputeNode"}, "role ComputeNode"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := formatSystemRecordParsed(tt.rec); got != tt.want {
-				t.Errorf("formatSystemRecordParsed(%s) = %q, want %q", tt.name, got, tt.want)
+			if got := formatDcimRecordParsed(tt.rec); got != tt.want {
+				t.Errorf("formatDcimRecordParsed(%s) = %q, want %q", tt.name, got, tt.want)
 			}
 		})
 	}
 }
 
-// TestFormatSystemRecordRaw verifies the compact raw label includes the section
+// TestFormatDcimRecordRaw verifies the compact raw label includes the section
 // and the available identity fields.
 //
 // Why it matters: the raw view orients the operator before the parsed detail, so
@@ -867,40 +867,40 @@ func TestFormatSystemRecordParsed(t *testing.T) {
 // record. Outputs: the bracketed compact label.
 // Data choice: the three shapes exercise the name and part-number branches and
 // their omission.
-func TestFormatSystemRecordRaw(t *testing.T) {
+func TestFormatDcimRecordRaw(t *testing.T) {
 	tests := []struct {
 		name string
-		rec  SystemRecord
+		rec  DcimRecord
 		want string
 	}{
-		{"name and part", SystemRecord{Section: "device", Name: "n1", PartNumber: "xd670"}, "[device n1 xd670]"},
-		{"name only", SystemRecord{Section: "role", Name: "ComputeNode"}, "[role ComputeNode]"},
-		{"part only", SystemRecord{Section: "module", PartNumber: "h100"}, "[module h100]"},
+		{"name and part", DcimRecord{Section: "device", Name: "n1", PartNumber: "xd670"}, "[device n1 xd670]"},
+		{"name only", DcimRecord{Section: "role", Name: "ComputeNode"}, "[role ComputeNode]"},
+		{"part only", DcimRecord{Section: "module", PartNumber: "h100"}, "[module h100]"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := formatSystemRecordRaw(tt.rec); got != tt.want {
-				t.Errorf("formatSystemRecordRaw(%s) = %q, want %q", tt.name, got, tt.want)
+			if got := formatDcimRecordRaw(tt.rec); got != tt.want {
+				t.Errorf("formatDcimRecordRaw(%s) = %q, want %q", tt.name, got, tt.want)
 			}
 		})
 	}
 }
 
-// TestCollectSystemStepRecords verifies all section buckets are flattened in
+// TestCollectDcimStepRecords verifies all section buckets are flattened in
 // pipeline order.
 //
 // Why it matters: step mode walks every parsed record once, so the collector
 // must include each section exactly once and preserve the role→device order.
-// Inputs: a SystemCSV with one record in each of two buckets (role, device).
+// Inputs: a DcimCSV with one record in each of two buckets (role, device).
 // Outputs: a two-element slice ordered roles-before-devices.
 // Data choice: two distinct sections prove both inclusion and ordering without
 // ambiguity.
-func TestCollectSystemStepRecords(t *testing.T) {
-	data := &SystemCSV{
-		Roles:   []SystemRecord{{Section: "role", Name: "ComputeNode"}},
-		Devices: []SystemRecord{{Section: "device", Name: "n1"}},
+func TestCollectDcimStepRecords(t *testing.T) {
+	data := &DcimCSV{
+		Roles:   []DcimRecord{{Section: "role", Name: "ComputeNode"}},
+		Devices: []DcimRecord{{Section: "device", Name: "n1"}},
 	}
-	got := collectSystemStepRecords(data)
+	got := collectDcimStepRecords(data)
 	if len(got) != 2 {
 		t.Fatalf("len = %d, want 2", len(got))
 	}
@@ -944,15 +944,15 @@ func TestImport_MergeError(t *testing.T) {
 // a missing file.
 //
 // Why it matters: format auto-detection reads only the header to choose between
-// the BOM and system parsers, so it must return the columns and fail cleanly when
+// the BOM and DCIM parsers, so it must return the columns and fail cleanly when
 // the file is absent.
-// Inputs: the system.csv fixture, then a nonexistent path. Outputs: the header
+// Inputs: the dcim.csv fixture, then a nonexistent path. Outputs: the header
 // slice, then a non-nil error.
 // Data choice: the fixture's first column is the known "Section" sentinel; a
 // missing path is the simplest open failure.
 func TestPeekCSVHeader(t *testing.T) {
 	t.Run("returns header fields", func(t *testing.T) {
-		got, err := peekCSVHeader("../../../../testdata/fixtures/example/system.csv")
+		got, err := peekCSVHeader("../../../../testdata/fixtures/example/dcim.csv")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -977,19 +977,19 @@ func TestPeekCSVHeader(t *testing.T) {
 	})
 }
 
-// TestImportCSV_SystemParseError verifies a system-routed CSV that fails to parse
+// TestImportCSV_DcimParseError verifies a DCIM-routed CSV that fails to parse
 // surfaces a wrapped error.
 //
-// Why it matters: detection routes a Section header to the system parser, so a
-// truncated system file must fail with a clear, wrapped message instead of a
+// Why it matters: detection routes a Section header to the DCIM parser, so a
+// truncated DCIM file must fail with a clear, wrapped message instead of a
 // silent no-op.
 // Inputs: a temp CSV with a Section header but no data rows. Outputs: a non-nil
-// "failed to parse system CSV" error.
-// Data choice: a header-only file is the smallest input that detects as system
+// "failed to parse DCIM CSV" error.
+// Data choice: a header-only file is the smallest input that detects as DCIM
 // yet fails the parser's row-count guard.
-func TestImportCSV_SystemParseError(t *testing.T) {
-	fake := &fakeSystemProvider{}
-	newSystemProvider(t, fake)
+func TestImportCSV_DcimParseError(t *testing.T) {
+	fake := &fakeDcimProvider{}
+	newDcimProvider(t, fake)
 	t.Cleanup(func() { commands.CsvFlag = "" })
 	dir := t.TempDir()
 	path := dir + "/headeronly.csv"
@@ -999,10 +999,10 @@ func TestImportCSV_SystemParseError(t *testing.T) {
 	commands.CsvFlag = path
 	err := ImportCSV(nil, nil, &devicetypes.Inventory{})
 	if err == nil {
-		t.Fatal("expected error for unparseable system CSV")
+		t.Fatal("expected error for unparseable DCIM CSV")
 	}
-	if !strings.Contains(err.Error(), "failed to parse system CSV") {
-		t.Errorf("error = %q, want containing 'failed to parse system CSV'", err.Error())
+	if !strings.Contains(err.Error(), "failed to parse DCIM CSV") {
+		t.Errorf("error = %q, want containing 'failed to parse DCIM CSV'", err.Error())
 	}
 }
 

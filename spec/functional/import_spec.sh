@@ -26,7 +26,7 @@
 # ── import command ──────────────────────────────────────────────────
 
 #shellcheck disable=SC2317
-import_example_header_only_system_csv() {
+import_example_header_only_dcim_csv() {
   _path="$CANI_DIR/example-system-header-only.csv"
   printf 'Section,Name\n' >"$_path"
   bin/cani alpha import example --csv "$_path" --config "$CANI_CONF"
@@ -80,10 +80,10 @@ Describe 'cani alpha import'
       The stderr should include 'failed to parse CSV: CSV must have a header row and at least one data row'
     End
 
-    It 'routes a Section header to the system CSV parser and rejects header-only input'
-      When call import_example_header_only_system_csv
+    It 'routes a Section header to the DCIM CSV parser and rejects header-only input'
+      When call import_example_header_only_dcim_csv
       The status should equal 1
-      The stderr should include 'failed to parse system CSV: system CSV must have a header row and at least one data row'
+      The stderr should include 'failed to parse DCIM CSV: DCIM CSV must have a header row and at least one data row'
     End
   End
 

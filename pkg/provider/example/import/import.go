@@ -43,33 +43,33 @@ func GetProvider() (interface {
 	return providerGetter(), nil
 }
 
-// systemProviderGetter returns the Example singleton for system CSV operations.
-var systemProviderGetter func() interface {
-	SetSystemRecords(data *SystemCSV)
-	ClearSystemRecords()
-	IsSystemImport() bool
+// dcimProviderGetter returns the Example singleton for DCIM CSV operations.
+var dcimProviderGetter func() interface {
+	SetDcimRecords(data *DcimCSV)
+	ClearDcimRecords()
+	IsDcimImport() bool
 }
 
-// SetSystemProviderGetter allows the parent package to provide system CSV access.
-func SetSystemProviderGetter(getter func() interface {
-	SetSystemRecords(data *SystemCSV)
-	ClearSystemRecords()
-	IsSystemImport() bool
+// SetDcimProviderGetter allows the parent package to provide DCIM CSV access.
+func SetDcimProviderGetter(getter func() interface {
+	SetDcimRecords(data *DcimCSV)
+	ClearDcimRecords()
+	IsDcimImport() bool
 }) {
-	systemProviderGetter = getter
+	dcimProviderGetter = getter
 }
 
-// GetSystemProvider returns the Example singleton for system CSV operations.
+// GetDcimProvider returns the Example singleton for DCIM CSV operations.
 // It returns an error when the parent package has not registered a getter.
-func GetSystemProvider() (interface {
-	SetSystemRecords(data *SystemCSV)
-	ClearSystemRecords()
-	IsSystemImport() bool
+func GetDcimProvider() (interface {
+	SetDcimRecords(data *DcimCSV)
+	ClearDcimRecords()
+	IsDcimImport() bool
 }, error) {
-	if systemProviderGetter == nil {
-		return nil, errors.New("systemProviderGetter not set; ensure example package init() calls SetSystemProviderGetter")
+	if dcimProviderGetter == nil {
+		return nil, errors.New("dcimProviderGetter not set; ensure example package init() calls SetDcimProviderGetter")
 	}
-	return systemProviderGetter(), nil
+	return dcimProviderGetter(), nil
 }
 
 // peekCSVHeader reads the first line of a CSV file and returns the header fields.
@@ -224,7 +224,7 @@ func mergeYAMLInventory(dst *devicetypes.Inventory, src *yamlInventory) error {
 }
 
 // ImportCSV parses a CSV file and stores raw records on the Example provider.
-// Auto-detects system CSV format (multi-section with Section column) vs
+// Auto-detects DCIM CSV format (multi-section with Section column) vs
 // traditional BOM CSV format. Does NOT create inventory objects; that is the
 // responsibility of the transform phase.
 func ImportCSV(cmd *cli.Command, args []string, inventory *devicetypes.Inventory) error {
@@ -234,41 +234,41 @@ func ImportCSV(cmd *cli.Command, args []string, inventory *devicetypes.Inventory
 		return fmt.Errorf("failed to read CSV header: %w", err)
 	}
 
-	if IsSystemCSV(header) {
-		return importSystemCSV(cmd, args, inventory)
+	if IsDcimCSV(header) {
+		return importDcimCSV(cmd, args, inventory)
 	}
 	return importBOMCSV(cmd, args, inventory)
 }
 
-// importSystemCSV parses a system CSV and stores the grouped data on the provider.
-func importSystemCSV(cmd *cli.Command, args []string, inventory *devicetypes.Inventory) error {
-	data, err := ParseSystemCSV(commands.CsvFlag)
+// importDcimCSV parses a DCIM CSV and stores the grouped data on the provider.
+func importDcimCSV(cmd *cli.Command, args []string, inventory *devicetypes.Inventory) error {
+	data, err := ParseDcimCSV(commands.CsvFlag)
 	if err != nil {
-		return fmt.Errorf("failed to parse system CSV: %w", err)
+		return fmt.Errorf("failed to parse DCIM CSV: %w", err)
 	}
 
 	total := len(data.Roles) + len(data.Statuses) + len(data.Locations) + len(data.Racks) +
 		len(data.Devices) + len(data.Modules) + len(data.Interfaces) + len(data.Connections)
 	if total == 0 {
-		log.Println("No valid records found in system CSV")
+		log.Println("No valid records found in DCIM CSV")
 		return nil
 	}
 
 	// Show step-through output if step mode is enabled
 	if config.Cfg != nil && config.Cfg.StepMode {
-		if err := stepSystemRecords(data); err != nil {
+		if err := stepDcimRecords(data); err != nil {
 			return err
 		}
 	}
 
-	prov, err := GetSystemProvider()
+	prov, err := GetDcimProvider()
 	if err != nil {
 		return err
 	}
-	prov.ClearSystemRecords()
-	prov.SetSystemRecords(data)
+	prov.ClearDcimRecords()
+	prov.SetDcimRecords(data)
 
-	log.Printf("Parsed system CSV from %s: %d roles, %d statuses, %d locations, %d racks, %d devices, %d modules, %d interfaces, %d connections",
+	log.Printf("Parsed DCIM CSV from %s: %d roles, %d statuses, %d locations, %d racks, %d devices, %d modules, %d interfaces, %d connections",
 		commands.CsvFlag,
 		len(data.Roles), len(data.Statuses), len(data.Locations), len(data.Racks),
 		len(data.Devices), len(data.Modules), len(data.Interfaces), len(data.Connections))
@@ -276,15 +276,15 @@ func importSystemCSV(cmd *cli.Command, args []string, inventory *devicetypes.Inv
 	return nil
 }
 
-// stepSystemRecords drives an interactive per-record prompt for each parsed
-// system record when step mode is enabled, in pipeline order. A closed input
+// stepDcimRecords drives an interactive per-record prompt for each parsed
+// DCIM CSV record when step mode is enabled, in pipeline order. A closed input
 // stream aborts the import with a step-interrupted error.
-func stepSystemRecords(data *SystemCSV) error {
+func stepDcimRecords(data *DcimCSV) error {
 	opts := visual.ETLOptions{NoColor: config.Cfg.NoColor}
-	records := collectSystemStepRecords(data)
+	records := collectDcimStepRecords(data)
 	for i, rec := range records {
-		raw := formatSystemRecordRaw(rec)
-		parsed := formatSystemRecordParsed(rec)
+		raw := formatDcimRecordRaw(rec)
+		parsed := formatDcimRecordParsed(rec)
 		if err := visual.PromptCSVRowStepRaw(i+1, len(records), raw, parsed, opts); err != nil {
 			return fmt.Errorf("step interrupted: %w", err)
 		}
@@ -292,10 +292,10 @@ func stepSystemRecords(data *SystemCSV) error {
 	return nil
 }
 
-// collectSystemStepRecords flattens the system CSV buckets into a single ordered
+// collectDcimStepRecords flattens the DCIM CSV buckets into a single ordered
 // slice matching the transform pipeline order.
-func collectSystemStepRecords(data *SystemCSV) []SystemRecord {
-	var all []SystemRecord
+func collectDcimStepRecords(data *DcimCSV) []DcimRecord {
+	var all []DcimRecord
 	all = append(all, data.Roles...)
 	all = append(all, data.Statuses...)
 	all = append(all, data.Locations...)
@@ -307,9 +307,9 @@ func collectSystemStepRecords(data *SystemCSV) []SystemRecord {
 	return all
 }
 
-// formatSystemRecordRaw creates a compact string of a system record's identity
+// formatDcimRecordRaw creates a compact string of a DCIM record's identity
 // fields for step-through display.
-func formatSystemRecordRaw(rec SystemRecord) string {
+func formatDcimRecordRaw(rec DcimRecord) string {
 	parts := []string{rec.Section}
 	if rec.Name != "" {
 		parts = append(parts, rec.Name)
@@ -320,9 +320,9 @@ func formatSystemRecordRaw(rec SystemRecord) string {
 	return fmt.Sprintf("%s", parts)
 }
 
-// formatSystemRecordParsed creates a descriptive string of a parsed system
+// formatDcimRecordParsed creates a descriptive string of a parsed DCIM
 // record keyed by its section.
-func formatSystemRecordParsed(rec SystemRecord) string {
+func formatDcimRecordParsed(rec DcimRecord) string {
 	switch rec.Section {
 	case "connection":
 		return fmt.Sprintf("cable %s: %s:%s ↔ %s:%s", rec.PartNumber, rec.ADevice, rec.APort, rec.BDevice, rec.BPort)

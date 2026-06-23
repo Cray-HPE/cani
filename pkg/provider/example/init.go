@@ -23,11 +23,11 @@ func init() {
 		return instance
 	})
 
-	// Register the system provider getter with the import package
-	import_.SetSystemProviderGetter(func() interface {
-		SetSystemRecords(data *import_.SystemCSV)
-		ClearSystemRecords()
-		IsSystemImport() bool
+	// Register the DCIM provider getter with the import package
+	import_.SetDcimProviderGetter(func() interface {
+		SetDcimRecords(data *import_.DcimCSV)
+		ClearDcimRecords()
+		IsDcimImport() bool
 	} {
 		return instance
 	})
@@ -39,10 +39,10 @@ func init() {
 		return instance
 	})
 
-	// Register the system provider getter with the transform package
-	transform.SetSystemProviderGetter(func() interface {
-		GetSystemRecords() *import_.SystemCSV
-		IsSystemImport() bool
+	// Register the DCIM provider getter with the transform package
+	transform.SetDcimProviderGetter(func() interface {
+		GetDcimRecords() *import_.DcimCSV
+		IsDcimImport() bool
 	} {
 		return instance
 	})

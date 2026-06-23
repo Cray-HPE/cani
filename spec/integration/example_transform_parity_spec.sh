@@ -103,7 +103,7 @@ PY
 #shellcheck disable=SC2317
 example_system_transform_summary() {
   setup_test_env
-  bin/cani alpha import example --csv "$FIXTURES/example/system.csv" --config "$CANI_CONF" >/dev/null 2>&1 || return $?
+  bin/cani alpha import example --csv "$FIXTURES/example/dcim.csv" --config "$CANI_CONF" >/dev/null 2>&1 || return $?
 
   CANI_DS_PATH="$CANI_DS" python3 - <<'PY'
 import json
@@ -148,7 +148,7 @@ PY
 Describe 'INTEGRATION: example transform parity'
     AfterAll 'teardown_test_env'
 
-  It 'transforms matrix system CSV into locations roles hardware and cables'
+  It 'transforms matrix DCIM CSV into locations roles hardware and cables'
     When call example_matrix_transform_summary
     The status should equal 0
     The output should include 'counts=locations:1,racks:1,devices:6,modules:20,cables:6'
@@ -164,7 +164,7 @@ Describe 'INTEGRATION: example transform parity'
     The output should include 'hpe-ib-ndr-osfp-dac-cable|black|2|m:2'
   End
 
-  It 'transforms example system CSV interface metadata and expanded connections'
+  It 'transforms example DCIM CSV interface metadata and expanded connections'
     When call example_system_transform_summary
     The status should equal 0
     The output should include 'counts=racks:2,devices:6,modules:3,cables:6,interfaces:184'

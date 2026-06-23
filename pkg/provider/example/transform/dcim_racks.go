@@ -8,9 +8,9 @@ import (
 	"github.com/google/uuid"
 )
 
-// transformSystemRacks creates racks from system CSV rack records.
+// transformDcimRacks creates racks from DCIM CSV rack records.
 // Returns a map of rack name → UUID for device parenting.
-func transformSystemRacks(data *import_.SystemCSV, result *devicetypes.TransformResult, inv *devicetypes.Inventory, locationsByName map[string]uuid.UUID) (map[string]uuid.UUID, error) {
+func transformDcimRacks(data *import_.DcimCSV, result *devicetypes.TransformResult, inv *devicetypes.Inventory, locationsByName map[string]uuid.UUID) (map[string]uuid.UUID, error) {
 	racksByName := make(map[string]uuid.UUID)
 
 	for _, rec := range data.Racks {

@@ -7,8 +7,8 @@ type Example struct {
 	Options *ImportOptions
 	// RawRecords holds all raw CSV records from the import phase
 	RawRecords []import_.CsvRecord
-	// SystemData holds parsed system CSV data (multi-section format)
-	SystemData *import_.SystemCSV
+	// DcimData holds parsed DCIM CSV data (multi-section format)
+	DcimData *import_.DcimCSV
 }
 
 // New creates a new Example provider instance
@@ -31,24 +31,24 @@ func (p *Example) GetRecords() []import_.CsvRecord {
 	return p.RawRecords
 }
 
-// SetSystemRecords stores parsed system CSV data
-func (p *Example) SetSystemRecords(data *import_.SystemCSV) {
-	p.SystemData = data
+// SetDcimRecords stores parsed DCIM CSV data
+func (p *Example) SetDcimRecords(data *import_.DcimCSV) {
+	p.DcimData = data
 }
 
-// GetSystemRecords returns the system CSV data for transform
-func (p *Example) GetSystemRecords() *import_.SystemCSV {
-	return p.SystemData
+// GetDcimRecords returns the DCIM CSV data for transform
+func (p *Example) GetDcimRecords() *import_.DcimCSV {
+	return p.DcimData
 }
 
-// ClearSystemRecords resets system CSV data
-func (p *Example) ClearSystemRecords() {
-	p.SystemData = nil
+// ClearDcimRecords resets DCIM CSV data
+func (p *Example) ClearDcimRecords() {
+	p.DcimData = nil
 }
 
-// IsSystemImport returns true if a system CSV was parsed
-func (p *Example) IsSystemImport() bool {
-	return p.SystemData != nil
+// IsDcimImport returns true if a DCIM CSV was parsed
+func (p *Example) IsDcimImport() bool {
+	return p.DcimData != nil
 }
 
 func (p *Example) Slug() string {

@@ -39,13 +39,13 @@ func withStdin(t *testing.T, input string) {
 	}()
 }
 
-type fakeSystemProvider struct {
-	data     *import_.SystemCSV
-	isSystem bool
+type fakeDcimProvider struct {
+	data   *import_.DcimCSV
+	isDcim bool
 }
 
-func (f *fakeSystemProvider) GetSystemRecords() *import_.SystemCSV { return f.data }
-func (f *fakeSystemProvider) IsSystemImport() bool                 { return f.isSystem }
+func (f *fakeDcimProvider) GetDcimRecords() *import_.DcimCSV { return f.data }
+func (f *fakeDcimProvider) IsDcimImport() bool               { return f.isDcim }
 
 // setupTransformTest saves and restores providerGetter and config.Cfg, then
 // sets a fakeRecordProvider with the given records.
@@ -95,66 +95,66 @@ func TestSetProviderGetter(t *testing.T) {
 	}
 }
 
-// TestSetSystemProviderGetter verifies the setter installs a non-nil system
+// TestSetDcimProviderGetter verifies the setter installs a non-nil DCIM
 // provider accessor that the package can invoke.
 //
 // Why it matters: the transform layer is decoupled from the provider singleton
-// to avoid an import cycle, so the parent package must be able to inject system
-// CSV access through this setter before any system import can run.
+// to avoid an import cycle, so the parent package must be able to inject DCIM
+// CSV access through this setter before any DCIM import can run.
 // Inputs: a getter closure that records its invocation. Outputs: a non-nil
-// systemProviderGetter that, when called, runs the closure.
+// dcimProviderGetter that, when called, runs the closure.
 // Data choice: a boolean tripwire is the minimal observable proof the injected
 // getter is the one actually stored and called.
-func TestSetSystemProviderGetter(t *testing.T) {
-	old := systemProviderGetter
-	t.Cleanup(func() { systemProviderGetter = old })
+func TestSetDcimProviderGetter(t *testing.T) {
+	old := dcimProviderGetter
+	t.Cleanup(func() { dcimProviderGetter = old })
 
 	called := false
-	SetSystemProviderGetter(func() interface {
-		GetSystemRecords() *import_.SystemCSV
-		IsSystemImport() bool
+	SetDcimProviderGetter(func() interface {
+		GetDcimRecords() *import_.DcimCSV
+		IsDcimImport() bool
 	} {
 		called = true
-		return &fakeSystemProvider{}
+		return &fakeDcimProvider{}
 	})
 
-	if systemProviderGetter == nil {
-		t.Fatal("systemProviderGetter should not be nil after SetSystemProviderGetter")
+	if dcimProviderGetter == nil {
+		t.Fatal("dcimProviderGetter should not be nil after SetDcimProviderGetter")
 	}
-	systemProviderGetter()
+	dcimProviderGetter()
 	if !called {
-		t.Error("expected systemProviderGetter to be called")
+		t.Error("expected dcimProviderGetter to be called")
 	}
 }
 
-// TestTransform_SystemCSVRouting verifies Transform dispatches to the system
-// transform only when the provider reports a system import.
+// TestTransform_DcimCSVRouting verifies Transform dispatches to the DCIM
+// transform only when the provider reports a DCIM import.
 //
 // Why it matters: a single Transform entry point serves both the flat CSV and
-// the richer system CSV formats, so it must branch on IsSystemImport to avoid
+// the richer DCIM CSV formats, so it must branch on IsDcimImport to avoid
 // running the wrong pipeline against the wrong data shape.
-// Inputs: a system provider toggled true then false, paired with matching
-// records. Outputs: one rack from the system pipeline when true, one rack from
+// Inputs: a DCIM provider toggled true then false, paired with matching
+// records. Outputs: one rack from the DCIM pipeline when true, one rack from
 // the flat-CSV pipeline when false.
 // Data choice: a single rack in each branch is the smallest output that proves
-// which pipeline ran, and a real rack slug keeps the system path's library
+// which pipeline ran, and a real rack slug keeps the DCIM path's library
 // lookup realistic.
-func TestTransform_SystemCSVRouting(t *testing.T) {
-	t.Run("routes to system transform when IsSystemImport is true", func(t *testing.T) {
-		oldSys := systemProviderGetter
-		t.Cleanup(func() { systemProviderGetter = oldSys })
+func TestTransform_DcimCSVRouting(t *testing.T) {
+	t.Run("routes to DCIM transform when IsDcimImport is true", func(t *testing.T) {
+		oldSys := dcimProviderGetter
+		t.Cleanup(func() { dcimProviderGetter = oldSys })
 
-		data := &import_.SystemCSV{
-			SectionDefaults: make(map[string]import_.SystemRecord),
-			Racks: []import_.SystemRecord{
+		data := &import_.DcimCSV{
+			SectionDefaults: make(map[string]import_.DcimRecord),
+			Racks: []import_.DcimRecord{
 				{Section: "rack", PartNumber: "hpe-48u-800mmx1200mm-g2-enterprise-shock-rack", Name: "x3701", Qty: 1, Status: "Available"},
 			},
 		}
-		SetSystemProviderGetter(func() interface {
-			GetSystemRecords() *import_.SystemCSV
-			IsSystemImport() bool
+		SetDcimProviderGetter(func() interface {
+			GetDcimRecords() *import_.DcimCSV
+			IsDcimImport() bool
 		} {
-			return &fakeSystemProvider{data: data, isSystem: true}
+			return &fakeDcimProvider{data: data, isDcim: true}
 		})
 
 		result, err := Transform(devicetypes.Inventory{})
@@ -162,18 +162,18 @@ func TestTransform_SystemCSVRouting(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 		if len(result.Racks) != 1 {
-			t.Errorf("expected 1 rack from system transform, got %d", len(result.Racks))
+			t.Errorf("expected 1 rack from DCIM transform, got %d", len(result.Racks))
 		}
 	})
 
-	t.Run("falls through to CSV transform when IsSystemImport is false", func(t *testing.T) {
-		oldSys := systemProviderGetter
-		t.Cleanup(func() { systemProviderGetter = oldSys })
-		SetSystemProviderGetter(func() interface {
-			GetSystemRecords() *import_.SystemCSV
-			IsSystemImport() bool
+	t.Run("falls through to CSV transform when IsDcimImport is false", func(t *testing.T) {
+		oldSys := dcimProviderGetter
+		t.Cleanup(func() { dcimProviderGetter = oldSys })
+		SetDcimProviderGetter(func() interface {
+			GetDcimRecords() *import_.DcimCSV
+			IsDcimImport() bool
 		} {
-			return &fakeSystemProvider{isSystem: false}
+			return &fakeDcimProvider{isDcim: false}
 		})
 
 		setupTransformTest(t, []import_.CsvRecord{
