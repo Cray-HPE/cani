@@ -9,9 +9,9 @@ import (
 	"strings"
 )
 
-// SystemRecord holds a parsed row from a system CSV file.
+// DcimRecord holds a parsed row from a DCIM CSV file.
 // The Section field determines which other fields are relevant.
-type SystemRecord struct {
+type DcimRecord struct {
 	Section      string // role, rack, device, module, connection
 	PartNumber   string
 	Name         string
@@ -38,22 +38,22 @@ type SystemRecord struct {
 	LocationType string // location type for location rows (dc, level, section)
 }
 
-// SystemCSV holds parsed system CSV data grouped by section.
-type SystemCSV struct {
-	Defaults        SystemRecord            // global _defaults row
-	SectionDefaults map[string]SystemRecord // per-section defaults (e.g. device_defaults)
-	Roles           []SystemRecord
-	Statuses        []SystemRecord
-	Locations       []SystemRecord
-	Racks           []SystemRecord
-	Devices         []SystemRecord
-	Modules         []SystemRecord
-	Interfaces      []SystemRecord
-	Connections     []SystemRecord
+// DcimCSV holds parsed DCIM CSV data grouped by section.
+type DcimCSV struct {
+	Defaults        DcimRecord            // global _defaults row
+	SectionDefaults map[string]DcimRecord // per-section defaults (e.g. device_defaults)
+	Roles           []DcimRecord
+	Statuses        []DcimRecord
+	Locations       []DcimRecord
+	Racks           []DcimRecord
+	Devices         []DcimRecord
+	Modules         []DcimRecord
+	Interfaces      []DcimRecord
+	Connections     []DcimRecord
 }
 
-// systemColumnIndex maps header positions for system CSV columns.
-type systemColumnIndex struct {
+// dcimColumnIndex maps header positions for DCIM CSV columns.
+type dcimColumnIndex struct {
 	section      int
 	partNumber   int
 	name         int
@@ -80,22 +80,22 @@ type systemColumnIndex struct {
 	locationType int
 }
 
-// IsSystemCSV returns true if the header row contains a "Section" column,
-// indicating this is a system CSV rather than a traditional BOM CSV.
-func IsSystemCSV(header []string) bool {
+// IsDcimCSV returns true if the header row contains a "Section" column,
+// indicating this is a DCIM CSV rather than a traditional BOM CSV.
+func IsDcimCSV(header []string) bool {
 	for _, col := range header {
-		if normalizeSystemHeader(col) == "section" {
+		if normalizeDcimHeader(col) == "section" {
 			return true
 		}
 	}
 	return false
 }
 
-// ParseSystemCSV reads a system CSV file and returns grouped records.
-func ParseSystemCSV(filePath string) (*SystemCSV, error) {
+// ParseDcimCSV reads a DCIM CSV file and returns grouped records.
+func ParseDcimCSV(filePath string) (*DcimCSV, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open system CSV file: %w", err)
+		return nil, fmt.Errorf("failed to open DCIM CSV file: %w", err)
 	}
 	defer file.Close()
 
@@ -105,26 +105,26 @@ func ParseSystemCSV(filePath string) (*SystemCSV, error) {
 
 	rows, err := reader.ReadAll()
 	if err != nil {
-		return nil, fmt.Errorf("failed to read system CSV: %w", err)
+		return nil, fmt.Errorf("failed to read DCIM CSV: %w", err)
 	}
 
 	if len(rows) < 2 {
-		return nil, fmt.Errorf("system CSV must have a header row and at least one data row")
+		return nil, fmt.Errorf("DCIM CSV must have a header row and at least one data row")
 	}
 
-	idx, err := parseSystemHeader(rows[0])
+	idx, err := parseDcimHeader(rows[0])
 	if err != nil {
 		return nil, err
 	}
 
-	result := &SystemCSV{
-		SectionDefaults: make(map[string]SystemRecord),
+	result := &DcimCSV{
+		SectionDefaults: make(map[string]DcimRecord),
 	}
 
 	for lineNum, row := range rows[1:] {
-		rec, err := parseSystemRow(row, idx, lineNum+2)
+		rec, err := parseDcimRow(row, idx, lineNum+2)
 		if err != nil {
-			log.Printf("WARN: system CSV line %d: %v, skipping", lineNum+2, err)
+			log.Printf("WARN: DCIM CSV line %d: %v, skipping", lineNum+2, err)
 			continue
 		}
 
@@ -159,16 +159,16 @@ func ParseSystemCSV(filePath string) (*SystemCSV, error) {
 		case "connection":
 			result.Connections = append(result.Connections, rec)
 		default:
-			log.Printf("WARN: system CSV line %d: unknown section %q, skipping", lineNum+2, rec.Section)
+			log.Printf("WARN: DCIM CSV line %d: unknown section %q, skipping", lineNum+2, rec.Section)
 		}
 	}
 
 	return result, nil
 }
 
-// parseSystemHeader maps header columns to a systemColumnIndex.
-func parseSystemHeader(header []string) (systemColumnIndex, error) {
-	idx := systemColumnIndex{
+// parseDcimHeader maps header columns to a dcimColumnIndex.
+func parseDcimHeader(header []string) (dcimColumnIndex, error) {
+	idx := dcimColumnIndex{
 		section:      -1,
 		partNumber:   -1,
 		name:         -1,
@@ -196,7 +196,7 @@ func parseSystemHeader(header []string) (systemColumnIndex, error) {
 	}
 
 	for i, col := range header {
-		switch normalizeSystemHeader(col) {
+		switch normalizeDcimHeader(col) {
 		case "section":
 			idx.section = i
 		case "partnumber":
@@ -255,8 +255,8 @@ func parseSystemHeader(header []string) (systemColumnIndex, error) {
 	return idx, nil
 }
 
-// normalizeSystemHeader converts column header variations to canonical names.
-func normalizeSystemHeader(col string) string {
+// normalizeDcimHeader converts column header variations to canonical names.
+func normalizeDcimHeader(col string) string {
 	lower := strings.ToLower(strings.TrimSpace(col))
 	lower = strings.ReplaceAll(lower, "_", "")
 	lower = strings.ReplaceAll(lower, "-", "")
@@ -316,11 +316,11 @@ func normalizeSystemHeader(col string) string {
 	}
 }
 
-// parseSystemRow extracts a SystemRecord from a CSV row.
-func parseSystemRow(row []string, idx systemColumnIndex, lineNum int) (SystemRecord, error) {
+// parseDcimRow extracts a DcimRecord from a CSV row.
+func parseDcimRow(row []string, idx dcimColumnIndex, lineNum int) (DcimRecord, error) {
 	section := getColumnValue(row, idx.section)
 	if section == "" {
-		return SystemRecord{}, fmt.Errorf("empty Section")
+		return DcimRecord{}, fmt.Errorf("empty Section")
 	}
 
 	qtyStr := getColumnValue(row, idx.qty)
@@ -329,10 +329,10 @@ func parseSystemRow(row []string, idx systemColumnIndex, lineNum int) (SystemRec
 		var err error
 		qty, err = strconv.Atoi(qtyStr)
 		if err != nil {
-			return SystemRecord{}, fmt.Errorf("invalid Qty %q: %w", qtyStr, err)
+			return DcimRecord{}, fmt.Errorf("invalid Qty %q: %w", qtyStr, err)
 		}
 		if qty < 1 {
-			return SystemRecord{}, fmt.Errorf("Qty must be >= 1, got %d", qty)
+			return DcimRecord{}, fmt.Errorf("Qty must be >= 1, got %d", qty)
 		}
 	}
 
@@ -342,11 +342,11 @@ func parseSystemRow(row []string, idx systemColumnIndex, lineNum int) (SystemRec
 		var err error
 		pos, err = strconv.Atoi(posStr)
 		if err != nil {
-			return SystemRecord{}, fmt.Errorf("invalid Position %q: %w", posStr, err)
+			return DcimRecord{}, fmt.Errorf("invalid Position %q: %w", posStr, err)
 		}
 	}
 
-	return SystemRecord{
+	return DcimRecord{
 		Section:      section,
 		PartNumber:   getColumnValue(row, idx.partNumber),
 		Name:         getColumnValue(row, idx.name),
@@ -376,22 +376,22 @@ func parseSystemRow(row []string, idx systemColumnIndex, lineNum int) (SystemRec
 
 // ApplyDefaults merges defaults into a record. Fields already set on rec
 // take precedence. Global defaults are applied first, then section-specific.
-func (s *SystemCSV) ApplyDefaults(rec SystemRecord) SystemRecord {
+func (s *DcimCSV) ApplyDefaults(rec DcimRecord) DcimRecord {
 	section := strings.ToLower(rec.Section)
 
 	// Apply global defaults first
-	rec = mergeSystemDefaults(rec, s.Defaults)
+	rec = mergeDcimDefaults(rec, s.Defaults)
 
 	// Apply section-specific defaults (override global)
 	if sd, ok := s.SectionDefaults[section]; ok {
-		rec = mergeSystemDefaults(rec, sd)
+		rec = mergeDcimDefaults(rec, sd)
 	}
 
 	return rec
 }
 
-// mergeSystemDefaults fills empty fields in rec from defaults.
-func mergeSystemDefaults(rec, defaults SystemRecord) SystemRecord {
+// mergeDcimDefaults fills empty fields in rec from defaults.
+func mergeDcimDefaults(rec, defaults DcimRecord) DcimRecord {
 	if rec.Status == "" && defaults.Status != "" {
 		rec.Status = defaults.Status
 	}

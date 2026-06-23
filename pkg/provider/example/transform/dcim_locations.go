@@ -8,9 +8,9 @@ import (
 	"github.com/google/uuid"
 )
 
-// transformSystemLocations creates locations from system CSV location records.
+// transformDcimLocations creates locations from DCIM CSV location records.
 // Returns a map of location name → UUID for rack parenting.
-func transformSystemLocations(data *import_.SystemCSV, result *devicetypes.TransformResult, inv *devicetypes.Inventory) (map[string]uuid.UUID, error) {
+func transformDcimLocations(data *import_.DcimCSV, result *devicetypes.TransformResult, inv *devicetypes.Inventory) (map[string]uuid.UUID, error) {
 	locationsByName := make(map[string]uuid.UUID)
 
 	for _, rec := range data.Locations {

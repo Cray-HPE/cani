@@ -8,24 +8,24 @@ import (
 	"github.com/google/uuid"
 )
 
-// transformSystemInterfaces applies per-interface metadata (currently MAC
-// addresses) from the system CSV's `interface` rows onto the matching device
+// transformDcimInterfaces applies per-interface metadata (currently MAC
+// addresses) from the DCIM CSV's `interface` rows onto the matching device
 // or module interface specs. An interface row uses Device as the owner name
 // and Name as the interface name. The owner is resolved first among objects
 // created in this import and then among devices and modules already present in
 // the inventory, so an interface row can annotate hardware imported in an
 // earlier run. Rows referencing an unknown owner or interface are logged and
 // skipped so a single bad row does not abort import.
-func transformSystemInterfaces(data *import_.SystemCSV, result *devicetypes.TransformResult, inv *devicetypes.Inventory) error {
+func transformDcimInterfaces(data *import_.DcimCSV, result *devicetypes.TransformResult, inv *devicetypes.Inventory) error {
 	for _, rec := range data.Interfaces {
 		rec = data.ApplyDefaults(rec)
 
 		if rec.Device == "" {
-			log.Printf("WARN: system CSV interface row for %q has no Device, skipping", rec.Name)
+			log.Printf("WARN: DCIM CSV interface row for %q has no Device, skipping", rec.Name)
 			continue
 		}
 		if rec.Name == "" {
-			log.Printf("WARN: system CSV interface row for device %q has no Name, skipping", rec.Device)
+			log.Printf("WARN: DCIM CSV interface row for device %q has no Name, skipping", rec.Device)
 			continue
 		}
 
@@ -34,14 +34,14 @@ func transformSystemInterfaces(data *import_.SystemCSV, result *devicetypes.Tran
 			spec = findInventoryInterfaceSpec(inv, rec.Device, rec.Name)
 		}
 		if spec == nil {
-			log.Printf("WARN: system CSV interface %q not found on device/module %q, skipping", rec.Name, rec.Device)
+			log.Printf("WARN: DCIM CSV interface %q not found on device/module %q, skipping", rec.Name, rec.Device)
 			continue
 		}
 
 		if rec.MacAddress != "" {
 			mac, err := devicetypes.NormalizeMAC(rec.MacAddress)
 			if err != nil {
-				log.Printf("WARN: system CSV interface %q on %q: %v, skipping", rec.Name, rec.Device, err)
+				log.Printf("WARN: DCIM CSV interface %q on %q: %v, skipping", rec.Name, rec.Device, err)
 				continue
 			}
 			spec.MacAddress = mac

@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// transformSystemDevices creates devices from system CSV device records.
-func transformSystemDevices(data *import_.SystemCSV, result *devicetypes.TransformResult, inv *devicetypes.Inventory, racksByName map[string]uuid.UUID) error {
+// transformDcimDevices creates devices from DCIM CSV device records.
+func transformDcimDevices(data *import_.DcimCSV, result *devicetypes.TransformResult, inv *devicetypes.Inventory, racksByName map[string]uuid.UUID) error {
 	for _, rec := range data.Devices {
 		rec = data.ApplyDefaults(rec)
 		if rec.PartNumber == "" {

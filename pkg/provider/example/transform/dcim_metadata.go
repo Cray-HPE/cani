@@ -8,9 +8,9 @@ import (
 	import_ "github.com/Cray-HPE/cani/pkg/provider/example/import"
 )
 
-// transformMetadata builds the role and status catalog from the system CSV's
+// transformMetadata builds the role and status catalog from the DCIM CSV's
 // `role` and `status` sections. It returns nil when neither section is present.
-func transformMetadata(data *import_.SystemCSV) (*devicetypes.InventoryMetadata, error) {
+func transformMetadata(data *import_.DcimCSV) (*devicetypes.InventoryMetadata, error) {
 	roles, err := metadataEntriesFromRecords(data, data.Roles, "role")
 	if err != nil {
 		return nil, err
@@ -28,7 +28,7 @@ func transformMetadata(data *import_.SystemCSV) (*devicetypes.InventoryMetadata,
 // metadataEntriesFromRecords converts catalog records (roles or statuses) into
 // MetadataEntry items, applying defaults and parsing content types. The kind is
 // used only for the missing-name error message.
-func metadataEntriesFromRecords(data *import_.SystemCSV, records []import_.SystemRecord, kind string) ([]devicetypes.MetadataEntry, error) {
+func metadataEntriesFromRecords(data *import_.DcimCSV, records []import_.DcimRecord, kind string) ([]devicetypes.MetadataEntry, error) {
 	var entries []devicetypes.MetadataEntry
 	for _, rec := range records {
 		rec = data.ApplyDefaults(rec)
@@ -71,7 +71,7 @@ var ipamBareContentTypes = map[string]bool{
 	"vrf":       true,
 }
 
-// normalizeContentType converts a system CSV content type into Nautobot's
+// normalizeContentType converts a DCIM CSV content type into Nautobot's
 // "<app>.<model>" form. Values already containing a dot pass through unchanged;
 // a bare model name is prefixed with its app label, defaulting to dcim and using
 // ipam for IP-address-management models.

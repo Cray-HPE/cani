@@ -10,9 +10,9 @@ import (
 	"github.com/google/uuid"
 )
 
-// TransformSystem converts parsed system CSV data into a TransformResult.
+// TransformDcim converts parsed DCIM CSV data into a TransformResult.
 // Uses a 6-pass algorithm: roles → racks → devices → modules → interfaces → connections.
-func TransformSystem(existing devicetypes.Inventory, data *import_.SystemCSV) (*devicetypes.TransformResult, error) {
+func TransformDcim(existing devicetypes.Inventory, data *import_.DcimCSV) (*devicetypes.TransformResult, error) {
 	initInventoryMaps(&existing)
 	isolateInventoryMaps(&existing)
 
@@ -32,38 +32,38 @@ func TransformSystem(existing devicetypes.Inventory, data *import_.SystemCSV) (*
 	result.Metadata = meta
 
 	// Pass 0b: Locations
-	locationsByName, err := transformSystemLocations(data, result, &existing)
+	locationsByName, err := transformDcimLocations(data, result, &existing)
 	if err != nil {
-		return nil, fmt.Errorf("transformSystemLocations: %w", err)
+		return nil, fmt.Errorf("transformDcimLocations: %w", err)
 	}
 
 	// Pass 1: Racks
-	racksByName, err := transformSystemRacks(data, result, &existing, locationsByName)
+	racksByName, err := transformDcimRacks(data, result, &existing, locationsByName)
 	if err != nil {
-		return nil, fmt.Errorf("transformSystemRacks: %w", err)
+		return nil, fmt.Errorf("transformDcimRacks: %w", err)
 	}
 
 	// Pass 2: Devices
-	err = transformSystemDevices(data, result, &existing, racksByName)
+	err = transformDcimDevices(data, result, &existing, racksByName)
 	if err != nil {
-		return nil, fmt.Errorf("transformSystemDevices: %w", err)
+		return nil, fmt.Errorf("transformDcimDevices: %w", err)
 	}
 
 	// Pass 3: Modules
-	err = transformSystemModules(data, result, &existing)
+	err = transformDcimModules(data, result, &existing)
 	if err != nil {
-		return nil, fmt.Errorf("transformSystemModules: %w", err)
+		return nil, fmt.Errorf("transformDcimModules: %w", err)
 	}
 
 	// Pass 3b: Interfaces (per-interface metadata such as MAC addresses)
-	if err = transformSystemInterfaces(data, result, &existing); err != nil {
-		return nil, fmt.Errorf("transformSystemInterfaces: %w", err)
+	if err = transformDcimInterfaces(data, result, &existing); err != nil {
+		return nil, fmt.Errorf("transformDcimInterfaces: %w", err)
 	}
 
 	// Pass 4: Connections
-	err = transformSystemConnections(data, result, &existing)
+	err = transformDcimConnections(data, result, &existing)
 	if err != nil {
-		return nil, fmt.Errorf("transformSystemConnections: %w", err)
+		return nil, fmt.Errorf("transformDcimConnections: %w", err)
 	}
 
 	// Pass 5: Validate catalog references
@@ -71,7 +71,7 @@ func TransformSystem(existing devicetypes.Inventory, data *import_.SystemCSV) (*
 		return nil, err
 	}
 
-	log.Printf("System CSV transformed: %d roles, %d locations, %d racks, %d devices, %d modules, %d cables",
+	log.Printf("DCIM CSV transformed: %d roles, %d locations, %d racks, %d devices, %d modules, %d cables",
 		len(data.Roles), len(result.Locations), len(result.Racks), len(result.Devices), len(result.Modules), len(result.Cables))
 
 	return result, nil
@@ -82,7 +82,7 @@ func TransformSystem(existing devicetypes.Inventory, data *import_.SystemCSV) (*
 // but new entries added while transforming do not leak into the caller's
 // inventory. This lets the merge phase deduplicate new objects by name instead
 // of being short-circuited by a polluted UUID match, making re-import of the
-// same system CSV idempotent.
+// same DCIM CSV idempotent.
 func isolateInventoryMaps(inv *devicetypes.Inventory) {
 	locations := make(map[uuid.UUID]*devicetypes.CaniLocationType, len(inv.Locations))
 	for k, v := range inv.Locations {
@@ -138,7 +138,7 @@ func validateReferences(result *devicetypes.TransformResult) error {
 		log.Printf("WARN: %s", p)
 	}
 	if len(problems) > 0 && config.Cfg != nil && config.Cfg.Strict {
-		return fmt.Errorf("system CSV has %d unresolved catalog reference(s)", len(problems))
+		return fmt.Errorf("DCIM CSV has %d unresolved catalog reference(s)", len(problems))
 	}
 	return nil
 }
