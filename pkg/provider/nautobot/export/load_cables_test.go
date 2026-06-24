@@ -222,9 +222,11 @@ func TestCreateCaniCableType_ErrorsWhenDeviceNotInNautobot(t *testing.T) {
 //
 // Why it matters: Nautobot rejects a second cable on an already-cabled
 // interface ("must make a unique set"); skipping keeps the export idempotent
-// across re-runs.
+// across re-runs. This is an input-side conflict (an endpoint port reused by
+// two cables), so it is tallied as CablesConflicted rather than CablesSkipped,
+// which is reserved for cables that already exist in Nautobot.
 // Inputs: a fixture whose seedInterfaces sets endpoint A's CableID to a non-nil
-// UUID. Outputs: nil error, CablesSkipped==1, postCalls==0.
+// UUID. Outputs: nil error, CablesConflicted==1, CablesSkipped==0, postCalls==0.
 // Data choice: cabling only endpoint A (B left uuid.Nil) proves a single
 // already-cabled side is enough to trigger the skip.
 func TestCreateCaniCableType_SkipsWhenInterfaceAlreadyCabled(t *testing.T) {
@@ -240,8 +242,11 @@ func TestCreateCaniCableType_SkipsWhenInterfaceAlreadyCabled(t *testing.T) {
 	if err := e.createCaniCableType(context.Background(), f.cableID, f.cable, f.inv, f.deviceIDMap, result); err != nil {
 		t.Fatalf("createCaniCableType() error = %v", err)
 	}
-	if result.CablesSkipped != 1 {
-		t.Errorf("CablesSkipped = %d, want 1", result.CablesSkipped)
+	if result.CablesConflicted != 1 {
+		t.Errorf("CablesConflicted = %d, want 1", result.CablesConflicted)
+	}
+	if result.CablesSkipped != 0 {
+		t.Errorf("CablesSkipped = %d, want 0 (interface conflict is not an already-exists skip)", result.CablesSkipped)
 	}
 	if postCalls != 0 {
 		t.Errorf("expected no create POST when an interface is already cabled, got %d", postCalls)

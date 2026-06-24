@@ -114,6 +114,15 @@ func addConnections(cmd *cli.Command, args []string) error {
 		return fmt.Errorf("no connections resolved; %d errors", len(resolveErrs))
 	}
 
+	// Drop connections that would place a second cable on an already-used
+	// interface so impossible cables never enter the inventory. Input order is
+	// deterministic (connection-map file order), so the first claim on a port
+	// wins and later duplicates are reported and discarded.
+	resolved, conflicts := connections.FilterInterfaceConflicts(resolved)
+	for _, c := range conflicts {
+		log.Printf("WARNING: %s", c.Describe(inventory))
+	}
+
 	if dryRun {
 		return printDryRun(resolved, inventory)
 	}
