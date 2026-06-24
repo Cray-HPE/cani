@@ -83,7 +83,8 @@ type LoadResult struct {
 	FrusCreated        int            // Number of FRUs (inventory items) created
 	FrusSkipped        int            // Number of FRUs skipped (already exist)
 	CablesCreated      int            // Number of cables created
-	CablesSkipped      int            // Number of cables skipped (already exist)
+	CablesSkipped      int            // Number of cables skipped (already exist in Nautobot)
+	CablesConflicted   int            // Number of cables skipped (an endpoint interface is already cabled)
 	VLANsCreated       int            // Number of VLANs created
 	VLANsSkipped       int            // Number of VLANs skipped (already exist)
 	PrefixesCreated    int            // Number of prefixes created
@@ -1183,17 +1184,19 @@ func (e *Exporter) createCaniCableType(ctx context.Context, cableID uuid.UUID, c
 	}
 
 	// Also check if either interface already has ANY cable attached
-	// (to prevent "must make a unique set" errors)
+	// (to prevent "must make a unique set" errors). This is distinct from a
+	// genuine pre-existing cable between these two interfaces: it usually means
+	// the input data assigns two cables to the same physical port.
 	if ifaceA.CableID != uuid.Nil {
 		clog.Skipped("Skipped cable (interface already cabled): %s:%s",
 			deviceA.Name, cable.TerminationAPort)
-		result.CablesSkipped++
+		result.CablesConflicted++
 		return nil
 	}
 	if ifaceB.CableID != uuid.Nil {
 		clog.Skipped("Skipped cable (interface already cabled): %s:%s",
 			deviceB.Name, cable.TerminationBPort)
-		result.CablesSkipped++
+		result.CablesConflicted++
 		return nil
 	}
 
@@ -1407,6 +1410,9 @@ func (e *Exporter) printLoadSummary(result *LoadResult) {
 	}
 	if result.CablesSkipped > 0 {
 		clog.Skipped("Skipped cables (already exist): %d", result.CablesSkipped)
+	}
+	if result.CablesConflicted > 0 {
+		clog.Skipped("Skipped cables (interface already cabled): %d", result.CablesConflicted)
 	}
 
 	// VLANs

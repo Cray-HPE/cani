@@ -129,6 +129,9 @@ func PrintSummary(result *LoadResult) {
 	if result.CablesSkipped > 0 {
 		clog.Skipped("Skipped cables (already exist): %d", result.CablesSkipped)
 	}
+	if result.CablesConflicted > 0 {
+		clog.Skipped("Skipped cables (interface already cabled): %d", result.CablesConflicted)
+	}
 
 	if result.VLANsCreated > 0 {
 		clog.Created("Created VLANs: %d", result.VLANsCreated)
