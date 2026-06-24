@@ -25,17 +25,11 @@
  */
 package core
 
-import (
-	"path/filepath"
-	"sort"
-)
+import "path/filepath"
 
 const (
 	App              = "cani"
-	CSM              = "csm"
-	Ngsm             = "ngsm"
 	DsFile           = App + "db.json"
-	DsFileCSM        = App + "db.json"
 	LogFile          = App + "db.log"
 	CfgFile          = App + ".yml"
 	CfgDir           = "." + App
@@ -46,11 +40,6 @@ const (
 )
 
 var (
-	DsPath             = filepath.Join(CfgDir, DsFile)
-	CfgPath            = filepath.Join(CfgDir, CfgFile)
-	SupportedProviders = []string{CSM, Ngsm}
+	DsPath  = filepath.Join(CfgDir, DsFile)
+	CfgPath = filepath.Join(CfgDir, CfgFile)
 )
-
-func Init() {
-	sort.Strings(SupportedProviders)
-}
