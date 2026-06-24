@@ -137,6 +137,59 @@ func TestFlattenProviderMetadataEmpty(t *testing.T) {
 	}
 }
 
+// TestGetProviderMetaDeterministic verifies GetProviderMeta resolves a key that
+// several provider sub-maps define by always returning the value from the
+// lowest-sorted provider name, independent of Go's randomized map iteration.
+//
+// Why it matters: nondeterministic resolution would let the same inventory
+// produce different values across runs, breaking reproducible exports and
+// confusing operators; pinning a stable precedence makes lookups predictable.
+// Inputs: an ObjectMeta whose "aaa" and "zzz" provider sub-maps both define
+// "shared" with different values, queried repeatedly. Outputs: the "aaa" value
+// every time. Data choice: two keys at opposite ends of the sort order make an
+// accidental map-order dependency observable, and repeated calls defeat the
+// per-range iteration randomization.
+func TestGetProviderMetaDeterministic(t *testing.T) {
+	dev := &CaniDeviceType{
+		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
+			"zzz": map[string]any{"shared": "from-zzz"},
+			"aaa": map[string]any{"shared": "from-aaa"},
+		}},
+	}
+	for i := 0; i < 50; i++ {
+		v, ok := dev.GetProviderMeta("shared")
+		if !ok || v != "from-aaa" {
+			t.Fatalf("GetProviderMeta(shared) = %v, %v; want from-aaa, true", v, ok)
+		}
+	}
+}
+
+// TestFlattenProviderMetadataDeterministic verifies FlattenProviderMetadata
+// resolves a key defined by several providers by always keeping the value from
+// the highest-sorted provider name, independent of map iteration order.
+//
+// Why it matters: FlattenProviderMetadata feeds provider exports (e.g. Nautobot
+// CustomFields); a nondeterministic winner on key collisions would yield
+// unstable exported values for identical inventory.
+// Inputs: an ObjectMeta whose "aaa" and "zzz" sub-maps both define "shared"
+// with different values, flattened repeatedly. Outputs: the "zzz" value every
+// time. Data choice: opposite-end keys plus repeated calls expose any residual
+// dependence on Go's randomized map iteration.
+func TestFlattenProviderMetadataDeterministic(t *testing.T) {
+	dev := &CaniDeviceType{
+		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
+			"zzz": map[string]any{"shared": "from-zzz"},
+			"aaa": map[string]any{"shared": "from-aaa"},
+		}},
+	}
+	for i := 0; i < 50; i++ {
+		flat := dev.FlattenProviderMetadata()
+		if flat["shared"] != "from-zzz" {
+			t.Fatalf("FlattenProviderMetadata()[shared] = %v, want from-zzz", flat["shared"])
+		}
+	}
+}
+
 func TestFindDeviceByProviderKey(t *testing.T) {
 	id1 := uuid.New()
 	id2 := uuid.New()

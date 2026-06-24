@@ -89,3 +89,28 @@ func TestGetRoleEmpty(t *testing.T) {
 		t.Errorf("GetRole() = %q, want empty string", got)
 	}
 }
+
+// TestGetRoleDeterministic verifies GetRole resolves a role defined by several
+// provider sub-maps by always returning the value from the lowest-sorted
+// provider name, independent of Go's randomized map iteration order.
+//
+// Why it matters: a device's displayed role must be stable across runs; before
+// this fix GetRole returned whichever provider bucket Go happened to visit
+// first, so identical inventory could render different roles.
+// Inputs: an ObjectMeta with empty Role whose "aaa" and "zzz" buckets both set
+// "role", evaluated repeatedly. Outputs: the "aaa" role every time. Data choice:
+// opposite-end provider names plus repeated calls make any map-order dependence
+// observable.
+func TestGetRoleDeterministic(t *testing.T) {
+	m := ObjectMeta{
+		ProviderMetadata: map[string]any{
+			"zzz": map[string]any{"role": "from-zzz"},
+			"aaa": map[string]any{"role": "from-aaa"},
+		},
+	}
+	for i := 0; i < 50; i++ {
+		if got := m.GetRole(); got != "from-aaa" {
+			t.Fatalf("GetRole() = %q, want from-aaa", got)
+		}
+	}
+}

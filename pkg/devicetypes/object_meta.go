@@ -43,13 +43,14 @@ type ObjectMeta struct {
 }
 
 // GetRole returns the effective role: the explicit Role field if set,
-// otherwise the first "role" value found in ProviderMetadata.
+// otherwise the first "role" value found in ProviderMetadata, scanning
+// provider sub-maps in deterministic (sorted) order.
 func (m ObjectMeta) GetRole() string {
 	if m.Role != "" {
 		return m.Role
 	}
-	for _, v := range m.ProviderMetadata {
-		bucket, ok := v.(map[string]any)
+	for _, name := range sortedKeys(m.ProviderMetadata) {
+		bucket, ok := m.ProviderMetadata[name].(map[string]any)
 		if !ok {
 			continue
 		}
