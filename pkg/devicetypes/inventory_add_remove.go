@@ -75,6 +75,10 @@ func (inv *Inventory) AddModule(mod *CaniModuleType) error {
 	if _, exists := inv.Modules[mod.ID]; exists {
 		return fmt.Errorf("module %s already exists", mod.ID)
 	}
+	// Own copy of the interface specs; see AddDevices. Prevents modules of the
+	// same type added in one process from sharing a backing array and colliding
+	// on lazily-assigned interface IDs.
+	mod.Interfaces = CloneInterfaceSpecs(mod.Interfaces)
 	inv.Modules[mod.ID] = mod
 	inv.VerifyParentChildRelationships()
 	return nil

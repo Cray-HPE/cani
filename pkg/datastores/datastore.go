@@ -61,11 +61,26 @@ const (
 
 var Datastore DeviceStore
 
+// sessionStore, when non-nil, holds an in-memory datastore session. While a
+// session is active SetDeviceStore returns it instead of constructing a fresh
+// disk-backed store, so a batch runner can share one loaded inventory across
+// many commands in a single process and defer the disk write until the end.
+var sessionStore DeviceStore
+
 // SetDeviceStore selects the datastore implementation for storeType and assigns
 // it to the package-level Datastore. Resolving storeType from CLI flags or
 // configuration is the command layer's responsibility, which keeps this
 // persistence package free of any CLI dependency.
+//
+// When an in-memory session is active (see BeginSession) the session store is
+// used regardless of storeType, so commands re-dispatched inside a batch keep
+// operating on the shared inventory rather than reopening the file.
 func SetDeviceStore(storeType string) error {
+	if sessionStore != nil {
+		Datastore = sessionStore
+		return nil
+	}
+
 	switch StoreType(storeType) {
 
 	case StoreTypeJSON:
@@ -80,4 +95,22 @@ func SetDeviceStore(storeType string) error {
 	default:
 		return fmt.Errorf("unsupported datastore type: %s", storeType)
 	}
+}
+
+// BeginSession starts an in-memory datastore session backed by inv and returns
+// the session store. While the session is active every Load returns inv (with
+// derived state rebuilt, matching the disk store) and every Save updates it in
+// memory without touching disk. The caller persists inv once via a disk store
+// after calling EndSession.
+func BeginSession(inv *devicetypes.Inventory) *MemStore {
+	ms := &MemStore{inv: inv}
+	sessionStore = ms
+	Datastore = ms
+	return ms
+}
+
+// EndSession clears the active in-memory session so the next SetDeviceStore
+// constructs a disk-backed store again. It is safe to call more than once.
+func EndSession() {
+	sessionStore = nil
 }

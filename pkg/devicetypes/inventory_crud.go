@@ -82,6 +82,12 @@ func (inv *Inventory) AddDevices(batch map[uuid.UUID]*CaniDeviceType) error {
 		if _, exists := inv.Devices[id]; exists {
 			return fmt.Errorf("device with ID %s already exists", id)
 		}
+		// Give each device its own interface specs so instances created from a
+		// shared type template do not alias one another. Interface IDs are
+		// assigned lazily by VerifyParentChildRelationships below; a shared
+		// backing array would make those assignments collide when several
+		// devices of the same type are added in one process (e.g. a batch run).
+		device.Interfaces = CloneInterfaceSpecs(device.Interfaces)
 		inv.Devices[id] = device
 	}
 	result := inv.VerifyParentChildRelationships()

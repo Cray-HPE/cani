@@ -141,10 +141,12 @@ func (s *JSONStore) loadCurrent(data []byte) (*devicetypes.Inventory, error) {
 
 // Save writes the inventory to disk, creating directories as needed.
 //
-// The write is atomic: the inventory is marshalled to a temporary file in the
-// destination directory, flushed to stable storage, and renamed into place.
-// A crash or power loss mid-write therefore leaves the previous inventory
-// intact rather than a partially written, corrupt file.
+// The write is atomic with respect to partial writes: the inventory is
+// marshalled to a temporary file in the destination directory and renamed into
+// place, so a crash mid-write leaves the previous inventory intact rather than
+// a partially written, corrupt file. The temporary file is not fsync'd before
+// the rename — the datastore is a local, regenerable cache, and skipping the
+// flush keeps each write fast for scripts that add inventory in a tight loop.
 func (s *JSONStore) Save(inventory *devicetypes.Inventory) error {
 	dir := filepath.Dir(s.Path)
 	if err := os.MkdirAll(dir, 0700); err != nil {
@@ -163,7 +165,8 @@ func (s *JSONStore) Save(inventory *devicetypes.Inventory) error {
 // s.Path. The temporary file is removed on any failure before the rename so
 // no partial files are left behind. Placing the temporary file in the same
 // directory as the destination keeps the rename on a single filesystem, which
-// is what makes it atomic.
+// is what makes it atomic. The contents are not fsync'd before the rename; see
+// Save for the rationale.
 func (s *JSONStore) writeAtomic(dir string, data []byte) error {
 	tmp, err := os.CreateTemp(dir, ".inventory-*.tmp")
 	if err != nil {
@@ -177,13 +180,6 @@ func (s *JSONStore) writeAtomic(dir string, data []byte) error {
 	if _, err := tmp.Write(data); err != nil {
 		_ = tmp.Close()
 		return fmt.Errorf("writing inventory file: %w", err)
-	}
-
-	// Flush file contents to disk before the rename so the rename cannot
-	// expose a truncated file after a crash.
-	if err := tmp.Sync(); err != nil {
-		_ = tmp.Close()
-		return fmt.Errorf("syncing inventory file: %w", err)
 	}
 
 	if err := tmp.Close(); err != nil {

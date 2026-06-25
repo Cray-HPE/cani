@@ -12,6 +12,11 @@ const cacheFileName = ".cani-types-cache.json"
 // dirCache holds pre-parsed hardware types for a single directory source.
 // It is serialized to JSON so subsequent loads skip YAML parsing.
 type dirCache struct {
+	// Fingerprint identifies the source content a cache was built from. It is
+	// only used for the embedded built-in types, where it is a hash of the
+	// embedded files; a mismatch forces a rebuild. Directory and git sources
+	// leave it empty and are validated by other means.
+	Fingerprint   string                   `json:"fingerprint,omitempty"`
 	DeviceTypes   []CaniDeviceType         `json:"device_types,omitempty"`
 	ModuleTypes   []CaniModuleType         `json:"module_types,omitempty"`
 	CableTypes    []CaniCableType          `json:"cable_types,omitempty"`
@@ -35,18 +40,40 @@ func readDirCache(path string) (*dirCache, error) {
 
 // writeDirCache persists the cache to disk. Errors are logged but
 // not fatal — a missing cache just means the next load will re-parse.
+// The write is atomic (temp file + rename) so concurrent writers, such as
+// parallel `go test` processes priming the built-in cache, cannot observe a
+// half-written file.
 func writeDirCache(path string, c *dirCache) {
 	data, err := json.Marshal(c)
 	if err != nil {
 		log.Printf("Warning: failed to marshal types cache: %v", err)
 		return
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
 		log.Printf("Warning: failed to create types cache directory: %v", err)
 		return
 	}
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	tmp, err := os.CreateTemp(dir, ".cani-types-cache-*.tmp")
+	if err != nil {
+		log.Printf("Warning: failed to create types cache temp file: %v", err)
+		return
+	}
+	tmpPath := tmp.Name()
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		_ = os.Remove(tmpPath)
 		log.Printf("Warning: failed to write types cache %s: %v", path, err)
+		return
+	}
+	if err := tmp.Close(); err != nil {
+		_ = os.Remove(tmpPath)
+		log.Printf("Warning: failed to close types cache %s: %v", path, err)
+		return
+	}
+	if err := os.Rename(tmpPath, path); err != nil {
+		_ = os.Remove(tmpPath)
+		log.Printf("Warning: failed to replace types cache %s: %v", path, err)
 	}
 }
 

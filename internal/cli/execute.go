@@ -35,8 +35,16 @@ import (
 // Execute resolves the target command from os.Args and runs it.  It is called
 // on the root command.
 func (c *Command) Execute() error {
+	return c.ExecuteArgs(os.Args[1:])
+}
+
+// ExecuteArgs resolves the target command from args (the program name already
+// stripped) and runs it. It lets callers dispatch commands programmatically —
+// for example a batch runner that executes many command lines in one process —
+// without going through os.Args.
+func (c *Command) ExecuteArgs(args []string) error {
 	root := c.Root()
-	target, rest := root.find(os.Args[1:])
+	target, rest := root.find(args)
 	return target.run(rest)
 }
 

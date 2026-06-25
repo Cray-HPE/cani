@@ -32,6 +32,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/config"
@@ -109,7 +110,26 @@ func resolveStringSlice(cmd *cli.Command, flagName, yamlKey string, configVal []
 	return v
 }
 
+var (
+	domainOnce sync.Once
+	domainErr  error
+)
+
+// setupDomain is the root PersistentPreRunE. It loads config and hardware type
+// libraries once per process. Because it also runs for every command the batch
+// runner re-dispatches within a single process, the work is guarded by a
+// sync.Once so it executes exactly once; later calls reuse the first result.
 func setupDomain(cmd *cli.Command, args []string) error {
+	domainOnce.Do(func() {
+		domainErr = initDomain(cmd)
+	})
+	return domainErr
+}
+
+// initDomain performs the one-time domain setup: load config, resolve global
+// settings, load hardware type libraries, seed provider config sections, and
+// resolve the datastore path override.
+func initDomain(cmd *cli.Command) error {
 	// 1) load or create the config first so file values are available for
 	// precedence resolution below.
 	if err := config.Load(cfgFile); err != nil {

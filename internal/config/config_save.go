@@ -26,6 +26,7 @@
 package config
 
 import (
+	"bytes"
 	"log"
 	"os"
 	"path/filepath"
@@ -214,12 +215,32 @@ func applyAllComments(docContent, providersNode *yaml.Node) {
 // writeConfigFile writes the node tree to path with 0600 permissions. The config
 // may contain provider API tokens, so it must not be readable by other users.
 //
-// The write is atomic: the encoded YAML is first written to a temporary file in
-// the same directory and then renamed over path. os.Rename is atomic on POSIX,
-// so a concurrent reader (e.g. another cani process loading the same config in a
-// shell pipeline) always observes either the complete old file or the complete
-// new file — never a half-written, unparseable one.
+// The encoded output is compared against the current file first; when it is
+// identical the write is skipped entirely, avoiding needless disk I/O in large
+// scripts of sequential commands where setupDomain runs Save on each process
+// start.
+//
+// When a write is needed it is atomic: the encoded YAML is written to a
+// temporary file in the same directory and then renamed over path. os.Rename is
+// atomic on POSIX, so a concurrent reader (e.g. another cani process loading the
+// same config in a shell pipeline) always observes either the complete old file
+// or the complete new file — never a half-written, unparseable one.
 func writeConfigFile(path string, root *yaml.Node) error {
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+	enc.SetIndent(2)
+	if err := enc.Encode(root); err != nil {
+		return err
+	}
+	if err := enc.Close(); err != nil {
+		return err
+	}
+
+	// Skip the write when the on-disk content already matches.
+	if existing, err := os.ReadFile(path); err == nil && bytes.Equal(existing, buf.Bytes()) {
+		return nil
+	}
+
 	dir := filepath.Dir(path)
 	// os.CreateTemp creates the file with 0600 permissions, matching the
 	// token-bearing config's confidentiality requirement.
@@ -229,17 +250,10 @@ func writeConfigFile(path string, root *yaml.Node) error {
 	}
 	tmpName := tmp.Name()
 
-	enc := yaml.NewEncoder(tmp)
-	enc.SetIndent(2)
-	if encErr := enc.Encode(root); encErr != nil {
+	if _, writeErr := tmp.Write(buf.Bytes()); writeErr != nil {
 		tmp.Close()
 		os.Remove(tmpName)
-		return encErr
-	}
-	if closeErr := enc.Close(); closeErr != nil {
-		tmp.Close()
-		os.Remove(tmpName)
-		return closeErr
+		return writeErr
 	}
 	if closeErr := tmp.Close(); closeErr != nil {
 		os.Remove(tmpName)

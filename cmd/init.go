@@ -28,6 +28,7 @@ package cmd
 import (
 	"github.com/Cray-HPE/cani/cmd/add"
 	"github.com/Cray-HPE/cani/cmd/alpha"
+	"github.com/Cray-HPE/cani/cmd/batch"
 	"github.com/Cray-HPE/cani/cmd/classify"
 	"github.com/Cray-HPE/cani/cmd/export"
 	imprt "github.com/Cray-HPE/cani/cmd/import"
@@ -45,34 +46,40 @@ var (
 )
 
 func Init() {
-	// initialize the root command
-	rootCmd = newRootCommand()
+	// initialize the process-wide root command
+	rootCmd = newRootTree()
+}
+
+// newRootTree assembles a complete command tree (root plus all verbs) and
+// returns the root. Init uses it for the process-wide rootCmd; the batch runner
+// uses it to build a fresh tree for each line it dispatches, so re-parsed flags
+// never accumulate state across commands.
+func newRootTree() *cli.Command {
+	root := newRootCommand()
 
 	// add the init command at the root level (not under alpha)
-	initProviderCmd := initcmd.NewCommand()
-	rootCmd.AddCommand(initProviderCmd)
+	root.AddCommand(initcmd.NewCommand())
 
-	// build core verbs
-	importCmd := imprt.NewCommand()
-	addCmd := add.NewCommand()
-	removeCmd := remove.NewCommand()
-	serveCmd := serve.NewCommand()
-	showCmd := show.NewCommand()
-	exportCmd := export.NewCommand()
-	updateCmd := update.NewCommand()
-	classifyCmd := classify.NewCommand()
-
-	// at present, all commands are under the alpha command since this is still a work in progress
+	// at present, all other commands are under the alpha command since this is
+	// still a work in progress
 	alphaCmd := alpha.NewCommand()
-	rootCmd.AddCommand(alphaCmd)
+	root.AddCommand(alphaCmd)
 	alphaCmd.AddCommand(
-		importCmd,
-		addCmd,
-		removeCmd,
-		showCmd,
-		serveCmd,
-		exportCmd,
-		updateCmd,
-		classifyCmd,
+		imprt.NewCommand(),
+		add.NewCommand(),
+		remove.NewCommand(),
+		show.NewCommand(),
+		serve.NewCommand(),
+		export.NewCommand(),
+		update.NewCommand(),
+		classify.NewCommand(),
+		batch.NewCommand(dispatchLine),
 	)
+	return root
+}
+
+// dispatchLine runs a single batch command line against a freshly built command
+// tree so per-line flag parsing never shares state with other lines.
+func dispatchLine(args []string) error {
+	return newRootTree().ExecuteArgs(args)
 }

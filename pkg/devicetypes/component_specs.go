@@ -15,6 +15,21 @@ type InterfaceSpec struct {
 	ConnectedCable *uuid.UUID         `yaml:"connected_cable,omitempty" json:"connectedCable,omitempty"`
 }
 
+// CloneInterfaceSpecs returns a copy of src with its own backing array, so
+// instances created from a shared type template do not alias one another's
+// interface specs. This matters when several instances of one type are created
+// in a single process (for example a batch run): RebuildDerivedState assigns
+// each spec a UUID lazily, and a shared backing array would make those
+// assignments collide, corrupting the device→interface index.
+func CloneInterfaceSpecs(src []InterfaceSpec) []InterfaceSpec {
+	if src == nil {
+		return nil
+	}
+	out := make([]InterfaceSpec, len(src))
+	copy(out, src)
+	return out
+}
+
 // CaniInterface represents an instantiated interface on a specific device.
 type CaniInterface struct {
 	ID            uuid.UUID          `json:"id" yaml:"id"`
