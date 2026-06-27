@@ -1,0 +1,226 @@
+#
+# MIT License
+#
+# (C) Copyright 2026 Hewlett Packard Enterprise Development LP
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+# This workflow owns the GitHub release lifecycle: it creates the release,
+# builds and attaches the cross-platform Go binaries, and publishes the docs.
+# RPMs are attached separately by the promote-release / promote-prerelease
+# workflows so that re-running the (flaky) RPM promotion never rebuilds or
+# re-publishes the binaries.
+name: Create release, build binaries, and publish docs
+on:
+  push:
+    tags:
+      - 'v?[0-9]+.[0-9]+.[0-9]+'
+      - 'v?[0-9]+.[0-9]+.[0-9]+.post[0-9]+'
+      - 'v?[0-9]+.[0-9]+.[0-9]+a[0-9]+'
+      - 'v?[0-9]+.[0-9]+.[0-9]+b[0-9]+'
+      - 'v?[0-9]+.[0-9]+.[0-9]+rc[0-9]+'
+  workflow_dispatch:
+
+permissions:
+  contents: write # create/edit releases, upload assets, and push docs to gh-pages
+
+# Serialize release activity for a given tag so a manual re-run cannot race the
+# original run when creating the release or clobbering assets. Note: the RPM
+# promotion workflows use a different concurrency group so they run in parallel
+# with this one rather than blocking it.
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  # Classify the tag once and share the result with the create/publish jobs.
+  # Prereleases (a/b/rc suffixes) are never marked "latest"; stable tags are
+  # marked "latest" only when reachable from the main branch (not from
+  # release/maintenance branches).
+  classify:
+    name: Classify release tag
+    runs-on: ubuntu-latest
+    outputs:
+      prerelease: ${{ steps.detect.outputs.prerelease }}
+      latest: ${{ steps.detect.outputs.latest }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history so the reachability check can see origin/main
+
+      - name: Detect prerelease and latest designation
+        id: detect
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          prerelease=false
+          if [[ "${TAG}" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+(a|b|rc)[0-9]+$ ]]; then
+            prerelease=true
+          fi
+
+          latest=false
+          if [ "${prerelease}" = false ]; then
+            mapfile -t branches < <(git branch -r --contains "${GITHUB_REF}" | awk '{print $1}')
+            for branch in "${branches[@]}"; do
+              if [ "${branch/origin\/}" = 'main' ]; then
+                latest=true
+                break
+              fi
+            done
+          fi
+
+          echo "prerelease=${prerelease}" >> "${GITHUB_OUTPUT}"
+          echo "latest=${latest}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${TAG} prerelease=${prerelease} latest=${latest}"
+
+  # Create the release as a draft up front so the binary matrix has a stable
+  # target to upload to. This is idempotent and tolerant of a pre-existing
+  # release: the promote-release / promote-prerelease workflows also create the
+  # release if it does not exist yet (ncipollo allowUpdates), so whichever runs
+  # first wins and the loser simply skips creation.
+  create_release:
+    name: Create draft release
+    needs: classify
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ github.ref_name }}
+      PRERELEASE: ${{ needs.classify.outputs.prerelease }}
+    steps:
+      - name: Create draft release if it does not exist
+        run: |
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            echo "Release ${TAG} already exists; leaving it (and its curated notes) as-is."
+            exit 0
+          fi
+          # --notes "" leaves the body empty; release notes are curated by hand
+          # in the GitHub UI after the release appears and must not be clobbered.
+          args=(--draft --verify-tag --title "${TAG}" --notes "")
+          if [ "${PRERELEASE}" = true ]; then
+            args+=(--prerelease)
+          fi
+          gh release create "${TAG}" "${args[@]}"
+
+  # Cross-compile the four supported platforms in parallel and attach each
+  # tarball + checksum to the draft release. Asset names are distinct per
+  # platform, so the parallel uploads never collide.
+  build_binaries:
+    name: Build and upload Go binaries
+    needs: create_release
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ github.ref_name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Also fetch git-tags so the version ldflags resolve
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Build binary
+        run: make bin GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }}
+
+      - name: Package binary
+        run: |
+          dist="${NAME}-${TAG}-${{ matrix.goos }}-${{ matrix.goarch }}"
+          mkdir -p "${dist}"
+          cp bin/"${NAME}" LICENSE README.md "${dist}/"
+          tar -czf "${dist}.tar.gz" "${dist}"
+          sha256sum "${dist}.tar.gz" > "${dist}.tar.gz.sha256"
+        env:
+          NAME: cani
+
+      - name: Upload binary to draft release
+        run: gh release upload "${TAG}" cani-*.tar.gz cani-*.tar.gz.sha256 --clobber
+
+  # Publish the release once all binaries are attached. Single job that owns the
+  # draft->published transition and the prerelease/latest designation.
+  publish_release:
+    name: Publish release
+    needs: [classify, build_binaries]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ github.ref_name }}
+      PRERELEASE: ${{ needs.classify.outputs.prerelease }}
+      LATEST: ${{ needs.classify.outputs.latest }}
+    steps:
+      - name: Publish release
+        run: |
+          gh release edit "${TAG}" \
+            --draft=false \
+            --prerelease="${PRERELEASE}" \
+            --latest="${LATEST}"
+
+  generate_publish_docs:
+    name: generate docs and publish with mike
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Also fetch git-tags
+
+    - uses: actions/setup-go@v5
+      with:
+        go-version: '1.25'
+
+      # generate updated command docs from the cobra command tree
+    - run: go run ./tools/gendocs
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: configure git user for bot commits
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+
+    - name: install requirements with nox
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -r requirements.txt
+
+    - name: deploy docs with mike 🚀 and set as latest
+      run: |
+        mike deploy -F mkdocs.yml -b gh-pages --push --update-aliases ${{ github.ref_name}} latest
+        mike set-default -F mkdocs.yml -b gh-pages --push latest
+
+    - name: list doc versions 🚀
+      run: |
+        mike list -F mkdocs.yml -b gh-pages
