@@ -36,6 +36,11 @@ on:
       - 'v?[0-9]+.[0-9]+.[0-9]+b[0-9]+'
       - 'v?[0-9]+.[0-9]+.[0-9]+rc[0-9]+'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing git tag to build the release for (e.g. v1.2.3)'
+        required: true
+        type: string
 
 permissions:
   contents: write # create/edit releases, upload assets, and push docs to gh-pages
@@ -44,8 +49,12 @@ permissions:
 # original run when creating the release or clobbering assets. Note: the RPM
 # promotion workflows use a different concurrency group so they run in parallel
 # with this one rather than blocking it.
+#
+# On a tag push, inputs.tag is empty and github.ref_name is the tag; on a manual
+# workflow_dispatch the operator selects the tag via inputs.tag. Every job below
+# resolves the release tag the same way: inputs.tag || github.ref_name.
 concurrency:
-  group: release-${{ github.ref_name }}
+  group: release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -62,12 +71,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # full history so the reachability check can see origin/main
+          ref: ${{ inputs.tag || github.ref_name }}
+          fetch-depth: 0 # full history + tags so the reachability check can see origin/main
 
       - name: Detect prerelease and latest designation
         id: detect
         env:
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           prerelease=false
           if [[ "${TAG}" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+(a|b|rc)[0-9]+$ ]]; then
@@ -76,7 +86,7 @@ jobs:
 
           latest=false
           if [ "${prerelease}" = false ]; then
-            mapfile -t branches < <(git branch -r --contains "${GITHUB_REF}" | awk '{print $1}')
+            mapfile -t branches < <(git branch -r --contains "${TAG}" | awk '{print $1}')
             for branch in "${branches[@]}"; do
               if [ "${branch/origin\/}" = 'main' ]; then
                 latest=true
@@ -101,7 +111,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      TAG: ${{ github.ref_name }}
+      TAG: ${{ inputs.tag || github.ref_name }}
       PRERELEASE: ${{ needs.classify.outputs.prerelease }}
     steps:
       - name: Create draft release if it does not exist
@@ -128,7 +138,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      TAG: ${{ github.ref_name }}
+      TAG: ${{ inputs.tag || github.ref_name }}
     strategy:
       fail-fast: false
       matrix:
@@ -144,6 +154,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.tag || github.ref_name }}
           fetch-depth: 0 # Also fetch git-tags so the version ldflags resolve
 
       - uses: actions/setup-go@v5
@@ -175,7 +186,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      TAG: ${{ github.ref_name }}
+      TAG: ${{ inputs.tag || github.ref_name }}
       PRERELEASE: ${{ needs.classify.outputs.prerelease }}
       LATEST: ${{ needs.classify.outputs.latest }}
     steps:
@@ -189,9 +200,12 @@ jobs:
   generate_publish_docs:
     name: generate docs and publish with mike
     runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
     steps:
     - uses: actions/checkout@v4
       with:
+        ref: ${{ inputs.tag || github.ref_name }}
         fetch-depth: 0 # Also fetch git-tags
 
     - uses: actions/setup-go@v5
@@ -218,7 +232,7 @@ jobs:
 
     - name: deploy docs with mike 🚀 and set as latest
       run: |
-        mike deploy -F mkdocs.yml -b gh-pages --push --update-aliases ${{ github.ref_name}} latest
+        mike deploy -F mkdocs.yml -b gh-pages --push --update-aliases "${TAG}" latest
         mike set-default -F mkdocs.yml -b gh-pages --push latest
 
     - name: list doc versions 🚀
