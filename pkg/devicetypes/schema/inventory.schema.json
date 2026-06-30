@@ -1,0 +1,1216 @@
+{
+  "$defs": {
+    "CaniCableType": {
+      "properties": {
+        "cableCategory": {
+          "type": "string"
+        },
+        "cableType": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string"
+        },
+        "connectorType": {
+          "type": "string"
+        },
+        "customFields": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "description": {
+          "type": "string"
+        },
+        "externalIDs": {
+          "additionalProperties": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "length": {
+          "type": "number"
+        },
+        "lengthUnit": {
+          "type": "string"
+        },
+        "manufacturer": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "partNumber": {
+          "type": "string"
+        },
+        "providerMetadata": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "role": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "tenant": {
+          "type": "string"
+        },
+        "terminationA": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "terminationADevice": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "terminationAPort": {
+          "type": "string"
+        },
+        "terminationAType": {
+          "type": "string"
+        },
+        "terminationB": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "terminationBDevice": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "terminationBPort": {
+          "type": "string"
+        },
+        "terminationBType": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "weight": {
+          "type": "number"
+        },
+        "weightUnit": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "CaniDeviceType": {
+      "properties": {
+        "assetTag": {
+          "type": "string"
+        },
+        "comments": {
+          "type": "string"
+        },
+        "consolePorts": {
+          "items": {
+            "$ref": "#/$defs/ConsolePortSpec"
+          },
+          "type": "array"
+        },
+        "customFields": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "description": {
+          "type": "string"
+        },
+        "deviceBays": {
+          "items": {
+            "$ref": "#/$defs/DeviceBaySpec"
+          },
+          "type": "array"
+        },
+        "externalIDs": {
+          "additionalProperties": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "face": {
+          "type": "string"
+        },
+        "frus": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "identifications": {
+          "items": {
+            "$ref": "#/$defs/Identification"
+          },
+          "type": "array"
+        },
+        "interfaces": {
+          "items": {
+            "$ref": "#/$defs/InterfaceSpec"
+          },
+          "type": "array"
+        },
+        "isFullDepth": {
+          "type": "boolean"
+        },
+        "manufacturer": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "moduleBays": {
+          "items": {
+            "$ref": "#/$defs/ModuleBaySpec"
+          },
+          "type": "array"
+        },
+        "name": {
+          "type": "string"
+        },
+        "parent": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "partNumber": {
+          "type": "string"
+        },
+        "platform": {
+          "type": "string"
+        },
+        "powerPorts": {
+          "items": {
+            "$ref": "#/$defs/PowerPortSpec"
+          },
+          "type": "array"
+        },
+        "primaryIpv4": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "primaryIpv6": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "providerMetadata": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "rackPosition": {
+          "type": "integer"
+        },
+        "role": {
+          "type": "string"
+        },
+        "serial": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "subdeviceRole": {
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "tenant": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "uHeight": {
+          "type": "integer"
+        },
+        "vendor": {
+          "type": "string"
+        },
+        "weight": {
+          "type": "number"
+        },
+        "weightUnit": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "CaniFruType": {
+      "properties": {
+        "assetTag": {
+          "type": "string"
+        },
+        "customFields": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "description": {
+          "type": "string"
+        },
+        "device": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "discovered": {
+          "type": "boolean"
+        },
+        "externalIDs": {
+          "additionalProperties": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "manufacturer": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "parent": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "partNumber": {
+          "type": "string"
+        },
+        "providerMetadata": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "role": {
+          "type": "string"
+        },
+        "serial": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "tenant": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "weight": {
+          "type": "number"
+        },
+        "weightUnit": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "CaniIPAddress": {
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "customFields": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "description": {
+          "type": "string"
+        },
+        "dnsName": {
+          "type": "string"
+        },
+        "externalIDs": {
+          "additionalProperties": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "host": {
+          "type": "string"
+        },
+        "id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "interfaces": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "ipRole": {
+          "type": "string"
+        },
+        "ipVersion": {
+          "type": "integer"
+        },
+        "maskLength": {
+          "type": "integer"
+        },
+        "natInside": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "parent": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "providerMetadata": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "role": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "tenant": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "CaniInterface": {
+      "properties": {
+        "connectedCable": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "contentType": {
+          "type": "string"
+        },
+        "customFields": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "deviceId": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "externalIDs": {
+          "additionalProperties": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "interfaceType": {
+          "type": "string"
+        },
+        "ipAddresses": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "label": {
+          "type": "string"
+        },
+        "macAddress": {
+          "type": "string"
+        },
+        "mgmtOnly": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "providerMetadata": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "role": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "tenant": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "CaniLocationType": {
+      "properties": {
+        "asn": {
+          "type": "integer"
+        },
+        "comments": {
+          "type": "string"
+        },
+        "contactEmail": {
+          "type": "string"
+        },
+        "contactName": {
+          "type": "string"
+        },
+        "contactPhone": {
+          "type": "string"
+        },
+        "contentTypes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "customFields": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "description": {
+          "type": "string"
+        },
+        "externalIDs": {
+          "additionalProperties": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "facility": {
+          "type": "string"
+        },
+        "id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "latitude": {
+          "type": "string"
+        },
+        "locationType": {
+          "type": "string"
+        },
+        "longitude": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "nestable": {
+          "type": "boolean"
+        },
+        "parent": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "physicalAddress": {
+          "type": "string"
+        },
+        "providerMetadata": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "role": {
+          "type": "string"
+        },
+        "shippingAddress": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "tenant": {
+          "type": "string"
+        },
+        "timeZone": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "CaniModuleType": {
+      "properties": {
+        "assetTag": {
+          "type": "string"
+        },
+        "comments": {
+          "type": "string"
+        },
+        "customFields": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "description": {
+          "type": "string"
+        },
+        "externalIDs": {
+          "additionalProperties": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "frus": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "interfaces": {
+          "items": {
+            "$ref": "#/$defs/InterfaceSpec"
+          },
+          "type": "array"
+        },
+        "location": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "manufacturer": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "moduleBayName": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "parentDevice": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "partNumber": {
+          "type": "string"
+        },
+        "providerMetadata": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "role": {
+          "type": "string"
+        },
+        "serial": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "tenant": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "weight": {
+          "type": "number"
+        },
+        "weightUnit": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "CaniPrefix": {
+      "properties": {
+        "broadcast": {
+          "type": "string"
+        },
+        "customFields": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "description": {
+          "type": "string"
+        },
+        "externalIDs": {
+          "additionalProperties": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "ipVersion": {
+          "type": "integer"
+        },
+        "location": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "network": {
+          "type": "string"
+        },
+        "parent": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "prefix": {
+          "type": "string"
+        },
+        "prefixLength": {
+          "type": "integer"
+        },
+        "providerMetadata": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "role": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "tenant": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "vlan": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "vrf": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "CaniRackType": {
+      "properties": {
+        "assetTag": {
+          "type": "string"
+        },
+        "bottomZoneHeight": {
+          "type": "integer"
+        },
+        "comments": {
+          "type": "string"
+        },
+        "customFields": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "descUnits": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        },
+        "deviceBays": {
+          "items": {
+            "$ref": "#/$defs/DeviceBaySpec"
+          },
+          "type": "array"
+        },
+        "externalIDs": {
+          "additionalProperties": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "facilityId": {
+          "type": "string"
+        },
+        "id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "location": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "manufacturer": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "moduleBays": {
+          "items": {
+            "$ref": "#/$defs/ModuleBaySpec"
+          },
+          "type": "array"
+        },
+        "name": {
+          "type": "string"
+        },
+        "outerDepth": {
+          "type": "integer"
+        },
+        "outerUnit": {
+          "type": "string"
+        },
+        "outerWidth": {
+          "type": "integer"
+        },
+        "partNumber": {
+          "type": "string"
+        },
+        "providerDefaults": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "providerMetadata": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "rackType": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "serial": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "tenant": {
+          "type": "string"
+        },
+        "topZoneHeight": {
+          "type": "integer"
+        },
+        "type": {
+          "type": "string"
+        },
+        "uHeight": {
+          "type": "integer"
+        },
+        "weight": {
+          "type": "number"
+        },
+        "weightUnit": {
+          "type": "string"
+        },
+        "width": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "CaniVLAN": {
+      "properties": {
+        "customFields": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "description": {
+          "type": "string"
+        },
+        "externalIDs": {
+          "additionalProperties": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "location": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "providerMetadata": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "role": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "tenant": {
+          "type": "string"
+        },
+        "vid": {
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "ConsolePortSpec": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "DeviceBaySlugRef": {
+      "properties": {
+        "slug": {},
+        "types": {}
+      },
+      "type": "object"
+    },
+    "DeviceBaySpec": {
+      "properties": {
+        "allowed": {
+          "$ref": "#/$defs/DeviceBaySlugRef"
+        },
+        "default": {
+          "$ref": "#/$defs/DeviceBaySlugRef"
+        },
+        "extra": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "name": {
+          "type": "string"
+        },
+        "position": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "Identification": {
+      "properties": {
+        "manufacturer": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "InterfaceSpec": {
+      "properties": {
+        "connectedCable": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "macAddress": {
+          "type": "string"
+        },
+        "mgmt_only": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "InventoryMetadata": {
+      "properties": {
+        "roles": {
+          "items": {
+            "$ref": "#/$defs/MetadataEntry"
+          },
+          "type": "array"
+        },
+        "statuses": {
+          "items": {
+            "$ref": "#/$defs/MetadataEntry"
+          },
+          "type": "array"
+        },
+        "tags": {
+          "items": {
+            "$ref": "#/$defs/MetadataEntry"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "MetadataEntry": {
+      "properties": {
+        "color": {
+          "type": "string"
+        },
+        "contentTypes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "description": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "weight": {
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "ModuleBaySpec": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "position": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "PowerPortSpec": {
+      "properties": {
+        "allocated_draw": {
+          "type": "integer"
+        },
+        "maximum_draw": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$id": "https://raw.githubusercontent.com/Cray-HPE/cani/refs/heads/main/pkg/devicetypes/schema/inventory.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Machine-readable schema for the cani inventory datastore. Generated from the Go structs in pkg/devicetypes by tools/genschema; do not edit by hand.",
+  "properties": {
+    "cables": {
+      "additionalProperties": {
+        "$ref": "#/$defs/CaniCableType"
+      },
+      "propertyNames": {
+        "format": "uuid"
+      },
+      "type": "object"
+    },
+    "devices": {
+      "additionalProperties": {
+        "$ref": "#/$defs/CaniDeviceType"
+      },
+      "propertyNames": {
+        "format": "uuid"
+      },
+      "type": "object"
+    },
+    "frus": {
+      "additionalProperties": {
+        "$ref": "#/$defs/CaniFruType"
+      },
+      "propertyNames": {
+        "format": "uuid"
+      },
+      "type": "object"
+    },
+    "interfaces": {
+      "additionalProperties": {
+        "$ref": "#/$defs/CaniInterface"
+      },
+      "propertyNames": {
+        "format": "uuid"
+      },
+      "type": "object"
+    },
+    "ipAddresses": {
+      "additionalProperties": {
+        "$ref": "#/$defs/CaniIPAddress"
+      },
+      "propertyNames": {
+        "format": "uuid"
+      },
+      "type": "object"
+    },
+    "locations": {
+      "additionalProperties": {
+        "$ref": "#/$defs/CaniLocationType"
+      },
+      "propertyNames": {
+        "format": "uuid"
+      },
+      "type": "object"
+    },
+    "metadata": {
+      "$ref": "#/$defs/InventoryMetadata"
+    },
+    "modules": {
+      "additionalProperties": {
+        "$ref": "#/$defs/CaniModuleType"
+      },
+      "propertyNames": {
+        "format": "uuid"
+      },
+      "type": "object"
+    },
+    "prefixes": {
+      "additionalProperties": {
+        "$ref": "#/$defs/CaniPrefix"
+      },
+      "propertyNames": {
+        "format": "uuid"
+      },
+      "type": "object"
+    },
+    "provider": {
+      "type": "string"
+    },
+    "racks": {
+      "additionalProperties": {
+        "$ref": "#/$defs/CaniRackType"
+      },
+      "propertyNames": {
+        "format": "uuid"
+      },
+      "type": "object"
+    },
+    "schemaVersion": {
+      "type": "string"
+    },
+    "vlans": {
+      "additionalProperties": {
+        "$ref": "#/$defs/CaniVLAN"
+      },
+      "propertyNames": {
+        "format": "uuid"
+      },
+      "type": "object"
+    }
+  },
+  "title": "cani inventory datastore",
+  "type": "object",
+  "x-cani-schema-version": "v1alpha3"
+}
