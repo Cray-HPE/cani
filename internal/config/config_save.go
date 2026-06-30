@@ -213,20 +213,43 @@ func applyAllComments(docContent, providersNode *yaml.Node) {
 
 // writeConfigFile writes the node tree to path with 0600 permissions. The config
 // may contain provider API tokens, so it must not be readable by other users.
+//
+// The write is atomic: the encoded YAML is first written to a temporary file in
+// the same directory and then renamed over path. os.Rename is atomic on POSIX,
+// so a concurrent reader (e.g. another cani process loading the same config in a
+// shell pipeline) always observes either the complete old file or the complete
+// new file — never a half-written, unparseable one.
 func writeConfigFile(path string, root *yaml.Node) error {
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	dir := filepath.Dir(path)
+	// os.CreateTemp creates the file with 0600 permissions, matching the
+	// token-bearing config's confidentiality requirement.
+	tmp, err := os.CreateTemp(dir, ".cani-config-*.tmp")
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	tmpName := tmp.Name()
 
-	// Tighten permissions on a pre-existing file that may have been created
-	// with a looser umask before this safeguard existed.
-	if err := f.Chmod(0600); err != nil {
-		return err
+	enc := yaml.NewEncoder(tmp)
+	enc.SetIndent(2)
+	if encErr := enc.Encode(root); encErr != nil {
+		tmp.Close()
+		os.Remove(tmpName)
+		return encErr
+	}
+	if closeErr := enc.Close(); closeErr != nil {
+		tmp.Close()
+		os.Remove(tmpName)
+		return closeErr
+	}
+	if closeErr := tmp.Close(); closeErr != nil {
+		os.Remove(tmpName)
+		return closeErr
 	}
 
-	enc := yaml.NewEncoder(f)
-	enc.SetIndent(2)
-	return enc.Encode(root)
+	// Atomically replace the destination. On failure, clean up the temp file.
+	if renameErr := os.Rename(tmpName, path); renameErr != nil {
+		os.Remove(tmpName)
+		return renameErr
+	}
+	return nil
 }
