@@ -242,6 +242,12 @@ tools: ## Install code-generation tools
 #  Code generation
 # ──────────────────────────────────────────────────────────────────────────────
 
+.PHONY: schema
+schema: ## Regenerate the inventory JSON Schema artifact
+	$(INFO) "generating inventory JSON Schema"
+	go run ./tools/genschema
+	$(OK) "pkg/devicetypes/schema/inventory.schema.json"
+
 .PHONY: nautobot_client
 nautobot_client: ## Regenerate the Nautobot API client
 	$(INFO) "generating Nautobot client"
