@@ -1,57 +1,24 @@
 package import_
 
 import (
-	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
 	"github.com/Cray-HPE/cani/pkg/provider/hpcm/import/cmconfig"
-	"gopkg.in/ini.v1"
 )
 
-// sectionKeyTemplate is the ini key holding a NIC template definition.
+// sectionKeyTemplate is the key holding a NIC template definition.
 const sectionKeyTemplate = "template"
 
 // ParseCmConfig parses an HPCM cm.config file into a CmConfig struct.
-// Uses ini.ShadowLoad to handle the multi-value shadow-key format.
+// The cm.config format repeats keys (name=, hostname1=, template=) once per
+// entry; parseINI preserves those shadow values so every entry is captured.
 func ParseCmConfig(data []byte) (*CmConfig, error) {
-	tmp, err := os.CreateTemp("", "cmconfig-*.ini")
-	if err != nil {
-		return nil, fmt.Errorf("creating temp file: %w", err)
-	}
-	defer os.Remove(tmp.Name())
-
-	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
-		return nil, fmt.Errorf("writing temp file: %w", err)
-	}
-	tmp.Close()
-
-	cfg, err := ini.ShadowLoad(tmp.Name())
-	if err != nil {
-		return nil, fmt.Errorf("loading ini: %w", err)
-	}
-
-	templates, err := importTemplatesSection(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("templates section: %w", err)
-	}
-
-	discover, err := importDiscoverSection(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("discover section: %w", err)
-	}
-
-	nicTemplates, err := importNicTemplatesSection(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("nic_templates section: %w", err)
-	}
-
+	cfg := parseINI(data)
 	return &CmConfig{
-		Templates:    templates,
-		NicTemplates: nicTemplates,
-		Discover:     discover,
+		Templates:    importTemplatesSection(cfg),
+		NicTemplates: importNicTemplatesSection(cfg),
+		Discover:     importDiscoverSection(cfg),
 	}, nil
 }
 
@@ -73,17 +40,17 @@ func parseSubkeys(v string, apply func(key, val string), setName func(name strin
 
 // importDiscoverSection parses the [discover] section into Discover entries.
 // Ported from upstream validate_hpcm_config.go importCfgDiscoverSection.
-func importDiscoverSection(cfg *ini.File) (map[string]cmconfig.Discover, error) {
+func importDiscoverSection(cfg *iniFile) map[string]cmconfig.Discover {
 	discover := map[string]cmconfig.Discover{}
-	for _, section := range cfg.Sections() {
-		if section.Name() != "discover" {
+	for _, section := range cfg.sections {
+		if section.name() != "discover" {
 			continue
 		}
 		secName := discoverKeyName(section)
 		if secName == "" {
 			continue
 		}
-		for _, v := range section.Key(secName).ValueWithShadows() {
+		for _, v := range section.valuesFor(secName) {
 			d := cmconfig.Discover{}
 			parseSubkeys(v,
 				func(k, val string) { applyDiscoverField(&d, k, val) },
@@ -94,14 +61,14 @@ func importDiscoverSection(cfg *ini.File) (map[string]cmconfig.Discover, error) 
 			}
 		}
 	}
-	return discover, nil
+	return discover
 }
 
 // discoverKeyName determines the primary key for [discover] entries.
 // Different cm.config vintages use different key names.
-func discoverKeyName(section *ini.Section) string {
+func discoverKeyName(section *iniSection) string {
 	for _, name := range []string{"hostname1", "internal_name", "alias1", "temponame"} {
-		if section.HasKey(name) {
+		if section.hasKey(name) {
 			return name
 		}
 	}
@@ -158,16 +125,16 @@ func applyDiscoverField(d *cmconfig.Discover, key, val string) {
 
 // importTemplatesSection parses the [templates] section into Template entries.
 // Ported from upstream importCfgTemplatesSection.
-func importTemplatesSection(cfg *ini.File) (map[string]cmconfig.Template, error) {
+func importTemplatesSection(cfg *iniFile) map[string]cmconfig.Template {
 	templates := map[string]cmconfig.Template{}
-	for _, section := range cfg.Sections() {
-		if section.Name() != "templates" {
+	for _, section := range cfg.sections {
+		if section.name() != "templates" {
 			continue
 		}
-		if !section.HasKey("name") {
+		if !section.hasKey("name") {
 			continue
 		}
-		for _, v := range section.Key("name").ValueWithShadows() {
+		for _, v := range section.valuesFor("name") {
 			t := cmconfig.Template{}
 			parseSubkeys(v,
 				func(k, val string) { applyTemplateField(&t, k, val) },
@@ -178,7 +145,7 @@ func importTemplatesSection(cfg *ini.File) (map[string]cmconfig.Template, error)
 			}
 		}
 	}
-	return templates, nil
+	return templates
 }
 
 // applyTemplateField sets a single field on a Template by key name.
@@ -213,16 +180,16 @@ func applyTemplateField(t *cmconfig.Template, key, val string) {
 
 // importNicTemplatesSection parses the [nic_templates] section.
 // Ported from upstream importCfgNicTemplatesSection.
-func importNicTemplatesSection(cfg *ini.File) (map[string]cmconfig.NicTemplate, error) {
+func importNicTemplatesSection(cfg *iniFile) map[string]cmconfig.NicTemplate {
 	templates := map[string]cmconfig.NicTemplate{}
-	for _, section := range cfg.Sections() {
-		if section.Name() != "nic_templates" {
+	for _, section := range cfg.sections {
+		if section.name() != "nic_templates" {
 			continue
 		}
-		if !section.HasKey(sectionKeyTemplate) {
+		if !section.hasKey(sectionKeyTemplate) {
 			continue
 		}
-		for _, v := range section.Key(sectionKeyTemplate).ValueWithShadows() {
+		for _, v := range section.valuesFor(sectionKeyTemplate) {
 			n := cmconfig.NicTemplate{}
 			parseSubkeys(v,
 				func(k, val string) { applyNicTemplateField(&n, k, val) },
@@ -234,7 +201,7 @@ func importNicTemplatesSection(cfg *ini.File) (map[string]cmconfig.NicTemplate, 
 			}
 		}
 	}
-	return templates, nil
+	return templates
 }
 
 // applyNicTemplateField sets a single field on a NicTemplate by key name.
