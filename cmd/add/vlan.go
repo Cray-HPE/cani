@@ -51,6 +51,7 @@ Examples:
 	}
 
 	cmd.Flags().String("name", "", "VLAN name (required)")
+	cmd.Flags().String("role", "", "VLAN role (e.g. AfcTransitVlan)")
 	cmd.Flags().String(flagLocation, "", "Location UUID or name")
 	cmd.Flags().String(flagDescription, "", "VLAN description")
 
