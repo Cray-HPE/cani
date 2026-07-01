@@ -65,7 +65,10 @@ pipeline {
                 axes {
                     axis {
                         name 'ARCH'
-                        values 'x86_64', 'aarch64'
+                        // aarch64 RPM temporarily disabled (arm64 build-agent instability).
+                        // Re-enable: restore 'aarch64' here AND set EXPECTED_ARCHES back to
+                        // "2" in .github/actions/prepare-artifacts/action.yml.
+                        values 'x86_64'
                     }
                 }
 
