@@ -28,7 +28,9 @@ inputs:
   EXPECTED_ARCHES:
     description: "Number of distinct CPU architectures expected to publish a non-src RPM (matches the Jenkinsfile.github build matrix). The wait loop blocks until this many arches are present so a release is never published with a missing architecture."
     required: false
-    default: "2"
+    # Temporarily "1" because the aarch64 RPM leg is disabled in Jenkinsfile.github.
+    # Restore to "2" when the aarch64 arch is added back to that build matrix.
+    default: "1"
 runs:
   using: "composite"
   steps:
