@@ -227,6 +227,34 @@ connections:
     b: { device: "FORGE-3507u43L", port: "1/1/9" }
     cable: { type: hpe-aruba-100g-qsfp28-3m-dac, color: orange }
 
+  - a: { device: "NAS-3502u18", port: "s1p1" }
+    b: { device: "FORGE-3507u44L", port: "1/1/24" }
+    cable: { type: hpe-aruba-100g-qsfp28-20m-dac, color: black }
+  - a: { device: "NAS-3502u18", port: "s1p2" }
+    b: { device: "FORGE-3507u43L", port: "1/1/24" }
+    cable: { type: hpe-aruba-100g-qsfp28-20m-dac, color: black }
+
+  - a: { device: "NAS-3502u18", port: "s2p1" }
+    b: { device: "FORGE-3507u44L", port: "1/1/25" }
+    cable: { type: hpe-aruba-100g-qsfp28-20m-dac, color: black }
+  - a: { device: "NAS-3502u18", port: "s2p2" }
+    b: { device: "FORGE-3507u43L", port: "1/1/25" }
+    cable: { type: hpe-aruba-100g-qsfp28-20m-dac, color: black }
+
+  - a: { device: "NAS-3502u20", port: "s1p1" }
+    b: { device: "FORGE-3507u44L", port: "1/1/26" }
+    cable: { type: hpe-aruba-100g-qsfp28-20m-dac, color: black }
+  - a: { device: "NAS-3502u18", port: "s1p2" }
+    b: { device: "FORGE-3507u43L", port: "1/1/26" }
+    cable: { type: hpe-aruba-100g-qsfp28-20m-dac, color: black }
+
+  - a: { device: "NAS-3502u20", port: "s2p1" }
+    b: { device: "FORGE-3507u44L", port: "1/1/27" }
+    cable: { type: hpe-aruba-100g-qsfp28-20m-dac, color: black }
+  - a: { device: "NAS-3502u18", port: "s2p2" }
+    b: { device: "FORGE-3507u43L", port: "1/1/27" }
+    cable: { type: hpe-aruba-100g-qsfp28-20m-dac, color: black }
+
   # FORGE-3507u44L (leaf-1) → FORGE-3507u46S (spine-1)
   - a: { device: "FORGE-3507u44L", port: "1/1/29" }
     b: { device: "FORGE-3507u46S", port: "1/1/1" }
