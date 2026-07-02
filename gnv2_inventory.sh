@@ -176,6 +176,17 @@ bin/cani alpha add module nvidia-connectx-7-ndr-infiniband-qsfpdd-pcie5 --device
 bin/cani alpha add module nvidia-connectx-7-ndr-infiniband-qsfpdd-pcie5 --device "SERV-3507u7" --bay "PCIe2" --name "CX7-%{DEVICE}" --status Active
 bin/cani alpha add module nvidia-connectx-7-ndr-infiniband-qsfpdd-pcie5 --device "SERV-3507u5" --bay "PCIe2" --name "CX7-%{DEVICE}" --status Active	
 
+# add 1GbE OCP management NIC in FlexLOM (OCP3) bay of all DL380s (fabric/mgmt network)
+bin/cani alpha add module hpe-ocp3-1gbe-mgmt-adapter --device "SERV-3507u21" --bay "FlexLOM" --name "OCP-%{DEVICE}" --status Active
+bin/cani alpha add module hpe-ocp3-1gbe-mgmt-adapter --device "SERV-3507u19" --bay "FlexLOM" --name "OCP-%{DEVICE}" --status Active
+bin/cani alpha add module hpe-ocp3-1gbe-mgmt-adapter --device "SERV-3507u17" --bay "FlexLOM" --name "OCP-%{DEVICE}" --status Active
+bin/cani alpha add module hpe-ocp3-1gbe-mgmt-adapter --device "SERV-3507u15" --bay "FlexLOM" --name "OCP-%{DEVICE}" --status Active
+bin/cani alpha add module hpe-ocp3-1gbe-mgmt-adapter --device "SERV-3507u13" --bay "FlexLOM" --name "OCP-%{DEVICE}" --status Active
+bin/cani alpha add module hpe-ocp3-1gbe-mgmt-adapter --device "SERV-3507u11" --bay "FlexLOM" --name "OCP-%{DEVICE}" --status Active
+bin/cani alpha add module hpe-ocp3-1gbe-mgmt-adapter --device "SERV-3507u9" --bay "FlexLOM" --name "OCP-%{DEVICE}" --status Active
+bin/cani alpha add module hpe-ocp3-1gbe-mgmt-adapter --device "SERV-3507u7" --bay "FlexLOM" --name "OCP-%{DEVICE}" --status Active
+bin/cani alpha add module hpe-ocp3-1gbe-mgmt-adapter --device "SERV-3507u5" --bay "FlexLOM" --name "OCP-%{DEVICE}" --status Active
+
 # assign interface roles for rack 3507
 bin/cani alpha update interface --device "MAN-3507u48" --name "*" --role DataInterface
 bin/cani alpha update interface --device "FORGE-3507u47M" --name "mgmt" --role ManagementInterface
