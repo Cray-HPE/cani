@@ -379,7 +379,6 @@ graph TB
 
 | Port | Remote Device | Remote Port | Function | Cable |
 |---|---------------|-------------|----------|-------|
-| 1 | SERV-3507u5 | ocp1-p3 | Management | CAT6 3m |
 | 9 | SERV-3507u21 | iLO | Management | CAT6 3m |
 | 10 | SERV-3507u19 | iLO | Management | CAT6 3m |
 | 11 | SERV-3507u17 | iLO | Management | CAT6 3m |
