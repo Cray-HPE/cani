@@ -31,18 +31,19 @@ connections:
   #        CAT5 RJ45 4.3m (hpe-cat5-rj45-4-3m-cable) for cross-rack
   # ═══════════════════════════════════════════════════════════════════════════
 
-  # --- x3701: GPU node iLOs → MAN-3701u48 (Aruba 2930F, ports 1-4) ---
+  # --- x3701: GPU node iLOs → FORGE-3507u47M (relocated OOBM/iLO switch, PR #216/#217) ---
+  # PR #216 moved the GPU iLOs off the old x3701 6300 onto FORGE-3507u47M ports 45-48.
   - a: { device: "GH-3701u34", port: "iLO" }
-    b: { device: "FORGE-3701u47M", port: "1" }
+    b: { device: "FORGE-3507u47M", port: "46" }
     cable: { type: hpe-3m-cat6-stp, color: blue }
   - a: { device: "GH-3701u26", port: "iLO" }
-    b: { device: "FORGE-3701u47M", port: "2" }
+    b: { device: "FORGE-3507u47M", port: "45" }
     cable: { type: hpe-3m-cat6-stp, color: blue }
   - a: { device: "GH-3701u18", port: "iLO" }
-    b: { device: "FORGE-3701u47M", port: "3" }
+    b: { device: "FORGE-3507u47M", port: "47" }
     cable: { type: hpe-3m-cat6-stp, color: blue }
   - a: { device: "GH-3701u10", port: "iLO" }
-    b: { device: "FORGE-3701u47M", port: "4" }
+    b: { device: "FORGE-3507u47M", port: "48" }
     cable: { type: hpe-3m-cat6-stp, color: blue }
   # - a: { device: "GH-3701u34", port: "iLO" }
   #   b: { device: "MAN-3701u48", port: "1" }
@@ -98,13 +99,9 @@ connections:
     b: { device: "FORGE-3507u47M", port: "17" }
     cable: { type: hpe-3m-cat6-stp, color: blue }
 
-  # --- x3701: Mgmt switch SFP28 uplinks → FORGE leaf pair (dual-homed, 10G DAC) ---
-  - a: { device: "FORGE-3701u47M", port: "49" }
-    b: { device: "FORGE-3701u46L", port: "1/1/5" }
-    cable: { type: hpe-aruba-10g-sfpp-3m-dac, color: blue }
-  - a: { device: "FORGE-3701u47M", port: "50" }
-    b: { device: "FORGE-3701u45L", port: "1/1/5" }
-    cable: { type: hpe-aruba-10g-sfpp-3m-dac, color: blue }
+  # --- x3701: Mgmt switch SFP28 uplinks REMOVED (PR #216) ---
+  # The x3701 6300 (FORGE-3701u47M) was relocated to x3507 as FORGE-3507u37M, so its
+  # former p49/p50 → x3701 leaf 1/1/5 uplinks no longer exist.
 
   # --- x3507: Mgmt switch SFP28 uplinks → FORGE leaf pair (dual-homed, 10G DAC) ---
   - a: { device: "FORGE-3507u47M", port: "49" }
@@ -113,6 +110,30 @@ connections:
   - a: { device: "FORGE-3507u47M", port: "50" }
     b: { device: "FORGE-3507u43L", port: "1/1/10" }
     cable: { type: hpe-aruba-10g-sfpp-3m-dac, color: blue }
+
+  # --- x3507: Switch OOBM aggregation → FORGE-3507u37M (relocated 6300, PR #216/#217) ---
+  # Every leaf/spine/mgmt switch OOBM (mgmt) port homes to the relocated 6300 at 3507u37.
+  - a: { device: "FORGE-3507u43L", port: "mgmt" }
+    b: { device: "FORGE-3507u37M", port: "1" }
+    cable: { type: hpe-3m-cat6-stp, color: blue }
+  - a: { device: "FORGE-3507u44L", port: "mgmt" }
+    b: { device: "FORGE-3507u37M", port: "2" }
+    cable: { type: hpe-3m-cat6-stp, color: blue }
+  - a: { device: "FORGE-3507u45S", port: "mgmt" }
+    b: { device: "FORGE-3507u37M", port: "3" }
+    cable: { type: hpe-3m-cat6-stp, color: blue }
+  - a: { device: "FORGE-3507u46S", port: "mgmt" }
+    b: { device: "FORGE-3507u37M", port: "4" }
+    cable: { type: hpe-3m-cat6-stp, color: blue }
+  - a: { device: "FORGE-3507u47M", port: "mgmt" }
+    b: { device: "FORGE-3507u37M", port: "5" }
+    cable: { type: hpe-3m-cat6-stp, color: blue }
+  - a: { device: "FORGE-3701u45L", port: "mgmt" }
+    b: { device: "FORGE-3507u37M", port: "6" }
+    cable: { type: hpe-3m-cat6-stp, color: blue }
+  - a: { device: "FORGE-3701u46L", port: "mgmt" }
+    b: { device: "FORGE-3507u37M", port: "7" }
+    cable: { type: hpe-3m-cat6-stp, color: blue }
 
   # ═══════════════════════════════════════════════════════════════════════════
   # LAYER 1c: Leaf — DL380 CX6 100GbE → FORGE leaf switches (dual-homed)
