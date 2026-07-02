@@ -135,6 +135,36 @@ connections:
     b: { device: "FORGE-3507u37M", port: "7" }
     cable: { type: hpe-3m-cat6-stp, color: blue }
 
+  # --- x3507: Server fabric-mgmt → FORGE-3507u37M (DL380 OCP ocp1-p2, PR #216/#217) ---
+  # Each DL380's OCP management port (ocp1-p2) homes to the relocated 6300 (ports 40-48).
+  - a: { device: "SERV-3507u21", port: "ocp1-p2" }
+    b: { device: "FORGE-3507u37M", port: "40" }
+    cable: { type: hpe-3m-cat6-stp, color: blue }
+  - a: { device: "SERV-3507u19", port: "ocp1-p2" }
+    b: { device: "FORGE-3507u37M", port: "41" }
+    cable: { type: hpe-3m-cat6-stp, color: blue }
+  - a: { device: "SERV-3507u17", port: "ocp1-p2" }
+    b: { device: "FORGE-3507u37M", port: "42" }
+    cable: { type: hpe-3m-cat6-stp, color: blue }
+  - a: { device: "SERV-3507u15", port: "ocp1-p2" }
+    b: { device: "FORGE-3507u37M", port: "43" }
+    cable: { type: hpe-3m-cat6-stp, color: blue }
+  - a: { device: "SERV-3507u13", port: "ocp1-p2" }
+    b: { device: "FORGE-3507u37M", port: "44" }
+    cable: { type: hpe-3m-cat6-stp, color: blue }
+  - a: { device: "SERV-3507u11", port: "ocp1-p2" }
+    b: { device: "FORGE-3507u37M", port: "45" }
+    cable: { type: hpe-3m-cat6-stp, color: blue }
+  - a: { device: "SERV-3507u9", port: "ocp1-p2" }
+    b: { device: "FORGE-3507u37M", port: "46" }
+    cable: { type: hpe-3m-cat6-stp, color: blue }
+  - a: { device: "SERV-3507u7", port: "ocp1-p2" }
+    b: { device: "FORGE-3507u37M", port: "47" }
+    cable: { type: hpe-3m-cat6-stp, color: blue }
+  - a: { device: "SERV-3507u5", port: "ocp1-p2" }
+    b: { device: "FORGE-3507u37M", port: "48" }
+    cable: { type: hpe-3m-cat6-stp, color: blue }
+
   # ═══════════════════════════════════════════════════════════════════════════
   # LAYER 1c: Leaf — DL380 CX6 100GbE → FORGE leaf switches (dual-homed)
   # Cable: 100G QSFP28 DAC (hpe-aruba-100g-qsfp28-3m-dac) intra-rack
