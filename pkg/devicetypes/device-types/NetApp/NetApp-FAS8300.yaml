@@ -27,7 +27,7 @@ model: FAS8300
 slug: netapp-fas8300
 description: "NetApp FAS8300 single-chassis HA pair, 4U dual-controller hybrid flash storage system with 14 PCIe expansion slots. Source: https://docs.netapp.com/us-en/ontap-systems/fas8300/fas8300-key-specifications.html"
 type: node
-u_height: 4
+u_height: 2
 is_full_depth: true
 weight: 49.2
 weight_unit: kg
