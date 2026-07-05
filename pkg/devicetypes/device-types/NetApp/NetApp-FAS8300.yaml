@@ -25,9 +25,9 @@
 manufacturer: NetApp
 model: FAS8300
 slug: netapp-fas8300
-description: "NetApp FAS8300 hybrid flash storage system, 4U dual-controller shelf"
+description: "NetApp FAS8300 hybrid flash storage system, 2U dual-controller chassis"
 type: blade
-u_height: 4
+u_height: 2
 is_full_depth: true
 weight: 54.5
 weight_unit: kg
@@ -41,6 +41,23 @@ power-ports:
     type: iec-60320-c14
     maximum_draw: 1200
     allocated_draw: 750
+
+# 100GbE fabric uplink ports exposed by the two HA controllers, labelled
+# s<slot>p<port>. Port 1 of each slot homes to leaf-1 and port 2 to leaf-2 so
+# the shelf is dual-homed across a VSX leaf pair.
+interfaces:
+  - name: s1p1
+    type: 100gbase-x-qsfp28
+    label: Slot 1 Port 1
+  - name: s1p2
+    type: 100gbase-x-qsfp28
+    label: Slot 1 Port 2
+  - name: s2p1
+    type: 100gbase-x-qsfp28
+    label: Slot 2 Port 1
+  - name: s2p2
+    type: 100gbase-x-qsfp28
+    label: Slot 2 Port 2
 
 module-bays:
   - name: Controller A
