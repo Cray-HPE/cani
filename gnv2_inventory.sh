@@ -69,8 +69,9 @@ bin/cani alpha add device cisco-nexus-9336c-fx2 --rack "3502" --face front --pos
 # Storage: 2x NetApp AFF A800 (front, 4RU each) at U26, U22
 bin/cani alpha add device netapp-aff-a800 --rack "3502" --face front --position 26 --name "NAS-%{RACK}u%{U}" --metadata role=Storage --status Active --serial 952143000000
 bin/cani alpha add device netapp-aff-a800 --rack "3502" --face front --position 22 --name "NAS-%{RACK}u%{U}" --metadata role=Storage --status Active --serial 952252000000
-# Storage: 1x NetApp FAS8300 (front, 4RU) at U18
+# Storage: 2x NetApp FAS8300 (front, 2RU each) at U18, U20
 bin/cani alpha add device netapp-fas8300 --rack "3502" --face front --position 18 --name "NAS-%{RACK}u%{U}" --metadata role=Storage --status Active --serial 042240025642
+bin/cani alpha add device netapp-fas8300 --rack "3502" --face front --position 20 --name "NAS-%{RACK}u%{U}" --metadata role=Storage --status Active --serial 952136000596
 # Storage: 3x NetApp DS460C disk shelves (front, 4RU each) at U14, U10, U6
 bin/cani alpha add device netapp-ds460c --rack "3502" --face front --position 14 --name "NAS-%{RACK}u%{U}" --metadata role=Storage --status Active --serial SHJGD2309900133
 bin/cani alpha add device netapp-ds460c --rack "3502" --face front --position 10 --name "NAS-%{RACK}u%{U}" --metadata role=Storage --status Active --serial SHJGD2309900135
@@ -175,7 +176,7 @@ bin/cani alpha add module nvidia-connectx-7-ndr-infiniband-qsfpdd-pcie5 --device
 bin/cani alpha add module nvidia-connectx-7-ndr-infiniband-qsfpdd-pcie5 --device "SERV-3507u9" --bay "PCIe2" --name "CX7-%{DEVICE}" --status Active
 bin/cani alpha add module nvidia-connectx-7-ndr-infiniband-qsfpdd-pcie5 --device "SERV-3507u7" --bay "PCIe2" --name "CX7-%{DEVICE}" --status Active
 bin/cani alpha add module nvidia-connectx-7-ndr-infiniband-qsfpdd-pcie5 --device "SERV-3507u5" --bay "PCIe2" --name "CX7-%{DEVICE}" --status Active	
-
+gti
 # add 1GbE OCP management NIC in FlexLOM (OCP3) bay of all DL380s (fabric/mgmt network)
 bin/cani alpha add module hpe-ocp3-1gbe-mgmt-adapter --device "SERV-3507u21" --bay "FlexLOM" --name "OCP-%{DEVICE}" --status Active
 bin/cani alpha add module hpe-ocp3-1gbe-mgmt-adapter --device "SERV-3507u19" --bay "FlexLOM" --name "OCP-%{DEVICE}" --status Active
