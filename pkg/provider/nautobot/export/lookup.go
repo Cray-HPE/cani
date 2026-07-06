@@ -1568,9 +1568,11 @@ func normalizeInterfaceName(name string) string {
 	return name
 }
 
-// extractPortNumber extracts just the numeric port number from an interface name
-// Examples: "1" -> "1", "port1" -> "1", "1/1" -> "1", "GigabitEthernet1/0/1" -> "1"
-// For complex patterns like "1/0/1", returns the last number segment
+// extractPortNumber extracts just the numeric port number from an interface name.
+// Examples: "1" -> "1", "port1" -> "1", "1/1/9" -> "9", "GigabitEthernet1/0/24" -> "24".
+// For hierarchical patterns like "1/1/9" it returns the LAST numeric segment, which
+// is the port number (the earlier segments identify chassis/slot). This lets a bare
+// "9" match "1/1/9".
 func extractPortNumber(name string) string {
 	// First try to find any numbers in the name
 	var numParts []string
@@ -1591,9 +1593,9 @@ func extractPortNumber(name string) string {
 		return ""
 	}
 
-	// For simple ports like "1", "port1", return the first number
-	// For hierarchical like "1/0/1", we use the first number as the primary identifier
-	return numParts[0]
+	// The last segment is the port number: for hierarchical names like "1/1/9"
+	// the earlier segments are chassis/slot; for simple names it is the only part.
+	return numParts[len(numParts)-1]
 }
 
 // GetCableByTerminations checks if a cable exists between two interfaces

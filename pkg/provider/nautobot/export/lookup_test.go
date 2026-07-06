@@ -226,16 +226,17 @@ func TestNormalizeInterfaceName(t *testing.T) {
 	}
 }
 
-// TestExtractPortNumber verifies that extractPortNumber returns the first numeric
+// TestExtractPortNumber verifies that extractPortNumber returns the LAST numeric
 // run found in an interface name, or "" when the name has no digits.
 //
-// Why it matters: port numbers key interface matching across heterogeneous naming
-// schemes, so consistent extraction keeps cani-to-Nautobot interface mapping
-// aligned.
+// Why it matters: for hierarchical names like "1/1/9" the port number is the last
+// segment (earlier segments are chassis/slot), so returning it lets a bare "9"
+// match "1/1/9" during cani-to-Nautobot interface reconciliation.
 // Inputs (table): simple, prefixed, hierarchical, and non-numeric names. Outputs:
-// the first number segment, or "".
-// Data choice: "1/0/1" and "GigabitEthernet1/0/1" assert the first-segment rule,
-// while "mgmt" covers the no-digit branch returning "".
+// the last number segment, or "".
+// Data choice: "1/1/9" and "GigabitEthernet1/0/24" have distinct first/last
+// segments so they prove the last-segment rule, while "mgmt" covers the no-digit
+// branch returning "".
 func TestExtractPortNumber(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -253,9 +254,9 @@ func TestExtractPortNumber(t *testing.T) {
 			expected: "1",
 		},
 		{
-			name:     "hierarchical returns first number",
-			input:    "1/0/1",
-			expected: "1",
+			name:     "hierarchical returns last segment",
+			input:    "1/1/9",
+			expected: "9",
 		},
 		{
 			name:     "no numbers returns empty string",
@@ -263,9 +264,9 @@ func TestExtractPortNumber(t *testing.T) {
 			expected: "",
 		},
 		{
-			name:     "GigabitEthernet extracts first number",
-			input:    "GigabitEthernet1/0/1",
-			expected: "1",
+			name:     "GigabitEthernet extracts last segment",
+			input:    "GigabitEthernet1/0/24",
+			expected: "24",
 		},
 	}
 
