@@ -102,3 +102,35 @@ func TestValidateInterfaceRole(t *testing.T) {
 		})
 	}
 }
+
+// TestValidateInterfaceRoleWithRegistered verifies that a role registered in the
+// inventory metadata catalog is accepted without warning, while an unregistered
+// unknown role still warns and a nil catalog falls back to hardcoded-only checks.
+//
+// Why it matters: operators register custom dcim.interface roles (e.g. via
+// `add metadata role`), and assigning one must not emit a spurious
+// "not a well-known role" warning, or the warning channel loses its signal.
+// Inputs: a registered custom role "EdgeExternalUplink"; an unregistered
+// "TotallyBogus" role queried against that same set; a hardcoded-known role; and
+// the custom role queried against a nil set. Outputs: empty warning for the
+// registered and hardcoded-known roles; non-empty warning for the unregistered
+// role and for the custom role under a nil set.
+// Data choice: "EdgeExternalUplink" mirrors the real forge custom role that
+// exposed the false positive; "TotallyBogus" is absent from both the hardcoded
+// map and the registered set to force the warning branch.
+func TestValidateInterfaceRoleWithRegistered(t *testing.T) {
+	registered := map[string]bool{"EdgeExternalUplink": true}
+
+	if warn := ValidateInterfaceRoleWithRegistered("EdgeExternalUplink", registered); warn != "" {
+		t.Errorf("registered custom role = %q, want empty", warn)
+	}
+	if warn := ValidateInterfaceRoleWithRegistered("TotallyBogus", registered); warn == "" {
+		t.Error("unregistered unknown role = empty, want a warning")
+	}
+	if warn := ValidateInterfaceRoleWithRegistered(InterfaceRoleManagement, registered); warn != "" {
+		t.Errorf("hardcoded known role = %q, want empty", warn)
+	}
+	if warn := ValidateInterfaceRoleWithRegistered("EdgeExternalUplink", nil); warn == "" {
+		t.Error("nil registered set with custom role = empty, want a warning")
+	}
+}

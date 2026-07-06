@@ -95,7 +95,7 @@ func updateInterface(cmd *cli.Command, args []string) error {
 		return listDeviceInterfaces(cmd, inventory)
 	}
 
-	updates, err := parseInterfaceUpdates(cmd)
+	updates, err := parseInterfaceUpdates(cmd, inventory)
 	if err != nil {
 		return err
 	}
@@ -126,8 +126,24 @@ type interfaceUpdates struct {
 	mac   string
 }
 
+// registeredInterfaceRoles returns the set of role names registered in the
+// inventory metadata catalog for the dcim.interface content type. These are
+// valid custom interface roles and must not trigger an unknown-role warning.
+func registeredInterfaceRoles(inventory *devicetypes.Inventory) map[string]bool {
+	registered := make(map[string]bool)
+	for _, r := range inventory.ListMetadata("roles") {
+		for _, ct := range r.ContentTypes {
+			if ct == "dcim.interface" {
+				registered[r.Name] = true
+				break
+			}
+		}
+	}
+	return registered
+}
+
 // parseInterfaceUpdates reads and validates the --role/--label/--mac flags.
-func parseInterfaceUpdates(cmd *cli.Command) (interfaceUpdates, error) {
+func parseInterfaceUpdates(cmd *cli.Command, inventory *devicetypes.Inventory) (interfaceUpdates, error) {
 	role, _ := cmd.Flags().GetString("role")
 	label, _ := cmd.Flags().GetString("label")
 	mac, _ := cmd.Flags().GetString("mac")
@@ -137,7 +153,8 @@ func parseInterfaceUpdates(cmd *cli.Command) (interfaceUpdates, error) {
 	}
 
 	if role != "" {
-		if warn := devicetypes.ValidateInterfaceRole(role); warn != "" {
+		registered := registeredInterfaceRoles(inventory)
+		if warn := devicetypes.ValidateInterfaceRoleWithRegistered(role, registered); warn != "" {
 			log.Printf("Warning: %s", warn)
 		}
 	}
