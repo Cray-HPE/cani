@@ -41,6 +41,15 @@ var knownInterfaceRoles = map[string]bool{
 // well-known role name. Returns empty string if the role is recognized.
 // Unknown roles are allowed (Nautobot supports custom roles) but emit a warning.
 func ValidateInterfaceRole(role string) string {
+	return ValidateInterfaceRoleWithRegistered(role, nil)
+}
+
+// ValidateInterfaceRoleWithRegistered returns a warning message if the role is
+// neither a well-known role name nor present in registered — the set of role
+// names registered in the inventory metadata catalog for the dcim.interface
+// content type. Returns empty string if the role is recognized. Unknown roles
+// are allowed (Nautobot supports custom roles) but emit a warning.
+func ValidateInterfaceRoleWithRegistered(role string, registered map[string]bool) string {
 	if role == "" {
 		return ""
 	}
@@ -49,6 +58,10 @@ func ValidateInterfaceRole(role string) string {
 	}
 	// Also check lowercase for the legacy role names
 	if knownInterfaceRoles[strings.ToLower(role)] {
+		return ""
+	}
+	// Roles registered in the inventory metadata catalog are valid custom roles.
+	if registered[role] {
 		return ""
 	}
 	return fmt.Sprintf("role %q is not a well-known role; known roles: management, hsn, storage, access, uplink, peer, ManagementInterface, HSNInterface, DataInterface, UplinkInterface, StorageInterface", role)
