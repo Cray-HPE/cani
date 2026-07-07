@@ -477,6 +477,12 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 		result.Errors = append(result.Errors, fmt.Sprintf("vlan phase error: %v", err))
 	}
 
+	// Phase 7b: Enrich interfaces with LAG membership, switchport mode, and
+	// untagged/tagged VLAN assignment now that the VLANs exist.
+	if err := e.enrichInterfaces(ctx, inventory, createdDeviceIDs, createdVLANIDs, result); err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("interface enrichment phase error: %v", err))
+	}
+
 	// Phase 8: Create Prefixes
 	createdPrefixIDs, err := e.loadPrefixes(ctx, inventory, createdLocationIDs, createdVLANIDs, result)
 	if err != nil {
@@ -813,13 +819,18 @@ func (e *Exporter) createDeviceWithID(ctx context.Context, device *devicetypes.C
 
 // interfaceSpec describes an interface to create
 type interfaceSpec struct {
-	Name     string
-	Type     string   // 1000base-t, 10gbase-x-sfpp, etc.
-	Speed    int      // Speed in Kbps
-	Role     string   // Interface role name (e.g. "management", "hsn")
-	MgmtOnly bool     // Out-of-band management-only interface (Nautobot mgmt_only)
-	Mac      string   // MAC address (Nautobot mac_address)
-	Tags     []string // Tag names to attach (Nautobot tags)
+	Name         string
+	Type         string   // 1000base-t, 10gbase-x-sfpp, etc.
+	Speed        int      // Speed in Kbps
+	Role         string   // Interface role name (e.g. "management", "hsn")
+	MgmtOnly     bool     // Out-of-band management-only interface (Nautobot mgmt_only)
+	Mac          string   // MAC address (Nautobot mac_address)
+	Tags         []string // Tag names to attach (Nautobot tags)
+	Lag          string   // Parent LAG interface name (Nautobot lag)
+	Mode         string   // Switchport mode: access, tagged, tagged-all
+	UntaggedVLAN int      // Untagged (native) VLAN ID
+	TaggedVLANs  []int    // Tagged VLAN IDs
+	VRF          string   // VRF name (Nautobot vrf)
 }
 
 // getDeviceInterfaceSpecs returns interface specifications based on device type.
@@ -839,13 +850,18 @@ func getDeviceInterfaceSpecs(device *devicetypes.CaniDeviceType) []interfaceSpec
 				role = devicetypes.InferInterfaceRole(iface.Name, iface.Type, mgmtOnly)
 			}
 			specs = append(specs, interfaceSpec{
-				Name:     iface.Name,
-				Type:     ifaceType,
-				Speed:    speed,
-				Role:     role,
-				MgmtOnly: mgmtOnly,
-				Mac:      iface.MacAddress,
-				Tags:     iface.Tags,
+				Name:         iface.Name,
+				Type:         ifaceType,
+				Speed:        speed,
+				Role:         role,
+				MgmtOnly:     mgmtOnly,
+				Mac:          iface.MacAddress,
+				Tags:         iface.Tags,
+				Lag:          iface.Lag,
+				Mode:         iface.Mode,
+				UntaggedVLAN: iface.UntaggedVLAN,
+				TaggedVLANs:  iface.TaggedVLANs,
+				VRF:          iface.VRF,
 			})
 		}
 		return specs
