@@ -58,10 +58,10 @@ Describe 'cani alpha update interface'
   # ── argument validation ─────────────────────────────────────────
 
   Describe 'validation'
-    It 'requires --role, --label, or --mac'
+    It 'requires at least one interface field flag'
       When call bin/cani alpha update interface --device foo --name bar --config "$CANI_CONF"
       The status should equal 1
-      The stderr should include 'at least one of --role, --label, or --mac must be specified'
+      The stderr should include 'at least one interface field flag must be specified'
     End
 
     It 'requires --device when no positional UUID'

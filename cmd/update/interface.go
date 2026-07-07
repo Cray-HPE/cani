@@ -28,6 +28,8 @@ package update
 import (
 	"fmt"
 	"log"
+	"strconv"
+	"strings"
 
 	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/store"
@@ -74,6 +76,11 @@ Examples:
 	cmd.Flags().String("role", "", "Interface role (e.g. management, hsn, storage, access)")
 	cmd.Flags().String("label", "", "Interface label")
 	cmd.Flags().String("mac", "", "Interface MAC address (e.g. aa:bb:cc:dd:ee:ff)")
+	cmd.Flags().String("lag", "", "Parent LAG interface name (adds this interface as a LAG member)")
+	cmd.Flags().String("mode", "", "Switchport mode: access, tagged, or tagged-all")
+	cmd.Flags().Int("untagged-vlan", 0, "Untagged (native) VLAN ID")
+	cmd.Flags().StringSlice("tagged-vlan", nil, "Tagged VLAN ID (comma-separated or repeatable)")
+	cmd.Flags().String("vrf", "", "VRF name to assign to the interface")
 	cmd.Flags().BoolP("list", "L", false, "List interfaces for the specified device")
 
 	return cmd
@@ -119,11 +126,16 @@ func updateInterface(cmd *cli.Command, args []string) error {
 	return nil
 }
 
-// interfaceUpdates holds the validated --role/--label/--mac values.
+// interfaceUpdates holds the validated interface field values.
 type interfaceUpdates struct {
-	role  string
-	label string
-	mac   string
+	role         string
+	label        string
+	mac          string
+	lag          string
+	mode         string
+	untaggedVLAN int
+	taggedVLANs  []int
+	vrf          string
 }
 
 // registeredInterfaceRoles returns the set of role names registered in the
@@ -142,50 +154,153 @@ func registeredInterfaceRoles(inventory *devicetypes.Inventory) map[string]bool 
 	return registered
 }
 
-// parseInterfaceUpdates reads and validates the --role/--label/--mac flags.
-func parseInterfaceUpdates(cmd *cli.Command, inventory *devicetypes.Inventory) (interfaceUpdates, error) {
-	role, _ := cmd.Flags().GetString("role")
-	label, _ := cmd.Flags().GetString("label")
-	mac, _ := cmd.Flags().GetString("mac")
+// interfaceUpdateFlags lists every flag that mutates an interface field.
+var interfaceUpdateFlags = []string{
+	"role", "label", "mac", "lag", "mode", "untagged-vlan", "tagged-vlan", "vrf",
+}
 
-	if !cmd.Flags().Changed("role") && !cmd.Flags().Changed("label") && !cmd.Flags().Changed("mac") {
-		return interfaceUpdates{}, fmt.Errorf("at least one of --role, --label, or --mac must be specified")
+// anyInterfaceFlagChanged reports whether at least one mutating flag was set.
+func anyInterfaceFlagChanged(cmd *cli.Command) bool {
+	for _, f := range interfaceUpdateFlags {
+		if cmd.Flags().Changed(f) {
+			return true
+		}
+	}
+	return false
+}
+
+// parseInterfaceUpdates reads and validates the interface update flags.
+func parseInterfaceUpdates(cmd *cli.Command, inventory *devicetypes.Inventory) (interfaceUpdates, error) {
+	u := interfaceUpdates{}
+	u.role, _ = cmd.Flags().GetString("role")
+	u.label, _ = cmd.Flags().GetString("label")
+	u.mac, _ = cmd.Flags().GetString("mac")
+	u.lag, _ = cmd.Flags().GetString("lag")
+	u.mode, _ = cmd.Flags().GetString("mode")
+	u.untaggedVLAN, _ = cmd.Flags().GetInt("untagged-vlan")
+	u.vrf, _ = cmd.Flags().GetString("vrf")
+
+	if !anyInterfaceFlagChanged(cmd) {
+		return interfaceUpdates{}, fmt.Errorf("at least one interface field flag must be specified (e.g. --role, --mac, --lag, --mode, --untagged-vlan, --tagged-vlan, --vrf)")
 	}
 
-	if role != "" {
+	if u.role != "" {
 		registered := registeredInterfaceRoles(inventory)
-		if warn := devicetypes.ValidateInterfaceRoleWithRegistered(role, registered); warn != "" {
+		if warn := devicetypes.ValidateInterfaceRoleWithRegistered(u.role, registered); warn != "" {
 			log.Printf("Warning: %s", warn)
 		}
 	}
 
-	if cmd.Flags().Changed("mac") {
-		normalized, nerr := devicetypes.NormalizeMAC(mac)
-		if nerr != nil {
-			return interfaceUpdates{}, nerr
-		}
-		mac = normalized
-	}
+	return validateInterfaceUpdates(cmd, u)
+}
 
-	return interfaceUpdates{role: role, label: label, mac: mac}, nil
+// validateInterfaceUpdates normalizes and range-checks the MAC, mode, and VLAN
+// values, returning the updated struct or the first validation error.
+func validateInterfaceUpdates(cmd *cli.Command, u interfaceUpdates) (interfaceUpdates, error) {
+	if cmd.Flags().Changed("mac") {
+		normalized, err := devicetypes.NormalizeMAC(u.mac)
+		if err != nil {
+			return interfaceUpdates{}, err
+		}
+		u.mac = normalized
+	}
+	if cmd.Flags().Changed("mode") {
+		normalized, err := devicetypes.ValidateInterfaceMode(u.mode)
+		if err != nil {
+			return interfaceUpdates{}, err
+		}
+		u.mode = normalized
+	}
+	if u.untaggedVLAN != 0 {
+		if err := devicetypes.ValidateVID(u.untaggedVLAN); err != nil {
+			return interfaceUpdates{}, err
+		}
+	}
+	taggedStrs, _ := cmd.Flags().GetStringSlice("tagged-vlan")
+	tagged, err := parseVIDs(taggedStrs)
+	if err != nil {
+		return interfaceUpdates{}, err
+	}
+	u.taggedVLANs = tagged
+	return u, nil
+}
+
+// parseVIDs converts a list of VLAN-ID strings into validated integers.
+func parseVIDs(strs []string) ([]int, error) {
+	if len(strs) == 0 {
+		return nil, nil
+	}
+	vids := make([]int, 0, len(strs))
+	for _, s := range strs {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			continue
+		}
+		vid, cerr := strconv.Atoi(s)
+		if cerr != nil {
+			return nil, fmt.Errorf("invalid tagged VLAN %q: must be an integer", s)
+		}
+		if verr := devicetypes.ValidateVID(vid); verr != nil {
+			return nil, verr
+		}
+		vids = append(vids, vid)
+	}
+	return vids, nil
+}
+
+// interfaceFieldChanges records which interface fields the user asked to update.
+type interfaceFieldChanges struct {
+	role, label, mac, lag, mode, untagged, tagged, vrf bool
+}
+
+// changedInterfaceFields snapshots which mutating flags were set on the command.
+func changedInterfaceFields(cmd *cli.Command) interfaceFieldChanges {
+	return interfaceFieldChanges{
+		role:     cmd.Flags().Changed("role"),
+		label:    cmd.Flags().Changed("label"),
+		mac:      cmd.Flags().Changed("mac"),
+		lag:      cmd.Flags().Changed("lag"),
+		mode:     cmd.Flags().Changed("mode"),
+		untagged: cmd.Flags().Changed("untagged-vlan"),
+		tagged:   cmd.Flags().Changed("tagged-vlan"),
+		vrf:      cmd.Flags().Changed("vrf"),
+	}
 }
 
 // applyInterfaceUpdates applies the changed fields to each target interface
 // (and its backing spec when present).
 func applyInterfaceUpdates(cmd *cli.Command, targets []interfaceTarget, u interfaceUpdates) {
-	roleChanged := cmd.Flags().Changed("role")
-	labelChanged := cmd.Flags().Changed("label")
-	macChanged := cmd.Flags().Changed("mac")
+	changed := changedInterfaceFields(cmd)
 	for _, t := range targets {
-		if roleChanged {
-			setInterfaceRole(t, u.role)
-		}
-		if labelChanged {
-			setInterfaceLabel(t, u.label)
-		}
-		if macChanged {
-			setInterfaceMAC(t, u.mac)
-		}
+		applyInterfaceFields(t, u, changed)
+	}
+}
+
+// applyInterfaceFields writes each requested field onto one target.
+func applyInterfaceFields(t interfaceTarget, u interfaceUpdates, c interfaceFieldChanges) {
+	if c.role {
+		setInterfaceRole(t, u.role)
+	}
+	if c.label {
+		setInterfaceLabel(t, u.label)
+	}
+	if c.mac {
+		setInterfaceMAC(t, u.mac)
+	}
+	if c.lag {
+		setInterfaceLag(t, u.lag)
+	}
+	if c.mode {
+		setInterfaceMode(t, u.mode)
+	}
+	if c.untagged {
+		setInterfaceUntaggedVLAN(t, u.untaggedVLAN)
+	}
+	if c.tagged {
+		setInterfaceTaggedVLANs(t, u.taggedVLANs)
+	}
+	if c.vrf {
+		setInterfaceVRF(t, u.vrf)
 	}
 }
 
@@ -210,6 +325,46 @@ func setInterfaceMAC(t interfaceTarget, mac string) {
 	t.instance.MacAddress = mac
 	if t.spec != nil {
 		t.spec.MacAddress = mac
+	}
+}
+
+// setInterfaceLag sets the parent LAG on the instance and its spec when present.
+func setInterfaceLag(t interfaceTarget, lag string) {
+	t.instance.Lag = lag
+	if t.spec != nil {
+		t.spec.Lag = lag
+	}
+}
+
+// setInterfaceMode sets the switchport mode on the instance and its spec.
+func setInterfaceMode(t interfaceTarget, mode string) {
+	t.instance.Mode = mode
+	if t.spec != nil {
+		t.spec.Mode = mode
+	}
+}
+
+// setInterfaceUntaggedVLAN sets the untagged VLAN on the instance and its spec.
+func setInterfaceUntaggedVLAN(t interfaceTarget, vid int) {
+	t.instance.UntaggedVLAN = vid
+	if t.spec != nil {
+		t.spec.UntaggedVLAN = vid
+	}
+}
+
+// setInterfaceTaggedVLANs sets the tagged VLANs on the instance and its spec.
+func setInterfaceTaggedVLANs(t interfaceTarget, vids []int) {
+	t.instance.TaggedVLANs = vids
+	if t.spec != nil {
+		t.spec.TaggedVLANs = vids
+	}
+}
+
+// setInterfaceVRF sets the VRF on the instance and its spec when present.
+func setInterfaceVRF(t interfaceTarget, vrf string) {
+	t.instance.VRF = vrf
+	if t.spec != nil {
+		t.spec.VRF = vrf
 	}
 }
 
