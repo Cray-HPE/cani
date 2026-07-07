@@ -251,6 +251,92 @@ func TestFetchStatuses_Pagination(t *testing.T) {
 	}
 }
 
+// TestFetchVLANs_Pagination verifies FetchVLANs follows the "next" link and
+// concatenates results across multiple API pages.
+//
+// Why it matters: a fabric can define hundreds of VLANs that span page
+// boundaries; a fetcher that stopped at the first page would import an
+// incomplete L2 topology and later fail to resolve interface VLAN assignments.
+// Inputs: a fake server returning two single-item pages for /ipam/vlans/, the
+// first advertising a next URL. Outputs: a two-element slice and exactly two API
+// calls. Data choice: two distinct VLAN names confirm results from both pages
+// are appended rather than one page being fetched twice.
+func TestFetchVLANs_Pagination(t *testing.T) {
+	var calls int32
+	srv := twoPageServer(t, "/ipam/vlans/",
+		[]map[string]interface{}{{"name": "vlan100"}},
+		[]map[string]interface{}{{"name": "vlan200"}}, &calls)
+	defer srv.Close()
+
+	got, err := FetchVLANs(context.Background(), newTestClient(t, srv.URL))
+	if err != nil {
+		t.Fatalf("FetchVLANs: %v", err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("expected 2 vlans, got %d", len(got))
+	}
+	if atomic.LoadInt32(&calls) != 2 {
+		t.Fatalf("expected 2 API calls, got %d", calls)
+	}
+}
+
+// TestFetchPrefixes_Pagination verifies FetchPrefixes follows the "next" link and
+// concatenates results across multiple API pages.
+//
+// Why it matters: IPAM prefix trees are large and routinely paginate; dropping
+// later pages would import a partial address plan and break prefix-to-VLAN and
+// parent/child resolution.
+// Inputs: a fake server returning two single-item pages for /ipam/prefixes/, the
+// first advertising a next URL. Outputs: a two-element slice and exactly two API
+// calls. Data choice: two distinct CIDRs exercise the append-and-continue path
+// uniquely.
+func TestFetchPrefixes_Pagination(t *testing.T) {
+	var calls int32
+	srv := twoPageServer(t, "/ipam/prefixes/",
+		[]map[string]interface{}{{"prefix": "10.0.0.0/24"}},
+		[]map[string]interface{}{{"prefix": "10.0.1.0/24"}}, &calls)
+	defer srv.Close()
+
+	got, err := FetchPrefixes(context.Background(), newTestClient(t, srv.URL))
+	if err != nil {
+		t.Fatalf("FetchPrefixes: %v", err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("expected 2 prefixes, got %d", len(got))
+	}
+	if atomic.LoadInt32(&calls) != 2 {
+		t.Fatalf("expected 2 API calls, got %d", calls)
+	}
+}
+
+// TestFetchIPAddresses_Pagination verifies FetchIPAddresses follows the "next"
+// link and concatenates results across multiple API pages.
+//
+// Why it matters: assigned host addresses are the most numerous IPAM objects and
+// always span many pages; truncation would import interfaces missing their IPs.
+// Inputs: a fake server returning two single-item pages for /ipam/ip-addresses/,
+// the first advertising a next URL. Outputs: a two-element slice and exactly two
+// API calls. Data choice: two distinct host addresses confirm cross-page
+// accumulation.
+func TestFetchIPAddresses_Pagination(t *testing.T) {
+	var calls int32
+	srv := twoPageServer(t, "/ipam/ip-addresses/",
+		[]map[string]interface{}{{"address": "10.0.0.1/32"}},
+		[]map[string]interface{}{{"address": "10.0.0.2/32"}}, &calls)
+	defer srv.Close()
+
+	got, err := FetchIPAddresses(context.Background(), newTestClient(t, srv.URL))
+	if err != nil {
+		t.Fatalf("FetchIPAddresses: %v", err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("expected 2 ip addresses, got %d", len(got))
+	}
+	if atomic.LoadInt32(&calls) != 2 {
+		t.Fatalf("expected 2 API calls, got %d", calls)
+	}
+}
+
 // TestFetchTransportErrors verifies every Fetch* helper surfaces a transport
 // (connection) error rather than returning a nil error or panicking when the
 // Nautobot endpoint is unreachable.
@@ -260,7 +346,7 @@ func TestFetchStatuses_Pagination(t *testing.T) {
 // result and the caller would wipe or skip real inventory believing the server
 // was simply empty. Every fetcher must propagate the error so the import aborts.
 // Inputs: a client pointed at an httptest server that is closed before the call,
-// guaranteeing connection-refused on the first request for each of the 11
+// guaranteeing connection-refused on the first request for each of the 14
 // fetchers. Outputs: a non-nil error from each fetcher. Data choice: closing the
 // server (rather than returning a 500) exercises the transport-level err!=nil
 // branch specifically, which the existing per-fetcher ServerError tests (which
@@ -286,6 +372,9 @@ func TestFetchTransportErrors(t *testing.T) {
 		{"inventory-items", func() error { _, err := FetchInventoryItems(ctx, client); return err }},
 		{"statuses", func() error { _, err := FetchStatuses(ctx, client); return err }},
 		{"roles", func() error { _, err := FetchRoles(ctx, client); return err }},
+		{"vlans", func() error { _, err := FetchVLANs(ctx, client); return err }},
+		{"prefixes", func() error { _, err := FetchPrefixes(ctx, client); return err }},
+		{"ip-addresses", func() error { _, err := FetchIPAddresses(ctx, client); return err }},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

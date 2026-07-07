@@ -23,6 +23,10 @@ type RawData struct {
 	InventoryItems []nautobotapi.InventoryItem
 	Statuses       []nautobotapi.Status
 	Roles          []nautobotapi.Role
+	VLANs          []nautobotapi.VLAN
+	Prefixes       []nautobotapi.Prefix
+	IPAddresses    []nautobotapi.IPAddress
+	VRFs           []nautobotapi.VRF
 }
 
 // providerGetter is used to get the Nautobot singleton from the parent package.
@@ -123,6 +127,26 @@ func Import(cmd *cli.Command, args []string, inventory *devicetypes.Inventory) e
 	d.Roles, err = FetchRoles(ctx, client)
 	if err != nil {
 		return fmt.Errorf("fetching roles: %w", err)
+	}
+
+	d.VLANs, err = FetchVLANs(ctx, client)
+	if err != nil {
+		return fmt.Errorf("fetching vlans: %w", err)
+	}
+
+	d.Prefixes, err = FetchPrefixes(ctx, client)
+	if err != nil {
+		return fmt.Errorf("fetching prefixes: %w", err)
+	}
+
+	d.IPAddresses, err = FetchIPAddresses(ctx, client)
+	if err != nil {
+		return fmt.Errorf("fetching ip addresses: %w", err)
+	}
+
+	d.VRFs, err = FetchVRFs(ctx, client)
+	if err != nil {
+		return fmt.Errorf("fetching vrfs: %w", err)
 	}
 
 	prov.ClearRawData()

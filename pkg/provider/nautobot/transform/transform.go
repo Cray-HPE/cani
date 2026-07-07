@@ -47,6 +47,9 @@ type RawData struct {
 	InventoryItems []nautobotapi.InventoryItem
 	Statuses       []nautobotapi.Status
 	Roles          []nautobotapi.Role
+	VLANs          []nautobotapi.VLAN
+	Prefixes       []nautobotapi.Prefix
+	IPAddresses    []nautobotapi.IPAddress
 }
 
 // Transform converts raw Nautobot API data into a TransformResult.

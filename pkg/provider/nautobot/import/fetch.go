@@ -309,3 +309,111 @@ func FetchRoles(ctx context.Context, client *nautobotapi.ClientWithResponses) ([
 	}
 	return all, nil
 }
+
+// FetchVRFs retrieves all VRFs from the Nautobot API.
+func FetchVRFs(ctx context.Context, client *nautobotapi.ClientWithResponses) ([]nautobotapi.VRF, error) {
+	var all []nautobotapi.VRF
+	offset := 0
+	for {
+		resp, err := client.IpamVrfsListWithResponse(ctx, &nautobotapi.IpamVrfsListParams{
+			Limit:  intPtr(pageSize),
+			Offset: &offset,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("list vrfs: %w", err)
+		}
+		if resp.StatusCode() != http.StatusOK {
+			return nil, fmt.Errorf("list vrfs: status %d", resp.StatusCode())
+		}
+		if resp.JSON200 == nil || len(resp.JSON200.Results) == 0 {
+			break
+		}
+		all = append(all, resp.JSON200.Results...)
+		if resp.JSON200.Next == nil || *resp.JSON200.Next == "" {
+			break
+		}
+		offset += pageSize
+	}
+	return all, nil
+}
+
+// FetchVLANs retrieves all VLANs from the Nautobot API.
+func FetchVLANs(ctx context.Context, client *nautobotapi.ClientWithResponses) ([]nautobotapi.VLAN, error) {
+	var all []nautobotapi.VLAN
+	offset := 0
+	for {
+		resp, err := client.IpamVlansListWithResponse(ctx, &nautobotapi.IpamVlansListParams{
+			Limit:  intPtr(pageSize),
+			Offset: &offset,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("list vlans: %w", err)
+		}
+		if resp.StatusCode() != http.StatusOK {
+			return nil, fmt.Errorf("list vlans: status %d", resp.StatusCode())
+		}
+		if resp.JSON200 == nil || len(resp.JSON200.Results) == 0 {
+			break
+		}
+		all = append(all, resp.JSON200.Results...)
+		if resp.JSON200.Next == nil || *resp.JSON200.Next == "" {
+			break
+		}
+		offset += pageSize
+	}
+	return all, nil
+}
+
+// FetchPrefixes retrieves all prefixes from the Nautobot API.
+func FetchPrefixes(ctx context.Context, client *nautobotapi.ClientWithResponses) ([]nautobotapi.Prefix, error) {
+	var all []nautobotapi.Prefix
+	offset := 0
+	for {
+		resp, err := client.IpamPrefixesListWithResponse(ctx, &nautobotapi.IpamPrefixesListParams{
+			Limit:  intPtr(pageSize),
+			Offset: &offset,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("list prefixes: %w", err)
+		}
+		if resp.StatusCode() != http.StatusOK {
+			return nil, fmt.Errorf("list prefixes: status %d", resp.StatusCode())
+		}
+		if resp.JSON200 == nil || len(resp.JSON200.Results) == 0 {
+			break
+		}
+		all = append(all, resp.JSON200.Results...)
+		if resp.JSON200.Next == nil || *resp.JSON200.Next == "" {
+			break
+		}
+		offset += pageSize
+	}
+	return all, nil
+}
+
+// FetchIPAddresses retrieves all IP addresses from the Nautobot API.
+func FetchIPAddresses(ctx context.Context, client *nautobotapi.ClientWithResponses) ([]nautobotapi.IPAddress, error) {
+	var all []nautobotapi.IPAddress
+	offset := 0
+	for {
+		resp, err := client.IpamIpAddressesListWithResponse(ctx, &nautobotapi.IpamIpAddressesListParams{
+			Limit:  intPtr(pageSize),
+			Offset: &offset,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("list ip addresses: %w", err)
+		}
+		if resp.StatusCode() != http.StatusOK {
+			return nil, fmt.Errorf("list ip addresses: status %d", resp.StatusCode())
+		}
+		if resp.JSON200 == nil || len(resp.JSON200.Results) == 0 {
+			break
+		}
+		all = append(all, resp.JSON200.Results...)
+		if resp.JSON200.Next == nil || *resp.JSON200.Next == "" {
+			break
+		}
+		offset += pageSize
+	}
+	return all, nil
+}
