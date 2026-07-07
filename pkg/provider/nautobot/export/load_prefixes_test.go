@@ -84,6 +84,12 @@ func resetIPAMCaches() {
 		delete(ipAddresses, k)
 	}
 	ipAddressesMu.Unlock()
+
+	vrfsMu.Lock()
+	for k := range vrfs {
+		delete(vrfs, k)
+	}
+	vrfsMu.Unlock()
 }
 
 // seedActiveStatus pre-populates the "Active" status in the cache so the
