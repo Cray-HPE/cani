@@ -233,6 +233,7 @@ func (e *Exporter) sendInterfaceBatch(
 			Status:   status,
 			MgmtOnly: &mgmtOnly,
 		}
+		req.Tags = e.Cache.resolveTagRefs(item.Spec.Tags)
 
 		if item.Spec.Mac != "" {
 			mac := item.Spec.Mac

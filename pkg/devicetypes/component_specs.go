@@ -12,6 +12,7 @@ type InterfaceSpec struct {
 	Role           string             `yaml:"role,omitempty" json:"role,omitempty"`
 	MacAddress     string             `yaml:"mac_address,omitempty" json:"macAddress,omitempty"`
 	MgmtOnly       *bool              `yaml:"mgmt_only,omitempty" json:"mgmt_only,omitempty"`
+	Tags           []string           `yaml:"tags,omitempty" json:"tags,omitempty"`
 	ConnectedCable *uuid.UUID         `yaml:"connected_cable,omitempty" json:"connectedCable,omitempty"`
 }
 
