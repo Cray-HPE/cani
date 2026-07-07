@@ -71,6 +71,7 @@ to a specific type; subcommands reject slugs that do not match their type.`,
 	cmd.AddCommand(newMetadataCommand())
 	cmd.AddCommand(newConnectionsCommand())
 	cmd.AddCommand(newVLANCommand())
+	cmd.AddCommand(newVRFCommand())
 	cmd.AddCommand(newPrefixCommand())
 	cmd.AddCommand(newIPCommand())
 
