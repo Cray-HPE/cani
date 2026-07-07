@@ -468,11 +468,17 @@
         "label": {
           "type": "string"
         },
+        "lag": {
+          "type": "string"
+        },
         "macAddress": {
           "type": "string"
         },
         "mgmtOnly": {
           "type": "boolean"
+        },
+        "mode": {
+          "type": "string"
         },
         "name": {
           "type": "string"
@@ -487,6 +493,12 @@
         "status": {
           "type": "string"
         },
+        "taggedVlans": {
+          "items": {
+            "type": "integer"
+          },
+          "type": "array"
+        },
         "tags": {
           "items": {
             "type": "string"
@@ -494,6 +506,12 @@
           "type": "array"
         },
         "tenant": {
+          "type": "string"
+        },
+        "untaggedVlan": {
+          "type": "integer"
+        },
+        "vrf": {
           "type": "string"
         }
       },
@@ -1013,17 +1031,29 @@
         "label": {
           "type": "string"
         },
+        "lag": {
+          "type": "string"
+        },
         "macAddress": {
           "type": "string"
         },
         "mgmt_only": {
           "type": "boolean"
         },
+        "mode": {
+          "type": "string"
+        },
         "name": {
           "type": "string"
         },
         "role": {
           "type": "string"
+        },
+        "taggedVlans": {
+          "items": {
+            "type": "integer"
+          },
+          "type": "array"
         },
         "tags": {
           "items": {
@@ -1032,6 +1062,12 @@
           "type": "array"
         },
         "type": {
+          "type": "string"
+        },
+        "untaggedVlan": {
+          "type": "integer"
+        },
+        "vrf": {
           "type": "string"
         }
       },

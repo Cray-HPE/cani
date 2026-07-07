@@ -13,6 +13,11 @@ type InterfaceSpec struct {
 	MacAddress     string             `yaml:"mac_address,omitempty" json:"macAddress,omitempty"`
 	MgmtOnly       *bool              `yaml:"mgmt_only,omitempty" json:"mgmt_only,omitempty"`
 	Tags           []string           `yaml:"tags,omitempty" json:"tags,omitempty"`
+	Lag            string             `yaml:"lag,omitempty" json:"lag,omitempty"`
+	Mode           string             `yaml:"mode,omitempty" json:"mode,omitempty"`
+	UntaggedVLAN   int                `yaml:"untagged_vlan,omitempty" json:"untaggedVlan,omitempty"`
+	TaggedVLANs    []int              `yaml:"tagged_vlans,omitempty" json:"taggedVlans,omitempty"`
+	VRF            string             `yaml:"vrf,omitempty" json:"vrf,omitempty"`
 	ConnectedCable *uuid.UUID         `yaml:"connected_cable,omitempty" json:"connectedCable,omitempty"`
 }
 
@@ -29,6 +34,11 @@ type CaniInterface struct {
 	MgmtOnly       bool        `json:"mgmtOnly,omitempty" yaml:"mgmt_only,omitempty"`
 	Label          string      `json:"label,omitempty" yaml:"label,omitempty"`
 	MacAddress     string      `json:"macAddress,omitempty" yaml:"mac_address,omitempty"`
+	Lag            string      `json:"lag,omitempty" yaml:"lag,omitempty"`
+	Mode           string      `json:"mode,omitempty" yaml:"mode,omitempty"`
+	UntaggedVLAN   int         `json:"untaggedVlan,omitempty" yaml:"untagged_vlan,omitempty"`
+	TaggedVLANs    []int       `json:"taggedVlans,omitempty" yaml:"tagged_vlans,omitempty"`
+	VRF            string      `json:"vrf,omitempty" yaml:"vrf,omitempty"`
 	ConnectedCable *uuid.UUID  `json:"connectedCable,omitempty" yaml:"connected_cable,omitempty"`
 	ContentType    string      `json:"contentType,omitempty" yaml:"content_type,omitempty"` // For cable terminations (e.g., "dcim.interface")
 	IPAddresses    []uuid.UUID `json:"ipAddresses,omitempty" yaml:"ip_addresses,omitempty"` // Assigned IP address IDs
