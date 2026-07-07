@@ -56,6 +56,7 @@ type Inventory struct {
 	Prefixes    map[uuid.UUID]*CaniPrefix    `json:"prefixes,omitempty"    yaml:"prefixes,omitempty"`
 	IPAddresses map[uuid.UUID]*CaniIPAddress `json:"ipAddresses,omitempty" yaml:"ip_addresses,omitempty"`
 	VLANs       map[uuid.UUID]*CaniVLAN      `json:"vlans,omitempty"       yaml:"vlans,omitempty"`
+	VRFs        map[uuid.UUID]*CaniVRF       `json:"vrfs,omitempty"        yaml:"vrfs,omitempty"`
 
 	// Metadata stores the catalog of metadata definitions (roles,
 	// statuses, tags) that individual inventory items reference.
@@ -80,6 +81,7 @@ type TransformResult struct {
 	Prefixes    map[uuid.UUID]*CaniPrefix
 	IPAddresses map[uuid.UUID]*CaniIPAddress
 	VLANs       map[uuid.UUID]*CaniVLAN
+	VRFs        map[uuid.UUID]*CaniVRF
 }
 
 // EnsureUniqueDeviceNames detects duplicate names within the transform
@@ -127,6 +129,7 @@ func NewInventory() *Inventory {
 		Prefixes:      make(map[uuid.UUID]*CaniPrefix),
 		IPAddresses:   make(map[uuid.UUID]*CaniIPAddress),
 		VLANs:         make(map[uuid.UUID]*CaniVLAN),
+		VRFs:          make(map[uuid.UUID]*CaniVRF),
 		Metadata:      &InventoryMetadata{},
 		pkIndex:       make(providerKeyIndex),
 	}

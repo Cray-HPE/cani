@@ -968,6 +968,57 @@
       },
       "type": "object"
     },
+    "CaniVRF": {
+      "properties": {
+        "customFields": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "description": {
+          "type": "string"
+        },
+        "externalIDs": {
+          "additionalProperties": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "providerMetadata": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "rd": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "tenant": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "ConsolePortSpec": {
       "properties": {
         "name": {
@@ -1245,6 +1296,15 @@
     "vlans": {
       "additionalProperties": {
         "$ref": "#/$defs/CaniVLAN"
+      },
+      "propertyNames": {
+        "format": "uuid"
+      },
+      "type": "object"
+    },
+    "vrfs": {
+      "additionalProperties": {
+        "$ref": "#/$defs/CaniVRF"
       },
       "propertyNames": {
         "format": "uuid"

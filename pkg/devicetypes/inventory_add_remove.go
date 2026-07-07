@@ -170,6 +170,18 @@ func (inv *Inventory) AddVLAN(vlan *CaniVLAN) error {
 	return nil
 }
 
+// AddVRF inserts a single VRF into the inventory.
+func (inv *Inventory) AddVRF(vrf *CaniVRF) error {
+	if vrf == nil {
+		return fmt.Errorf("vrf must not be nil")
+	}
+	if _, exists := inv.VRFs[vrf.ID]; exists {
+		return fmt.Errorf("vrf %s already exists", vrf.ID)
+	}
+	inv.VRFs[vrf.ID] = vrf
+	return nil
+}
+
 // AddPrefix inserts a single prefix into the inventory and auto-computes its parent.
 func (inv *Inventory) AddPrefix(prefix *CaniPrefix) error {
 	if prefix == nil {
