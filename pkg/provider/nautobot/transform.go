@@ -43,7 +43,8 @@ func (p *Nautobot) Transform(ctx context.Context, existing devicetypes.Inventory
 
 	var raw *transform.RawData
 	if len(p.rawDevices) > 0 || len(p.rawLocations) > 0 ||
-		len(p.rawVLANs) > 0 || len(p.rawPrefixes) > 0 || len(p.rawIPAddresses) > 0 {
+		len(p.rawVLANs) > 0 || len(p.rawPrefixes) > 0 || len(p.rawIPAddresses) > 0 ||
+		len(p.rawVRFs) > 0 {
 		raw = &transform.RawData{
 			Locations:      p.rawLocations,
 			Racks:          p.rawRacks,
@@ -59,6 +60,7 @@ func (p *Nautobot) Transform(ctx context.Context, existing devicetypes.Inventory
 			VLANs:          p.rawVLANs,
 			Prefixes:       p.rawPrefixes,
 			IPAddresses:    p.rawIPAddresses,
+			VRFs:           p.rawVRFs,
 		}
 	}
 	return transform.Transform(existing, raw)

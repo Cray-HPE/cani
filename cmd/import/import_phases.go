@@ -136,6 +136,10 @@ func mergeTransformResult(ctx *etlContext, result *devicetypes.TransformResult) 
 	mergeModules(ctx, result.Modules)
 	mergeCables(ctx, result.Cables)
 	mergeFrus(ctx, result.Frus)
+	mergeVLANs(ctx, result.VLANs)
+	mergePrefixes(ctx, result.Prefixes)
+	mergeIPAddresses(ctx, result.IPAddresses)
+	mergeVRFs(ctx, result.VRFs)
 
 	// Single verify pass after all merges — avoids duplicate warnings
 	// from per-entity verify calls.

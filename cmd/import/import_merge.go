@@ -233,3 +233,47 @@ func mergeFrus(ctx *etlContext, frus map[uuid.UUID]*devicetypes.CaniFruType) {
 	}
 	ctx.inventory.MergeFrus(frus)
 }
+
+// mergeVLANs adds transformed VLANs to the inventory.
+func mergeVLANs(ctx *etlContext, vlans map[uuid.UUID]*devicetypes.CaniVLAN) {
+	if len(vlans) == 0 {
+		return
+	}
+	if ctx.debug {
+		visual.PrintCaniOperation(fmt.Sprintf("Merging %d VLANs into inventory", len(vlans)), ctx.opts)
+	}
+	ctx.inventory.MergeVLANs(vlans)
+}
+
+// mergePrefixes adds transformed prefixes to the inventory.
+func mergePrefixes(ctx *etlContext, prefixes map[uuid.UUID]*devicetypes.CaniPrefix) {
+	if len(prefixes) == 0 {
+		return
+	}
+	if ctx.debug {
+		visual.PrintCaniOperation(fmt.Sprintf("Merging %d prefixes into inventory", len(prefixes)), ctx.opts)
+	}
+	ctx.inventory.MergePrefixes(prefixes)
+}
+
+// mergeIPAddresses adds transformed IP addresses to the inventory.
+func mergeIPAddresses(ctx *etlContext, ips map[uuid.UUID]*devicetypes.CaniIPAddress) {
+	if len(ips) == 0 {
+		return
+	}
+	if ctx.debug {
+		visual.PrintCaniOperation(fmt.Sprintf("Merging %d IP addresses into inventory", len(ips)), ctx.opts)
+	}
+	ctx.inventory.MergeIPAddresses(ips)
+}
+
+// mergeVRFs adds transformed VRFs to the inventory.
+func mergeVRFs(ctx *etlContext, vrfs map[uuid.UUID]*devicetypes.CaniVRF) {
+	if len(vrfs) == 0 {
+		return
+	}
+	if ctx.debug {
+		visual.PrintCaniOperation(fmt.Sprintf("Merging %d VRFs into inventory", len(vrfs)), ctx.opts)
+	}
+	ctx.inventory.MergeVRFs(vrfs)
+}
