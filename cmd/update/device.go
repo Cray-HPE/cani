@@ -28,6 +28,8 @@ package update
 import (
 	"fmt"
 	"log"
+	"strconv"
+	"strings"
 
 	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/provider"
@@ -36,6 +38,11 @@ import (
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
+)
+
+const (
+	flagAssignVLAN = "assign-vlan"
+	flagBMCOf      = "bmc-of"
 )
 
 // newDeviceCommand creates the "update device" subcommand.
@@ -58,6 +65,8 @@ func newDeviceCommand() *cli.Command {
 	cmd.Flags().String("parent", "", "Parent UUID or name (rack or device)")
 	cmd.Flags().String("primary-ipv4", "", "Primary IPv4 address (CIDR or UUID)")
 	cmd.Flags().String("primary-ipv6", "", "Primary IPv6 address (CIDR or UUID)")
+	cmd.Flags().StringSlice(flagAssignVLAN, nil, "Assign a VLAN (VID or name) to this device (comma-separated or repeatable)")
+	cmd.Flags().String(flagBMCOf, "", "Mark this device as the BMC of the given parent device (UUID or name)")
 
 	// Let providers contribute their own device-update flags.
 	for _, p := range provider.GetProviders() {
@@ -90,6 +99,9 @@ func updateDevice(cmd *cli.Command, args []string) error {
 		return err
 	}
 	if err := applyPrimaryIPs(cmd, inventory, device); err != nil {
+		return err
+	}
+	if err := applyRelationshipFlags(cmd, inventory, device); err != nil {
 		return err
 	}
 	if err := applySetToDevice(cmd, device); err != nil {
@@ -133,6 +145,65 @@ func finalizeDeviceUpdate(inventory *devicetypes.Inventory, id uuid.UUID, device
 
 	log.Printf("Updated device %s (%s)", id, device.Name)
 	return nil
+}
+
+// applyRelationshipFlags sets the assigned-VLAN and BMC-parent relationship
+// fields from --assign-vlan and --bmc-of.
+func applyRelationshipFlags(cmd *cli.Command, inventory *devicetypes.Inventory, device *devicetypes.CaniDeviceType) error {
+	if cmd.Flags().Changed(flagAssignVLAN) {
+		refs, _ := cmd.Flags().GetStringSlice(flagAssignVLAN)
+		vlanIDs, err := resolveVLANRefs(inventory, refs)
+		if err != nil {
+			return err
+		}
+		device.AssignedVLANs = vlanIDs
+	}
+	if cmd.Flags().Changed(flagBMCOf) {
+		parentRef, _ := cmd.Flags().GetString(flagBMCOf)
+		parentID, err := resolve.Device(inventory, parentRef)
+		if err != nil {
+			return fmt.Errorf("--bmc-of: %w", err)
+		}
+		device.BMCParent = parentID
+	}
+	return nil
+}
+
+// resolveVLANRefs resolves VLAN references (VID or name) to VLAN UUIDs.
+func resolveVLANRefs(inventory *devicetypes.Inventory, refs []string) ([]uuid.UUID, error) {
+	ids := make([]uuid.UUID, 0, len(refs))
+	for _, ref := range refs {
+		ref = strings.TrimSpace(ref)
+		if ref == "" {
+			continue
+		}
+		id := findVLANByRef(inventory, ref)
+		if id == uuid.Nil {
+			return nil, fmt.Errorf("VLAN %q not found", ref)
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
+}
+
+// findVLANByRef returns the UUID of the VLAN matching ref (VID or name), or Nil.
+func findVLANByRef(inventory *devicetypes.Inventory, ref string) uuid.UUID {
+	vid, isNumeric := 0, false
+	if n, err := strconv.Atoi(ref); err == nil {
+		vid, isNumeric = n, true
+	}
+	for _, v := range inventory.VLANs {
+		if v == nil {
+			continue
+		}
+		if isNumeric && v.VID == vid {
+			return v.ID
+		}
+		if v.Name == ref {
+			return v.ID
+		}
+	}
+	return uuid.Nil
 }
 
 // applyProviderDeviceFlags lets each registered provider apply its own
