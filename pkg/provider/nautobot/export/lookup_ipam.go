@@ -51,7 +51,25 @@ var (
 
 	ipAddresses   = make(map[string]*CachedItem) // keyed by address string
 	ipAddressesMu sync.RWMutex
+
+	vrfs   = make(map[string]*CachedItem) // keyed by VRF name
+	vrfsMu sync.RWMutex
 )
+
+// CacheVRF stores a VRF in the shared cache keyed by name.
+func (c *LookupCache) CacheVRF(name string, item *CachedItem) {
+	vrfsMu.Lock()
+	vrfs[name] = item
+	vrfsMu.Unlock()
+}
+
+// LookupCachedVRF returns a previously cached VRF by name.
+func (c *LookupCache) LookupCachedVRF(name string) (*CachedItem, bool) {
+	vrfsMu.RLock()
+	defer vrfsMu.RUnlock()
+	item, ok := vrfs[name]
+	return item, ok
+}
 
 // GetOrCreateNamespace looks up a Nautobot Namespace by name. If it doesn't
 // exist and auto-creation is not disabled, it creates a new one.

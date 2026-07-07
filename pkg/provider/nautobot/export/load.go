@@ -87,6 +87,8 @@ type LoadResult struct {
 	CablesConflicted   int            // Number of cables skipped (an endpoint interface is already cabled)
 	VLANsCreated       int            // Number of VLANs created
 	VLANsSkipped       int            // Number of VLANs skipped (already exist)
+	VRFsCreated        int            // Number of VRFs created
+	VRFsSkipped        int            // Number of VRFs skipped (already exist)
 	PrefixesCreated    int            // Number of prefixes created
 	PrefixesSkipped    int            // Number of prefixes skipped (already exist)
 	IPAddressesCreated int            // Number of IP addresses created
@@ -469,6 +471,11 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 				result.Errors = append(result.Errors, fmt.Sprintf("cable %s: create error: %v", cable.Label, err))
 			}
 		}
+	}
+
+	// Phase 6c: Create VRFs before VLANs and interface enrichment can reference them.
+	if err := e.loadVRFs(ctx, inventory, result); err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("vrf phase error: %v", err))
 	}
 
 	// Phase 7: Create VLANs

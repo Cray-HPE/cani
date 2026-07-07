@@ -98,7 +98,8 @@ func findDeviceByName(inventory *devicetypes.Inventory, name string) *devicetype
 // interfaceNeedsEnrichment reports whether a spec carries any setting that must
 // be applied in the enrichment pass.
 func interfaceNeedsEnrichment(spec interfaceSpec) bool {
-	return spec.Lag != "" || spec.Mode != "" || spec.UntaggedVLAN != 0 || len(spec.TaggedVLANs) > 0
+	return spec.Lag != "" || spec.Mode != "" || spec.UntaggedVLAN != 0 ||
+		len(spec.TaggedVLANs) > 0 || spec.VRF != ""
 }
 
 // anyInterfaceNeedsEnrichment reports whether any spec in the slice needs enrichment.
@@ -176,6 +177,10 @@ func (e *Exporter) buildInterfaceEnrichment(
 		req.TaggedVlans = &tagged
 		changed = true
 	}
+	if ref := e.vrfRef(spec.VRF); ref != nil {
+		req.Vrf = ref
+		changed = true
+	}
 
 	// Nautobot's interface serializer validates that a device (or module) is
 	// set even on a partial update; omitting it fails with "Either device or
@@ -184,6 +189,19 @@ func (e *Exporter) buildInterfaceEnrichment(
 		req.Device = makeTenantRef(deviceID)
 	}
 	return req, changed
+}
+
+// vrfRef resolves a VRF name to its Nautobot reference using the VRF cache
+// populated by the VRF phase, or nil when the name is empty or unknown.
+func (e *Exporter) vrfRef(name string) *nautobotapi.BulkWritableCircuitRequestTenant {
+	if name == "" {
+		return nil
+	}
+	item, ok := e.Cache.LookupCachedVRF(name)
+	if !ok || item == nil {
+		return nil
+	}
+	return makeTenantRef(item.ID)
 }
 
 // lagRef resolves the parent LAG interface on the same device to a ParentLAG
