@@ -84,7 +84,12 @@ func (e *Exporter) loadPrefixes(
 			continue
 		}
 
-		nautobotID, err := e.createPrefix(ctx, prefix, ns.ID, vlanMap, created, result)
+		var nautobotLocID uuid.UUID
+		if prefix.Location != uuid.Nil {
+			nautobotLocID = locationMap[prefix.Location]
+		}
+
+		nautobotID, err := e.createPrefix(ctx, prefix, ns.ID, nautobotLocID, vlanMap, created, result)
 		if err != nil {
 			result.Errors = append(result.Errors, fmt.Sprintf("prefix %s: create error: %v", prefix.Prefix, err))
 			continue
@@ -108,6 +113,7 @@ func (e *Exporter) createPrefix(
 	ctx context.Context,
 	prefix *devicetypes.CaniPrefix,
 	namespaceID uuid.UUID,
+	locationID uuid.UUID,
 	vlanMap map[uuid.UUID]uuid.UUID,
 	createdPrefixes map[uuid.UUID]uuid.UUID,
 	result *LoadResult,
@@ -145,9 +151,11 @@ func (e *Exporter) createPrefix(
 		req.Description = &prefix.Description
 	}
 
-	// Note: Location is intentionally omitted for prefixes because Nautobot
-	// restricts which location types may associate with prefixes. The location
-	// type "Section" (used by cani) does not support prefix associations.
+	// Scope to the location when it maps to a known Nautobot location.
+	if locationID != uuid.Nil {
+		ref := makeLocationRef(locationID)
+		req.Location = &ref
+	}
 
 	// Resolve parent prefix
 	if prefix.Parent != uuid.Nil {
@@ -179,33 +187,70 @@ func (e *Exporter) createPrefix(
 		return uuid.New(), nil
 	}
 
-	// Use raw API call because the generated response parser has UUID format
-	// parsing issues with Nautobot's response (base64 vs string UUID mismatch).
-	httpResp, err := e.Client.IpamPrefixesCreate(ctx, &nautobotapi.IpamPrefixesCreateParams{}, req)
+	nautobotID, err := e.postPrefixWithFallback(ctx, prefix, &req)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	clog.Created("  + Prefix: %s (%s)", prefix.Prefix, prefix.Type)
+	return nautobotID, nil
+}
+
+// postPrefixWithFallback POSTs the prefix, retrying once without a location when
+// Nautobot rejects the association (e.g. the location type does not permit
+// prefixes).
+func (e *Exporter) postPrefixWithFallback(
+	ctx context.Context,
+	prefix *devicetypes.CaniPrefix,
+	req *nautobotapi.WritablePrefixRequest,
+) (uuid.UUID, error) {
+	id, code, body, err := e.postPrefix(ctx, req)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("API error: %w", err)
+	}
+	if code == http.StatusCreated {
+		return id, nil
+	}
+	if req.Location != nil && code == http.StatusBadRequest {
+		clog.Warn("  Prefix %s: location not accepted, retrying without location", prefix.Prefix)
+		req.Location = nil
+		id, code, body, err = e.postPrefix(ctx, req)
+		if err != nil {
+			return uuid.Nil, fmt.Errorf("API error: %w", err)
+		}
+		if code == http.StatusCreated {
+			return id, nil
+		}
+	}
+	return uuid.Nil, fmt.Errorf("unexpected status %d: %s", code, body)
+}
+
+// postPrefix performs a single prefix create using a raw API call (the generated
+// response parser mishandles Nautobot's UUID format). It returns the new ID (on
+// 201), the HTTP status code, and the response body.
+func (e *Exporter) postPrefix(ctx context.Context, req *nautobotapi.WritablePrefixRequest) (uuid.UUID, int, string, error) {
+	httpResp, err := e.Client.IpamPrefixesCreate(ctx, &nautobotapi.IpamPrefixesCreateParams{}, *req)
+	if err != nil {
+		return uuid.Nil, 0, "", err
 	}
 	defer httpResp.Body.Close()
 
 	body, _ := io.ReadAll(httpResp.Body)
 	if httpResp.StatusCode != http.StatusCreated {
-		return uuid.Nil, fmt.Errorf("unexpected status %d: %s", httpResp.StatusCode, string(body))
+		return uuid.Nil, httpResp.StatusCode, string(body), nil
 	}
 
-	// Extract ID from response JSON
 	var respObj struct {
 		ID string `json:"id"`
 	}
 	if err := json.Unmarshal(body, &respObj); err != nil {
-		return uuid.Nil, fmt.Errorf("failed to parse response: %w", err)
+		return uuid.Nil, httpResp.StatusCode, string(body), fmt.Errorf("failed to parse response: %w", err)
 	}
-	nautobotID, err := uuid.Parse(respObj.ID)
+	id, err := uuid.Parse(respObj.ID)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("failed to parse UUID from response: %w", err)
+		return uuid.Nil, httpResp.StatusCode, string(body), fmt.Errorf("failed to parse UUID from response: %w", err)
 	}
-
-	clog.Created("  + Prefix: %s (%s)", prefix.Prefix, prefix.Type)
-	return nautobotID, nil
+	return id, httpResp.StatusCode, string(body), nil
 }
 
 // sortPrefixesByLength returns prefixes sorted by prefix length ascending

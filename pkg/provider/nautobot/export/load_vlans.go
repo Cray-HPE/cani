@@ -77,8 +77,14 @@ func (e *Exporter) loadVLANs(
 			continue
 		}
 
+		// Resolve the Nautobot location for scoping (nil when unmapped).
+		var nautobotLocID uuid.UUID
+		if vlan.Location != uuid.Nil {
+			nautobotLocID = locationMap[vlan.Location]
+		}
+
 		// Build the request
-		nautobotID, err := e.createVLAN(ctx, vlan, result)
+		nautobotID, err := e.createVLAN(ctx, vlan, nautobotLocID, result)
 		if err != nil {
 			result.Errors = append(result.Errors, fmt.Sprintf("vlan %d (%s): create error: %v", vlan.VID, vlan.Name, err))
 			continue
@@ -97,10 +103,12 @@ func (e *Exporter) loadVLANs(
 	return created, nil
 }
 
-// createVLAN creates a single VLAN in Nautobot.
+// createVLAN creates a single VLAN in Nautobot, scoping it to locationID when
+// that location is known (locationID may be uuid.Nil for an unscoped VLAN).
 func (e *Exporter) createVLAN(
 	ctx context.Context,
 	vlan *devicetypes.CaniVLAN,
+	locationID uuid.UUID,
 	result *LoadResult,
 ) (uuid.UUID, error) {
 	// Resolve status
@@ -127,16 +135,17 @@ func (e *Exporter) createVLAN(
 		req.Description = &vlan.Description
 	}
 
-	// Note: Location is intentionally omitted for VLANs because Nautobot
-	// restricts which location types may associate with VLANs. The location
-	// type "Section" (used by cani) does not support VLAN associations.
+	// Scope to the location when it maps to a known Nautobot location.
+	if locationID != uuid.Nil {
+		ref := makeLocationRef(locationID)
+		req.Location = &ref
+	}
 
 	// Resolve role
 	if vlan.Role != "" {
-		roleItem, err := e.Cache.GetRole(vlan.Role)
-		if err == nil && roleItem != nil {
-			ref := makeTenantRef(roleItem.ID)
-			req.Role = ref
+		roleItem, rerr := e.Cache.GetRole(vlan.Role)
+		if rerr == nil && roleItem != nil {
+			req.Role = makeTenantRef(roleItem.ID)
 		}
 	}
 
@@ -145,20 +154,55 @@ func (e *Exporter) createVLAN(
 		return uuid.New(), nil
 	}
 
-	resp, err := e.Client.IpamVlansCreateWithResponse(ctx, &nautobotapi.IpamVlansCreateParams{}, req)
+	nautobotID, err := e.postVLANWithFallback(ctx, vlan, &req)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	clog.Created("  + VLAN %d: %s", vlan.VID, vlan.Name)
+	return nautobotID, nil
+}
+
+// postVLANWithFallback POSTs the VLAN, retrying once without a location when
+// Nautobot rejects the association (e.g. the location type does not permit
+// VLANs). This keeps VLANs exporting even when their location type lacks the
+// ipam.vlan content type.
+func (e *Exporter) postVLANWithFallback(
+	ctx context.Context,
+	vlan *devicetypes.CaniVLAN,
+	req *nautobotapi.VLANRequest,
+) (uuid.UUID, error) {
+	id, code, body, err := e.postVLAN(ctx, req)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("API error: %w", err)
 	}
-	if resp.StatusCode() != http.StatusCreated {
-		return uuid.Nil, fmt.Errorf("unexpected status %d: %s", resp.StatusCode(), string(resp.Body))
+	if code == http.StatusCreated {
+		return id, nil
 	}
-	if resp.JSON201 == nil {
-		return uuid.Nil, fmt.Errorf("empty response body")
+	if req.Location != nil && code == http.StatusBadRequest {
+		clog.Warn("  VLAN %d (%s): location not accepted, retrying without location", vlan.VID, vlan.Name)
+		req.Location = nil
+		id, code, body, err = e.postVLAN(ctx, req)
+		if err != nil {
+			return uuid.Nil, fmt.Errorf("API error: %w", err)
+		}
+		if code == http.StatusCreated {
+			return id, nil
+		}
 	}
+	return uuid.Nil, fmt.Errorf("unexpected status %d: %s", code, body)
+}
 
-	nautobotID := toUUID(resp.JSON201.Id)
-	clog.Created("  + VLAN %d: %s", vlan.VID, vlan.Name)
-	return nautobotID, nil
+// postVLAN performs a single VLAN create, returning the new ID (on 201), the
+// HTTP status code, and the response body.
+func (e *Exporter) postVLAN(ctx context.Context, req *nautobotapi.VLANRequest) (uuid.UUID, int, string, error) {
+	resp, err := e.Client.IpamVlansCreateWithResponse(ctx, &nautobotapi.IpamVlansCreateParams{}, *req)
+	if err != nil {
+		return uuid.Nil, 0, "", err
+	}
+	if resp.StatusCode() == http.StatusCreated && resp.JSON201 != nil {
+		return toUUID(resp.JSON201.Id), resp.StatusCode(), string(resp.Body), nil
+	}
+	return uuid.Nil, resp.StatusCode(), string(resp.Body), nil
 }
 
 // resolveLocationName returns the name of a location from its cani UUID.

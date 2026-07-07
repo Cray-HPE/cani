@@ -88,7 +88,7 @@ func TestCreateVLAN_CreatesWithStatusFallback(t *testing.T) {
 	vlan := &devicetypes.CaniVLAN{VID: 100, Name: "vlan100"}
 
 	result := &LoadResult{}
-	got, err := e.createVLAN(context.Background(), vlan, result)
+	got, err := e.createVLAN(context.Background(), vlan, uuid.Nil, result)
 	if err != nil {
 		t.Fatalf("createVLAN() error = %v", err)
 	}
@@ -126,7 +126,7 @@ func TestCreateVLAN_ResolvesRoleIntoPayload(t *testing.T) {
 	vlan.Role = "compute"
 
 	result := &LoadResult{}
-	if _, err := e.createVLAN(context.Background(), vlan, result); err != nil {
+	if _, err := e.createVLAN(context.Background(), vlan, uuid.Nil, result); err != nil {
 		t.Fatalf("createVLAN() error = %v", err)
 	}
 
@@ -160,7 +160,7 @@ func TestCreateVLAN_DryRunSkipsCreate(t *testing.T) {
 	vlan.Status = "Active"
 
 	result := &LoadResult{}
-	got, err := e.createVLAN(context.Background(), vlan, result)
+	got, err := e.createVLAN(context.Background(), vlan, uuid.Nil, result)
 	if err != nil {
 		t.Fatalf("createVLAN() error = %v", err)
 	}
@@ -201,7 +201,7 @@ func TestCreateVLAN_ReturnsErrorWhenStatusLookupFails(t *testing.T) {
 	vlan := &devicetypes.CaniVLAN{VID: 100, Name: "vlan100"}
 
 	result := &LoadResult{}
-	if _, err := e.createVLAN(context.Background(), vlan, result); err == nil {
+	if _, err := e.createVLAN(context.Background(), vlan, uuid.Nil, result); err == nil {
 		t.Fatal("expected an error when the status cannot be resolved")
 	}
 }
@@ -226,7 +226,7 @@ func TestCreateVLAN_ReturnsErrorOnNon201(t *testing.T) {
 	vlan.Status = "Active"
 
 	result := &LoadResult{}
-	if _, err := e.createVLAN(context.Background(), vlan, result); err == nil {
+	if _, err := e.createVLAN(context.Background(), vlan, uuid.Nil, result); err == nil {
 		t.Fatal("expected an error when the VLAN create responds with 400")
 	}
 }

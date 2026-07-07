@@ -1226,6 +1226,12 @@ func toNautobotContentTypes(types []string) []string {
 			out = append(out, "dcim.rack")
 		case "module":
 			out = append(out, "dcim.module")
+		case "vlan":
+			out = append(out, "ipam.vlan")
+		case "prefix":
+			out = append(out, "ipam.prefix")
+		case "ipaddress":
+			out = append(out, "ipam.ipaddress")
 		default:
 			out = append(out, t)
 		}

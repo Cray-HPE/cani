@@ -385,6 +385,7 @@ func TestCreatePrefix_ReturnsErrorWhenStatusUnresolvable(t *testing.T) {
 		context.Background(),
 		prefix,
 		uuid.New(),                // namespaceID
+		uuid.Nil,                  // locationID
 		map[uuid.UUID]uuid.UUID{}, // vlanMap
 		map[uuid.UUID]uuid.UUID{}, // createdPrefixes
 		result,
