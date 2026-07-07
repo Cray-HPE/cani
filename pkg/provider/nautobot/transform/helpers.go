@@ -74,6 +74,20 @@ func intVal(p *int) int {
 	return *p
 }
 
+// firstLocation resolves the first Nautobot location reference in a plural
+// locations slice to a CANI location UUID. Returns uuid.Nil when the slice is
+// empty or the referenced location was not imported.
+func firstLocation(locs *[]nautobotapi.BulkWritableCableRequestStatus, locationMap map[uuid.UUID]uuid.UUID) uuid.UUID {
+	if locs == nil || len(*locs) == 0 {
+		return uuid.Nil
+	}
+	nbID := refIDVal((*locs)[0])
+	if nbID == uuid.Nil {
+		return uuid.Nil
+	}
+	return locationMap[nbID]
+}
+
 // refDisplay returns the Display field from a BulkWritableCableRequestStatus.
 func refDisplay(ref *nautobotapi.BulkWritableCableRequestStatus) string {
 	if ref == nil {

@@ -50,6 +50,7 @@ type RawData struct {
 	VLANs          []nautobotapi.VLAN
 	Prefixes       []nautobotapi.Prefix
 	IPAddresses    []nautobotapi.IPAddress
+	VRFs           []nautobotapi.VRF
 }
 
 // Transform converts raw Nautobot API data into a TransformResult.
@@ -97,13 +98,33 @@ func transformRaw(raw *RawData) (*devicetypes.TransformResult, error) {
 	frus := MapFrus(raw.InventoryItems, deviceMap)
 	clog.Detail("  Transformed %d FRUs", len(frus))
 
+	// 8. VLANs – also produces Nautobot→CANI UUID map for prefixes.
+	vlans, vlanMap := MapVLANs(raw.VLANs, locationMap, statusNameMap, roleNameMap)
+	clog.Detail("  Transformed %d VLANs", len(vlans))
+
+	// 9. Prefixes.
+	prefixes := MapPrefixes(raw.Prefixes, locationMap, vlanMap, statusNameMap, roleNameMap)
+	clog.Detail("  Transformed %d prefixes", len(prefixes))
+
+	// 10. IP addresses.
+	ipAddresses := MapIPAddresses(raw.IPAddresses, statusNameMap, roleNameMap)
+	clog.Detail("  Transformed %d IP addresses", len(ipAddresses))
+
+	// 11. VRFs.
+	vrfs := MapVRFs(raw.VRFs, statusNameMap)
+	clog.Detail("  Transformed %d VRFs", len(vrfs))
+
 	return &devicetypes.TransformResult{
-		Locations: locations,
-		Racks:     racks,
-		Devices:   devices,
-		Modules:   modules,
-		Cables:    cables,
-		Frus:      frus,
+		Locations:   locations,
+		Racks:       racks,
+		Devices:     devices,
+		Modules:     modules,
+		Cables:      cables,
+		Frus:        frus,
+		VLANs:       vlans,
+		Prefixes:    prefixes,
+		IPAddresses: ipAddresses,
+		VRFs:        vrfs,
 	}, nil
 }
 

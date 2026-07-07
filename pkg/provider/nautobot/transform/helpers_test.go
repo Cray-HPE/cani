@@ -59,6 +59,20 @@ func makeInvalidIDUnion() nautobotapi.BulkWritableCableRequestStatusId {
 func strPtr(s string) *string { return &s }
 func intPtr(v int) *int       { return &v }
 
+// onlyValue returns the single value in a one-element map, failing the test
+// otherwise. It lets a test fetch a mapper's lone result without indexing by a
+// randomly generated CANI UUID.
+func onlyValue[T any](t *testing.T, m map[uuid.UUID]*T) *T {
+	t.Helper()
+	if len(m) != 1 {
+		t.Fatalf("expected exactly 1 element, got %d", len(m))
+	}
+	for _, v := range m {
+		return v
+	}
+	return nil
+}
+
 // TestRefID verifies refID extracts a UUID from a cable/status reference,
 // returning the nil UUID for a nil reference or a nil inner Id.
 //
