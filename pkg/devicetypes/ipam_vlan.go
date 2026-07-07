@@ -1,6 +1,18 @@
 package devicetypes
 
-import "github.com/google/uuid"
+import (
+	"fmt"
+
+	"github.com/google/uuid"
+)
+
+// ValidateVID verifies vid is within the valid 802.1Q range (1-4094).
+func ValidateVID(vid int) error {
+	if vid < 1 || vid > 4094 {
+		return fmt.Errorf("invalid VLAN ID %d: must be between 1 and 4094", vid)
+	}
+	return nil
+}
 
 // CaniVLAN represents a layer-2 VLAN domain.
 type CaniVLAN struct {
