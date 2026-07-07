@@ -152,19 +152,8 @@ func (e *Exporter) createFruFromCani(
 		req.Discovered = &fru.Discovered
 	}
 
-	// Map Tags — convert string tag names to Nautobot status-ref objects.
-	if len(fru.Tags) > 0 {
-		tags := make([]nautobotapi.BulkWritableCableRequestStatus, 0, len(fru.Tags))
-		for _, tagName := range fru.Tags {
-			tag, err := e.Cache.GetOrCreateTag(tagName)
-			if err == nil && tag != nil {
-				tags = append(tags, makeStatusRef(tag.ID))
-			}
-		}
-		if len(tags) > 0 {
-			req.Tags = &tags
-		}
-	}
+	// Map Tags — convert string tag names to Nautobot tag references.
+	req.Tags = e.Cache.resolveTagRefs(fru.Tags)
 
 	// Map CustomFields
 	if len(fru.CustomFields) > 0 {
