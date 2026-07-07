@@ -178,7 +178,10 @@ func (e *Exporter) postVLANWithFallback(
 	if code == http.StatusCreated {
 		return id, nil
 	}
-	if req.Location != nil && code == http.StatusBadRequest {
+	// An unsupported location type makes Nautobot reject the VLAN — cleanly with
+	// 400, or with a 500 when its location validation crashes. Either way, retry
+	// once without the location so the VLAN still exports (unscoped).
+	if req.Location != nil && (code == http.StatusBadRequest || code == http.StatusInternalServerError) {
 		clog.Warn("  VLAN %d (%s): location not accepted, retrying without location", vlan.VID, vlan.Name)
 		req.Location = nil
 		id, code, body, err = e.postVLAN(ctx, req)

@@ -211,7 +211,10 @@ func (e *Exporter) postPrefixWithFallback(
 	if code == http.StatusCreated {
 		return id, nil
 	}
-	if req.Location != nil && code == http.StatusBadRequest {
+	// An unsupported location type makes Nautobot reject the prefix — cleanly
+	// with 400, or with a 500 when its location validation crashes. Either way,
+	// retry once without the location so the prefix still exports (unscoped).
+	if req.Location != nil && (code == http.StatusBadRequest || code == http.StatusInternalServerError) {
 		clog.Warn("  Prefix %s: location not accepted, retrying without location", prefix.Prefix)
 		req.Location = nil
 		id, code, body, err = e.postPrefix(ctx, req)

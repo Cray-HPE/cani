@@ -127,3 +127,59 @@ func TestCreateVLAN_RetriesWithoutLocationOn400(t *testing.T) {
 		t.Error("retry should omit the location")
 	}
 }
+
+// TestCreateVLAN_RetriesWithoutLocationOn500 verifies the fallback also triggers
+// when Nautobot answers the location-scoped create with a 500 rather than a 400.
+//
+// Why it matters: Nautobot's location-type validation can crash (HTTP 500)
+// instead of rejecting cleanly; without treating 500 as a location rejection the
+// VLAN would fail the whole export. The retry keeps the VLAN exporting unscoped.
+// Inputs: a handler that 500s any VLAN POST carrying a location and 201s one
+// without. Outputs: the VLAN's ID and exactly two POST attempts, the second
+// dropping the location.
+// Data choice: 500 mirrors the observed server-side crash for VLAN/prefix
+// locations whose type lacks the ipam content type.
+func TestCreateVLAN_RetriesWithoutLocationOn500(t *testing.T) {
+	resetIPAMCaches()
+	vlanNID := uuid.New()
+	locID := uuid.New()
+	var bodies [][]byte
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodPost && strings.Contains(r.URL.Path, "ipam/vlans") {
+			body, _ := io.ReadAll(r.Body)
+			bodies = append(bodies, body)
+			if strings.Contains(string(body), locID.String()) {
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = io.WriteString(w, `<!DOCTYPE html><html>Server Error</html>`)
+				return
+			}
+			w.WriteHeader(http.StatusCreated)
+			_, _ = io.WriteString(w, fmt.Sprintf(`{"id":%q,"vid":100,"name":"vlan100"}`, vlanNID.String()))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = io.WriteString(w, emptyListJSON)
+	}
+	e, cleanup := newExporterWithServer(t, handler)
+	defer cleanup()
+	seedActiveStatus(t, e)
+
+	vlan := &devicetypes.CaniVLAN{VID: 100, Name: "vlan100"}
+	vlan.Status = "Active"
+
+	result := &LoadResult{}
+	got, err := e.createVLAN(context.Background(), vlan, locID, result)
+	if err != nil {
+		t.Fatalf("createVLAN() error = %v", err)
+	}
+	if got != vlanNID {
+		t.Errorf("returned ID = %s, want %s", got, vlanNID)
+	}
+	if len(bodies) != 2 {
+		t.Fatalf("expected 2 POST attempts (with then without location), got %d", len(bodies))
+	}
+	if strings.Contains(string(bodies[1]), locID.String()) {
+		t.Error("retry should omit the location")
+	}
+}
