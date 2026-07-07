@@ -31,6 +31,10 @@ Each `Cani*Type` implements the `CaniType` interface (`Validate()`, `GetID()`, `
 | `Modules` | `Module` + `ModuleType` + `ModuleBay` | ~60% | `loadModules()` in `load_modules.go` |
 | `Cables` | `Cable` | ~75% | `createCaniCableType()` in `load.go` |
 | `Frus` | `InventoryItem` | ~60% | `loadFrus()` in `load_frus.go` |
+| `VLANs` | `VLAN` | Import + Export | `loadVLANs()` in `load_vlans.go` |
+| `Prefixes` | `Prefix` | Import + Export | `loadPrefixes()` in `load_prefixes.go` |
+| `IPAddresses` | `IPAddress` | Import + Export | `loadIPAddresses()` in `load.go` |
+| `VRFs` | `VRF` | Import + Export | `loadVRFs()` in `load_vrfs.go` |
 
 ---
 
@@ -147,6 +151,8 @@ This type conflates **template fields** (from the YAML library, used to auto-cre
 | `Rack` | `uuid.UUID` | `Device.Rack` (FK) | Cani-Internal | Explicit FK; rebuilt from `Parent` at load time |
 | `Location` | `uuid.UUID` | `Device.Location` (FK) | Partial | Resolved from `ProviderMetadata["location"]` or default |
 | `ParentDevice` | `uuid.UUID` | `Device.ParentBay` | Cani-Internal | Explicit FK; rebuilt from `Parent` at load time |
+| `AssignedVLANs` | `[]uuid.UUID` | Relationship association | **Mapped** | Device↔VLAN; exported in Phase 10 by `loadRelationships()` in `load_relationships.go`. Set by `update device --assign-vlan` |
+| `BMCParent` | `uuid.UUID` | Relationship association | **Mapped** | Marks this device as the BMC of the target device; exported in Phase 10. Set by `update device --bmc-of` |
 | `Comments` | `string` | `Device.Comments` | **Mapped** | Mapped when non-empty |
 | `Description` | `string` | — | Cani-Internal | No Nautobot device description |
 | `Vendor` | `string` | — | Cani-Internal | Cani-specific (vendor ≠ manufacturer) |
@@ -289,6 +295,54 @@ Exported in Phase 5 by `loadFrus()` in `load_frus.go`. Uses a topological sort (
 | `Tags` | `[]string` | `InventoryItem.Tags` | Not Mapped | |
 | `CustomFields` | `map[string]any` | `InventoryItem.CustomFields` | Not Mapped | |
 | `Source` | `string` | — | Cani-Internal | |
+
+---
+
+## 2a. IPAM & Interface Enrichment
+
+IPAM types (`VLANs`, `Prefixes`, `IPAddresses`, `VRFs`) and the interface
+switchport fields are UUID-keyed like the DCIM types and follow the same tag
+convention (camelCase JSON, snake_case YAML). They round-trip through the same
+ETL: fetched on import (`FetchVLANs`/`FetchPrefixes`/`FetchIPAddresses`/`FetchVRFs`),
+mapped in `transform/map_*.go`, and exported in Phases 6c–10 (see §5).
+
+### 2a.1 Interface enrichment fields (`CaniInterface` / `InterfaceSpec`)
+
+Source: `pkg/devicetypes/component_specs.go`
+Exported in Phase 7b by `enrichInterfaces()` in `load_interface_enrich.go`, which
+PATCHes an existing Nautobot interface after VLANs and VRFs exist. These are
+instance-level switchport fields set by `cani update interface`; they extend the
+template (name/type/mgmt-only) and are **not** device-type template fields.
+
+| Cani Field | Go Type | Nautobot Field | Status | Notes |
+|---|---|---|---|---|
+| `Lag` | `string` | `Interface.lag` (FK) | **Mapped** | Parent LAG interface name, resolved to the LAG interface FK |
+| `Mode` | `string` | `Interface.mode` | **Mapped** | `access`, `tagged`, or `tagged-all` |
+| `UntaggedVLAN` | `int` | `Interface.untagged_vlan` (FK) | **Mapped** | Native VLAN ID, resolved to the VLAN FK created in Phase 7 |
+| `TaggedVLANs` | `[]int` | `Interface.tagged_vlans` (FK) | **Mapped** | Trunk VLAN IDs, resolved to VLAN FKs |
+| `VRF` | `string` | `Interface.vrf` (FK) | **Mapped** | VRF name, resolved to the VRF FK created in Phase 6c |
+| `Role` | `string` | `Interface.role` (FK) | **Mapped** | e.g. `management`, `hsn`; validated against registered roles |
+| `Tags` | `[]string` | `Interface.tags` | **Mapped** | Exported via the shared tag resolver |
+| `MacAddress` | `string` | `Interface.mac_address` | **Mapped** | Normalized on `update interface` |
+
+### 2a.2 `CaniVRF` → Nautobot `VRF`
+
+Source: `pkg/devicetypes/ipam_vrf.go`
+Imported by `FetchVRFs()` + `MapVRFs()`; exported in Phase 6c by `loadVRFs()` in
+`load_vrfs.go` (find-or-create by name).
+
+| Cani Field | Go Type | Nautobot Field | Status | Notes |
+|---|---|---|---|---|
+| `ID` | `uuid.UUID` | — | Cani-Internal | Primary key |
+| `Name` | `string` | `VRF.name` | **Mapped** | Natural key for find-or-create |
+| `RD` | `string` | `VRF.rd` | **Mapped** | Route distinguisher (RFC 4364); mapped when non-empty |
+| `Namespace` | `string` | `VRF.namespace` (FK) | Partial | Get-or-create on export (defaults to `Global`); not resolved on import |
+| `Description` | `string` | `VRF.description` | **Mapped** | Mapped when non-empty |
+| `Status` | `string` | `VRF.status` (FK) | **Mapped** | Resolved by name |
+| `Tags` | `[]string` | `VRF.tags` | **Mapped** | Exported via the shared tag resolver |
+| `CustomFields` | `map[string]any` | `VRF.custom_fields` | Partial | Imported; not sent on export |
+| `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Tracks the source Nautobot UUID |
+| `ProviderMetadata` | `map[string]any` | — | Cani-Internal | Provider escape hatch |
 
 ---
 
@@ -453,6 +507,30 @@ Iterates `inventory.Cables`. For each cable:
 - Maps `Color` (RGB hex) when non-empty
 - Resolves `Type` via `resolveCableType()`: `CableType` → `CableCategory` → `ConnectorType` → slug fallback
 - Creates via `DcimCablesCreate` with termination FKs, label, type, length, color, status
+
+### Phase 6c: VRFs
+
+Implemented in `loadVRFs()` in `load_vrfs.go`. Iterates `inventory.VRFs`. Find-or-create by name; creates the namespace (default `Global`) and resolves status/tags. VRFs are created **before** interface enrichment so interface `VRF` references resolve.
+
+### Phase 7: VLANs
+
+Implemented in `loadVLANs()` in `load_vlans.go`. Iterates `inventory.VLANs`. Find-or-create scoped to the VLAN's location; caches created VLAN IDs for interface enrichment and prefix FK resolution.
+
+### Phase 7b: Interface enrichment
+
+Implemented in `enrichInterfaces()` in `load_interface_enrich.go`. PATCHes existing Nautobot interfaces with LAG, mode, untagged/tagged VLANs, and VRF (see §2.7). Runs after VRFs and VLANs exist so the FK references resolve.
+
+### Phase 8: Prefixes
+
+Implemented in `loadPrefixes()` in `load_prefixes.go`. Iterates `inventory.Prefixes`. Find-or-create scoped to location; resolves the optional VLAN FK from Phase 7.
+
+### Phase 9: IP Addresses
+
+Implemented in `loadIPAddresses()`. Iterates `inventory.IPAddresses`. Find-or-create by address; resolves the parent prefix and assigns the address to its interface(s).
+
+### Phase 10: Relationships
+
+Implemented in `loadRelationships()` in `load_relationships.go`. Creates Nautobot relationship associations for `CaniDeviceType.AssignedVLANs` (device↔VLAN) and `CaniDeviceType.BMCParent` (device↔device BMC).
 
 ---
 

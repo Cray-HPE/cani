@@ -117,6 +117,17 @@
         "assetTag": {
           "type": "string"
         },
+        "assignedVlans": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "bmcParent": {
+          "format": "uuid",
+          "type": "string"
+        },
         "comments": {
           "type": "string"
         },

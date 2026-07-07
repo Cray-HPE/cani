@@ -65,6 +65,10 @@ type CaniDeviceType struct {
 	PrimaryIPv4 uuid.UUID `json:"primaryIpv4,omitempty" yaml:"primary_ipv4,omitempty"`
 	PrimaryIPv6 uuid.UUID `json:"primaryIpv6,omitempty" yaml:"primary_ipv6,omitempty"`
 
+	// Relationships (Nautobot relationship associations)
+	AssignedVLANs []uuid.UUID `json:"assignedVlans,omitempty" yaml:"assigned_vlans,omitempty"` // VLANs configured on this switch
+	BMCParent     uuid.UUID   `json:"bmcParent,omitempty" yaml:"bmc_parent,omitempty"`         // Parent device this BMC belongs to
+
 	// Source tracks where this type was loaded from (e.g. "builtin", "local:/path", "git:url").
 	Source string `json:"-" yaml:"-"`
 }
