@@ -1025,6 +1025,12 @@
         "role": {
           "type": "string"
         },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "type": {
           "type": "string"
         }

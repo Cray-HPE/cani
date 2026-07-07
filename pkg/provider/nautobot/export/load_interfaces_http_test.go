@@ -258,3 +258,48 @@ func TestInterfaceExport_PreservesMgmtOnly(t *testing.T) {
 	assertMgmtOnly(t, byName, "iLO", true)   // management-only flag must survive export
 	assertMgmtOnly(t, byName, "eth0", false) // data port must not be management-only
 }
+
+// TestInterfaceExport_PreservesTags verifies that tags on an interface spec are
+// resolved and serialized into the interface-create payload.
+//
+// Why it matters: interface-level tags (e.g. multi-chassis on a VSX LAG) classify
+// ports in Nautobot; dropping them on export would lose that classification in
+// the source of truth.
+// Inputs: a device with one LAG interface tagged "multi-chassis", whose tag is
+// pre-seeded in the cache so resolution is a pure cache hit. Outputs: the
+// captured POST body, asserted to contain the tag's UUID.
+// Data choice: a LAG named lag256 tagged multi-chassis mirrors a real VSX ISL,
+// the canonical multi-chassis-tagged interface.
+func TestInterfaceExport_PreservesTags(t *testing.T) {
+	dev := &devicetypes.CaniDeviceType{
+		Name: "leaf1",
+		Type: "node",
+		Interfaces: []devicetypes.InterfaceSpec{
+			{Name: "lag256", Type: "lag", Tags: []string{"multi-chassis"}},
+		},
+	}
+	specs := getDeviceInterfaceSpecs(dev)
+	if len(specs) != 1 {
+		t.Fatalf("getDeviceInterfaceSpecs returned %d specs, want 1", len(specs))
+	}
+
+	devID := uuid.New()
+	created := []map[string]string{{"id": uuid.New().String(), "name": "lag256"}}
+	batch := []bulkInterfaceItem{{DeviceID: devID, DeviceName: dev.Name, Spec: specs[0]}}
+
+	rec := &capturedRequest{}
+	e, cleanup := newExporterWithServer(t, interfaceServer(rec, created))
+	defer cleanup()
+
+	tagID := uuid.New()
+	seedTag(e, "multi-chassis", tagID)
+
+	status, _ := activeStatus(t)
+	if _, err := e.sendInterfaceBatch(context.Background(), batch, status); err != nil {
+		t.Fatalf("sendInterfaceBatch: %v", err)
+	}
+
+	if !strings.Contains(string(rec.body), tagID.String()) {
+		t.Errorf("interface POST body missing tag id %s:\n%s", tagID, rec.body)
+	}
+}

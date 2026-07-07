@@ -508,6 +508,7 @@ func (e *Exporter) createDevice(ctx context.Context, device *devicetypes.CaniDev
 	if err != nil {
 		return err
 	}
+	req.Tags = e.Cache.resolveTagRefs(device.Tags)
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create device: %s", device.Name)
@@ -566,6 +567,7 @@ func (e *Exporter) createRack(ctx context.Context, device *devicetypes.CaniDevic
 	if err != nil {
 		return err
 	}
+	req.Tags = e.Cache.resolveTagRefs(device.Tags)
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create rack: %s", device.Name)
@@ -655,6 +657,7 @@ func (e *Exporter) createRackFromCaniRack(ctx context.Context, rack *devicetypes
 		Status:   statusRef,
 		UHeight:  &uHeight,
 	}
+	req.Tags = e.Cache.resolveTagRefs(rack.Tags)
 
 	// Map OuterWidth, OuterDepth, and OuterUnit if present.
 	if rack.OuterWidth > 0 {
@@ -776,6 +779,7 @@ func (e *Exporter) createDeviceWithID(ctx context.Context, device *devicetypes.C
 	if err != nil {
 		return uuid.Nil, err
 	}
+	req.Tags = e.Cache.resolveTagRefs(device.Tags)
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create device: %s", device.Name)
@@ -810,11 +814,12 @@ func (e *Exporter) createDeviceWithID(ctx context.Context, device *devicetypes.C
 // interfaceSpec describes an interface to create
 type interfaceSpec struct {
 	Name     string
-	Type     string // 1000base-t, 10gbase-x-sfpp, etc.
-	Speed    int    // Speed in Kbps
-	Role     string // Interface role name (e.g. "management", "hsn")
-	MgmtOnly bool   // Out-of-band management-only interface (Nautobot mgmt_only)
-	Mac      string // MAC address (Nautobot mac_address)
+	Type     string   // 1000base-t, 10gbase-x-sfpp, etc.
+	Speed    int      // Speed in Kbps
+	Role     string   // Interface role name (e.g. "management", "hsn")
+	MgmtOnly bool     // Out-of-band management-only interface (Nautobot mgmt_only)
+	Mac      string   // MAC address (Nautobot mac_address)
+	Tags     []string // Tag names to attach (Nautobot tags)
 }
 
 // getDeviceInterfaceSpecs returns interface specifications based on device type.
@@ -840,6 +845,7 @@ func getDeviceInterfaceSpecs(device *devicetypes.CaniDeviceType) []interfaceSpec
 				Role:     role,
 				MgmtOnly: mgmtOnly,
 				Mac:      iface.MacAddress,
+				Tags:     iface.Tags,
 			})
 		}
 		return specs
@@ -1002,6 +1008,7 @@ func (e *Exporter) createInterface(ctx context.Context, deviceID uuid.UUID, ifac
 		Status:   status,
 		MgmtOnly: &mgmtOnly,
 	}
+	req.Tags = e.Cache.resolveTagRefs(iface.Tags)
 
 	if iface.Mac != "" {
 		mac := iface.Mac
@@ -1073,6 +1080,7 @@ func (e *Exporter) updateInterface(ctx context.Context, interfaceID uuid.UUID, d
 		Status:   &status,
 		MgmtOnly: &mgmtOnly,
 	}
+	req.Tags = e.Cache.resolveTagRefs(iface.Tags)
 
 	if iface.Mac != "" {
 		mac := iface.Mac
