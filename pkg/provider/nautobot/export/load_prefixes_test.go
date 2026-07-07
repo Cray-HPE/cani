@@ -409,6 +409,74 @@ func TestCreatePrefix_ReturnsErrorWhenStatusUnresolvable(t *testing.T) {
 	}
 }
 
+// TestCreatePrefix_RetriesWithoutLocationOn500 verifies the prefix create falls
+// back to an unscoped retry when Nautobot answers the location-scoped create
+// with a 500.
+//
+// Why it matters: a location type without the ipam.prefix content type makes
+// Nautobot crash (HTTP 500) on the prefix create; without treating 500 as a
+// location rejection the whole prefix would fail. The retry keeps the prefix
+// exporting unscoped.
+// Inputs: a handler that 500s any prefix POST carrying the location and 201s one
+// without. Outputs: the prefix's ID and exactly two POST attempts, the second
+// dropping the location.
+// Data choice: 500 mirrors the observed server-side crash for prefix locations.
+func TestCreatePrefix_RetriesWithoutLocationOn500(t *testing.T) {
+	resetIPAMCaches()
+	prefixNID := uuid.New()
+	locID := uuid.New()
+	var bodies [][]byte
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodPost && strings.Contains(r.URL.Path, "ipam/prefixes") {
+			body, _ := io.ReadAll(r.Body)
+			bodies = append(bodies, body)
+			if strings.Contains(string(body), locID.String()) {
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = io.WriteString(w, `<!DOCTYPE html><html>Server Error</html>`)
+				return
+			}
+			w.WriteHeader(http.StatusCreated)
+			_, _ = io.WriteString(w, fmt.Sprintf(`{"id":%q,"prefix":"10.9.0.0/24"}`, prefixNID.String()))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = io.WriteString(w, emptyListJSON)
+	}
+	e, cleanup := newExporterWithServer(t, handler)
+	defer cleanup()
+	seedActiveStatus(t, e)
+
+	prefix := &devicetypes.CaniPrefix{
+		ID:         uuid.New(),
+		Prefix:     "10.9.0.0/24",
+		PrefixLen:  24,
+		ObjectMeta: devicetypes.ObjectMeta{Status: "Active"},
+	}
+	result := &LoadResult{}
+	got, err := e.createPrefix(
+		context.Background(),
+		prefix,
+		uuid.New(), // namespaceID
+		locID,      // locationID
+		map[uuid.UUID]uuid.UUID{},
+		map[uuid.UUID]uuid.UUID{},
+		result,
+	)
+	if err != nil {
+		t.Fatalf("createPrefix() error = %v", err)
+	}
+	if got != prefixNID {
+		t.Errorf("returned ID = %s, want %s", got, prefixNID)
+	}
+	if len(bodies) != 2 {
+		t.Fatalf("expected 2 POST attempts (with then without location), got %d", len(bodies))
+	}
+	if strings.Contains(string(bodies[1]), locID.String()) {
+		t.Error("retry should omit the location")
+	}
+}
+
 // decodeSentPrefix unmarshals a captured prefix-create body, failing the test
 // on malformed JSON.
 func decodeSentPrefix(t *testing.T, body []byte) sentPrefix {
