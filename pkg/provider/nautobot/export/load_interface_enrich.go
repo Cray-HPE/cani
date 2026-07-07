@@ -176,6 +176,13 @@ func (e *Exporter) buildInterfaceEnrichment(
 		req.TaggedVlans = &tagged
 		changed = true
 	}
+
+	// Nautobot's interface serializer validates that a device (or module) is
+	// set even on a partial update; omitting it fails with "Either device or
+	// module must be set". Include the device reference whenever we PATCH.
+	if changed {
+		req.Device = makeTenantRef(deviceID)
+	}
 	return req, changed
 }
 
