@@ -40,13 +40,39 @@ import (
 
 // Nautobot content-type identifiers used when assigning statuses and roles.
 const (
-	contentTypeDevice    = "dcim.device"
-	contentTypeRack      = "dcim.rack"
-	contentTypeModule    = "dcim.module"
-	contentTypePrefix    = "ipam.prefix"
-	contentTypeIPAddress = "ipam.ipaddress"
-	contentTypeVLAN      = "ipam.vlan"
+	contentTypeDevice        = "dcim.device"
+	contentTypeRack          = "dcim.rack"
+	contentTypeModule        = "dcim.module"
+	contentTypeInterface     = "dcim.interface"
+	contentTypeInventoryItem = "dcim.inventoryitem"
+	contentTypePrefix        = "ipam.prefix"
+	contentTypeIPAddress     = "ipam.ipaddress"
+	contentTypeVLAN          = "ipam.vlan"
 )
+
+// taggableContentTypes lists the Nautobot object types cani attaches tags to:
+// devices, racks, interfaces, and inventory items (FRUs). A tag must advertise
+// these content types or Nautobot rejects the assignment with "Related object
+// not found using the provided attributes".
+func taggableContentTypes() []string {
+	return []string{contentTypeDevice, contentTypeRack, contentTypeInterface, contentTypeInventoryItem}
+}
+
+// missingContentTypes returns the entries in required that are absent from
+// existing, preserving the order given in required.
+func missingContentTypes(existing, required []string) []string {
+	have := make(map[string]bool, len(existing))
+	for _, ct := range existing {
+		have[ct] = true
+	}
+	var missing []string
+	for _, ct := range required {
+		if !have[ct] {
+			missing = append(missing, ct)
+		}
+	}
+	return missing
+}
 
 // CachedItem represents a cached Nautobot object with its ID and display name
 type CachedItem struct {
@@ -1692,21 +1718,21 @@ func (c *LookupCache) GetOrCreateTag(name string) (*CachedItem, error) {
 
 	if resp.JSON200 != nil && len(resp.JSON200.Results) > 0 {
 		t := resp.JSON200.Results[0]
-		item := &CachedItem{
-			ID:   toUUID(t.Id),
-			Name: t.Name,
-		}
+		item := c.reconcileTagContentTypes(t)
 		c.tags[name] = item
 		return item, nil
 	}
 
-	// Tag not found — create it.
+	// Tag not found — create it. Content types must cover every object cani
+	// tags (device, rack, interface, inventory item); an empty list makes the
+	// tag unassignable and Nautobot rejects the write with "Related object not
+	// found using the provided attributes".
 	clog.Detail("[nautobot] Creating tag: %s", name)
 	createResp, err := c.client.ExtrasTagsCreateWithResponse(c.ctx,
 		&nautobotapi.ExtrasTagsCreateParams{},
 		nautobotapi.TagRequest{
 			Name:         name,
-			ContentTypes: []string{},
+			ContentTypes: taggableContentTypes(),
 		},
 	)
 	if err != nil {
@@ -1728,4 +1754,54 @@ func (c *LookupCache) GetOrCreateTag(name string) (*CachedItem, error) {
 	}
 
 	return nil, fmt.Errorf("failed to create tag %s: no response body", name)
+}
+
+// reconcileTagContentTypes ensures an existing tag advertises every content
+// type cani assigns tags to. Tags created without the right content_types
+// (including those written by older cani versions) cannot be attached to
+// devices, racks, interfaces, or FRUs. Missing types are patched in; on any
+// patch error the original tag is returned so the export can still proceed.
+func (c *LookupCache) reconcileTagContentTypes(t nautobotapi.Tag) *CachedItem {
+	item := &CachedItem{ID: toUUID(t.Id), Name: t.Name}
+	missing := missingContentTypes(t.ContentTypes, taggableContentTypes())
+	if len(missing) == 0 {
+		return item
+	}
+	updated := append(t.ContentTypes, missing...)
+	patched, err := c.UpdateTagContentTypes(toUUID(t.Id), t.Name, updated)
+	if err != nil {
+		clog.Warn("[nautobot] WARNING: failed to update tag '%s' content types: %v", t.Name, err)
+		return item
+	}
+	return patched
+}
+
+// UpdateTagContentTypes patches an existing tag to include additional content types.
+func (c *LookupCache) UpdateTagContentTypes(id uuid.UUID, name string, contentTypes []string) (*CachedItem, error) {
+	clog.Detail("[nautobot] Updating tag '%s' content types to: %v", name, contentTypes)
+
+	patchResp, err := c.client.ExtrasTagsPartialUpdateWithResponse(c.ctx,
+		id,
+		&nautobotapi.ExtrasTagsPartialUpdateParams{},
+		nautobotapi.PatchedTagRequest{
+			ContentTypes: &contentTypes,
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update tag %s: %w", name, err)
+	}
+	if patchResp.StatusCode() != http.StatusOK {
+		return nil, fmt.Errorf("failed to update tag %s: status %d: %s", name, patchResp.StatusCode(), string(patchResp.Body))
+	}
+
+	if patchResp.JSON200 != nil {
+		item := &CachedItem{
+			ID:   toUUID(patchResp.JSON200.Id),
+			Name: patchResp.JSON200.Name,
+		}
+		clog.Created("[nautobot] Updated tag: %s (ID: %s) with content_types: %v", name, item.ID, contentTypes)
+		return item, nil
+	}
+
+	return nil, fmt.Errorf("failed to update tag %s: no response body", name)
 }

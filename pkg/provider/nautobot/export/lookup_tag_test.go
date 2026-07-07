@@ -35,9 +35,19 @@ import (
 	"github.com/google/uuid"
 )
 
-// tagJSON renders a single tag object as returned by Nautobot.
+// tagJSON renders a single tag object as returned by Nautobot, including the
+// full set of taggable content types so find-or-create treats it as complete
+// (no reconciliation PATCH needed).
 func tagJSON(id uuid.UUID, name string) string {
-	return fmt.Sprintf(`{"id":%q,"name":%q,"display":%q}`, id.String(), name, name)
+	return fmt.Sprintf(`{"id":%q,"name":%q,"display":%q,"content_types":["dcim.device","dcim.rack","dcim.interface","dcim.inventoryitem"]}`,
+		id.String(), name, name)
+}
+
+// tagJSONNoContentTypes renders a tag with an empty content_types list, mimicking
+// a tag created by an older cani version (the empty-content-types bug) or an
+// external tool.
+func tagJSONNoContentTypes(id uuid.UUID, name string) string {
+	return fmt.Sprintf(`{"id":%q,"name":%q,"display":%q,"content_types":[]}`, id.String(), name, name)
 }
 
 // TestGetOrCreateTag_ReturnsCachedWithoutHTTP verifies that a tag already present
@@ -106,6 +116,52 @@ func TestGetOrCreateTag_ReturnsExistingFromList(t *testing.T) {
 	}
 	if posted {
 		t.Error("GetOrCreateTag must not POST when the tag already exists")
+	}
+}
+
+// TestGetOrCreateTag_ReconcilesMissingContentTypes verifies that an existing tag
+// whose content_types are incomplete is PATCHed to include the full taggable set
+// (device, rack, interface, inventory item) before being returned.
+//
+// Why it matters: a tag lacking the right content_types cannot be attached to
+// those objects ("Related object not found using the provided attributes").
+// Reconciling on find self-heals tags left behind by older cani versions or
+// created by other tools, so re-exports succeed without manual cleanup.
+// Inputs: name "legacy"; the list GET returns one tag with empty content_types;
+// the PATCH returns the same tag populated. Outputs: the existing *CachedItem
+// (same ID) and exactly one PATCH; the handler fails the test on any POST.
+// Data choice: an empty content_types list drives the reconcile branch, and
+// asserting a single PATCH with no POST proves the tag is updated in place
+// rather than duplicated.
+func TestGetOrCreateTag_ReconcilesMissingContentTypes(t *testing.T) {
+	id := uuid.New()
+	var patches int
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.Method {
+		case http.MethodPost:
+			t.Error("unexpected POST: tag already exists and must be reconciled, not re-created")
+		case http.MethodPatch:
+			patches++
+			w.WriteHeader(http.StatusOK)
+			_, _ = io.WriteString(w, tagJSON(id, "legacy"))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = io.WriteString(w, fmt.Sprintf(`{"count":1,"results":[%s]}`, tagJSONNoContentTypes(id, "legacy")))
+	}
+	e, cleanup := newExporterWithServer(t, handler)
+	defer cleanup()
+
+	item, err := e.Cache.GetOrCreateTag("legacy")
+	if err != nil {
+		t.Fatalf("GetOrCreateTag() error = %v", err)
+	}
+	if item == nil || item.ID != id {
+		t.Errorf("expected reconciled tag %s, got %+v", id, item)
+	}
+	if patches != 1 {
+		t.Errorf("expected exactly one PATCH to add content types, got %d", patches)
 	}
 }
 
