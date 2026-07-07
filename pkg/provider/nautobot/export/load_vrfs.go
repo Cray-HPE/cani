@@ -30,6 +30,7 @@ import (
 	"fmt"
 	"net/http"
 
+	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/google/uuid"
@@ -137,4 +138,45 @@ func (e *Exporter) createVRF(ctx context.Context, vrf *devicetypes.CaniVRF) (uui
 
 	clog.Created("  + VRF: %s", vrf.Name)
 	return toUUID(resp.JSON201.Id), nil
+}
+
+// ensureVRFDeviceAssignment links a VRF to a device so that an interface on that
+// device may reference it. Nautobot rejects an interface VRF assignment with
+// "VRF must be assigned to same Device" unless the VRF-device assignment already
+// exists. This is a find-or-create keyed on (vrf, device); an existing
+// assignment is left untouched. A missing/unknown VRF is a no-op so the caller
+// can fall back to omitting the VRF.
+func (e *Exporter) ensureVRFDeviceAssignment(ctx context.Context, deviceID uuid.UUID, vrfName string) error {
+	vrf, ok := e.Cache.LookupCachedVRF(vrfName)
+	if !ok || vrf == nil {
+		return nil
+	}
+	if e.Options.DryRun {
+		return nil
+	}
+
+	vrfID := openapi_types.UUID(vrf.ID)
+	deviceFilter := []string{deviceID.String()}
+	listResp, err := e.Client.IpamVrfDeviceAssignmentsListWithResponse(ctx,
+		&nautobotapi.IpamVrfDeviceAssignmentsListParams{Vrf: &vrfID, Device: &deviceFilter})
+	if err != nil {
+		return fmt.Errorf("API error: %w", err)
+	}
+	if listResp.JSON200 != nil && len(listResp.JSON200.Results) > 0 {
+		return nil
+	}
+
+	req := nautobotapi.VRFDeviceAssignmentRequest{
+		Device: makeTenantRef(deviceID),
+		Vrf:    makeStatusRef(vrf.ID),
+	}
+	createResp, err := e.Client.IpamVrfDeviceAssignmentsCreateWithResponse(ctx,
+		&nautobotapi.IpamVrfDeviceAssignmentsCreateParams{}, req)
+	if err != nil {
+		return fmt.Errorf("API error: %w", err)
+	}
+	if createResp.StatusCode() != http.StatusCreated {
+		return fmt.Errorf("unexpected status %d: %s", createResp.StatusCode(), string(createResp.Body))
+	}
+	return nil
 }

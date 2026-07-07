@@ -170,3 +170,77 @@ func TestBuildInterfaceEnrichment_AssignsVRF(t *testing.T) {
 		t.Errorf("enrichment payload missing vrf id %s:\n%s", vrfNID, blob)
 	}
 }
+
+// TestEnsureVRFDeviceAssignment_CreatesWhenMissing verifies a VRF not yet
+// assigned to a device is linked via a vrf-device-assignment create.
+//
+// Why it matters: Nautobot rejects an interface VRF assignment ("VRF must be
+// assigned to same Device") unless the VRF↔device link exists first; creating it
+// on demand is what lets interface VRF enrichment succeed.
+// Inputs: a cached VRF "LEGACY", a device UUID, and a server whose assignment
+// list is empty and whose create returns 201. Outputs: no error and exactly one
+// assignment POST.
+// Data choice: an empty list drives the create branch; a POST flag proves the
+// link is created.
+func TestEnsureVRFDeviceAssignment_CreatesWhenMissing(t *testing.T) {
+	resetIPAMCaches()
+	posted := false
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if strings.Contains(r.URL.Path, "vrf-device-assignments") {
+			if r.Method == http.MethodPost {
+				posted = true
+				w.WriteHeader(http.StatusCreated)
+				_, _ = io.WriteString(w, fmt.Sprintf(`{"id":%q}`, uuid.New().String()))
+				return
+			}
+			w.WriteHeader(http.StatusOK)
+			_, _ = io.WriteString(w, emptyListJSON)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = io.WriteString(w, emptyListJSON)
+	}
+	e, cleanup := newExporterWithServer(t, handler)
+	defer cleanup()
+	e.Cache.CacheVRF("LEGACY", &CachedItem{ID: uuid.New(), Name: "LEGACY"})
+
+	if err := e.ensureVRFDeviceAssignment(context.Background(), uuid.New(), "LEGACY"); err != nil {
+		t.Fatalf("ensureVRFDeviceAssignment() error = %v", err)
+	}
+	if !posted {
+		t.Error("expected a vrf-device-assignment create POST")
+	}
+}
+
+// TestEnsureVRFDeviceAssignment_SkipsWhenPresent verifies an existing VRF↔device
+// link is reused rather than duplicated.
+//
+// Why it matters: re-running an export must be idempotent; re-posting an existing
+// assignment would error or duplicate the link.
+// Inputs: a cached VRF and a server whose assignment list returns one match and
+// which fails the test on any POST. Outputs: no error and no POST.
+// Data choice: erroring on POST makes the no-duplicate guarantee explicit.
+func TestEnsureVRFDeviceAssignment_SkipsWhenPresent(t *testing.T) {
+	resetIPAMCaches()
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if strings.Contains(r.URL.Path, "vrf-device-assignments") {
+			if r.Method == http.MethodPost {
+				t.Error("unexpected POST: assignment already exists and must not be recreated")
+			}
+			w.WriteHeader(http.StatusOK)
+			_, _ = io.WriteString(w, fmt.Sprintf(`{"count":1,"results":[{"id":%q}]}`, uuid.New().String()))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = io.WriteString(w, emptyListJSON)
+	}
+	e, cleanup := newExporterWithServer(t, handler)
+	defer cleanup()
+	e.Cache.CacheVRF("LEGACY", &CachedItem{ID: uuid.New(), Name: "LEGACY"})
+
+	if err := e.ensureVRFDeviceAssignment(context.Background(), uuid.New(), "LEGACY"); err != nil {
+		t.Fatalf("ensureVRFDeviceAssignment() error = %v", err)
+	}
+}

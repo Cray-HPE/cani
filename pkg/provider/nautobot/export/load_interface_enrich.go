@@ -127,6 +127,17 @@ func (e *Exporter) enrichOneInterface(
 		return
 	}
 
+	// A VRF referenced by an interface must first be assigned to the interface's
+	// device, or Nautobot rejects the PATCH with "VRF must be assigned to same
+	// Device." On failure, drop the VRF so mode/VLAN settings still apply.
+	if spec.VRF != "" {
+		if aerr := e.ensureVRFDeviceAssignment(ctx, deviceID, spec.VRF); aerr != nil {
+			result.Errors = append(result.Errors,
+				fmt.Sprintf("enrich %s: vrf-device assignment: %v", spec.Name, aerr))
+			spec.VRF = ""
+		}
+	}
+
 	req, changed := e.buildInterfaceEnrichment(deviceID, spec, vidToVLAN)
 	if !changed {
 		return
