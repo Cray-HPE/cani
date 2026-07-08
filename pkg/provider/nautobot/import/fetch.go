@@ -2,7 +2,9 @@ package imprt
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
@@ -364,26 +366,65 @@ func FetchVLANs(ctx context.Context, client *nautobotapi.ClientWithResponses) ([
 	return all, nil
 }
 
+// The generated client types Nautobot's network/broadcast/host address fields
+// as []byte, which Go's encoding/json decodes from base64. Nautobot returns them
+// as plain dotted-decimal strings (e.g. "10.0.0.0"), so decoding the generated
+// Prefix/IPAddress directly fails with "illegal base64 data". These shadow types
+// re-map those keys to json.RawMessage (which the transform ignores) so the rest
+// of the object decodes normally. Field names must match the embedded struct so
+// the shallower field wins during unmarshal.
+type prefixNoBinary struct {
+	nautobotapi.Prefix
+	Network   json.RawMessage `json:"network"`
+	Broadcast json.RawMessage `json:"broadcast"`
+}
+
+type ipAddressNoBinary struct {
+	nautobotapi.IPAddress
+	Host json.RawMessage `json:"host"`
+}
+
+// decodeListPage reads a raw list response body into dest, closing the body and
+// verifying a 200 status. It is used for endpoints whose generated response
+// parser mishandles Nautobot's []byte address fields.
+func decodeListPage(resp *http.Response, dest any) error {
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("status %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(body, dest)
+}
+
 // FetchPrefixes retrieves all prefixes from the Nautobot API.
 func FetchPrefixes(ctx context.Context, client *nautobotapi.ClientWithResponses) ([]nautobotapi.Prefix, error) {
 	var all []nautobotapi.Prefix
 	offset := 0
 	for {
-		resp, err := client.IpamPrefixesListWithResponse(ctx, &nautobotapi.IpamPrefixesListParams{
+		resp, err := client.IpamPrefixesList(ctx, &nautobotapi.IpamPrefixesListParams{
 			Limit:  intPtr(pageSize),
 			Offset: &offset,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("list prefixes: %w", err)
 		}
-		if resp.StatusCode() != http.StatusOK {
-			return nil, fmt.Errorf("list prefixes: status %d", resp.StatusCode())
+		var page struct {
+			Next    *string          `json:"next"`
+			Results []prefixNoBinary `json:"results"`
 		}
-		if resp.JSON200 == nil || len(resp.JSON200.Results) == 0 {
+		if err := decodeListPage(resp, &page); err != nil {
+			return nil, fmt.Errorf("list prefixes: %w", err)
+		}
+		if len(page.Results) == 0 {
 			break
 		}
-		all = append(all, resp.JSON200.Results...)
-		if resp.JSON200.Next == nil || *resp.JSON200.Next == "" {
+		for i := range page.Results {
+			all = append(all, page.Results[i].Prefix)
+		}
+		if page.Next == nil || *page.Next == "" {
 			break
 		}
 		offset += pageSize
@@ -396,21 +437,27 @@ func FetchIPAddresses(ctx context.Context, client *nautobotapi.ClientWithRespons
 	var all []nautobotapi.IPAddress
 	offset := 0
 	for {
-		resp, err := client.IpamIpAddressesListWithResponse(ctx, &nautobotapi.IpamIpAddressesListParams{
+		resp, err := client.IpamIpAddressesList(ctx, &nautobotapi.IpamIpAddressesListParams{
 			Limit:  intPtr(pageSize),
 			Offset: &offset,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("list ip addresses: %w", err)
 		}
-		if resp.StatusCode() != http.StatusOK {
-			return nil, fmt.Errorf("list ip addresses: status %d", resp.StatusCode())
+		var page struct {
+			Next    *string             `json:"next"`
+			Results []ipAddressNoBinary `json:"results"`
 		}
-		if resp.JSON200 == nil || len(resp.JSON200.Results) == 0 {
+		if err := decodeListPage(resp, &page); err != nil {
+			return nil, fmt.Errorf("list ip addresses: %w", err)
+		}
+		if len(page.Results) == 0 {
 			break
 		}
-		all = append(all, resp.JSON200.Results...)
-		if resp.JSON200.Next == nil || *resp.JSON200.Next == "" {
+		for i := range page.Results {
+			all = append(all, page.Results[i].IPAddress)
+		}
+		if page.Next == nil || *page.Next == "" {
 			break
 		}
 		offset += pageSize

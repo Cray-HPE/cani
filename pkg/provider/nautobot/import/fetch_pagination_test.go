@@ -337,10 +337,69 @@ func TestFetchIPAddresses_Pagination(t *testing.T) {
 	}
 }
 
-// TestFetchTransportErrors verifies every Fetch* helper surfaces a transport
-// (connection) error rather than returning a nil error or panicking when the
-// Nautobot endpoint is unreachable.
+// TestFetchPrefixes_DecodesStringAddressFields verifies FetchPrefixes tolerates
+// Nautobot returning the network/broadcast fields as plain strings.
 //
+// Why it matters: the generated client types network/broadcast as []byte, which
+// Go's json decoder reads as base64; Nautobot returns dotted-decimal strings, so
+// decoding the generated Prefix directly fails with "illegal base64 data" and
+// aborts the whole IPAM import. The shadow decode keeps the prefix intact.
+// Inputs: a single-page /ipam/prefixes/ object carrying string network/broadcast
+// values. Outputs: one prefix with its CIDR preserved and no error.
+// Data choice: real dotted-decimal values ("10.0.0.0") reproduce the exact
+// base64 failure the fix addresses.
+func TestFetchPrefixes_DecodesStringAddressFields(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(paginatedResponse(1, []map[string]interface{}{
+			{"prefix": "10.0.0.0/24", "network": "10.0.0.0", "broadcast": "10.0.0.255"},
+		}, ""))
+	}))
+	defer srv.Close()
+
+	got, err := FetchPrefixes(context.Background(), newTestClient(t, srv.URL))
+	if err != nil {
+		t.Fatalf("FetchPrefixes: %v", err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("expected 1 prefix, got %d", len(got))
+	}
+	if got[0].Prefix != "10.0.0.0/24" {
+		t.Errorf("Prefix = %q, want 10.0.0.0/24", got[0].Prefix)
+	}
+}
+
+// TestFetchIPAddresses_DecodesStringHostField verifies FetchIPAddresses tolerates
+// Nautobot returning the host field as a plain string.
+//
+// Why it matters: like prefixes, an IP's host comes back as a dotted-decimal
+// string while the generated client types it as []byte/base64; decoding directly
+// fails with "illegal base64 data" and aborts the import. The shadow decode
+// preserves the address.
+// Inputs: a single-page /ipam/ip-addresses/ object with a string host value.
+// Outputs: one IP address with its Address preserved and no error.
+// Data choice: a CIDR host ("10.0.0.9") mirrors real Nautobot output.
+func TestFetchIPAddresses_DecodesStringHostField(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(paginatedResponse(1, []map[string]interface{}{
+			{"address": "10.0.0.9/24", "host": "10.0.0.9"},
+		}, ""))
+	}))
+	defer srv.Close()
+
+	got, err := FetchIPAddresses(context.Background(), newTestClient(t, srv.URL))
+	if err != nil {
+		t.Fatalf("FetchIPAddresses: %v", err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("expected 1 ip address, got %d", len(got))
+	}
+	if got[0].Address != "10.0.0.9/24" {
+		t.Errorf("Address = %q, want 10.0.0.9/24", got[0].Address)
+	}
+}
+
 // Why it matters: import runs against a live Nautobot over the network; if a
 // fetcher swallowed a dial failure it would report an empty-but-successful
 // result and the caller would wipe or skip real inventory believing the server
