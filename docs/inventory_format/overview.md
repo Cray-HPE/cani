@@ -19,11 +19,16 @@ type Inventory struct {
     Frus       map[uuid.UUID]*CaniFruType
     Interfaces map[uuid.UUID]*CaniInterface
 
-    Metadata   *InventoryMetadata // catalog of roles, statuses, tags
+    Prefixes    map[uuid.UUID]*CaniPrefix
+    IPAddresses map[uuid.UUID]*CaniIPAddress
+    VLANs       map[uuid.UUID]*CaniVLAN
+    VRFs        map[uuid.UUID]*CaniVRF
+
+    Metadata *InventoryMetadata // catalog of roles, statuses, tags
 }
 ```
 
-The current schema version is `v1alpha2`.
+The current schema generation is `v1alpha4`.
 
 ## Hardware Types
 
@@ -36,6 +41,7 @@ The current schema version is `v1alpha2`.
 | Cable | `CaniCableType` | Physical cable between two endpoints |
 | FRU | `CaniFruType` | Field-replaceable unit (spare or replacement part) |
 | Interface | `CaniInterface` | Network or console port on a device or module |
+| VRF | `CaniVRF` | Virtual routing and forwarding instance used by IPAM objects |
 
 ## Relationships
 

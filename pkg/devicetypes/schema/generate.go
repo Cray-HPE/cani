@@ -34,6 +34,7 @@ package schema
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"reflect"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
@@ -62,10 +63,21 @@ func Generate() ([]byte, error) {
 	root["$id"] = schemaID
 	root["title"] = title
 	root["description"] = description
-	root["x-cani-schema-version"] = devicetypes.SchemaVersionV1Alpha3
+	root["x-cani-schema-version"] = devicetypes.CurrentSchemaVersion
 	if len(g.defs) > 0 {
 		root["$defs"] = g.defs
 	}
+
+	properties, ok := root["properties"].(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("inventory schema properties have unexpected type %T", root["properties"])
+	}
+	properties["schemaVersion"] = map[string]any{
+		"type":  "string",
+		"const": devicetypes.CurrentSchemaVersion,
+	}
+	root["required"] = []string{"schemaVersion"}
+
 	return marshal(root)
 }
 

@@ -834,6 +834,67 @@ func TestRebuildInterfaceRelationshipsHappyPath(t *testing.T) {
 	}
 }
 
+// TestRebuildInterfaceRelationshipsPreservesSpecFields verifies rebuilt
+// interface instances retain every serialized field supplied by the device spec.
+//
+// Why it matters: datastore loads rebuild Inventory.Interfaces, so omitting a
+// field here silently discards persisted VLAN, LAG, VRF, tag, and display data.
+// Inputs: one device interface with distinct values for each projected field.
+// Outputs: an indexed CaniInterface carrying the same values.
+// Data choice: non-zero scalar and multi-value slice data expose omitted fields
+// and accidental zero-value replacements.
+func TestRebuildInterfaceRelationshipsPreservesSpecFields(t *testing.T) {
+	deviceID := uuid.New()
+	interfaceID := uuid.New()
+	mgmtOnly := true
+
+	inv := NewInventory()
+	inv.Devices[deviceID] = &CaniDeviceType{
+		Name: "switch-a",
+		Interfaces: []InterfaceSpec{{
+			ID:           interfaceID,
+			Name:         "ethernet1/1",
+			Type:         InterfacesElemTypeA25GbaseXSfp28,
+			Label:        "uplink",
+			Role:         InterfaceRoleManagement,
+			MacAddress:   "02:00:00:00:00:01",
+			MgmtOnly:     &mgmtOnly,
+			Tags:         []string{"fabric"},
+			Lag:          "bond0",
+			Mode:         "tagged",
+			UntaggedVLAN: 100,
+			TaggedVLANs:  []int{200, 300},
+			VRF:          "management",
+		}},
+	}
+
+	result := inv.rebuildInterfaceRelationships()
+
+	if result.HasErrors() {
+		t.Fatalf("unexpected errors: %v", result.Errors)
+	}
+	got := inv.Interfaces[interfaceID]
+	if got == nil {
+		t.Fatalf("interface %s was not indexed", interfaceID)
+	}
+	if got.DeviceID != deviceID || got.Label != "uplink" || got.MacAddress != "02:00:00:00:00:01" {
+		t.Errorf("identity fields = device %s, label %q, MAC %q", got.DeviceID, got.Label, got.MacAddress)
+	}
+	if !got.MgmtOnly || got.Role != InterfaceRoleManagement {
+		t.Errorf("management fields = mgmtOnly %t, role %q", got.MgmtOnly, got.Role)
+	}
+	if len(got.Tags) != 1 || got.Tags[0] != "fabric" {
+		t.Errorf("tags = %v, want [fabric]", got.Tags)
+	}
+	if got.Lag != "bond0" || got.Mode != "tagged" || got.UntaggedVLAN != 100 || got.VRF != "management" {
+		t.Errorf("network fields = lag %q, mode %q, untagged VLAN %d, VRF %q",
+			got.Lag, got.Mode, got.UntaggedVLAN, got.VRF)
+	}
+	if len(got.TaggedVLANs) != 2 || got.TaggedVLANs[0] != 200 || got.TaggedVLANs[1] != 300 {
+		t.Errorf("tagged VLANs = %v, want [200 300]", got.TaggedVLANs)
+	}
+}
+
 func TestRebuildInterfaceRelationshipsEmptyInventory(t *testing.T) {
 	inv := NewInventory()
 

@@ -36,6 +36,8 @@ const (
 	SchemaVersionV1Alpha1 = "v1alpha1"
 	SchemaVersionV1Alpha2 = "v1alpha2"
 	SchemaVersionV1Alpha3 = "v1alpha3"
+	SchemaVersionV1Alpha4 = "v1alpha4"
+	CurrentSchemaVersion  = SchemaVersionV1Alpha4
 )
 
 // Inventory represents the entire inventory of devices, racks, locations, etc.
@@ -118,7 +120,7 @@ func (tr *TransformResult) EnsureUniqueDeviceNames() {
 // NewInventory creates an Inventory with all maps initialized.
 func NewInventory() *Inventory {
 	return &Inventory{
-		SchemaVersion: SchemaVersionV1Alpha3,
+		SchemaVersion: CurrentSchemaVersion,
 		Locations:     make(map[uuid.UUID]*CaniLocationType),
 		Racks:         make(map[uuid.UUID]*CaniRackType),
 		Devices:       make(map[uuid.UUID]*CaniDeviceType),

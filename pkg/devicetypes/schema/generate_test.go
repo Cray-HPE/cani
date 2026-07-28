@@ -94,15 +94,27 @@ func TestGeneratedSchemaStructure(t *testing.T) {
 	if got := doc["$schema"]; got != dialect {
 		t.Errorf("$schema = %v, want %s", got, dialect)
 	}
-	if got := doc["x-cani-schema-version"]; got != devicetypes.SchemaVersionV1Alpha3 {
-		t.Errorf("x-cani-schema-version = %v, want %s", got, devicetypes.SchemaVersionV1Alpha3)
+	if got := doc["x-cani-schema-version"]; got != devicetypes.CurrentSchemaVersion {
+		t.Errorf("x-cani-schema-version = %v, want %s", got, devicetypes.CurrentSchemaVersion)
+	}
+	if got := doc["$id"]; got != schemaID {
+		t.Errorf("$id = %v, want %s", got, schemaID)
+	}
+
+	version := childMap(t, childMap(t, doc, "properties"), "schemaVersion")
+	if got := version["const"]; got != devicetypes.CurrentSchemaVersion {
+		t.Errorf("schemaVersion.const = %v, want %s", got, devicetypes.CurrentSchemaVersion)
+	}
+	required, ok := doc["required"].([]any)
+	if !ok || len(required) != 1 || required[0] != "schemaVersion" {
+		t.Errorf("required = %#v, want [schemaVersion]", doc["required"])
 	}
 
 	defs := childMap(t, doc, "$defs")
 	for _, name := range []string{
 		"CaniDeviceType", "CaniRackType", "CaniLocationType", "CaniModuleType",
 		"CaniCableType", "CaniFruType", "CaniInterface", "CaniPrefix",
-		"CaniIPAddress", "CaniVLAN", "InventoryMetadata",
+		"CaniIPAddress", "CaniVLAN", "CaniVRF", "InventoryMetadata",
 	} {
 		if _, ok := defs[name]; !ok {
 			t.Errorf("$defs missing expected type %q", name)

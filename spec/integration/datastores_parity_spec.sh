@@ -132,6 +132,34 @@ print("top_provider_metadata=" + str("providerMetadata" in inv))
 PY
 }
 
+#shellcheck disable=SC2317
+future_schema_rejection_summary() {
+  setup_test_env
+  _future_original='{"schemaVersion":"v1alpha5","future":{"keep":true}}'
+  _future_stderr=$(mktemp)
+  printf '%s' "$_future_original" >"$CANI_DS"
+
+  if bin/cani alpha show --config "$CANI_CONF" >/dev/null 2>"$_future_stderr"; then
+    _future_exit=0
+  else
+    _future_exit=$?
+  fi
+
+  cat "$_future_stderr" >&2
+  rm -f "$_future_stderr"
+  printf 'exit_code=%s\n' "$_future_exit"
+  if [ "$(cat "$CANI_DS")" = "$_future_original" ]; then
+    printf 'unchanged=True\n'
+  else
+    printf 'unchanged=False\n'
+  fi
+  if [ -e "$CANI_DS.canisave" ]; then
+    printf 'backup_exists=True\n'
+  else
+    printf 'backup_exists=False\n'
+  fi
+}
+
 Describe 'INTEGRATION: datastores ShellSpec parity'
 
   It 'stores relative datastore paths next to the config file'
@@ -174,6 +202,15 @@ Describe 'INTEGRATION: datastores ShellSpec parity'
     The output should include 'statuses=Active'
     The output should include 'tags=legacy-tag'
     The output should include 'top_provider_metadata=False'
+  End
+
+  It 'rejects a future inventory generation without rewriting it'
+    When call future_schema_rejection_summary
+    The status should equal 0
+    The stderr should include 'unsupported inventory schema version "v1alpha5"'
+    The output should include 'exit_code=1'
+    The output should include 'unchanged=True'
+    The output should include 'backup_exists=False'
   End
 
 End

@@ -5,7 +5,7 @@ package devicetypes
 // NewInventory:
 //   - TestNewInventoryReturnsInitializedMaps      (core maps non-nil)
 //   - TestNewInventoryMapsAreEmpty                (maps empty + independent)
-//   - TestNewInventorySchemaVersionIsV1Alpha3     (default schema version)
+//   - TestNewInventorySchemaVersionIsCurrent      (default schema version)
 //   - TestNewInventoryInitializesIPAMMaps         (IPAM maps non-nil + empty)
 //   - TestNewInventoryInitializesMetadataAndIndex (metadata + pkIndex non-nil)
 //
@@ -107,19 +107,19 @@ func TestNewInventoryMapsAreEmpty(t *testing.T) {
 	}
 }
 
-// TestNewInventorySchemaVersionIsV1Alpha3 verifies the constructor stamps the
+// TestNewInventorySchemaVersionIsCurrent verifies the constructor stamps the
 // current datastore schema version on a fresh inventory.
 //
 // Why it matters: the schema version drives load/migration decisions, so a new
-// inventory must declare the latest version (v1alpha3) rather than a zero value
+// inventory must declare the latest version rather than a zero value
 // that would later be read as an unknown or older schema.
 // Inputs: none. Outputs: the SchemaVersion field of the new inventory.
-// Data choice: comparing against the SchemaVersionV1Alpha3 constant (not a
-// string literal) keeps the test correct if the default is intentionally bumped.
-func TestNewInventorySchemaVersionIsV1Alpha3(t *testing.T) {
+// Data choice: comparing against CurrentSchemaVersion (not a string literal)
+// keeps the test correct when the default is intentionally bumped.
+func TestNewInventorySchemaVersionIsCurrent(t *testing.T) {
 	inv := NewInventory()
-	if inv.SchemaVersion != SchemaVersionV1Alpha3 {
-		t.Errorf("SchemaVersion = %q, want %q", inv.SchemaVersion, SchemaVersionV1Alpha3)
+	if inv.SchemaVersion != CurrentSchemaVersion {
+		t.Errorf("SchemaVersion = %q, want %q", inv.SchemaVersion, CurrentSchemaVersion)
 	}
 }
 
