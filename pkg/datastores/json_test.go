@@ -75,6 +75,9 @@ func newCRUDInventory(t *testing.T) (*devicetypes.Inventory, crudFixtureIDs) {
 		Rack:         ids.rackID,
 		RackPosition: 10,
 		Face:         "front",
+		Interfaces: []devicetypes.InterfaceSpec{
+			{ID: uuid.New(), Name: "eth0"},
+		},
 		ObjectMeta: devicetypes.ObjectMeta{
 			Status: string(devicetypes.StatusActive),
 			ProviderMetadata: map[string]any{
@@ -93,7 +96,10 @@ func newCRUDInventory(t *testing.T) (*devicetypes.Inventory, crudFixtureIDs) {
 		Rack:         ids.rackID,
 		RackPosition: 20,
 		Face:         "rear",
-		ObjectMeta:   devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive)},
+		Interfaces: []devicetypes.InterfaceSpec{
+			{ID: uuid.New(), Name: "1/1/1"},
+		},
+		ObjectMeta: devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive)},
 	}
 	if err := inv.AddDevices(map[uuid.UUID]*devicetypes.CaniDeviceType{
 		ids.nodeID:   node,
@@ -403,6 +409,58 @@ func TestLoadInvalidJSON(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "parsing inventory") {
 		t.Fatalf("Load() error = %v, want parsing inventory context", err)
+	}
+}
+
+// TestLoadSkipsMigrationSaveForInvalidRelationships verifies an older-schema
+// datastore is not rewritten when migration exposes an unresolved cable port.
+//
+// Why it matters: automatic migration must not persist relationship-invalid
+// inventory, while tolerant loading still lets operators inspect and repair it.
+// Inputs: a v1alpha2 inventory with firewall-01 port1 and a cable naming port3.
+// Outputs: Load returns the in-memory inventory without changing source bytes.
+// Data choice: v1alpha2 triggers the relationship migration save path, and the
+// valid device plus missing port isolates the new save guard.
+func TestLoadSkipsMigrationSaveForInvalidRelationships(t *testing.T) {
+	directory := t.TempDir()
+	path := filepath.Join(directory, "inventory.json")
+	deviceID := uuid.New()
+	inventory := devicetypes.NewInventory()
+	inventory.SchemaVersion = devicetypes.SchemaVersionV1Alpha2
+	inventory.Devices[deviceID] = &devicetypes.CaniDeviceType{
+		ID: deviceID, Name: "firewall-01",
+		Interfaces: []devicetypes.InterfaceSpec{{ID: uuid.New(), Name: "port1"}},
+	}
+	inventory.Cables[uuid.New()] = &devicetypes.CaniCableType{
+		Label:              "invalid-uplink",
+		TerminationBDevice: deviceID,
+		TerminationBPort:   "port3",
+	}
+	before, err := json.MarshalIndent(inventory, "", "  ")
+	if err != nil {
+		t.Fatalf("marshalling old-schema inventory: %v", err)
+	}
+	if err := os.WriteFile(path, before, 0600); err != nil {
+		t.Fatalf("writing old-schema inventory: %v", err)
+	}
+
+	loaded, err := (&JSONStore{Path: path}).Load()
+
+	if err != nil {
+		t.Fatalf("Load() unexpected error: %v", err)
+	}
+	if loaded == nil {
+		t.Fatal("Load() returned nil inventory")
+	}
+	if result := loaded.RebuildDerivedState(); !result.HasErrors() {
+		t.Fatal("expected invalid cable to remain available for repair")
+	}
+	after, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading datastore after load: %v", err)
+	}
+	if string(after) != string(before) {
+		t.Error("relationship-invalid migration rewrote the datastore")
 	}
 }
 

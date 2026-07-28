@@ -26,8 +26,10 @@
 package imprt
 
 import (
+	"strings"
 	"testing"
 
+	"github.com/Cray-HPE/cani/internal/config"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
 )
@@ -78,7 +80,9 @@ func TestMergeTransformResult_MergesIPAM(t *testing.T) {
 	result := ipamResult(vlanID, prefixID, ipID, vrfID)
 
 	ctx := &etlContext{inventory: devicetypes.NewInventory()}
-	mergeTransformResult(ctx, result)
+	if err := mergeTransformResult(ctx, result); err != nil {
+		t.Fatalf("mergeTransformResult() unexpected error: %v", err)
+	}
 
 	if _, ok := ctx.inventory.VLANs[vlanID]; !ok {
 		t.Errorf("VLAN %s was not merged into inventory", vlanID)
@@ -111,8 +115,12 @@ func TestMergeTransformResult_MergesIPAM(t *testing.T) {
 func TestMergeTransformResult_IPAMIdempotent(t *testing.T) {
 	ctx := &etlContext{inventory: devicetypes.NewInventory()}
 
-	mergeTransformResult(ctx, ipamResult(uuid.Nil, uuid.Nil, uuid.Nil, uuid.Nil))
-	mergeTransformResult(ctx, ipamResult(uuid.Nil, uuid.Nil, uuid.Nil, uuid.Nil))
+	if err := mergeTransformResult(ctx, ipamResult(uuid.Nil, uuid.Nil, uuid.Nil, uuid.Nil)); err != nil {
+		t.Fatalf("first mergeTransformResult() unexpected error: %v", err)
+	}
+	if err := mergeTransformResult(ctx, ipamResult(uuid.Nil, uuid.Nil, uuid.Nil, uuid.Nil)); err != nil {
+		t.Fatalf("second mergeTransformResult() unexpected error: %v", err)
+	}
 
 	if got := len(ctx.inventory.VLANs); got != 1 {
 		t.Errorf("VLANs: got %d, want 1 (re-import duplicated)", got)
@@ -125,5 +133,50 @@ func TestMergeTransformResult_IPAMIdempotent(t *testing.T) {
 	}
 	if got := len(ctx.inventory.VRFs); got != 1 {
 		t.Errorf("VRFs: got %d, want 1 (re-import duplicated)", got)
+	}
+}
+
+// TestMergeTransformResultRejectsInvalidCable verifies transformed inventory
+// with an unresolved cable port fails before the import Load phase.
+//
+// Why it matters: import merges in memory before persistence, so propagating
+// this error keeps the existing datastore atomic and prevents partial imports.
+// Inputs: firewall-01 with port1 and an imported cable naming missing port3.
+// Outputs: a contextual relationship error from mergeTransformResult.
+// Data choice: a valid device reference isolates the exact port-resolution
+// defect that previously survived import and failed during provider export.
+func TestMergeTransformResultRejectsInvalidCable(t *testing.T) {
+	originalConfig := config.Cfg
+	config.Cfg = &config.Config{}
+	t.Cleanup(func() { config.Cfg = originalConfig })
+
+	deviceID := uuid.New()
+	cableID := uuid.New()
+	ctx := &etlContext{inventory: devicetypes.NewInventory()}
+	result := &devicetypes.TransformResult{
+		Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
+			deviceID: {
+				ID: deviceID, Name: "firewall-01",
+				Interfaces: []devicetypes.InterfaceSpec{{ID: uuid.New(), Name: "port1"}},
+			},
+		},
+		Cables: map[uuid.UUID]*devicetypes.CaniCableType{
+			cableID: {
+				ID:                 cableID,
+				Label:              "invalid-uplink",
+				TerminationBDevice: deviceID,
+				TerminationBPort:   "port3",
+			},
+		},
+	}
+
+	err := mergeTransformResult(ctx, result)
+
+	if err == nil {
+		t.Fatal("expected invalid cable relationship to fail transform merge")
+	}
+	want := `termination B port "port3" not found on device "firewall-01"`
+	if !strings.Contains(err.Error(), want) {
+		t.Errorf("mergeTransformResult() error = %q, want it to contain %q", err, want)
 	}
 }

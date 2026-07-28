@@ -131,6 +131,7 @@ func TestRemoveModulesForDeviceDeletesMatching(t *testing.T) {
 	deviceID := uuid.New()
 	modMatchID := uuid.New()
 	modKeepID := uuid.New()
+	cableID := uuid.New()
 
 	inv.Modules[modMatchID] = &CaniModuleType{
 		ID:           modMatchID,
@@ -142,6 +143,10 @@ func TestRemoveModulesForDeviceDeletesMatching(t *testing.T) {
 		Name:         "mod-keep",
 		ParentDevice: uuid.New(),
 	}
+	inv.Cables[cableID] = &CaniCableType{
+		ID:                 cableID,
+		TerminationADevice: modMatchID,
+	}
 
 	inv.removeModulesForDevice(deviceID)
 
@@ -150,6 +155,9 @@ func TestRemoveModulesForDeviceDeletesMatching(t *testing.T) {
 	}
 	if _, ok := inv.Modules[modKeepID]; !ok {
 		t.Error("unrelated module should remain")
+	}
+	if _, ok := inv.Cables[cableID]; ok {
+		t.Error("cable referencing deleted child module should be deleted")
 	}
 }
 

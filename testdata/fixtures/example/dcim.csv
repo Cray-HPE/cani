@@ -32,4 +32,4 @@ interface,,iLO,,,,,,,,GH-x3701u26,,,,,,,,,,,aa:bb:cc:dd:ee:02
 connection,hpe-3m-cat6-stp,,,,,,,,,,,GH-x3701u34,iLO,MAN-x3701u48,1,blue,3,m,,
 connection,hpe-3m-cat6-stp,,,,,,,,,,,GH-x3701u26,iLO,MAN-x3701u48,2,blue,3,m,,
 # Connections — HSN (with brace expansion)
-connection,hpe-ib-ndr-osfp-dac-cable,,,,,,,,,,,GH-x3701u34,HSN {0..3},HSNS-x3701u43,{1..4},green,2,m,,
+connection,hpe-ib-ndr-osfp-dac-cable,,,,,,,,,,,GH-x3701u34,HSN {0..1},HSNS-x3701u43,{1..2},green,2,m,,

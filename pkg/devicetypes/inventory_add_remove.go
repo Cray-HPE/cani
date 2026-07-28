@@ -89,7 +89,12 @@ func (inv *Inventory) AddCable(cable *CaniCableType) error {
 		return fmt.Errorf("cable %s already exists", cable.ID)
 	}
 	inv.Cables[cable.ID] = cable
-	inv.VerifyParentChildRelationships()
+	result := inv.VerifyParentChildRelationships()
+	if err := result.Err(); err != nil {
+		delete(inv.Cables, cable.ID)
+		inv.RebuildDerivedState()
+		return err
+	}
 	return nil
 }
 
@@ -139,12 +144,10 @@ func (inv *Inventory) RemoveRack(id uuid.UUID) error {
 
 // RemoveModule deletes a module from the inventory.
 func (inv *Inventory) RemoveModule(id uuid.UUID) error {
-	mod, exists := inv.Modules[id]
-	if !exists {
+	if _, exists := inv.Modules[id]; !exists {
 		return fmt.Errorf("module %s not found", id)
 	}
-	// Remove cables referencing this module's parent device
-	_ = mod // module has ParentDevice but cables ref devices, not modules
+	inv.removeCablesForDevice(id)
 	delete(inv.Modules, id)
 	return nil
 }

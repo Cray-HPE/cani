@@ -108,6 +108,11 @@ func runExport(cmd *cli.Command, args []string, p provider.Provider) error {
 		return fmt.Errorf("inventory is empty, nothing to export")
 	}
 
+	relationships := inv.VerifyParentChildRelationships()
+	if err := relationships.Err(); err != nil {
+		return fmt.Errorf("inventory relationship preflight failed: %w", err)
+	}
+
 	// Check if the provider implements Exporter
 	exporter, ok := p.(provider.Exporter)
 	if !ok {

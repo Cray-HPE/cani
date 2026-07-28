@@ -48,6 +48,28 @@ Items reference each other by UUID:
 - A **Cable** has `TerminationA` and `TerminationB` endpoint UUIDs.
 - A **FRU** has a `Device` or `Parent` FK.
 
+### Cable Endpoint Integrity
+
+Each side of an inventory cable is either absent or complete. An absent side
+has an empty device/module UUID, port name, and interface UUID. A populated side
+must contain all three fields:
+
+- `terminationADevice` or `terminationBDevice` identifies a device or module.
+- `terminationAPort` or `terminationBPort` names an interface on that object.
+- `terminationA` or `terminationB` is the UUID of that exact interface.
+
+Relationship rebuilding fills a missing interface UUID when the referenced
+device or module contains the named port. Validation fails if the port cannot be
+resolved, if fields are only partially populated, or if an explicit interface
+UUID belongs to another endpoint. Module-owned interfaces may be referenced
+through the module UUID or found through their parent device.
+
+All command saves validate relationships before writing. Import fails the whole
+operation before its Load phase when transformed inventory is invalid, and
+export performs the same preflight before invoking a provider. Existing files
+remain loadable so operators can inspect and repair invalid data, but migration
+does not automatically rewrite a file while relationship errors remain.
+
 ## Example: Device
 
 ```json

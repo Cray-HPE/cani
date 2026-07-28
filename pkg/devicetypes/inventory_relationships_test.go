@@ -494,8 +494,10 @@ func TestValidateCableRelationshipsHappyPath(t *testing.T) {
 	inv.Cables[cableID] = &CaniCableType{
 		Label:              "cable-1",
 		TerminationADevice: devA,
+		TerminationAPort:   "eth0",
 		TerminationA:       ifaceA,
 		TerminationBDevice: devB,
+		TerminationBPort:   "eth0",
 		TerminationB:       ifaceB,
 	}
 
@@ -521,6 +523,47 @@ func TestValidateCableRelationshipsMissingDevice(t *testing.T) {
 	}
 }
 
+// TestVerifyCableRelationshipsRejectsUnknownPort verifies a populated cable
+// endpoint fails relationship validation when its named port is not present.
+//
+// Why it matters: unresolved cable ports must stop persistence and export before
+// providers reconcile unrelated inventory objects.
+// Inputs: firewall-01 with ports port1 and port2, and a cable whose B endpoint
+// names port3. Outputs: an error identifying the cable, side, device, and port.
+// Data choice: port3 is plausible but absent, matching the reported regression
+// while keeping the device reference itself valid.
+func TestVerifyCableRelationshipsRejectsUnknownPort(t *testing.T) {
+	deviceID := uuid.New()
+	cableID := uuid.New()
+	inv := NewInventory()
+	inv.Devices[deviceID] = &CaniDeviceType{
+		ID:   deviceID,
+		Name: "firewall-01",
+		Interfaces: []InterfaceSpec{
+			{ID: uuid.New(), Name: "port1"},
+			{ID: uuid.New(), Name: "port2"},
+		},
+	}
+	inv.Cables[cableID] = &CaniCableType{
+		ID:                 cableID,
+		Label:              "firewall-uplink",
+		TerminationBDevice: deviceID,
+		TerminationBPort:   "port3",
+	}
+
+	result := inv.VerifyParentChildRelationships()
+
+	if !result.HasErrors() {
+		t.Fatal("expected unresolved termination B port to fail validation")
+	}
+	want := fmt.Sprintf(
+		"cable %q (%s): termination B port %q not found on device %q",
+		"firewall-uplink", cableID, "port3", "firewall-01")
+	if !strings.Contains(result.Errors[0].Error(), want) {
+		t.Errorf("relationship error = %q, want it to contain %q", result.Errors[0], want)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // validateCableEnd
 // ---------------------------------------------------------------------------
@@ -540,7 +583,7 @@ func TestValidateCableEndHappyPath(t *testing.T) {
 	inv.Interfaces[ifaceID] = &CaniInterface{ID: ifaceID, DeviceID: devID}
 	cable := &CaniCableType{Label: "c1"}
 
-	res := inv.validateCableEnd(cableID, cable, "A", devID, ifaceID)
+	res := inv.validateCableEnd(cableID, cable, "A", devID, "eth0", ifaceID)
 	if res.HasErrors() {
 		t.Fatalf("unexpected errors: %v", res.Errors)
 	}
@@ -554,12 +597,208 @@ func TestValidateCableEndMissingDeviceAndInterface(t *testing.T) {
 
 	inv := NewInventory()
 
-	res := inv.validateCableEnd(cableID, cable, "B", missingDev, missingIface)
+	res := inv.validateCableEnd(cableID, cable, "B", missingDev, "eth0", missingIface)
 	if !res.HasErrors() {
 		t.Fatal("expected errors for missing device and interface")
 	}
-	if len(res.Errors) != 2 {
-		t.Fatalf("expected 2 errors (device + interface), got %d", len(res.Errors))
+	if len(res.Errors) != 1 {
+		t.Fatalf("expected owner lookup to fail first, got %d errors", len(res.Errors))
+	}
+}
+
+// TestValidateCableEndRejectsUnresolvedInterface verifies strict endpoint
+// validation rejects a valid device and port whose interface UUID is zero.
+//
+// Why it matters: relationship rebuilding normally fills this UUID, so a zero
+// value after resolution signals an endpoint that cannot be safely persisted.
+// Inputs: firewall-01 and its port1 with a zero endpoint interface UUID.
+// Outputs: an error naming the unresolved interface, port, and device.
+// Data choice: a real port isolates the zero-UUID invariant from port lookup
+// failure, which has its own regression test.
+func TestValidateCableEndRejectsUnresolvedInterface(t *testing.T) {
+	deviceID := uuid.New()
+	interfaceID := uuid.New()
+	cableID := uuid.New()
+	inv := NewInventory()
+	inv.Devices[deviceID] = &CaniDeviceType{
+		ID:   deviceID,
+		Name: "firewall-01",
+		Interfaces: []InterfaceSpec{
+			{ID: interfaceID, Name: "port1"},
+		},
+	}
+	inv.rebuildInterfaceRelationships()
+
+	result := inv.validateCableEnd(
+		cableID,
+		&CaniCableType{Label: "firewall-uplink"},
+		"A",
+		deviceID,
+		"port1",
+		uuid.Nil,
+	)
+
+	if !result.HasErrors() {
+		t.Fatal("expected zero interface UUID to fail endpoint validation")
+	}
+	if !strings.Contains(result.Errors[0].Error(),
+		`termination A interface is unresolved for port "port1" on device "firewall-01"`) {
+		t.Errorf("unexpected relationship error: %v", result.Errors[0])
+	}
+}
+
+// TestValidateCableEndRejectsIncompleteFields verifies every partially
+// populated endpoint shape fails strict relationship validation.
+//
+// Why it matters: device, port, and interface fields describe one endpoint and
+// must not be persisted independently because providers cannot reconcile them.
+// Inputs: five incomplete combinations of a known device, port, and interface.
+// Outputs: each combination produces an error identifying its missing field.
+// Data choice: the cases cover every nonempty proper subset except device+port,
+// whose zero-interface behavior is asserted separately above.
+func TestValidateCableEndRejectsIncompleteFields(t *testing.T) {
+	deviceID := uuid.New()
+	interfaceID := uuid.New()
+	inv := NewInventory()
+	inv.Devices[deviceID] = &CaniDeviceType{
+		ID:   deviceID,
+		Name: "switch-01",
+		Interfaces: []InterfaceSpec{
+			{ID: interfaceID, Name: "eth0"},
+		},
+	}
+	inv.rebuildInterfaceRelationships()
+
+	testCases := []struct {
+		name       string
+		deviceRef  uuid.UUID
+		portName   string
+		ifaceRef   uuid.UUID
+		wantDetail string
+	}{
+		{name: "device only", deviceRef: deviceID, wantDetail: "port is required"},
+		{name: "port only", portName: "eth0", wantDetail: "device or module is required"},
+		{name: "interface only", ifaceRef: interfaceID, wantDetail: "device or module is required"},
+		{name: "device and interface", deviceRef: deviceID, ifaceRef: interfaceID, wantDetail: "port is required"},
+		{name: "port and interface", portName: "eth0", ifaceRef: interfaceID, wantDetail: "device or module is required"},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			result := inv.validateCableEnd(
+				uuid.New(),
+				&CaniCableType{Label: "partial"},
+				"A",
+				testCase.deviceRef,
+				testCase.portName,
+				testCase.ifaceRef,
+			)
+
+			if !result.HasErrors() {
+				t.Fatal("expected incomplete endpoint to fail validation")
+			}
+			if !strings.Contains(result.Errors[0].Error(), testCase.wantDetail) {
+				t.Errorf("relationship error = %q, want detail %q", result.Errors[0], testCase.wantDetail)
+			}
+		})
+	}
+}
+
+// TestVerifyCableRelationshipsRejectsInterfaceOnDifferentDevice verifies an
+// explicit interface UUID must match the endpoint device and port.
+//
+// Why it matters: accepting an interface from another device produces a cable
+// topology that cannot be represented correctly by downstream providers.
+// Inputs: two devices with distinct port1 UUIDs and a cable declaring device A
+// while carrying device B's interface UUID. Outputs: a mismatch error, with the
+// contradictory UUID preserved for diagnosis.
+// Data choice: identical port names ensure UUID ownership, not a name typo,
+// distinguishes the invalid endpoint.
+func TestVerifyCableRelationshipsRejectsInterfaceOnDifferentDevice(t *testing.T) {
+	deviceAID := uuid.New()
+	deviceBID := uuid.New()
+	interfaceAID := uuid.New()
+	interfaceBID := uuid.New()
+	cableID := uuid.New()
+	inv := NewInventory()
+	inv.Devices[deviceAID] = &CaniDeviceType{
+		ID: deviceAID, Name: "switch-a",
+		Interfaces: []InterfaceSpec{{ID: interfaceAID, Name: "port1"}},
+	}
+	inv.Devices[deviceBID] = &CaniDeviceType{
+		ID: deviceBID, Name: "switch-b",
+		Interfaces: []InterfaceSpec{{ID: interfaceBID, Name: "port1"}},
+	}
+	inv.Cables[cableID] = &CaniCableType{
+		ID:                 cableID,
+		Label:              "crossed",
+		TerminationADevice: deviceAID,
+		TerminationAPort:   "port1",
+		TerminationA:       interfaceBID,
+	}
+
+	result := inv.VerifyParentChildRelationships()
+
+	if !result.HasErrors() {
+		t.Fatal("expected interface from another device to fail validation")
+	}
+	if inv.Cables[cableID].TerminationA != interfaceBID {
+		t.Errorf("TerminationA was overwritten: got %s, want %s", inv.Cables[cableID].TerminationA, interfaceBID)
+	}
+	if !strings.Contains(result.Errors[0].Error(), "does not match port") {
+		t.Errorf("unexpected relationship error: %v", result.Errors[0])
+	}
+}
+
+// TestVerifyCableRelationshipsAcceptsModuleInterfaces verifies cable endpoints
+// can resolve an interface owned by a child module.
+//
+// Why it matters: connectable module ports are part of the portable inventory
+// model and must remain valid under strict endpoint ownership checks.
+// Inputs: a module-owned mgmt0 port referenced once through its parent device
+// and once through the module UUID. Outputs: both terminations resolve without
+// relationship errors.
+// Data choice: the two references exercise both module fallback and direct
+// module lookup paths in FindInterfaceIDByPort.
+func TestVerifyCableRelationshipsAcceptsModuleInterfaces(t *testing.T) {
+	deviceID := uuid.New()
+	moduleID := uuid.New()
+	interfaceID := uuid.New()
+	parentCableID := uuid.New()
+	directCableID := uuid.New()
+	inv := NewInventory()
+	inv.Devices[deviceID] = &CaniDeviceType{ID: deviceID, Name: "server-01"}
+	inv.Modules[moduleID] = &CaniModuleType{
+		ID:           moduleID,
+		Name:         "nic-01",
+		ParentDevice: deviceID,
+		Interfaces: []InterfaceSpec{
+			{ID: interfaceID, Name: "mgmt0"},
+		},
+	}
+	inv.Cables[parentCableID] = &CaniCableType{
+		ID:                 parentCableID,
+		Label:              "parent-reference",
+		TerminationADevice: deviceID,
+		TerminationAPort:   "mgmt0",
+	}
+	inv.Cables[directCableID] = &CaniCableType{
+		ID:                 directCableID,
+		Label:              "module-reference",
+		TerminationBDevice: moduleID,
+		TerminationBPort:   "mgmt0",
+	}
+
+	result := inv.VerifyParentChildRelationships()
+
+	if result.HasErrors() {
+		t.Fatalf("unexpected module endpoint errors: %v", result.Errors)
+	}
+	if inv.Cables[parentCableID].TerminationA != interfaceID {
+		t.Errorf("parent-device module lookup = %s, want %s", inv.Cables[parentCableID].TerminationA, interfaceID)
+	}
+	if inv.Cables[directCableID].TerminationB != interfaceID {
+		t.Errorf("direct module lookup = %s, want %s", inv.Cables[directCableID].TerminationB, interfaceID)
 	}
 }
 
@@ -957,19 +1196,16 @@ func TestValidateModuleRelationshipsNilAndNoParent(t *testing.T) {
 	}
 }
 
-// TestRebuildCableRelationships verifies rebuildCableRelationships removes cables
-// whose endpoint devices were deleted and resolves termination interface UUIDs
-// from device + port names.
+// TestRebuildCableRelationships verifies rebuildCableRelationships preserves
+// invalid cables for diagnosis and resolves valid interface UUIDs from ports.
 //
-// Why it matters: after devices are removed or re-imported, cable terminations
-// must be re-resolved or pruned so the topology stays consistent; stale cables
-// would otherwise reference non-existent endpoints.
+// Why it matters: rebuild must not hide malformed imported endpoints by deleting
+// them before strict validation can stop persistence or export.
 // Inputs: an inventory with a device that has an "eth0" interface plus a cable
 // whose A-side names that device/port and whose B-side references a deleted
-// device. Outputs: the stale cable removed and, for a second valid cable, the
-// A-side TerminationA UUID resolved to the interface ID. Data choice: combining
-// a delete case and a resolve case in one inventory exercises both the prune
-// branch and the port-resolution branch of the loop.
+// device. Outputs: the stale cable remains and fails validation, while a second
+// cable resolves its A-side interface. Data choice: the paired cases distinguish
+// non-destructive rebuild behavior from successful derivation.
 func TestRebuildCableRelationships(t *testing.T) {
 	inv := NewInventory()
 	devID := uuid.New()
@@ -998,14 +1234,17 @@ func TestRebuildCableRelationships(t *testing.T) {
 
 	res := inv.rebuildCableRelationships()
 
-	if _, ok := inv.Cables[staleID]; ok {
-		t.Error("expected stale cable to be removed")
+	if _, ok := inv.Cables[staleID]; !ok {
+		t.Error("expected stale cable to remain available for validation")
 	}
 	if inv.Cables[resolveID].TerminationA != ethID {
 		t.Errorf("TerminationA = %v, want resolved %v", inv.Cables[resolveID].TerminationA, ethID)
 	}
-	if len(res.Fixed) == 0 {
-		t.Error("expected Fixed entries for prune + resolve")
+	if len(res.Fixed) != 1 {
+		t.Errorf("Fixed entries = %d, want only the resolved endpoint", len(res.Fixed))
+	}
+	if validation := inv.validateCableRelationships(); !validation.HasErrors() {
+		t.Error("expected preserved stale cable to fail validation")
 	}
 }
 
