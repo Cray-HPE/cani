@@ -106,7 +106,9 @@ func runTransformPhase(ctx *etlContext) error {
 	}
 
 	displayTransformSummary(ctx, result)
-	mergeTransformResult(ctx, result)
+	if err := mergeTransformResult(ctx, result); err != nil {
+		return fmt.Errorf("transform phase: %w", err)
+	}
 
 	if ctx.debug {
 		visual.PrintPhaseComplete(phaseNameTransform, ctx.opts)
@@ -124,8 +126,8 @@ func displayTransformSummary(ctx *etlContext, result *devicetypes.TransformResul
 	}
 }
 
-// mergeTransformResult merges all transformed entities into ctx.inventory.
-func mergeTransformResult(ctx *etlContext, result *devicetypes.TransformResult) {
+// mergeTransformResult merges and validates all transformed entities.
+func mergeTransformResult(ctx *etlContext, result *devicetypes.TransformResult) error {
 	result.EnsureUniqueDeviceNames()
 	mergeMetadata(ctx, result.Metadata)
 	locationRemap := mergeLocations(ctx, result.Locations)
@@ -144,7 +146,11 @@ func mergeTransformResult(ctx *etlContext, result *devicetypes.TransformResult) 
 	// Single verify pass after all merges — avoids duplicate warnings
 	// from per-entity verify calls.
 	log.Printf("Verifying parent-child relationships")
-	ctx.inventory.VerifyParentChildRelationships()
+	relationships := ctx.inventory.VerifyParentChildRelationships()
+	if err := relationships.Err(); err != nil {
+		return fmt.Errorf("relationship validation failed after merge: %w", err)
+	}
+	return nil
 }
 
 // runLoadPhase executes the Load phase of the ETL pipeline.

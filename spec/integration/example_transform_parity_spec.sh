@@ -167,7 +167,7 @@ Describe 'INTEGRATION: example transform parity'
   It 'transforms example DCIM CSV interface metadata and expanded connections'
     When call example_system_transform_summary
     The status should equal 0
-    The output should include 'counts=racks:2,devices:6,modules:3,cables:6,interfaces:184'
+    The output should include 'counts=racks:2,devices:6,modules:3,cables:4,interfaces:184'
     The output should include 'roles=ComputeNode,ManagementSwitch,HSNSwitch'
     The output should include 'device_gh=hpe-xd670|ComputeNode|34|front|aa:bb:cc:dd:ee:01'
     The output should include 'device_man=hpe-aruba-2930f-48g-4sfp|ManagementSwitch|48|rear'
@@ -175,7 +175,7 @@ Describe 'INTEGRATION: example transform parity'
     The output should include 'hpe-3m-cat6-stp|blue|3|m|iLO|1:1'
     The output should include 'hpe-3m-cat6-stp|blue|3|m|iLO|2:1'
     The output should include 'hpe-ib-ndr-osfp-dac-cable|green|2|m|HSN 0|1:1'
-    The output should include 'hpe-ib-ndr-osfp-dac-cable|green|2|m|HSN 3|4:1'
+    The output should include 'hpe-ib-ndr-osfp-dac-cable|green|2|m|HSN 1|2:1'
   End
 
 End

@@ -31,16 +31,40 @@
 package store
 
 import (
+	"fmt"
+
 	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/datastores"
+	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
 
 // datastoreFlag is the persistent root flag that selects the datastore backend.
 const datastoreFlag = "datastore"
 
+type validatingStore struct {
+	datastores.DeviceStore
+}
+
+func (store validatingStore) Save(inventory *devicetypes.Inventory) error {
+	if inventory == nil {
+		return fmt.Errorf("relationship validation failed: inventory is nil")
+	}
+	result := inventory.VerifyParentChildRelationships()
+	if err := result.Err(); err != nil {
+		return fmt.Errorf("relationship validation failed: %w", err)
+	}
+	return store.DeviceStore.Save(inventory)
+}
+
 // Setup resolves the datastore type from the root command's persistent
-// "datastore" flag and selects the matching backend in pkg/datastores.
+// "datastore" flag, selects the matching backend, and wraps command saves with
+// relationship validation. Concrete stores remain pure read/write so migration
+// code can deliberately persist through the raw implementation.
 func Setup(cmd *cli.Command) error {
 	storeType := cmd.Root().PersistentFlags().Lookup(datastoreFlag).Value.String()
-	return datastores.SetDeviceStore(storeType)
+	if err := datastores.SetDeviceStore(storeType); err != nil {
+		return err
+	}
+	datastores.Datastore = validatingStore{DeviceStore: datastores.Datastore}
+	return nil
 }

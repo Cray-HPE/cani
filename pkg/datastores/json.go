@@ -88,7 +88,11 @@ func (s *JSONStore) loadLegacy(data []byte) (*devicetypes.Inventory, error) {
 	// migrateV1Alpha1 sets Parent on every device, so the v1alpha2->v1alpha3
 	// back-fill is a no-op here; it only advances the schema version.
 	migrateV1Alpha2(data, inventory)
-	inventory.RebuildDerivedState()
+	relationships := inventory.RebuildDerivedState()
+	if err := relationships.Err(); err != nil {
+		log.Printf("Skipped saving migrated datastore with relationship errors: %v", err)
+		return inventory, nil
+	}
 
 	if err := s.Save(inventory); err != nil {
 		return nil, fmt.Errorf("saving migrated datastore: %w", err)
@@ -123,9 +127,13 @@ func (s *JSONStore) loadCurrent(data []byte) (*devicetypes.Inventory, error) {
 	}
 
 	inventory.RebuildProviderKeyIndex()
-	inventory.RebuildDerivedState()
+	relationships := inventory.RebuildDerivedState()
 
 	if metaMigrated || relMigrated {
+		if err := relationships.Err(); err != nil {
+			log.Printf("Skipped saving migrated datastore with relationship errors: %v", err)
+			return inventory, nil
+		}
 		if err := s.Save(inventory); err != nil {
 			return nil, fmt.Errorf("saving migrated datastore: %w", err)
 		}

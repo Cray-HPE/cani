@@ -738,6 +738,7 @@ func (inv *Inventory) removeCablesForDevice(id uuid.UUID) {
 func (inv *Inventory) removeModulesForDevice(id uuid.UUID) {
 	for modID, mod := range inv.Modules {
 		if mod != nil && mod.ParentDevice == id {
+			inv.removeCablesForDevice(modID)
 			delete(inv.Modules, modID)
 		}
 	}

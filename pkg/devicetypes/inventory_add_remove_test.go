@@ -14,6 +14,7 @@ package devicetypes
 // | RemoveCable    | TestRemoveCableValid                         | TestRemoveCableNotFound                         |
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -147,6 +148,76 @@ func TestAddCableDuplicateUUID(t *testing.T) {
 	}
 }
 
+// TestAddCableResolvesValidPort verifies adding a connected cable resolves its
+// endpoint interface UUID before returning success.
+//
+// Why it matters: callers provide stable device and port references while the
+// derived interface UUID is needed for persistence and provider export.
+// Inputs: switch-01 with port1 and a cable naming that device and port.
+// Outputs: AddCable returns nil, stores the cable, and fills TerminationA.
+// Data choice: a single populated side proves the selected absent-or-complete
+// policy without requiring an unrelated second endpoint fixture.
+func TestAddCableResolvesValidPort(t *testing.T) {
+	deviceID := uuid.New()
+	interfaceID := uuid.New()
+	inv := NewInventory()
+	inv.Devices[deviceID] = &CaniDeviceType{
+		ID: deviceID, Name: "switch-01",
+		Interfaces: []InterfaceSpec{{ID: interfaceID, Name: "port1"}},
+	}
+	cable := &CaniCableType{
+		ID:                 uuid.New(),
+		Label:              "uplink",
+		TerminationADevice: deviceID,
+		TerminationAPort:   "port1",
+	}
+
+	if err := inv.AddCable(cable); err != nil {
+		t.Fatalf("AddCable() unexpected error: %v", err)
+	}
+	if cable.TerminationA != interfaceID {
+		t.Errorf("TerminationA = %s, want %s", cable.TerminationA, interfaceID)
+	}
+	if _, exists := inv.Cables[cable.ID]; !exists {
+		t.Error("expected valid cable to remain in inventory")
+	}
+}
+
+// TestAddCableRejectsUnknownPortAndRollsBack verifies invalid cable insertion
+// leaves the inventory unchanged.
+//
+// Why it matters: callers may attempt to save immediately after AddCable, so a
+// rejected relationship must not survive in memory as a latent invalid object.
+// Inputs: firewall-01 with port1 and a cable naming nonexistent port3.
+// Outputs: AddCable returns a contextual error and removes the provisional map
+// entry. Data choice: a valid device isolates rollback around port resolution.
+func TestAddCableRejectsUnknownPortAndRollsBack(t *testing.T) {
+	deviceID := uuid.New()
+	inv := NewInventory()
+	inv.Devices[deviceID] = &CaniDeviceType{
+		ID: deviceID, Name: "firewall-01",
+		Interfaces: []InterfaceSpec{{ID: uuid.New(), Name: "port1"}},
+	}
+	cable := &CaniCableType{
+		ID:                 uuid.New(),
+		Label:              "invalid-uplink",
+		TerminationBDevice: deviceID,
+		TerminationBPort:   "port3",
+	}
+
+	err := inv.AddCable(cable)
+
+	if err == nil {
+		t.Fatal("expected AddCable to reject an unknown port")
+	}
+	if !strings.Contains(err.Error(), `termination B port "port3" not found on device "firewall-01"`) {
+		t.Errorf("AddCable() error = %q, want endpoint context", err)
+	}
+	if _, exists := inv.Cables[cable.ID]; exists {
+		t.Error("invalid cable remained in inventory after AddCable failure")
+	}
+}
+
 // ---------- RemoveLocation ----------
 
 func TestRemoveLocationEmpty(t *testing.T) {
@@ -240,6 +311,33 @@ func TestRemoveModuleNotFound(t *testing.T) {
 	inv := NewInventory()
 	if err := inv.RemoveModule(uuid.New()); err == nil {
 		t.Error("RemoveModule(non-existent) should return an error")
+	}
+}
+
+// TestRemoveModuleDeletesDirectCableReferences verifies module removal cleans
+// cables whose endpoint directly names that module.
+//
+// Why it matters: relationship rebuilding no longer silently prunes dangling
+// cables, so explicit removal must preserve inventory integrity itself.
+// Inputs: one module and one cable whose B endpoint references its UUID.
+// Outputs: both the module and cable are absent after RemoveModule.
+// Data choice: a direct module UUID exercises the reference not covered by the
+// existing parent-device cable cleanup.
+func TestRemoveModuleDeletesDirectCableReferences(t *testing.T) {
+	inv := NewInventory()
+	moduleID := uuid.New()
+	cableID := uuid.New()
+	inv.Modules[moduleID] = &CaniModuleType{ID: moduleID, Name: "nic-01"}
+	inv.Cables[cableID] = &CaniCableType{
+		ID:                 cableID,
+		TerminationBDevice: moduleID,
+	}
+
+	if err := inv.RemoveModule(moduleID); err != nil {
+		t.Fatalf("RemoveModule() unexpected error: %v", err)
+	}
+	if _, exists := inv.Cables[cableID]; exists {
+		t.Error("expected cable referencing removed module to be deleted")
 	}
 }
 
