@@ -697,61 +697,58 @@ func (inv *Inventory) rebuildInterfaceRelationships() *RelationshipResult {
 		if device == nil {
 			continue
 		}
-		for i := range device.Interfaces {
-			iface := &device.Interfaces[i]
-			if iface.ID == uuid.Nil {
-				iface.ID = uuid.New()
-			}
-			mgmtOnly := iface.MgmtOnly != nil && *iface.MgmtOnly
-			role := ResolveInterfaceRole(iface.Role, iface.Name, iface.Type, mgmtOnly)
-			inst := &CaniInterface{
-				ID:            iface.ID,
-				Name:          iface.Name,
-				InterfaceType: iface.Type,
-				DeviceID:      deviceID,
-				ObjectMeta:    ObjectMeta{Status: string(StatusActive), Role: role},
-				MgmtOnly:      mgmtOnly,
-				MacAddress:    iface.MacAddress,
-			}
-			inv.Interfaces[iface.ID] = inst
-			if !oldIfaces[iface.ID] {
-				res.Fixed = append(res.Fixed,
-					fmt.Sprintf("interface %q (%s) indexed from device %q",
-						iface.Name, iface.ID, device.Name))
-			}
-		}
+		inv.indexInterfaceSpecs(device.Interfaces, deviceID, "device", device.Name, oldIfaces, res)
 	}
 
 	for _, mod := range inv.Modules {
 		if mod == nil {
 			continue
 		}
-		for i := range mod.Interfaces {
-			iface := &mod.Interfaces[i]
-			if iface.ID == uuid.Nil {
-				iface.ID = uuid.New()
-			}
-			mgmtOnly := iface.MgmtOnly != nil && *iface.MgmtOnly
-			role := ResolveInterfaceRole(iface.Role, iface.Name, iface.Type, mgmtOnly)
-			inst := &CaniInterface{
-				ID:            iface.ID,
-				Name:          iface.Name,
-				InterfaceType: iface.Type,
-				DeviceID:      mod.ParentDevice,
-				ObjectMeta:    ObjectMeta{Status: string(StatusActive), Role: role},
-				MgmtOnly:      mgmtOnly,
-				MacAddress:    iface.MacAddress,
-			}
-			inv.Interfaces[iface.ID] = inst
-			if !oldIfaces[iface.ID] {
-				res.Fixed = append(res.Fixed,
-					fmt.Sprintf("interface %q (%s) indexed from module %q",
-						iface.Name, iface.ID, mod.Name))
-			}
-		}
+		inv.indexInterfaceSpecs(mod.Interfaces, mod.ParentDevice, "module", mod.Name, oldIfaces, res)
 	}
 
 	return res
+}
+
+func (inv *Inventory) indexInterfaceSpecs(interfaces []InterfaceSpec, deviceID uuid.UUID,
+	ownerKind, ownerName string, oldIfaces map[uuid.UUID]bool, result *RelationshipResult) {
+	for i := range interfaces {
+		iface := &interfaces[i]
+		if iface.ID == uuid.Nil {
+			iface.ID = uuid.New()
+		}
+		inv.Interfaces[iface.ID] = interfaceInstanceFromSpec(iface, deviceID)
+		if !oldIfaces[iface.ID] {
+			result.Fixed = append(result.Fixed,
+				fmt.Sprintf("interface %q (%s) indexed from %s %q",
+					iface.Name, iface.ID, ownerKind, ownerName))
+		}
+	}
+}
+
+func interfaceInstanceFromSpec(iface *InterfaceSpec, deviceID uuid.UUID) *CaniInterface {
+	mgmtOnly := iface.MgmtOnly != nil && *iface.MgmtOnly
+	role := ResolveInterfaceRole(iface.Role, iface.Name, iface.Type, mgmtOnly)
+	return &CaniInterface{
+		ID:            iface.ID,
+		Name:          iface.Name,
+		InterfaceType: iface.Type,
+		DeviceID:      deviceID,
+		ObjectMeta: ObjectMeta{
+			Status: string(StatusActive),
+			Role:   role,
+			Tags:   append([]string(nil), iface.Tags...),
+		},
+		MgmtOnly:       mgmtOnly,
+		Label:          iface.Label,
+		MacAddress:     iface.MacAddress,
+		Lag:            iface.Lag,
+		Mode:           iface.Mode,
+		UntaggedVLAN:   iface.UntaggedVLAN,
+		TaggedVLANs:    append([]int(nil), iface.TaggedVLANs...),
+		VRF:            iface.VRF,
+		ConnectedCable: iface.ConnectedCable,
+	}
 }
 
 // detectCircularLocationRefs walks location parent chains to find cycles.

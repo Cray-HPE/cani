@@ -125,7 +125,7 @@ func assertMetadataStringSlice(t *testing.T, csm map[string]any, key string, wan
 	}
 }
 
-// TestMigrateSchemaVersion verifies v1alpha1 migration writes the current schema version.
+// TestMigrateSchemaVersion verifies v1alpha1 migration writes the next schema version.
 //
 // Why it matters: migrated CRUD inventory must be saved in the new datastore
 // schema so future loads skip the legacy migration path.
@@ -523,8 +523,8 @@ func TestLoadMigratesLegacyDatastore(t *testing.T) {
 		t.Fatalf("Load: %v", err)
 	}
 
-	if inv.SchemaVersion != devicetypes.SchemaVersionV1Alpha3 {
-		t.Errorf("SchemaVersion = %q, want %q", inv.SchemaVersion, devicetypes.SchemaVersionV1Alpha3)
+	if inv.SchemaVersion != devicetypes.CurrentSchemaVersion {
+		t.Errorf("SchemaVersion = %q, want %q", inv.SchemaVersion, devicetypes.CurrentSchemaVersion)
 	}
 
 	// Backup must exist.
@@ -532,7 +532,7 @@ func TestLoadMigratesLegacyDatastore(t *testing.T) {
 		t.Error("expected .canisave backup file to exist")
 	}
 
-	// The on-disk file should now be v1alpha3.
+	// The on-disk file should now use the current generation.
 	reread, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("re-reading migrated file: %v", err)
@@ -551,6 +551,153 @@ func TestLoadMigratesLegacyDatastore(t *testing.T) {
 	}
 	if saved.Devices[nodeID].Name != inv.Devices[nodeID].Name {
 		t.Fatalf("migrated on-disk node name = %q, want %q", saved.Devices[nodeID].Name, inv.Devices[nodeID].Name)
+	}
+}
+
+// TestLoadMigratesV1Alpha3AdditionsWithoutLoss verifies data written by v0.7.4
+// and v0.7.5 under the old generation label survives migration to v1alpha4.
+//
+// Why it matters: the released VRF, VLAN/LAG interface, assigned-VLAN, and
+// BMC-parent fields must not be discarded when only the discriminator changes.
+// Inputs: the released-shape v1alpha3 fixture. Outputs: preserved in-memory and
+// rewritten values, a v1alpha4 discriminator, and an exact backup.
+// Data choice: distinct values cover every field added to both interface forms,
+// the device relationship fields, and the top-level VRF collection.
+func TestLoadMigratesV1Alpha3AdditionsWithoutLoss(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "inventory.json")
+	raw, err := os.ReadFile("../../testdata/fixtures/cani/legacy/canitestdb_v1alpha3_v0.7.4.json")
+	if err != nil {
+		t.Fatalf("reading v1alpha3 fixture: %v", err)
+	}
+	if err := os.WriteFile(path, raw, 0600); err != nil {
+		t.Fatalf("writing v1alpha3 inventory: %v", err)
+	}
+
+	store := &JSONStore{Path: path}
+	inv, err := store.Load()
+	if err != nil {
+		t.Fatalf("Load() returned unexpected error: %v", err)
+	}
+	assertV1Alpha3AdditionsPreserved(t, inv)
+	if inv.SchemaVersion != devicetypes.CurrentSchemaVersion {
+		t.Errorf("SchemaVersion = %q, want %q", inv.SchemaVersion, devicetypes.CurrentSchemaVersion)
+	}
+
+	backup, err := os.ReadFile(path + ".canisave")
+	if err != nil {
+		t.Fatalf("reading migration backup: %v", err)
+	}
+	if string(backup) != string(raw) {
+		t.Error("migration backup differs from the original v1alpha3 document")
+	}
+	savedData, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading migrated inventory: %v", err)
+	}
+	saved := devicetypes.NewInventory()
+	if err := json.Unmarshal(savedData, saved); err != nil {
+		t.Fatalf("decoding migrated inventory: %v", err)
+	}
+	assertV1Alpha3AdditionsPreserved(t, saved)
+	if saved.SchemaVersion != devicetypes.CurrentSchemaVersion {
+		t.Errorf("saved SchemaVersion = %q, want %q", saved.SchemaVersion, devicetypes.CurrentSchemaVersion)
+	}
+}
+
+func assertV1Alpha3AdditionsPreserved(t *testing.T, inventory *devicetypes.Inventory) {
+	t.Helper()
+
+	deviceID := uuid.MustParse("10000000-0000-0000-0000-000000000001")
+	vlanID := uuid.MustParse("20000000-0000-0000-0000-000000000001")
+	parentID := uuid.MustParse("30000000-0000-0000-0000-000000000001")
+	vrfID := uuid.MustParse("40000000-0000-0000-0000-000000000001")
+	interfaceID := uuid.MustParse("50000000-0000-0000-0000-000000000001")
+
+	device := inventory.Devices[deviceID]
+	if device == nil {
+		t.Fatalf("migrated inventory is missing device %s", deviceID)
+	}
+	if len(device.AssignedVLANs) != 1 || device.AssignedVLANs[0] != vlanID {
+		t.Errorf("migrated device assigned VLANs = %v, want [%s]", device.AssignedVLANs, vlanID)
+	}
+	if device.BMCParent != parentID {
+		t.Errorf("migrated device BMCParent = %s, want %s", device.BMCParent, parentID)
+	}
+	if len(device.Interfaces) != 1 {
+		t.Fatalf("migrated device interfaces = %d, want 1", len(device.Interfaces))
+	}
+	assertV1Alpha3InterfaceFields(t, device.Interfaces[0].Tags, device.Interfaces[0].Lag,
+		device.Interfaces[0].Mode, device.Interfaces[0].UntaggedVLAN,
+		device.Interfaces[0].TaggedVLANs, device.Interfaces[0].VRF)
+
+	iface := inventory.Interfaces[interfaceID]
+	if iface == nil {
+		t.Fatalf("migrated inventory is missing interface %s", interfaceID)
+	}
+	assertV1Alpha3InterfaceFields(t, iface.Tags, iface.Lag, iface.Mode,
+		iface.UntaggedVLAN, iface.TaggedVLANs, iface.VRF)
+
+	if vrf := inventory.VRFs[vrfID]; vrf == nil || vrf.Name != "management" || vrf.RD != "65000:1" {
+		t.Errorf("migrated VRF = %+v, want management with RD 65000:1", vrf)
+	}
+}
+
+func assertV1Alpha3InterfaceFields(t *testing.T, tags []string, lag, mode string,
+	untaggedVLAN int, taggedVLANs []int, vrf string) {
+	t.Helper()
+	if len(tags) != 1 || tags[0] != "fabric" {
+		t.Errorf("migrated interface tags = %v, want [fabric]", tags)
+	}
+	if lag != "bond0" || mode != "tagged" || untaggedVLAN != 100 || vrf != "management" {
+		t.Errorf("migrated interface fields = lag %q, mode %q, untagged VLAN %d, VRF %q", lag, mode, untaggedVLAN, vrf)
+	}
+	if len(taggedVLANs) != 2 || taggedVLANs[0] != 200 || taggedVLANs[1] != 300 {
+		t.Errorf("migrated interface tagged VLANs = %v, want [200 300]", taggedVLANs)
+	}
+}
+
+// TestLoadMigratesV1Alpha2ThroughEveryGeneration verifies a v1alpha2 document
+// runs both later migration steps during one load.
+//
+// Why it matters: migrations are a sequential contract; stopping after the
+// relationship migration would leave an inventory at v1alpha3 and make the
+// guarded Save reject its own upgrade.
+// Inputs: a minimal v1alpha2 inventory with an empty devices collection.
+// Outputs: v1alpha4, an initialized VRF map, and a current on-disk document.
+// Data choice: the empty collection avoids relationship noise and isolates the
+// v1alpha2-to-v1alpha3-to-v1alpha4 control flow.
+func TestLoadMigratesV1Alpha2ThroughEveryGeneration(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "inventory.json")
+	if err := os.WriteFile(path, []byte(`{"schemaVersion":"v1alpha2","devices":{}}`), 0600); err != nil {
+		t.Fatalf("writing v1alpha2 inventory: %v", err)
+	}
+
+	store := &JSONStore{Path: path}
+	inv, err := store.Load()
+	if err != nil {
+		t.Fatalf("Load() returned unexpected error: %v", err)
+	}
+	if inv.SchemaVersion != devicetypes.CurrentSchemaVersion {
+		t.Errorf("SchemaVersion = %q, want %q", inv.SchemaVersion, devicetypes.CurrentSchemaVersion)
+	}
+	if inv.VRFs == nil {
+		t.Fatal("VRFs map is nil after sequential migration")
+	}
+
+	var saved struct {
+		SchemaVersion string `json:"schemaVersion"`
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading migrated inventory: %v", err)
+	}
+	if err := json.Unmarshal(data, &saved); err != nil {
+		t.Fatalf("decoding migrated inventory: %v", err)
+	}
+	if saved.SchemaVersion != devicetypes.CurrentSchemaVersion {
+		t.Errorf("saved SchemaVersion = %q, want %q", saved.SchemaVersion, devicetypes.CurrentSchemaVersion)
 	}
 }
 
@@ -603,6 +750,28 @@ func TestMigrateV1Alpha2BackfillsParent(t *testing.T) {
 	}
 	if inv.SchemaVersion != devicetypes.SchemaVersionV1Alpha3 {
 		t.Errorf("SchemaVersion = %q, want %q", inv.SchemaVersion, devicetypes.SchemaVersionV1Alpha3)
+	}
+}
+
+// TestMigrateV1Alpha3InitializesVRFs verifies the v1alpha3-to-v1alpha4
+// migration initializes the new collection and advances the discriminator.
+//
+// Why it matters: callers write directly to the VRF map after load, so a nil
+// map from an older document would panic even though the migration succeeded.
+// Inputs: a v1alpha3 Inventory with a nil VRF map. Outputs: a writable empty map
+// and the v1alpha4 schema version.
+// Data choice: nil distinguishes migration initialization from an already
+// current Inventory produced by NewInventory.
+func TestMigrateV1Alpha3InitializesVRFs(t *testing.T) {
+	inv := &devicetypes.Inventory{SchemaVersion: devicetypes.SchemaVersionV1Alpha3}
+
+	migrateV1Alpha3(inv)
+
+	if inv.SchemaVersion != devicetypes.SchemaVersionV1Alpha4 {
+		t.Errorf("SchemaVersion = %q, want %q", inv.SchemaVersion, devicetypes.SchemaVersionV1Alpha4)
+	}
+	if inv.VRFs == nil {
+		t.Fatal("VRFs map is nil after migration")
 	}
 }
 

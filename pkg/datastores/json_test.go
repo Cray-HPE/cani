@@ -10,6 +10,7 @@ package datastores
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -155,8 +156,8 @@ func newCRUDInventory(t *testing.T) (*devicetypes.Inventory, crudFixtureIDs) {
 func assertCreatedCRUDInventory(t *testing.T, inv *devicetypes.Inventory, ids crudFixtureIDs) {
 	t.Helper()
 
-	if inv.SchemaVersion != devicetypes.SchemaVersionV1Alpha3 {
-		t.Fatalf("SchemaVersion = %q, want %q", inv.SchemaVersion, devicetypes.SchemaVersionV1Alpha3)
+	if inv.SchemaVersion != devicetypes.CurrentSchemaVersion {
+		t.Fatalf("SchemaVersion = %q, want %q", inv.SchemaVersion, devicetypes.CurrentSchemaVersion)
 	}
 	assertCreatedLocation(t, inv, ids)
 	assertCreatedRack(t, inv, ids)
@@ -464,6 +465,40 @@ func TestLoadSkipsMigrationSaveForInvalidRelationships(t *testing.T) {
 	}
 }
 
+// TestLoadRejectsFutureSchemaWithoutRewrite verifies unsupported generations
+// are rejected before the inventory is decoded or migrated.
+//
+// Why it matters: older cani writers do not preserve unknown fields, so loading
+// and later saving a newer document could silently destroy data.
+// Inputs: a v1alpha5 document with an unknown top-level field. Outputs: the
+// unsupported-version sentinel and byte-for-byte unchanged source data.
+// Data choice: v1alpha5 is the next generation after the current v1alpha4, and
+// the unknown object makes any accidental rewrite visible.
+func TestLoadRejectsFutureSchemaWithoutRewrite(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "inventory.json")
+	original := []byte(`{"schemaVersion":"v1alpha5","future":{"keep":true}}`)
+	if err := os.WriteFile(path, original, 0600); err != nil {
+		t.Fatalf("writing future inventory: %v", err)
+	}
+
+	store := &JSONStore{Path: path}
+	if _, err := store.Load(); !errors.Is(err, ErrUnsupportedSchemaVersion) {
+		t.Fatalf("Load() error = %v, want ErrUnsupportedSchemaVersion", err)
+	}
+
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading rejected inventory: %v", err)
+	}
+	if string(got) != string(original) {
+		t.Errorf("rejected inventory was rewritten: got %q, want %q", got, original)
+	}
+	if _, err := os.Stat(path + ".canisave"); !os.IsNotExist(err) {
+		t.Errorf("unsupported inventory created a backup, stat error = %v", err)
+	}
+}
+
 // TestSaveHappyPath verifies Save writes a complete JSON inventory to disk.
 //
 // Why it matters: datastore writes are the persistence boundary for inventory
@@ -499,6 +534,40 @@ func TestSaveHappyPath(t *testing.T) {
 	// Reverse indices and derived FKs are not serialized; rebuild them as Load does.
 	loaded.RebuildDerivedState()
 	assertCreatedCRUDInventory(t, loaded, ids)
+}
+
+// TestSaveRejectsFutureSchemaWithoutRewrite verifies Save accepts only the
+// exact generation this cani release writes.
+//
+// Why it matters: callers may pass an inventory obtained outside JSONStore;
+// the persistence boundary must still prevent an older writer from replacing a
+// newer document with a lossy projection.
+// Inputs: an existing file and an Inventory stamped v1alpha5. Outputs: the
+// unsupported-version sentinel and unchanged existing bytes.
+// Data choice: a pre-existing marker proves rejection happens before directory
+// creation, marshaling, temporary-file creation, or rename.
+func TestSaveRejectsFutureSchemaWithoutRewrite(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "inventory.json")
+	original := []byte("preserve me")
+	if err := os.WriteFile(path, original, 0600); err != nil {
+		t.Fatalf("writing existing inventory: %v", err)
+	}
+
+	inventory := devicetypes.NewInventory()
+	inventory.SchemaVersion = "v1alpha5"
+	store := &JSONStore{Path: path}
+	if err := store.Save(inventory); !errors.Is(err, ErrUnsupportedSchemaVersion) {
+		t.Fatalf("Save() error = %v, want ErrUnsupportedSchemaVersion", err)
+	}
+
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading existing inventory: %v", err)
+	}
+	if string(got) != string(original) {
+		t.Errorf("existing inventory was rewritten: got %q, want %q", got, original)
+	}
 }
 
 // TestJSONStorePersistsCRUDMutations verifies save-load cycles preserve creates,

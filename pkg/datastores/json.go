@@ -27,6 +27,7 @@ package datastores
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -34,6 +35,10 @@ import (
 	"github.com/Cray-HPE/cani/internal/config"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
+
+// ErrUnsupportedSchemaVersion marks an inventory generation that this cani
+// release cannot safely read or write without risking data loss.
+var ErrUnsupportedSchemaVersion = errors.New("unsupported inventory schema version")
 
 // JSONStore handles inventory persistence to a JSON file.
 type JSONStore struct {
@@ -54,7 +59,7 @@ func NewJSONStore() *JSONStore {
 // Load reads the inventory from disk.
 // Returns an empty inventory when the file does not exist yet.
 // Legacy (v1alpha1) datastores are migrated to the current schema and backed up
-// to .canisave; v1alpha2 datastores are migrated to v1alpha3 the same way.
+// to .canisave; later generations are migrated sequentially the same way.
 // Derived reverse indices and FK fields are rebuilt from the authoritative
 // forward FKs on every load, so persisted derived values are never trusted.
 func (s *JSONStore) Load() (*devicetypes.Inventory, error) {
@@ -67,10 +72,50 @@ func (s *JSONStore) Load() (*devicetypes.Inventory, error) {
 		return nil, fmt.Errorf("reading inventory file: %w", err)
 	}
 
-	if isLegacyDatastore(data) {
-		return s.loadLegacy(data)
+	schemaVersion, err := inventorySchemaVersion(data)
+	if err != nil {
+		return nil, err
 	}
-	return s.loadCurrent(data)
+
+	switch schemaVersion {
+	case devicetypes.SchemaVersionV1Alpha1:
+		if !isLegacyDatastore(data) {
+			return nil, fmt.Errorf("%w %q: the document does not match the legacy inventory shape",
+				ErrUnsupportedSchemaVersion, schemaVersion)
+		}
+		return s.loadLegacy(data)
+	case devicetypes.SchemaVersionV1Alpha2, devicetypes.SchemaVersionV1Alpha3,
+		devicetypes.CurrentSchemaVersion:
+		return s.loadCurrent(data, schemaVersion)
+	default:
+		return nil, fmt.Errorf("%w %q: this cani release supports %q through %q and will not rewrite the file",
+			ErrUnsupportedSchemaVersion, schemaVersion,
+			devicetypes.SchemaVersionV1Alpha1, devicetypes.CurrentSchemaVersion)
+	}
+}
+
+// inventorySchemaVersion reads only the version discriminator needed to route
+// decoding. Missing versions retain the historical defaults: the legacy
+// Hardware shape is v1alpha1 and the current lowercase shape is v1alpha2.
+func inventorySchemaVersion(data []byte) (string, error) {
+	var probe struct {
+		SchemaVersion       string          `json:"schemaVersion"`
+		LegacySchemaVersion string          `json:"SchemaVersion"`
+		Hardware            json.RawMessage `json:"Hardware"`
+	}
+	if err := json.Unmarshal(data, &probe); err != nil {
+		return "", fmt.Errorf("parsing inventory: %w", err)
+	}
+	if probe.SchemaVersion != "" {
+		return probe.SchemaVersion, nil
+	}
+	if probe.LegacySchemaVersion != "" {
+		return probe.LegacySchemaVersion, nil
+	}
+	if len(probe.Hardware) > 0 {
+		return devicetypes.SchemaVersionV1Alpha1, nil
+	}
+	return devicetypes.SchemaVersionV1Alpha2, nil
 }
 
 // loadLegacy migrates a v1alpha1 datastore through to the current schema,
@@ -88,6 +133,7 @@ func (s *JSONStore) loadLegacy(data []byte) (*devicetypes.Inventory, error) {
 	// migrateV1Alpha1 sets Parent on every device, so the v1alpha2->v1alpha3
 	// back-fill is a no-op here; it only advances the schema version.
 	migrateV1Alpha2(data, inventory)
+	migrateV1Alpha3(inventory)
 	relationships := inventory.RebuildDerivedState()
 	if err := relationships.Err(); err != nil {
 		log.Printf("Skipped saving migrated datastore with relationship errors: %v", err)
@@ -103,33 +149,29 @@ func (s *JSONStore) loadLegacy(data []byte) (*devicetypes.Inventory, error) {
 	return inventory, nil
 }
 
-// loadCurrent parses a v1alpha2-or-newer datastore, applies the metadata and
-// relationship migrations as needed, rebuilds derived state, and persists when a
-// migration occurred.
-func (s *JSONStore) loadCurrent(data []byte) (*devicetypes.Inventory, error) {
+// loadCurrent parses a v1alpha2-or-newer datastore, applies each generation's
+// migration in order, rebuilds derived state, and persists when needed.
+func (s *JSONStore) loadCurrent(data []byte, schemaVersion string) (*devicetypes.Inventory, error) {
 	inventory := devicetypes.NewInventory()
 	if err := json.Unmarshal(data, inventory); err != nil {
 		return nil, fmt.Errorf("parsing inventory: %w", err)
 	}
+	inventory.SchemaVersion = schemaVersion
 
-	// Default schema version for files written before version tracking.
-	if inventory.SchemaVersion == "" {
-		inventory.SchemaVersion = devicetypes.SchemaVersionV1Alpha2
-	}
-
+	originalVersion := inventory.SchemaVersion
 	metaMigrated := migrateInventoryMetadata(data, inventory)
-	relMigrated := inventory.SchemaVersion == devicetypes.SchemaVersionV1Alpha2
-	if relMigrated {
+	schemaMigrated := inventory.SchemaVersion != devicetypes.CurrentSchemaVersion
+	if metaMigrated || schemaMigrated {
 		if err := backupDatastore(s.Path); err != nil {
 			return nil, fmt.Errorf("backing up datastore: %w", err)
 		}
-		migrateV1Alpha2(data, inventory)
 	}
+	migrateSchemaToCurrent(data, inventory)
 
 	inventory.RebuildProviderKeyIndex()
 	relationships := inventory.RebuildDerivedState()
 
-	if metaMigrated || relMigrated {
+	if metaMigrated || schemaMigrated {
 		if err := relationships.Err(); err != nil {
 			log.Printf("Skipped saving migrated datastore with relationship errors: %v", err)
 			return inventory, nil
@@ -137,14 +179,25 @@ func (s *JSONStore) loadCurrent(data []byte) (*devicetypes.Inventory, error) {
 		if err := s.Save(inventory); err != nil {
 			return nil, fmt.Errorf("saving migrated datastore: %w", err)
 		}
-		if relMigrated {
-			log.Printf("Migrated datastore from v1alpha2 to v1alpha3; backup at %s.canisave", s.Path)
+		if schemaMigrated {
+			log.Printf("Migrated datastore from %s to %s; backup at %s.canisave",
+				originalVersion, inventory.SchemaVersion, s.Path)
 		} else {
-			log.Printf("Migrated inventory-level providerMetadata to metadata")
+			log.Printf("Migrated inventory-level providerMetadata to metadata; backup at %s.canisave", s.Path)
 		}
 	}
 
 	return inventory, nil
+}
+
+// migrateSchemaToCurrent applies each schema migration in generation order.
+func migrateSchemaToCurrent(data []byte, inventory *devicetypes.Inventory) {
+	if inventory.SchemaVersion == devicetypes.SchemaVersionV1Alpha2 {
+		migrateV1Alpha2(data, inventory)
+	}
+	if inventory.SchemaVersion == devicetypes.SchemaVersionV1Alpha3 {
+		migrateV1Alpha3(inventory)
+	}
 }
 
 // Save writes the inventory to disk, creating directories as needed.
@@ -154,6 +207,14 @@ func (s *JSONStore) loadCurrent(data []byte) (*devicetypes.Inventory, error) {
 // A crash or power loss mid-write therefore leaves the previous inventory
 // intact rather than a partially written, corrupt file.
 func (s *JSONStore) Save(inventory *devicetypes.Inventory) error {
+	if inventory == nil {
+		return fmt.Errorf("encoding inventory: inventory is nil")
+	}
+	if inventory.SchemaVersion != devicetypes.CurrentSchemaVersion {
+		return fmt.Errorf("%w %q: this cani release writes only %q",
+			ErrUnsupportedSchemaVersion, inventory.SchemaVersion, devicetypes.CurrentSchemaVersion)
+	}
+
 	dir := filepath.Dir(s.Path)
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return fmt.Errorf("creating inventory directory: %w", err)
