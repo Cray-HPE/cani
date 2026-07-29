@@ -109,3 +109,71 @@ func TestListMetadataNilAndUnknown(t *testing.T) {
 		t.Errorf("ListMetadata(unknown kind) = %+v, want nil", got)
 	}
 }
+
+func TestAddCustomFieldHappyPath(t *testing.T) {
+	inv := NewInventory()
+	inv.Metadata = nil // force lazy allocation
+
+	def := CustomFieldDefinition{
+		Key:          "xname",
+		Label:        "XName",
+		Type:         "text",
+		ContentTypes: []string{"dcim.device"},
+	}
+	if err := inv.AddCustomField(def); err != nil {
+		t.Fatalf("AddCustomField() unexpected error: %v", err)
+	}
+
+	got := inv.ListCustomFields()
+	if len(got) != 1 {
+		t.Fatalf("ListCustomFields() returned %d entries, want 1", len(got))
+	}
+	if got[0].Key != "xname" || got[0].Label != "XName" || got[0].Type != "text" {
+		t.Errorf("ListCustomFields()[0] = %+v, want key=xname label=XName type=text", got[0])
+	}
+}
+
+func TestAddCustomFieldDuplicate(t *testing.T) {
+	inv := NewInventory()
+	def := CustomFieldDefinition{Key: "tier", Label: "Tier", Type: "select", ContentTypes: []string{"dcim.location"}}
+
+	if err := inv.AddCustomField(def); err != nil {
+		t.Fatalf("first AddCustomField() error: %v", err)
+	}
+	if err := inv.AddCustomField(def); err == nil {
+		t.Error("AddCustomField(duplicate key) should return an error")
+	}
+}
+
+func TestListCustomFieldsNilMetadata(t *testing.T) {
+	inv := NewInventory()
+	inv.Metadata = nil
+	if got := inv.ListCustomFields(); got != nil {
+		t.Errorf("ListCustomFields() on nil metadata = %+v, want nil", got)
+	}
+}
+
+func TestAddCustomFieldMultiple(t *testing.T) {
+	inv := NewInventory()
+	defs := []CustomFieldDefinition{
+		{Key: "xname", Label: "XName", Type: "text", ContentTypes: []string{"dcim.device"}},
+		{Key: "tier", Label: "Tier", Type: "select", ContentTypes: []string{"dcim.location"}, Choices: []string{"1", "2", "3"}},
+		{Key: "import_date", Label: "Import Date", Type: "date", ContentTypes: []string{"dcim.device", "dcim.rack"}},
+	}
+
+	for _, d := range defs {
+		if err := inv.AddCustomField(d); err != nil {
+			t.Fatalf("AddCustomField(%q) error: %v", d.Key, err)
+		}
+	}
+
+	got := inv.ListCustomFields()
+	if len(got) != 3 {
+		t.Fatalf("ListCustomFields() returned %d entries, want 3", len(got))
+	}
+	for i, d := range defs {
+		if got[i].Key != d.Key {
+			t.Errorf("entry %d key = %q, want %q", i, got[i].Key, d.Key)
+		}
+	}
+}
