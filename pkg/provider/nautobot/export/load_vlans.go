@@ -149,6 +149,21 @@ func (e *Exporter) createVLAN(
 		}
 	}
 
+	// Merge CustomFields and ProviderMetadata into custom_fields payload
+	cf := map[string]interface{}{}
+	for k, v := range vlan.CustomFields {
+		cf[k] = v
+	}
+	if flat := vlan.FlattenProviderMetadata(); len(flat) > 0 {
+		for k, v := range flat {
+			cf[k] = v
+		}
+	}
+	if len(cf) > 0 {
+		req.CustomFields = &cf
+		clog.Info("  VLAN %d custom_fields: %v", vlan.VID, cf)
+	}
+
 	if e.Options.DryRun {
 		clog.DryRun("Would create VLAN %d: %s", vlan.VID, vlan.Name)
 		return uuid.New(), nil

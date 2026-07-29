@@ -170,11 +170,17 @@ func (e *Exporter) createLocationFromCani(
 	if loc.Comments != "" {
 		req.Comments = &loc.Comments
 	}
-	if len(loc.CustomFields) > 0 {
-		cf := map[string]interface{}{}
-		for k, v := range loc.CustomFields {
+	// Merge explicit CustomFields and flattened ProviderMetadata (same as devices).
+	cf := map[string]interface{}{}
+	for k, v := range loc.CustomFields {
+		cf[k] = v
+	}
+	if flat := loc.FlattenProviderMetadata(); len(flat) > 0 {
+		for k, v := range flat {
 			cf[k] = v
 		}
+	}
+	if len(cf) > 0 {
 		req.CustomFields = &cf
 	}
 

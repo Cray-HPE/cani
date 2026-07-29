@@ -218,7 +218,13 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 	// Set inventory reference so mapper can resolve parent devices for rack positions
 	mapper.SetInventory(inventory)
 
-	// Phase 0: Create locations from inventory.Locations (top-down tree walk)
+	// Phase 0a: Ensure custom field definitions exist in Nautobot before objects
+	// that carry values for them are exported (must precede location creation).
+	if err := e.EnsureCustomFields(ctx, inventory); err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("custom fields phase error: %v", err))
+	}
+
+	// Phase 0b: Create locations from inventory.Locations (top-down tree walk)
 	createdLocationIDs, err := e.loadLocations(ctx, inventory, result)
 	if err != nil {
 		result.Errors = append(result.Errors, fmt.Sprintf("location phase error: %v", err))
@@ -506,6 +512,11 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 	// Phase 10: Create relationship associations (assigned_vlans, bmc_device).
 	if err := e.loadRelationships(ctx, inventory, createdVLANIDs, result); err != nil {
 		result.Errors = append(result.Errors, fmt.Sprintf("relationship phase error: %v", err))
+	}
+
+	// Phase 11: Set primary IPs on devices (must follow IP creation in Phase 9).
+	if err := e.loadPrimaryIPs(ctx, inventory); err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("primary IP phase error: %v", err))
 	}
 
 	// Print field diffs for skipped devices before the summary
