@@ -69,11 +69,41 @@ var ValidCustomFieldTypes = []string{
 	"url", "json", "select", "multi-select", "markdown",
 }
 
+// ValidContentTypes lists the content-type strings accepted for metadata definitions.
+var ValidContentTypes = []string{
+	"dcim.device", "dcim.rack", "dcim.location", "dcim.module",
+	"dcim.interface", "dcim.inventoryitem", "dcim.cable",
+	"ipam.vlan", "ipam.prefix", "ipam.ipaddress", "ipam.vrf",
+}
+
+// validateContentTypes returns an error if any content type is not recognized.
+func validateContentTypes(types []string) error {
+	for _, ct := range types {
+		valid := false
+		for _, allowed := range ValidContentTypes {
+			if ct == allowed {
+				valid = true
+				break
+			}
+		}
+		if !valid {
+			return fmt.Errorf("invalid content type %q; valid types: %v", ct, ValidContentTypes)
+		}
+	}
+	return nil
+}
+
 // AddCustomField stores a custom field definition in the inventory metadata
 // catalog. Returns an error if a field with the same key already exists.
 func (inv *Inventory) AddCustomField(def CustomFieldDefinition) error {
 	if inv.Metadata == nil {
 		inv.Metadata = &InventoryMetadata{}
+	}
+	if len(def.ContentTypes) == 0 {
+		return fmt.Errorf("custom field %q: content types are required", def.Key)
+	}
+	if err := validateContentTypes(def.ContentTypes); err != nil {
+		return fmt.Errorf("custom field %q: %w", def.Key, err)
 	}
 	for _, existing := range inv.Metadata.CustomFields {
 		if existing.Key == def.Key {

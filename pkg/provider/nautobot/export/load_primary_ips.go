@@ -40,6 +40,8 @@ import (
 // loadPrimaryIPs patches devices that have a primary IPv4/IPv6 address set.
 // This runs after IP addresses are created so the Nautobot UUIDs are available.
 func (e *Exporter) loadPrimaryIPs(ctx context.Context, inventory *devicetypes.Inventory) error {
+	var errs []string
+
 	for _, device := range inventory.Devices {
 		if device == nil {
 			continue
@@ -53,36 +55,36 @@ func (e *Exporter) loadPrimaryIPs(ctx context.Context, inventory *devicetypes.In
 			continue
 		}
 
-		var ipv4NautobotID, ipv6NautobotID uuid.UUID
-		changed := false
+		// Resolve each family independently; warn but don't skip the other.
+		payload := map[string]any{}
 
 		if device.PrimaryIPv4 != uuid.Nil {
 			ip := inventory.IPAddresses[device.PrimaryIPv4]
-			if ip == nil {
-				continue
+			if ip != nil {
+				if id, ok := ip.ExternalIDs["nautobot"]; ok && id != uuid.Nil {
+					payload["primary_ip4"] = map[string]string{"id": id.String()}
+				} else {
+					clog.Warn("device %s: primary IPv4 %s has no Nautobot ID, skipping", device.Name, device.PrimaryIPv4)
+				}
+			} else {
+				clog.Warn("device %s: primary IPv4 %s not found in inventory, skipping", device.Name, device.PrimaryIPv4)
 			}
-			id, ok := ip.ExternalIDs["nautobot"]
-			if !ok || id == uuid.Nil {
-				continue
-			}
-			ipv4NautobotID = id
-			changed = true
 		}
 
 		if device.PrimaryIPv6 != uuid.Nil {
 			ip := inventory.IPAddresses[device.PrimaryIPv6]
-			if ip == nil {
-				continue
+			if ip != nil {
+				if id, ok := ip.ExternalIDs["nautobot"]; ok && id != uuid.Nil {
+					payload["primary_ip6"] = map[string]string{"id": id.String()}
+				} else {
+					clog.Warn("device %s: primary IPv6 %s has no Nautobot ID, skipping", device.Name, device.PrimaryIPv6)
+				}
+			} else {
+				clog.Warn("device %s: primary IPv6 %s not found in inventory, skipping", device.Name, device.PrimaryIPv6)
 			}
-			id, ok := ip.ExternalIDs["nautobot"]
-			if !ok || id == uuid.Nil {
-				continue
-			}
-			ipv6NautobotID = id
-			changed = true
 		}
 
-		if !changed {
+		if len(payload) == 0 {
 			continue
 		}
 
@@ -90,19 +92,10 @@ func (e *Exporter) loadPrimaryIPs(ctx context.Context, inventory *devicetypes.In
 			clog.DryRun("Would set primary IP on device: %s", device.Name)
 			continue
 		}
-
-		// Use raw JSON body to avoid sending zero-value fields that trigger
-		// Nautobot validation errors (e.g. "face without rack").
-		payload := map[string]any{}
-		if device.PrimaryIPv4 != uuid.Nil {
-			payload["primary_ip4"] = map[string]string{"id": ipv4NautobotID.String()}
-		}
-		if device.PrimaryIPv6 != uuid.Nil {
-			payload["primary_ip6"] = map[string]string{"id": ipv6NautobotID.String()}
-		}
 		body, err := json.Marshal(payload)
 		if err != nil {
-			return fmt.Errorf("device %s: marshal primary IP: %w", device.Name, err)
+			errs = append(errs, fmt.Sprintf("device %s: marshal primary IP: %v", device.Name, err))
+			continue
 		}
 
 		resp, err := e.Client.DcimDevicesPartialUpdateWithBodyWithResponse(
@@ -111,13 +104,19 @@ func (e *Exporter) loadPrimaryIPs(ctx context.Context, inventory *devicetypes.In
 			"application/json",
 			bytes.NewReader(body))
 		if err != nil {
-			return fmt.Errorf("device %s: primary IP patch: %w", device.Name, err)
+			errs = append(errs, fmt.Sprintf("device %s: primary IP patch: %v", device.Name, err))
+			continue
 		}
 		if resp.StatusCode() != http.StatusOK {
-			return fmt.Errorf("device %s: primary IP patch: status %d: %s",
-				device.Name, resp.StatusCode(), string(resp.Body))
+			errs = append(errs, fmt.Sprintf("device %s: primary IP patch: status %d: %s",
+				device.Name, resp.StatusCode(), string(resp.Body)))
+			continue
 		}
 		clog.Changed("Set primary IP on device: %s", device.Name)
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("%d primary IP error(s): %s", len(errs), errs[0])
 	}
 	return nil
 }

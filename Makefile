@@ -174,8 +174,16 @@ vet: ## Run go vet
 	@go vet ./...
 	$(OK) "vetted"
 
+GOLANGCI_LINT_VERSION := v2.12.2
+
+.PHONY: install-lint
+install-lint: ## Install golangci-lint at the pinned version
+	$(INFO) "installing golangci-lint $(GOLANGCI_LINT_VERSION)"
+	curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $$(go env GOPATH)/bin $(GOLANGCI_LINT_VERSION)
+	$(OK) "golangci-lint $(GOLANGCI_LINT_VERSION) installed"
+
 .PHONY: lint
-lint: ## Run static analysis
+lint: ## Run static analysis (requires: make install-lint)
 	$(INFO) "linting"
 	golangci-lint run ./cmd/... ./internal/... ./pkg/...
 	$(OK) "linted"

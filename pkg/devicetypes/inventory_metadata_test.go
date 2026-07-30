@@ -25,7 +25,10 @@
  */
 package devicetypes
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // TestAddMetadataEachKind verifies AddMetadata appends an entry to the correct
 // catalog slice for each supported kind and lazily allocates the metadata
@@ -175,5 +178,35 @@ func TestAddCustomFieldMultiple(t *testing.T) {
 		if got[i].Key != d.Key {
 			t.Errorf("entry %d key = %q, want %q", i, got[i].Key, d.Key)
 		}
+	}
+}
+
+func TestAddCustomFieldInvalidContentType(t *testing.T) {
+	inv := NewInventory()
+	def := CustomFieldDefinition{
+		Key:          "bad",
+		Label:        "Bad",
+		Type:         "text",
+		ContentTypes: []string{"dcim.device", "fake.model"},
+	}
+	err := inv.AddCustomField(def)
+	if err == nil {
+		t.Fatal("expected error for invalid content type")
+	}
+	if !strings.Contains(err.Error(), "fake.model") {
+		t.Errorf("error = %q, want it to mention the invalid type", err)
+	}
+}
+
+func TestAddCustomFieldEmptyContentTypes(t *testing.T) {
+	inv := NewInventory()
+	def := CustomFieldDefinition{
+		Key:   "empty",
+		Label: "Empty",
+		Type:  "text",
+	}
+	err := inv.AddCustomField(def)
+	if err == nil {
+		t.Fatal("expected error for empty content types")
 	}
 }

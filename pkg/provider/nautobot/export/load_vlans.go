@@ -161,7 +161,7 @@ func (e *Exporter) createVLAN(
 	}
 	if len(cf) > 0 {
 		req.CustomFields = &cf
-		clog.Info("  VLAN %d custom_fields: %v", vlan.VID, cf)
+		clog.Info("  VLAN %d custom_fields: %d key(s)", vlan.VID, len(cf))
 	}
 
 	if e.Options.DryRun {

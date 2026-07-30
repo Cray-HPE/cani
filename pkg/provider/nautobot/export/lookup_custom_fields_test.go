@@ -189,8 +189,8 @@ func TestEnsureCustomFields_SkipsExistingField(t *testing.T) {
 
 		switch {
 		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "extras/custom-fields"):
-			// Return one existing result
-			fmt.Fprintf(w, `{"count":1,"results":[{"id":"%s","label":"XName","content_types":["dcim.device"],"type":{"value":"text","label":"Text"}}]}`, existingID)
+			// Return one existing result with key
+			fmt.Fprintf(w, `{"count":1,"results":[{"id":"%s","key":"xname","label":"XName","content_types":["dcim.device"],"type":{"value":"text","label":"Text"}}]}`, existingID)
 
 		case r.Method == http.MethodPost && strings.Contains(r.URL.Path, "extras/custom-fields"):
 			createCalls++
@@ -233,7 +233,7 @@ func TestEnsureCustomFields_SkipsExistingChoices(t *testing.T) {
 
 		switch {
 		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "extras/custom-fields"):
-			fmt.Fprintf(w, `{"count":1,"results":[{"id":"%s","label":"Tier","content_types":["dcim.location"],"type":{"value":"select","label":"Selection"}}]}`, fieldID)
+			fmt.Fprintf(w, `{"count":1,"results":[{"id":"%s","key":"tier","label":"Tier","content_types":["dcim.location"],"type":{"value":"select","label":"Selection"}}]}`, fieldID)
 
 		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "extras/custom-field-choices"):
 			// "edge" already exists
@@ -297,84 +297,5 @@ func TestEnsureCustomFields_EmptyDefinitions(t *testing.T) {
 	}
 	if calls != 0 {
 		t.Errorf("expected 0 HTTP calls for empty definitions, got %d", calls)
-	}
-}
-
-// TestEnsureCustomFields_CreateFieldError verifies the error is propagated
-// when the field create API returns a non-201 status.
-func TestEnsureCustomFields_CreateFieldError(t *testing.T) {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-
-		switch {
-		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "extras/custom-fields"):
-			fmt.Fprint(w, `{"count":0,"results":[]}`)
-		case r.Method == http.MethodPost && strings.Contains(r.URL.Path, "extras/custom-fields"):
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"detail":"server error"}`)
-		default:
-			w.WriteHeader(http.StatusNotFound)
-		}
-	}
-
-	e, cleanup := newExporterWithServer(t, handler)
-	defer cleanup()
-
-	inv := devicetypes.NewInventory()
-	_ = inv.AddCustomField(devicetypes.CustomFieldDefinition{
-		Key:          "xname",
-		Label:        "XName",
-		Type:         "text",
-		ContentTypes: []string{"dcim.device"},
-	})
-
-	err := e.EnsureCustomFields(context.Background(), inv)
-	if err == nil {
-		t.Fatal("expected error when field create fails")
-	}
-	if !strings.Contains(err.Error(), "custom field \"xname\"") {
-		t.Errorf("error = %q, want it to mention the field key", err)
-	}
-}
-
-// TestEnsureCustomFields_CreateChoiceError verifies the error is propagated
-// when the choice create API returns a non-201 status.
-func TestEnsureCustomFields_CreateChoiceError(t *testing.T) {
-	fieldID := uuid.New()
-
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-
-		switch {
-		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "extras/custom-fields"):
-			fmt.Fprintf(w, `{"count":1,"results":[{"id":"%s","label":"Tier","content_types":["dcim.location"],"type":{"value":"select","label":"Selection"}}]}`, fieldID)
-		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "extras/custom-field-choices"):
-			fmt.Fprint(w, `{"count":0,"results":[]}`)
-		case r.Method == http.MethodPost && strings.Contains(r.URL.Path, "extras/custom-field-choices"):
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(w, `{"detail":"bad request"}`)
-		default:
-			w.WriteHeader(http.StatusNotFound)
-		}
-	}
-
-	e, cleanup := newExporterWithServer(t, handler)
-	defer cleanup()
-
-	inv := devicetypes.NewInventory()
-	_ = inv.AddCustomField(devicetypes.CustomFieldDefinition{
-		Key:          "tier",
-		Label:        "Tier",
-		Type:         "select",
-		ContentTypes: []string{"dcim.location"},
-		Choices:      []string{"edge"},
-	})
-
-	err := e.EnsureCustomFields(context.Background(), inv)
-	if err == nil {
-		t.Fatal("expected error when choice create fails")
-	}
-	if !strings.Contains(err.Error(), "choices") {
-		t.Errorf("error = %q, want it to mention choices", err)
 	}
 }

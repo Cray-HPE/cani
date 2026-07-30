@@ -153,6 +153,8 @@ This type conflates **template fields** (from the YAML library, used to auto-cre
 | `ParentDevice` | `uuid.UUID` | `Device.ParentBay` | Cani-Internal | Explicit FK; rebuilt from `Parent` at load time |
 | `AssignedVLANs` | `[]uuid.UUID` | Relationship association | **Mapped** | Device↔VLAN; exported in Phase 10 by `loadRelationships()` in `load_relationships.go`. Set by `update device --assign-vlan` |
 | `BMCParent` | `uuid.UUID` | Relationship association | **Mapped** | Marks this device as the BMC of the target device; exported in Phase 10. Set by `update device --bmc-of` |
+| `PrimaryIPv4` | `uuid.UUID` | `Device.primary_ip4` (FK) | **Mapped** | Resolved to Nautobot IP UUID; PATCHed in Phase 11 by `loadPrimaryIPs()` |
+| `PrimaryIPv6` | `uuid.UUID` | `Device.primary_ip6` (FK) | **Mapped** | Resolved to Nautobot IP UUID; PATCHed in Phase 11 by `loadPrimaryIPs()` |
 | `Comments` | `string` | `Device.Comments` | **Mapped** | Mapped when non-empty |
 | `Description` | `string` | — | Cani-Internal | No Nautobot device description |
 | `Vendor` | `string` | — | Cani-Internal | Cani-specific (vendor ≠ manufacturer) |
@@ -344,6 +346,45 @@ Imported by `FetchVRFs()` + `MapVRFs()`; exported in Phase 6c by `loadVRFs()` in
 | `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Tracks the source Nautobot UUID |
 | `ProviderMetadata` | `map[string]any` | — | Cani-Internal | Provider escape hatch |
 
+### 2a.3 `CaniVLAN` → Nautobot `VLAN`
+
+Source: `pkg/devicetypes/ipam_vlan.go`
+Imported by `FetchVLANs()` + `MapVLANs()`; exported in Phase 7 by `loadVLANs()` in
+`load_vlans.go` (find-or-create scoped to location).
+
+| Cani Field | Go Type | Nautobot Field | Status | Notes |
+|---|---|---|---|---|
+| `ID` | `uuid.UUID` | — | Cani-Internal | Primary key |
+| `VID` | `int` | `VLAN.vid` | **Mapped** | Natural key (with location) for find-or-create |
+| `Name` | `string` | `VLAN.name` | **Mapped** | |
+| `Description` | `string` | `VLAN.description` | **Mapped** | Mapped when non-empty |
+| `Location` | `uuid.UUID` | `VLAN.location` (FK) | **Mapped** | Resolved to Nautobot location; retries without location on rejection |
+| `Status` | `string` | `VLAN.status` (FK) | **Mapped** | Resolved by name; falls back to provider default then `"Active"` |
+| `Role` | `string` | `VLAN.role` (FK) | **Mapped** | Resolved by name when non-empty |
+| `Tags` | `[]string` | `VLAN.tags` | Not Mapped | |
+| `CustomFields` | `map[string]any` | `VLAN.custom_fields` | **Mapped** | Merged with flattened ProviderMetadata on export |
+| `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Tracks the source Nautobot UUID |
+| `ProviderMetadata` | `map[string]any` | `VLAN.custom_fields` | **Mapped** | Flattened and merged into custom_fields payload |
+
+### 2a.4 `InventoryMetadata` / `CustomFieldDefinition` → Nautobot Custom Fields
+
+Source: `pkg/devicetypes/inventory_metadata.go`
+Exported in Phase 0a by `EnsureCustomFields()` in `lookup_custom_fields.go`.
+Runs before any object phases so custom-field definitions exist before objects
+that carry values for them are created.
+
+| Cani Field | Go Type | Nautobot Object | Status | Notes |
+|---|---|---|---|---|
+| `CustomFieldDefinition.Key` | `string` | `CustomField.key` | **Mapped** | Internal field name |
+| `CustomFieldDefinition.Label` | `string` | `CustomField.label` | **Mapped** | Lookup key for idempotency |
+| `CustomFieldDefinition.Type` | `string` | `CustomField.type` | **Mapped** | text, integer, boolean, date, url, json, select, multi-select, markdown |
+| `CustomFieldDefinition.ContentTypes` | `[]string` | `CustomField.content_types` | **Mapped** | e.g. `dcim.device`, `dcim.rack` |
+| `CustomFieldDefinition.Description` | `string` | `CustomField.description` | **Mapped** | Mapped when non-empty |
+| `CustomFieldDefinition.Required` | `bool` | `CustomField.required` | **Mapped** | |
+| `CustomFieldDefinition.Default` | `any` | `CustomField.default` | **Mapped** | |
+| `CustomFieldDefinition.Choices` | `[]string` | `CustomFieldChoice.value` | **Mapped** | One choice object per value; idempotent |
+| `CustomFieldDefinition.Weight` | `int` | `CustomField.weight` | **Mapped** | Mapped when non-zero |
+
 ---
 
 ## 3. Template vs. Instance Fields
@@ -446,7 +487,16 @@ CaniLocationType (site/building/floor/room)
 
 The seven-phase ETL pipeline is orchestrated by `Load()` in `pkg/provider/nautobot/load.go`:
 
-### Phase 0: Locations
+### Phase 0a: Custom Fields
+
+Implemented in `EnsureCustomFields()` in `lookup_custom_fields.go`. Iterates `inventory.ListCustomFields()`. For each `CustomFieldDefinition`:
+- Looks up existing field by label; verifies key matches (errors on collision)
+- Creates the field if missing (skipped under `--dry-run`)
+- For `select`/`multi-select` types, ensures each declared choice exists (skipped under `--dry-run`)
+
+Must run before Phase 0b so locations/devices/VLANs carrying custom-field values reference valid definitions.
+
+### Phase 0b: Locations
 
 Implemented in `loadLocations()` in `load_locations.go`. Iterates `inventory.Locations` in topological order (BFS from roots, parents before children). For each location:
 - Resolves `LocationType` by name (defaults to `"Site"` if empty), auto-creates if `create_locations` enabled
@@ -514,7 +564,7 @@ Implemented in `loadVRFs()` in `load_vrfs.go`. Iterates `inventory.VRFs`. Find-o
 
 ### Phase 7: VLANs
 
-Implemented in `loadVLANs()` in `load_vlans.go`. Iterates `inventory.VLANs`. Find-or-create scoped to the VLAN's location; caches created VLAN IDs for interface enrichment and prefix FK resolution.
+Implemented in `loadVLANs()` in `load_vlans.go`. Iterates `inventory.VLANs`. Find-or-create scoped to the VLAN's location; caches created VLAN IDs for interface enrichment and prefix FK resolution. Merges `CustomFields` and flattened `ProviderMetadata` into the `custom_fields` payload on create.
 
 ### Phase 7b: Interface enrichment
 
@@ -531,6 +581,10 @@ Implemented in `loadIPAddresses()`. Iterates `inventory.IPAddresses`. Find-or-cr
 ### Phase 10: Relationships
 
 Implemented in `loadRelationships()` in `load_relationships.go`. Creates Nautobot relationship associations for `CaniDeviceType.AssignedVLANs` (device↔VLAN) and `CaniDeviceType.BMCParent` (device↔device BMC).
+
+### Phase 11: Primary IPs
+
+Implemented in `loadPrimaryIPs()` in `load_primary_ips.go`. PATCHes devices that have `PrimaryIPv4` or `PrimaryIPv6` set, resolving each family independently to its Nautobot IP UUID. Runs after IP address creation (Phase 9) so the FKs are available. Aggregates per-device errors rather than aborting on the first failure.
 
 ---
 

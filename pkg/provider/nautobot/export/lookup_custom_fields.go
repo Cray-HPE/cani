@@ -53,7 +53,7 @@ func (e *Exporter) EnsureCustomFields(ctx context.Context, inventory *devicetype
 			return fmt.Errorf("custom field %q: %w", def.Key, err)
 		}
 
-		if len(def.Choices) > 0 {
+		if len(def.Choices) > 0 && cfID != uuid.Nil {
 			if err := e.ensureCustomFieldChoices(ctx, cfID, def); err != nil {
 				return fmt.Errorf("custom field %q choices: %w", def.Key, err)
 			}
@@ -62,13 +62,15 @@ func (e *Exporter) EnsureCustomFields(ctx context.Context, inventory *devicetype
 	return nil
 }
 
-// ensureCustomField looks up a custom field by label and creates it if missing.
+// ensureCustomField looks up a custom field by key and creates it if missing.
 // Returns the Nautobot UUID of the custom field.
 func (e *Exporter) ensureCustomField(ctx context.Context, def devicetypes.CustomFieldDefinition) (uuid.UUID, error) {
-	labelFilter := []string{def.Label}
+	// Use Q (free-text search) to find by key since the generated client
+	// lacks a typed Key filter on ExtrasCustomFieldsListParams.
+	qFilter := def.Key
 	resp, err := e.Client.ExtrasCustomFieldsListWithResponse(ctx,
 		&nautobotapi.ExtrasCustomFieldsListParams{
-			Label: &labelFilter,
+			Q: &qFilter,
 		},
 	)
 	if err != nil {
@@ -78,12 +80,20 @@ func (e *Exporter) ensureCustomField(ctx context.Context, def devicetypes.Custom
 		return uuid.Nil, fmt.Errorf("failed to list custom fields: status %d", resp.StatusCode())
 	}
 
-	// Check if already exists
-	if resp.JSON200 != nil && len(resp.JSON200.Results) > 0 {
-		cf := resp.JSON200.Results[0]
-		id := toUUID(cf.Id)
-		clog.Skipped("Custom field %q already exists (ID: %s)", def.Label, id)
-		return id, nil
+	// Match on the stable key, not label.
+	if resp.JSON200 != nil {
+		for _, cf := range resp.JSON200.Results {
+			if cf.Key != nil && *cf.Key == def.Key {
+				id := toUUID(cf.Id)
+				clog.Skipped("Custom field %q already exists (ID: %s)", def.Key, id)
+				return id, nil
+			}
+		}
+	}
+
+	if e.Options.DryRun {
+		clog.DryRun("Would create custom field: %s (key=%s, type=%s)", def.Label, def.Key, def.Type)
+		return uuid.Nil, nil
 	}
 
 	// Create the custom field
@@ -157,6 +167,11 @@ func (e *Exporter) ensureCustomFieldChoices(ctx context.Context, cfID uuid.UUID,
 	for i, value := range def.Choices {
 		if existing[value] {
 			clog.Skipped("Custom field %q choice %q already exists", def.Key, value)
+			continue
+		}
+
+		if e.Options.DryRun {
+			clog.DryRun("Would create custom field choice: %s -> %q", def.Key, value)
 			continue
 		}
 
