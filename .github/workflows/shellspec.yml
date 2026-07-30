@@ -90,3 +90,4 @@ jobs:
           ln -s "$PWD"/shellspec/shellspec /usr/local/bin/
           make ftest
           make itest
+
