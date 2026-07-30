@@ -1,7 +1,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2021-2025 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2021-2026 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -188,7 +188,7 @@ lint: ## Run static analysis
 
 .PHONY: test
 # Run all tests unit + functional + integration (edge disabled-see below)
-test: utest ftest itest # etest
+test: bin schema spec-setup venv csm-up nautobot-up utest ftest itest # etest
 	$(OK) "all tests passed"
 
 .PHONY: utest
@@ -204,9 +204,9 @@ ftest: bin ## Run functional tests
 	$(OK) "functional tests passed"
 
 .PHONY: itest
-itest: bin ## Run integration tests
+itest: bin venv ## Run integration tests
 	$(INFO) "running integration tests"
-	./spec/support/bin/cani_integrate.sh integration
+	. venv/bin/activate && ./spec/support/bin/cani_integrate.sh integration
 	$(OK) "integration tests passed"
 
 .PHONY: etest
@@ -221,6 +221,7 @@ cover:
 	go test -coverprofile=coverage.out $$(go list ./... | grep -v -e '/pkg/nautobot$$' -e '/internal/openapi/') || true
 	go tool cover -html=coverage.out -o coverage.html
 	$(OK) "coverage report generated: coverage.html"
+
 # ──────────────────────────────────────────────────────────────────────────────
 #  Dependencies
 # ──────────────────────────────────────────────────────────────────────────────
@@ -285,7 +286,6 @@ generate-swagger-hpcm-client: bin/swagger-codegen-cli.jar ## Generate HPCM clien
 #  CSM
 # ──────────────────────────────────────────────────────────────────────────────
 
-
 CSM_CERTS_DIR ?= testdata/fixtures/csm/simulator/nginx/certs
 
 .PHONY: csm-certs
@@ -324,9 +324,17 @@ spec-setup: ## Install shellspec for BDD tests
 	$(INFO) "setting up shellspec"
 	@if ! [ -d ./shellspec ]; then \
 	  git clone https://github.com/shellspec/shellspec.git; \
-	  ln -s "$(shell pwd)"/shellspec/shellspec /usr/local/bin/; \
 	fi
+	@ln -sf "$(shell pwd)"/shellspec/shellspec /usr/local/bin/
 	$(OK) "shellspec ready"
+
+.PHONY: spec-clean
+spec-clean: ## Remove shellspec directory and symlink
+	$(INFO) "cleaning shellspec"
+	rm -rf ./shellspec
+	rm -f /usr/local/bin/shellspec
+	$(OK) "shellspec cleaned"
+
 # ──────────────────────────────────────────────────────────────────────────────
 #  Nautobot
 # ──────────────────────────────────────────────────────────────────────────────
