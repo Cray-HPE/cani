@@ -38,7 +38,7 @@ The inventory carries a top-level `metadata` field that stores the global catalo
 
 ```json
 {
-  "schemaVersion": "v1alpha4",
+  "schemaVersion": "v1alpha5",
   "metadata": {
     "roles": [
       { "name": "ComputeNode", "contentTypes": ["dcim.device"], "weight": 1000 }
