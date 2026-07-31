@@ -85,7 +85,7 @@ func (s *JSONStore) Load() (*devicetypes.Inventory, error) {
 		}
 		return s.loadLegacy(data)
 	case devicetypes.SchemaVersionV1Alpha2, devicetypes.SchemaVersionV1Alpha3,
-		devicetypes.CurrentSchemaVersion:
+		devicetypes.SchemaVersionV1Alpha4, devicetypes.CurrentSchemaVersion:
 		return s.loadCurrent(data, schemaVersion)
 	default:
 		return nil, fmt.Errorf("%w %q: this cani release supports %q through %q and will not rewrite the file",
@@ -134,6 +134,7 @@ func (s *JSONStore) loadLegacy(data []byte) (*devicetypes.Inventory, error) {
 	// back-fill is a no-op here; it only advances the schema version.
 	migrateV1Alpha2(data, inventory)
 	migrateV1Alpha3(inventory)
+	migrateV1Alpha4(inventory)
 	relationships := inventory.RebuildDerivedState()
 	if err := relationships.Err(); err != nil {
 		log.Printf("Skipped saving migrated datastore with relationship errors: %v", err)
@@ -197,6 +198,9 @@ func migrateSchemaToCurrent(data []byte, inventory *devicetypes.Inventory) {
 	}
 	if inventory.SchemaVersion == devicetypes.SchemaVersionV1Alpha3 {
 		migrateV1Alpha3(inventory)
+	}
+	if inventory.SchemaVersion == devicetypes.SchemaVersionV1Alpha4 {
+		migrateV1Alpha4(inventory)
 	}
 }
 

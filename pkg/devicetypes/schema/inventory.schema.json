@@ -1344,7 +1344,7 @@
       "type": "object"
     },
     "schemaVersion": {
-      "const": "v1alpha4",
+      "const": "v1alpha5",
       "type": "string"
     },
     "vlans": {
@@ -1371,5 +1371,5 @@
   ],
   "title": "cani inventory datastore",
   "type": "object",
-  "x-cani-schema-version": "v1alpha4"
+  "x-cani-schema-version": "v1alpha5"
 }

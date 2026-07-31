@@ -470,14 +470,14 @@ func TestLoadSkipsMigrationSaveForInvalidRelationships(t *testing.T) {
 //
 // Why it matters: older cani writers do not preserve unknown fields, so loading
 // and later saving a newer document could silently destroy data.
-// Inputs: a v1alpha5 document with an unknown top-level field. Outputs: the
+// Inputs: a v1alpha6 document with an unknown top-level field. Outputs: the
 // unsupported-version sentinel and byte-for-byte unchanged source data.
-// Data choice: v1alpha5 is the next generation after the current v1alpha4, and
+// Data choice: v1alpha6 is the next generation after the current v1alpha5, and
 // the unknown object makes any accidental rewrite visible.
 func TestLoadRejectsFutureSchemaWithoutRewrite(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "inventory.json")
-	original := []byte(`{"schemaVersion":"v1alpha5","future":{"keep":true}}`)
+	original := []byte(`{"schemaVersion":"v1alpha6","future":{"keep":true}}`)
 	if err := os.WriteFile(path, original, 0600); err != nil {
 		t.Fatalf("writing future inventory: %v", err)
 	}
@@ -542,7 +542,7 @@ func TestSaveHappyPath(t *testing.T) {
 // Why it matters: callers may pass an inventory obtained outside JSONStore;
 // the persistence boundary must still prevent an older writer from replacing a
 // newer document with a lossy projection.
-// Inputs: an existing file and an Inventory stamped v1alpha5. Outputs: the
+// Inputs: an existing file and an Inventory stamped v1alpha6. Outputs: the
 // unsupported-version sentinel and unchanged existing bytes.
 // Data choice: a pre-existing marker proves rejection happens before directory
 // creation, marshaling, temporary-file creation, or rename.
@@ -555,7 +555,7 @@ func TestSaveRejectsFutureSchemaWithoutRewrite(t *testing.T) {
 	}
 
 	inventory := devicetypes.NewInventory()
-	inventory.SchemaVersion = "v1alpha5"
+	inventory.SchemaVersion = "v1alpha6"
 	store := &JSONStore{Path: path}
 	if err := store.Save(inventory); !errors.Is(err, ErrUnsupportedSchemaVersion) {
 		t.Fatalf("Save() error = %v, want ErrUnsupportedSchemaVersion", err)

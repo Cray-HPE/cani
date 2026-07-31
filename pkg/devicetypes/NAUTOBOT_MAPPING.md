@@ -375,8 +375,8 @@ that carry values for them are created.
 
 | Cani Field | Go Type | Nautobot Object | Status | Notes |
 |---|---|---|---|---|
-| `CustomFieldDefinition.Key` | `string` | `CustomField.key` | **Mapped** | Internal field name |
-| `CustomFieldDefinition.Label` | `string` | `CustomField.label` | **Mapped** | Lookup key for idempotency |
+| `CustomFieldDefinition.Key` | `string` | `CustomField.key` | **Mapped** | Internal field name; used as the stable idempotency key |
+| `CustomFieldDefinition.Label` | `string` | `CustomField.label` | **Mapped** | Human-readable display name |
 | `CustomFieldDefinition.Type` | `string` | `CustomField.type` | **Mapped** | text, integer, boolean, date, url, json, select, multi-select, markdown |
 | `CustomFieldDefinition.ContentTypes` | `[]string` | `CustomField.content_types` | **Mapped** | e.g. `dcim.device`, `dcim.rack` |
 | `CustomFieldDefinition.Description` | `string` | `CustomField.description` | **Mapped** | Mapped when non-empty |
