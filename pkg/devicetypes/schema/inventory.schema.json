@@ -1041,6 +1041,42 @@
       },
       "type": "object"
     },
+    "CustomFieldDefinition": {
+      "properties": {
+        "choices": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "contentTypes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "default": {},
+        "description": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string"
+        },
+        "weight": {
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
     "DeviceBaySlugRef": {
       "properties": {
         "slug": {},
@@ -1137,6 +1173,12 @@
     },
     "InventoryMetadata": {
       "properties": {
+        "customFields": {
+          "items": {
+            "$ref": "#/$defs/CustomFieldDefinition"
+          },
+          "type": "array"
+        },
         "roles": {
           "items": {
             "$ref": "#/$defs/MetadataEntry"
@@ -1302,7 +1344,7 @@
       "type": "object"
     },
     "schemaVersion": {
-      "const": "v1alpha4",
+      "const": "v1alpha5",
       "type": "string"
     },
     "vlans": {
@@ -1329,5 +1371,5 @@
   ],
   "title": "cani inventory datastore",
   "type": "object",
-  "x-cani-schema-version": "v1alpha4"
+  "x-cani-schema-version": "v1alpha5"
 }

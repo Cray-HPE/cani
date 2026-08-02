@@ -57,7 +57,7 @@ jobs:
           python-version: '3.12'
 
       - name: install python dependencies
-        run: pip3 install -r requirements.txt
+        run: pip3 install virtualenv -r requirements.txt
 
       - if: ${{ matrix.os == 'macos-latest' }}
         name: install docker for macos
@@ -91,4 +91,3 @@ jobs:
           make ftest
           make itest
 
-        

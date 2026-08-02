@@ -104,6 +104,9 @@ func addVLAN(cmd *cli.Command, args []string) error {
 	if len(tags) > 0 {
 		vlan.Tags = tags
 	}
+	if meta := collectProviderMetadata(cmd); len(meta) > 0 {
+		applyProviderMetadataMap(&vlan.ProviderMetadata, meta)
+	}
 
 	if err := inventory.AddVLAN(vlan); err != nil {
 		return fmt.Errorf("failed to add vlan: %w", err)

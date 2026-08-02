@@ -37,13 +37,89 @@ type MetadataEntry struct {
 	Weight       int      `json:"weight,omitempty" yaml:"weight,omitempty"`
 }
 
+// CustomFieldDefinition represents a Nautobot custom field definition stored
+// in the inventory metadata catalog. It declares the field's schema (type,
+// applicable content types, choices for select/multi-select) so the export
+// phase can ensure the definition exists in Nautobot before objects reference it.
+type CustomFieldDefinition struct {
+	Key          string   `json:"key" yaml:"key"`
+	Label        string   `json:"label" yaml:"label"`
+	Type         string   `json:"type" yaml:"type"`
+	ContentTypes []string `json:"contentTypes" yaml:"content_types"`
+	Description  string   `json:"description,omitempty" yaml:"description,omitempty"`
+	Required     bool     `json:"required,omitempty" yaml:"required,omitempty"`
+	Default      any      `json:"default,omitempty" yaml:"default,omitempty"`
+	Choices      []string `json:"choices,omitempty" yaml:"choices,omitempty"`
+	Weight       int      `json:"weight,omitempty" yaml:"weight,omitempty"`
+}
+
 // InventoryMetadata holds the catalog of metadata definitions (roles,
-// statuses, tags) that can be referenced by individual inventory items.
-// It lives at the top level of the Inventory struct.
+// statuses, tags, custom fields) that can be referenced by individual
+// inventory items. It lives at the top level of the Inventory struct.
 type InventoryMetadata struct {
-	Roles    []MetadataEntry `json:"roles,omitempty"    yaml:"roles,omitempty"`
-	Statuses []MetadataEntry `json:"statuses,omitempty" yaml:"statuses,omitempty"`
-	Tags     []MetadataEntry `json:"tags,omitempty"     yaml:"tags,omitempty"`
+	Roles        []MetadataEntry         `json:"roles,omitempty"        yaml:"roles,omitempty"`
+	Statuses     []MetadataEntry         `json:"statuses,omitempty"     yaml:"statuses,omitempty"`
+	Tags         []MetadataEntry         `json:"tags,omitempty"         yaml:"tags,omitempty"`
+	CustomFields []CustomFieldDefinition `json:"customFields,omitempty" yaml:"custom_fields,omitempty"`
+}
+
+// ValidCustomFieldTypes lists the allowed values for CustomFieldDefinition.Type.
+var ValidCustomFieldTypes = []string{
+	"text", "integer", "boolean", "date",
+	"url", "json", "select", "multi-select", "markdown",
+}
+
+// ValidContentTypes lists the content-type strings accepted for metadata definitions.
+var ValidContentTypes = []string{
+	"dcim.device", "dcim.rack", "dcim.location", "dcim.module",
+	"dcim.interface", "dcim.inventoryitem", "dcim.cable",
+	"ipam.vlan", "ipam.prefix", "ipam.ipaddress", "ipam.vrf",
+}
+
+// validateContentTypes returns an error if any content type is not recognized.
+func validateContentTypes(types []string) error {
+	for _, ct := range types {
+		valid := false
+		for _, allowed := range ValidContentTypes {
+			if ct == allowed {
+				valid = true
+				break
+			}
+		}
+		if !valid {
+			return fmt.Errorf("invalid content type %q; valid types: %v", ct, ValidContentTypes)
+		}
+	}
+	return nil
+}
+
+// AddCustomField stores a custom field definition in the inventory metadata
+// catalog. Returns an error if a field with the same key already exists.
+func (inv *Inventory) AddCustomField(def CustomFieldDefinition) error {
+	if inv.Metadata == nil {
+		inv.Metadata = &InventoryMetadata{}
+	}
+	if len(def.ContentTypes) == 0 {
+		return fmt.Errorf("custom field %q: content types are required", def.Key)
+	}
+	if err := validateContentTypes(def.ContentTypes); err != nil {
+		return fmt.Errorf("custom field %q: %w", def.Key, err)
+	}
+	for _, existing := range inv.Metadata.CustomFields {
+		if existing.Key == def.Key {
+			return fmt.Errorf("custom field %q already exists", def.Key)
+		}
+	}
+	inv.Metadata.CustomFields = append(inv.Metadata.CustomFields, def)
+	return nil
+}
+
+// ListCustomFields returns all custom field definitions from the metadata catalog.
+func (inv *Inventory) ListCustomFields() []CustomFieldDefinition {
+	if inv.Metadata == nil {
+		return nil
+	}
+	return inv.Metadata.CustomFields
 }
 
 // AddMetadata stores a metadata definition (role, status, or tag) in the

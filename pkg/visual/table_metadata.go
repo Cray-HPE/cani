@@ -40,13 +40,16 @@ const (
 	ColDesc     = 30
 	ColCTypes   = 30
 	ColWeight   = 8
+	ColRequired = 8
+	ColChoices  = 30
 )
 
 // PrintMetadataTable renders inventory metadata as grouped tables.
 func PrintMetadataTable(inv *devicetypes.Inventory) {
 	if inv.Metadata == nil || (len(inv.Metadata.Roles) == 0 &&
 		len(inv.Metadata.Statuses) == 0 &&
-		len(inv.Metadata.Tags) == 0) {
+		len(inv.Metadata.Tags) == 0 &&
+		len(inv.Metadata.CustomFields) == 0) {
 		fmt.Println("(no metadata defined)")
 		return
 	}
@@ -62,6 +65,10 @@ func PrintMetadataTable(inv *devicetypes.Inventory) {
 	if len(inv.Metadata.Tags) > 0 {
 		fmt.Printf("\nTags (%d):\n", len(inv.Metadata.Tags))
 		PrintEntriesTable(inv.Metadata.Tags)
+	}
+	if len(inv.Metadata.CustomFields) > 0 {
+		fmt.Printf("\nCustom Fields (%d):\n", len(inv.Metadata.CustomFields))
+		PrintCustomFieldsTable(inv.Metadata.CustomFields)
 	}
 	fmt.Println()
 }
@@ -111,6 +118,39 @@ func PrintEntriesTable(entries []devicetypes.MetadataEntry) {
 				Col(e.Color, ColColor) + "  " +
 				Col(e.Description, ColDesc) + "  " +
 				Col(strings.Join(e.ContentTypes, ","), ColCTypes),
+		)
+	}
+}
+
+// PrintCustomFieldsTable renders custom field definitions as a table.
+func PrintCustomFieldsTable(defs []devicetypes.CustomFieldDefinition) {
+	header := Col("KEY", ColMetaName) + "  " +
+		Col("LABEL", ColMetaName) + "  " +
+		Col("TYPE", ColType) + "  " +
+		Col("REQUIRED", ColRequired) + "  " +
+		Col("CONTENT TYPES", ColCTypes) + "  " +
+		Col("CHOICES", ColChoices)
+	sep := Col(strings.Repeat("-", ColMetaName), ColMetaName) + "  " +
+		Col(strings.Repeat("-", ColMetaName), ColMetaName) + "  " +
+		Col(strings.Repeat("-", ColType), ColType) + "  " +
+		Col(strings.Repeat("-", ColRequired), ColRequired) + "  " +
+		Col(strings.Repeat("-", ColCTypes), ColCTypes) + "  " +
+		Col(strings.Repeat("-", ColChoices), ColChoices)
+
+	fmt.Println(header)
+	fmt.Println(sep)
+	for _, d := range defs {
+		req := ""
+		if d.Required {
+			req = "yes"
+		}
+		fmt.Println(
+			Col(d.Key, ColMetaName) + "  " +
+				Col(d.Label, ColMetaName) + "  " +
+				Col(d.Type, ColType) + "  " +
+				Col(req, ColRequired) + "  " +
+				Col(strings.Join(d.ContentTypes, ","), ColCTypes) + "  " +
+				Col(strings.Join(d.Choices, ","), ColChoices),
 		)
 	}
 }

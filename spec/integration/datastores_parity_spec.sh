@@ -135,7 +135,7 @@ PY
 #shellcheck disable=SC2317
 future_schema_rejection_summary() {
   setup_test_env
-  _future_original='{"schemaVersion":"v1alpha5","future":{"keep":true}}'
+  _future_original='{"schemaVersion":"v1alpha6","future":{"keep":true}}'
   _future_stderr=$(mktemp)
   printf '%s' "$_future_original" >"$CANI_DS"
 
@@ -207,7 +207,7 @@ Describe 'INTEGRATION: datastores ShellSpec parity'
   It 'rejects a future inventory generation without rewriting it'
     When call future_schema_rejection_summary
     The status should equal 0
-    The stderr should include 'unsupported inventory schema version "v1alpha5"'
+    The stderr should include 'unsupported inventory schema version "v1alpha6"'
     The output should include 'exit_code=1'
     The output should include 'unchanged=True'
     The output should include 'backup_exists=False'

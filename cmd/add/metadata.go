@@ -40,7 +40,7 @@ import (
 func newMetadataCommand() *cli.Command {
 	cmd := &cli.Command{
 		Use:   "metadata",
-		Short: "Create metadata definitions (roles, statuses, tags) in the local inventory.",
+		Short: "Create metadata definitions (roles, statuses, tags, custom fields) in the local inventory.",
 		Long: `Create metadata definitions in the local inventory.
 
 Metadata definitions are stored under providerMetadata in the datastore
@@ -49,7 +49,8 @@ and are used during export to create the corresponding objects in Nautobot.
 Use a subcommand to create a specific metadata type:
   cani alpha add metadata role <name>
   cani alpha add metadata status <name>
-  cani alpha add metadata tag <name>`,
+  cani alpha add metadata tag <name>
+  cani alpha add metadata custom-field <key> --label <label> --type <type> --content-types <types>`,
 	}
 
 	cmd.PersistentFlags().StringSlice("content-types", nil, "Content types (e.g. dcim.device,dcim.rack)")
@@ -59,6 +60,7 @@ Use a subcommand to create a specific metadata type:
 	cmd.AddCommand(newMetadataRoleCommand())
 	cmd.AddCommand(newMetadataStatusCommand())
 	cmd.AddCommand(newMetadataTagCommand())
+	cmd.AddCommand(newMetadataCustomFieldCommand())
 
 	return cmd
 }
@@ -180,4 +182,102 @@ func ParseMetadataFlags(pairs []string) (map[string]string, error) {
 		result[parts[0]] = parts[1]
 	}
 	return result, nil
+}
+
+func newMetadataCustomFieldCommand() *cli.Command {
+	cmd := &cli.Command{
+		Use:   "custom-field <key>",
+		Short: "Create a custom field definition in the inventory.",
+		Long: `Create a custom field definition in the inventory metadata catalog.
+
+The key is the internal field name used in Nautobot (use underscores, not dashes).
+During export, cani ensures the custom field exists in Nautobot with the
+specified type and content types before syncing objects that carry values for it.
+
+Supported types: text, integer, boolean, date, url, json, select, multi-select, markdown
+
+Examples:
+  cani alpha add metadata custom-field site_code --label "Site Code" --type text --content-types dcim.device,dcim.rack
+  cani alpha add metadata custom-field environment --label "Environment" --type select --content-types dcim.device --choices "prod,staging,dev"
+  cani alpha add metadata custom-field install_date --label "Install Date" --type date --content-types dcim.device --required`,
+		Args: cli.ExactArgs(1),
+		RunE: addMetadataCustomField,
+	}
+
+	cmd.Flags().String("label", "", "Human-readable label (defaults to key if not set)")
+	cmd.Flags().String("type", "text", "Field type: text, integer, boolean, date, url, json, select, multi-select, markdown")
+	cmd.Flags().StringSlice("choices", nil, "Choices for select/multi-select fields (comma-separated)")
+	cmd.Flags().Bool("required", false, "Whether the field is required")
+	cmd.Flags().Int("weight", 0, "Display weight (higher values appear lower in forms)")
+
+	return cmd
+}
+
+func addMetadataCustomField(cmd *cli.Command, args []string) error {
+	if err := rejectMetadataFlag(cmd); err != nil {
+		return err
+	}
+
+	key := args[0]
+
+	label, _ := cmd.Flags().GetString("label")
+	if label == "" {
+		label = key
+	}
+
+	fieldType, _ := cmd.Flags().GetString("type")
+	if !isValidCustomFieldType(fieldType) {
+		return fmt.Errorf("invalid custom field type %q; valid types: %s",
+			fieldType, strings.Join(devicetypes.ValidCustomFieldTypes, ", "))
+	}
+
+	contentTypes, _ := cmd.Flags().GetStringSlice("content-types")
+	if len(contentTypes) == 0 {
+		return fmt.Errorf("--content-types is required for custom fields")
+	}
+
+	choices, _ := cmd.Flags().GetStringSlice("choices")
+	if (fieldType == "select" || fieldType == "multi-select") && len(choices) == 0 {
+		return fmt.Errorf("--choices is required for %s fields", fieldType)
+	}
+
+	required, _ := cmd.Flags().GetBool("required")
+	weight, _ := cmd.Flags().GetInt("weight")
+	desc, _ := cmd.Flags().GetString("description")
+
+	def := devicetypes.CustomFieldDefinition{
+		Key:          key,
+		Label:        label,
+		Type:         fieldType,
+		ContentTypes: contentTypes,
+		Description:  desc,
+		Required:     required,
+		Choices:      choices,
+		Weight:       weight,
+	}
+
+	if err := store.Setup(cmd); err != nil {
+		return fmt.Errorf("failed to set device store: %w", err)
+	}
+	inventory, err := datastores.Datastore.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load inventory: %w", err)
+	}
+	if err := inventory.AddCustomField(def); err != nil {
+		return err
+	}
+	if err := datastores.Datastore.Save(inventory); err != nil {
+		return fmt.Errorf("failed to save inventory: %w", err)
+	}
+	log.Printf("Added custom field %q (type=%s, content_types=%v) to inventory", key, fieldType, contentTypes)
+	return nil
+}
+
+func isValidCustomFieldType(t string) bool {
+	for _, valid := range devicetypes.ValidCustomFieldTypes {
+		if t == valid {
+			return true
+		}
+	}
+	return false
 }
