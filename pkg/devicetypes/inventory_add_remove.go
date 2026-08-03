@@ -173,8 +173,8 @@ func (inv *Inventory) AddInterface(iface *CaniInterface) error {
 	if iface.DeviceID == uuid.Nil {
 		return fmt.Errorf("interface device ID must not be nil")
 	}
-	_, devOK := inv.Devices[iface.DeviceID]
-	_, modOK := inv.Modules[iface.DeviceID]
+	dev, devOK := inv.Devices[iface.DeviceID]
+	mod, modOK := inv.Modules[iface.DeviceID]
 	if !devOK && !modOK {
 		return fmt.Errorf("device or module %s not found", iface.DeviceID)
 	}
@@ -183,6 +183,27 @@ func (inv *Inventory) AddInterface(iface *CaniInterface) error {
 			return fmt.Errorf("interface %q already exists on device %s", iface.Name, iface.DeviceID)
 		}
 	}
+
+	spec := InterfaceSpec{
+		ID:           iface.ID,
+		Name:         iface.Name,
+		Type:         iface.InterfaceType,
+		Label:        iface.Label,
+		Role:         iface.Role,
+		MacAddress:   iface.MacAddress,
+		Tags:         iface.Tags,
+		Lag:          iface.Lag,
+		Mode:         iface.Mode,
+		UntaggedVLAN: iface.UntaggedVLAN,
+		TaggedVLANs:  iface.TaggedVLANs,
+		VRF:          iface.VRF,
+	}
+	if devOK {
+		dev.Interfaces = append(dev.Interfaces, spec)
+	} else {
+		mod.Interfaces = append(mod.Interfaces, spec)
+	}
+
 	inv.Interfaces[iface.ID] = iface
 	return nil
 }

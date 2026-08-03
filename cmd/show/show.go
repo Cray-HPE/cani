@@ -98,6 +98,7 @@ func NewCommand() *cli.Command {
 	cmd.AddCommand(newVLANShowCommand())
 	cmd.AddCommand(newPrefixShowCommand())
 	cmd.AddCommand(newIPShowCommand())
+	cmd.AddCommand(newVRFShowCommand())
 
 	return cmd
 }

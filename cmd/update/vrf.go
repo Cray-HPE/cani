@@ -23,7 +23,7 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package add
+package update
 
 import (
 	"fmt"
@@ -33,37 +33,34 @@ import (
 	"github.com/Cray-HPE/cani/internal/util/resolve"
 	"github.com/Cray-HPE/cani/internal/util/store"
 	"github.com/Cray-HPE/cani/pkg/datastores"
-	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
 )
 
-// newVRFCommand creates the "add vrf" subcommand.
+// newVRFCommand creates the "update vrf" subcommand.
 func newVRFCommand() *cli.Command {
 	cmd := &cli.Command{
-		Use:   "vrf <name>",
-		Short: "Add a VRF to the inventory.",
-		Long: `Add a VRF (virtual routing and forwarding instance) to the inventory.
+		Use:   "vrf <name-or-uuid>",
+		Short: "Update a VRF in the inventory.",
+		Long: `Update a VRF's fields or add devices to it.
 
 Examples:
-  cani alpha add vrf LEGACY --rd 65000:2000 --description "Legacy CSM CMN routing"
-  cani alpha add vrf keepalive --description "VSX keepalive" --device sw-leaf-01 --device sw-spine-01`,
+  cani alpha update vrf keepalive --add-device sw-spine-02
+  cani alpha update vrf LEGACY --description "Updated description"
+  cani alpha update vrf keepalive --remove-device sw-leaf-01`,
 		Args: cli.ExactArgs(1),
-		RunE: addVRF,
+		RunE: updateVRF,
 	}
 
-	cmd.Flags().String("rd", "", "Route distinguisher (RFC 4364, e.g. 65000:100)")
-	cmd.Flags().String("namespace", "", "IPAM namespace (defaults to Global)")
-	cmd.Flags().String(flagDescription, "", "VRF description")
-	cmd.Flags().StringArray("device", nil, "Device name or UUID to assign this VRF to (repeatable)")
+	cmd.Flags().String("description", "", "New description")
+	cmd.Flags().String("rd", "", "Route distinguisher")
+	cmd.Flags().StringArray("add-device", nil, "Add a device to this VRF (name or UUID, repeatable)")
+	cmd.Flags().StringArray("remove-device", nil, "Remove a device from this VRF (name or UUID, repeatable)")
 
 	return cmd
 }
 
-func addVRF(cmd *cli.Command, args []string) error {
-	name := args[0]
-	if name == "" {
-		return fmt.Errorf("VRF name is required")
-	}
+func updateVRF(cmd *cli.Command, args []string) error {
+	ref := args[0]
 
 	if err := store.Setup(cmd); err != nil {
 		return fmt.Errorf("failed to set device store: %w", err)
@@ -74,45 +71,72 @@ func addVRF(cmd *cli.Command, args []string) error {
 		return fmt.Errorf("failed to load inventory: %w", err)
 	}
 
-	vrf := &devicetypes.CaniVRF{
-		ID:   uuid.New(),
-		Name: name,
+	vrf, err := inventory.FindVRFByNameOrID(ref)
+	if err != nil {
+		return err
 	}
 
+	changed := false
+
+	if cmd.Flags().Changed("description") {
+		vrf.Description, _ = cmd.Flags().GetString("description")
+		changed = true
+	}
 	if cmd.Flags().Changed("rd") {
 		vrf.RD, _ = cmd.Flags().GetString("rd")
-	}
-	if cmd.Flags().Changed("namespace") {
-		vrf.Namespace, _ = cmd.Flags().GetString("namespace")
-	}
-	if cmd.Flags().Changed(flagDescription) {
-		vrf.Description, _ = cmd.Flags().GetString(flagDescription)
-	}
-	if cmd.Flags().Changed("status") {
-		vrf.Status, _ = cmd.Flags().GetString("status")
-	}
-	tags, _ := cmd.Flags().GetStringArray("tag")
-	if len(tags) > 0 {
-		vrf.Tags = tags
+		changed = true
 	}
 
-	deviceRefs, _ := cmd.Flags().GetStringArray("device")
-	for _, ref := range deviceRefs {
+	addDevices, _ := cmd.Flags().GetStringArray("add-device")
+	for _, ref := range addDevices {
 		id, err := resolve.Device(inventory, ref)
 		if err != nil {
-			return fmt.Errorf("resolving --device %q: %w", ref, err)
+			return fmt.Errorf("resolving --add-device %q: %w", ref, err)
 		}
-		vrf.Devices = append(vrf.Devices, id)
+		if !containsUUID(vrf.Devices, id) {
+			vrf.Devices = append(vrf.Devices, id)
+			changed = true
+		}
 	}
 
-	if err := inventory.AddVRF(vrf); err != nil {
-		return fmt.Errorf("failed to add vrf: %w", err)
+	removeDevices, _ := cmd.Flags().GetStringArray("remove-device")
+	for _, ref := range removeDevices {
+		id, err := resolve.Device(inventory, ref)
+		if err != nil {
+			return fmt.Errorf("resolving --remove-device %q: %w", ref, err)
+		}
+		if removed := removeUUID(&vrf.Devices, id); removed {
+			changed = true
+		}
+	}
+
+	if !changed {
+		return fmt.Errorf("no changes specified")
 	}
 
 	if err := datastores.Datastore.Save(inventory); err != nil {
 		return fmt.Errorf("failed to save inventory: %w", err)
 	}
 
-	log.Printf("Added VRF %q (%s)", vrf.Name, vrf.ID)
+	log.Printf("Updated VRF %q (%s)", vrf.Name, vrf.ID)
 	return nil
+}
+
+func containsUUID(slice []uuid.UUID, id uuid.UUID) bool {
+	for _, v := range slice {
+		if v == id {
+			return true
+		}
+	}
+	return false
+}
+
+func removeUUID(slice *[]uuid.UUID, id uuid.UUID) bool {
+	for i, v := range *slice {
+		if v == id {
+			*slice = append((*slice)[:i], (*slice)[i+1:]...)
+			return true
+		}
+	}
+	return false
 }

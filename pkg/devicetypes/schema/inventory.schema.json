@@ -988,6 +988,13 @@
         "description": {
           "type": "string"
         },
+        "devices": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "array"
+        },
         "externalIDs": {
           "additionalProperties": {
             "format": "uuid",

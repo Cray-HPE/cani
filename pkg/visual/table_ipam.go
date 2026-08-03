@@ -184,3 +184,27 @@ func resolvePrefixCIDR(id [16]byte, inv *devicetypes.Inventory) string {
 	}
 	return ""
 }
+
+// PrintVRFTable renders VRFs as a fixed-width table.
+func PrintVRFTable(vrfs []*devicetypes.CaniVRF, inv *devicetypes.Inventory) {
+	header := Col("NAME", ColName) + "  " +
+		Col("RD", ColRole) + "  " +
+		Col("DEVICES", ColCount) + "  " +
+		Col("DESCRIPTION", ColDNS)
+	sep := Col(strings.Repeat("-", ColName), ColName) + "  " +
+		Col(strings.Repeat("-", ColRole), ColRole) + "  " +
+		Col(strings.Repeat("-", ColCount), ColCount) + "  " +
+		Col(strings.Repeat("-", ColDNS), ColDNS)
+
+	fmt.Println(header)
+	fmt.Println(sep)
+	for _, v := range vrfs {
+		fmt.Println(
+			Col(v.Name, ColName) + "  " +
+				Col(v.RD, ColRole) + "  " +
+				Col(strconv.Itoa(len(v.Devices)), ColCount) + "  " +
+				Col(v.Description, ColDNS),
+		)
+	}
+	fmt.Printf("\nTotal: %d VRF(s)\n", len(vrfs))
+}

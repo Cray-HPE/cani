@@ -29,6 +29,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
@@ -123,6 +124,11 @@ func (e *Exporter) ensureCustomField(ctx context.Context, def devicetypes.Custom
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("failed to create custom field: %w", err)
 	}
+	// Handle "already exists" conflict: re-fetch by listing all and matching key.
+	if createResp.StatusCode() == http.StatusBadRequest &&
+		strings.Contains(string(createResp.Body), "already exists") {
+		return e.fetchCustomFieldByKey(ctx, def.Key)
+	}
 	if createResp.StatusCode() != http.StatusCreated {
 		return uuid.Nil, fmt.Errorf("failed to create custom field: status %d: %s",
 			createResp.StatusCode(), string(createResp.Body))
@@ -202,4 +208,36 @@ func (e *Exporter) ensureCustomFieldChoices(ctx context.Context, cfID uuid.UUID,
 	}
 
 	return nil
+}
+
+// fetchCustomFieldByKey paginates through all custom fields to find one by exact key.
+func (e *Exporter) fetchCustomFieldByKey(ctx context.Context, key string) (uuid.UUID, error) {
+	limit := 50
+	offset := 0
+	for {
+		resp, err := e.Client.ExtrasCustomFieldsListWithResponse(ctx,
+			&nautobotapi.ExtrasCustomFieldsListParams{
+				Limit:  &limit,
+				Offset: &offset,
+			},
+		)
+		if err != nil {
+			return uuid.Nil, fmt.Errorf("failed to list custom fields: %w", err)
+		}
+		if resp.StatusCode() != http.StatusOK || resp.JSON200 == nil {
+			return uuid.Nil, fmt.Errorf("failed to list custom fields: status %d", resp.StatusCode())
+		}
+		for _, cf := range resp.JSON200.Results {
+			if cf.Key != nil && *cf.Key == key {
+				id := toUUID(cf.Id)
+				clog.Skipped("Custom field %q already exists (ID: %s)", key, id)
+				return id, nil
+			}
+		}
+		if resp.JSON200.Next == nil || *resp.JSON200.Next == "" {
+			break
+		}
+		offset += limit
+	}
+	return uuid.Nil, fmt.Errorf("custom field %q exists but could not be found", key)
 }

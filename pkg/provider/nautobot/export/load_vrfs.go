@@ -61,17 +61,32 @@ func (e *Exporter) loadVRFs(ctx context.Context, inventory *devicetypes.Inventor
 			e.Cache.CacheVRF(vrf.Name, &CachedItem{ID: existingID, Name: vrf.Name})
 			setExternalID(&vrf.ExternalIDs, "nautobot", existingID)
 			result.VRFsSkipped++
-			continue
+		} else {
+			nautobotID, err := e.createVRF(ctx, vrf)
+			if err != nil {
+				result.Errors = append(result.Errors, fmt.Sprintf("vrf %s: create error: %v", vrf.Name, err))
+				continue
+			}
+			e.Cache.CacheVRF(vrf.Name, &CachedItem{ID: nautobotID, Name: vrf.Name})
+			setExternalID(&vrf.ExternalIDs, "nautobot", nautobotID)
+			result.VRFsCreated++
 		}
 
-		nautobotID, err := e.createVRF(ctx, vrf)
-		if err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("vrf %s: create error: %v", vrf.Name, err))
-			continue
+		// Create VRF-device assignments for explicitly listed devices.
+		for _, devID := range vrf.Devices {
+			dev, ok := inventory.Devices[devID]
+			if !ok || dev == nil {
+				continue
+			}
+			nautobotDevID, ok := dev.ExternalIDs[externalIDKeyNautobot]
+			if !ok || nautobotDevID == uuid.Nil {
+				continue
+			}
+			if err := e.ensureVRFDeviceAssignment(ctx, nautobotDevID, vrf.Name); err != nil {
+				result.Errors = append(result.Errors,
+					fmt.Sprintf("vrf %s: device assignment %s: %v", vrf.Name, dev.Name, err))
+			}
 		}
-		e.Cache.CacheVRF(vrf.Name, &CachedItem{ID: nautobotID, Name: vrf.Name})
-		setExternalID(&vrf.ExternalIDs, "nautobot", nautobotID)
-		result.VRFsCreated++
 	}
 
 	clog.Info("  VRFs created: %d", result.VRFsCreated)
