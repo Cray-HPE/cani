@@ -74,6 +74,7 @@ to a specific type; subcommands reject slugs that do not match their type.`,
 	cmd.AddCommand(newVRFCommand())
 	cmd.AddCommand(newPrefixCommand())
 	cmd.AddCommand(newIPCommand())
+	cmd.AddCommand(newInterfaceCommand())
 
 	cmd.PersistentFlags().BoolP("auto", "a", false, "Automatically recommend values for parent hardware")
 	cmd.PersistentFlags().BoolP("accept", "y", false, "Automatically accept recommended values.")

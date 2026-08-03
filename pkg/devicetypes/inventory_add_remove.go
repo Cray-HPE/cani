@@ -161,6 +161,32 @@ func (inv *Inventory) RemoveCable(id uuid.UUID) error {
 	return nil
 }
 
+// AddInterface inserts a standalone interface into the inventory.
+// The interface's DeviceID must reference an existing device or module.
+func (inv *Inventory) AddInterface(iface *CaniInterface) error {
+	if iface == nil {
+		return fmt.Errorf("interface must not be nil")
+	}
+	if _, exists := inv.Interfaces[iface.ID]; exists {
+		return fmt.Errorf("interface %s already exists", iface.ID)
+	}
+	if iface.DeviceID == uuid.Nil {
+		return fmt.Errorf("interface device ID must not be nil")
+	}
+	_, devOK := inv.Devices[iface.DeviceID]
+	_, modOK := inv.Modules[iface.DeviceID]
+	if !devOK && !modOK {
+		return fmt.Errorf("device or module %s not found", iface.DeviceID)
+	}
+	for _, existing := range inv.Interfaces {
+		if existing.DeviceID == iface.DeviceID && existing.Name == iface.Name {
+			return fmt.Errorf("interface %q already exists on device %s", iface.Name, iface.DeviceID)
+		}
+	}
+	inv.Interfaces[iface.ID] = iface
+	return nil
+}
+
 // AddVLAN inserts a single VLAN into the inventory.
 func (inv *Inventory) AddVLAN(vlan *CaniVLAN) error {
 	if vlan == nil {
