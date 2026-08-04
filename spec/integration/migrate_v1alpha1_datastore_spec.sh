@@ -74,18 +74,18 @@ PY
 
 Describe 'INTEGRATION:'
 
-It 'migrates a v1alpha1 datastore to v1alpha5'
+It 'migrates a v1alpha1 datastore to v1alpha6'
 	BeforeCall 'setup_datastore_migration_env canitestdb_v1alpha1.json'
 	When call bin/cani alpha show --config "$CANI_CONF"
 	The status should equal 0
 	The stdout should be present
 	The stderr should include 'creating default config'
-	The stderr should include 'Migrated datastore from v1alpha1 to v1alpha5'
+	The stderr should include 'Migrated datastore from v1alpha1 to v1alpha6'
 	The file "$CANI_CONF" should be exist
 	The file "$CANI_DS" should be exist
 	The file "$CANI_DS.canisave" should be exist
 	The contents of file "$CANI_DS" should include '"schemaVersion"'
-	The contents of file "$CANI_DS" should include '"v1alpha5"'
+	The contents of file "$CANI_DS" should include '"v1alpha6"'
 	The contents of file "$CANI_DS" should include '"devices"'
 	The contents of file "$CANI_DS" should include '"locations"'
 	The contents of file "$CANI_DS" should include '"racks"'
@@ -93,12 +93,12 @@ It 'migrates a v1alpha1 datastore to v1alpha5'
 	The contents of file "$CANI_DS" should not include '"v1alpha1"'
 End
 
-It 'migrates released v1alpha3 additions to v1alpha5 without loss'
+It 'migrates released v1alpha3 additions to v1alpha6 without loss'
 	When call v1alpha3_migration_summary
 	The status should equal 0
-	The stderr should include 'Migrated datastore from v1alpha3 to v1alpha5'
+	The stderr should include 'Migrated datastore from v1alpha3 to v1alpha6'
 	The output should include 'backup_matches=True'
-	The output should include 'schema=v1alpha5'
+	The output should include 'schema=v1alpha6'
 	The output should include 'device_fields=True'
 	The output should include 'interface_spec_fields=True'
 	The output should include 'interface_fields=True'

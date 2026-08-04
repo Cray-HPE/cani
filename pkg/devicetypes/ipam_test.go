@@ -595,6 +595,21 @@ func TestAddVRFWithDevices(t *testing.T) {
 	}
 }
 
+func TestAddVRFRejectsUnknownDevice(t *testing.T) {
+	inv := NewInventory()
+	vrf := &CaniVRF{
+		ID:      uuid.New(),
+		Name:    "bad-ref",
+		Devices: []uuid.UUID{uuid.New()},
+	}
+	if err := inv.AddVRF(vrf); err == nil {
+		t.Error("AddVRF() with non-existent device should return an error")
+	}
+	if _, exists := inv.VRFs[vrf.ID]; exists {
+		t.Error("VRF should not be stored when device validation fails")
+	}
+}
+
 // ---------- FindVRFByNameOrID ----------
 
 func TestFindVRFByNameOrID_ByName(t *testing.T) {

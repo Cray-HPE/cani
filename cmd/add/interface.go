@@ -81,7 +81,7 @@ func addInterface(cmd *cli.Command, args []string) error {
 	}
 
 	ifaceType, _ := cmd.Flags().GetString("type")
-	if !isValidInterfaceType(ifaceType) {
+	if !devicetypes.IsValidInterfaceType(ifaceType) {
 		return fmt.Errorf("unknown interface type %q", ifaceType)
 	}
 
@@ -188,23 +188,4 @@ func parseTaggedVLANs(strs []string) ([]int, error) {
 		vids = append(vids, vid)
 	}
 	return vids, nil
-}
-
-var validInterfaceTypes = map[string]bool{
-	"1000base-t":        true,
-	"1000base-kx":       true,
-	"10gbase-t":         true,
-	"10gbase-x-sfpp":    true,
-	"25gbase-x-sfp28":   true,
-	"40gbase-x-qsfpp":   true,
-	"100gbase-x-qsfp28": true,
-	"200gbase-x-qsfp56": true,
-	"400gbase-x-qsfpdd": true,
-	"400gbase-x-osfp":   true,
-	"virtual":           true,
-	"lag":               true,
-}
-
-func isValidInterfaceType(t string) bool {
-	return validInterfaceTypes[t]
 }

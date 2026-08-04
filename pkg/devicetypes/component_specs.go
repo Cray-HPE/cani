@@ -137,3 +137,23 @@ const (
 	InterfacesElemTypeVirtual          InterfacesElemType = "virtual"
 	InterfacesElemTypeLag              InterfacesElemType = "lag"
 )
+
+var validInterfaceTypes = map[InterfacesElemType]bool{
+	InterfacesElemTypeA1000BaseT:       true,
+	InterfacesElemTypeA1000BaseKx:      true,
+	InterfacesElemTypeA10GbaseT:        true,
+	InterfacesElemTypeA10GbaseXSfpp:    true,
+	InterfacesElemTypeA25GbaseXSfp28:   true,
+	InterfacesElemTypeA40GbaseXQsfpp:   true,
+	InterfacesElemTypeA100GbaseXQsfp28: true,
+	InterfacesElemTypeA200GbaseXQsfp56: true,
+	InterfacesElemTypeA400GbaseXQsfpdd: true,
+	InterfacesElemTypeA400GbaseXOsfp:   true,
+	InterfacesElemTypeVirtual:          true,
+	InterfacesElemTypeLag:              true,
+}
+
+// IsValidInterfaceType reports whether t is a recognized interface type.
+func IsValidInterfaceType(t string) bool {
+	return validInterfaceTypes[InterfacesElemType(t)]
+}

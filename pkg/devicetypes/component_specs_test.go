@@ -409,3 +409,18 @@ func TestDeviceBaySlugRefAllowedTypes(t *testing.T) {
 		t.Errorf("AllowedTypes(nil) = %v, want nil", got)
 	}
 }
+
+func TestIsValidInterfaceType(t *testing.T) {
+	valid := []string{"lag", "virtual", "1000base-t", "100gbase-x-qsfp28", "400gbase-x-osfp"}
+	for _, v := range valid {
+		if !IsValidInterfaceType(v) {
+			t.Errorf("IsValidInterfaceType(%q) = false, want true", v)
+		}
+	}
+	invalid := []string{"", "unknown", "LAG", "10gbase", "fiber"}
+	for _, v := range invalid {
+		if IsValidInterfaceType(v) {
+			t.Errorf("IsValidInterfaceType(%q) = true, want false", v)
+		}
+	}
+}

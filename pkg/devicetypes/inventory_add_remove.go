@@ -228,6 +228,11 @@ func (inv *Inventory) AddVRF(vrf *CaniVRF) error {
 	if _, exists := inv.VRFs[vrf.ID]; exists {
 		return fmt.Errorf("vrf %s already exists", vrf.ID)
 	}
+	for _, devID := range vrf.Devices {
+		if _, ok := inv.Devices[devID]; !ok {
+			return fmt.Errorf("device %s not found", devID)
+		}
+	}
 	inv.VRFs[vrf.ID] = vrf
 	return nil
 }
