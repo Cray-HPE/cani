@@ -255,6 +255,17 @@ schema: ## Regenerate the inventory JSON Schema artifact
 	go run ./tools/genschema
 	$(OK) "pkg/devicetypes/schema/inventory.schema.json"
 
+SCHEMA_BASE ?= origin/main
+
+.PHONY: schema-check
+schema-check: ## Check schema evolution against SCHEMA_BASE (default: origin/main)
+	$(INFO) "checking inventory schema evolution against $(SCHEMA_BASE)"
+	@base=$$(mktemp); \
+	trap 'rm -f "$$base"' EXIT; \
+	git show $(SCHEMA_BASE):pkg/devicetypes/schema/inventory.schema.json > "$$base" && \
+	go run ./tools/schemadiff --check "$$base" pkg/devicetypes/schema/inventory.schema.json
+	$(OK) "schema evolution is compatible"
+
 .PHONY: nautobot_client
 nautobot_client: ## Regenerate the Nautobot API client
 	$(INFO) "generating Nautobot client"
