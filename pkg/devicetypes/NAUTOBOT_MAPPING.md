@@ -340,6 +340,7 @@ Imported by `FetchVRFs()` + `MapVRFs()`; exported in Phase 6c by `loadVRFs()` in
 | `RD` | `string` | `VRF.rd` | **Mapped** | Route distinguisher (RFC 4364); mapped when non-empty |
 | `Namespace` | `string` | `VRF.namespace` (FK) | Partial | Get-or-create on export (defaults to `Global`); not resolved on import |
 | `Description` | `string` | `VRF.description` | **Mapped** | Mapped when non-empty |
+| `Devices` | `[]uuid.UUID` | `VRFDeviceAssignment` (M2M) | Partial | Exported via `ensureVRFDeviceAssignment()` in `load_vrfs.go`; not imported |
 | `Status` | `string` | `VRF.status` (FK) | **Mapped** | Resolved by name |
 | `Tags` | `[]string` | `VRF.tags` | **Mapped** | Exported via the shared tag resolver |
 | `CustomFields` | `map[string]any` | `VRF.custom_fields` | Partial | Imported; not sent on export |
@@ -560,7 +561,7 @@ Iterates `inventory.Cables`. For each cable:
 
 ### Phase 6c: VRFs
 
-Implemented in `loadVRFs()` in `load_vrfs.go`. Iterates `inventory.VRFs`. Find-or-create by name; creates the namespace (default `Global`) and resolves status/tags. VRFs are created **before** interface enrichment so interface `VRF` references resolve.
+Implemented in `loadVRFs()` in `load_vrfs.go`. Iterates `inventory.VRFs`. Find-or-create by name; creates the namespace (default `Global`) and resolves status/tags. After creating/skipping the VRF, iterates `vrf.Devices` and calls `ensureVRFDeviceAssignment()` to create `VRFDeviceAssignment` links (find-or-create). VRFs are created **before** interface enrichment so interface `VRF` references resolve.
 
 ### Phase 7: VLANs
 

@@ -33,6 +33,41 @@ import (
 	"github.com/Cray-HPE/cani/pkg/visual"
 )
 
+// newVRFShowCommand creates the "show vrf" subcommand.
+func newVRFShowCommand() *cli.Command {
+	return &cli.Command{
+		Use:     "vrf",
+		Aliases: []string{"vrfs"},
+		Short:   "List VRFs in the inventory.",
+		Args:    cli.NoArgs,
+		RunE:    showVRFs,
+	}
+}
+
+func showVRFs(cmd *cli.Command, args []string) error {
+	inv, err := loadInventory(cmd, args)
+	if err != nil {
+		return err
+	}
+
+	vrfs := make([]*devicetypes.CaniVRF, 0, len(inv.VRFs))
+	for _, v := range inv.VRFs {
+		vrfs = append(vrfs, v)
+	}
+	sort.Slice(vrfs, func(i, j int) bool {
+		return vrfs[i].Name < vrfs[j].Name
+	})
+
+	format, _ := cmd.Flags().GetString("format")
+	switch format {
+	case "table":
+		visual.PrintVRFTable(vrfs, inv)
+		return nil
+	default:
+		return marshalAndPrint(vrfs)
+	}
+}
+
 // newVLANShowCommand creates the "show vlan" subcommand.
 func newVLANShowCommand() *cli.Command {
 	return &cli.Command{

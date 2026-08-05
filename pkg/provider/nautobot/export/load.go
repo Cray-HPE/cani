@@ -67,34 +67,36 @@ const (
 
 // LoadResult contains the results of a Load operation
 type LoadResult struct {
-	Created              []string       // Names of devices created
-	Updated              []string       // Names of devices updated (merged)
-	Skipped              []string       // Names of devices skipped (already exist, no --merge)
-	Errors               []string       // Error messages
-	Conflicts            []ConflictInfo // Detailed conflict information
-	LocationsCreated     []string       // Names of locations created
-	LocationsSkipped     []string       // Names of locations skipped (already exist)
-	RacksCreated         []string       // Names of racks created
-	RacksSkipped         int            // Number of racks skipped (already exist)
-	IfacesCreated        int            // Number of interfaces created
-	IfacesSkipped        int            // Number of interfaces skipped (already exist)
-	ModulesCreated       int            // Number of modules created
-	ModulesSkipped       int            // Number of modules skipped (already exist)
-	FrusCreated          int            // Number of FRUs (inventory items) created
-	FrusSkipped          int            // Number of FRUs skipped (already exist)
-	CablesCreated        int            // Number of cables created
-	CablesSkipped        int            // Number of cables skipped (already exist in Nautobot)
-	CablesConflicted     int            // Number of cables skipped (an endpoint interface is already cabled)
-	VLANsCreated         int            // Number of VLANs created
-	VLANsSkipped         int            // Number of VLANs skipped (already exist)
-	VRFsCreated          int            // Number of VRFs created
-	VRFsSkipped          int            // Number of VRFs skipped (already exist)
-	PrefixesCreated      int            // Number of prefixes created
-	PrefixesSkipped      int            // Number of prefixes skipped (already exist)
-	IPAddressesCreated   int            // Number of IP addresses created
-	IPAddressesSkipped   int            // Number of IP addresses skipped (already exist)
-	RelationshipsCreated int            // Number of relationship associations created
-	RelationshipsSkipped int            // Number of relationship associations skipped (already exist)
+	Created                     []string       // Names of devices created
+	Updated                     []string       // Names of devices updated (merged)
+	Skipped                     []string       // Names of devices skipped (already exist, no --merge)
+	Errors                      []string       // Error messages
+	Conflicts                   []ConflictInfo // Detailed conflict information
+	LocationsCreated            []string       // Names of locations created
+	LocationsSkipped            []string       // Names of locations skipped (already exist)
+	RacksCreated                []string       // Names of racks created
+	RacksSkipped                int            // Number of racks skipped (already exist)
+	IfacesCreated               int            // Number of interfaces created
+	IfacesSkipped               int            // Number of interfaces skipped (already exist)
+	ModulesCreated              int            // Number of modules created
+	ModulesSkipped              int            // Number of modules skipped (already exist)
+	FrusCreated                 int            // Number of FRUs (inventory items) created
+	FrusSkipped                 int            // Number of FRUs skipped (already exist)
+	CablesCreated               int            // Number of cables created
+	CablesSkipped               int            // Number of cables skipped (already exist in Nautobot)
+	CablesConflicted            int            // Number of cables skipped (an endpoint interface is already cabled)
+	VLANsCreated                int            // Number of VLANs created
+	VLANsSkipped                int            // Number of VLANs skipped (already exist)
+	VRFsCreated                 int            // Number of VRFs created
+	VRFsSkipped                 int            // Number of VRFs skipped (already exist)
+	VRFDeviceAssignmentsCreated int            // Number of VRF-device assignments created
+	VRFDeviceAssignmentsSkipped int            // Number of VRF-device assignments skipped
+	PrefixesCreated             int            // Number of prefixes created
+	PrefixesSkipped             int            // Number of prefixes skipped (already exist)
+	IPAddressesCreated          int            // Number of IP addresses created
+	IPAddressesSkipped          int            // Number of IP addresses skipped (already exist)
+	RelationshipsCreated        int            // Number of relationship associations created
+	RelationshipsSkipped        int            // Number of relationship associations skipped (already exist)
 }
 
 // ConflictInfo contains information about a device conflict

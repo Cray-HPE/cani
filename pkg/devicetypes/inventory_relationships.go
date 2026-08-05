@@ -729,15 +729,20 @@ func (inv *Inventory) indexInterfaceSpecs(interfaces []InterfaceSpec, deviceID u
 func interfaceInstanceFromSpec(iface *InterfaceSpec, deviceID uuid.UUID) *CaniInterface {
 	mgmtOnly := iface.MgmtOnly != nil && *iface.MgmtOnly
 	role := ResolveInterfaceRole(iface.Role, iface.Name, iface.Type, mgmtOnly)
+	status := iface.Status
+	if status == "" {
+		status = string(StatusActive)
+	}
 	return &CaniInterface{
 		ID:            iface.ID,
 		Name:          iface.Name,
 		InterfaceType: iface.Type,
 		DeviceID:      deviceID,
 		ObjectMeta: ObjectMeta{
-			Status: string(StatusActive),
-			Role:   role,
-			Tags:   append([]string(nil), iface.Tags...),
+			Status:           status,
+			Role:             role,
+			Tags:             append([]string(nil), iface.Tags...),
+			ProviderMetadata: iface.ProviderMetadata,
 		},
 		MgmtOnly:       mgmtOnly,
 		Label:          iface.Label,

@@ -988,6 +988,13 @@
         "description": {
           "type": "string"
         },
+        "devices": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "array"
+        },
         "externalIDs": {
           "additionalProperties": {
             "format": "uuid",
@@ -1144,7 +1151,14 @@
         "name": {
           "type": "string"
         },
+        "providerMetadata": {
+          "additionalProperties": {},
+          "type": "object"
+        },
         "role": {
+          "type": "string"
+        },
+        "status": {
           "type": "string"
         },
         "taggedVlans": {
@@ -1344,7 +1358,7 @@
       "type": "object"
     },
     "schemaVersion": {
-      "const": "v1alpha5",
+      "const": "v1alpha6",
       "type": "string"
     },
     "vlans": {
@@ -1371,5 +1385,5 @@
   ],
   "title": "cani inventory datastore",
   "type": "object",
-  "x-cani-schema-version": "v1alpha5"
+  "x-cani-schema-version": "v1alpha6"
 }

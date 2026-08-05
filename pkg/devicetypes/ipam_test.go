@@ -572,3 +572,87 @@ func TestAddIPAddressErrors(t *testing.T) {
 		t.Error("AddIPAddress(invalid) should return an error")
 	}
 }
+
+// ---------- AddVRF with Devices ----------
+
+func TestAddVRFWithDevices(t *testing.T) {
+	inv := NewInventory()
+	devID := uuid.New()
+	inv.Devices[devID] = &CaniDeviceType{ID: devID, Name: "sw-01"}
+
+	vrf := &CaniVRF{
+		ID:      uuid.New(),
+		Name:    "keepalive",
+		Devices: []uuid.UUID{devID},
+	}
+
+	if err := inv.AddVRF(vrf); err != nil {
+		t.Fatalf("AddVRF() unexpected error: %v", err)
+	}
+	stored := inv.VRFs[vrf.ID]
+	if len(stored.Devices) != 1 || stored.Devices[0] != devID {
+		t.Errorf("VRF devices = %v, want [%s]", stored.Devices, devID)
+	}
+}
+
+func TestAddVRFRejectsUnknownDevice(t *testing.T) {
+	inv := NewInventory()
+	vrf := &CaniVRF{
+		ID:      uuid.New(),
+		Name:    "bad-ref",
+		Devices: []uuid.UUID{uuid.New()},
+	}
+	if err := inv.AddVRF(vrf); err == nil {
+		t.Error("AddVRF() with non-existent device should return an error")
+	}
+	if _, exists := inv.VRFs[vrf.ID]; exists {
+		t.Error("VRF should not be stored when device validation fails")
+	}
+}
+
+// ---------- FindVRFByNameOrID ----------
+
+func TestFindVRFByNameOrID_ByName(t *testing.T) {
+	inv := NewInventory()
+	id := uuid.New()
+	inv.VRFs[id] = &CaniVRF{ID: id, Name: "LEGACY"}
+
+	got, err := inv.FindVRFByNameOrID("LEGACY")
+	if err != nil {
+		t.Fatalf("FindVRFByNameOrID() error: %v", err)
+	}
+	if got.ID != id {
+		t.Errorf("got ID %s, want %s", got.ID, id)
+	}
+}
+
+func TestFindVRFByNameOrID_ByUUID(t *testing.T) {
+	inv := NewInventory()
+	id := uuid.New()
+	inv.VRFs[id] = &CaniVRF{ID: id, Name: "INFRA"}
+
+	got, err := inv.FindVRFByNameOrID(id.String())
+	if err != nil {
+		t.Fatalf("FindVRFByNameOrID() error: %v", err)
+	}
+	if got.Name != "INFRA" {
+		t.Errorf("got Name %q, want INFRA", got.Name)
+	}
+}
+
+func TestFindVRFByNameOrID_CaseInsensitive(t *testing.T) {
+	inv := NewInventory()
+	id := uuid.New()
+	inv.VRFs[id] = &CaniVRF{ID: id, Name: "VRF-EDGE"}
+
+	if _, err := inv.FindVRFByNameOrID("vrf-edge"); err != nil {
+		t.Errorf("case-insensitive lookup failed: %v", err)
+	}
+}
+
+func TestFindVRFByNameOrID_NotFound(t *testing.T) {
+	inv := NewInventory()
+	if _, err := inv.FindVRFByNameOrID("missing"); err == nil {
+		t.Error("expected error for missing VRF")
+	}
+}

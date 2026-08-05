@@ -38,7 +38,8 @@ const (
 	SchemaVersionV1Alpha3 = "v1alpha3"
 	SchemaVersionV1Alpha4 = "v1alpha4"
 	SchemaVersionV1Alpha5 = "v1alpha5"
-	CurrentSchemaVersion  = SchemaVersionV1Alpha5
+	SchemaVersionV1Alpha6 = "v1alpha6"
+	CurrentSchemaVersion  = SchemaVersionV1Alpha6
 )
 
 // Inventory represents the entire inventory of devices, racks, locations, etc.

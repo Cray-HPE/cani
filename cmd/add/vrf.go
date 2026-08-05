@@ -30,6 +30,7 @@ import (
 	"log"
 
 	"github.com/Cray-HPE/cani/internal/cli"
+	"github.com/Cray-HPE/cani/internal/util/resolve"
 	"github.com/Cray-HPE/cani/internal/util/store"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
@@ -45,7 +46,7 @@ func newVRFCommand() *cli.Command {
 
 Examples:
   cani alpha add vrf LEGACY --rd 65000:2000 --description "Legacy CSM CMN routing"
-  cani alpha add vrf keepalive --description "VSX keepalive isolation"`,
+  cani alpha add vrf keepalive --description "VSX keepalive" --device sw-leaf-01 --device sw-spine-01`,
 		Args: cli.ExactArgs(1),
 		RunE: addVRF,
 	}
@@ -53,6 +54,7 @@ Examples:
 	cmd.Flags().String("rd", "", "Route distinguisher (RFC 4364, e.g. 65000:100)")
 	cmd.Flags().String("namespace", "", "IPAM namespace (defaults to Global)")
 	cmd.Flags().String(flagDescription, "", "VRF description")
+	cmd.Flags().StringArray("device", nil, "Device name or UUID to assign this VRF to (repeatable)")
 
 	return cmd
 }
@@ -76,7 +78,25 @@ func addVRF(cmd *cli.Command, args []string) error {
 		ID:   uuid.New(),
 		Name: name,
 	}
+	applyVRFFlags(cmd, vrf)
 
+	if err := resolveVRFDevices(cmd, inventory, vrf); err != nil {
+		return err
+	}
+
+	if err := inventory.AddVRF(vrf); err != nil {
+		return fmt.Errorf("failed to add vrf: %w", err)
+	}
+
+	if err := datastores.Datastore.Save(inventory); err != nil {
+		return fmt.Errorf("failed to save inventory: %w", err)
+	}
+
+	log.Printf("Added VRF %q (%s)", vrf.Name, vrf.ID)
+	return nil
+}
+
+func applyVRFFlags(cmd *cli.Command, vrf *devicetypes.CaniVRF) {
 	if cmd.Flags().Changed("rd") {
 		vrf.RD, _ = cmd.Flags().GetString("rd")
 	}
@@ -93,15 +113,16 @@ func addVRF(cmd *cli.Command, args []string) error {
 	if len(tags) > 0 {
 		vrf.Tags = tags
 	}
+}
 
-	if err := inventory.AddVRF(vrf); err != nil {
-		return fmt.Errorf("failed to add vrf: %w", err)
+func resolveVRFDevices(cmd *cli.Command, inventory *devicetypes.Inventory, vrf *devicetypes.CaniVRF) error {
+	deviceRefs, _ := cmd.Flags().GetStringArray("device")
+	for _, ref := range deviceRefs {
+		id, err := resolve.Device(inventory, ref)
+		if err != nil {
+			return fmt.Errorf("resolving --device %q: %w", ref, err)
+		}
+		vrf.Devices = append(vrf.Devices, id)
 	}
-
-	if err := datastores.Datastore.Save(inventory); err != nil {
-		return fmt.Errorf("failed to save inventory: %w", err)
-	}
-
-	log.Printf("Added VRF %q (%s)", vrf.Name, vrf.ID)
 	return nil
 }

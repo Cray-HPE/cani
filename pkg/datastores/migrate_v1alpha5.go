@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2026 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -23,37 +23,12 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package update
+package datastores
 
-import (
-	"github.com/Cray-HPE/cani/internal/cli"
-)
+import "github.com/Cray-HPE/cani/pkg/devicetypes"
 
-// NewCommand creates the parent "update" command.
-func NewCommand() *cli.Command {
-	cmd := &cli.Command{
-		Use:   "update",
-		Short: "Update items in the inventory.",
-		Long:  `Update items in the inventory.`,
-		RunE: func(cmd *cli.Command, args []string) error {
-			cmd.Help()
-			return nil
-		},
-	}
-
-	// Add noun-based subcommands
-	cmd.AddCommand(newLocationCommand())
-	cmd.AddCommand(newRackUpdateCommand())
-	cmd.AddCommand(newDeviceCommand())
-	cmd.AddCommand(newModuleCommand())
-	cmd.AddCommand(newCableCommand())
-	cmd.AddCommand(newInterfaceCommand())
-	cmd.AddCommand(newOrphansCommand())
-	cmd.AddCommand(newVRFCommand())
-
-	cmd.PersistentFlags().StringArray("set", nil, "Set field value as key=value (repeatable)")
-	cmd.PersistentFlags().StringArray("tag", nil, "Tag(s) to apply to the item (repeatable)")
-	cmd.PersistentFlags().StringArray("metadata", nil, "Provider metadata key=value pairs (repeatable)")
-
-	return cmd
+// migrateV1Alpha5 upgrades a v1alpha5 inventory to v1alpha6 in place.
+// v1alpha6 adds CaniVRF.Devices (VRF-device assignments).
+func migrateV1Alpha5(inv *devicetypes.Inventory) {
+	inv.SchemaVersion = devicetypes.SchemaVersionV1Alpha6
 }

@@ -25,7 +25,12 @@
  */
 package devicetypes
 
-import "github.com/google/uuid"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/google/uuid"
+)
 
 // CaniVRF represents a virtual routing and forwarding instance.
 type CaniVRF struct {
@@ -35,6 +40,9 @@ type CaniVRF struct {
 	RD          string    `json:"rd,omitempty" yaml:"rd,omitempty"` // Route distinguisher (RFC 4364)
 	Namespace   string    `json:"namespace,omitempty" yaml:"namespace,omitempty"`
 	Description string    `json:"description,omitempty" yaml:"description,omitempty"`
+
+	// Device assignments (Nautobot vrf-device-assignments)
+	Devices []uuid.UUID `json:"devices,omitempty" yaml:"devices,omitempty"`
 
 	// Shared metadata (status, role, tags, tenant, custom fields, external IDs, provider metadata)
 	ObjectMeta `yaml:",inline"`
@@ -46,4 +54,20 @@ func (v *CaniVRF) GetID() uuid.UUID {
 		return uuid.Nil
 	}
 	return v.ID
+}
+
+// FindVRFByNameOrID looks up a VRF by UUID string or exact name (case-insensitive).
+func (inv *Inventory) FindVRFByNameOrID(arg string) (*CaniVRF, error) {
+	if id, err := uuid.Parse(arg); err == nil {
+		if vrf, ok := inv.VRFs[id]; ok {
+			return vrf, nil
+		}
+		return nil, fmt.Errorf("VRF with UUID %q not found", arg)
+	}
+	for _, vrf := range inv.VRFs {
+		if strings.EqualFold(vrf.Name, arg) {
+			return vrf, nil
+		}
+	}
+	return nil, fmt.Errorf("VRF %q not found", arg)
 }

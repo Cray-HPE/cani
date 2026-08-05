@@ -479,3 +479,96 @@ func TestRemoveLocationUnlinksFromParent(t *testing.T) {
 		}
 	}
 }
+
+// TestAddInterfaceAppendsToDeviceSpec verifies that AddInterface persists the
+// interface in the device's InterfaceSpec slice so it survives RebuildDerivedState.
+func TestAddInterfaceAppendsToDeviceSpec(t *testing.T) {
+	deviceID := uuid.New()
+	inv := NewInventory()
+	inv.Devices[deviceID] = &CaniDeviceType{
+		ID:   deviceID,
+		Name: "sw-leaf-01",
+		Interfaces: []InterfaceSpec{
+			{ID: uuid.New(), Name: "1/1/1", Type: "100gbase-x-qsfp28"},
+		},
+	}
+	inv.RebuildDerivedState()
+
+	iface := &CaniInterface{
+		ID:            uuid.New(),
+		Name:          "lag26",
+		InterfaceType: "lag",
+		DeviceID:      deviceID,
+	}
+
+	if err := inv.AddInterface(iface); err != nil {
+		t.Fatalf("AddInterface() unexpected error: %v", err)
+	}
+
+	// Verify it's in the flat map
+	if _, ok := inv.Interfaces[iface.ID]; !ok {
+		t.Error("expected interface in Interfaces map")
+	}
+
+	// Verify it's in the device's spec slice
+	dev := inv.Devices[deviceID]
+	found := false
+	for _, spec := range dev.Interfaces {
+		if spec.ID == iface.ID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected interface appended to device.Interfaces spec slice")
+	}
+
+	// Verify it survives RebuildDerivedState
+	inv.RebuildDerivedState()
+	if _, ok := inv.Interfaces[iface.ID]; !ok {
+		t.Error("interface lost after RebuildDerivedState")
+	}
+}
+
+// TestAddInterfaceAppendsToModuleSpec verifies module-owned interfaces.
+func TestAddInterfaceAppendsToModuleSpec(t *testing.T) {
+	deviceID := uuid.New()
+	modID := uuid.New()
+	inv := NewInventory()
+	inv.Devices[deviceID] = &CaniDeviceType{ID: deviceID, Name: "server-01"}
+	inv.Modules[modID] = &CaniModuleType{
+		ID:           modID,
+		Name:         "nic-01",
+		ParentDevice: deviceID,
+		Interfaces:   []InterfaceSpec{},
+	}
+	inv.RebuildDerivedState()
+
+	iface := &CaniInterface{
+		ID:            uuid.New(),
+		Name:          "eth0",
+		InterfaceType: "1000base-t",
+		DeviceID:      modID,
+	}
+
+	if err := inv.AddInterface(iface); err != nil {
+		t.Fatalf("AddInterface() unexpected error: %v", err)
+	}
+
+	mod := inv.Modules[modID]
+	found := false
+	for _, spec := range mod.Interfaces {
+		if spec.ID == iface.ID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected interface appended to module.Interfaces spec slice")
+	}
+
+	inv.RebuildDerivedState()
+	if _, ok := inv.Interfaces[iface.ID]; !ok {
+		t.Error("module interface lost after RebuildDerivedState")
+	}
+}

@@ -161,6 +161,55 @@ func (inv *Inventory) RemoveCable(id uuid.UUID) error {
 	return nil
 }
 
+// AddInterface inserts a standalone interface into the inventory.
+// The interface's DeviceID must reference an existing device or module.
+func (inv *Inventory) AddInterface(iface *CaniInterface) error {
+	if iface == nil {
+		return fmt.Errorf("interface must not be nil")
+	}
+	if _, exists := inv.Interfaces[iface.ID]; exists {
+		return fmt.Errorf("interface %s already exists", iface.ID)
+	}
+	if iface.DeviceID == uuid.Nil {
+		return fmt.Errorf("interface device ID must not be nil")
+	}
+	dev, devOK := inv.Devices[iface.DeviceID]
+	mod, modOK := inv.Modules[iface.DeviceID]
+	if !devOK && !modOK {
+		return fmt.Errorf("device or module %s not found", iface.DeviceID)
+	}
+	for _, existing := range inv.Interfaces {
+		if existing.DeviceID == iface.DeviceID && existing.Name == iface.Name {
+			return fmt.Errorf("interface %q already exists on device %s", iface.Name, iface.DeviceID)
+		}
+	}
+
+	spec := InterfaceSpec{
+		ID:               iface.ID,
+		Name:             iface.Name,
+		Type:             iface.InterfaceType,
+		Label:            iface.Label,
+		Role:             iface.Role,
+		MacAddress:       iface.MacAddress,
+		Tags:             iface.Tags,
+		Lag:              iface.Lag,
+		Mode:             iface.Mode,
+		UntaggedVLAN:     iface.UntaggedVLAN,
+		TaggedVLANs:      iface.TaggedVLANs,
+		VRF:              iface.VRF,
+		Status:           iface.Status,
+		ProviderMetadata: iface.ProviderMetadata,
+	}
+	if devOK {
+		dev.Interfaces = append(dev.Interfaces, spec)
+	} else {
+		mod.Interfaces = append(mod.Interfaces, spec)
+	}
+
+	inv.Interfaces[iface.ID] = iface
+	return nil
+}
+
 // AddVLAN inserts a single VLAN into the inventory.
 func (inv *Inventory) AddVLAN(vlan *CaniVLAN) error {
 	if vlan == nil {
@@ -180,6 +229,11 @@ func (inv *Inventory) AddVRF(vrf *CaniVRF) error {
 	}
 	if _, exists := inv.VRFs[vrf.ID]; exists {
 		return fmt.Errorf("vrf %s already exists", vrf.ID)
+	}
+	for _, devID := range vrf.Devices {
+		if _, ok := inv.Devices[devID]; !ok {
+			return fmt.Errorf("device %s not found", devID)
+		}
 	}
 	inv.VRFs[vrf.ID] = vrf
 	return nil
