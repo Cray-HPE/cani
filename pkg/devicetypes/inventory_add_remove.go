@@ -185,18 +185,20 @@ func (inv *Inventory) AddInterface(iface *CaniInterface) error {
 	}
 
 	spec := InterfaceSpec{
-		ID:           iface.ID,
-		Name:         iface.Name,
-		Type:         iface.InterfaceType,
-		Label:        iface.Label,
-		Role:         iface.Role,
-		MacAddress:   iface.MacAddress,
-		Tags:         iface.Tags,
-		Lag:          iface.Lag,
-		Mode:         iface.Mode,
-		UntaggedVLAN: iface.UntaggedVLAN,
-		TaggedVLANs:  iface.TaggedVLANs,
-		VRF:          iface.VRF,
+		ID:               iface.ID,
+		Name:             iface.Name,
+		Type:             iface.InterfaceType,
+		Label:            iface.Label,
+		Role:             iface.Role,
+		MacAddress:       iface.MacAddress,
+		Tags:             iface.Tags,
+		Lag:              iface.Lag,
+		Mode:             iface.Mode,
+		UntaggedVLAN:     iface.UntaggedVLAN,
+		TaggedVLANs:      iface.TaggedVLANs,
+		VRF:              iface.VRF,
+		Status:           iface.Status,
+		ProviderMetadata: iface.ProviderMetadata,
 	}
 	if devOK {
 		dev.Interfaces = append(dev.Interfaces, spec)

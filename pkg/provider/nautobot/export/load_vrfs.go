@@ -73,24 +73,38 @@ func (e *Exporter) loadVRFs(ctx context.Context, inventory *devicetypes.Inventor
 		}
 
 		// Create VRF-device assignments for explicitly listed devices.
-		for _, devID := range vrf.Devices {
-			dev, ok := inventory.Devices[devID]
-			if !ok || dev == nil {
-				continue
-			}
-			nautobotDevID, ok := dev.ExternalIDs[externalIDKeyNautobot]
-			if !ok || nautobotDevID == uuid.Nil {
-				continue
-			}
-			if err := e.ensureVRFDeviceAssignment(ctx, nautobotDevID, vrf.Name); err != nil {
-				result.Errors = append(result.Errors,
-					fmt.Sprintf("vrf %s: device assignment %s: %v", vrf.Name, dev.Name, err))
-			}
-		}
+		e.loadVRFDeviceAssignments(ctx, vrf, inventory, result)
 	}
 
 	clog.Info("  VRFs created: %d", result.VRFsCreated)
 	return nil
+}
+
+// loadVRFDeviceAssignments links a VRF to each device the operator listed.
+func (e *Exporter) loadVRFDeviceAssignments(
+	ctx context.Context, vrf *devicetypes.CaniVRF,
+	inventory *devicetypes.Inventory, result *LoadResult,
+) {
+	for _, devID := range vrf.Devices {
+		dev, ok := inventory.Devices[devID]
+		if !ok || dev == nil {
+			clog.Skipped("  VRF %s: device %s not found in inventory", vrf.Name, devID)
+			result.VRFDeviceAssignmentsSkipped++
+			continue
+		}
+		nautobotDevID, ok := dev.ExternalIDs[externalIDKeyNautobot]
+		if !ok || nautobotDevID == uuid.Nil {
+			clog.Skipped("  VRF %s: device %q not in Nautobot; assignment skipped", vrf.Name, dev.Name)
+			result.VRFDeviceAssignmentsSkipped++
+			continue
+		}
+		if err := e.ensureVRFDeviceAssignment(ctx, nautobotDevID, vrf.Name); err != nil {
+			result.Errors = append(result.Errors,
+				fmt.Sprintf("vrf %s: device assignment %s: %v", vrf.Name, dev.Name, err))
+			continue
+		}
+		result.VRFDeviceAssignmentsCreated++
+	}
 }
 
 // findVRF returns the Nautobot ID of an existing VRF with the given name, or

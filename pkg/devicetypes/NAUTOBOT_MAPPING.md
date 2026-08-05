@@ -340,7 +340,7 @@ Imported by `FetchVRFs()` + `MapVRFs()`; exported in Phase 6c by `loadVRFs()` in
 | `RD` | `string` | `VRF.rd` | **Mapped** | Route distinguisher (RFC 4364); mapped when non-empty |
 | `Namespace` | `string` | `VRF.namespace` (FK) | Partial | Get-or-create on export (defaults to `Global`); not resolved on import |
 | `Description` | `string` | `VRF.description` | **Mapped** | Mapped when non-empty |
-| `Devices` | `[]uuid.UUID` | `VRFDeviceAssignment` (M2M) | **Mapped** | Exported via `ensureVRFDeviceAssignment()` in `load_vrfs.go`; not imported |
+| `Devices` | `[]uuid.UUID` | `VRFDeviceAssignment` (M2M) | Partial | Exported via `ensureVRFDeviceAssignment()` in `load_vrfs.go`; not imported |
 | `Status` | `string` | `VRF.status` (FK) | **Mapped** | Resolved by name |
 | `Tags` | `[]string` | `VRF.tags` | **Mapped** | Exported via the shared tag resolver |
 | `CustomFields` | `map[string]any` | `VRF.custom_fields` | Partial | Imported; not sent on export |

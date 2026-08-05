@@ -78,7 +78,25 @@ func addVRF(cmd *cli.Command, args []string) error {
 		ID:   uuid.New(),
 		Name: name,
 	}
+	applyVRFFlags(cmd, vrf)
 
+	if err := resolveVRFDevices(cmd, inventory, vrf); err != nil {
+		return err
+	}
+
+	if err := inventory.AddVRF(vrf); err != nil {
+		return fmt.Errorf("failed to add vrf: %w", err)
+	}
+
+	if err := datastores.Datastore.Save(inventory); err != nil {
+		return fmt.Errorf("failed to save inventory: %w", err)
+	}
+
+	log.Printf("Added VRF %q (%s)", vrf.Name, vrf.ID)
+	return nil
+}
+
+func applyVRFFlags(cmd *cli.Command, vrf *devicetypes.CaniVRF) {
 	if cmd.Flags().Changed("rd") {
 		vrf.RD, _ = cmd.Flags().GetString("rd")
 	}
@@ -95,7 +113,9 @@ func addVRF(cmd *cli.Command, args []string) error {
 	if len(tags) > 0 {
 		vrf.Tags = tags
 	}
+}
 
+func resolveVRFDevices(cmd *cli.Command, inventory *devicetypes.Inventory, vrf *devicetypes.CaniVRF) error {
 	deviceRefs, _ := cmd.Flags().GetStringArray("device")
 	for _, ref := range deviceRefs {
 		id, err := resolve.Device(inventory, ref)
@@ -104,15 +124,5 @@ func addVRF(cmd *cli.Command, args []string) error {
 		}
 		vrf.Devices = append(vrf.Devices, id)
 	}
-
-	if err := inventory.AddVRF(vrf); err != nil {
-		return fmt.Errorf("failed to add vrf: %w", err)
-	}
-
-	if err := datastores.Datastore.Save(inventory); err != nil {
-		return fmt.Errorf("failed to save inventory: %w", err)
-	}
-
-	log.Printf("Added VRF %q (%s)", vrf.Name, vrf.ID)
 	return nil
 }

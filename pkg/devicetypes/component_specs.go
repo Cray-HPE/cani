@@ -5,20 +5,22 @@ import "github.com/google/uuid"
 // InterfaceSpec defines an interface template in a device/module type.
 // When used in inventory, ID and ConnectedCable are populated.
 type InterfaceSpec struct {
-	ID             uuid.UUID          `yaml:"id,omitempty" json:"id,omitempty"`
-	Name           string             `yaml:"name" json:"name"`
-	Type           InterfacesElemType `yaml:"type" json:"type"`
-	Label          string             `yaml:"label,omitempty" json:"label,omitempty"`
-	Role           string             `yaml:"role,omitempty" json:"role,omitempty"`
-	MacAddress     string             `yaml:"mac_address,omitempty" json:"macAddress,omitempty"`
-	MgmtOnly       *bool              `yaml:"mgmt_only,omitempty" json:"mgmt_only,omitempty"`
-	Tags           []string           `yaml:"tags,omitempty" json:"tags,omitempty"`
-	Lag            string             `yaml:"lag,omitempty" json:"lag,omitempty"`
-	Mode           string             `yaml:"mode,omitempty" json:"mode,omitempty"`
-	UntaggedVLAN   int                `yaml:"untagged_vlan,omitempty" json:"untaggedVlan,omitempty"`
-	TaggedVLANs    []int              `yaml:"tagged_vlans,omitempty" json:"taggedVlans,omitempty"`
-	VRF            string             `yaml:"vrf,omitempty" json:"vrf,omitempty"`
-	ConnectedCable *uuid.UUID         `yaml:"connected_cable,omitempty" json:"connectedCable,omitempty"`
+	ID               uuid.UUID          `yaml:"id,omitempty" json:"id,omitempty"`
+	Name             string             `yaml:"name" json:"name"`
+	Type             InterfacesElemType `yaml:"type" json:"type"`
+	Label            string             `yaml:"label,omitempty" json:"label,omitempty"`
+	Role             string             `yaml:"role,omitempty" json:"role,omitempty"`
+	MacAddress       string             `yaml:"mac_address,omitempty" json:"macAddress,omitempty"`
+	MgmtOnly         *bool              `yaml:"mgmt_only,omitempty" json:"mgmt_only,omitempty"`
+	Tags             []string           `yaml:"tags,omitempty" json:"tags,omitempty"`
+	Lag              string             `yaml:"lag,omitempty" json:"lag,omitempty"`
+	Mode             string             `yaml:"mode,omitempty" json:"mode,omitempty"`
+	UntaggedVLAN     int                `yaml:"untagged_vlan,omitempty" json:"untaggedVlan,omitempty"`
+	TaggedVLANs      []int              `yaml:"tagged_vlans,omitempty" json:"taggedVlans,omitempty"`
+	VRF              string             `yaml:"vrf,omitempty" json:"vrf,omitempty"`
+	ConnectedCable   *uuid.UUID         `yaml:"connected_cable,omitempty" json:"connectedCable,omitempty"`
+	Status           string             `yaml:"status,omitempty" json:"status,omitempty"`
+	ProviderMetadata map[string]any     `yaml:"providerMetadata,omitempty" json:"providerMetadata,omitempty"`
 }
 
 // CaniInterface represents an instantiated interface on a specific device.

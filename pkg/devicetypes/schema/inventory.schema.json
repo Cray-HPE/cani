@@ -1151,7 +1151,14 @@
         "name": {
           "type": "string"
         },
+        "providerMetadata": {
+          "additionalProperties": {},
+          "type": "object"
+        },
         "role": {
+          "type": "string"
+        },
+        "status": {
           "type": "string"
         },
         "taggedVlans": {
