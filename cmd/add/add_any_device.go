@@ -82,7 +82,7 @@ func addAnyDevice(cmd *cli.Command, args []string, device *devicetypes.CaniDevic
 		provMeta:  collectProviderMetadata(cmd),
 	}
 
-	devicesToAdd := buildDevicesToAdd(device, names, attrs, qty)
+	devicesToAdd := buildDevicesToAdd(inventory, device, names, attrs, qty)
 
 	return saveAndLogDevices(inventory, devicesToAdd, qty)
 }
@@ -108,6 +108,7 @@ type deviceAttrs struct {
 // buildDevicesToAdd constructs the device(s) to add, expanding any child
 // devices defined by device-bay defaults.
 func buildDevicesToAdd(
+	inventory *devicetypes.Inventory,
 	device *devicetypes.CaniDeviceType,
 	names []string,
 	attrs deviceAttrs,
@@ -120,7 +121,7 @@ func buildDevicesToAdd(
 		if setName {
 			name = names[i]
 		}
-		d := buildOneDevice(device, name, setName, attrs)
+		d := buildOneDevice(inventory, device, name, setName, attrs)
 		devicesToAdd[d.ID] = d
 
 		// Expand child devices from device-bay defaults.
@@ -134,6 +135,7 @@ func buildDevicesToAdd(
 // buildOneDevice constructs a single device from the resolved type, applying
 // the supplied parent, name, status, serial, tags, and provider metadata.
 func buildOneDevice(
+	inventory *devicetypes.Inventory,
 	device *devicetypes.CaniDeviceType,
 	name string,
 	setName bool,
@@ -152,7 +154,7 @@ func buildOneDevice(
 		d.Serial = attrs.serialArg
 	}
 	applyTagsToDevice(&d, attrs.tags)
-	applyProviderMetadataToDevice(&d, attrs.provMeta)
+	applyProviderMetadataToDevice(inventory, &d, attrs.provMeta)
 	return &d
 }
 

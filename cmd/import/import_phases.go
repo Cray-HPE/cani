@@ -126,8 +126,29 @@ func displayTransformSummary(ctx *etlContext, result *devicetypes.TransformResul
 	}
 }
 
+// recordInventoryOwner stamps the importing provider onto the inventory so
+// generic CRUD can later scope provider hooks to the provider that owns the
+// data. Importing a second provider into the same inventory is rejected: the
+// two would fight over naming and provider metadata.
+func recordInventoryOwner(ctx *etlContext) error {
+	slug := ctx.provider.Slug()
+	switch ctx.inventory.Provider {
+	case "":
+		ctx.inventory.Provider = slug
+	case slug:
+	default:
+		return fmt.Errorf(
+			"inventory was imported from provider %q; importing from %q would mix two providers in one inventory",
+			ctx.inventory.Provider, slug)
+	}
+	return nil
+}
+
 // mergeTransformResult merges and validates all transformed entities.
 func mergeTransformResult(ctx *etlContext, result *devicetypes.TransformResult) error {
+	if err := recordInventoryOwner(ctx); err != nil {
+		return err
+	}
 	result.EnsureUniqueDeviceNames()
 	mergeMetadata(ctx, result.Metadata)
 	locationRemap := mergeLocations(ctx, result.Locations)

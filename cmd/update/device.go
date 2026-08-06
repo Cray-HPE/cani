@@ -92,10 +92,10 @@ func updateDevice(cmd *cli.Command, args []string) error {
 	if err := applyParentUpdate(cmd, inventory, device); err != nil {
 		return err
 	}
-	if err := applyTagsAndMetadata(cmd, device); err != nil {
+	if err := applyTagsAndMetadata(cmd, inventory, device); err != nil {
 		return err
 	}
-	if err := applyProviderDeviceFlags(cmd, device); err != nil {
+	if err := applyProviderDeviceFlags(cmd, inventory, device); err != nil {
 		return err
 	}
 	if err := applyPrimaryIPs(cmd, inventory, device); err != nil {
@@ -206,10 +206,10 @@ func findVLANByRef(inventory *devicetypes.Inventory, ref string) uuid.UUID {
 	return uuid.Nil
 }
 
-// applyProviderDeviceFlags lets each registered provider apply its own
-// device-update flags to the device.
-func applyProviderDeviceFlags(cmd *cli.Command, device *devicetypes.CaniDeviceType) error {
-	for _, p := range provider.All() {
+// applyProviderDeviceFlags lets the provider that owns the inventory apply its
+// own device-update flags to the device.
+func applyProviderDeviceFlags(cmd *cli.Command, inventory *devicetypes.Inventory, device *devicetypes.CaniDeviceType) error {
+	for _, p := range provider.ForInventory(inventory) {
 		fp, ok := p.(provider.DeviceUpdateFlagProvider)
 		if !ok {
 			continue

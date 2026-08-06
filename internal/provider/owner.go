@@ -23,40 +23,30 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package update
+package provider
 
 import (
-	"fmt"
-	"strings"
-
-	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
 
-// parseSetFlags splits --set key=value pairs into a map.
-func parseSetFlags(pairs []string) (map[string]string, error) {
-	result := make(map[string]string, len(pairs))
-	for _, p := range pairs {
-		parts := strings.SplitN(p, "=", 2)
-		if len(parts) != 2 {
-			return nil, fmt.Errorf("invalid --set value %q; expected key=value", p)
-		}
-		result[parts[0]] = parts[1]
+// ForInventory returns the providers allowed to act on inv.
+//
+// Generic CRUD (add, remove, update, show) offers optional interfaces such as
+// MetadataApplier and RackPostAddHook to providers. Those hooks mutate the
+// inventory, so only the provider that owns it may run: applying every
+// registered provider's hooks would file a user's metadata under a provider
+// that is not in use, or stamp another provider's naming scheme onto an object.
+//
+// An inventory that does not record an owner predates provider stamping, so
+// every provider is returned to preserve existing behaviour. An inventory owned
+// by a provider that is not registered gets none, since no registered provider
+// can speak for it.
+func ForInventory(inv *devicetypes.Inventory) []Provider {
+	if inv == nil || inv.Provider == "" {
+		return All()
 	}
-	return result, nil
-}
-
-// applyProviderMetadata parses key=value pairs and lets the provider that owns
-// the inventory merge them into its own section of the metadata map.
-func applyProviderMetadata(inv *devicetypes.Inventory, pm *map[string]any, pairs []string) error {
-	parsed, err := parseSetFlags(pairs)
-	if err != nil {
-		return fmt.Errorf("invalid --metadata: %w", err)
-	}
-	for _, p := range provider.ForInventory(inv) {
-		if ma, ok := p.(provider.MetadataApplier); ok {
-			ma.ApplyMetadata(pm, parsed)
-		}
+	if p := GetProvider(inv.Provider); p != nil {
+		return []Provider{p}
 	}
 	return nil
 }

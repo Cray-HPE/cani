@@ -87,14 +87,14 @@ func applyParentUpdate(cmd *cli.Command, inventory *devicetypes.Inventory, devic
 }
 
 // applyTagsAndMetadata handles --tag and --metadata changes.
-func applyTagsAndMetadata(cmd *cli.Command, device *devicetypes.CaniDeviceType) error {
+func applyTagsAndMetadata(cmd *cli.Command, inventory *devicetypes.Inventory, device *devicetypes.CaniDeviceType) error {
 	if cmd.Flags().Changed("tag") {
 		tags, _ := cmd.Flags().GetStringArray("tag")
 		device.Tags = tags
 	}
 	if cmd.Flags().Changed("metadata") {
 		pairs, _ := cmd.Flags().GetStringArray("metadata")
-		if err := applyProviderMetadata(&device.ProviderMetadata, pairs); err != nil {
+		if err := applyProviderMetadata(inventory, &device.ProviderMetadata, pairs); err != nil {
 			return err
 		}
 	}

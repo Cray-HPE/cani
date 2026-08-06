@@ -81,7 +81,7 @@ func updateRack(cmd *cli.Command, args []string) error {
 	if err := applyRackLocation(cmd, inventory, rack); err != nil {
 		return err
 	}
-	if err := applyRackTagsMetadata(cmd, rack); err != nil {
+	if err := applyRackTagsMetadata(cmd, inventory, rack); err != nil {
 		return err
 	}
 
@@ -143,14 +143,14 @@ func applyRackLocation(cmd *cli.Command, inventory *devicetypes.Inventory, rack 
 }
 
 // applyRackTagsMetadata applies the --tag and --metadata flags when set.
-func applyRackTagsMetadata(cmd *cli.Command, rack *devicetypes.CaniRackType) error {
+func applyRackTagsMetadata(cmd *cli.Command, inventory *devicetypes.Inventory, rack *devicetypes.CaniRackType) error {
 	if cmd.Flags().Changed("tag") {
 		tags, _ := cmd.Flags().GetStringArray("tag")
 		rack.Tags = tags
 	}
 	if cmd.Flags().Changed("metadata") {
 		pairs, _ := cmd.Flags().GetStringArray("metadata")
-		if err := applyProviderMetadata(&rack.ProviderMetadata, pairs); err != nil {
+		if err := applyProviderMetadata(inventory, &rack.ProviderMetadata, pairs); err != nil {
 			return err
 		}
 	}

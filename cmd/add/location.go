@@ -94,7 +94,7 @@ func addLocation(cmd *cli.Command, args []string) error {
 	resolveParent(cmd, loc, inventory)
 
 	if meta := collectProviderMetadata(cmd); len(meta) > 0 {
-		applyProviderMetadataMap(&loc.ProviderMetadata, meta)
+		applyProviderMetadataMap(inventory, &loc.ProviderMetadata, meta)
 	}
 
 	if err := inventory.AddLocation(loc); err != nil {

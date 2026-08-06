@@ -100,7 +100,7 @@ func addRacks(inventory *devicetypes.Inventory, rack *devicetypes.CaniRackType, 
 			r.Serial = attrs.serialArg
 		}
 		applyTagsToRack(&r, attrs.tags)
-		applyProviderMetadataToRack(&r, attrs.provMeta)
+		applyProviderMetadataToRack(inventory, &r, attrs.provMeta)
 
 		// Let registered providers apply post-add logic.
 		if err := runRackPostAddHooks(&r, inventory); err != nil {

@@ -172,7 +172,7 @@ func addDeviceStrategy(cmd *cli.Command, result *lookupResult, qty int, nameArg 
 			device.Serial = serialArg
 		}
 		applyTagsToDevice(&device, tags)
-		applyProviderMetadataToDevice(&device, provMeta)
+		applyProviderMetadataToDevice(inventory, &device, provMeta)
 		devicesToAdd[device.ID] = &device
 
 		// Expand child devices from device-bay defaults.
@@ -292,7 +292,7 @@ func addDeviceLiteral(cmd *cli.Command, result *lookupResult, qty int, nameArg, 
 			device.Serial = serialArg
 		}
 		applyTagsToDevice(&device, tags)
-		applyProviderMetadataToDevice(&device, provMeta)
+		applyProviderMetadataToDevice(inventory, &device, provMeta)
 
 		// Place in rack OccupiedSlots so the rack view is accurate.
 		if rack := inventory.Racks[device.Parent]; rack != nil && device.RackPosition > 0 {

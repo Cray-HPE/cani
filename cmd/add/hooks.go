@@ -30,10 +30,10 @@ import (
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
 
-// runRackPostAddHooks iterates over all registered providers and calls
-// OnRackAdded on those that implement the RackPostAddHook interface.
+// runRackPostAddHooks calls OnRackAdded on the provider that owns the
+// inventory, if it implements the RackPostAddHook interface.
 func runRackPostAddHooks(rack *devicetypes.CaniRackType, inventory *devicetypes.Inventory) error {
-	for _, p := range provider.All() {
+	for _, p := range provider.ForInventory(inventory) {
 		if hook, ok := p.(provider.RackPostAddHook); ok {
 			if err := hook.OnRackAdded(rack, inventory); err != nil {
 				return err

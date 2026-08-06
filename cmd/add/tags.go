@@ -52,13 +52,13 @@ func applyTagsToDevice(device *devicetypes.CaniDeviceType, tags []string) {
 	}
 }
 
-// applyProviderMetadataMap lets each registered provider merge metadata
-// into its own section of the given provider-metadata map.
-func applyProviderMetadataMap(pm *map[string]any, meta map[string]string) {
+// applyProviderMetadataMap lets the provider that owns the inventory merge
+// metadata into its own section of the given provider-metadata map.
+func applyProviderMetadataMap(inv *devicetypes.Inventory, pm *map[string]any, meta map[string]string) {
 	if len(meta) == 0 {
 		return
 	}
-	for _, p := range provider.All() {
+	for _, p := range provider.ForInventory(inv) {
 		if ma, ok := p.(provider.MetadataApplier); ok {
 			ma.ApplyMetadata(pm, meta)
 		}
@@ -66,8 +66,8 @@ func applyProviderMetadataMap(pm *map[string]any, meta map[string]string) {
 }
 
 // applyProviderMetadataToDevice merges metadata into the device's provider metadata.
-func applyProviderMetadataToDevice(device *devicetypes.CaniDeviceType, meta map[string]string) {
-	applyProviderMetadataMap(&device.ProviderMetadata, meta)
+func applyProviderMetadataToDevice(inv *devicetypes.Inventory, device *devicetypes.CaniDeviceType, meta map[string]string) {
+	applyProviderMetadataMap(inv, &device.ProviderMetadata, meta)
 }
 
 // applyTagsToRack appends tags to a rack.
@@ -78,6 +78,6 @@ func applyTagsToRack(rack *devicetypes.CaniRackType, tags []string) {
 }
 
 // applyProviderMetadataToRack merges metadata into the rack's provider metadata.
-func applyProviderMetadataToRack(rack *devicetypes.CaniRackType, meta map[string]string) {
-	applyProviderMetadataMap(&rack.ProviderMetadata, meta)
+func applyProviderMetadataToRack(inv *devicetypes.Inventory, rack *devicetypes.CaniRackType, meta map[string]string) {
+	applyProviderMetadataMap(inv, &rack.ProviderMetadata, meta)
 }

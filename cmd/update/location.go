@@ -97,7 +97,7 @@ func updateLocation(cmd *cli.Command, args []string) error {
 
 	if cmd.Flags().Changed("metadata") {
 		pairs, _ := cmd.Flags().GetStringArray("metadata")
-		if err := applyProviderMetadata(&loc.ProviderMetadata, pairs); err != nil {
+		if err := applyProviderMetadata(inventory, &loc.ProviderMetadata, pairs); err != nil {
 			return err
 		}
 	}

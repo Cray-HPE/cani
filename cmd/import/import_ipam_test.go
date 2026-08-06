@@ -26,13 +26,27 @@
 package imprt
 
 import (
+	"context"
 	"strings"
 	"testing"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/config"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
 )
+
+// fakeProvider is a minimal Provider used to populate etlContext, which the
+// real ETL never builds without one.
+type fakeProvider struct{}
+
+func (fakeProvider) Transform(ctx context.Context, existing devicetypes.Inventory) (*devicetypes.TransformResult, error) {
+	return nil, nil
+}
+
+func (fakeProvider) NewProviderCmd(base *cli.Command) (*cli.Command, error) { return nil, nil }
+
+func (fakeProvider) Slug() string { return "fake" }
 
 // ipamResult builds a TransformResult populated with one of each IPAM entity.
 // Passing uuid.Nil for any id allocates a fresh UUID, letting callers reuse the
@@ -79,7 +93,7 @@ func TestMergeTransformResult_MergesIPAM(t *testing.T) {
 	vlanID, prefixID, ipID, vrfID := uuid.New(), uuid.New(), uuid.New(), uuid.New()
 	result := ipamResult(vlanID, prefixID, ipID, vrfID)
 
-	ctx := &etlContext{inventory: devicetypes.NewInventory()}
+	ctx := &etlContext{inventory: devicetypes.NewInventory(), provider: fakeProvider{}}
 	if err := mergeTransformResult(ctx, result); err != nil {
 		t.Fatalf("mergeTransformResult() unexpected error: %v", err)
 	}
@@ -113,7 +127,7 @@ func TestMergeTransformResult_MergesIPAM(t *testing.T) {
 // Data choice: distinct UUIDs with shared natural keys directly exercise the
 // dedup branch that a UUID-only merge would miss.
 func TestMergeTransformResult_IPAMIdempotent(t *testing.T) {
-	ctx := &etlContext{inventory: devicetypes.NewInventory()}
+	ctx := &etlContext{inventory: devicetypes.NewInventory(), provider: fakeProvider{}}
 
 	if err := mergeTransformResult(ctx, ipamResult(uuid.Nil, uuid.Nil, uuid.Nil, uuid.Nil)); err != nil {
 		t.Fatalf("first mergeTransformResult() unexpected error: %v", err)
@@ -152,7 +166,7 @@ func TestMergeTransformResultRejectsInvalidCable(t *testing.T) {
 
 	deviceID := uuid.New()
 	cableID := uuid.New()
-	ctx := &etlContext{inventory: devicetypes.NewInventory()}
+	ctx := &etlContext{inventory: devicetypes.NewInventory(), provider: fakeProvider{}}
 	result := &devicetypes.TransformResult{
 		Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
 			deviceID: {

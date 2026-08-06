@@ -117,7 +117,7 @@ func addRack(cmd *cli.Command, args []string) error {
 			rack.Serial = serialArg
 		}
 		applyTagsToRack(&rack, tags)
-		applyProviderMetadataToRack(&rack, provMeta)
+		applyProviderMetadataToRack(inventory, &rack, provMeta)
 
 		// Let registered providers apply post-add logic.
 		if err := runRackPostAddHooks(&rack, inventory); err != nil {
