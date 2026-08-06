@@ -27,6 +27,8 @@ package provider
 
 import (
 	"context"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/Cray-HPE/cani/internal/cli"
@@ -145,4 +147,65 @@ func TestRegisterPanicsOnNil(t *testing.T) {
 		}
 	}()
 	Register("fake-nil-test", nil)
+}
+
+// TestAllReturnsProvidersSortedByName verifies All orders providers by name and
+// returns the same order on every call.
+//
+// Why it matters: the command layer fans out over providers to register flags,
+// build subcommands, apply metadata and write config sections. Ranging the
+// registry map gives Go's randomized order, so those observable effects would
+// differ between runs; All is the ordered accessor those call sites use.
+// Inputs: three fakeProviders registered out of alphabetical order, then
+// repeated calls to All. Outputs: the test names appear in ascending order and
+// the sequence is identical across calls. Data choice: names registered as
+// zz/aa/mm guarantee the assertion fails if insertion order were preserved, and
+// filtering to the test prefix keeps the result independent of any provider
+// another test registered.
+func TestAllReturnsProvidersSortedByName(t *testing.T) {
+	names := []string{"fake-sort-zz", "fake-sort-aa", "fake-sort-mm"}
+	for _, name := range names {
+		Register(name, fakeProvider{slug: name})
+		t.Cleanup(func() { delete(providers, name) })
+	}
+
+	want := []string{"fake-sort-aa", "fake-sort-mm", "fake-sort-zz"}
+	for range 5 {
+		var got []string
+		for _, p := range All() {
+			if strings.HasPrefix(p.Slug(), "fake-sort-") {
+				got = append(got, p.Slug())
+			}
+		}
+		if !slices.Equal(got, want) {
+			t.Fatalf("All() = %v, want %v", got, want)
+		}
+	}
+}
+
+// TestNamesReturnsSortedNames verifies Names returns registered provider names
+// in ascending order.
+//
+// Why it matters: callers that need the name rather than the instance (config
+// seeding, config-file section ordering) rely on Names for a stable layout; an
+// unsorted result would reshuffle the user's config file on every save.
+// Inputs: two fakeProviders registered in descending order, then a call to
+// Names. Outputs: the test names in ascending order. Data choice: registering
+// yy before bb makes insertion order and sorted order differ.
+func TestNamesReturnsSortedNames(t *testing.T) {
+	for _, name := range []string{"fake-names-yy", "fake-names-bb"} {
+		Register(name, fakeProvider{slug: name})
+		t.Cleanup(func() { delete(providers, name) })
+	}
+
+	var got []string
+	for _, name := range Names() {
+		if strings.HasPrefix(name, "fake-names-") {
+			got = append(got, name)
+		}
+	}
+	want := []string{"fake-names-bb", "fake-names-yy"}
+	if !slices.Equal(got, want) {
+		t.Errorf("Names() = %v, want %v", got, want)
+	}
 }

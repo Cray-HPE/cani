@@ -52,7 +52,7 @@ func applyProviderMetadata(pm *map[string]any, pairs []string) error {
 	if err != nil {
 		return fmt.Errorf("invalid --metadata: %w", err)
 	}
-	for _, p := range provider.GetProviders() {
+	for _, p := range provider.All() {
 		if ma, ok := p.(provider.MetadataApplier); ok {
 			ma.ApplyMetadata(pm, parsed)
 		}

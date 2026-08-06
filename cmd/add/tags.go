@@ -58,7 +58,7 @@ func applyProviderMetadataMap(pm *map[string]any, meta map[string]string) {
 	if len(meta) == 0 {
 		return
 	}
-	for _, p := range provider.GetProviders() {
+	for _, p := range provider.All() {
 		if ma, ok := p.(provider.MetadataApplier); ok {
 			ma.ApplyMetadata(pm, meta)
 		}

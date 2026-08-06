@@ -33,7 +33,7 @@ import (
 // runRackPostAddHooks iterates over all registered providers and calls
 // OnRackAdded on those that implement the RackPostAddHook interface.
 func runRackPostAddHooks(rack *devicetypes.CaniRackType, inventory *devicetypes.Inventory) error {
-	for _, p := range provider.GetProviders() {
+	for _, p := range provider.All() {
 		if hook, ok := p.(provider.RackPostAddHook); ok {
 			if err := hook.OnRackAdded(rack, inventory); err != nil {
 				return err

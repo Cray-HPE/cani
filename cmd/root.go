@@ -132,7 +132,7 @@ func setupDomain(cmd *cli.Command, args []string) error {
 	}
 
 	// 2) ensure every registered provider has a key in Conf.Providers
-	for name := range provider.GetProviders() {
+	for _, name := range provider.Names() {
 		if _, ok := config.Cfg.Providers[name]; !ok {
 			config.Cfg.Providers[name] = map[string]any{}
 		}
@@ -150,7 +150,8 @@ func setupDomain(cmd *cli.Command, args []string) error {
 	}
 
 	// 3) hand each plugin its own section of the map
-	for name, p := range provider.GetProviders() {
+	for _, p := range provider.All() {
+		name := p.Slug()
 		if cfgSection, ok := config.Cfg.Providers[name]; ok {
 			if c, ok := p.(provider.Configurer); ok {
 				if err := c.Configure(cfgSection); err != nil {

@@ -69,7 +69,7 @@ func newDeviceCommand() *cli.Command {
 	cmd.Flags().String(flagBMCOf, "", "Mark this device as the BMC of the given parent device (UUID or name)")
 
 	// Let providers contribute their own device-update flags.
-	for _, p := range provider.GetProviders() {
+	for _, p := range provider.All() {
 		if fp, ok := p.(provider.DeviceUpdateFlagProvider); ok {
 			fp.RegisterDeviceUpdateFlags(cmd)
 		}
@@ -209,7 +209,7 @@ func findVLANByRef(inventory *devicetypes.Inventory, ref string) uuid.UUID {
 // applyProviderDeviceFlags lets each registered provider apply its own
 // device-update flags to the device.
 func applyProviderDeviceFlags(cmd *cli.Command, device *devicetypes.CaniDeviceType) error {
-	for _, p := range provider.GetProviders() {
+	for _, p := range provider.All() {
 		fp, ok := p.(provider.DeviceUpdateFlagProvider)
 		if !ok {
 			continue

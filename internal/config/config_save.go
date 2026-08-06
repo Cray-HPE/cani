@@ -121,7 +121,8 @@ func ensureTopLevelKeys(docContent *yaml.Node) {
 // mergeProviderDefaults ensures each registered provider has a section in the
 // node tree and in Cfg.Providers, then merges its default options.
 func mergeProviderDefaults(providersNode *yaml.Node) {
-	for name, p := range provider.GetProviders() {
+	for _, p := range provider.All() {
+		name := p.Slug()
 		providerNode, _ := findNodeByKey(providersNode, name)
 		if providerNode == nil {
 			providerNode = &yaml.Node{Kind: yaml.MappingNode, Tag: tagMap}
@@ -190,8 +191,8 @@ func mergeSubsectionDefaults(providerNode *yaml.Node, section string, defaults m
 func applyAllComments(docContent, providersNode *yaml.Node) {
 	applyComments(docContent, extractComments(Config{}))
 
-	for name, p := range provider.GetProviders() {
-		providerNode, _ := findNodeByKey(providersNode, name)
+	for _, p := range provider.All() {
+		providerNode, _ := findNodeByKey(providersNode, p.Slug())
 		if providerNode == nil {
 			continue
 		}

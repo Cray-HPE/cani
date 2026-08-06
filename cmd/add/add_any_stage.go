@@ -70,7 +70,7 @@ func snapshotStagedDevices(inventory *devicetypes.Inventory) map[uuid.UUID]bool 
 // stageDevices walks registered providers and stages devices for the slug,
 // stopping at the first provider that stages anything.
 func stageDevices(inventory *devicetypes.Inventory, device *devicetypes.CaniDeviceType, qty int) int {
-	for _, p := range provider.GetProviders() {
+	for _, p := range provider.All() {
 		if staged := stageWithProvider(p, inventory, device.Slug, qty); staged > 0 {
 			return staged
 		}
@@ -129,7 +129,7 @@ func logStagedDevices(inv *devicetypes.Inventory, alreadyStaged map[uuid.UUID]bo
 		typeName := displayTypeName(dev.GetType())
 		log.Printf("%s was successfully staged to be added to the system", typeName)
 		log.Printf("UUID: %s", id)
-		for _, p := range provider.GetProviders() {
+		for _, p := range provider.All() {
 			describer, ok := p.(provider.StagedDeviceDescriber)
 			if !ok {
 				continue

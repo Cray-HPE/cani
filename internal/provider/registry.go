@@ -27,6 +27,7 @@ package provider
 
 import (
 	"fmt"
+	"sort"
 	"sync"
 )
 
@@ -63,12 +64,44 @@ func GetProvider(name string) Provider {
 // GetProviders returns a snapshot of every registered plugin. The returned map
 // is a copy, so callers may range over it safely while providers register and
 // cannot mutate the registry through it.
+//
+// Ranging a map is unordered; prefer All or Names when the iteration order is
+// observable (command help, config file layout, applied mutations).
 func GetProviders() map[string]Provider {
 	mu.RLock()
 	defer mu.RUnlock()
 	out := make(map[string]Provider, len(providers))
 	for name, p := range providers {
 		out[name] = p
+	}
+	return out
+}
+
+// Names returns every registered provider name in sorted order.
+func Names() []string {
+	mu.RLock()
+	defer mu.RUnlock()
+	names := make([]string, 0, len(providers))
+	for name := range providers {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+// All returns every registered plugin ordered by name, so callers that fan out
+// over providers produce the same result on every run.
+func All() []Provider {
+	mu.RLock()
+	defer mu.RUnlock()
+	names := make([]string, 0, len(providers))
+	for name := range providers {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	out := make([]Provider, 0, len(names))
+	for _, name := range names {
+		out = append(out, providers[name])
 	}
 	return out
 }

@@ -128,7 +128,7 @@ func NewCommand() *cli.Command {
 
 // addProviderSubcommands adds a subcommand for each registered provider
 func addProviderSubcommands(importCmd *cli.Command) {
-	for _, p := range provider.GetProviders() {
+	for _, p := range provider.All() {
 		// Get provider-specific import command (with flags)
 		providerImportCmd, err := p.NewProviderCmd(importCmd)
 		if err != nil || providerImportCmd == nil {

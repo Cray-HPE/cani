@@ -63,7 +63,7 @@ func NewCommand() *cli.Command {
 
 // addProviderSubcommands adds a subcommand for each registered provider
 func addProviderSubcommands(exportCmd *cli.Command) {
-	for _, p := range provider.GetProviders() {
+	for _, p := range provider.All() {
 		// Get provider-specific export command (with flags)
 		providerExportCmd, err := p.NewProviderCmd(exportCmd)
 		if err != nil || providerExportCmd == nil {
