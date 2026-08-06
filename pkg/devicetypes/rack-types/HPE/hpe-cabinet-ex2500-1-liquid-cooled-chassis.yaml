@@ -46,10 +46,3 @@ device-bays:
       # - name: Chassis 4
       #   default:
       #     slug: hpe-crayex-chassis-management-module
-
-provider_defaults:
-  csm:
-    Class: Hill
-    Ordinal: 8000
-    StartingHmnVlan: 3000
-    EndingHmnVlan: 3999

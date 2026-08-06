@@ -41,7 +41,7 @@ const hmnVlanKey = "hmnVlan"
 // present, computes the next cabinet number and VLAN, sets the
 // appropriate provider metadata on the rack, and logs the results.
 func (p *Csm) OnRackAdded(r *devicetypes.CaniRackType, inventory *devicetypes.Inventory) error {
-	defaults := commands.DecodeRackCSMDefaults(r.ProviderDefaults)
+	defaults := commands.LookupRackDefaults(r.Slug)
 	if defaults == nil || defaults.Ordinal == 0 {
 		return nil
 	}

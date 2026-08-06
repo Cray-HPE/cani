@@ -31,38 +31,37 @@ import (
 
 // RackProviderDefaultsCSM holds CSM-specific defaults for a rack type.
 type RackProviderDefaultsCSM struct {
-	Class           string `json:"class,omitempty" yaml:"Class,omitempty"`
-	Ordinal         int    `json:"ordinal,omitempty" yaml:"Ordinal,omitempty"`
-	StartingHmnVlan int    `json:"startingHmnVlan,omitempty" yaml:"StartingHmnVlan,omitempty"`
-	EndingHmnVlan   int    `json:"endingHmnVlan,omitempty" yaml:"EndingHmnVlan,omitempty"`
+	Class           string `json:"class,omitempty" yaml:"class,omitempty"`
+	Ordinal         int    `json:"ordinal,omitempty" yaml:"ordinal,omitempty"`
+	StartingHmnVlan int    `json:"startingHmnVlan,omitempty" yaml:"starting_hmn_vlan,omitempty"`
+	EndingHmnVlan   int    `json:"endingHmnVlan,omitempty" yaml:"ending_hmn_vlan,omitempty"`
 }
 
-// DecodeRackCSMDefaults extracts the CSM-specific defaults from the
-// generic ProviderDefaults map on a CaniRackType.  Returns nil when
-// CSM defaults are absent.
-func DecodeRackCSMDefaults(pd map[string]any) *RackProviderDefaultsCSM {
-	csmRaw, ok := pd["csm"]
+// rackDefaultsBySlug maps a rack-type slug to the CSM cabinet numbering and
+// HMN VLAN policy for that hardware.  These defaults are CSM configuration,
+// not portable hardware data, so they live here rather than in the shared
+// device-type library.
+//
+// hpe-eia-chassis is intentionally absent: its library entry spelled the key
+// starting_cabinet, which the old decoder never read, so it never applied.
+var rackDefaultsBySlug = map[string]RackProviderDefaultsCSM{
+	"hpe-eia-cabinet":                     {Class: "River", Ordinal: 3000, StartingHmnVlan: 1513, EndingHmnVlan: 1769},
+	"hpe-ex2000":                          {Class: "Hill", Ordinal: 9000, StartingHmnVlan: 3000, EndingHmnVlan: 3999},
+	"hpe-ex2500-1-liquid-cooled-chassis":  {Class: "Hill", Ordinal: 8000, StartingHmnVlan: 3000, EndingHmnVlan: 3999},
+	"hpe-ex2500-2-liquid-cooled-chassis":  {Class: "Hill", Ordinal: 8000, StartingHmnVlan: 3000, EndingHmnVlan: 3999},
+	"hpe-ex2500-3-liquid-cooled-chassis":  {Class: "Hill", Ordinal: 8000, StartingHmnVlan: 3000, EndingHmnVlan: 3999},
+	"hpe-ex3000":                          {Class: "Mountain", Ordinal: 1000, StartingHmnVlan: 3000, EndingHmnVlan: 3999},
+	"hpe-ex4000":                          {Class: "Mountain", Ordinal: 1000, StartingHmnVlan: 3000, EndingHmnVlan: 3999},
+}
+
+// LookupRackDefaults returns the CSM defaults for a rack-type slug, or nil
+// when the slug has no CSM cabinet policy.
+func LookupRackDefaults(slug string) *RackProviderDefaultsCSM {
+	d, ok := rackDefaultsBySlug[slug]
 	if !ok {
 		return nil
 	}
-	sub, ok := csmRaw.(map[string]any)
-	if !ok {
-		return nil
-	}
-	d := &RackProviderDefaultsCSM{}
-	if v, ok := sub["Class"].(string); ok {
-		d.Class = v
-	}
-	if v := toInt(sub["Ordinal"]); v != 0 {
-		d.Ordinal = v
-	}
-	if v := toInt(sub["StartingHmnVlan"]); v != 0 {
-		d.StartingHmnVlan = v
-	}
-	if v := toInt(sub["EndingHmnVlan"]); v != 0 {
-		d.EndingHmnVlan = v
-	}
-	return d
+	return &d
 }
 
 // BayOrdinal extracts the provider-specific ordinal from a DeviceBaySpec's

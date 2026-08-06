@@ -64,6 +64,11 @@ type CaniRackType struct {
 	// type YAML (e.g. CSM class, starting ordinal, VLAN ranges).
 	// Each key is a provider name ("csm"), and the value is a map of
 	// provider-specific settings decoded by the provider package.
+	//
+	// Deprecated: provider configuration does not belong in the portable
+	// hardware library. Providers now own their own defaults keyed by
+	// rack-type slug. Retained only so existing datastores keep loading;
+	// remove in the next schema generation.
 	ProviderDefaults map[string]any `json:"providerDefaults,omitempty" yaml:"provider_defaults,omitempty"`
 
 	// Source tracks where this type was loaded from (e.g. "builtin", "local:/path", "git:url").

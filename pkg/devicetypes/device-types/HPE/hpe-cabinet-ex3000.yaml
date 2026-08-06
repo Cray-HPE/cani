@@ -89,10 +89,3 @@ device-bays:
     default:
       slug: hpe-crayex-chassis
     ordinal: 7
-
-provider_defaults:
-  csm:
-    Class: Mountain
-    Ordinal: 1000
-    StartingHmnVlan: 3000
-    EndingHmnVlan: 3999
