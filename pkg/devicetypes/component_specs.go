@@ -1,6 +1,11 @@
 package devicetypes
 
-import "github.com/google/uuid"
+import (
+	"errors"
+	"fmt"
+
+	"github.com/google/uuid"
+)
 
 // InterfaceSpec defines an interface template in a device/module type.
 // When used in inventory, ID and ConnectedCable are populated.
@@ -44,6 +49,28 @@ type CaniInterface struct {
 	ConnectedCable *uuid.UUID  `json:"connectedCable,omitempty" yaml:"connected_cable,omitempty"`
 	ContentType    string      `json:"contentType,omitempty" yaml:"content_type,omitempty"` // For cable terminations (e.g., "dcim.interface")
 	IPAddresses    []uuid.UUID `json:"ipAddresses,omitempty" yaml:"ip_addresses,omitempty"` // Assigned IP address IDs
+}
+
+// GetID returns the unique identifier.
+func (i *CaniInterface) GetID() uuid.UUID {
+	if i == nil {
+		return uuid.Nil
+	}
+	return i.ID
+}
+
+// Validate checks the interface for internal consistency.
+func (i *CaniInterface) Validate() error {
+	if i == nil {
+		return errors.New("cannot validate nil CaniInterface")
+	}
+	if i.Name == "" {
+		return fmt.Errorf("interface %s: name is required", i.ID)
+	}
+	if i.DeviceID == uuid.Nil {
+		return fmt.Errorf("interface %q (%s): deviceId is required", i.Name, i.ID)
+	}
+	return nil
 }
 
 // ConsolePortSpec defines a console port in a device type.

@@ -27,16 +27,25 @@ package devicetypes
 
 import "github.com/google/uuid"
 
-// CaniType is the shared interface implemented by all inventory types.
-// It provides a uniform API for validation, identification, and status
-// across CaniDeviceType, CaniRackType, CaniLocationType, CaniModuleType,
-// CaniCableType, and CaniFruType.
-type CaniType interface {
+// CaniObject is the contract every entity stored in an Inventory satisfies.
+// It is the minimum needed to identify an entity and check it for internal
+// consistency, so a caller can walk the whole inventory without knowing which
+// collection an entity came from.
+type CaniObject interface {
 	// Validate checks the instance for internal consistency.
 	Validate() error
 
 	// GetID returns the unique identifier.
 	GetID() uuid.UUID
+}
+
+// CaniType extends CaniObject for the hardware entities that resolve against
+// the device-type library and carry a lifecycle status: CaniDeviceType,
+// CaniRackType, CaniLocationType, CaniModuleType, CaniCableType and
+// CaniFruType. IPAM entities and interfaces are CaniObjects but not CaniTypes,
+// since neither a slug nor a hardware status is meaningful for them.
+type CaniType interface {
+	CaniObject
 
 	// GetSlug returns the hardware library slug (or type identifier for locations).
 	GetSlug() string
@@ -53,4 +62,10 @@ var (
 	_ CaniType = (*CaniModuleType)(nil)
 	_ CaniType = (*CaniCableType)(nil)
 	_ CaniType = (*CaniFruType)(nil)
+
+	_ CaniObject = (*CaniInterface)(nil)
+	_ CaniObject = (*CaniPrefix)(nil)
+	_ CaniObject = (*CaniIPAddress)(nil)
+	_ CaniObject = (*CaniVLAN)(nil)
+	_ CaniObject = (*CaniVRF)(nil)
 )

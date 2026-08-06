@@ -1,6 +1,7 @@
 package devicetypes
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -35,4 +36,15 @@ func (v *CaniVLAN) GetID() uuid.UUID {
 		return uuid.Nil
 	}
 	return v.ID
+}
+
+// Validate checks the VLAN for internal consistency.
+func (v *CaniVLAN) Validate() error {
+	if v == nil {
+		return errors.New("cannot validate nil CaniVLAN")
+	}
+	if err := ValidateVID(v.VID); err != nil {
+		return fmt.Errorf("VLAN %s: %w", v.ID, err)
+	}
+	return nil
 }

@@ -1,6 +1,12 @@
 package devicetypes
 
-import "github.com/google/uuid"
+import (
+	"errors"
+	"fmt"
+	"net"
+
+	"github.com/google/uuid"
+)
 
 // IPAddressType classifies how an IP address is used.
 type IPAddressType string
@@ -56,4 +62,18 @@ func (ip *CaniIPAddress) GetID() uuid.UUID {
 		return uuid.Nil
 	}
 	return ip.ID
+}
+
+// Validate checks the IP address for internal consistency.
+func (ip *CaniIPAddress) Validate() error {
+	if ip == nil {
+		return errors.New("cannot validate nil CaniIPAddress")
+	}
+	if ip.Host == "" {
+		return fmt.Errorf("ip address %s: host is required", ip.ID)
+	}
+	if net.ParseIP(ip.Host) == nil {
+		return fmt.Errorf("ip address %s: %q is not a valid IP", ip.ID, ip.Host)
+	}
+	return nil
 }

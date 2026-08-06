@@ -1,6 +1,12 @@
 package devicetypes
 
-import "github.com/google/uuid"
+import (
+	"errors"
+	"fmt"
+	"net"
+
+	"github.com/google/uuid"
+)
 
 // PrefixType classifies a prefix's function within the IP hierarchy.
 type PrefixType string
@@ -41,4 +47,18 @@ func (p *CaniPrefix) GetID() uuid.UUID {
 		return uuid.Nil
 	}
 	return p.ID
+}
+
+// Validate checks the prefix for internal consistency.
+func (p *CaniPrefix) Validate() error {
+	if p == nil {
+		return errors.New("cannot validate nil CaniPrefix")
+	}
+	if p.Prefix == "" {
+		return fmt.Errorf("prefix %s: prefix is required", p.ID)
+	}
+	if _, _, err := net.ParseCIDR(p.Prefix); err != nil {
+		return fmt.Errorf("prefix %s: %q is not valid CIDR", p.ID, p.Prefix)
+	}
+	return nil
 }

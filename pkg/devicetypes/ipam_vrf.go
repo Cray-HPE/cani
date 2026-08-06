@@ -29,7 +29,12 @@ import (
 	"fmt"
 	"strings"
 
+	(
+	"errors"
+	"fmt"
+
 	"github.com/google/uuid"
+)
 )
 
 // CaniVRF represents a virtual routing and forwarding instance.
@@ -70,4 +75,15 @@ func (inv *Inventory) FindVRFByNameOrID(arg string) (*CaniVRF, error) {
 		}
 	}
 	return nil, fmt.Errorf("VRF %q not found", arg)
+}
+
+// Validate checks the VRF for internal consistency.
+func (v *CaniVRF) Validate() error {
+	if v == nil {
+		return errors.New("cannot validate nil CaniVRF")
+	}
+	if v.Name == "" {
+		return fmt.Errorf("VRF %s: name is required", v.ID)
+	}
+	return nil
 }
