@@ -188,6 +188,12 @@ lint: ## Run static analysis (requires: make install-lint)
 	golangci-lint run ./cmd/... ./internal/... ./pkg/...
 	$(OK) "linted"
 
+.PHONY: lint-size
+lint-size: ## Enforce the 300-line non-test Go file budget (ratchet)
+	$(INFO) "checking file sizes"
+	./tools/check_file_size.sh
+	$(OK) "file sizes checked"
+
 # ──────────────────────────────────────────────────────────────────────────────
 #  Testing
 # ──────────────────────────────────────────────────────────────────────────────

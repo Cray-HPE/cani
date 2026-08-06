@@ -45,13 +45,13 @@ type RackProviderDefaultsCSM struct {
 // hpe-eia-chassis is intentionally absent: its library entry spelled the key
 // starting_cabinet, which the old decoder never read, so it never applied.
 var rackDefaultsBySlug = map[string]RackProviderDefaultsCSM{
-	"hpe-eia-cabinet":                     {Class: "River", Ordinal: 3000, StartingHmnVlan: 1513, EndingHmnVlan: 1769},
-	"hpe-ex2000":                          {Class: "Hill", Ordinal: 9000, StartingHmnVlan: 3000, EndingHmnVlan: 3999},
-	"hpe-ex2500-1-liquid-cooled-chassis":  {Class: "Hill", Ordinal: 8000, StartingHmnVlan: 3000, EndingHmnVlan: 3999},
-	"hpe-ex2500-2-liquid-cooled-chassis":  {Class: "Hill", Ordinal: 8000, StartingHmnVlan: 3000, EndingHmnVlan: 3999},
-	"hpe-ex2500-3-liquid-cooled-chassis":  {Class: "Hill", Ordinal: 8000, StartingHmnVlan: 3000, EndingHmnVlan: 3999},
-	"hpe-ex3000":                          {Class: "Mountain", Ordinal: 1000, StartingHmnVlan: 3000, EndingHmnVlan: 3999},
-	"hpe-ex4000":                          {Class: "Mountain", Ordinal: 1000, StartingHmnVlan: 3000, EndingHmnVlan: 3999},
+	"hpe-eia-cabinet":                    {Class: "River", Ordinal: 3000, StartingHmnVlan: 1513, EndingHmnVlan: 1769},
+	"hpe-ex2000":                         {Class: "Hill", Ordinal: 9000, StartingHmnVlan: 3000, EndingHmnVlan: 3999},
+	"hpe-ex2500-1-liquid-cooled-chassis": {Class: "Hill", Ordinal: 8000, StartingHmnVlan: 3000, EndingHmnVlan: 3999},
+	"hpe-ex2500-2-liquid-cooled-chassis": {Class: "Hill", Ordinal: 8000, StartingHmnVlan: 3000, EndingHmnVlan: 3999},
+	"hpe-ex2500-3-liquid-cooled-chassis": {Class: "Hill", Ordinal: 8000, StartingHmnVlan: 3000, EndingHmnVlan: 3999},
+	"hpe-ex3000":                         {Class: "Mountain", Ordinal: 1000, StartingHmnVlan: 3000, EndingHmnVlan: 3999},
+	"hpe-ex4000":                         {Class: "Mountain", Ordinal: 1000, StartingHmnVlan: 3000, EndingHmnVlan: 3999},
 }
 
 // LookupRackDefaults returns the CSM defaults for a rack-type slug, or nil
