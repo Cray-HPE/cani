@@ -114,6 +114,16 @@ func (e *Exporter) collectNewInterfaces(
 		}
 
 		specs := getDeviceInterfaceSpecs(device)
+		if len(specs) == 0 {
+			msg := fmt.Sprintf("device %s (%s) has no interfaces in the device-type library; none will be created",
+				deviceName, device.Slug)
+			if e.Options.Strict {
+				result.Errors = append(result.Errors, msg)
+			} else {
+				clog.Warn("Warning: %s", msg)
+			}
+			continue
+		}
 		for _, spec := range specs {
 			existing, err := e.Cache.GetInterfaceByDeviceAndName(nautobotID, spec.Name)
 			if err != nil {

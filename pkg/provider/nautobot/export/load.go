@@ -860,89 +860,36 @@ type interfaceSpec struct {
 	VRF          string   // VRF name (Nautobot vrf)
 }
 
-// getDeviceInterfaceSpecs returns interface specifications based on device type.
-// It first tries to use the device's instantiated interfaces (from device type library),
-// falling back to hardcoded defaults if no interfaces are defined.
+// getDeviceInterfaceSpecs returns the interface specifications instantiated on
+// the device from the device-type library. A device whose type carries no
+// interface templates yields none: fabricating a plausible set here would make
+// the same hardware differ between providers, since only this exporter would
+// invent them.
 func getDeviceInterfaceSpecs(device *devicetypes.CaniDeviceType) []interfaceSpec {
-	var specs []interfaceSpec
-
-	// If device has instantiated interfaces from the device type library, use those
-	if len(device.Interfaces) > 0 {
-		for _, iface := range device.Interfaces {
-			ifaceType := mapInterfaceType(string(iface.Type))
-			speed := getSpeedForType(ifaceType)
-			mgmtOnly := iface.MgmtOnly != nil && *iface.MgmtOnly
-			role := iface.Role
-			if role == "" {
-				role = devicetypes.InferInterfaceRole(iface.Name, iface.Type, mgmtOnly)
-			}
-			specs = append(specs, interfaceSpec{
-				Name:         iface.Name,
-				Type:         ifaceType,
-				Speed:        speed,
-				Role:         role,
-				MgmtOnly:     mgmtOnly,
-				Mac:          iface.MacAddress,
-				Tags:         iface.Tags,
-				Lag:          iface.Lag,
-				Mode:         iface.Mode,
-				UntaggedVLAN: iface.UntaggedVLAN,
-				TaggedVLANs:  iface.TaggedVLANs,
-				VRF:          iface.VRF,
-			})
+	specs := make([]interfaceSpec, 0, len(device.Interfaces))
+	for _, iface := range device.Interfaces {
+		ifaceType := mapInterfaceType(string(iface.Type))
+		mgmtOnly := iface.MgmtOnly != nil && *iface.MgmtOnly
+		role := iface.Role
+		if role == "" {
+			role = devicetypes.InferInterfaceRole(iface.Name, iface.Type, mgmtOnly)
 		}
-		return specs
+		specs = append(specs, interfaceSpec{
+			Name:         iface.Name,
+			Type:         ifaceType,
+			Speed:        getSpeedForType(ifaceType),
+			Role:         role,
+			MgmtOnly:     mgmtOnly,
+			Mac:          iface.MacAddress,
+			Tags:         iface.Tags,
+			Lag:          iface.Lag,
+			Mode:         iface.Mode,
+			UntaggedVLAN: iface.UntaggedVLAN,
+			TaggedVLANs:  iface.TaggedVLANs,
+			VRF:          iface.VRF,
+		})
 	}
-
-	// Fallback: Determine interface set based on hardware type and model
-	switch devicetypes.Type(string(device.Type)) {
-	case devicetypes.Blade, devicetypes.Node:
-		// ProLiant servers typically have iLO + 4 Ethernet + optional IB
-		specs = append(specs, interfaceSpec{Name: "iLO", Type: ifaceType1000BaseT, Speed: 1000000, MgmtOnly: true})
-		for i := 0; i < 4; i++ {
-			specs = append(specs, interfaceSpec{Name: fmt.Sprintf("eth%d", i), Type: ifaceType1000BaseT, Speed: 1000000})
-		}
-		// Check for InfiniBand adapters in metadata or model
-		if containsInfiniband(device) {
-			specs = append(specs, interfaceSpec{Name: "ib0", Type: ifaceTypeInfinibandHDR, Speed: 200000000})
-			specs = append(specs, interfaceSpec{Name: "ib1", Type: ifaceTypeInfinibandHDR, Speed: 200000000})
-		}
-
-	case devicetypes.MgmtSwitch:
-		// Management switches - use Aruba 2930F as template
-		specs = append(specs, interfaceSpec{Name: "mgmt0", Type: ifaceType1000BaseT, Speed: 1000000, MgmtOnly: true})
-		for i := 1; i <= 48; i++ {
-			specs = append(specs, interfaceSpec{Name: fmt.Sprintf("port%d", i), Type: ifaceType1000BaseT, Speed: 1000000})
-		}
-		for i := 1; i <= 4; i++ {
-			specs = append(specs, interfaceSpec{Name: fmt.Sprintf("sfp%d", i), Type: ifaceType10GBaseXSFPP, Speed: 10000000})
-		}
-
-	case devicetypes.HSNSwitch:
-		// InfiniBand NDR switches
-		specs = append(specs, interfaceSpec{Name: "mgmt0", Type: ifaceType1000BaseT, Speed: 1000000, MgmtOnly: true})
-		for i := 1; i <= 64; i++ {
-			specs = append(specs, interfaceSpec{Name: fmt.Sprintf("osfp%d", i), Type: ifaceTypeInfinibandNDR, Speed: 400000000})
-		}
-
-	case devicetypes.CabinetPDU:
-		// PDUs just have management interface
-		specs = append(specs, interfaceSpec{Name: "mgmt0", Type: ifaceType100BaseTX, Speed: 100000, MgmtOnly: true})
-	}
-
 	return specs
-}
-
-// containsInfiniband checks if device has InfiniBand adapters
-func containsInfiniband(device *devicetypes.CaniDeviceType) bool {
-	// Check model name
-	modelLower := strings.ToLower(device.Model)
-	if strings.Contains(modelLower, "infiniband") || strings.Contains(modelLower, "ndr") ||
-		strings.Contains(modelLower, "hdr") || strings.Contains(modelLower, "mcx") {
-		return true
-	}
-	// Could also check children for NIC modules
-	return false
 }
 
 // mapInterfaceType maps device type library interface types to Nautobot API types

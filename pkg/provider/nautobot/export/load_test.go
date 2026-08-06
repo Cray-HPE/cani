@@ -183,59 +183,6 @@ func TestSetExternalID(t *testing.T) {
 	})
 }
 
-// TestContainsInfiniband verifies containsInfiniband flags models whose name
-// contains InfiniBand markers (NDR, HDR, MCX) and rejects ordinary models.
-//
-// Why it matters: InfiniBand hardware drives extra ib* interfaces during export,
-// so detecting it from the model string controls which interfaces get created
-// in Nautobot.
-// Inputs: device models such as "Quantum-2 NDR Switch", "ConnectX-7 HDR",
-// "MCX75310AAS-NEAT", "ProLiant DL380", and "". Outputs: the matching bool.
-// Data choice: each true case targets one substring marker, while the ProLiant
-// and empty models confirm there are no false positives.
-func TestContainsInfiniband(t *testing.T) {
-	tests := []struct {
-		name     string
-		device   *devicetypes.CaniDeviceType
-		expected bool
-	}{
-		{
-			name:     "model containing NDR returns true",
-			device:   &devicetypes.CaniDeviceType{Model: "Quantum-2 NDR Switch"},
-			expected: true,
-		},
-		{
-			name:     "model containing HDR returns true",
-			device:   &devicetypes.CaniDeviceType{Model: "ConnectX-7 HDR Adapter"},
-			expected: true,
-		},
-		{
-			name:     "model containing MCX returns true",
-			device:   &devicetypes.CaniDeviceType{Model: "MCX75310AAS-NEAT"},
-			expected: true,
-		},
-		{
-			name:     "plain server model returns false",
-			device:   &devicetypes.CaniDeviceType{Model: "ProLiant DL380"},
-			expected: false,
-		},
-		{
-			name:     "empty model returns false",
-			device:   &devicetypes.CaniDeviceType{Model: ""},
-			expected: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := containsInfiniband(tt.device)
-			if got != tt.expected {
-				t.Errorf("containsInfiniband() = %t, want %t", got, tt.expected)
-			}
-		})
-	}
-}
-
 // TestMapInterfaceType verifies mapInterfaceType normalizes devicetypes
 // interface strings to Nautobot enum values, passes unknown values through, and
 // defaults empty input to 1000base-t.
@@ -347,18 +294,19 @@ func TestGetSpeedForType(t *testing.T) {
 	}
 }
 
-// TestGetDeviceInterfaceSpecs verifies getDeviceInterfaceSpecs prefers a
-// device's explicitly instantiated interfaces and otherwise falls back to
-// type-based defaults.
+// TestGetDeviceInterfaceSpecs verifies getDeviceInterfaceSpecs returns the
+// device's instantiated interfaces and nothing else.
 //
-// Why it matters: these specs become the interfaces created in Nautobot, so the
-// exporter must honor library-provided interfaces yet still give bare devices
-// (like a PDU) a sane default management port.
-// Inputs: subtests with a node carrying eth0/eth1 interfaces and a cabinet-pdu
-// with none. Outputs: the two explicit specs, or a single "mgmt0" spec for the
-// PDU.
-// Data choice: a node with two interfaces checks order/type preservation, while
-// the PDU exercises the simplest single-interface default branch.
+// Why it matters: these specs become the interfaces created in Nautobot. The
+// exporter used to fabricate a plausible set (iLO plus four Ethernet ports for
+// nodes, a 48-port template for management switches) whenever a device carried
+// no interfaces, which meant the same hardware exported through Nautobot and
+// through another provider ended up with different interfaces. The device-type
+// library is now the only source.
+// Inputs: subtests with a node carrying eth0/eth1 and a cabinet-pdu with none.
+// Outputs: the two library specs, and an empty result for the PDU.
+// Data choice: a node with two interfaces checks order and type preservation,
+// while the PDU is the case that previously triggered the invented "mgmt0".
 func TestGetDeviceInterfaceSpecs(t *testing.T) {
 	t.Run("device with explicit interfaces uses those", func(t *testing.T) {
 		device := &devicetypes.CaniDeviceType{
@@ -382,18 +330,11 @@ func TestGetDeviceInterfaceSpecs(t *testing.T) {
 		}
 	})
 
-	t.Run("PDU device without interfaces gets defaults", func(t *testing.T) {
-		device := &devicetypes.CaniDeviceType{
-			Type: devicetypes.Type("cabinet-pdu"),
-		}
+	t.Run("device without library interfaces gets none", func(t *testing.T) {
+		device := &devicetypes.CaniDeviceType{Type: devicetypes.Type("cabinet-pdu")}
 
-		specs := getDeviceInterfaceSpecs(device)
-
-		if len(specs) != 1 {
-			t.Fatalf("expected 1 spec for PDU, got %d", len(specs))
-		}
-		if specs[0].Name != "mgmt0" {
-			t.Errorf("specs[0].Name = %q, want %q", specs[0].Name, "mgmt0")
+		if specs := getDeviceInterfaceSpecs(device); len(specs) != 0 {
+			t.Errorf("expected no specs, got %d: %+v", len(specs), specs)
 		}
 	})
 }
