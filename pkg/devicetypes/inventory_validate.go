@@ -27,6 +27,7 @@ package devicetypes
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/google/uuid"
@@ -152,6 +153,57 @@ func (inv *Inventory) validateFruRefs() []string {
 	return errs
 }
 
+// --- Object validation ---
+
+// collectObjects converts an inventory collection into CaniObjects, skipping
+// nil entries so a partially populated map does not mask real findings.
+func collectObjects[T interface {
+	CaniObject
+	comparable
+}](m map[uuid.UUID]T) []CaniObject {
+	var zero T
+	out := make([]CaniObject, 0, len(m))
+	for _, v := range m {
+		if v == zero {
+			continue
+		}
+		out = append(out, v)
+	}
+	return out
+}
+
+// validateObjects runs every stored entity's own Validate. Unlike the
+// referential checks above, which only look at links between entities, this
+// covers each entity's internal consistency and reaches all eleven inventory
+// collections rather than the six DCIM ones.
+func (inv *Inventory) validateObjects() []string {
+	groups := map[string][]CaniObject{
+		"location":   collectObjects(inv.Locations),
+		"rack":       collectObjects(inv.Racks),
+		"device":     collectObjects(inv.Devices),
+		"module":     collectObjects(inv.Modules),
+		"cable":      collectObjects(inv.Cables),
+		"fru":        collectObjects(inv.Frus),
+		"interface":  collectObjects(inv.Interfaces),
+		"prefix":     collectObjects(inv.Prefixes),
+		"ip address": collectObjects(inv.IPAddresses),
+		"vlan":       collectObjects(inv.VLANs),
+		"vrf":        collectObjects(inv.VRFs),
+	}
+
+	var errs []string
+	for kind, objects := range groups {
+		for _, obj := range objects {
+			if err := obj.Validate(); err != nil {
+				errs = append(errs, fmt.Sprintf("%s %s: %v", kind, obj.GetID(), err))
+			}
+		}
+	}
+	// Map iteration is unordered; sort so the message is stable across runs.
+	sort.Strings(errs)
+	return errs
+}
+
 // Validate checks referential integrity across the entire inventory.
 // It returns an error describing all broken references, or nil if valid.
 func (inv *Inventory) Validate() error {
@@ -166,6 +218,7 @@ func (inv *Inventory) Validate() error {
 	errs = append(errs, inv.validateModuleRefs()...)
 	errs = append(errs, inv.validateCableRefs()...)
 	errs = append(errs, inv.validateFruRefs()...)
+	errs = append(errs, inv.validateObjects()...)
 
 	if len(errs) > 0 {
 		return fmt.Errorf("inventory validation failed:\n  %s", strings.Join(errs, "\n  "))
