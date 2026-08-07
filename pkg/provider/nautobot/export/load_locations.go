@@ -65,6 +65,17 @@ func (e *Exporter) loadLocations(
 		if err == nil && existing != nil {
 			created[loc.ID] = existing.ID
 			setExternalID(&loc.ExternalIDs, "nautobot", existing.ID)
+
+			if e.Options.Merge {
+				if updated, mergeErr := e.mergeLocation(ctx, loc, existing.ID); mergeErr != nil {
+					result.Errors = append(result.Errors,
+						fmt.Sprintf("location %s: merge error: %v", loc.Name, mergeErr))
+				} else if updated {
+					result.LocationsUpdated = append(result.LocationsUpdated, loc.Name)
+					continue
+				}
+			}
+
 			result.LocationsSkipped = append(result.LocationsSkipped, loc.Name)
 			clog.Skipped("Skipped location (already exists): %s", loc.Name)
 			continue

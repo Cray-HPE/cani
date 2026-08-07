@@ -88,6 +88,13 @@ func (e *Exporter) loadPrimaryIPs(ctx context.Context, inventory *devicetypes.In
 			continue
 		}
 
+		// Compare against remote state to skip redundant PATCHes.
+		if remote, err := e.fetchFullDeviceByID(ctx, deviceNautobotID); err == nil {
+			if primaryIPsMatch(payload, remote) {
+				continue
+			}
+		}
+
 		if e.Options.DryRun {
 			clog.DryRun("Would set primary IP on device: %s", device.Name)
 			continue
@@ -119,4 +126,30 @@ func (e *Exporter) loadPrimaryIPs(ctx context.Context, inventory *devicetypes.In
 		return fmt.Errorf("%d primary IP error(s): %s", len(errs), errs[0])
 	}
 	return nil
+}
+
+// primaryIPsMatch returns true when the remote device already has the same
+// primary IP assignments the payload would set.
+func primaryIPsMatch(payload map[string]any, remote *nautobotapi.Device) bool {
+	if v, ok := payload["primary_ip4"]; ok {
+		localID := v.(map[string]string)["id"]
+		remoteID := uuid.Nil
+		if remote.PrimaryIp4 != nil {
+			remoteID = refID(remote.PrimaryIp4.Id)
+		}
+		if localID != remoteID.String() {
+			return false
+		}
+	}
+	if v, ok := payload["primary_ip6"]; ok {
+		localID := v.(map[string]string)["id"]
+		remoteID := uuid.Nil
+		if remote.PrimaryIp6 != nil {
+			remoteID = refID(remote.PrimaryIp6.Id)
+		}
+		if localID != remoteID.String() {
+			return false
+		}
+	}
+	return true
 }

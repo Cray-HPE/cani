@@ -86,6 +86,11 @@ func (e *Exporter) ensureCustomField(ctx context.Context, def devicetypes.Custom
 		for _, cf := range resp.JSON200.Results {
 			if cf.Key != nil && *cf.Key == def.Key {
 				id := toUUID(cf.Id)
+				if e.Options.Merge {
+					if err := e.reconcileCustomFieldDrift(ctx, id, cf, def); err != nil {
+						return id, fmt.Errorf("drift reconciliation: %w", err)
+					}
+				}
 				clog.Skipped("Custom field %q already exists (ID: %s)", def.Key, id)
 				return id, nil
 			}

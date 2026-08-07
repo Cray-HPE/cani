@@ -73,6 +73,17 @@ func (e *Exporter) loadVLANs(
 		if existing != nil {
 			created[vlan.ID] = existing.ID
 			setExternalID(&vlan.ExternalIDs, "nautobot", existing.ID)
+
+			if e.Options.Merge {
+				if updated, mergeErr := e.mergeVLAN(ctx, vlan, existing.ID); mergeErr != nil {
+					result.Errors = append(result.Errors,
+						fmt.Sprintf("vlan %d (%s): merge error: %v", vlan.VID, vlan.Name, mergeErr))
+				} else if updated {
+					result.VLANsUpdated++
+					continue
+				}
+			}
+
 			result.VLANsSkipped++
 			continue
 		}
