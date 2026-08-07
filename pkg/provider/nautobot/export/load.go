@@ -73,6 +73,7 @@ type LoadResult struct {
 	Errors                      []string       // Error messages
 	Conflicts                   []ConflictInfo // Detailed conflict information
 	LocationsCreated            []string       // Names of locations created
+	LocationsUpdated            []string       // Names of locations updated (merged)
 	LocationsSkipped            []string       // Names of locations skipped (already exist)
 	RacksCreated                []string       // Names of racks created
 	RacksSkipped                int            // Number of racks skipped (already exist)
@@ -86,6 +87,7 @@ type LoadResult struct {
 	CablesSkipped               int            // Number of cables skipped (already exist in Nautobot)
 	CablesConflicted            int            // Number of cables skipped (an endpoint interface is already cabled)
 	VLANsCreated                int            // Number of VLANs created
+	VLANsUpdated                int            // Number of VLANs updated (merged)
 	VLANsSkipped                int            // Number of VLANs skipped (already exist)
 	VRFsCreated                 int            // Number of VRFs created
 	VRFsSkipped                 int            // Number of VRFs skipped (already exist)
@@ -192,7 +194,31 @@ func setExternalID(m *map[string]uuid.UUID, provider string, id uuid.UUID) {
 	(*m)[provider] = id
 }
 
-// Load syncs the local inventory to Nautobot.
+// Load syncs the local inventory to Nautobot using a multi-phase pipeline:
+//
+//	Phase 0a  – Custom-field definitions (ensure CF schema exists before objects reference them)
+//	Phase 0b  – Locations (topological order, parents first)
+//	Phase 1   – Racks (from inventory.Racks)
+//	Phase 1b  – Racks (legacy: from inventory.Devices with rack category)
+//	Phase 2   – Devices
+//	Phase 3   – Interfaces (bulk batched)
+//	Phase 4   – Modules
+//	Phase 5   – FRUs (inventory items)
+//	Phase 6   – Cables
+//	Phase 6c  – VRFs
+//	Phase 7   – VLANs
+//	Phase 7b  – Interface enrichment (LAG, switchport mode, VLAN assignment)
+//	Phase 8   – Prefixes
+//	Phase 9   – IP Addresses
+//	Phase 10  – Relationship associations (assigned_vlans, bmc_device)
+//	Phase 11  – Primary IPs (assign to devices)
+//
+// With --merge each phase uses fetch-compare-patch: it fetches the remote
+// object, compares fields against the portable model, and PATCHes only if
+// drift is detected. Without --merge, existing objects that conflict are
+// reported but not modified. --dry-run prevents all mutations while still
+// reporting what would change.
+//
 // The caller must initialise Client, Cache (with context) and Options before calling Load.
 func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 	ctx := context.Background()
@@ -205,6 +231,7 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 		Errors:           make([]string, 0),
 		Conflicts:        make([]ConflictInfo, 0),
 		LocationsCreated: make([]string, 0),
+		LocationsUpdated: make([]string, 0),
 		LocationsSkipped: make([]string, 0),
 		RacksCreated:     make([]string, 0),
 	}
@@ -1392,6 +1419,9 @@ func (e *Exporter) printLoadSummary(result *LoadResult) {
 			clog.SummaryCreated("%s", name)
 		}
 	}
+	if len(result.LocationsUpdated) > 0 {
+		clog.Changed("Updated locations: %d", len(result.LocationsUpdated))
+	}
 	if len(result.LocationsSkipped) > 0 {
 		clog.Skipped("Skipped locations (already exist): %d", len(result.LocationsSkipped))
 	}
@@ -1469,6 +1499,9 @@ func (e *Exporter) printLoadSummary(result *LoadResult) {
 	// VLANs
 	if result.VLANsCreated > 0 {
 		clog.Created("Created VLANs: %d", result.VLANsCreated)
+	}
+	if result.VLANsUpdated > 0 {
+		clog.Changed("Updated VLANs: %d", result.VLANsUpdated)
 	}
 	if result.VLANsSkipped > 0 {
 		clog.Skipped("Skipped VLANs (already exist): %d", result.VLANsSkipped)

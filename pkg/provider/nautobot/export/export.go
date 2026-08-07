@@ -72,6 +72,9 @@ func PrintSummary(result *LoadResult) {
 	if len(result.LocationsCreated) > 0 {
 		clog.Created("Created locations: %d", len(result.LocationsCreated))
 	}
+	if len(result.LocationsUpdated) > 0 {
+		clog.Changed("Updated locations: %d", len(result.LocationsUpdated))
+	}
 	if len(result.LocationsSkipped) > 0 {
 		clog.Skipped("Skipped locations (already exist): %d", len(result.LocationsSkipped))
 	}
@@ -135,6 +138,9 @@ func PrintSummary(result *LoadResult) {
 
 	if result.VLANsCreated > 0 {
 		clog.Created("Created VLANs: %d", result.VLANsCreated)
+	}
+	if result.VLANsUpdated > 0 {
+		clog.Changed("Updated VLANs: %d", result.VLANsUpdated)
 	}
 	if result.VLANsSkipped > 0 {
 		clog.Skipped("Skipped VLANs (already exist): %d", result.VLANsSkipped)
