@@ -118,6 +118,8 @@ go_ldflags += -X $(MODULE)/cmd.BuildDate=$(BUILDTIME)
 # ──────────────────────────────────────────────────────────────────────────────
 
 BIN_DIR         := $(CURDIR)/bin
+TOOLS_DIR       := $(CURDIR)/.tools
+TOOLS_BIN       := $(TOOLS_DIR)/bin
 BUILD_DIR       ?= $(CURDIR)/dist/rpmbuild
 TEST_OUTPUT_DIR ?= $(CURDIR)/build/results
 SPEC_FILE       ?= $(NAME).spec
@@ -189,13 +191,36 @@ lint: ## Run static analysis (requires: make install-lint)
 	$(OK) "linted"
 
 # ──────────────────────────────────────────────────────────────────────────────
+#  Developer environment
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Which test tier `make doctor` treats as required: unit, func, int (or all).
+TIER ?= func
+
+.PHONY: doctor
+doctor: ## Check prerequisites for a test tier (TIER=unit|func|int|all)
+	@./tools/doctor.sh $(TIER)
+
+.PHONY: hooks
+hooks: ## Enable the repo git hooks (validates conventional commits locally)
+	$(INFO) "enabling git hooks"
+	git config core.hooksPath .githooks
+	$(OK) "git hooks enabled (.githooks)"
+
+# ──────────────────────────────────────────────────────────────────────────────
 #  Testing
 # ──────────────────────────────────────────────────────────────────────────────
 
 .PHONY: test
-# Run all tests unit + functional + integration (edge disabled-see below)
-test: bin schema spec-setup venv csm-up nautobot-up utest ftest itest # etest
+# Run every tier: unit + functional + integration (edge disabled-see below).
+# Stands the simulators up itself, so external-service tests are opted in here.
+test: export RUN_EXTERNAL_TESTS := 1
+test: bin schema spec-setup venv sim-up utest ftest itest # etest
 	$(OK) "all tests passed"
+
+.PHONY: test-fast
+test-fast: utest ftest ## Run unit + functional tests (no Docker, no Python)
+	$(OK) "fast tests passed"
 
 .PHONY: utest
 utest: bin ## Run unit tests
@@ -204,22 +229,22 @@ utest: bin ## Run unit tests
 	$(OK) "unit tests passed"
 
 .PHONY: ftest
-ftest: bin ## Run functional tests
+ftest: bin ## Run functional tests (shellspec; no external services)
 	$(INFO) "running functional tests"
-	shellspec ./spec/functional -f tap
+	PATH="$(TOOLS_BIN):$$PATH" shellspec ./spec/functional -f tap
 	$(OK) "functional tests passed"
 
 .PHONY: itest
-itest: bin venv ## Run integration tests
+itest: bin venv ## Run integration tests (needs simulators: make sim-up)
 	$(INFO) "running integration tests"
-	. venv/bin/activate && ./spec/support/bin/cani_integrate.sh integration
+	. venv/bin/activate && PATH="$(TOOLS_BIN):$$PATH" ./spec/support/bin/cani_integrate.sh integration
 	$(OK) "integration tests passed"
 
 .PHONY: etest
 # disabled in make test due to EOL CSM and slow nature, but can be run independently with `make etest`
 etest: bin venv ## Run edge-case tests
 	$(INFO) "running edge tests"
-	SKIP_EXTERNAL_TESTS=1 ./spec/support/bin/cani_integrate.sh edge
+	SKIP_EXTERNAL_TESTS=1 PATH="$(TOOLS_BIN):$$PATH" ./spec/support/bin/cani_integrate.sh edge
 	$(OK) "edge tests passed"
 
 cover:
@@ -325,20 +350,27 @@ csm-down: ## Run the CSM simulator
 	docker compose -f testdata/fixtures/csm/simulator/docker-compose.yml down
 	$(OK) "CSM simulator stopped"
 
+SHELLSPEC_VERSION ?= 0.28.1
+
 .PHONY: spec-setup
-spec-setup: ## Install shellspec for BDD tests
+spec-setup: ## Install shellspec into .tools/ (no sudo required)
 	$(INFO) "setting up shellspec"
-	@if ! [ -d ./shellspec ]; then \
-	  git clone https://github.com/shellspec/shellspec.git; \
+	@if command -v shellspec >/dev/null 2>&1; then \
+	  echo "  shellspec already on PATH ($$(command -v shellspec)), skipping"; \
+	else \
+	  if ! [ -d $(TOOLS_DIR)/shellspec ]; then \
+	    git clone --depth 1 --branch $(SHELLSPEC_VERSION) \
+	      https://github.com/shellspec/shellspec.git $(TOOLS_DIR)/shellspec; \
+	  fi; \
+	  mkdir -p $(TOOLS_BIN); \
+	  ln -sf ../shellspec/shellspec $(TOOLS_BIN)/shellspec; \
 	fi
-	@ln -sf "$(shell pwd)"/shellspec/shellspec /usr/local/bin/
 	$(OK) "shellspec ready"
 
 .PHONY: spec-clean
-spec-clean: ## Remove shellspec directory and symlink
+spec-clean: ## Remove the local shellspec install
 	$(INFO) "cleaning shellspec"
-	rm -rf ./shellspec
-	rm -f /usr/local/bin/shellspec
+	rm -rf $(TOOLS_DIR) ./shellspec
 	$(OK) "shellspec cleaned"
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -386,6 +418,14 @@ load-sls:
 	$(INFO) "loading SLS data for simulator tests"
 	spec/support/bin/setup_simulator.sh ./hms-simulation-environment ../testdata/fixtures/sls/no_hardware.json
 	$(OK) "SLS data loaded"
+
+.PHONY: sim-up
+sim-up: csm-up nautobot-up ## Start every simulator the integration tests need
+	$(OK) "simulators running (CSM :8443, Nautobot :8081)"
+
+.PHONY: sim-down
+sim-down: csm-down nautobot-down ## Stop every simulator
+	$(OK) "simulators stopped"
 
 # ──────────────────────────────────────────────────────────────────────────────
 #  Documentation
