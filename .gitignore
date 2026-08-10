@@ -56,5 +56,8 @@ testdata/fixtures/csm/simulator/nginx/certs/
 hms-simulation-environment/
 shellspec/
 
+# locally installed dev tooling (make spec-setup)
+.tools/
+
 # ggshield cache
 .cache_ggshield

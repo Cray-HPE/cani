@@ -41,10 +41,15 @@
 Describe 'INTEGRATION: Nautobot import/export round-trip'
 
   # Skip the entire block if external tests are disabled or Nautobot is down.
-  Skip if 'SKIP_EXTERNAL_TESTS is set' [ "${SKIP_EXTERNAL_TESTS:-0}" = "1" ]
-  Skip if 'Nautobot is not reachable' \
+  # The reachability probe must be a function: `Skip if 'x' ! cmd` is silently
+  # ignored by shellspec because `!` is a shell keyword, not a command.
+  nautobot_unreachable() {
     ! curl -sf -H "Authorization: Token ${NAUTOBOT_TOKEN}" \
       "${NAUTOBOT_URL}/status/" >/dev/null 2>&1
+  }
+
+  Skip if 'SKIP_EXTERNAL_TESTS is set' [ "${SKIP_EXTERNAL_TESTS:-0}" = "1" ]
+  Skip if 'Nautobot is not reachable' nautobot_unreachable
 
   # --- helpers available inside this Describe scope ---
 

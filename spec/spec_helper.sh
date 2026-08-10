@@ -49,9 +49,17 @@ spec_helper_precheck() {
   setenv NAUTOBOT_URL="http://localhost:8081/api"
   setenv NAUTOBOT_TOKEN="0123456789abcdef0123456789abcdef01234567"
 
-  # Skip tests that require external services (CSM API, mock servers, etc.)
-  # Set SKIP_EXTERNAL_TESTS=1 to skip these tests
-  : "${SKIP_EXTERNAL_TESTS:=0}"
+  # Tests needing a live service (Nautobot, CSM API) are skipped by default so a
+  # fresh clone is green with no simulator running. Opt in with
+  # RUN_EXTERNAL_TESTS=1; setting SKIP_EXTERNAL_TESTS explicitly still wins.
+  # setenv is required here: a plain assignment does not reach the specs.
+  if [ -n "${SKIP_EXTERNAL_TESTS:-}" ]; then
+    setenv SKIP_EXTERNAL_TESTS="${SKIP_EXTERNAL_TESTS}"
+  elif [ "${RUN_EXTERNAL_TESTS:-0}" = "1" ]; then
+    setenv SKIP_EXTERNAL_TESTS="0"
+  else
+    setenv SKIP_EXTERNAL_TESTS="1"
+  fi
 	
   # On macOS, GNU sed (gsed) is required for GNU sed extensions (e.g., 0, address)
   # A wrapper at spec/support/bin/sed handles this transparently
