@@ -357,7 +357,7 @@ graph TB
 
 | Port | Remote Device  | Remote Port | Function   | Cable   |
 |------|----------------|-------------|------------|---------|
-| 1    | FORGE-3507u43  | mgmt        | Management | CAT6 3m |
+| 1    | FORGE-3507u43L | mgmt        | Management | CAT6 3m |
 | 2    | FORGE-3507u44L | mgmt        | Management | CAT6 3m |
 | 3    | FORGE-3507u45S | mgmt        | Management | CAT6 3m |
 | 4    | FORGE-3507u46S | mgmt        | Management | CAT6 3m |
