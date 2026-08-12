@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024, 2026 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -36,17 +36,17 @@ var clog = logcolor.New("[nautobot] ", false)
 
 // RawData holds all raw API responses fetched during Import.
 type RawData struct {
-	Locations      []nautobotapi.Location
-	Racks          []nautobotapi.Rack
-	Devices        []nautobotapi.Device
-	DeviceTypes    []nautobotapi.DeviceType
-	Interfaces     []nautobotapi.Interface
-	Modules        []nautobotapi.Module
-	ModuleBays     []nautobotapi.ModuleBay
-	Cables         []nautobotapi.Cable
-	InventoryItems []nautobotapi.InventoryItem
-	Statuses       []nautobotapi.Status
-	Roles          []nautobotapi.Role
+	Locations            []nautobotapi.Location
+	Racks                []nautobotapi.Rack
+	Devices              []nautobotapi.Device
+	DeviceTypes          []nautobotapi.DeviceType
+	Interfaces           []nautobotapi.Interface
+	Modules              []nautobotapi.Module
+	ModuleBays           []nautobotapi.ModuleBay
+	Cables               []nautobotapi.Cable
+	InventoryItems       []nautobotapi.InventoryItem
+	Statuses             []nautobotapi.Status
+	Roles                []nautobotapi.Role
 	VLANs                []nautobotapi.VLAN
 	Prefixes             []nautobotapi.Prefix
 	IPAddresses          []nautobotapi.IPAddress

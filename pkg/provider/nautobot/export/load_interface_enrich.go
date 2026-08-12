@@ -59,7 +59,7 @@ func (e *Exporter) enrichInterfaces(
 			continue
 		}
 		if err := e.Cache.PrefetchInterfacesForDevice(deviceID); err != nil {
-			clog.Warn("Warning: failed to prefetch interfaces for %s: %v", deviceName, err)
+			clog.Warn("failed to prefetch interfaces for %s: %v", deviceName, err)
 		}
 		for _, spec := range specs {
 			if interfaceNeedsEnrichment(spec) {
@@ -210,7 +210,7 @@ func (e *Exporter) vrfRef(name string) *nautobotapi.BulkWritableCircuitRequestTe
 	}
 	item, ok := e.Cache.LookupCachedVRF(name)
 	if !ok || item == nil {
-		clog.Warn("Warning: unresolved VRF reference %q, skipping", name)
+		clog.Warn("unresolved VRF reference %q, skipping", name)
 		return nil
 	}
 	return makeTenantRef(item.ID)
@@ -224,7 +224,7 @@ func (e *Exporter) lagRef(deviceID uuid.UUID, lagName string) *nautobotapi.Paren
 	}
 	lagIface, err := e.Cache.GetInterfaceByDeviceAndName(deviceID, lagName)
 	if err != nil || lagIface == nil {
-		clog.Warn("Warning: unresolved LAG reference %q on device %s, skipping", lagName, deviceID)
+		clog.Warn("unresolved LAG reference %q on device %s, skipping", lagName, deviceID)
 		return nil
 	}
 	return makeParentLagRef(lagIface.ID)
@@ -250,7 +250,7 @@ func untaggedVLANRef(vid int, vidToVLAN map[int]uuid.UUID) *nautobotapi.BulkWrit
 	if vlanID, ok := vidToVLAN[vid]; ok {
 		return makeTenantRef(vlanID)
 	}
-	clog.Warn("Warning: unresolved untagged VLAN reference (VID %d), skipping", vid)
+	clog.Warn("unresolved untagged VLAN reference (VID %d), skipping", vid)
 	return nil
 }
 
@@ -262,7 +262,7 @@ func resolveTaggedVLANRefs(vids []int, vidToVLAN map[int]uuid.UUID) []nautobotap
 		if vlanID, ok := vidToVLAN[vid]; ok {
 			refs = append(refs, makeTaggedVLANRef(vlanID))
 		} else {
-			clog.Warn("Warning: unresolved tagged VLAN reference (VID %d), skipping", vid)
+			clog.Warn("unresolved tagged VLAN reference (VID %d), skipping", vid)
 		}
 	}
 	return refs

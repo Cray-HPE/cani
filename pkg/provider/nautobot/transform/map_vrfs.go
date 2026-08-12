@@ -80,7 +80,19 @@ func MapVRFs(
 		if deviceNbID == uuid.Nil {
 			continue
 		}
-		if caniDeviceID, ok := deviceMap[deviceNbID]; ok {
+		caniDeviceID, ok := deviceMap[deviceNbID]
+		if !ok {
+			continue
+		}
+		// Deduplicate: skip if this device is already assigned.
+		dup := false
+		for _, id := range caniVRF.Devices {
+			if id == caniDeviceID {
+				dup = true
+				break
+			}
+		}
+		if !dup {
 			caniVRF.Devices = append(caniVRF.Devices, caniDeviceID)
 		}
 	}
