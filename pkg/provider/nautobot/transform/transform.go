@@ -47,10 +47,11 @@ type RawData struct {
 	InventoryItems []nautobotapi.InventoryItem
 	Statuses       []nautobotapi.Status
 	Roles          []nautobotapi.Role
-	VLANs          []nautobotapi.VLAN
-	Prefixes       []nautobotapi.Prefix
-	IPAddresses    []nautobotapi.IPAddress
-	VRFs           []nautobotapi.VRF
+	VLANs                []nautobotapi.VLAN
+	Prefixes             []nautobotapi.Prefix
+	IPAddresses          []nautobotapi.IPAddress
+	VRFs                 []nautobotapi.VRF
+	VRFDeviceAssignments []nautobotapi.VRFDeviceAssignment
 }
 
 // Transform converts raw Nautobot API data into a TransformResult.
@@ -111,7 +112,7 @@ func transformRaw(raw *RawData) (*devicetypes.TransformResult, error) {
 	clog.Detail("  Transformed %d IP addresses", len(ipAddresses))
 
 	// 11. VRFs.
-	vrfs := MapVRFs(raw.VRFs, statusNameMap)
+	vrfs := MapVRFs(raw.VRFs, raw.VRFDeviceAssignments, deviceMap, statusNameMap)
 	clog.Detail("  Transformed %d VRFs", len(vrfs))
 
 	return &devicetypes.TransformResult{

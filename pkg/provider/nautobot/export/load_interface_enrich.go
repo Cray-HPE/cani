@@ -210,6 +210,7 @@ func (e *Exporter) vrfRef(name string) *nautobotapi.BulkWritableCircuitRequestTe
 	}
 	item, ok := e.Cache.LookupCachedVRF(name)
 	if !ok || item == nil {
+		clog.Warn("Warning: unresolved VRF reference %q, skipping", name)
 		return nil
 	}
 	return makeTenantRef(item.ID)
@@ -223,6 +224,7 @@ func (e *Exporter) lagRef(deviceID uuid.UUID, lagName string) *nautobotapi.Paren
 	}
 	lagIface, err := e.Cache.GetInterfaceByDeviceAndName(deviceID, lagName)
 	if err != nil || lagIface == nil {
+		clog.Warn("Warning: unresolved LAG reference %q on device %s, skipping", lagName, deviceID)
 		return nil
 	}
 	return makeParentLagRef(lagIface.ID)
@@ -248,6 +250,7 @@ func untaggedVLANRef(vid int, vidToVLAN map[int]uuid.UUID) *nautobotapi.BulkWrit
 	if vlanID, ok := vidToVLAN[vid]; ok {
 		return makeTenantRef(vlanID)
 	}
+	clog.Warn("Warning: unresolved untagged VLAN reference (VID %d), skipping", vid)
 	return nil
 }
 
@@ -258,6 +261,8 @@ func resolveTaggedVLANRefs(vids []int, vidToVLAN map[int]uuid.UUID) []nautobotap
 	for _, vid := range vids {
 		if vlanID, ok := vidToVLAN[vid]; ok {
 			refs = append(refs, makeTaggedVLANRef(vlanID))
+		} else {
+			clog.Warn("Warning: unresolved tagged VLAN reference (VID %d), skipping", vid)
 		}
 	}
 	return refs

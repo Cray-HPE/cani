@@ -57,10 +57,11 @@ func (p *Nautobot) Transform(ctx context.Context, existing devicetypes.Inventory
 			InventoryItems: p.rawInventoryItems,
 			Statuses:       p.rawStatuses,
 			Roles:          p.rawRoles,
-			VLANs:          p.rawVLANs,
-			Prefixes:       p.rawPrefixes,
-			IPAddresses:    p.rawIPAddresses,
-			VRFs:           p.rawVRFs,
+			VLANs:                p.rawVLANs,
+			Prefixes:             p.rawPrefixes,
+			IPAddresses:          p.rawIPAddresses,
+			VRFs:                 p.rawVRFs,
+			VRFDeviceAssignments: p.rawVRFDeviceAssignments,
 		}
 	}
 	return transform.Transform(existing, raw)

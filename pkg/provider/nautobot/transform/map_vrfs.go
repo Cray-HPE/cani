@@ -32,13 +32,18 @@ import (
 )
 
 // MapVRFs converts Nautobot VRF objects to CANI VRFs.
-// statusNameMap resolves the Nautobot status UUID to its name.
+// assignments links each VRF to its devices; deviceMap maps Nautobot device
+// UUIDs to CANI device UUIDs; statusNameMap resolves status UUIDs to names.
 func MapVRFs(
 	raw []nautobotapi.VRF,
+	assignments []nautobotapi.VRFDeviceAssignment,
+	deviceMap map[uuid.UUID]uuid.UUID,
 	statusNameMap map[uuid.UUID]string,
 ) map[uuid.UUID]*devicetypes.CaniVRF {
 	result := make(map[uuid.UUID]*devicetypes.CaniVRF, len(raw))
 
+	// First pass: create all VRFs and build a Nautobot-VRF-UUID → CaniVRF map.
+	nbToCani := make(map[uuid.UUID]*devicetypes.CaniVRF, len(raw))
 	for _, vrf := range raw {
 		nbID := directUUID(vrf.Id)
 		if nbID == uuid.Nil {
@@ -61,6 +66,23 @@ func MapVRFs(
 		}
 
 		result[caniID] = caniVRF
+		nbToCani[nbID] = caniVRF
+	}
+
+	// Second pass: resolve VRF-device assignments.
+	for _, a := range assignments {
+		vrfNbID := refIDVal(a.Vrf)
+		caniVRF, ok := nbToCani[vrfNbID]
+		if !ok {
+			continue
+		}
+		deviceNbID := tenantRefID(a.Device)
+		if deviceNbID == uuid.Nil {
+			continue
+		}
+		if caniDeviceID, ok := deviceMap[deviceNbID]; ok {
+			caniVRF.Devices = append(caniVRF.Devices, caniDeviceID)
+		}
 	}
 
 	return result

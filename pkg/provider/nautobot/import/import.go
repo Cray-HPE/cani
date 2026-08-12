@@ -23,10 +23,11 @@ type RawData struct {
 	InventoryItems []nautobotapi.InventoryItem
 	Statuses       []nautobotapi.Status
 	Roles          []nautobotapi.Role
-	VLANs          []nautobotapi.VLAN
-	Prefixes       []nautobotapi.Prefix
-	IPAddresses    []nautobotapi.IPAddress
-	VRFs           []nautobotapi.VRF
+	VLANs                []nautobotapi.VLAN
+	Prefixes             []nautobotapi.Prefix
+	IPAddresses          []nautobotapi.IPAddress
+	VRFs                 []nautobotapi.VRF
+	VRFDeviceAssignments []nautobotapi.VRFDeviceAssignment
 }
 
 // providerGetter is used to get the Nautobot singleton from the parent package.
@@ -147,6 +148,11 @@ func Import(cmd *cli.Command, args []string, inventory *devicetypes.Inventory) e
 	d.VRFs, err = FetchVRFs(ctx, client)
 	if err != nil {
 		return fmt.Errorf("fetching vrfs: %w", err)
+	}
+
+	d.VRFDeviceAssignments, err = FetchVRFDeviceAssignments(ctx, client)
+	if err != nil {
+		return fmt.Errorf("fetching vrf-device-assignments: %w", err)
 	}
 
 	prov.ClearRawData()

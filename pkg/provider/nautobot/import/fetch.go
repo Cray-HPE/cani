@@ -339,6 +339,33 @@ func FetchVRFs(ctx context.Context, client *nautobotapi.ClientWithResponses) ([]
 	return all, nil
 }
 
+// FetchVRFDeviceAssignments retrieves all VRF-device assignment records.
+func FetchVRFDeviceAssignments(ctx context.Context, client *nautobotapi.ClientWithResponses) ([]nautobotapi.VRFDeviceAssignment, error) {
+	var all []nautobotapi.VRFDeviceAssignment
+	offset := 0
+	for {
+		resp, err := client.IpamVrfDeviceAssignmentsListWithResponse(ctx, &nautobotapi.IpamVrfDeviceAssignmentsListParams{
+			Limit:  intPtr(pageSize),
+			Offset: &offset,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("list vrf-device-assignments: %w", err)
+		}
+		if resp.StatusCode() != http.StatusOK {
+			return nil, fmt.Errorf("list vrf-device-assignments: status %d", resp.StatusCode())
+		}
+		if resp.JSON200 == nil || len(resp.JSON200.Results) == 0 {
+			break
+		}
+		all = append(all, resp.JSON200.Results...)
+		if resp.JSON200.Next == nil || *resp.JSON200.Next == "" {
+			break
+		}
+		offset += pageSize
+	}
+	return all, nil
+}
+
 // FetchVLANs retrieves all VLANs from the Nautobot API.
 func FetchVLANs(ctx context.Context, client *nautobotapi.ClientWithResponses) ([]nautobotapi.VLAN, error) {
 	var all []nautobotapi.VLAN
