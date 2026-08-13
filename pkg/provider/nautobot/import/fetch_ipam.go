@@ -118,6 +118,25 @@ func decodeListPage(resp *http.Response, dest any) error {
 	return json.Unmarshal(body, dest)
 }
 
+// shadowPage decodes a raw Nautobot list response into a page of T. Each element
+// is decoded via shadow type S (which re-maps Nautobot's base64-typed address
+// fields the generated client mishandles) and then unwrapped to the real type.
+func shadowPage[S any, T any](resp *http.Response, unwrap func(S) T) (pageResult[T], error) {
+	var page struct {
+		Next    *string `json:"next"`
+		Results []S     `json:"results"`
+	}
+	if err := decodeListPage(resp, &page); err != nil {
+		return pageResult[T]{}, err
+	}
+	items := make([]T, len(page.Results))
+	for i := range page.Results {
+		items[i] = unwrap(page.Results[i])
+	}
+	done := page.Next == nil || *page.Next == ""
+	return pageResult[T]{Items: items, Done: done}, nil
+}
+
 // FetchPrefixes retrieves all prefixes from the Nautobot API.
 func FetchPrefixes(ctx context.Context, client *nautobotapi.ClientWithResponses) ([]nautobotapi.Prefix, error) {
 	return paginate(ctx, "prefixes", func(ctx context.Context, offset int) (pageResult[nautobotapi.Prefix], error) {
@@ -128,19 +147,7 @@ func FetchPrefixes(ctx context.Context, client *nautobotapi.ClientWithResponses)
 		if err != nil {
 			return pageResult[nautobotapi.Prefix]{}, err
 		}
-		var page struct {
-			Next    *string          `json:"next"`
-			Results []prefixNoBinary `json:"results"`
-		}
-		if err := decodeListPage(resp, &page); err != nil {
-			return pageResult[nautobotapi.Prefix]{}, err
-		}
-		items := make([]nautobotapi.Prefix, len(page.Results))
-		for i := range page.Results {
-			items[i] = page.Results[i].Prefix
-		}
-		done := page.Next == nil || *page.Next == ""
-		return pageResult[nautobotapi.Prefix]{Items: items, Done: done}, nil
+		return shadowPage(resp, func(s prefixNoBinary) nautobotapi.Prefix { return s.Prefix })
 	})
 }
 
@@ -154,18 +161,6 @@ func FetchIPAddresses(ctx context.Context, client *nautobotapi.ClientWithRespons
 		if err != nil {
 			return pageResult[nautobotapi.IPAddress]{}, err
 		}
-		var page struct {
-			Next    *string             `json:"next"`
-			Results []ipAddressNoBinary `json:"results"`
-		}
-		if err := decodeListPage(resp, &page); err != nil {
-			return pageResult[nautobotapi.IPAddress]{}, err
-		}
-		items := make([]nautobotapi.IPAddress, len(page.Results))
-		for i := range page.Results {
-			items[i] = page.Results[i].IPAddress
-		}
-		done := page.Next == nil || *page.Next == ""
-		return pageResult[nautobotapi.IPAddress]{Items: items, Done: done}, nil
+		return shadowPage(resp, func(s ipAddressNoBinary) nautobotapi.IPAddress { return s.IPAddress })
 	})
 }

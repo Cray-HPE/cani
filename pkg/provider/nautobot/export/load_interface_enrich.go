@@ -67,6 +67,9 @@ func (e *Exporter) enrichInterfaces(
 			}
 		}
 	}
+	if result.IfacesUnresolvedRefs > 0 {
+		clog.Warn("%d interface reference(s) could not be resolved and were skipped during enrichment", result.IfacesUnresolvedRefs)
+	}
 	return nil
 }
 
@@ -138,7 +141,8 @@ func (e *Exporter) enrichOneInterface(
 		}
 	}
 
-	req, changed := e.buildInterfaceEnrichment(deviceID, spec, vidToVLAN)
+	req, changed, unresolved := e.buildInterfaceEnrichment(deviceID, spec, vidToVLAN)
+	result.IfacesUnresolvedRefs += unresolved
 	if !changed {
 		return
 	}
@@ -163,18 +167,22 @@ func (e *Exporter) enrichOneInterface(
 }
 
 // buildInterfaceEnrichment assembles the PATCH request for LAG, mode, and VLAN
-// settings, returning the request and whether any field was set.
+// settings, returning the request, whether any field was set, and the number of
+// references that could not be resolved (and were warned about + skipped).
 func (e *Exporter) buildInterfaceEnrichment(
 	deviceID uuid.UUID,
 	spec interfaceSpec,
 	vidToVLAN map[int]uuid.UUID,
-) (nautobotapi.PatchedWritableInterfaceRequest, bool) {
+) (nautobotapi.PatchedWritableInterfaceRequest, bool, int) {
 	req := nautobotapi.PatchedWritableInterfaceRequest{}
 	changed := false
+	unresolved := 0
 
 	if ref := e.lagRef(deviceID, spec.Lag); ref != nil {
 		req.Lag = ref
 		changed = true
+	} else if spec.Lag != "" {
+		unresolved++
 	}
 	if ref := modeRef(spec.Mode); ref != nil {
 		req.Mode = ref
@@ -183,14 +191,20 @@ func (e *Exporter) buildInterfaceEnrichment(
 	if ref := untaggedVLANRef(spec.UntaggedVLAN, vidToVLAN); ref != nil {
 		req.UntaggedVlan = ref
 		changed = true
+	} else if spec.UntaggedVLAN != 0 {
+		unresolved++
 	}
-	if tagged := resolveTaggedVLANRefs(spec.TaggedVLANs, vidToVLAN); len(tagged) > 0 {
+	tagged := resolveTaggedVLANRefs(spec.TaggedVLANs, vidToVLAN)
+	if len(tagged) > 0 {
 		req.TaggedVlans = &tagged
 		changed = true
 	}
+	unresolved += len(spec.TaggedVLANs) - len(tagged)
 	if ref := e.vrfRef(spec.VRF); ref != nil {
 		req.Vrf = ref
 		changed = true
+	} else if spec.VRF != "" {
+		unresolved++
 	}
 
 	// Nautobot's interface serializer validates that a device (or module) is
@@ -199,7 +213,7 @@ func (e *Exporter) buildInterfaceEnrichment(
 	if changed {
 		req.Device = makeTenantRef(deviceID)
 	}
-	return req, changed
+	return req, changed, unresolved
 }
 
 // vrfRef resolves a VRF name to its Nautobot reference using the VRF cache
