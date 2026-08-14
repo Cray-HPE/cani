@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024, 2026 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -36,21 +36,22 @@ var clog = logcolor.New("[nautobot] ", false)
 
 // RawData holds all raw API responses fetched during Import.
 type RawData struct {
-	Locations      []nautobotapi.Location
-	Racks          []nautobotapi.Rack
-	Devices        []nautobotapi.Device
-	DeviceTypes    []nautobotapi.DeviceType
-	Interfaces     []nautobotapi.Interface
-	Modules        []nautobotapi.Module
-	ModuleBays     []nautobotapi.ModuleBay
-	Cables         []nautobotapi.Cable
-	InventoryItems []nautobotapi.InventoryItem
-	Statuses       []nautobotapi.Status
-	Roles          []nautobotapi.Role
-	VLANs          []nautobotapi.VLAN
-	Prefixes       []nautobotapi.Prefix
-	IPAddresses    []nautobotapi.IPAddress
-	VRFs           []nautobotapi.VRF
+	Locations            []nautobotapi.Location
+	Racks                []nautobotapi.Rack
+	Devices              []nautobotapi.Device
+	DeviceTypes          []nautobotapi.DeviceType
+	Interfaces           []nautobotapi.Interface
+	Modules              []nautobotapi.Module
+	ModuleBays           []nautobotapi.ModuleBay
+	Cables               []nautobotapi.Cable
+	InventoryItems       []nautobotapi.InventoryItem
+	Statuses             []nautobotapi.Status
+	Roles                []nautobotapi.Role
+	VLANs                []nautobotapi.VLAN
+	Prefixes             []nautobotapi.Prefix
+	IPAddresses          []nautobotapi.IPAddress
+	VRFs                 []nautobotapi.VRF
+	VRFDeviceAssignments []nautobotapi.VRFDeviceAssignment
 }
 
 // Transform converts raw Nautobot API data into a TransformResult.
@@ -111,7 +112,7 @@ func transformRaw(raw *RawData) (*devicetypes.TransformResult, error) {
 	clog.Detail("  Transformed %d IP addresses", len(ipAddresses))
 
 	// 11. VRFs.
-	vrfs := MapVRFs(raw.VRFs, statusNameMap)
+	vrfs := MapVRFs(raw.VRFs, raw.VRFDeviceAssignments, deviceMap, statusNameMap)
 	clog.Detail("  Transformed %d VRFs", len(vrfs))
 
 	return &devicetypes.TransformResult{

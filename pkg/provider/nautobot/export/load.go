@@ -79,6 +79,7 @@ type LoadResult struct {
 	RacksSkipped                int            // Number of racks skipped (already exist)
 	IfacesCreated               int            // Number of interfaces created
 	IfacesSkipped               int            // Number of interfaces skipped (already exist)
+	IfacesUnresolvedRefs        int            // Number of interface refs (LAG/VRF/VLAN) skipped as unresolved during enrichment
 	ModulesCreated              int            // Number of modules created
 	ModulesSkipped              int            // Number of modules skipped (already exist)
 	FrusCreated                 int            // Number of FRUs (inventory items) created
@@ -1467,6 +1468,9 @@ func (e *Exporter) printLoadSummary(result *LoadResult) {
 	}
 	if result.IfacesSkipped > 0 {
 		clog.Skipped("Skipped interfaces (already exist): %d", result.IfacesSkipped)
+	}
+	if result.IfacesUnresolvedRefs > 0 {
+		clog.Warn("Unresolved interface references skipped during enrichment: %d", result.IfacesUnresolvedRefs)
 	}
 
 	// Modules

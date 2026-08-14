@@ -327,6 +327,11 @@ template (name/type/mgmt-only) and are **not** device-type template fields.
 | `Tags` | `[]string` | `Interface.tags` | **Mapped** | Exported via the shared tag resolver |
 | `MacAddress` | `string` | `Interface.mac_address` | **Mapped** | Normalized on `update interface` |
 
+Unresolved references (LAG name, VRF name, VLAN VID) that cannot be resolved to
+a Nautobot object at export time are logged as warnings and skipped. The
+inventory stores these as opaque names/IDs so that forward references and
+external-only references remain valid; validation is deferred to export.
+
 ### 2a.2 `CaniVRF` → Nautobot `VRF`
 
 Source: `pkg/devicetypes/ipam_vrf.go`
@@ -340,7 +345,7 @@ Imported by `FetchVRFs()` + `MapVRFs()`; exported in Phase 6c by `loadVRFs()` in
 | `RD` | `string` | `VRF.rd` | **Mapped** | Route distinguisher (RFC 4364); mapped when non-empty |
 | `Namespace` | `string` | `VRF.namespace` (FK) | Partial | Get-or-create on export (defaults to `Global`); not resolved on import |
 | `Description` | `string` | `VRF.description` | **Mapped** | Mapped when non-empty |
-| `Devices` | `[]uuid.UUID` | `VRFDeviceAssignment` (M2M) | Partial | Exported via `ensureVRFDeviceAssignment()` in `load_vrfs.go`; not imported |
+| `Devices` | `[]uuid.UUID` | `VRFDeviceAssignment` (M2M) | **Mapped** | Exported via `ensureVRFDeviceAssignment()` in `load_vrfs.go`; imported via `FetchVRFDeviceAssignments()` + `MapVRFs()` |
 | `Status` | `string` | `VRF.status` (FK) | **Mapped** | Resolved by name |
 | `Tags` | `[]string` | `VRF.tags` | **Mapped** | Exported via the shared tag resolver |
 | `CustomFields` | `map[string]any` | `VRF.custom_fields` | Partial | Imported; not sent on export |
@@ -569,7 +574,7 @@ Implemented in `loadVLANs()` in `load_vlans.go`. Iterates `inventory.VLANs`. Fin
 
 ### Phase 7b: Interface enrichment
 
-Implemented in `enrichInterfaces()` in `load_interface_enrich.go`. PATCHes existing Nautobot interfaces with LAG, mode, untagged/tagged VLANs, and VRF (see §2.7). Runs after VRFs and VLANs exist so the FK references resolve.
+Implemented in `enrichInterfaces()` in `load_interface_enrich.go`. PATCHes existing Nautobot interfaces with LAG, mode, untagged/tagged VLANs, and VRF (see §2a.1). Runs after VRFs and VLANs exist so the FK references resolve. Unresolved references are logged as warnings and skipped.
 
 ### Phase 8: Prefixes
 

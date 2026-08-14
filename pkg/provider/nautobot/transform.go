@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024, 2026 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -46,21 +46,22 @@ func (p *Nautobot) Transform(ctx context.Context, existing devicetypes.Inventory
 		len(p.rawVLANs) > 0 || len(p.rawPrefixes) > 0 || len(p.rawIPAddresses) > 0 ||
 		len(p.rawVRFs) > 0 {
 		raw = &transform.RawData{
-			Locations:      p.rawLocations,
-			Racks:          p.rawRacks,
-			Devices:        p.rawDevices,
-			DeviceTypes:    p.rawDeviceTypes,
-			Interfaces:     p.rawInterfaces,
-			Modules:        p.rawModules,
-			ModuleBays:     p.rawModuleBays,
-			Cables:         p.rawCables,
-			InventoryItems: p.rawInventoryItems,
-			Statuses:       p.rawStatuses,
-			Roles:          p.rawRoles,
-			VLANs:          p.rawVLANs,
-			Prefixes:       p.rawPrefixes,
-			IPAddresses:    p.rawIPAddresses,
-			VRFs:           p.rawVRFs,
+			Locations:            p.rawLocations,
+			Racks:                p.rawRacks,
+			Devices:              p.rawDevices,
+			DeviceTypes:          p.rawDeviceTypes,
+			Interfaces:           p.rawInterfaces,
+			Modules:              p.rawModules,
+			ModuleBays:           p.rawModuleBays,
+			Cables:               p.rawCables,
+			InventoryItems:       p.rawInventoryItems,
+			Statuses:             p.rawStatuses,
+			Roles:                p.rawRoles,
+			VLANs:                p.rawVLANs,
+			Prefixes:             p.rawPrefixes,
+			IPAddresses:          p.rawIPAddresses,
+			VRFs:                 p.rawVRFs,
+			VRFDeviceAssignments: p.rawVRFDeviceAssignments,
 		}
 	}
 	return transform.Transform(existing, raw)

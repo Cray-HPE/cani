@@ -26,19 +26,26 @@
 package transform
 
 import (
+	"slices"
+
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/google/uuid"
 )
 
 // MapVRFs converts Nautobot VRF objects to CANI VRFs.
-// statusNameMap resolves the Nautobot status UUID to its name.
+// assignments links each VRF to its devices; deviceMap maps Nautobot device
+// UUIDs to CANI device UUIDs; statusNameMap resolves status UUIDs to names.
 func MapVRFs(
 	raw []nautobotapi.VRF,
+	assignments []nautobotapi.VRFDeviceAssignment,
+	deviceMap map[uuid.UUID]uuid.UUID,
 	statusNameMap map[uuid.UUID]string,
 ) map[uuid.UUID]*devicetypes.CaniVRF {
 	result := make(map[uuid.UUID]*devicetypes.CaniVRF, len(raw))
 
+	// First pass: create all VRFs and build a Nautobot-VRF-UUID → CaniVRF map.
+	nbToCani := make(map[uuid.UUID]*devicetypes.CaniVRF, len(raw))
 	for _, vrf := range raw {
 		nbID := directUUID(vrf.Id)
 		if nbID == uuid.Nil {
@@ -61,7 +68,38 @@ func MapVRFs(
 		}
 
 		result[caniID] = caniVRF
+		nbToCani[nbID] = caniVRF
 	}
 
+	resolveVRFDeviceAssignments(assignments, nbToCani, deviceMap)
+
 	return result
+}
+
+// resolveVRFDeviceAssignments links each CaniVRF to its assigned devices,
+// translating Nautobot device UUIDs to CANI device UUIDs and skipping
+// assignments whose VRF, device ref, or device mapping cannot be resolved.
+// Duplicate device assignments are ignored.
+func resolveVRFDeviceAssignments(
+	assignments []nautobotapi.VRFDeviceAssignment,
+	nbToCani map[uuid.UUID]*devicetypes.CaniVRF,
+	deviceMap map[uuid.UUID]uuid.UUID,
+) {
+	for _, a := range assignments {
+		caniVRF, ok := nbToCani[refIDVal(a.Vrf)]
+		if !ok {
+			continue
+		}
+		deviceNbID := tenantRefID(a.Device)
+		if deviceNbID == uuid.Nil {
+			continue
+		}
+		caniDeviceID, ok := deviceMap[deviceNbID]
+		if !ok {
+			continue
+		}
+		if !slices.Contains(caniVRF.Devices, caniDeviceID) {
+			caniVRF.Devices = append(caniVRF.Devices, caniDeviceID)
+		}
+	}
 }

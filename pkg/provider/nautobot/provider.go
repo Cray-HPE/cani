@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024, 2026 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -44,21 +44,22 @@ type Nautobot struct {
 	cache  *export.LookupCache
 
 	// Raw API responses stored during Import() for use by Transform().
-	rawLocations      []nautobotapi.Location
-	rawRacks          []nautobotapi.Rack
-	rawDevices        []nautobotapi.Device
-	rawDeviceTypes    []nautobotapi.DeviceType
-	rawInterfaces     []nautobotapi.Interface
-	rawModules        []nautobotapi.Module
-	rawModuleBays     []nautobotapi.ModuleBay
-	rawCables         []nautobotapi.Cable
-	rawInventoryItems []nautobotapi.InventoryItem
-	rawStatuses       []nautobotapi.Status
-	rawRoles          []nautobotapi.Role
-	rawVLANs          []nautobotapi.VLAN
-	rawPrefixes       []nautobotapi.Prefix
-	rawIPAddresses    []nautobotapi.IPAddress
-	rawVRFs           []nautobotapi.VRF
+	rawLocations            []nautobotapi.Location
+	rawRacks                []nautobotapi.Rack
+	rawDevices              []nautobotapi.Device
+	rawDeviceTypes          []nautobotapi.DeviceType
+	rawInterfaces           []nautobotapi.Interface
+	rawModules              []nautobotapi.Module
+	rawModuleBays           []nautobotapi.ModuleBay
+	rawCables               []nautobotapi.Cable
+	rawInventoryItems       []nautobotapi.InventoryItem
+	rawStatuses             []nautobotapi.Status
+	rawRoles                []nautobotapi.Role
+	rawVLANs                []nautobotapi.VLAN
+	rawPrefixes             []nautobotapi.Prefix
+	rawIPAddresses          []nautobotapi.IPAddress
+	rawVRFs                 []nautobotapi.VRF
+	rawVRFDeviceAssignments []nautobotapi.VRFDeviceAssignment
 }
 
 // New creates a new instance of the Nautobot provider
@@ -97,6 +98,7 @@ func (p *Nautobot) ClearRawData() {
 	p.rawPrefixes = nil
 	p.rawIPAddresses = nil
 	p.rawVRFs = nil
+	p.rawVRFDeviceAssignments = nil
 }
 
 // SetRawData stores fetched raw data from the import phase.
@@ -116,6 +118,7 @@ func (p *Nautobot) SetRawData(d imprt.RawData) {
 	p.rawPrefixes = d.Prefixes
 	p.rawIPAddresses = d.IPAddresses
 	p.rawVRFs = d.VRFs
+	p.rawVRFDeviceAssignments = d.VRFDeviceAssignments
 }
 
 // GetClient returns the Nautobot API client for the import subpackage.

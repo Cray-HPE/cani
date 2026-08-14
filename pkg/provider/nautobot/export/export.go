@@ -111,6 +111,9 @@ func PrintSummary(result *LoadResult) {
 	if result.IfacesSkipped > 0 {
 		clog.Skipped("Skipped interfaces (already exist): %d", result.IfacesSkipped)
 	}
+	if result.IfacesUnresolvedRefs > 0 {
+		clog.Warn("Unresolved interface references skipped during enrichment: %d", result.IfacesUnresolvedRefs)
+	}
 
 	if result.ModulesCreated > 0 {
 		clog.Created("Created modules: %d", result.ModulesCreated)

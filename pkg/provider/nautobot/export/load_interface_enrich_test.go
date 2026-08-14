@@ -26,6 +26,7 @@
 package export
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -137,14 +138,81 @@ func TestBuildInterfaceEnrichment_SetsLagModeAndVLANs(t *testing.T) {
 		TaggedVLANs:  []int{2000},
 	}
 
-	req, changed := e.buildInterfaceEnrichment(deviceID, spec, vidToVLAN)
+	req, changed, unresolved := e.buildInterfaceEnrichment(deviceID, spec, vidToVLAN)
 	if !changed {
 		t.Fatal("buildInterfaceEnrichment: changed = false, want true")
+	}
+	if unresolved != 0 {
+		t.Errorf("buildInterfaceEnrichment: unresolved = %d, want 0", unresolved)
 	}
 	blob, _ := json.Marshal(req)
 	for _, want := range []string{lagID.String(), vlanID.String(), "tagged"} {
 		if !strings.Contains(string(blob), want) {
 			t.Errorf("enrichment payload missing %q:\n%s", want, blob)
 		}
+	}
+}
+
+// TestBuildInterfaceEnrichment_CountsUnresolvedRefs verifies that references
+// which cannot be resolved (LAG, untagged/tagged VLANs, VRF) are reported via
+// the unresolved count instead of being silently dropped.
+//
+// Why it matters: FORGE-216 warns on and skips dangling references at export;
+// the count is what drives the aggregate warning and the LoadResult tally, so an
+// operator can tell that fabric state was left unapplied.
+// Inputs: a spec referencing a missing LAG, an unmapped untagged VLAN, two
+// unmapped tagged VLANs, and an uncached VRF, against an empty cache/VID map.
+// Outputs: changed=false (nothing resolved) and unresolved=5 (1 LAG + 1 untagged
+// + 2 tagged + 1 VRF).
+// Data choice: one unresolved item per reference kind proves each path counts.
+func TestBuildInterfaceEnrichment_CountsUnresolvedRefs(t *testing.T) {
+	var calls int
+	e, cleanup := newExporterWithServer(t, jsonHandler(&calls, http.StatusOK, `{}`))
+	defer cleanup()
+
+	deviceID := uuid.New()
+	spec := interfaceSpec{
+		Name:         "1/1/2",
+		Lag:          "missing-lag",
+		UntaggedVLAN: 999,
+		TaggedVLANs:  []int{10, 20},
+		VRF:          "GONE",
+	}
+
+	_, changed, unresolved := e.buildInterfaceEnrichment(deviceID, spec, map[int]uuid.UUID{})
+	if changed {
+		t.Error("buildInterfaceEnrichment: changed = true, want false (nothing resolvable)")
+	}
+	if unresolved != 5 {
+		t.Errorf("buildInterfaceEnrichment: unresolved = %d, want 5", unresolved)
+	}
+}
+
+// TestEnrichOneInterface_AccumulatesUnresolvedRefs verifies enrichOneInterface
+// records unresolved references into LoadResult.IfacesUnresolvedRefs.
+//
+// Why it matters: the export summary reports this tally; if enrichOneInterface
+// dropped the count, operators would get no signal that LAG/VLAN state was
+// skipped.
+// Inputs: a cached target interface whose spec references a missing LAG and one
+// unmapped tagged VLAN, an empty VID map, and a fresh LoadResult. Outputs:
+// IfacesUnresolvedRefs = 2 (nothing resolved, so no PATCH is sent).
+// Data choice: the target interface is cached so the flow reaches the build step
+// rather than erroring on a missing interface.
+func TestEnrichOneInterface_AccumulatesUnresolvedRefs(t *testing.T) {
+	var calls int
+	e, cleanup := newExporterWithServer(t, jsonHandler(&calls, http.StatusOK, `{}`))
+	defer cleanup()
+
+	deviceID := uuid.New()
+	e.Cache.CacheInterface(deviceID, "1/1/3", &CachedItem{ID: uuid.New(), Name: "1/1/3"})
+
+	spec := interfaceSpec{Name: "1/1/3", Lag: "missing-lag", TaggedVLANs: []int{30}}
+	result := &LoadResult{}
+
+	e.enrichOneInterface(context.Background(), deviceID, spec, map[int]uuid.UUID{}, result)
+
+	if result.IfacesUnresolvedRefs != 2 {
+		t.Errorf("IfacesUnresolvedRefs = %d, want 2", result.IfacesUnresolvedRefs)
 	}
 }
