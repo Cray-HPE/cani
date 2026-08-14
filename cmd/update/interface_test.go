@@ -67,7 +67,7 @@ func TestSetInterfaceDescription(t *testing.T) {
 	spec := &devicetypes.InterfaceSpec{ID: iface.ID, Name: "lag256"}
 	target := interfaceTarget{instance: iface, spec: spec}
 
-	setInterfaceDescription(target, "ISL link")
+	applyInterfaceFields(target, interfaceUpdates{description: "ISL link"}, map[string]bool{flagDescription: true})
 
 	if iface.Description != "ISL link" {
 		t.Errorf("instance.Description = %q, want %q", iface.Description, "ISL link")
@@ -100,10 +100,9 @@ func TestApplyInterfaceFieldsPreservesUntouchedFields(t *testing.T) {
 	target := interfaceTarget{instance: iface, spec: spec}
 
 	// Only lag is "changed"
-	changes := interfaceFieldChanges{lag: true}
 	updates := interfaceUpdates{lag: "lag256"}
 
-	applyInterfaceFields(target, updates, changes)
+	applyInterfaceFields(target, updates, map[string]bool{"lag": true})
 
 	if iface.Lag != "lag256" {
 		t.Errorf("Lag = %q, want %q", iface.Lag, "lag256")
