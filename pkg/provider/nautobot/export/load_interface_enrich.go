@@ -207,6 +207,17 @@ func (e *Exporter) buildInterfaceEnrichment(
 		unresolved++
 	}
 
+	if spec.Description != "" {
+		desc := spec.Description
+		req.Description = &desc
+	}
+
+	// Preserve the interface role during enrichment so that adding LAG/VRF
+	// settings does not clear the role previously set during creation.
+	if ref := e.roleRef(spec.Role); ref != nil {
+		req.Role = ref
+	}
+
 	// Nautobot's interface serializer validates that a device (or module) is
 	// set even on a partial update; omitting it fails with "Either device or
 	// module must be set". Include the device reference whenever we PATCH.
@@ -214,6 +225,18 @@ func (e *Exporter) buildInterfaceEnrichment(
 		req.Device = makeTenantRef(deviceID)
 	}
 	return req, changed, unresolved
+}
+
+// roleRef resolves an interface role name to its Nautobot reference, or nil.
+func (e *Exporter) roleRef(name string) *nautobotapi.BulkWritableCircuitRequestTenant {
+	if name == "" {
+		return nil
+	}
+	item, err := e.Cache.GetRole(name)
+	if err != nil || item == nil {
+		return nil
+	}
+	return makeTenantRef(item.ID)
 }
 
 // vrfRef resolves a VRF name to its Nautobot reference using the VRF cache

@@ -752,6 +752,7 @@ func interfaceInstanceFromSpec(iface *InterfaceSpec, deviceID uuid.UUID) *CaniIn
 		UntaggedVLAN:   iface.UntaggedVLAN,
 		TaggedVLANs:    append([]int(nil), iface.TaggedVLANs...),
 		VRF:            iface.VRF,
+		Description:    iface.Description,
 		ConnectedCable: iface.ConnectedCable,
 	}
 }

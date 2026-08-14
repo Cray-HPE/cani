@@ -81,6 +81,7 @@ Examples:
 	cmd.Flags().Int("untagged-vlan", 0, "Untagged (native) VLAN ID")
 	cmd.Flags().StringSlice("tagged-vlan", nil, "Tagged VLAN ID (comma-separated or repeatable)")
 	cmd.Flags().String("vrf", "", "VRF name to assign to the interface")
+	cmd.Flags().String(flagDescription, "", "Interface description")
 	cmd.Flags().BoolP("list", "L", false, "List interfaces for the specified device")
 
 	return cmd
@@ -136,6 +137,7 @@ type interfaceUpdates struct {
 	untaggedVLAN int
 	taggedVLANs  []int
 	vrf          string
+	description  string
 }
 
 // registeredInterfaceRoles returns the set of role names registered in the
@@ -156,7 +158,7 @@ func registeredInterfaceRoles(inventory *devicetypes.Inventory) map[string]bool 
 
 // interfaceUpdateFlags lists every flag that mutates an interface field.
 var interfaceUpdateFlags = []string{
-	"role", "label", "mac", "lag", "mode", "untagged-vlan", "tagged-vlan", "vrf",
+	"role", "label", "mac", "lag", "mode", "untagged-vlan", "tagged-vlan", "vrf", flagDescription,
 }
 
 // anyInterfaceFlagChanged reports whether at least one mutating flag was set.
@@ -179,6 +181,7 @@ func parseInterfaceUpdates(cmd *cli.Command, inventory *devicetypes.Inventory) (
 	u.mode, _ = cmd.Flags().GetString("mode")
 	u.untaggedVLAN, _ = cmd.Flags().GetInt("untagged-vlan")
 	u.vrf, _ = cmd.Flags().GetString("vrf")
+	u.description, _ = cmd.Flags().GetString(flagDescription)
 
 	if !anyInterfaceFlagChanged(cmd) {
 		return interfaceUpdates{}, fmt.Errorf("at least one interface field flag must be specified (e.g. --role, --mac, --lag, --mode, --untagged-vlan, --tagged-vlan, --vrf)")
@@ -250,20 +253,21 @@ func parseVIDs(strs []string) ([]int, error) {
 
 // interfaceFieldChanges records which interface fields the user asked to update.
 type interfaceFieldChanges struct {
-	role, label, mac, lag, mode, untagged, tagged, vrf bool
+	role, label, mac, lag, mode, untagged, tagged, vrf, description bool
 }
 
 // changedInterfaceFields snapshots which mutating flags were set on the command.
 func changedInterfaceFields(cmd *cli.Command) interfaceFieldChanges {
 	return interfaceFieldChanges{
-		role:     cmd.Flags().Changed("role"),
-		label:    cmd.Flags().Changed("label"),
-		mac:      cmd.Flags().Changed("mac"),
-		lag:      cmd.Flags().Changed("lag"),
-		mode:     cmd.Flags().Changed("mode"),
-		untagged: cmd.Flags().Changed("untagged-vlan"),
-		tagged:   cmd.Flags().Changed("tagged-vlan"),
-		vrf:      cmd.Flags().Changed("vrf"),
+		role:        cmd.Flags().Changed("role"),
+		label:       cmd.Flags().Changed("label"),
+		mac:         cmd.Flags().Changed("mac"),
+		lag:         cmd.Flags().Changed("lag"),
+		mode:        cmd.Flags().Changed("mode"),
+		untagged:    cmd.Flags().Changed("untagged-vlan"),
+		tagged:      cmd.Flags().Changed("tagged-vlan"),
+		vrf:         cmd.Flags().Changed("vrf"),
+		description: cmd.Flags().Changed(flagDescription),
 	}
 }
 
@@ -301,6 +305,9 @@ func applyInterfaceFields(t interfaceTarget, u interfaceUpdates, c interfaceFiel
 	}
 	if c.vrf {
 		setInterfaceVRF(t, u.vrf)
+	}
+	if c.description {
+		setInterfaceDescription(t, u.description)
 	}
 }
 
@@ -365,6 +372,13 @@ func setInterfaceVRF(t interfaceTarget, vrf string) {
 	t.instance.VRF = vrf
 	if t.spec != nil {
 		t.spec.VRF = vrf
+	}
+}
+
+func setInterfaceDescription(t interfaceTarget, desc string) {
+	t.instance.Description = desc
+	if t.spec != nil {
+		t.spec.Description = desc
 	}
 }
 

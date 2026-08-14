@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2026 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -886,6 +886,7 @@ type interfaceSpec struct {
 	UntaggedVLAN int      // Untagged (native) VLAN ID
 	TaggedVLANs  []int    // Tagged VLAN IDs
 	VRF          string   // VRF name (Nautobot vrf)
+	Description  string   // Interface description
 }
 
 // getDeviceInterfaceSpecs returns interface specifications based on device type.
@@ -917,6 +918,7 @@ func getDeviceInterfaceSpecs(device *devicetypes.CaniDeviceType) []interfaceSpec
 				UntaggedVLAN: iface.UntaggedVLAN,
 				TaggedVLANs:  iface.TaggedVLANs,
 				VRF:          iface.VRF,
+				Description:  iface.Description,
 			})
 		}
 		return specs
@@ -1086,6 +1088,11 @@ func (e *Exporter) createInterface(ctx context.Context, deviceID uuid.UUID, ifac
 		req.MacAddress = &mac
 	}
 
+	if iface.Description != "" {
+		desc := iface.Description
+		req.Description = &desc
+	}
+
 	// Resolve interface role if specified
 	if iface.Role != "" {
 		roleItem, roleErr := e.Cache.GetRole(iface.Role)
@@ -1156,6 +1163,15 @@ func (e *Exporter) updateInterface(ctx context.Context, interfaceID uuid.UUID, d
 	if iface.Mac != "" {
 		mac := iface.Mac
 		req.MacAddress = &mac
+	}
+
+	if iface.Description != "" {
+		desc := iface.Description
+		req.Description = &desc
+	}
+
+	if ref := e.roleRef(iface.Role); ref != nil {
+		req.Role = ref
 	}
 
 	resp, err := e.Client.DcimInterfacesPartialUpdateWithResponse(ctx, interfaceID, &nautobotapi.DcimInterfacesPartialUpdateParams{}, req)

@@ -451,6 +451,9 @@
           "additionalProperties": {},
           "type": "object"
         },
+        "description": {
+          "type": "string"
+        },
         "deviceId": {
           "format": "uuid",
           "type": "string"
@@ -1127,6 +1130,9 @@
       "properties": {
         "connectedCable": {
           "format": "uuid",
+          "type": "string"
+        },
+        "description": {
           "type": "string"
         },
         "id": {
