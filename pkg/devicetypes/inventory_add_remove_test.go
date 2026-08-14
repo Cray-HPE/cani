@@ -572,3 +572,48 @@ func TestAddInterfaceAppendsToModuleSpec(t *testing.T) {
 		t.Error("module interface lost after RebuildDerivedState")
 	}
 }
+
+// TestAddInterfacePreservesDescription verifies that AddInterface copies the
+// Description field to the device's InterfaceSpec and that it survives
+// RebuildDerivedState (which rebuilds inv.Interfaces from specs).
+func TestAddInterfacePreservesDescription(t *testing.T) {
+	deviceID := uuid.New()
+	inv := NewInventory()
+	inv.Devices[deviceID] = &CaniDeviceType{ID: deviceID, Name: "sw-leaf-01"}
+	inv.RebuildDerivedState()
+
+	iface := &CaniInterface{
+		ID:            uuid.New(),
+		Name:          "lag256",
+		InterfaceType: "lag",
+		DeviceID:      deviceID,
+		Description:   "ISL link",
+	}
+
+	if err := inv.AddInterface(iface); err != nil {
+		t.Fatalf("AddInterface() unexpected error: %v", err)
+	}
+
+	// Verify description is on the device's InterfaceSpec
+	dev := inv.Devices[deviceID]
+	var specDesc string
+	for _, spec := range dev.Interfaces {
+		if spec.ID == iface.ID {
+			specDesc = spec.Description
+			break
+		}
+	}
+	if specDesc != "ISL link" {
+		t.Errorf("InterfaceSpec.Description = %q, want %q", specDesc, "ISL link")
+	}
+
+	// Verify description survives rebuild
+	inv.RebuildDerivedState()
+	rebuilt := inv.Interfaces[iface.ID]
+	if rebuilt == nil {
+		t.Fatal("interface lost after RebuildDerivedState")
+	}
+	if rebuilt.Description != "ISL link" {
+		t.Errorf("after rebuild, Description = %q, want %q", rebuilt.Description, "ISL link")
+	}
+}

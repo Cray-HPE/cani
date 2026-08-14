@@ -56,6 +56,7 @@ func TestInterfaceNeedsEnrichment(t *testing.T) {
 		{"mode", interfaceSpec{Name: "1/1/1", Mode: "tagged"}, true},
 		{"untagged", interfaceSpec{Name: "1/1/1", UntaggedVLAN: 2000}, true},
 		{"tagged", interfaceSpec{Name: "1/1/1", TaggedVLANs: []int{1}}, true},
+		{"vrf", interfaceSpec{Name: "1/1/25", VRF: "LEGACY"}, true},
 	}
 	for _, c := range cases {
 		if got := interfaceNeedsEnrichment(c.spec); got != c.want {
@@ -214,5 +215,72 @@ func TestEnrichOneInterface_AccumulatesUnresolvedRefs(t *testing.T) {
 
 	if result.IfacesUnresolvedRefs != 2 {
 		t.Errorf("IfacesUnresolvedRefs = %d, want 2", result.IfacesUnresolvedRefs)
+	}
+}
+
+// TestBuildInterfaceEnrichment_PreservesRoleAndDescription verifies the
+// enrichment PATCH carries the interface role and description so that adding
+// LAG/VRF settings does not clear fields set during initial creation.
+func TestBuildInterfaceEnrichment_PreservesRoleAndDescription(t *testing.T) {
+	var calls int
+	e, cleanup := newExporterWithServer(t, jsonHandler(&calls, http.StatusOK, `{}`))
+	defer cleanup()
+
+	deviceID := uuid.New()
+	roleID := uuid.New()
+	e.Cache.roles["UplinkInterface"] = &CachedItem{ID: roleID, Name: "UplinkInterface"}
+
+	lagID := uuid.New()
+	e.Cache.CacheInterface(deviceID, "lag256", &CachedItem{ID: lagID, Name: "lag256"})
+
+	spec := interfaceSpec{
+		Name:        "1/1/49",
+		Lag:         "lag256",
+		Role:        "UplinkInterface",
+		Description: "ISL member",
+	}
+
+	req, changed, _ := e.buildInterfaceEnrichment(deviceID, spec, map[int]uuid.UUID{})
+	if !changed {
+		t.Fatal("buildInterfaceEnrichment: changed = false, want true")
+	}
+
+	blob, _ := json.Marshal(req)
+	payload := string(blob)
+
+	if !strings.Contains(payload, roleID.String()) {
+		t.Errorf("enrichment payload missing role id %s:\n%s", roleID, payload)
+	}
+	if !strings.Contains(payload, "ISL member") {
+		t.Errorf("enrichment payload missing description:\n%s", payload)
+	}
+}
+
+// TestBuildInterfaceEnrichment_NoRoleOrDescriptionWhenEmpty verifies that empty
+// role and description fields do not produce spurious entries in the PATCH.
+func TestBuildInterfaceEnrichment_NoRoleOrDescriptionWhenEmpty(t *testing.T) {
+	var calls int
+	e, cleanup := newExporterWithServer(t, jsonHandler(&calls, http.StatusOK, `{}`))
+	defer cleanup()
+
+	deviceID := uuid.New()
+	lagID := uuid.New()
+	e.Cache.CacheInterface(deviceID, "lag256", &CachedItem{ID: lagID, Name: "lag256"})
+
+	spec := interfaceSpec{
+		Name: "1/1/49",
+		Lag:  "lag256",
+	}
+
+	req, changed, _ := e.buildInterfaceEnrichment(deviceID, spec, map[int]uuid.UUID{})
+	if !changed {
+		t.Fatal("buildInterfaceEnrichment: changed = false, want true")
+	}
+
+	if req.Role != nil {
+		t.Error("expected req.Role to be nil when spec.Role is empty")
+	}
+	if req.Description != nil {
+		t.Error("expected req.Description to be nil when spec.Description is empty")
 	}
 }

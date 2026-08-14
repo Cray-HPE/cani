@@ -2078,6 +2078,29 @@ func TestGetDeviceInterfaceSpecsWithInterfaces(t *testing.T) {
 	}
 }
 
+// TestGetDeviceInterfaceSpecsPreservesDescription verifies that Description
+// is carried from the device-type InterfaceSpec to the export interfaceSpec.
+func TestGetDeviceInterfaceSpecsPreservesDescription(t *testing.T) {
+	dev := &devicetypes.CaniDeviceType{
+		Type: "switch",
+		Interfaces: []devicetypes.InterfaceSpec{
+			{Name: "lag256", Type: "lag", Description: "ISL link"},
+			{Name: "1/1/1", Type: "100gbase-x-qsfp28"},
+		},
+	}
+
+	specs := getDeviceInterfaceSpecs(dev)
+	if len(specs) != 2 {
+		t.Fatalf("expected 2 specs, got %d", len(specs))
+	}
+	if specs[0].Description != "ISL link" {
+		t.Errorf("spec[0].Description = %q, want %q", specs[0].Description, "ISL link")
+	}
+	if specs[1].Description != "" {
+		t.Errorf("spec[1].Description = %q, want empty", specs[1].Description)
+	}
+}
+
 // TestGetDeviceInterfaceSpecsFallbackBlade verifies that getDeviceInterfaceSpecs
 // synthesizes a fallback interface set (iLO + 4 Ethernet) for a blade/node with
 // no instantiated interfaces, leading with the management iLO port.

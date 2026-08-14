@@ -323,6 +323,7 @@ template (name/type/mgmt-only) and are **not** device-type template fields.
 | `UntaggedVLAN` | `int` | `Interface.untagged_vlan` (FK) | **Mapped** | Native VLAN ID, resolved to the VLAN FK created in Phase 7 |
 | `TaggedVLANs` | `[]int` | `Interface.tagged_vlans` (FK) | **Mapped** | Trunk VLAN IDs, resolved to VLAN FKs |
 | `VRF` | `string` | `Interface.vrf` (FK) | **Mapped** | VRF name, resolved to the VRF FK created in Phase 6c |
+| `Description` | `string` | `Interface.description` | **Mapped** | Free-text interface description |
 | `Role` | `string` | `Interface.role` (FK) | **Mapped** | e.g. `management`, `hsn`; validated against registered roles |
 | `Tags` | `[]string` | `Interface.tags` | **Mapped** | Exported via the shared tag resolver |
 | `MacAddress` | `string` | `Interface.mac_address` | **Mapped** | Normalized on `update interface` |
