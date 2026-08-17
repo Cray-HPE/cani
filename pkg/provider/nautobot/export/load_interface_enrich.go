@@ -216,6 +216,8 @@ func (e *Exporter) buildInterfaceEnrichment(
 	// settings does not clear the role previously set during creation.
 	if ref := e.roleRef(spec.Role); ref != nil {
 		req.Role = ref
+	} else if spec.Role != "" {
+		unresolved++
 	}
 
 	// Nautobot's interface serializer validates that a device (or module) is

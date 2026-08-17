@@ -37,6 +37,7 @@ func (e *Exporter) roleRef(name string) *objectRef {
 	}
 	item, err := e.Cache.GetRole(name)
 	if err != nil || item == nil {
+		clog.Warn("unresolved interface role %q, skipping", name)
 		return nil
 	}
 	return makeObjectRef(item.ID)

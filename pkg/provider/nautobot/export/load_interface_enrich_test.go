@@ -256,6 +256,33 @@ func TestBuildInterfaceEnrichment_PreservesRoleAndDescription(t *testing.T) {
 	}
 }
 
+// TestBuildInterfaceEnrichment_CountsUnresolvedRole verifies that a role which
+// cannot be resolved is reported via the unresolved count (parity with the
+// LAG/VLAN/VRF reference kinds), rather than being silently dropped.
+func TestBuildInterfaceEnrichment_CountsUnresolvedRole(t *testing.T) {
+	var calls int
+	e, cleanup := newExporterWithServer(t, jsonHandler(&calls, http.StatusOK, `{}`))
+	defer cleanup()
+
+	deviceID := uuid.New()
+	lagID := uuid.New()
+	e.Cache.CacheInterface(deviceID, "lag256", &CachedItem{ID: lagID, Name: "lag256"})
+
+	// Lag resolves (so changed=true), but the role is not in the cache.
+	spec := interfaceSpec{Name: "1/1/49", Lag: "lag256", Role: "GhostRole"}
+
+	req, changed, unresolved := e.buildInterfaceEnrichment(deviceID, spec, map[int]uuid.UUID{})
+	if !changed {
+		t.Fatal("buildInterfaceEnrichment: changed = false, want true (lag resolved)")
+	}
+	if unresolved != 1 {
+		t.Errorf("unresolved = %d, want 1 (dangling role)", unresolved)
+	}
+	if req.Role != nil {
+		t.Error("expected req.Role to be nil for an unresolved role")
+	}
+}
+
 // TestBuildInterfaceEnrichment_NoRoleOrDescriptionWhenEmpty verifies that empty
 // role and description fields do not produce spurious entries in the PATCH.
 func TestBuildInterfaceEnrichment_NoRoleOrDescriptionWhenEmpty(t *testing.T) {
