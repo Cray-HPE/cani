@@ -1165,10 +1165,10 @@ func (e *Exporter) updateInterface(ctx context.Context, interfaceID uuid.UUID, d
 		req.MacAddress = &mac
 	}
 
-	if iface.Description != "" {
-		desc := iface.Description
-		req.Description = &desc
-	}
+	// Send description unconditionally so an emptied local value clears it in
+	// Nautobot; the inventory is authoritative on reconcile.
+	desc := iface.Description
+	req.Description = &desc
 
 	if ref := e.roleRef(iface.Role); ref != nil {
 		req.Role = ref

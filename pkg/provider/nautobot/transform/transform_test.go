@@ -109,7 +109,7 @@ func TestTransform(t *testing.T) {
 		oaRoleID := openapi_types.UUID(roleID)
 
 		devName := "compute-001"
-		rackRef := makeTenantRefFromUUID(rackNBID)
+		rackRef := makeObjectRefFromUUID(rackNBID)
 
 		raw := &RawData{
 			Locations: []nautobotapi.Location{

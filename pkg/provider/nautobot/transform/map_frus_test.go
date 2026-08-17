@@ -151,7 +151,7 @@ func TestMapFrus(t *testing.T) {
 		parentNBID := uuid.MustParse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
 		itemID := uuid.MustParse("11111111-2222-3333-4444-555555555555")
 		oaItemID := openapi_types.UUID(itemID)
-		parentRef := makeTenantRefFromUUID(parentNBID)
+		parentRef := makeObjectRefFromUUID(parentNBID)
 
 		raw := []nautobotapi.InventoryItem{
 			{
@@ -174,7 +174,7 @@ func TestMapFrus(t *testing.T) {
 		mfgID := uuid.MustParse("99999999-9999-9999-9999-999999999999")
 		itemID := uuid.MustParse("66666666-6666-6666-6666-666666666666")
 		oaItemID := openapi_types.UUID(itemID)
-		mfgRef := makeTenantRefFromUUID(mfgID)
+		mfgRef := makeObjectRefFromUUID(mfgID)
 
 		raw := []nautobotapi.InventoryItem{
 			{

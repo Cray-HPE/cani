@@ -67,7 +67,7 @@ func TestBuildInterfaceMap(t *testing.T) {
 		ifaceID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 		devID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
 		oaIfaceID := openapi_types.UUID(ifaceID)
-		devRef := makeTenantRefFromUUID(devID)
+		devRef := makeObjectRefFromUUID(devID)
 
 		ifaces := []nautobotapi.Interface{
 			{Id: &oaIfaceID, Name: "eth0", Device: &devRef},

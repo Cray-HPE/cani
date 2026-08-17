@@ -70,7 +70,7 @@ func TestMapIPAddresses(t *testing.T) {
 		roleID := uuid.MustParse("77777777-7777-7777-7777-777777777777")
 		statusNameMap := map[uuid.UUID]string{statusID: "Active"}
 		roleNameMap := map[uuid.UUID]string{roleID: "loopback"}
-		role := makeTenantRefFromUUID(roleID)
+		role := makeObjectRefFromUUID(roleID)
 		ipType := nautobotapi.IPAddressTypeChoices("host")
 
 		raw := []nautobotapi.IPAddress{

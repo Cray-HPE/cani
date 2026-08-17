@@ -44,7 +44,7 @@ Describe 'cani alpha add interface'
     End
 
     Describe 'flags'
-      Parameters:value --device --type --role --label --mac --mode --untagged-vlan --tagged-vlan --vrf
+      Parameters:value --device --type --role --label --mac --mode --untagged-vlan --tagged-vlan --vrf --description
       It "has $1 flag"
         When call bin/cani alpha add interface --help
         The stdout should include "$1"
@@ -118,6 +118,13 @@ Describe 'cani alpha add interface'
       When call bin/cani alpha add interface vrf-port --device test-device --type virtual --vrf LEGACY --config "$CANI_CONF"
       The status should equal 0
       The stderr should include 'Added interface'
+    End
+
+    It 'sets description and persists it to the datastore'
+      When call bin/cani alpha add interface lag768 --device test-device --type lag --description "ISL uplink to spine" --config "$CANI_CONF"
+      The status should equal 0
+      The stderr should include 'Added interface'
+      The contents of file "$CANI_DS" should include 'ISL uplink to spine'
     End
 
     It 'resolves --device as unknown correctly'

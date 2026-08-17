@@ -28,7 +28,9 @@ package export
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -224,5 +226,76 @@ func TestUpdateInterface_ReturnsErrorOnNon200(t *testing.T) {
 	iface := interfaceSpec{Name: "eth0", Type: "1000base-t"}
 	if err := e.updateInterface(context.Background(), uuid.New(), uuid.New(), iface, result); err == nil {
 		t.Fatal("expected an error when interface update responds with 500")
+	}
+}
+
+// TestUpdateInterface_ClearsDescriptionWhenEmpty verifies that an empty local
+// description is sent as "description":"" on the PATCH so the inventory value
+// (authoritative on reconcile) clears any stale text in Nautobot.
+//
+// Why it matters: `description` uses `json:",omitempty"`, so only a non-nil
+// pointer to "" reaches Nautobot; sending it unconditionally is what makes an
+// emptied description round-trip instead of silently diverging.
+// Inputs: an interfaceSpec with no Description; server returns 200. Outputs:
+// a PATCH body containing "description":"".
+func TestUpdateInterface_ClearsDescriptionWhenEmpty(t *testing.T) {
+	var body string
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPatch {
+			b, _ := io.ReadAll(r.Body)
+			body = string(b)
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{}`))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(emptyListJSON))
+	}
+	e, cleanup := newExporterWithServer(t, handler)
+	defer cleanup()
+	seedActiveStatus(t, e)
+
+	result := &LoadResult{}
+	iface := interfaceSpec{Name: "eth0", Type: "1000base-t"} // Description intentionally empty
+	if err := e.updateInterface(context.Background(), uuid.New(), uuid.New(), iface, result); err != nil {
+		t.Fatalf("updateInterface() error = %v", err)
+	}
+	if !strings.Contains(body, `"description":""`) {
+		t.Errorf("PATCH body missing empty description clear:\n%s", body)
+	}
+}
+
+// TestUpdateInterface_ClearsRoleWhenEmpty verifies that an empty local role is
+// sent as "role":null on the PATCH so the inventory value (authoritative on
+// reconcile) clears any stale role FK in Nautobot.
+//
+// Why it matters: the `role` FK has no `omitempty`, so a nil pointer serializes
+// as null; this pins the FK-clear contract that mirrors the description clear.
+// Inputs: an interfaceSpec with no Role; server returns 200. Outputs: a PATCH
+// body containing "role":null.
+func TestUpdateInterface_ClearsRoleWhenEmpty(t *testing.T) {
+	var body string
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPatch {
+			b, _ := io.ReadAll(r.Body)
+			body = string(b)
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{}`))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(emptyListJSON))
+	}
+	e, cleanup := newExporterWithServer(t, handler)
+	defer cleanup()
+	seedActiveStatus(t, e)
+
+	result := &LoadResult{}
+	iface := interfaceSpec{Name: "eth0", Type: "1000base-t"} // Role intentionally empty
+	if err := e.updateInterface(context.Background(), uuid.New(), uuid.New(), iface, result); err != nil {
+		t.Fatalf("updateInterface() error = %v", err)
+	}
+	if !strings.Contains(body, `"role":null`) {
+		t.Errorf("PATCH body missing role null-clear:\n%s", body)
 	}
 }

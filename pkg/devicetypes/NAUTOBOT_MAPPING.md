@@ -323,8 +323,8 @@ template (name/type/mgmt-only) and are **not** device-type template fields.
 | `UntaggedVLAN` | `int` | `Interface.untagged_vlan` (FK) | **Mapped** | Native VLAN ID, resolved to the VLAN FK created in Phase 7 |
 | `TaggedVLANs` | `[]int` | `Interface.tagged_vlans` (FK) | **Mapped** | Trunk VLAN IDs, resolved to VLAN FKs |
 | `VRF` | `string` | `Interface.vrf` (FK) | **Mapped** | VRF name, resolved to the VRF FK created in Phase 6c |
-| `Description` | `string` | `Interface.description` | **Mapped** | Free-text interface description |
-| `Role` | `string` | `Interface.role` (FK) | **Mapped** | e.g. `management`, `hsn`; validated against registered roles |
+| `Description` | `string` | `Interface.description` | **Mapped** | Free-text interface description; sent unconditionally on `updateInterface`, so an emptied local value clears it in Nautobot (inventory is authoritative on reconcile) |
+| `Role` | `string` | `Interface.role` (FK) | **Mapped** | e.g. `management`, `hsn`; validated against registered roles. The `role` FK has no `omitempty`, so an empty local role serializes as `role: null` and clears it on reconcile (inventory is authoritative); enrichment re-sends the role to avoid clobbering it (FORGE-305) |
 | `Tags` | `[]string` | `Interface.tags` | **Mapped** | Exported via the shared tag resolver |
 | `MacAddress` | `string` | `Interface.mac_address` | **Mapped** | Normalized on `update interface` |
 

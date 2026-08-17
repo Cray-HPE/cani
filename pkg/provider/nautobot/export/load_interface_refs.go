@@ -31,6 +31,12 @@ import (
 )
 
 // roleRef resolves an interface role name to its Nautobot reference, or nil.
+//
+// The generated PatchedWritableInterfaceRequest.Role FK has no `omitempty`, so
+// a nil ref serializes as `"role":null` and CLEARS the role in Nautobot. Any
+// PATCH that means to keep an existing role must therefore re-send it via this
+// helper; an enrichment PATCH that left Role nil is what dropped roles in
+// FORGE-305.
 func (e *Exporter) roleRef(name string) *objectRef {
 	if name == "" {
 		return nil

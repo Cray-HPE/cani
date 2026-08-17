@@ -197,7 +197,7 @@ func TestMapRacks_OptionalDimensionFields(t *testing.T) {
 	oaID := openapi_types.UUID(nbID)
 	roleID := uuid.MustParse("aaaaaaaa-0000-0000-0000-000000000002")
 	roleURL := "http://api/rack-roles/network/"
-	roleRef := makeTenantRefFromUUID(roleID)
+	roleRef := makeObjectRefFromUUID(roleID)
 	roleRef.Url = strPtr(roleURL)
 	outerUnit := nautobotapi.RackOuterUnitValueIn
 	width := nautobotapi.RackWidthValueN19

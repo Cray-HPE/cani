@@ -212,8 +212,9 @@ func (e *Exporter) buildInterfaceEnrichment(
 		req.Description = &desc
 	}
 
-	// Preserve the interface role during enrichment so that adding LAG/VRF
-	// settings does not clear the role previously set during creation.
+	// Re-send the role on every enrichment PATCH. The role FK has no
+	// `omitempty`, so leaving it nil would serialize as `"role":null` and clear
+	// the role set at creation (FORGE-305); see roleRef.
 	if ref := e.roleRef(spec.Role); ref != nil {
 		req.Role = ref
 	} else if spec.Role != "" {
