@@ -278,11 +278,16 @@ func topologicalSortLocations(locs map[uuid.UUID]*devicetypes.CaniLocationType) 
 	return ordered
 }
 
-// makeTenantRef creates a BulkWritableCircuitRequestTenant reference from a UUID.
-func makeTenantRef(id uuid.UUID) *nautobotapi.BulkWritableCircuitRequestTenant {
+// objectRef is a generic Nautobot "{id}" object reference. The generated API
+// reuses BulkWritableCircuitRequestTenant as the shape for every id-only FK
+// (device, rack, role, VRF, VLAN); this alias names it for what it is.
+type objectRef = nautobotapi.BulkWritableCircuitRequestTenant
+
+// makeTenantRef creates an object reference from a UUID.
+func makeTenantRef(id uuid.UUID) *objectRef {
 	idUnion := nautobotapi.BulkWritableCableRequestStatusId{}
 	idUnion.FromBulkWritableCableRequestStatusId0(id)
-	return &nautobotapi.BulkWritableCircuitRequestTenant{
+	return &objectRef{
 		Id: &idUnion,
 	}
 }

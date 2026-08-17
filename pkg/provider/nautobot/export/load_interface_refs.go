@@ -1,0 +1,123 @@
+/*
+ *
+ *  MIT License
+ *
+ *  (C) Copyright 2026 Hewlett Packard Enterprise Development LP
+ *
+ *  Permission is hereby granted, free of charge, to any person obtaining a
+ *  copy of this software and associated documentation files (the "Software"),
+ *  to deal in the Software without restriction, including without limitation
+ *  the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ *  and/or sell copies of the Software, and to permit persons to whom the
+ *  Software is furnished to do so, subject to the following conditions:
+ *
+ *  The above copyright notice and this permission notice shall be included
+ *  in all copies or substantial portions of the Software.
+ *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ *  THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ *  OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ *  ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ *  OTHER DEALINGS IN THE SOFTWARE.
+ *
+ */
+package export
+
+import (
+	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
+	"github.com/google/uuid"
+)
+
+// roleRef resolves an interface role name to its Nautobot reference, or nil.
+func (e *Exporter) roleRef(name string) *objectRef {
+	if name == "" {
+		return nil
+	}
+	item, err := e.Cache.GetRole(name)
+	if err != nil || item == nil {
+		return nil
+	}
+	return makeTenantRef(item.ID)
+}
+
+// vrfRef resolves a VRF name to its Nautobot reference using the VRF cache
+// populated by the VRF phase, or nil when the name is empty or unknown.
+func (e *Exporter) vrfRef(name string) *objectRef {
+	if name == "" {
+		return nil
+	}
+	item, ok := e.Cache.LookupCachedVRF(name)
+	if !ok || item == nil {
+		clog.Warn("unresolved VRF reference %q, skipping", name)
+		return nil
+	}
+	return makeTenantRef(item.ID)
+}
+
+// lagRef resolves the parent LAG interface on the same device to a ParentLAG
+// reference, or nil when the LAG name is empty or cannot be resolved.
+func (e *Exporter) lagRef(deviceID uuid.UUID, lagName string) *nautobotapi.ParentLAG {
+	if lagName == "" {
+		return nil
+	}
+	lagIface, err := e.Cache.GetInterfaceByDeviceAndName(deviceID, lagName)
+	if err != nil || lagIface == nil {
+		clog.Warn("unresolved LAG reference %q on device %s, skipping", lagName, deviceID)
+		return nil
+	}
+	return makeParentLagRef(lagIface.ID)
+}
+
+// modeRef builds a switchport-mode reference, or nil when mode is empty or invalid.
+func modeRef(mode string) *nautobotapi.PatchedWritableInterfaceRequestMode {
+	if mode == "" {
+		return nil
+	}
+	var m nautobotapi.PatchedWritableInterfaceRequestMode
+	if err := m.FromModeEnum(nautobotapi.ModeEnum(mode)); err != nil {
+		return nil
+	}
+	return &m
+}
+
+// untaggedVLANRef resolves a VLAN ID to an untagged-VLAN reference, or nil.
+func untaggedVLANRef(vid int, vidToVLAN map[int]uuid.UUID) *objectRef {
+	if vid == 0 {
+		return nil
+	}
+	if vlanID, ok := vidToVLAN[vid]; ok {
+		return makeTenantRef(vlanID)
+	}
+	clog.Warn("unresolved untagged VLAN reference (VID %d), skipping", vid)
+	return nil
+}
+
+// resolveTaggedVLANRefs maps tagged VLAN IDs to Nautobot tagged-VLAN references,
+// skipping any VLAN that was not created.
+func resolveTaggedVLANRefs(vids []int, vidToVLAN map[int]uuid.UUID) []nautobotapi.TaggedVLANs {
+	refs := make([]nautobotapi.TaggedVLANs, 0, len(vids))
+	for _, vid := range vids {
+		if vlanID, ok := vidToVLAN[vid]; ok {
+			refs = append(refs, makeTaggedVLANRef(vlanID))
+		} else {
+			clog.Warn("unresolved tagged VLAN reference (VID %d), skipping", vid)
+		}
+	}
+	return refs
+}
+
+// makeParentLagRef builds a ParentLAG reference from a Nautobot interface UUID.
+func makeParentLagRef(id uuid.UUID) *nautobotapi.ParentLAG {
+	var union nautobotapi.BulkWritableCableRequestStatusId
+	_ = union.FromBulkWritableCableRequestStatusId0(id)
+	return &nautobotapi.ParentLAG{Id: &union}
+}
+
+// makeTaggedVLANRef builds a TaggedVLANs reference from a Nautobot VLAN UUID.
+func makeTaggedVLANRef(id uuid.UUID) nautobotapi.TaggedVLANs {
+	var union nautobotapi.BulkWritableCableRequestStatusId
+	_ = union.FromBulkWritableCableRequestStatusId0(id)
+	return nautobotapi.TaggedVLANs{Id: &union}
+}
