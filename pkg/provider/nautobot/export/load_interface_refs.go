@@ -39,7 +39,7 @@ func (e *Exporter) roleRef(name string) *objectRef {
 	if err != nil || item == nil {
 		return nil
 	}
-	return makeTenantRef(item.ID)
+	return makeObjectRef(item.ID)
 }
 
 // vrfRef resolves a VRF name to its Nautobot reference using the VRF cache
@@ -53,7 +53,7 @@ func (e *Exporter) vrfRef(name string) *objectRef {
 		clog.Warn("unresolved VRF reference %q, skipping", name)
 		return nil
 	}
-	return makeTenantRef(item.ID)
+	return makeObjectRef(item.ID)
 }
 
 // lagRef resolves the parent LAG interface on the same device to a ParentLAG
@@ -88,7 +88,7 @@ func untaggedVLANRef(vid int, vidToVLAN map[int]uuid.UUID) *objectRef {
 		return nil
 	}
 	if vlanID, ok := vidToVLAN[vid]; ok {
-		return makeTenantRef(vlanID)
+		return makeObjectRef(vlanID)
 	}
 	clog.Warn("unresolved untagged VLAN reference (VID %d), skipping", vid)
 	return nil

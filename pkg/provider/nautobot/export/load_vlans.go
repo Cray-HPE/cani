@@ -156,7 +156,7 @@ func (e *Exporter) createVLAN(
 	if vlan.Role != "" {
 		roleItem, rerr := e.Cache.GetRole(vlan.Role)
 		if rerr == nil && roleItem != nil {
-			req.Role = makeTenantRef(roleItem.ID)
+			req.Role = makeObjectRef(roleItem.ID)
 		}
 	}
 

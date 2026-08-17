@@ -124,14 +124,14 @@ func (e *Exporter) createFruFromCani(
 	if fru.Manufacturer != "" {
 		mfr, err := e.Cache.GetOrCreateManufacturer(fru.Manufacturer)
 		if err == nil && mfr != nil {
-			req.Manufacturer = makeTenantRef(mfr.ID)
+			req.Manufacturer = makeObjectRef(mfr.ID)
 		}
 	}
 
 	// Map parent FRU → InventoryItem.Parent FK.
 	if fru.Parent != uuid.Nil {
 		if parentFruNautobotID, ok := createdFruIDs[fru.Parent]; ok {
-			req.Parent = makeTenantRef(parentFruNautobotID)
+			req.Parent = makeObjectRef(parentFruNautobotID)
 		}
 	}
 

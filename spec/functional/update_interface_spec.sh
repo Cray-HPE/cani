@@ -42,7 +42,7 @@ Describe 'cani alpha update interface'
     End
 
     Describe 'flags'
-      Parameters:value --device --name --role --label --list
+      Parameters:value --device --name --role --label --description --list
       It "has $1 flag"
         When call bin/cani alpha update interface --help
         The stdout should include "$1"
@@ -104,6 +104,13 @@ Describe 'cani alpha update interface'
       When call bin/cani alpha update interface --device test-device --name "GigabitEthernet0/0/1" --label "Primary Uplink" --config "$CANI_CONF"
       The status should equal 0
       The stderr should include 'Updated interface'
+    End
+
+    It 'sets description and persists it to the datastore'
+      When call bin/cani alpha update interface --device test-device --name "GigabitEthernet0/0/1" --description "ISL uplink to spine" --config "$CANI_CONF"
+      The status should equal 0
+      The stderr should include 'Updated interface'
+      The contents of file "$CANI_DS" should include 'ISL uplink to spine'
     End
 
     It 'warns on unknown role but succeeds'

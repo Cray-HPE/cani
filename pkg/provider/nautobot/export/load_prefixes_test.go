@@ -51,7 +51,7 @@ import (
 // -----------------------------------------------------------------------------
 
 // wireIDRef decodes a Nautobot foreign-key reference as it appears on the wire.
-// Every FK helper (makeIDRef / makeTenantRef / makeIPParentRef / ...) marshals
+// Every FK helper (makeIDRef / makeObjectRef / makeIPParentRef / ...) marshals
 // to the shape {"id":"<uuid>"}, so this single struct covers all of them.
 type wireIDRef struct {
 	ID string `json:"id"`

@@ -222,7 +222,7 @@ func (e *Exporter) buildInterfaceEnrichment(
 	// set even on a partial update; omitting it fails with "Either device or
 	// module must be set". Include the device reference whenever we PATCH.
 	if changed {
-		req.Device = makeTenantRef(deviceID)
+		req.Device = makeObjectRef(deviceID)
 	}
 	return req, changed, unresolved
 }

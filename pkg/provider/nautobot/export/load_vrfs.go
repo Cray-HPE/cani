@@ -146,7 +146,7 @@ func (e *Exporter) createVRF(ctx context.Context, vrf *devicetypes.CaniVRF) (uui
 
 	if vrf.Status != "" {
 		if statusItem, err := e.Cache.GetStatus(vrf.Status); err == nil && statusItem != nil {
-			req.Status = makeTenantRef(statusItem.ID)
+			req.Status = makeObjectRef(statusItem.ID)
 		}
 	}
 
@@ -196,7 +196,7 @@ func (e *Exporter) ensureVRFDeviceAssignment(ctx context.Context, deviceID uuid.
 	}
 
 	req := nautobotapi.VRFDeviceAssignmentRequest{
-		Device: makeTenantRef(deviceID),
+		Device: makeObjectRef(deviceID),
 		Vrf:    makeStatusRef(vrf.ID),
 	}
 	createResp, err := e.Client.IpamVrfDeviceAssignmentsCreateWithResponse(ctx,

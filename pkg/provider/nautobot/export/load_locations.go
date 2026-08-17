@@ -140,7 +140,7 @@ func (e *Exporter) createLocationFromCani(
 		if !ok {
 			return uuid.Nil, fmt.Errorf("parent %s not yet created in Nautobot (ordering bug?)", loc.Parent)
 		}
-		parentRef := makeTenantRef(parentNautobotID)
+		parentRef := makeObjectRef(parentNautobotID)
 		req.Parent = parentRef
 	}
 
@@ -283,8 +283,8 @@ func topologicalSortLocations(locs map[uuid.UUID]*devicetypes.CaniLocationType) 
 // (device, rack, role, VRF, VLAN); this alias names it for what it is.
 type objectRef = nautobotapi.BulkWritableCircuitRequestTenant
 
-// makeTenantRef creates an object reference from a UUID.
-func makeTenantRef(id uuid.UUID) *objectRef {
+// makeObjectRef creates an object reference from a UUID.
+func makeObjectRef(id uuid.UUID) *objectRef {
 	idUnion := nautobotapi.BulkWritableCableRequestStatusId{}
 	idUnion.FromBulkWritableCableRequestStatusId0(id)
 	return &objectRef{

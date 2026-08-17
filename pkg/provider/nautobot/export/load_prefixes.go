@@ -168,7 +168,7 @@ func (e *Exporter) createPrefix(
 	// Resolve VLAN
 	if prefix.VLAN != uuid.Nil {
 		if vlanNID, ok := vlanMap[prefix.VLAN]; ok {
-			ref := makeTenantRef(vlanNID)
+			ref := makeObjectRef(vlanNID)
 			req.Vlan = ref
 		}
 	}
@@ -177,7 +177,7 @@ func (e *Exporter) createPrefix(
 	if prefix.Role != "" {
 		roleItem, err := e.Cache.GetRole(prefix.Role)
 		if err == nil && roleItem != nil {
-			ref := makeTenantRef(roleItem.ID)
+			ref := makeObjectRef(roleItem.ID)
 			req.Role = ref
 		}
 	}
