@@ -141,8 +141,12 @@ func (e *Exporter) enrichOneInterface(
 		}
 	}
 
-	req, changed, unresolved := e.buildInterfaceEnrichment(deviceID, spec, vidToVLAN)
+	req, changed, unresolved, err := e.buildInterfaceEnrichment(deviceID, spec, vidToVLAN)
 	result.IfacesUnresolvedRefs += unresolved
+	if err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("enrich %s: %v", spec.Name, err))
+		return
+	}
 	if !changed {
 		return
 	}
@@ -173,7 +177,7 @@ func (e *Exporter) buildInterfaceEnrichment(
 	deviceID uuid.UUID,
 	spec interfaceSpec,
 	vidToVLAN map[int]uuid.UUID,
-) (nautobotapi.PatchedWritableInterfaceRequest, bool, int) {
+) (nautobotapi.PatchedWritableInterfaceRequest, bool, int, error) {
 	req := nautobotapi.PatchedWritableInterfaceRequest{}
 	changed := false
 	unresolved := 0
@@ -215,11 +219,11 @@ func (e *Exporter) buildInterfaceEnrichment(
 	// Re-send the role on every enrichment PATCH. The role FK has no
 	// `omitempty`, so leaving it nil would serialize as `"role":null` and clear
 	// the role set at creation (FORGE-305); see roleRef.
-	if ref := e.roleRef(spec.Role); ref != nil {
-		req.Role = ref
-	} else if spec.Role != "" {
-		unresolved++
+	role, err := e.roleRef(spec.Role)
+	if err != nil {
+		return req, false, unresolved + 1, err
 	}
+	req.Role = role
 
 	// Nautobot's interface serializer validates that a device (or module) is
 	// set even on a partial update; omitting it fails with "Either device or
@@ -227,5 +231,5 @@ func (e *Exporter) buildInterfaceEnrichment(
 	if changed {
 		req.Device = makeObjectRef(deviceID)
 	}
-	return req, changed, unresolved
+	return req, changed, unresolved, nil
 }

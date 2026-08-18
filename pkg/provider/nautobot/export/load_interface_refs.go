@@ -26,27 +26,31 @@
 package export
 
 import (
+	"fmt"
+
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/google/uuid"
 )
 
-// roleRef resolves an interface role name to its Nautobot reference, or nil.
+// roleRef resolves an interface role name to its Nautobot reference.
 //
 // The generated PatchedWritableInterfaceRequest.Role FK has no `omitempty`, so
 // a nil ref serializes as `"role":null` and CLEARS the role in Nautobot. Any
 // PATCH that means to keep an existing role must therefore re-send it via this
 // helper; an enrichment PATCH that left Role nil is what dropped roles in
 // FORGE-305.
-func (e *Exporter) roleRef(name string) *objectRef {
+func (e *Exporter) roleRef(name string) (*objectRef, error) {
 	if name == "" {
-		return nil
+		return nil, nil
 	}
 	item, err := e.Cache.GetRole(name)
-	if err != nil || item == nil {
-		clog.Warn("unresolved interface role %q, skipping", name)
-		return nil
+	if err != nil {
+		return nil, fmt.Errorf("resolve interface role %q: %w", name, err)
 	}
-	return makeObjectRef(item.ID)
+	if item == nil {
+		return nil, fmt.Errorf("resolve interface role %q: not found", name)
+	}
+	return makeObjectRef(item.ID), nil
 }
 
 // vrfRef resolves a VRF name to its Nautobot reference using the VRF cache

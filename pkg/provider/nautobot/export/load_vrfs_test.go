@@ -161,7 +161,10 @@ func TestBuildInterfaceEnrichment_AssignsVRF(t *testing.T) {
 	deviceID := uuid.New()
 	spec := interfaceSpec{Name: "1/1/25", VRF: "LEGACY"}
 
-	req, changed, unresolved := e.buildInterfaceEnrichment(deviceID, spec, map[int]uuid.UUID{})
+	req, changed, unresolved, err := e.buildInterfaceEnrichment(deviceID, spec, map[int]uuid.UUID{})
+	if err != nil {
+		t.Fatalf("buildInterfaceEnrichment() error = %v", err)
+	}
 	if !changed {
 		t.Fatal("buildInterfaceEnrichment: changed = false, want true")
 	}

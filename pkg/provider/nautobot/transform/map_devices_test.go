@@ -227,9 +227,10 @@ func TestMapDevices(t *testing.T) {
 		ifaceOAID := openapi_types.UUID(ifaceNBID)
 		mgmtOnly := true
 		ifType := nautobotapi.InterfaceTypeValue("1000base-t")
+		ifaceDescription := "ISL uplink to spine"
 		ifaces := map[uuid.UUID][]nautobotapi.Interface{
 			devNBID: {
-				{Id: &ifaceOAID, Name: "eth0", Device: &devRef, MgmtOnly: &mgmtOnly, Type: nautobotapi.InterfaceType{Value: &ifType}},
+				{Id: &ifaceOAID, Name: "eth0", Device: &devRef, MgmtOnly: &mgmtOnly, Type: nautobotapi.InterfaceType{Value: &ifType}, Description: &ifaceDescription},
 			},
 		}
 
@@ -298,6 +299,9 @@ func TestMapDevices(t *testing.T) {
 		}
 		if dev.Interfaces[0].MgmtOnly == nil || !*dev.Interfaces[0].MgmtOnly {
 			t.Error("Interface MgmtOnly should be true")
+		}
+		if dev.Interfaces[0].Description != ifaceDescription {
+			t.Errorf("Interface Description = %q, want %q", dev.Interfaces[0].Description, ifaceDescription)
 		}
 	})
 

@@ -27,12 +27,16 @@ package export
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
 
+	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
+	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
+	providertransform "github.com/Cray-HPE/cani/pkg/provider/nautobot/transform"
 	"github.com/google/uuid"
 )
 
@@ -265,6 +269,63 @@ func TestUpdateInterface_ClearsDescriptionWhenEmpty(t *testing.T) {
 	}
 }
 
+// TestInterfaceDescriptionImportExportRoundTrip verifies a description fetched
+// from Nautobot survives transformation into the portable model and is sent
+// back by interface reconciliation.
+func TestInterfaceDescriptionImportExportRoundTrip(t *testing.T) {
+	deviceID := uuid.New()
+	interfaceID := uuid.New()
+	deviceOpenAPIID := openapi_types.UUID(deviceID)
+	interfaceOpenAPIID := openapi_types.UUID(interfaceID)
+	deviceName := "switch-01"
+	description := "ISL uplink to spine"
+	interfaceType := nautobotapi.InterfaceTypeValue("100gbase-x-qsfp28")
+	deviceRef := makeObjectRef(deviceID)
+
+	devices, idMap := providertransform.MapDevices(
+		[]nautobotapi.Device{{Id: &deviceOpenAPIID, Name: &deviceName}},
+		nil, nil, nil,
+		map[uuid.UUID][]nautobotapi.Interface{
+			deviceID: {{
+				Id:          &interfaceOpenAPIID,
+				Name:        "1/1/49",
+				Device:      deviceRef,
+				Type:        nautobotapi.InterfaceType{Value: &interfaceType},
+				Description: &description,
+			}},
+		},
+		nil, nil,
+	)
+	device := devices[idMap[deviceID]]
+	if device == nil {
+		t.Fatal("MapDevices() did not return the imported device")
+	}
+	specs := getDeviceInterfaceSpecs(device)
+	if len(specs) != 1 {
+		t.Fatalf("getDeviceInterfaceSpecs() returned %d specs, want 1", len(specs))
+	}
+
+	var body string
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPatch {
+			payload, _ := io.ReadAll(r.Body)
+			body = string(payload)
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{}`))
+	}
+	exporter, cleanup := newExporterWithServer(t, handler)
+	defer cleanup()
+	seedActiveStatus(t, exporter)
+
+	if err := exporter.updateInterface(context.Background(), interfaceID, deviceID, specs[0], &LoadResult{}); err != nil {
+		t.Fatalf("updateInterface() error = %v", err)
+	}
+	if !strings.Contains(body, `"description":"ISL uplink to spine"`) {
+		t.Errorf("PATCH body missing imported description:\n%s", body)
+	}
+}
+
 // TestUpdateInterface_ClearsRoleWhenEmpty verifies that an empty local role is
 // sent as "role":null on the PATCH so the inventory value (authoritative on
 // reconcile) clears any stale role FK in Nautobot.
@@ -297,5 +358,65 @@ func TestUpdateInterface_ClearsRoleWhenEmpty(t *testing.T) {
 	}
 	if !strings.Contains(body, `"role":null`) {
 		t.Errorf("PATCH body missing role null-clear:\n%s", body)
+	}
+}
+
+// TestUpdateInterface_SerializesResolvedRoleAndDevice verifies both generated
+// foreign-key fields are non-null references in the actual PATCH body.
+func TestUpdateInterface_SerializesResolvedRoleAndDevice(t *testing.T) {
+	deviceID := uuid.New()
+	roleID := uuid.New()
+	var body string
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPatch {
+			payload, _ := io.ReadAll(r.Body)
+			body = string(payload)
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{}`))
+	}
+	e, cleanup := newExporterWithServer(t, handler)
+	defer cleanup()
+	seedActiveStatus(t, e)
+	e.Cache.roles["UplinkInterface"] = &CachedItem{ID: roleID, Name: "UplinkInterface"}
+
+	iface := interfaceSpec{Name: "eth0", Type: "1000base-t", Role: "UplinkInterface"}
+	if err := e.updateInterface(context.Background(), uuid.New(), deviceID, iface, &LoadResult{}); err != nil {
+		t.Fatalf("updateInterface() error = %v", err)
+	}
+	var payload map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(body), &payload); err != nil {
+		t.Fatalf("unmarshal PATCH body: %v", err)
+	}
+	if role := string(payload["role"]); role == "" || role == "null" || !strings.Contains(role, roleID.String()) {
+		t.Errorf("PATCH role = %s, want reference to %s", role, roleID)
+	}
+	if device := string(payload["device"]); device == "" || device == "null" || !strings.Contains(device, deviceID.String()) {
+		t.Errorf("PATCH device = %s, want reference to %s", device, deviceID)
+	}
+}
+
+// TestUpdateInterface_RejectsUnresolvedRole verifies a non-empty role lookup
+// failure aborts the update instead of serializing the role as null.
+func TestUpdateInterface_RejectsUnresolvedRole(t *testing.T) {
+	patchCalls := 0
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPatch {
+			patchCalls++
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(emptyListJSON))
+	}
+	e, cleanup := newExporterWithServer(t, handler)
+	defer cleanup()
+	seedActiveStatus(t, e)
+
+	result := &LoadResult{}
+	iface := interfaceSpec{Name: "eth0", Type: "1000base-t", Role: "GhostRole"}
+	if err := e.updateInterface(context.Background(), uuid.New(), uuid.New(), iface, result); err == nil {
+		t.Fatal("updateInterface() error = nil, want unresolved role error")
+	}
+	if patchCalls != 0 {
+		t.Errorf("PATCH calls = %d, want 0", patchCalls)
 	}
 }
