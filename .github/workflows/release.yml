@@ -177,11 +177,43 @@ jobs:
       - name: Upload binary to draft release
         run: gh release upload "${TAG}" cani-*.tar.gz cani-*.tar.gz.sha256 --clobber
 
+  # Attach the inventory schema so consumers can pin a contract to a release
+  # rather than tracking the copy on main.
+  upload_schema:
+    name: Upload inventory schema
+    needs: create_release
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ inputs.tag || github.ref_name }}
+      SCHEMA: pkg/devicetypes/schema/inventory.schema.json
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Verify the committed schema matches the tagged source
+        run: |
+          go run ./tools/genschema "${RUNNER_TEMP}/generated.schema.json"
+          cmp "${SCHEMA}" "${RUNNER_TEMP}/generated.schema.json"
+
+      - name: Upload schema to draft release
+        run: |
+          cp "${SCHEMA}" cani-inventory.schema.json
+          sha256sum cani-inventory.schema.json > cani-inventory.schema.json.sha256
+          gh release upload "${TAG}" \
+            cani-inventory.schema.json cani-inventory.schema.json.sha256 --clobber
+
   # Publish the release once all binaries are attached. Single job that owns the
   # draft->published transition and the prerelease/latest designation.
   publish_release:
     name: Publish release
-    needs: [classify, build_binaries]
+    needs: [classify, build_binaries, upload_schema]
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
