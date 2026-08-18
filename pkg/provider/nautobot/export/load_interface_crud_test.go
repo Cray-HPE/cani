@@ -157,6 +157,32 @@ func TestCreateInterface_ReturnsErrorWhenStatusUnresolvable(t *testing.T) {
 	}
 }
 
+// TestCreateInterface_RejectsUnresolvedRole verifies fallback creation fails
+// before POSTing an interface when its requested role cannot be resolved.
+func TestCreateInterface_RejectsUnresolvedRole(t *testing.T) {
+	interfacePosts := 0
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodPost && strings.Contains(r.URL.Path, "dcim/interfaces") {
+			interfacePosts++
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(emptyListJSON))
+	}
+	e, cleanup := newExporterWithServer(t, handler)
+	defer cleanup()
+	seedActiveStatus(t, e)
+
+	result := &LoadResult{}
+	iface := interfaceSpec{Name: "eth0", Type: "1000base-t", Role: "GhostRole"}
+	if err := e.createInterface(context.Background(), uuid.New(), iface, result); err == nil {
+		t.Fatal("createInterface() error = nil, want unresolved role error")
+	}
+	if interfacePosts != 0 {
+		t.Errorf("interface POSTs = %d, want 0", interfacePosts)
+	}
+}
+
 // -----------------------------------------------------------------------------
 // updateInterface
 // -----------------------------------------------------------------------------

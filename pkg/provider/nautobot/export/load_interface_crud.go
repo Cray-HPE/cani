@@ -94,16 +94,11 @@ func (e *Exporter) createInterface(ctx context.Context, deviceID uuid.UUID, ifac
 		req.Description = &desc
 	}
 
-	// Resolve interface role if specified
-	if iface.Role != "" {
-		roleItem, roleErr := e.Cache.GetRole(iface.Role)
-		if roleErr == nil && roleItem != nil {
-			var roleIDUnion nautobotapi.BulkWritableCableRequestStatusId
-			if err := roleIDUnion.FromBulkWritableCableRequestStatusId0(roleItem.ID); err == nil {
-				req.Role = &nautobotapi.BulkWritableCircuitRequestTenant{Id: &roleIDUnion}
-			}
-		}
+	role, err := e.roleRef(iface.Role)
+	if err != nil {
+		return err
 	}
+	req.Role = role
 
 	resp, err := e.Client.DcimInterfacesCreateWithResponse(ctx, &nautobotapi.DcimInterfacesCreateParams{}, req)
 	if err != nil {

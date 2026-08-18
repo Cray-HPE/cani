@@ -273,6 +273,7 @@ func TestCreateModuleInterfaces_CreatesValidSkipsInvalid(t *testing.T) {
 	e, cleanup := newExporterWithServer(t, moduleIfaceServer(&postCalls, http.StatusCreated, created))
 	defer cleanup()
 	seedActiveStatus(t, e)
+	e.Cache.roles["hsn"] = &CachedItem{ID: uuid.New(), Name: "hsn"}
 
 	module := &devicetypes.CaniModuleType{
 		Name: "ConnectX-6",
