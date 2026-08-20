@@ -125,7 +125,7 @@ func TestMapLocations(t *testing.T) {
 		childNBID := uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
 		parentOA := openapi_types.UUID(parentNBID)
 		childOA := openapi_types.UUID(childNBID)
-		parentRef := makeTenantRefFromUUID(parentNBID)
+		parentRef := makeObjectRefFromUUID(parentNBID)
 
 		raw := []nautobotapi.Location{
 			{
@@ -161,7 +161,7 @@ func TestMapLocations(t *testing.T) {
 		childNBID := uuid.MustParse("cccccccc-cccc-cccc-cccc-cccccccccccc")
 		unknownParent := uuid.MustParse("dddddddd-dddd-dddd-dddd-dddddddddddd")
 		childOA := openapi_types.UUID(childNBID)
-		parentRef := makeTenantRefFromUUID(unknownParent)
+		parentRef := makeObjectRefFromUUID(unknownParent)
 
 		raw := []nautobotapi.Location{
 			{

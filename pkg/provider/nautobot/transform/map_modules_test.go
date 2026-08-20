@@ -66,7 +66,7 @@ func TestBuildModuleBayMap(t *testing.T) {
 		bayID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 		devID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
 		oaBayID := openapi_types.UUID(bayID)
-		devRef := makeTenantRefFromUUID(devID)
+		devRef := makeObjectRefFromUUID(devID)
 
 		bays := []nautobotapi.ModuleBay{
 			{Id: &oaBayID, Name: "bay-1", ParentDevice: &devRef},
@@ -147,7 +147,7 @@ func TestMapModules(t *testing.T) {
 		serial := "MOD-SN1"
 		tag := "MOD-TAG"
 		statusID := uuid.MustParse("99999999-9999-9999-9999-999999999999")
-		bayRef := makeTenantRefFromUUID(bayID)
+		bayRef := makeObjectRefFromUUID(bayID)
 
 		raw := []nautobotapi.Module{
 			{
@@ -236,8 +236,8 @@ func TestMapModules_LocationAndRole(t *testing.T) {
 	locCaniID := uuid.MustParse("bbbbbbbb-0000-0000-0000-000000000004")
 	roleID := uuid.MustParse("bbbbbbbb-0000-0000-0000-000000000003")
 	statusID := uuid.MustParse("bbbbbbbb-0000-0000-0000-000000000005")
-	locRef := makeTenantRefFromUUID(locID)
-	roleRef := makeTenantRefFromUUID(roleID)
+	locRef := makeObjectRefFromUUID(locID)
+	roleRef := makeObjectRefFromUUID(roleID)
 
 	raw := []nautobotapi.Module{
 		{

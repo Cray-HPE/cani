@@ -18,6 +18,7 @@ type InterfaceSpec struct {
 	UntaggedVLAN     int                `yaml:"untagged_vlan,omitempty" json:"untaggedVlan,omitempty"`
 	TaggedVLANs      []int              `yaml:"tagged_vlans,omitempty" json:"taggedVlans,omitempty"`
 	VRF              string             `yaml:"vrf,omitempty" json:"vrf,omitempty"`
+	Description      string             `yaml:"description,omitempty" json:"description,omitempty"`
 	ConnectedCable   *uuid.UUID         `yaml:"connected_cable,omitempty" json:"connectedCable,omitempty"`
 	Status           string             `yaml:"status,omitempty" json:"status,omitempty"`
 	ProviderMetadata map[string]any     `yaml:"providerMetadata,omitempty" json:"providerMetadata,omitempty"`
@@ -41,6 +42,7 @@ type CaniInterface struct {
 	UntaggedVLAN   int         `json:"untaggedVlan,omitempty" yaml:"untagged_vlan,omitempty"`
 	TaggedVLANs    []int       `json:"taggedVlans,omitempty" yaml:"tagged_vlans,omitempty"`
 	VRF            string      `json:"vrf,omitempty" yaml:"vrf,omitempty"`
+	Description    string      `json:"description,omitempty" yaml:"description,omitempty"`
 	ConnectedCable *uuid.UUID  `json:"connectedCable,omitempty" yaml:"connected_cable,omitempty"`
 	ContentType    string      `json:"contentType,omitempty" yaml:"content_type,omitempty"` // For cable terminations (e.g., "dcim.interface")
 	IPAddresses    []uuid.UUID `json:"ipAddresses,omitempty" yaml:"ip_addresses,omitempty"` // Assigned IP address IDs

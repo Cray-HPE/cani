@@ -208,6 +208,36 @@ func TestSendInterfaceBatch_PayloadAndCache(t *testing.T) {
 	assertCached(t, e, devID, "eth0", id1)
 }
 
+// TestSendInterfaceBatch_RejectsUnresolvedRole verifies bulk creation fails
+// before POSTing an interface when its requested role cannot be resolved.
+func TestSendInterfaceBatch_RejectsUnresolvedRole(t *testing.T) {
+	interfacePosts := 0
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodPost && strings.Contains(r.URL.Path, "dcim/interfaces") {
+			interfacePosts++
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"count":0,"results":[]}`))
+	}
+	e, cleanup := newExporterWithServer(t, handler)
+	defer cleanup()
+
+	status, _ := activeStatus(t)
+	batch := []bulkInterfaceItem{{
+		DeviceID:   uuid.New(),
+		DeviceName: "switch-01",
+		Spec:       interfaceSpec{Name: "eth0", Type: "1000base-t", Role: "GhostRole"},
+	}}
+
+	if _, err := e.sendInterfaceBatch(context.Background(), batch, status); err == nil {
+		t.Fatal("sendInterfaceBatch() error = nil, want unresolved role error")
+	}
+	if interfacePosts != 0 {
+		t.Errorf("interface POSTs = %d, want 0", interfacePosts)
+	}
+}
+
 // TestInterfaceExport_PreservesMgmtOnly guards a data-fidelity guarantee: an
 // interface flagged management-only in cani (e.g. iLO/BMC) must be exported with
 // mgmt_only=true. Nautobot models mgmt_only as a first-class field distinct from
@@ -248,6 +278,7 @@ func TestInterfaceExport_PreservesMgmtOnly(t *testing.T) {
 	rec := &capturedRequest{}
 	e, cleanup := newExporterWithServer(t, interfaceServer(rec, created))
 	defer cleanup()
+	e.Cache.roles["management"] = &CachedItem{ID: uuid.New(), Name: "management"}
 
 	status, _ := activeStatus(t)
 	if _, err := e.sendInterfaceBatch(context.Background(), batch, status); err != nil {

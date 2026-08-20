@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2026 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -886,6 +886,7 @@ type interfaceSpec struct {
 	UntaggedVLAN int      // Untagged (native) VLAN ID
 	TaggedVLANs  []int    // Tagged VLAN IDs
 	VRF          string   // VRF name (Nautobot vrf)
+	Description  string   // Interface description
 }
 
 // getDeviceInterfaceSpecs returns interface specifications based on device type.
@@ -917,6 +918,7 @@ func getDeviceInterfaceSpecs(device *devicetypes.CaniDeviceType) []interfaceSpec
 				UntaggedVLAN: iface.UntaggedVLAN,
 				TaggedVLANs:  iface.TaggedVLANs,
 				VRF:          iface.VRF,
+				Description:  iface.Description,
 			})
 		}
 		return specs
@@ -1029,145 +1031,6 @@ func getSpeedForType(ifaceType string) int {
 	default:
 		return 1000000 // Default 1Gbps
 	}
-}
-
-// statusRef resolves the named Nautobot status and builds a status reference.
-func (e *Exporter) statusRef(name string) (nautobotapi.BulkWritableCableRequestStatus, error) {
-	var status nautobotapi.BulkWritableCableRequestStatus
-	statusItem, err := e.Cache.GetStatus(name)
-	if err != nil {
-		return status, fmt.Errorf("failed to get %s status: %w", name, err)
-	}
-	var statusIDUnion nautobotapi.BulkWritableCableRequestStatusId
-	if err := statusIDUnion.FromBulkWritableCableRequestStatusId0(statusItem.ID); err != nil {
-		return status, fmt.Errorf(errFmtCreateStatusID, err)
-	}
-	status.Id = &statusIDUnion
-	return status, nil
-}
-
-// createInterface creates a single interface on a device
-func (e *Exporter) createInterface(ctx context.Context, deviceID uuid.UUID, iface interfaceSpec, result *LoadResult) error {
-	if e.Options.DryRun {
-		clog.DryRun("Would create interface: %s", iface.Name)
-		result.IfacesCreated++
-		return nil
-	}
-
-	// Build device reference with proper union type for ID
-	var deviceIDUnion nautobotapi.BulkWritableCableRequestStatusId
-	if err := deviceIDUnion.FromBulkWritableCableRequestStatusId0(deviceID); err != nil {
-		return fmt.Errorf("failed to create device ID: %w", err)
-	}
-	deviceRef := &nautobotapi.BulkWritableCircuitRequestTenant{
-		Id: &deviceIDUnion,
-	}
-
-	// Build status reference - get "Active" status
-	status, err := e.statusRef("Active")
-	if err != nil {
-		return err
-	}
-
-	// Build interface request
-	ifaceType := nautobotapi.InterfaceTypeChoices(iface.Type)
-	mgmtOnly := iface.MgmtOnly
-	req := nautobotapi.WritableInterfaceRequest{
-		Device:   deviceRef,
-		Name:     iface.Name,
-		Type:     ifaceType,
-		Status:   status,
-		MgmtOnly: &mgmtOnly,
-	}
-	req.Tags = e.Cache.resolveTagRefs(iface.Tags)
-
-	if iface.Mac != "" {
-		mac := iface.Mac
-		req.MacAddress = &mac
-	}
-
-	// Resolve interface role if specified
-	if iface.Role != "" {
-		roleItem, roleErr := e.Cache.GetRole(iface.Role)
-		if roleErr == nil && roleItem != nil {
-			var roleIDUnion nautobotapi.BulkWritableCableRequestStatusId
-			if err := roleIDUnion.FromBulkWritableCableRequestStatusId0(roleItem.ID); err == nil {
-				req.Role = &nautobotapi.BulkWritableCircuitRequestTenant{Id: &roleIDUnion}
-			}
-		}
-	}
-
-	resp, err := e.Client.DcimInterfacesCreateWithResponse(ctx, &nautobotapi.DcimInterfacesCreateParams{}, req)
-	if err != nil {
-		return fmt.Errorf(errFmtAPIError, err)
-	}
-
-	if resp.StatusCode() != http.StatusCreated && resp.StatusCode() != http.StatusOK {
-		return fmt.Errorf(errFmtUnexpectedStatus, resp.StatusCode(), string(resp.Body))
-	}
-
-	// Cache the newly created interface for cable creation
-	if resp.JSON201 != nil && resp.JSON201.Id != nil {
-		cachedItem := &CachedItem{
-			ID:      uuid.UUID(*resp.JSON201.Id),
-			Name:    iface.Name,
-			Display: iface.Name,
-		}
-		e.Cache.CacheInterface(deviceID, iface.Name, cachedItem)
-	}
-
-	result.IfacesCreated++
-	return nil
-}
-
-// updateInterface updates an existing interface in Nautobot
-func (e *Exporter) updateInterface(ctx context.Context, interfaceID uuid.UUID, deviceID uuid.UUID, iface interfaceSpec, result *LoadResult) error {
-	if e.Options.DryRun {
-		clog.DryRun("Would update interface: %s", iface.Name)
-		return nil
-	}
-
-	// Build status reference - get "Active" status
-	status, err := e.statusRef("Active")
-	if err != nil {
-		return err
-	}
-
-	// Build device reference (required by Nautobot API)
-	var deviceIDUnion nautobotapi.BulkWritableCableRequestStatusId
-	if err := deviceIDUnion.FromBulkWritableCableRequestStatusId0(deviceID); err != nil {
-		return fmt.Errorf("failed to create device ID: %w", err)
-	}
-	device := &nautobotapi.BulkWritableCircuitRequestTenant{
-		Id: &deviceIDUnion,
-	}
-
-	// Build patch request - update type, status, and device
-	ifaceType := nautobotapi.InterfaceTypeChoices(iface.Type)
-	mgmtOnly := iface.MgmtOnly
-	req := nautobotapi.PatchedWritableInterfaceRequest{
-		Device:   device,
-		Type:     &ifaceType,
-		Status:   &status,
-		MgmtOnly: &mgmtOnly,
-	}
-	req.Tags = e.Cache.resolveTagRefs(iface.Tags)
-
-	if iface.Mac != "" {
-		mac := iface.Mac
-		req.MacAddress = &mac
-	}
-
-	resp, err := e.Client.DcimInterfacesPartialUpdateWithResponse(ctx, interfaceID, &nautobotapi.DcimInterfacesPartialUpdateParams{}, req)
-	if err != nil {
-		return fmt.Errorf(errFmtAPIError, err)
-	}
-
-	if resp.StatusCode() != http.StatusOK {
-		return fmt.Errorf(errFmtUnexpectedStatus, resp.StatusCode(), string(resp.Body))
-	}
-
-	return nil
 }
 
 // createCaniCableType creates a cable between two interfaces in Nautobot

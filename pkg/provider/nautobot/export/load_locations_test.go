@@ -106,7 +106,7 @@ func TestTopologicalSortLocations(t *testing.T) {
 	})
 }
 
-// TestMakeTenantRef verifies a UUID round-trips into the Nautobot reference type
+// TestMakeObjectRef verifies a UUID round-trips into the Nautobot reference type
 // used for parent/tenant foreign keys, and that a nil UUID still yields a
 // non-nil ref.
 //
@@ -115,10 +115,10 @@ func TestTopologicalSortLocations(t *testing.T) {
 // Inputs: a uuid.UUID. Outputs: a *ref whose embedded ID decodes to the input.
 // Data choice: a fixed all-twos UUID gives a deterministic round-trip check and
 // uuid.Nil confirms the helper does not return nil for the zero value.
-func TestMakeTenantRef(t *testing.T) {
+func TestMakeObjectRef(t *testing.T) {
 	t.Run("creates ref from valid UUID", func(t *testing.T) {
 		id := uuid.MustParse("22222222-2222-2222-2222-222222222222")
-		ref := makeTenantRef(id)
+		ref := makeObjectRef(id)
 
 		if ref == nil {
 			t.Fatal("expected non-nil ref")
@@ -131,12 +131,12 @@ func TestMakeTenantRef(t *testing.T) {
 			t.Fatalf("unexpected error extracting UUID: %v", err)
 		}
 		if uuid.UUID(got) != id {
-			t.Errorf("makeTenantRef() round-trip = %s, want %s", uuid.UUID(got), id)
+			t.Errorf("makeObjectRef() round-trip = %s, want %s", uuid.UUID(got), id)
 		}
 	})
 
 	t.Run("creates ref from nil UUID", func(t *testing.T) {
-		ref := makeTenantRef(uuid.Nil)
+		ref := makeObjectRef(uuid.Nil)
 		if ref == nil {
 			t.Fatal("expected non-nil ref even for nil UUID")
 		}

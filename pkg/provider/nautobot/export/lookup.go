@@ -1172,7 +1172,7 @@ func (c *LookupCache) createLocationType(name string, def *devicetypes.LocationT
 		if def.Parent != "" {
 			parentItem, perr := c.GetOrCreateLocationType(def.Parent, parentDef(def.Parent))
 			if perr == nil && parentItem != nil {
-				req.Parent = makeTenantRef(parentItem.ID)
+				req.Parent = makeObjectRef(parentItem.ID)
 			}
 		}
 	} else {

@@ -15,6 +15,7 @@ package devicetypes
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -124,6 +125,62 @@ func TestCaniInterfaceUnmarshalInvalidID(t *testing.T) {
 	if err := json.Unmarshal(data, &inst); err == nil {
 		t.Fatal("expected error for invalid UUID in id field, got nil")
 	}
+}
+
+// TestInterfaceDescriptionOmitEmpty locks in the omitempty contract for the
+// Description field: an empty value must be absent from both JSON and YAML on
+// InterfaceSpec and CaniInterface, and present in both once set.
+func TestInterfaceDescriptionOmitEmpty(t *testing.T) {
+	spec := InterfaceSpec{ID: uuid.New(), Name: "eth0"}
+	inst := CaniInterface{ID: uuid.New(), Name: "eth0"}
+
+	for _, tc := range []struct {
+		name string
+		blob []byte
+	}{
+		{"InterfaceSpec/json", mustMarshalJSON(t, spec)},
+		{"CaniInterface/json", mustMarshalJSON(t, inst)},
+		{"InterfaceSpec/yaml", mustMarshalYAML(t, spec)},
+		{"CaniInterface/yaml", mustMarshalYAML(t, inst)},
+	} {
+		if strings.Contains(string(tc.blob), "description") {
+			t.Errorf("%s: empty description should be omitted: %s", tc.name, tc.blob)
+		}
+	}
+
+	spec.Description = "ISL link"
+	inst.Description = "ISL link"
+
+	if b := mustMarshalJSON(t, spec); !strings.Contains(string(b), `"description":"ISL link"`) {
+		t.Errorf("InterfaceSpec JSON missing set description: %s", b)
+	}
+	if b := mustMarshalJSON(t, inst); !strings.Contains(string(b), `"description":"ISL link"`) {
+		t.Errorf("CaniInterface JSON missing set description: %s", b)
+	}
+	if b := mustMarshalYAML(t, spec); !strings.Contains(string(b), "description: ISL link") {
+		t.Errorf("InterfaceSpec YAML missing set description: %s", b)
+	}
+	if b := mustMarshalYAML(t, inst); !strings.Contains(string(b), "description: ISL link") {
+		t.Errorf("CaniInterface YAML missing set description: %s", b)
+	}
+}
+
+func mustMarshalJSON(t *testing.T, v any) []byte {
+	t.Helper()
+	b, err := json.Marshal(v)
+	if err != nil {
+		t.Fatalf("json.Marshal: %v", err)
+	}
+	return b
+}
+
+func mustMarshalYAML(t *testing.T, v any) []byte {
+	t.Helper()
+	b, err := yaml.Marshal(v)
+	if err != nil {
+		t.Fatalf("yaml.Marshal: %v", err)
+	}
+	return b
 }
 
 func TestConsolePortSpecJSONRoundTrip(t *testing.T) {

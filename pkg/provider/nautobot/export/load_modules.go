@@ -114,7 +114,7 @@ func (e *Exporter) createModuleFromCani(
 	// Build the Module request.
 	req := nautobotapi.ModuleRequest{
 		ModuleType:      makeStatusRef(moduleTypeItem.ID),
-		ParentModuleBay: makeTenantRef(moduleBayItem.ID),
+		ParentModuleBay: makeObjectRef(moduleBayItem.ID),
 		Status:          makeStatusRef(status.ID),
 	}
 
@@ -128,7 +128,7 @@ func (e *Exporter) createModuleFromCani(
 	if module.Role != "" {
 		role, err := e.Cache.GetRole(module.Role)
 		if err == nil && role != nil {
-			req.Role = makeTenantRef(role.ID)
+			req.Role = makeObjectRef(role.ID)
 		}
 	}
 	if module.Location != uuid.Nil {
@@ -136,7 +136,7 @@ func (e *Exporter) createModuleFromCani(
 		if loc, ok := inventory.Locations[module.Location]; ok && loc != nil {
 			locItem, err := e.Cache.GetLocation(loc.Name)
 			if err == nil && locItem != nil {
-				req.Location = makeTenantRef(locItem.ID)
+				req.Location = makeObjectRef(locItem.ID)
 			}
 		}
 	}
@@ -291,7 +291,7 @@ func (e *Exporter) getOrCreateModuleBay(
 	// Create the module bay.
 	createReq := nautobotapi.ModuleBayRequest{
 		Name:         bayName,
-		ParentDevice: makeTenantRef(deviceNautobotID),
+		ParentDevice: makeObjectRef(deviceNautobotID),
 	}
 
 	// clog.Detail("[nautobot] Creating module bay: %s on device %s", bayName, deviceNautobotID)

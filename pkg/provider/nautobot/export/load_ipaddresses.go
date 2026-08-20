@@ -156,7 +156,7 @@ func (e *Exporter) createIPAddress(
 	if addr.IPRole != "" {
 		roleItem, err := e.Cache.GetRole(string(addr.IPRole))
 		if err == nil && roleItem != nil {
-			ref := makeTenantRef(roleItem.ID)
+			ref := makeObjectRef(roleItem.ID)
 			req.Role = ref
 		}
 	}
@@ -240,7 +240,7 @@ func (e *Exporter) assignIPToInterfaces(
 		}
 
 		// Create the IP-to-interface assignment
-		ifaceRef := makeTenantRef(nautobotIface.ID)
+		ifaceRef := makeObjectRef(nautobotIface.ID)
 		assignReq := nautobotapi.IPAddressToInterfaceRequest{
 			IpAddress: makeIDRef(ipNautobotID),
 			Interface: ifaceRef,

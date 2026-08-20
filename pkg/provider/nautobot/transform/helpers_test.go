@@ -40,8 +40,10 @@ func makeStatusRefFromUUID(id uuid.UUID) nautobotapi.BulkWritableCableRequestSta
 	return nautobotapi.BulkWritableCableRequestStatus{Id: &idUnion}
 }
 
-// makeTenantRefFromUUID creates a BulkWritableCircuitRequestTenant with the given UUID.
-func makeTenantRefFromUUID(id uuid.UUID) nautobotapi.BulkWritableCircuitRequestTenant {
+// makeObjectRefFromUUID builds an id-only Nautobot object reference (the
+// BulkWritableCircuitRequestTenant shape reused for every id-only FK) from a
+// UUID. The value-returning counterpart of the export package's makeObjectRef.
+func makeObjectRefFromUUID(id uuid.UUID) nautobotapi.BulkWritableCircuitRequestTenant {
 	var idUnion nautobotapi.BulkWritableCableRequestStatusId
 	_ = idUnion.FromBulkWritableCableRequestStatusId0(openapi_types.UUID(id))
 	return nautobotapi.BulkWritableCircuitRequestTenant{Id: &idUnion}
@@ -172,7 +174,7 @@ func TestTenantRefID(t *testing.T) {
 		{
 			name: "ref with valid UUID returns it",
 			ref: func() *nautobotapi.BulkWritableCircuitRequestTenant {
-				r := makeTenantRefFromUUID(id)
+				r := makeObjectRefFromUUID(id)
 				return &r
 			}(),
 			expected: id,
@@ -548,7 +550,7 @@ func TestResolveTenantRefName(t *testing.T) {
 		{
 			name: "found in map returns name",
 			ref: func() *nautobotapi.BulkWritableCircuitRequestTenant {
-				r := makeTenantRefFromUUID(id)
+				r := makeObjectRefFromUUID(id)
 				return &r
 			}(),
 			nameMap:  nameMap,
@@ -557,7 +559,7 @@ func TestResolveTenantRefName(t *testing.T) {
 		{
 			name: "not in map with URL returns URL",
 			ref: func() *nautobotapi.BulkWritableCircuitRequestTenant {
-				r := makeTenantRefFromUUID(uuid.MustParse("34343434-3434-3434-3434-343434343434"))
+				r := makeObjectRefFromUUID(uuid.MustParse("34343434-3434-3434-3434-343434343434"))
 				r.Url = strPtr("http://example.com/roles/unknown/")
 				return &r
 			}(),
@@ -567,7 +569,7 @@ func TestResolveTenantRefName(t *testing.T) {
 		{
 			name: "not in map without URL returns empty",
 			ref: func() *nautobotapi.BulkWritableCircuitRequestTenant {
-				r := makeTenantRefFromUUID(uuid.MustParse("56565656-5656-5656-5656-565656565656"))
+				r := makeObjectRefFromUUID(uuid.MustParse("56565656-5656-5656-5656-565656565656"))
 				return &r
 			}(),
 			nameMap:  nameMap,

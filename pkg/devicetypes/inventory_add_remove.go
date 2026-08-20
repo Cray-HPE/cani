@@ -197,6 +197,7 @@ func (inv *Inventory) AddInterface(iface *CaniInterface) error {
 		UntaggedVLAN:     iface.UntaggedVLAN,
 		TaggedVLANs:      iface.TaggedVLANs,
 		VRF:              iface.VRF,
+		Description:      iface.Description,
 		Status:           iface.Status,
 		ProviderMetadata: iface.ProviderMetadata,
 	}

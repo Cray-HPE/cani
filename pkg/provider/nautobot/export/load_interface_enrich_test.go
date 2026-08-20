@@ -56,6 +56,7 @@ func TestInterfaceNeedsEnrichment(t *testing.T) {
 		{"mode", interfaceSpec{Name: "1/1/1", Mode: "tagged"}, true},
 		{"untagged", interfaceSpec{Name: "1/1/1", UntaggedVLAN: 2000}, true},
 		{"tagged", interfaceSpec{Name: "1/1/1", TaggedVLANs: []int{1}}, true},
+		{"vrf", interfaceSpec{Name: "1/1/25", VRF: "LEGACY"}, true},
 	}
 	for _, c := range cases {
 		if got := interfaceNeedsEnrichment(c.spec); got != c.want {
@@ -138,7 +139,10 @@ func TestBuildInterfaceEnrichment_SetsLagModeAndVLANs(t *testing.T) {
 		TaggedVLANs:  []int{2000},
 	}
 
-	req, changed, unresolved := e.buildInterfaceEnrichment(deviceID, spec, vidToVLAN)
+	req, changed, unresolved, err := e.buildInterfaceEnrichment(deviceID, spec, vidToVLAN)
+	if err != nil {
+		t.Fatalf("buildInterfaceEnrichment() error = %v", err)
+	}
 	if !changed {
 		t.Fatal("buildInterfaceEnrichment: changed = false, want true")
 	}
@@ -179,7 +183,10 @@ func TestBuildInterfaceEnrichment_CountsUnresolvedRefs(t *testing.T) {
 		VRF:          "GONE",
 	}
 
-	_, changed, unresolved := e.buildInterfaceEnrichment(deviceID, spec, map[int]uuid.UUID{})
+	_, changed, unresolved, err := e.buildInterfaceEnrichment(deviceID, spec, map[int]uuid.UUID{})
+	if err != nil {
+		t.Fatalf("buildInterfaceEnrichment() error = %v", err)
+	}
 	if changed {
 		t.Error("buildInterfaceEnrichment: changed = true, want false (nothing resolvable)")
 	}
@@ -214,5 +221,127 @@ func TestEnrichOneInterface_AccumulatesUnresolvedRefs(t *testing.T) {
 
 	if result.IfacesUnresolvedRefs != 2 {
 		t.Errorf("IfacesUnresolvedRefs = %d, want 2", result.IfacesUnresolvedRefs)
+	}
+}
+
+// TestBuildInterfaceEnrichment_PreservesRoleAndDescription verifies the
+// enrichment PATCH carries the interface role and description so that adding
+// LAG/VRF settings does not clear fields set during initial creation.
+func TestBuildInterfaceEnrichment_PreservesRoleAndDescription(t *testing.T) {
+	var calls int
+	e, cleanup := newExporterWithServer(t, jsonHandler(&calls, http.StatusOK, `{}`))
+	defer cleanup()
+
+	deviceID := uuid.New()
+	roleID := uuid.New()
+	e.Cache.roles["UplinkInterface"] = &CachedItem{ID: roleID, Name: "UplinkInterface"}
+
+	lagID := uuid.New()
+	e.Cache.CacheInterface(deviceID, "lag256", &CachedItem{ID: lagID, Name: "lag256"})
+
+	spec := interfaceSpec{
+		Name:        "1/1/49",
+		Lag:         "lag256",
+		Role:        "UplinkInterface",
+		Description: "ISL member",
+	}
+
+	req, changed, _, err := e.buildInterfaceEnrichment(deviceID, spec, map[int]uuid.UUID{})
+	if err != nil {
+		t.Fatalf("buildInterfaceEnrichment() error = %v", err)
+	}
+	if !changed {
+		t.Fatal("buildInterfaceEnrichment: changed = false, want true")
+	}
+
+	blob, _ := json.Marshal(req)
+	var payload map[string]json.RawMessage
+	if err := json.Unmarshal(blob, &payload); err != nil {
+		t.Fatalf("unmarshal enrichment payload: %v", err)
+	}
+	if role := string(payload["role"]); role == "" || role == "null" || !strings.Contains(role, roleID.String()) {
+		t.Errorf("enrichment role = %s, want reference to %s", role, roleID)
+	}
+	if device := string(payload["device"]); device == "" || device == "null" || !strings.Contains(device, deviceID.String()) {
+		t.Errorf("enrichment device = %s, want reference to %s", device, deviceID)
+	}
+	if description := string(payload["description"]); description != `"ISL member"` {
+		t.Errorf("enrichment description = %s, want %q", description, "ISL member")
+	}
+}
+
+// TestBuildInterfaceEnrichment_RejectsUnresolvedRole verifies that a role which
+// cannot be resolved aborts enrichment before a nil role can clear Nautobot.
+func TestBuildInterfaceEnrichment_RejectsUnresolvedRole(t *testing.T) {
+	var calls int
+	e, cleanup := newExporterWithServer(t, jsonHandler(&calls, http.StatusOK, `{}`))
+	defer cleanup()
+
+	deviceID := uuid.New()
+	lagID := uuid.New()
+	e.Cache.CacheInterface(deviceID, "lag256", &CachedItem{ID: lagID, Name: "lag256"})
+
+	// Lag resolves (so changed=true), but the role is not in the cache.
+	spec := interfaceSpec{Name: "1/1/49", Lag: "lag256", Role: "GhostRole"}
+
+	_, changed, unresolved, err := e.buildInterfaceEnrichment(deviceID, spec, map[int]uuid.UUID{})
+	if changed {
+		t.Fatal("buildInterfaceEnrichment: changed = true, want false for unresolved role")
+	}
+	if unresolved != 1 {
+		t.Errorf("unresolved = %d, want 1 (dangling role)", unresolved)
+	}
+	if err == nil {
+		t.Fatal("buildInterfaceEnrichment() error = nil, want unresolved role error")
+	}
+}
+
+// TestBuildInterfaceEnrichment_ClearsEmptyRoleOnWire verifies that an empty
+// local role serializes as an intentional null while the required device FK is
+// retained; an empty description remains omitted.
+func TestBuildInterfaceEnrichment_ClearsEmptyRoleOnWire(t *testing.T) {
+	var calls int
+	e, cleanup := newExporterWithServer(t, jsonHandler(&calls, http.StatusOK, `{}`))
+	defer cleanup()
+
+	deviceID := uuid.New()
+	lagID := uuid.New()
+	e.Cache.CacheInterface(deviceID, "lag256", &CachedItem{ID: lagID, Name: "lag256"})
+
+	spec := interfaceSpec{
+		Name: "1/1/49",
+		Lag:  "lag256",
+	}
+
+	req, changed, _, err := e.buildInterfaceEnrichment(deviceID, spec, map[int]uuid.UUID{})
+	if err != nil {
+		t.Fatalf("buildInterfaceEnrichment() error = %v", err)
+	}
+	if !changed {
+		t.Fatal("buildInterfaceEnrichment: changed = false, want true")
+	}
+
+	if req.Role != nil {
+		t.Error("expected req.Role to be nil when spec.Role is empty")
+	}
+	if req.Description != nil {
+		t.Error("expected req.Description to be nil when spec.Description is empty")
+	}
+	blob, err := json.Marshal(req)
+	if err != nil {
+		t.Fatalf("marshal enrichment payload: %v", err)
+	}
+	var payload map[string]json.RawMessage
+	if err := json.Unmarshal(blob, &payload); err != nil {
+		t.Fatalf("unmarshal enrichment payload: %v", err)
+	}
+	if role := string(payload["role"]); role != "null" {
+		t.Errorf("enrichment role = %s, want null clear", role)
+	}
+	if device := string(payload["device"]); device == "" || device == "null" || !strings.Contains(device, deviceID.String()) {
+		t.Errorf("enrichment device = %s, want reference to %s", device, deviceID)
+	}
+	if _, exists := payload["description"]; exists {
+		t.Errorf("enrichment description should be omitted, got %s", payload["description"])
 	}
 }

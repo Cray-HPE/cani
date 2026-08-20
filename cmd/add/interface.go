@@ -68,6 +68,7 @@ Examples:
 	cmd.Flags().Int("untagged-vlan", 0, "Untagged (native) VLAN ID")
 	cmd.Flags().StringSlice("tagged-vlan", nil, "Tagged VLAN IDs (comma-separated or repeatable)")
 	cmd.Flags().String("vrf", "", "VRF name")
+	cmd.Flags().String(flagDescription, "", "Interface description")
 
 	return cmd
 }
@@ -146,6 +147,9 @@ func addInterface(cmd *cli.Command, args []string) error {
 	}
 	if cmd.Flags().Changed("vrf") {
 		iface.VRF, _ = cmd.Flags().GetString("vrf")
+	}
+	if cmd.Flags().Changed(flagDescription) {
+		iface.Description, _ = cmd.Flags().GetString(flagDescription)
 	}
 	if cmd.Flags().Changed("status") {
 		iface.Status, _ = cmd.Flags().GetString("status")

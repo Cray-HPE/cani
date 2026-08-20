@@ -865,6 +865,7 @@ func TestRebuildInterfaceRelationshipsPreservesSpecFields(t *testing.T) {
 			UntaggedVLAN: 100,
 			TaggedVLANs:  []int{200, 300},
 			VRF:          "management",
+			Description:  "uplink to spine",
 		}},
 	}
 
@@ -892,6 +893,9 @@ func TestRebuildInterfaceRelationshipsPreservesSpecFields(t *testing.T) {
 	}
 	if len(got.TaggedVLANs) != 2 || got.TaggedVLANs[0] != 200 || got.TaggedVLANs[1] != 300 {
 		t.Errorf("tagged VLANs = %v, want [200 300]", got.TaggedVLANs)
+	}
+	if got.Description != "uplink to spine" {
+		t.Errorf("description = %q, want %q", got.Description, "uplink to spine")
 	}
 }
 

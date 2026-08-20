@@ -47,7 +47,7 @@ import (
 // on device identity rather than coincidentally passing with a single bucket.
 func TestGroupInterfacesByDevice(t *testing.T) {
 	devID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
-	devRef := makeTenantRefFromUUID(devID)
+	devRef := makeObjectRefFromUUID(devID)
 
 	t.Run("empty input returns empty map", func(t *testing.T) {
 		got := GroupInterfacesByDevice(nil)
@@ -68,7 +68,7 @@ func TestGroupInterfacesByDevice(t *testing.T) {
 
 	t.Run("interfaces grouped by device", func(t *testing.T) {
 		dev2ID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
-		dev2Ref := makeTenantRefFromUUID(dev2ID)
+		dev2Ref := makeObjectRefFromUUID(dev2ID)
 		ifaces := []nautobotapi.Interface{
 			{Name: "eth0", Device: &devRef},
 			{Name: "eth1", Device: &devRef},
@@ -201,7 +201,7 @@ func TestMapDevices(t *testing.T) {
 		comment := "installed from Nautobot"
 		pos := 10
 		faceVal := nautobotapi.DeviceFaceValue("front")
-		rackRef := makeTenantRefFromUUID(rackNBID)
+		rackRef := makeObjectRefFromUUID(rackNBID)
 		roleRef := makeStatusRefFromUUID(roleID)
 
 		raw := []nautobotapi.Device{
@@ -222,14 +222,15 @@ func TestMapDevices(t *testing.T) {
 		}
 
 		// Add interfaces for this device.
-		devRef := makeTenantRefFromUUID(devNBID)
+		devRef := makeObjectRefFromUUID(devNBID)
 		ifaceNBID := uuid.MustParse("99999999-9999-9999-9999-999999999999")
 		ifaceOAID := openapi_types.UUID(ifaceNBID)
 		mgmtOnly := true
 		ifType := nautobotapi.InterfaceTypeValue("1000base-t")
+		ifaceDescription := "ISL uplink to spine"
 		ifaces := map[uuid.UUID][]nautobotapi.Interface{
 			devNBID: {
-				{Id: &ifaceOAID, Name: "eth0", Device: &devRef, MgmtOnly: &mgmtOnly, Type: nautobotapi.InterfaceType{Value: &ifType}},
+				{Id: &ifaceOAID, Name: "eth0", Device: &devRef, MgmtOnly: &mgmtOnly, Type: nautobotapi.InterfaceType{Value: &ifType}, Description: &ifaceDescription},
 			},
 		}
 
@@ -299,13 +300,16 @@ func TestMapDevices(t *testing.T) {
 		if dev.Interfaces[0].MgmtOnly == nil || !*dev.Interfaces[0].MgmtOnly {
 			t.Error("Interface MgmtOnly should be true")
 		}
+		if dev.Interfaces[0].Description != ifaceDescription {
+			t.Errorf("Interface Description = %q, want %q", dev.Interfaces[0].Description, ifaceDescription)
+		}
 	})
 
 	t.Run("device with position but no face defaults to front", func(t *testing.T) {
 		devNBID := uuid.MustParse("88888888-8888-8888-8888-888888888888")
 		oaID := openapi_types.UUID(devNBID)
 		pos := 5
-		rackRef := makeTenantRefFromUUID(rackNBID)
+		rackRef := makeObjectRefFromUUID(rackNBID)
 
 		raw := []nautobotapi.Device{
 			{

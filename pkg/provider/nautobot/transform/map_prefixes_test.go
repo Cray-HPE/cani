@@ -80,8 +80,8 @@ func TestMapPrefixes(t *testing.T) {
 		roleID := uuid.MustParse("77777777-7777-7777-7777-777777777777")
 		statusNameMap := map[uuid.UUID]string{statusID: "Active"}
 		roleNameMap := map[uuid.UUID]string{roleID: "mgmt"}
-		role := makeTenantRefFromUUID(roleID)
-		vlanRef := makeTenantRefFromUUID(vlanNBID)
+		role := makeObjectRefFromUUID(roleID)
+		vlanRef := makeObjectRefFromUUID(vlanNBID)
 		prefixType := nautobotapi.PrefixTypeValue("network")
 
 		raw := []nautobotapi.Prefix{
@@ -125,7 +125,7 @@ func TestMapPrefixes(t *testing.T) {
 	t.Run("unknown vlan resolves to nil", func(t *testing.T) {
 		nbID := uuid.MustParse("44444444-4444-4444-4444-444444444444")
 		oaID := openapi_types.UUID(nbID)
-		unknownVLAN := makeTenantRefFromUUID(uuid.MustParse("ffffffff-ffff-ffff-ffff-ffffffffffff"))
+		unknownVLAN := makeObjectRefFromUUID(uuid.MustParse("ffffffff-ffff-ffff-ffff-ffffffffffff"))
 		raw := []nautobotapi.Prefix{
 			{
 				Id:     &oaID,

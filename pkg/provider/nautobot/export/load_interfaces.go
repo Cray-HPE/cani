@@ -240,16 +240,16 @@ func (e *Exporter) sendInterfaceBatch(
 			req.MacAddress = &mac
 		}
 
-		// Resolve interface role if specified
-		if item.Spec.Role != "" {
-			roleItem, roleErr := e.Cache.GetRole(item.Spec.Role)
-			if roleErr == nil && roleItem != nil {
-				var roleIDUnion nautobotapi.BulkWritableCableRequestStatusId
-				if err := roleIDUnion.FromBulkWritableCableRequestStatusId0(roleItem.ID); err == nil {
-					req.Role = &nautobotapi.BulkWritableCircuitRequestTenant{Id: &roleIDUnion}
-				}
-			}
+		if item.Spec.Description != "" {
+			desc := item.Spec.Description
+			req.Description = &desc
 		}
+
+		role, err := e.roleRef(item.Spec.Role)
+		if err != nil {
+			return nil, fmt.Errorf("interface %s on %s: %w", item.Spec.Name, item.DeviceName, err)
+		}
+		req.Role = role
 
 		reqs = append(reqs, req)
 	}
