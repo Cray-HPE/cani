@@ -1,0 +1,25 @@
+# Minimum statement coverage per package, enforced by tools/covercheck.sh via
+# `make utest`. Floors sit just under the measured value so ordinary refactors
+# do not trip them, while a real regression does.
+#
+# Only packages worth defending are listed; everything else is unconstrained.
+# Raise a floor when coverage improves. Lowering one is a deliberate act and
+# belongs in the same commit as whatever made it necessary.
+#
+# package                                          floor
+
+# Provider-agnostic CRUD. These four are the executable form of the claim that
+# add/remove/update/show behave identically for every provider.
+github.com/Cray-HPE/cani/cmd/add                   18.0
+github.com/Cray-HPE/cani/cmd/remove                26.0
+github.com/Cray-HPE/cani/cmd/update                19.0
+github.com/Cray-HPE/cani/cmd/show                  16.0
+
+# Plugin contract and CLI framework.
+github.com/Cray-HPE/cani/internal/provider        100.0
+github.com/Cray-HPE/cani/internal/cli              58.0
+github.com/Cray-HPE/cani/internal/config           60.0
+
+# Portable data model and its persistence.
+github.com/Cray-HPE/cani/pkg/devicetypes           88.0
+github.com/Cray-HPE/cani/pkg/datastores            80.0
