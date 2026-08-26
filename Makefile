@@ -223,9 +223,9 @@ test-fast: utest ftest ## Run unit + functional tests (no Docker, no Python)
 	$(OK) "fast tests passed"
 
 .PHONY: utest
-utest: bin ## Run unit tests
+utest: bin ## Run unit tests and enforce tools/coverage-floors.txt
 	$(INFO) "running unit tests"
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go test -cover ./...
+	GOOS=$(GOOS) GOARCH=$(GOARCH) ./tools/covercheck.sh
 	$(OK) "unit tests passed"
 
 .PHONY: ftest
