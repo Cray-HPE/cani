@@ -61,11 +61,51 @@ const (
 
 var Datastore DeviceStore
 
+// override, when non-nil, is selected by SetDeviceStore in place of a
+// storeType-derived backend. It is unexported so no production path can reach
+// it; SetDeviceStoreForTest is the only way in.
+var override DeviceStore
+
+// TestingTB is the subset of *testing.T that SetDeviceStoreForTest needs.
+// Declaring it here keeps this package from importing testing, which would
+// register the test flags into the shipped binary.
+type TestingTB interface {
+	Helper()
+	Cleanup(func())
+}
+
+// SetDeviceStoreForTest routes SetDeviceStore to store for the duration of t,
+// restoring the previous selection when t finishes.
+//
+// Commands re-select the backend themselves, so a test driving the command
+// layer cannot simply assign Datastore. Registering the restore here rather
+// than leaving it to the caller means a test cannot leak its in-memory store
+// into the next one.
+//
+// Selection is process-global, so a test calling this must not call t.Parallel.
+func SetDeviceStoreForTest(t TestingTB, store DeviceStore) {
+	t.Helper()
+
+	previousOverride, previousStore := override, Datastore
+	override, Datastore = store, store
+	t.Cleanup(func() {
+		override, Datastore = previousOverride, previousStore
+	})
+}
+
 // SetDeviceStore selects the datastore implementation for storeType and assigns
 // it to the package-level Datastore. Resolving storeType from CLI flags or
 // configuration is the command layer's responsibility, which keeps this
 // persistence package free of any CLI dependency.
+//
+// A store installed by SetDeviceStoreForTest takes precedence and makes
+// storeType irrelevant for as long as it is in effect.
 func SetDeviceStore(storeType string) error {
+	if override != nil {
+		Datastore = override
+		return nil
+	}
+
 	switch StoreType(storeType) {
 
 	case StoreTypeJSON:
