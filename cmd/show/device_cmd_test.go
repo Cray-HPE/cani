@@ -81,3 +81,57 @@ func TestShowDeviceRejectsUnknownName(t *testing.T) {
 		t.Errorf("Saves = %d, want 0 (show must never write)", harness.Store.Saves)
 	}
 }
+
+// TestShowDeviceRendersEveryFormatReadOnly verifies each output format renders
+// without error and without writing.
+//
+// Why it matters: the table and tree renderers walk the inventory and are the
+// most likely place for presentation code to mutate the model it is drawing.
+// Inputs: an inventory with a rack and a device, rendered as table, tree and
+// json in turn.
+// Outputs: a nil error and zero Save calls for every format.
+// Data choice: all three formats are exercised because they take independent
+// code paths, and only json avoids the visual package entirely.
+func TestShowDeviceRendersEveryFormatReadOnly(t *testing.T) {
+	for _, format := range []string{"table", "tree", "json"} {
+		t.Run(format, func(t *testing.T) {
+			inventory, rackID := cmdtest.InventoryWithRack("rack-01")
+			cmdtest.AddDevice(inventory, rackID, "cn-01", 10)
+			harness := cmdtest.New(t, NewCommand(), newDeviceShowCommand(), inventory)
+
+			if err := harness.Run(t, map[string]string{"format": format}); err != nil {
+				t.Fatalf("show device --format %s: unexpected error: %v", format, err)
+			}
+			if harness.Store.Saves != 0 {
+				t.Errorf("Saves = %d, want 0 (show must never write)", harness.Store.Saves)
+			}
+			if got := len(harness.Inventory().Devices); got != 1 {
+				t.Errorf("device count = %d, want 1 (rendering must not mutate)", got)
+			}
+		})
+	}
+}
+
+// TestShowIsProviderAgnostic verifies show works with no provider registered.
+//
+// Why it matters: show resolves its format list partly from providers, so it is
+// the verb most at risk of requiring one. It must still render the base formats
+// with an empty registry.
+// Inputs: the registry as it stands during this package's tests, plus a listing.
+// Outputs: an empty provider registry and a successful render.
+// Data choice: pairing the registry assertion with a real render proves the verb
+// genuinely runs without providers rather than merely importing none.
+func TestShowIsProviderAgnostic(t *testing.T) {
+	cmdtest.RequireNoProviders(t)
+
+	inventory, rackID := cmdtest.InventoryWithRack("rack-01")
+	cmdtest.AddDevice(inventory, rackID, "cn-01", 10)
+	harness := cmdtest.New(t, NewCommand(), newDeviceShowCommand(), inventory)
+
+	if err := harness.Run(t, map[string]string{"format": "json"}); err != nil {
+		t.Fatalf("show device without providers: %v", err)
+	}
+	if harness.Store.Saves != 0 {
+		t.Errorf("Saves = %d, want 0", harness.Store.Saves)
+	}
+}

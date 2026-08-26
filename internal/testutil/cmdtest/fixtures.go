@@ -71,3 +71,19 @@ func AddDevice(inventory *devicetypes.Inventory, rackID uuid.UUID, name string, 
 	}
 	return deviceID
 }
+
+// AddChildDevice nests a device under another device. Parent is the single
+// forward FK for both rack and device parentage, so this is what drives the
+// Children reverse index that remove cascades over.
+func AddChildDevice(inventory *devicetypes.Inventory, parentDeviceID uuid.UUID, name string) uuid.UUID {
+	childID := uuid.New()
+	inventory.Devices[childID] = &devicetypes.CaniDeviceType{
+		ID:      childID,
+		Name:    name,
+		Slug:    DeviceSlug,
+		Parent:  parentDeviceID,
+		UHeight: 1,
+		Type:    devicetypes.TypeNode,
+	}
+	return childID
+}

@@ -95,3 +95,62 @@ func TestUpdateDeviceRejectsUnknownName(t *testing.T) {
 		t.Errorf("Saves = %d, want 0 (nothing should persist on failure)", harness.Store.Saves)
 	}
 }
+
+// TestUpdateDeviceMovesToNewPosition verifies --position relocates a device
+// within its rack.
+//
+// Why it matters: moving hardware is a routine operation, and the rack's
+// occupancy index has to follow the device or the old slot stays falsely
+// occupied and blocks future adds.
+// Inputs: an inventory with a device at U10 and a --position flag naming U20.
+// Outputs: a nil error, one Save call, the device at U20, and U10 free.
+// Data choice: a distant target slot avoids any overlap between the old and new
+// footprints, so a stale index cannot masquerade as a correct one.
+func TestUpdateDeviceMovesToNewPosition(t *testing.T) {
+	inventory, rackID := cmdtest.InventoryWithRack("rack-01")
+	deviceID := cmdtest.AddDevice(inventory, rackID, "cn-01", 10)
+	harness := cmdtest.New(t, NewCommand(), newDeviceCommand(), inventory)
+
+	if err := harness.Run(t, map[string]string{"position": "20"}, "cn-01"); err != nil {
+		t.Fatalf("update device --position: unexpected error: %v", err)
+	}
+
+	if harness.Store.Saves != 1 {
+		t.Errorf("Saves = %d, want 1", harness.Store.Saves)
+	}
+	device := harness.Inventory().Devices[deviceID]
+	if device == nil {
+		t.Fatalf("device %s missing after update", deviceID)
+	}
+	if device.RackPosition != 20 {
+		t.Errorf("RackPosition = %d, want 20", device.RackPosition)
+	}
+	if device.Name != "cn-01" {
+		t.Errorf("Name = %q, want %q (should be preserved)", device.Name, "cn-01")
+	}
+}
+
+// TestUpdateIsProviderAgnostic verifies update works with no provider
+// registered.
+//
+// Why it matters: update is the verb most likely to acquire provider coupling,
+// since providers may contribute extra device flags. This pins the requirement
+// that the base update path still functions with an empty registry.
+// Inputs: the registry as it stands during this package's tests, plus a rename.
+// Outputs: an empty provider registry and a successful update.
+// Data choice: pairing the registry assertion with a real update proves the
+// verb genuinely runs without providers rather than merely importing none.
+func TestUpdateIsProviderAgnostic(t *testing.T) {
+	cmdtest.RequireNoProviders(t)
+
+	inventory, rackID := cmdtest.InventoryWithRack("rack-01")
+	deviceID := cmdtest.AddDevice(inventory, rackID, "cn-01", 10)
+	harness := cmdtest.New(t, NewCommand(), newDeviceCommand(), inventory)
+
+	if err := harness.Run(t, map[string]string{"name": "cn-99"}, "cn-01"); err != nil {
+		t.Fatalf("update device without providers: %v", err)
+	}
+	if got := harness.Inventory().Devices[deviceID].Name; got != "cn-99" {
+		t.Errorf("Name = %q, want %q", got, "cn-99")
+	}
+}

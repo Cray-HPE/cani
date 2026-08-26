@@ -80,3 +80,63 @@ func TestRemoveDeviceRejectsUnknownName(t *testing.T) {
 		t.Errorf("Saves = %d, want 0 (nothing should persist on failure)", harness.Store.Saves)
 	}
 }
+
+// TestRemoveDeviceCascadesToChildren verifies removing a parent device also
+// removes the devices nested beneath it.
+//
+// Why it matters: chassis and blades are modelled as parent and child devices.
+// Removing only the parent would strand the children as orphans that no
+// command can reach but every export still emits.
+// Inputs: an inventory with a chassis in a rack and one blade whose Parent FK
+// points at that chassis.
+// Outputs: a nil error, one Save call, and an empty device map.
+// Data choice: the child is linked only by the forward Parent FK, so the test
+// also proves the Children reverse index was rebuilt on load rather than being
+// read from persisted state.
+func TestRemoveDeviceCascadesToChildren(t *testing.T) {
+	inventory, rackID := cmdtest.InventoryWithRack("rack-01")
+	chassisID := cmdtest.AddDevice(inventory, rackID, "chassis-01", 10)
+	bladeID := cmdtest.AddChildDevice(inventory, chassisID, "blade-01")
+	harness := cmdtest.New(t, NewCommand(), newDeviceCommand(), inventory)
+
+	if err := harness.Run(t, nil, "chassis-01"); err != nil {
+		t.Fatalf("remove device: unexpected error: %v", err)
+	}
+
+	if harness.Store.Saves != 1 {
+		t.Errorf("Saves = %d, want 1", harness.Store.Saves)
+	}
+	devices := harness.Inventory().Devices
+	if _, exists := devices[chassisID]; exists {
+		t.Error("chassis still present after removal")
+	}
+	if _, exists := devices[bladeID]; exists {
+		t.Error("child blade still present; removal did not cascade")
+	}
+}
+
+// TestRemoveIsProviderAgnostic verifies remove works with no provider
+// registered.
+//
+// Why it matters: CRUD is specified to operate purely on the portable model.
+// A provider import creeping into cmd/remove would make this fail and catch the
+// architectural regression at the point it is introduced.
+// Inputs: the registry as it stands during this package's tests, plus a normal
+// removal.
+// Outputs: an empty provider registry and a successful removal.
+// Data choice: pairing the registry assertion with a real removal proves the
+// verb genuinely runs without providers rather than merely importing none.
+func TestRemoveIsProviderAgnostic(t *testing.T) {
+	cmdtest.RequireNoProviders(t)
+
+	inventory, rackID := cmdtest.InventoryWithRack("rack-01")
+	cmdtest.AddDevice(inventory, rackID, "cn-01", 10)
+	harness := cmdtest.New(t, NewCommand(), newDeviceCommand(), inventory)
+
+	if err := harness.Run(t, nil, "cn-01"); err != nil {
+		t.Fatalf("remove device without providers: %v", err)
+	}
+	if got := len(harness.Inventory().Devices); got != 0 {
+		t.Errorf("device count = %d, want 0", got)
+	}
+}

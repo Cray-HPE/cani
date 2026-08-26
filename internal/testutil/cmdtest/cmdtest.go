@@ -32,9 +32,11 @@ package cmdtest
 
 import (
 	"bytes"
+	"sort"
 	"testing"
 
 	"github.com/Cray-HPE/cani/internal/cli"
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
@@ -49,12 +51,15 @@ type FakeStore struct {
 	SaveErr   error
 }
 
-// Load returns the in-memory inventory and counts the call.
+// Load returns the in-memory inventory and counts the call. Reverse indices are
+// rebuilt first, matching JSONStore.Load, so commands never see stale derived
+// state that the real datastore would have discarded.
 func (s *FakeStore) Load() (*devicetypes.Inventory, error) {
 	s.Loads++
 	if s.LoadErr != nil {
 		return nil, s.LoadErr
 	}
+	s.Inventory.VerifyParentChildRelationships()
 	return s.Inventory, nil
 }
 
@@ -150,4 +155,21 @@ func (h *Harness) Run(t *testing.T, flags map[string]string, args ...string) err
 // Inventory returns the inventory currently held by the store.
 func (h *Harness) Inventory() *devicetypes.Inventory {
 	return h.Store.Inventory
+}
+
+// RequireNoProviders fails the test when any provider has self-registered.
+//
+// CRUD is specified to work purely on the portable model, so a provider
+// appearing in the registry means a cmd package grew a provider import and the
+// verbs are no longer guaranteed to behave identically for every provider.
+func RequireNoProviders(t *testing.T) {
+	t.Helper()
+	if registered := provider.GetProviders(); len(registered) != 0 {
+		names := make([]string, 0, len(registered))
+		for name := range registered {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		t.Fatalf("CRUD must not depend on providers, but these are registered: %v", names)
+	}
 }
