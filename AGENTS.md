@@ -15,12 +15,14 @@
 - file size < 300 lines
 - write modular, maintainble code
 - write functions that do one thing and one thing well
+- declare AI assistance with an `Assisted-by: <tool>` commit trailer
 
 ## Don't
 
 - do not use third-party libraries
 - do not hard code variables
 - do not import provider packages from `cmd/`
+- do not add a `Signed-off-by:` trailer; only a human can certify a contribution
 
 ## File Organization
 

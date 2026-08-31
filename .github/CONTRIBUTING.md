@@ -129,6 +129,27 @@ Conventions enforced in CI:
 - **License headers.** New files carry the MIT header used throughout the repo.
 - **Shell scripts** must pass `shellcheck`.
 
+## Attribution trailers
+
+Whether a change was AI-assisted cannot be detected, only declared. `make hooks` installs a local check
+that validates whatever you do declare, so the trailer block stays machine readable:
+
+```
+feat(export): add rack filtering
+
+Assisted-by: GitHub Copilot
+Co-authored-by: Ada Lovelace <ada@example.com>
+Signed-off-by: Grace Hopper <grace@example.com>
+```
+
+- `Assisted-by:` names the tool that helped. A tool is not an identity, so it carries no mail address.
+- `Co-authored-by:` credits a person or account and needs `Name <user@host>`. Use an address tied to a real
+  GitHub account, otherwise the co-authorship does not register.
+- `Signed-off-by:` needs `Name <user@host>` and must be a human. An AI cannot certify a contribution; the
+  person sending it owns every line, including the generated ones.
+
+Trailers must follow a blank line, and only the trailers you write are checked — none are required.
+
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
@@ -140,3 +161,4 @@ Conventions enforced in CI:
 | Integration tests fail on stale inventory | leftover state in the shared test dir | `rm -rf /tmp/.cani` |
 | Nautobot tests skip unexpectedly | external tests are opt-in | `make sim-up`, then `RUN_EXTERNAL_TESTS=1 make itest` |
 | A commit is rejected locally | conventional-commit hook | match `type(scope): subject`, e.g. `fix(export): handle empty rack` |
+| A trailer is rejected locally | attribution-trailer hook | see [Attribution trailers](#attribution-trailers); tools use `Assisted-by:`, humans sign off |
