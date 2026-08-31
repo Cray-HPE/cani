@@ -202,7 +202,7 @@ doctor: ## Check prerequisites for a test tier (TIER=unit|func|int|all)
 	@./tools/doctor.sh $(TIER)
 
 .PHONY: hooks
-hooks: ## Enable the repo git hooks (validates conventional commits locally)
+hooks: ## Enable the repo git hooks (validates commit headers and trailers locally)
 	$(INFO) "enabling git hooks"
 	git config core.hooksPath .githooks
 	$(OK) "git hooks enabled (.githooks)"
