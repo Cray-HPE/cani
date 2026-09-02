@@ -377,7 +377,7 @@ spec-clean: ## Remove the local shellspec install
 #  Nautobot
 # ──────────────────────────────────────────────────────────────────────────────
 
-NAUTOBOT_VERSION ?= 3.0
+NAUTOBOT_VERSION ?= 3.2
 PYTHON_VER       ?= 3.12
 NAUTOBOT_COMPOSE := \
 	-f testdata/fixtures/nautobot/docker-compose.postgres.yml \
