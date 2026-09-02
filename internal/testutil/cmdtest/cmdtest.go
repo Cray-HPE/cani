@@ -32,6 +32,8 @@ package cmdtest
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"sort"
 	"testing"
 
@@ -51,16 +53,29 @@ type FakeStore struct {
 	SaveErr   error
 }
 
-// Load returns the in-memory inventory and counts the call. Reverse indices are
-// rebuilt first, matching JSONStore.Load, so commands never see stale derived
-// state that the real datastore would have discarded.
+// Load returns a fresh copy of the inventory and counts the call.
+//
+// The copy is produced by a JSON round-trip so the fake matches JSONStore.Load:
+// commands mutate a detached object, derived reverse indices are rebuilt from
+// the forward FKs rather than trusted, and anything the schema cannot serialize
+// is lost here exactly as it would be on disk.
 func (s *FakeStore) Load() (*devicetypes.Inventory, error) {
 	s.Loads++
 	if s.LoadErr != nil {
 		return nil, s.LoadErr
 	}
-	s.Inventory.VerifyParentChildRelationships()
-	return s.Inventory, nil
+
+	encoded, err := json.Marshal(s.Inventory)
+	if err != nil {
+		return nil, fmt.Errorf("cmdtest: marshalling inventory: %w", err)
+	}
+	fresh := devicetypes.NewInventory()
+	if err := json.Unmarshal(encoded, fresh); err != nil {
+		return nil, fmt.Errorf("cmdtest: unmarshalling inventory: %w", err)
+	}
+
+	fresh.VerifyParentChildRelationships()
+	return fresh, nil
 }
 
 // Save records the inventory the command produced and counts the call.
@@ -128,14 +143,21 @@ func New(t *testing.T, parent, target *cli.Command, inventory *devicetypes.Inven
 // Run sets the given flags then executes the target's Args, PreRunE and RunE
 // hooks in the same order as (*cli.Command).runPipeline.
 //
-// PersistentPreRunE is deliberately skipped: the real root uses it to load
-// configuration and provider state, which is exactly what these tests isolate.
-func (h *Harness) Run(t *testing.T, flags map[string]string, args ...string) error {
+// Each flag maps to a slice so repeatable flags (--tag, --metadata, --set) can
+// be set more than once, which is how providers receive generic CLI input.
+//
+// Two pipeline steps are absent. PersistentPreRunE is skipped deliberately: the
+// real root uses it to load configuration and provider state, which is exactly
+// what these tests isolate. validateFlagGroups cannot be called at all because
+// it is unexported, so flag-group constraints are not enforced here.
+func (h *Harness) Run(t *testing.T, flags map[string][]string, args ...string) error {
 	t.Helper()
 
-	for name, value := range flags {
-		if err := h.Target.Flags().Set(name, value); err != nil {
-			t.Fatalf("set --%s=%q: %v", name, value, err)
+	for name, values := range flags {
+		for _, value := range values {
+			if err := h.Target.Flags().Set(name, value); err != nil {
+				t.Fatalf("set --%s=%q: %v", name, value, err)
+			}
 		}
 	}
 
@@ -159,9 +181,12 @@ func (h *Harness) Inventory() *devicetypes.Inventory {
 
 // RequireNoProviders fails the test when any provider has self-registered.
 //
-// CRUD is specified to work purely on the portable model, so a provider
-// appearing in the registry means a cmd package grew a provider import and the
-// verbs are no longer guaranteed to behave identically for every provider.
+// This proves a CRUD package has not grown a concrete provider import, since
+// importing one runs its init() and registers it. It is necessary but not
+// sufficient: branching on a provider *name* needs no import, and behaviour
+// that varies with registry contents would still pass here. Those are covered
+// by TestCRUDHasNoProviderNameLiterals and
+// TestCRUDResultIsInvariantAcrossRegisteredProviders respectively.
 func RequireNoProviders(t *testing.T) {
 	t.Helper()
 	if registered := provider.GetProviders(); len(registered) != 0 {

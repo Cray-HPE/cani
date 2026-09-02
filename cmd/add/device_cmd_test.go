@@ -49,11 +49,11 @@ func TestAddDevicePlacesDeviceInRack(t *testing.T) {
 	inventory, rackID := cmdtest.InventoryWithRack("rack-01")
 	harness := cmdtest.New(t, NewCommand(), newDeviceCommand(), inventory)
 
-	err := harness.Run(t, map[string]string{
-		"rack":     "rack-01",
-		"position": "10",
-		"face":     "front",
-		"name":     "cn-01",
+	err := harness.Run(t, map[string][]string{
+		"rack":     {"rack-01"},
+		"position": {"10"},
+		"face":     {"front"},
+		"name":     {"cn-01"},
 	}, cmdtest.DeviceSlug)
 	if err != nil {
 		t.Fatalf("add device: unexpected error: %v", err)
@@ -99,7 +99,7 @@ func TestAddDeviceRejectsUnknownSlug(t *testing.T) {
 	inventory, _ := cmdtest.InventoryWithRack("rack-01")
 	harness := cmdtest.New(t, NewCommand(), newDeviceCommand(), inventory)
 
-	err := harness.Run(t, map[string]string{"rack": "rack-01"}, "not-a-real-slug")
+	err := harness.Run(t, map[string][]string{"rack": {"rack-01"}}, "not-a-real-slug")
 	if err == nil {
 		t.Fatal("expected an error for an unknown slug, got nil")
 	}

@@ -50,7 +50,7 @@ func TestUpdateDeviceRenamesDevice(t *testing.T) {
 	deviceID := cmdtest.AddDevice(inventory, rackID, "cn-01", 10)
 	harness := cmdtest.New(t, NewCommand(), newDeviceCommand(), inventory)
 
-	if err := harness.Run(t, map[string]string{"name": "cn-99"}, "cn-01"); err != nil {
+	if err := harness.Run(t, map[string][]string{"name": {"cn-99"}}, "cn-01"); err != nil {
 		t.Fatalf("update device: unexpected error: %v", err)
 	}
 
@@ -87,7 +87,7 @@ func TestUpdateDeviceRejectsUnknownName(t *testing.T) {
 	cmdtest.AddDevice(inventory, rackID, "cn-01", 10)
 	harness := cmdtest.New(t, NewCommand(), newDeviceCommand(), inventory)
 
-	err := harness.Run(t, map[string]string{"name": "cn-99"}, "does-not-exist")
+	err := harness.Run(t, map[string][]string{"name": {"cn-99"}}, "does-not-exist")
 	if err == nil {
 		t.Fatal("expected an error for an unknown device, got nil")
 	}
@@ -111,7 +111,7 @@ func TestUpdateDeviceMovesToNewPosition(t *testing.T) {
 	deviceID := cmdtest.AddDevice(inventory, rackID, "cn-01", 10)
 	harness := cmdtest.New(t, NewCommand(), newDeviceCommand(), inventory)
 
-	if err := harness.Run(t, map[string]string{"position": "20"}, "cn-01"); err != nil {
+	if err := harness.Run(t, map[string][]string{"position": {"20"}}, "cn-01"); err != nil {
 		t.Fatalf("update device --position: unexpected error: %v", err)
 	}
 
@@ -147,7 +147,7 @@ func TestUpdateIsProviderAgnostic(t *testing.T) {
 	deviceID := cmdtest.AddDevice(inventory, rackID, "cn-01", 10)
 	harness := cmdtest.New(t, NewCommand(), newDeviceCommand(), inventory)
 
-	if err := harness.Run(t, map[string]string{"name": "cn-99"}, "cn-01"); err != nil {
+	if err := harness.Run(t, map[string][]string{"name": {"cn-99"}}, "cn-01"); err != nil {
 		t.Fatalf("update device without providers: %v", err)
 	}
 	if got := harness.Inventory().Devices[deviceID].Name; got != "cn-99" {

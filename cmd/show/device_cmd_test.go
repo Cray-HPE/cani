@@ -47,7 +47,7 @@ func TestShowDeviceIsReadOnly(t *testing.T) {
 	cmdtest.AddDevice(inventory, rackID, "cn-01", 10)
 	harness := cmdtest.New(t, NewCommand(), newDeviceShowCommand(), inventory)
 
-	if err := harness.Run(t, map[string]string{"format": "json"}); err != nil {
+	if err := harness.Run(t, map[string][]string{"format": {"json"}}); err != nil {
 		t.Fatalf("show device: unexpected error: %v", err)
 	}
 
@@ -73,7 +73,7 @@ func TestShowDeviceRejectsUnknownName(t *testing.T) {
 	cmdtest.AddDevice(inventory, rackID, "cn-01", 10)
 	harness := cmdtest.New(t, NewCommand(), newDeviceShowCommand(), inventory)
 
-	err := harness.Run(t, map[string]string{"format": "json"}, "does-not-exist")
+	err := harness.Run(t, map[string][]string{"format": {"json"}}, "does-not-exist")
 	if err == nil {
 		t.Fatal("expected an error for an unknown device, got nil")
 	}
@@ -99,7 +99,7 @@ func TestShowDeviceRendersEveryFormatReadOnly(t *testing.T) {
 			cmdtest.AddDevice(inventory, rackID, "cn-01", 10)
 			harness := cmdtest.New(t, NewCommand(), newDeviceShowCommand(), inventory)
 
-			if err := harness.Run(t, map[string]string{"format": format}); err != nil {
+			if err := harness.Run(t, map[string][]string{"format": {format}}); err != nil {
 				t.Fatalf("show device --format %s: unexpected error: %v", format, err)
 			}
 			if harness.Store.Saves != 0 {
@@ -128,7 +128,7 @@ func TestShowIsProviderAgnostic(t *testing.T) {
 	cmdtest.AddDevice(inventory, rackID, "cn-01", 10)
 	harness := cmdtest.New(t, NewCommand(), newDeviceShowCommand(), inventory)
 
-	if err := harness.Run(t, map[string]string{"format": "json"}); err != nil {
+	if err := harness.Run(t, map[string][]string{"format": {"json"}}); err != nil {
 		t.Fatalf("show device without providers: %v", err)
 	}
 	if harness.Store.Saves != 0 {

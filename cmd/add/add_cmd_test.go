@@ -47,11 +47,11 @@ func TestAddDeviceQuantityFansOut(t *testing.T) {
 	inventory, _ := cmdtest.InventoryWithRack("rack-01")
 	harness := cmdtest.New(t, NewCommand(), newDeviceCommand(), inventory)
 
-	err := harness.Run(t, map[string]string{
-		"rack":   "rack-01",
-		"qty":    "3",
-		"prefix": "cn-",
-		"start":  "1",
+	err := harness.Run(t, map[string][]string{
+		"rack":   {"rack-01"},
+		"qty":    {"3"},
+		"prefix": {"cn-"},
+		"start":  {"1"},
 	}, cmdtest.DeviceSlug)
 	if err != nil {
 		t.Fatalf("add device --qty 3: unexpected error: %v", err)
@@ -91,10 +91,10 @@ func TestAddDeviceDryRunDoesNotPersist(t *testing.T) {
 	before := len(inventory.Devices)
 	harness := cmdtest.New(t, NewCommand(), newDeviceCommand(), inventory)
 
-	err := harness.Run(t, map[string]string{
-		"rack":    "%{FILL}",
-		"qty":     "2",
-		"dry-run": "true",
+	err := harness.Run(t, map[string][]string{
+		"rack":    {"%{FILL}"},
+		"qty":     {"2"},
+		"dry-run": {"true"},
 	}, cmdtest.DeviceSlug)
 	if err != nil {
 		t.Fatalf("add device --dry-run: unexpected error: %v", err)
@@ -123,11 +123,11 @@ func TestAddDeviceRejectsOccupiedPosition(t *testing.T) {
 	cmdtest.AddDevice(inventory, rackID, "cn-01", 10)
 	harness := cmdtest.New(t, NewCommand(), newDeviceCommand(), inventory)
 
-	err := harness.Run(t, map[string]string{
-		"rack":     "rack-01",
-		"position": "10",
-		"face":     "front",
-		"name":     "cn-02",
+	err := harness.Run(t, map[string][]string{
+		"rack":     {"rack-01"},
+		"position": {"10"},
+		"face":     {"front"},
+		"name":     {"cn-02"},
 	}, cmdtest.DeviceSlug)
 	if err == nil {
 		t.Fatal("expected an error placing a device into an occupied slot, got nil")
@@ -151,7 +151,7 @@ func TestAddDeviceRejectsOccupiedPosition(t *testing.T) {
 func TestAddRackAddsRackFromSlug(t *testing.T) {
 	harness := cmdtest.New(t, NewCommand(), newRackAddCommand(), nil)
 
-	err := harness.Run(t, map[string]string{"name": "rack-99"}, "hpe-42u-800mmx1200mm-g2-enterprise-shock-rack")
+	err := harness.Run(t, map[string][]string{"name": {"rack-99"}}, "hpe-42u-800mmx1200mm-g2-enterprise-shock-rack")
 	if err != nil {
 		t.Fatalf("add rack: unexpected error: %v", err)
 	}
@@ -177,9 +177,10 @@ func TestAddRackAddsRackFromSlug(t *testing.T) {
 
 // TestAddIsProviderAgnostic verifies add works with no provider registered.
 //
-// Why it matters: this is the executable form of the claim that add/remove/
-// update/show behave identically for every provider. A provider import creeping
-// into cmd/add would fail here, at the point it is introduced.
+// Why it matters: a concrete provider import in cmd/add would register itself
+// on init and fail here, at the point it is introduced. This covers only the
+// import route; name-literal branching and registry-dependent behaviour are
+// covered by the architectural tests in internal/testutil/cmdtest.
 // Inputs: the registry as it stands during this package's tests, plus a normal
 // device add.
 // Outputs: an empty provider registry and a device created from the library.
@@ -191,9 +192,9 @@ func TestAddIsProviderAgnostic(t *testing.T) {
 	inventory, _ := cmdtest.InventoryWithRack("rack-01")
 	harness := cmdtest.New(t, NewCommand(), newDeviceCommand(), inventory)
 
-	err := harness.Run(t, map[string]string{
-		"rack": "rack-01",
-		"name": "cn-01",
+	err := harness.Run(t, map[string][]string{
+		"rack": {"rack-01"},
+		"name": {"cn-01"},
 	}, cmdtest.DeviceSlug)
 	if err != nil {
 		t.Fatalf("add device without providers: %v", err)
