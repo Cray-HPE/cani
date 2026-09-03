@@ -264,10 +264,12 @@ tidy: ## Tidy and vendor modules
 	go mod vendor
 	$(OK) "modules tidied"
 
+OAPI_CODEGEN_VERSION ?= v2.8.0
+
 .PHONY: tools
 tools: ## Install code-generation tools
 	$(INFO) "installing tools"
-	go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.5.1
+	go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@$(OAPI_CODEGEN_VERSION)
 	$(OK) "tools installed"
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -280,15 +282,34 @@ schema: ## Regenerate the inventory JSON Schema artifact
 	go run ./tools/genschema
 	$(OK) "pkg/devicetypes/schema/inventory.schema.json"
 
+# Local Nautobot simulator (see `make nautobot-up`). NAUTOBOT_TOKEN defaults to
+# the simulator superuser token (NAUTOBOT_SUPERUSER_API_TOKEN) read from
+# testdata/fixtures/nautobot/env/creds.env so it is not duplicated here.
+NAUTOBOT_CREDS_ENV ?= testdata/fixtures/nautobot/env/creds.env
+NAUTOBOT_URL   ?= http://localhost:8081
+NAUTOBOT_TOKEN ?= $(shell sed -n 's/^NAUTOBOT_SUPERUSER_API_TOKEN=//p' $(NAUTOBOT_CREDS_ENV))
+
+# generate_nautobot_client runs oapi-codegen against pkg/nautobot/openapi.yml and
+# repoints the generated runtime imports at the vendored-in internal packages
+# (dropping the external github.com/oapi-codegen/runtime module dependency).
+define generate_nautobot_client
+go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@$(OAPI_CODEGEN_VERSION) -package nautobot -generate client,models,std-http -o pkg/nautobot/nautobot_api.go ./pkg/nautobot/openapi.yml
+perl -i -pe 's{"github.com/oapi-codegen/runtime/types"}{"github.com/Cray-HPE/cani/internal/openapi/types"}g; s{"github.com/oapi-codegen/runtime"}{"github.com/Cray-HPE/cani/internal/openapi/runtime"}g' pkg/nautobot/nautobot_api.go
+endef
+
 .PHONY: nautobot_client
-nautobot_client: ## Regenerate the Nautobot API client
-	$(INFO) "generating Nautobot client"
+nautobot_client: ## Regenerate the Nautobot API client (from go-nautobot main)
+	$(INFO) "generating Nautobot client (go-nautobot main)"
 	curl -sS https://raw.githubusercontent.com/nautobot/go-nautobot/refs/heads/main/api/openapi.yaml > pkg/nautobot/openapi.yml
-	oapi-codegen -package nautobot -generate client,models,std-http -o pkg/nautobot/nautobot_api.go ./pkg/nautobot/openapi.yml
-	# Repoint the generated runtime imports to the vendored-in internal packages
-	# (drops the external github.com/oapi-codegen/runtime module dependency).
-	perl -i -pe 's{"github.com/oapi-codegen/runtime/types"}{"github.com/Cray-HPE/cani/internal/openapi/types"}g; s{"github.com/oapi-codegen/runtime"}{"github.com/Cray-HPE/cani/internal/openapi/runtime"}g' pkg/nautobot/nautobot_api.go
+	$(generate_nautobot_client)
 	$(OK) "Nautobot client generated"
+
+.PHONY: nautobot_client_local
+nautobot_client_local: ## Regenerate the Nautobot API client from the running simulator (make nautobot-up)
+	$(INFO) "generating Nautobot client from $(NAUTOBOT_URL)"
+	curl -sSf -H "Authorization: Token $(NAUTOBOT_TOKEN)" $(NAUTOBOT_URL)/api/swagger.yaml > pkg/nautobot/openapi.yml
+	$(generate_nautobot_client)
+	$(OK) "Nautobot client generated from $(NAUTOBOT_URL)"
 
 .PHONY: generate-swagger-sls-client
 generate-swagger-sls-client: bin/swagger-codegen-cli.jar ## Generate SLS client
