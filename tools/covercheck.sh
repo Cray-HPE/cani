@@ -29,6 +29,12 @@
 set -eu
 
 MODULE="github.com/Cray-HPE/cani"
+
+# Run from the module root regardless of where the script was invoked, so both
+# `go test ./...` and the default floors path resolve the same way every time.
+repo_root="$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)"
+cd "$repo_root"
+
 FLOORS="${COVERAGE_FLOORS:-tools/coverage-floors.txt}"
 
 if [ ! -f "$FLOORS" ]; then
@@ -36,8 +42,8 @@ if [ ! -f "$FLOORS" ]; then
   exit 1
 fi
 
-output="$(mktemp)"
-floors="$(mktemp)"
+output="$(mktemp)" || { echo "covercheck: mktemp failed" >&2; exit 1; }
+floors="$(mktemp)" || { echo "covercheck: mktemp failed" >&2; exit 1; }
 # shellcheck disable=SC2064
 trap "rm -f '$output' '$floors'" EXIT INT TERM
 
