@@ -30,30 +30,24 @@
 package cmdtest_test
 
 import (
-	"context"
+	"bytes"
+	"io"
+	"os"
+	"os/exec"
 	"strings"
 	"testing"
 
 	"github.com/Cray-HPE/cani/cmd/add"
+	"github.com/Cray-HPE/cani/cmd/remove"
+	"github.com/Cray-HPE/cani/cmd/show"
 	"github.com/Cray-HPE/cani/cmd/update"
 	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/testutil/cmdtest"
-	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
 
-// inertProvider satisfies the required Provider contract and nothing else. It
-// implements no optional capability interface, so a correct CRUD path has no
-// way to consult it.
-type inertProvider struct{ slug string }
-
-func (p inertProvider) Transform(_ context.Context, _ devicetypes.Inventory) (*devicetypes.TransformResult, error) {
-	return &devicetypes.TransformResult{}, nil
-}
-
-func (p inertProvider) NewProviderCmd(_ *cli.Command) (*cli.Command, error) { return nil, nil }
-
-func (p inertProvider) Slug() string { return p.slug }
+// rackSlug is a library rack used where a verb needs one.
+const rackSlug = "hpe-42u-800mmx1200mm-g2-enterprise-shock-rack"
 
 // subcommand finds a named subcommand on a parent built by a cmd package.
 func subcommand(t *testing.T, parent *cli.Command, name string) *cli.Command {
@@ -104,47 +98,179 @@ func updateDeviceFingerprint(t *testing.T) string {
 	return cmdtest.Fingerprint(harness.Inventory())
 }
 
-// TestCRUDResultIsInvariantAcrossRegisteredProviders verifies add and update
-// produce the same inventory no matter which providers are registered.
+// removeDeviceFingerprint runs the same "remove device" and returns a UUID-free
+// rendering of what survives.
+func removeDeviceFingerprint(t *testing.T) string {
+	t.Helper()
+
+	inventory, rackID := cmdtest.InventoryWithRack("rack-01")
+	cmdtest.AddDevice(inventory, rackID, "cn-01", 10)
+	cmdtest.AddDevice(inventory, rackID, "cn-02", 12)
+	parent := remove.NewCommand()
+	harness := cmdtest.New(t, parent, subcommand(t, parent, "device"), inventory)
+
+	if err := harness.Run(t, nil, "cn-01"); err != nil {
+		t.Fatalf("remove device: %v", err)
+	}
+	return cmdtest.Fingerprint(harness.Inventory())
+}
+
+// showDeviceFingerprint runs the same "show device" and returns what it
+// rendered.
 //
-// Why it matters: the portable model's whole premise is that CRUD generalises
-// over every provider, translating only at the Import/Transform/Export edges.
-// Asserting merely that the verbs run with an empty registry would test a
-// configuration that never occurs in production, where main.go blank-imports
-// every provider. This compares outcomes across registry states instead, so a
-// verb that started consulting the registry mid-path would diverge and fail.
-// Inputs: the same add and the same update executed three times, with zero, one
-// and two providers registered.
-// Outputs: identical fingerprints across all three registry states.
-// Data choice: registration only ever grows because the registry has no
-// deregister, so the states are visited in increasing order within one test.
-// The providers are inert and implement no optional interface, which isolates
-// "a provider exists" from "a provider was asked to do something".
+// Show does not mutate, so fingerprinting the inventory afterwards would
+// compare a constant and pass no matter what show printed. The rendered bytes
+// are the only observable output it has, so those are what must be invariant.
+//
+// It prints with fmt.Println rather than cmd.OutOrStdout(), so harness.Out sees
+// nothing and os.Stdout has to be captured instead.
+func showDeviceFingerprint(t *testing.T) string {
+	t.Helper()
+
+	inventory, rackID := cmdtest.InventoryWithRack("rack-01")
+	cmdtest.AddDevice(inventory, rackID, "cn-01", 10)
+	parent := show.NewCommand()
+	harness := cmdtest.New(t, parent, subcommand(t, parent, "device"), inventory)
+
+	rendered := captureStdout(t, func() {
+		if err := harness.Run(t, map[string][]string{"format": {"json"}}); err != nil {
+			t.Fatalf("show device: %v", err)
+		}
+	})
+	return cmdtest.MaskIDs(rendered)
+}
+
+// captureStdout redirects os.Stdout for the duration of run and returns what
+// was written to it.
+func captureStdout(t *testing.T, run func()) string {
+	t.Helper()
+
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("pipe: %v", err)
+	}
+	previous := os.Stdout
+	os.Stdout = writer
+
+	// Drain concurrently: a writer filling the pipe buffer would otherwise
+	// block before run returns.
+	drained := make(chan string, 1)
+	go func() {
+		var buffer bytes.Buffer
+		_, _ = io.Copy(&buffer, reader)
+		drained <- buffer.String()
+	}()
+
+	defer func() {
+		os.Stdout = previous
+		_ = writer.Close()
+	}()
+	run()
+
+	os.Stdout = previous
+	if err := writer.Close(); err != nil {
+		t.Fatalf("closing capture pipe: %v", err)
+	}
+	return <-drained
+}
+
+// addRackFingerprint runs "add rack", the verb that dispatches the
+// RackPostAddHook capability, and returns a UUID-free rendering of the result.
+func addRackFingerprint(t *testing.T) string {
+	t.Helper()
+
+	parent := add.NewCommand()
+	harness := cmdtest.New(t, parent, subcommand(t, parent, "rack"), nil)
+
+	if err := harness.Run(t, map[string][]string{"name": {"rack-99"}}, rackSlug); err != nil {
+		t.Fatalf("add rack: %v", err)
+	}
+	return cmdtest.Fingerprint(harness.Inventory())
+}
+
+// crudFingerprints renders every CRUD verb once, under whatever providers are
+// currently registered.
+func crudFingerprints(t *testing.T) map[string]string {
+	t.Helper()
+	return map[string]string{
+		"add device":    addDeviceFingerprint(t),
+		"add rack":      addRackFingerprint(t),
+		"update device": updateDeviceFingerprint(t),
+		"remove device": removeDeviceFingerprint(t),
+		"show device":   showDeviceFingerprint(t),
+	}
+}
+
+// TestCRUDResultIsInvariantAcrossRegisteredProviders verifies every CRUD verb
+// produces the same result no matter which providers are registered.
+//
+// Why it matters: generic CRUD must remain independent of provider identity.
+// Inputs: five CRUD scenarios, first without providers, then with inert and
+// capable providers. Outputs: equal fingerprints and exact callback arguments.
+// Data choice: a fresh test process keeps these registry states distinct even
+// under repeated or shuffled runs, since registration has no deregister API.
 func TestCRUDResultIsInvariantAcrossRegisteredProviders(t *testing.T) {
-	addBaseline := addDeviceFingerprint(t)
-	updateBaseline := updateDeviceFingerprint(t)
-
-	// Guard against a degenerate fingerprint: if it ever rendered nothing, or
-	// dropped the very field under test, every comparison below would pass for
-	// the wrong reason.
-	if !strings.Contains(addBaseline, "device name=cn-01") {
-		t.Fatalf("add baseline does not describe the added device:\n%s", addBaseline)
+	if runInvarianceSubprocess(t) {
+		return
 	}
-	if !strings.Contains(updateBaseline, "device name=cn-99") {
-		t.Fatalf("update baseline does not describe the renamed device:\n%s", updateBaseline)
+	cmdtest.RequireNoProviders(t)
+	baseline := crudFingerprints(t)
+	assertCRUDBaseline(t, baseline)
+	states := []provider.Provider{
+		inertProvider{slug: "invariance-alpha"},
+		inertProvider{slug: "invariance-beta"},
+		invarianceProvider,
 	}
-
-	for _, slug := range []string{"invariance-alpha", "invariance-beta"} {
-		provider.Register(slug, inertProvider{slug: slug})
-
-		registered := len(provider.GetProviders())
-		if got := addDeviceFingerprint(t); got != addBaseline {
-			t.Errorf("add device diverged with %d provider(s) registered:\n got:\n%s\nwant:\n%s",
-				registered, got, addBaseline)
-		}
-		if got := updateDeviceFingerprint(t); got != updateBaseline {
-			t.Errorf("update device diverged with %d provider(s) registered:\n got:\n%s\nwant:\n%s",
-				registered, got, updateBaseline)
+	for _, registeredProvider := range states {
+		provider.Register(registeredProvider.Slug(), registeredProvider)
+		invarianceProvider.calls = capabilityLog{}
+		fingerprints := crudFingerprints(t)
+		assertCRUDFingerprints(t, baseline, fingerprints, len(provider.GetProviders()))
+		if registeredProvider == invarianceProvider {
+			assertCRUDCapabilities(t, invarianceProvider.calls)
 		}
 	}
+}
+
+func assertCRUDBaseline(t *testing.T, baseline map[string]string) {
+	t.Helper()
+	for _, guard := range []struct{ verb, want string }{
+		{"add device", `"name":"cn-01"`},
+		{"add rack", `"name":"rack-99"`},
+		{"update device", `"name":"cn-99"`},
+		{"remove device", `"name":"cn-02"`},
+		{"show device", `cn-01`},
+		{"add device", `"interfaces"`},
+	} {
+		if !strings.Contains(baseline[guard.verb], guard.want) {
+			t.Fatalf("%s baseline lacks %s:\n%s", guard.verb, guard.want, baseline[guard.verb])
+		}
+	}
+	if strings.Contains(baseline["remove device"], `"name":"cn-01"`) {
+		t.Fatalf("remove baseline still contains the removed device:\n%s", baseline["remove device"])
+	}
+}
+
+func assertCRUDFingerprints(t *testing.T, baseline, fingerprints map[string]string, registered int) {
+	t.Helper()
+	for verb, want := range baseline {
+		if got := fingerprints[verb]; got != want {
+			t.Errorf("%s diverged with %d provider(s) registered:\n got:\n%s\nwant:\n%s",
+				verb, registered, got, want)
+		}
+	}
+}
+
+func runInvarianceSubprocess(t *testing.T) bool {
+	t.Helper()
+	const childEnv = "CANI_TEST_INVARIANCE_CHILD"
+	if os.Getenv(childEnv) == "1" {
+		return false
+	}
+	command := exec.Command(os.Args[0], "-test.run=^"+t.Name()+"$", "-test.count=1")
+	command.Env = append(os.Environ(), childEnv+"=1")
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("isolated invariance test: %v\n%s", err, output)
+	}
+	return true
 }
