@@ -36,6 +36,10 @@ import (
 // the same way it does for users.
 const DeviceSlug = "cray-gigabyte-r272-z30-00"
 
+// DeviceSlugUHeight is the u_height DeviceSlug declares in the library. Seeded
+// devices must match it or rack occupancy in tests would not reflect reality.
+const DeviceSlugUHeight = 2
+
 // InventoryWithRack returns an inventory holding one location and one empty
 // 42U rack with the given name, which is the minimum needed to place a device.
 func InventoryWithRack(rackName string) (*devicetypes.Inventory, uuid.UUID) {
@@ -57,6 +61,9 @@ func InventoryWithRack(rackName string) (*devicetypes.Inventory, uuid.UUID) {
 
 // AddDevice puts a device into the inventory at the given rack position and
 // returns its ID, for tests that need an existing device to update or remove.
+//
+// UHeight matches the library entry for DeviceSlug so seeded devices occupy the
+// same number of rack units as one added through the real command path.
 func AddDevice(inventory *devicetypes.Inventory, rackID uuid.UUID, name string, position int) uuid.UUID {
 	deviceID := uuid.New()
 	inventory.Devices[deviceID] = &devicetypes.CaniDeviceType{
@@ -66,7 +73,7 @@ func AddDevice(inventory *devicetypes.Inventory, rackID uuid.UUID, name string, 
 		Parent:       rackID,
 		RackPosition: position,
 		Face:         devicetypes.FaceFront,
-		UHeight:      1,
+		UHeight:      DeviceSlugUHeight,
 		Type:         devicetypes.TypeNode,
 	}
 	return deviceID

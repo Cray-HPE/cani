@@ -75,6 +75,7 @@ func (s *FakeStore) Load() (*devicetypes.Inventory, error) {
 	}
 
 	fresh.VerifyParentChildRelationships()
+	fresh.RebuildProviderKeyIndex()
 	return fresh, nil
 }
 
