@@ -1,0 +1,17 @@
+# Sanctioned direct module dependencies, enforced by tools/check-go-deps.sh via
+# `make deps-guard` and the deps-guard CI workflow. cani is standard-library-only
+# apart from the deliberately tiny set listed here.
+#
+# Adding a module is a conscious, reviewable act: append its module path below,
+# with a one-line justification, in the same commit as the go.mod change. Only
+# direct requires are policed; indirect dependencies are ignored. Removing a
+# dependency is always fine and needs no entry here.
+#
+# module path
+
+# UUID generation for the portable inventory model's primary keys.
+github.com/google/uuid
+
+# YAML decode/encode for the device-type library, the config node tree, and
+# datastore serialization.
+gopkg.in/yaml.v3

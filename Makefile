@@ -268,6 +268,12 @@ tidy: ## Tidy and vendor modules
 	go mod vendor
 	$(OK) "modules tidied"
 
+.PHONY: deps-guard
+deps-guard: ## Fail if go.mod adds a direct dep outside tools/allowed-deps.txt
+	$(INFO) "checking go.mod stdlib boundary"
+	@./tools/check-go-deps.sh
+	$(OK) "go.mod dependencies sanctioned"
+
 OAPI_CODEGEN_VERSION ?= v2.8.0
 # Upstream oapi-codegen/runtime API level the vendored internal/openapi/runtime
 # targets. The vendored copy is a deliberate dependency-free FORK (e.g. jsonmerge
