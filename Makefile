@@ -265,6 +265,13 @@ tidy: ## Tidy and vendor modules
 	$(OK) "modules tidied"
 
 OAPI_CODEGEN_VERSION ?= v2.8.0
+# Upstream oapi-codegen/runtime API level the vendored internal/openapi/runtime
+# targets. The vendored copy is a deliberate dependency-free FORK (e.g. jsonmerge
+# reimplemented to avoid github.com/apapsch/go-jsonmerge), not a verbatim mirror,
+# so it cannot be blindly re-synced. When bumping OAPI_CODEGEN_VERSION, the
+# `go build` in generate_nautobot_client reports any newly-called runtime symbols
+# as compile errors, which must then be hand-ported into internal/openapi/runtime.
+OAPI_RUNTIME_VERSION ?= v1.6.0
 
 .PHONY: tools
 tools: ## Install code-generation tools
@@ -292,9 +299,14 @@ NAUTOBOT_TOKEN ?= $(shell sed -n 's/^NAUTOBOT_SUPERUSER_API_TOKEN=//p' $(NAUTOBO
 # generate_nautobot_client runs oapi-codegen against pkg/nautobot/openapi.yml and
 # repoints the generated runtime imports at the vendored-in internal packages
 # (dropping the external github.com/oapi-codegen/runtime module dependency).
+# NOTE: the vendored internal/openapi/runtime is a fork (see OAPI_RUNTIME_VERSION);
+# a generator bump adding new runtime call sites is caught by the `go build`
+# call, which fails until the missing symbols are hand-ported.
 define generate_nautobot_client
 go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@$(OAPI_CODEGEN_VERSION) -package nautobot -generate client,models,std-http -o pkg/nautobot/nautobot_api.go ./pkg/nautobot/openapi.yml
 perl -i -pe 's{"github.com/oapi-codegen/runtime/types"}{"github.com/Cray-HPE/cani/internal/openapi/types"}g; s{"github.com/oapi-codegen/runtime"}{"github.com/Cray-HPE/cani/internal/openapi/runtime"}g; s{"go.yaml.in/yaml/v3"}{"gopkg.in/yaml.v3"}g; s{\s=\snull$$}{ = -1}g' pkg/nautobot/nautobot_api.go
+$(INFO) "verifying generated client compiles against the vendored runtime fork"
+go build ./pkg/nautobot/... ./internal/openapi/...
 endef
 
 .PHONY: nautobot_client
