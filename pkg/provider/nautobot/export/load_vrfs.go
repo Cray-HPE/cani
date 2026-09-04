@@ -30,7 +30,6 @@ import (
 	"fmt"
 	"net/http"
 
-	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/google/uuid"
@@ -140,17 +139,16 @@ func (e *Exporter) createVRF(ctx context.Context, vrf *devicetypes.CaniVRF) (uui
 		nsName = "Global"
 	}
 	if ns, err := e.Cache.GetOrCreateNamespace(nsName); err == nil && ns != nil {
-		ref := makeIDRef(ns.ID)
-		req.Namespace = &ref
+		setRefID(&req.Namespace, ns.ID)
 	}
 
 	if vrf.Status != "" {
 		if statusItem, err := e.Cache.GetStatus(vrf.Status); err == nil && statusItem != nil {
-			req.Status = makeObjectRef(statusItem.ID)
+			setRefID(&req.Status, statusItem.ID)
 		}
 	}
 
-	req.Tags = e.Cache.resolveTagRefs(vrf.Tags)
+	setRefSlice(&req.Tags, e.Cache.resolveTagRefs(vrf.Tags))
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create VRF: %s", vrf.Name)
@@ -184,10 +182,10 @@ func (e *Exporter) ensureVRFDeviceAssignment(ctx context.Context, deviceID uuid.
 		return nil
 	}
 
-	vrfID := openapi_types.UUID(vrf.ID)
+	vrfFilter := []string{vrf.ID.String()}
 	deviceFilter := []string{deviceID.String()}
 	listResp, err := e.Client.IpamVrfDeviceAssignmentsListWithResponse(ctx,
-		&nautobotapi.IpamVrfDeviceAssignmentsListParams{Vrf: &vrfID, Device: &deviceFilter})
+		&nautobotapi.IpamVrfDeviceAssignmentsListParams{Vrf: &vrfFilter, Device: &deviceFilter})
 	if err != nil {
 		return fmt.Errorf("API error: %w", err)
 	}
@@ -195,10 +193,9 @@ func (e *Exporter) ensureVRFDeviceAssignment(ctx context.Context, deviceID uuid.
 		return nil
 	}
 
-	req := nautobotapi.VRFDeviceAssignmentRequest{
-		Device: makeObjectRef(deviceID),
-		Vrf:    makeStatusRef(vrf.ID),
-	}
+	req := nautobotapi.VRFDeviceAssignmentRequest{}
+	setRefID(&req.Device, deviceID)
+	setRefID(&req.Vrf, vrf.ID)
 	createResp, err := e.Client.IpamVrfDeviceAssignmentsCreateWithResponse(ctx,
 		&nautobotapi.IpamVrfDeviceAssignmentsCreateParams{}, req)
 	if err != nil {

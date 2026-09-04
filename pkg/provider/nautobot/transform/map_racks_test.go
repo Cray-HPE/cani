@@ -65,7 +65,7 @@ func TestMapRacks(t *testing.T) {
 
 	t.Run("rack with nil ID is skipped", func(t *testing.T) {
 		raw := []nautobotapi.Rack{
-			{Name: "orphan", Id: nil, Status: makeStatusRefFromUUID(uuid.New()), Location: makeStatusRefFromUUID(uuid.New())},
+			{Name: "orphan", Id: nil},
 		}
 		racks, _ := MapRacks(raw, locationMap, nil, nil)
 		if len(racks) != 0 {
@@ -89,10 +89,10 @@ func TestMapRacks(t *testing.T) {
 				Serial:   &serial,
 				AssetTag: &tag,
 				Comments: &comment,
-				Status:   makeStatusRefFromUUID(statusID),
-				Location: makeStatusRefFromUUID(locNBID),
 			},
 		}
+		setNBRef(&raw[0].Status, statusID)
+		setNBRef(&raw[0].Location, locNBID)
 
 		racks, nbMap := MapRacks(raw, locationMap, statusNameMap, nil)
 		if len(racks) != 1 {
@@ -134,12 +134,12 @@ func TestMapRacks(t *testing.T) {
 
 		raw := []nautobotapi.Rack{
 			{
-				Id:       &oaID,
-				Name:     "Floating-Rack",
-				Status:   makeStatusRefFromUUID(uuid.New()),
-				Location: makeStatusRefFromUUID(unknownLocID),
+				Id:   &oaID,
+				Name: "Floating-Rack",
 			},
 		}
+		setNBRef(&raw[0].Status, uuid.New())
+		setNBRef(&raw[0].Location, unknownLocID)
 
 		racks, nbMap := MapRacks(raw, locationMap, nil, nil)
 		caniID := nbMap[nbID]
@@ -159,11 +159,11 @@ func TestMapRacks(t *testing.T) {
 			{
 				Id:           &oaID,
 				Name:         "CF-Rack",
-				CustomFields: &cf,
-				Status:       makeStatusRefFromUUID(uuid.New()),
-				Location:     makeStatusRefFromUUID(uuid.New()),
+				CustomFields: nbCF(cf),
 			},
 		}
+		setNBRef(&raw[0].Status, uuid.New())
+		setNBRef(&raw[0].Location, uuid.New())
 
 		racks, nbMap := MapRacks(raw, locationMap, nil, nil)
 		caniID := nbMap[nbID]
@@ -196,25 +196,24 @@ func TestMapRacks_OptionalDimensionFields(t *testing.T) {
 	nbID := uuid.MustParse("aaaaaaaa-0000-0000-0000-000000000001")
 	oaID := openapi_types.UUID(nbID)
 	roleID := uuid.MustParse("aaaaaaaa-0000-0000-0000-000000000002")
-	roleURL := "http://api/rack-roles/network/"
-	roleRef := makeObjectRefFromUUID(roleID)
-	roleRef.Url = strPtr(roleURL)
-	outerUnit := nautobotapi.RackOuterUnitValueIn
-	width := nautobotapi.RackWidthValueN19
-	rackType := nautobotapi.N4PostCabinet
 
 	raw := []nautobotapi.Rack{
 		{
-			Id:        &oaID,
-			Name:      "Rack-Dim",
-			Status:    makeStatusRefFromUUID(uuid.New()),
-			Location:  makeStatusRefFromUUID(uuid.New()),
-			Role:      &roleRef,
-			OuterUnit: &nautobotapi.RackOuterUnit{Value: &outerUnit},
-			Width:     &nautobotapi.RackWidth{Value: &width},
-			Type:      &nautobotapi.RackType{Value: &rackType},
+			Id:   &oaID,
+			Name: "Rack-Dim",
 		},
 	}
+	setNBRef(&raw[0].Status, uuid.New())
+	setNBRef(&raw[0].Location, uuid.New())
+	setNBRef(&raw[0].Role, roleID)
+	setNBValue(&raw[0].OuterUnit, "in")
+	// Rack width is an integer-valued enum, so it cannot go through setNBValue.
+	width := nautobotapi.RackWidthValueN19
+	raw[0].Width = &struct {
+		Label *nautobotapi.RackWidthLabel `json:"label,omitempty"`
+		Value *nautobotapi.RackWidthValue `json:"value,omitempty"`
+	}{Value: &width}
+	setNBValue(&raw[0].Type, "4-post-cabinet")
 
 	racks, nbMap := MapRacks(raw, map[uuid.UUID]uuid.UUID{}, nil, map[uuid.UUID]string{roleID: "Network"})
 	rack := racks[nbMap[nbID]]

@@ -26,7 +26,9 @@
 package export
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -34,19 +36,13 @@ import (
 	"github.com/google/uuid"
 )
 
-// statusRef resolves the named Nautobot status and builds a status reference.
-func (e *Exporter) statusRef(name string) (nautobotapi.BulkWritableCableRequestStatus, error) {
-	var status nautobotapi.BulkWritableCableRequestStatus
+// statusRef resolves the named Nautobot status to its UUID.
+func (e *Exporter) statusRef(name string) (uuid.UUID, error) {
 	statusItem, err := e.Cache.GetStatus(name)
 	if err != nil {
-		return status, fmt.Errorf("failed to get %s status: %w", name, err)
+		return uuid.Nil, fmt.Errorf("failed to get %s status: %w", name, err)
 	}
-	var statusIDUnion nautobotapi.BulkWritableCableRequestStatusId
-	if err := statusIDUnion.FromBulkWritableCableRequestStatusId0(statusItem.ID); err != nil {
-		return status, fmt.Errorf(errFmtCreateStatusID, err)
-	}
-	status.Id = &statusIDUnion
-	return status, nil
+	return statusItem.ID, nil
 }
 
 // createInterface creates a single interface on a device
@@ -57,17 +53,8 @@ func (e *Exporter) createInterface(ctx context.Context, deviceID uuid.UUID, ifac
 		return nil
 	}
 
-	// Build device reference with proper union type for ID
-	var deviceIDUnion nautobotapi.BulkWritableCableRequestStatusId
-	if err := deviceIDUnion.FromBulkWritableCableRequestStatusId0(deviceID); err != nil {
-		return fmt.Errorf("failed to create device ID: %w", err)
-	}
-	deviceRef := &nautobotapi.BulkWritableCircuitRequestTenant{
-		Id: &deviceIDUnion,
-	}
-
 	// Build status reference - get "Active" status
-	status, err := e.statusRef("Active")
+	statusID, err := e.statusRef("Active")
 	if err != nil {
 		return err
 	}
@@ -76,13 +63,13 @@ func (e *Exporter) createInterface(ctx context.Context, deviceID uuid.UUID, ifac
 	ifaceType := nautobotapi.InterfaceTypeChoices(iface.Type)
 	mgmtOnly := iface.MgmtOnly
 	req := nautobotapi.WritableInterfaceRequest{
-		Device:   deviceRef,
 		Name:     iface.Name,
 		Type:     ifaceType,
-		Status:   status,
 		MgmtOnly: &mgmtOnly,
 	}
-	req.Tags = e.Cache.resolveTagRefs(iface.Tags)
+	setRefID(&req.Device, deviceID)
+	setRefID(&req.Status, statusID)
+	setRefSlice(&req.Tags, e.Cache.resolveTagRefs(iface.Tags))
 
 	if iface.Mac != "" {
 		mac := iface.Mac
@@ -94,11 +81,13 @@ func (e *Exporter) createInterface(ctx context.Context, deviceID uuid.UUID, ifac
 		req.Description = &desc
 	}
 
-	role, err := e.roleRef(iface.Role)
+	roleID, err := e.roleRef(iface.Role)
 	if err != nil {
 		return err
 	}
-	req.Role = role
+	if roleID != uuid.Nil {
+		setRefID(&req.Role, roleID)
+	}
 
 	resp, err := e.Client.DcimInterfacesCreateWithResponse(ctx, &nautobotapi.DcimInterfacesCreateParams{}, req)
 	if err != nil {
@@ -131,30 +120,20 @@ func (e *Exporter) updateInterface(ctx context.Context, interfaceID uuid.UUID, d
 	}
 
 	// Build status reference - get "Active" status
-	status, err := e.statusRef("Active")
+	statusID, err := e.statusRef("Active")
 	if err != nil {
 		return err
-	}
-
-	// Build device reference (required by Nautobot API)
-	var deviceIDUnion nautobotapi.BulkWritableCableRequestStatusId
-	if err := deviceIDUnion.FromBulkWritableCableRequestStatusId0(deviceID); err != nil {
-		return fmt.Errorf("failed to create device ID: %w", err)
-	}
-	device := &nautobotapi.BulkWritableCircuitRequestTenant{
-		Id: &deviceIDUnion,
 	}
 
 	// Build patch request - update type, status, and device
 	ifaceType := nautobotapi.InterfaceTypeChoices(iface.Type)
 	mgmtOnly := iface.MgmtOnly
-	req := nautobotapi.PatchedWritableInterfaceRequest{
-		Device:   device,
-		Type:     &ifaceType,
-		Status:   &status,
-		MgmtOnly: &mgmtOnly,
-	}
-	req.Tags = e.Cache.resolveTagRefs(iface.Tags)
+	req := interfacePatch{}
+	req.Type = &ifaceType
+	req.MgmtOnly = &mgmtOnly
+	setRefID(&req.Device, deviceID)
+	setRefID(&req.Status, statusID)
+	setRefSlice(&req.Tags, e.Cache.resolveTagRefs(iface.Tags))
 
 	if iface.Mac != "" {
 		mac := iface.Mac
@@ -166,13 +145,19 @@ func (e *Exporter) updateInterface(ctx context.Context, interfaceID uuid.UUID, d
 	desc := iface.Description
 	req.Description = &desc
 
-	role, err := e.roleRef(iface.Role)
+	roleID, err := e.roleRef(iface.Role)
 	if err != nil {
 		return err
 	}
-	req.Role = role
+	if roleID != uuid.Nil {
+		setRefID(&req.Role, roleID)
+	}
 
-	resp, err := e.Client.DcimInterfacesPartialUpdateWithResponse(ctx, interfaceID, &nautobotapi.DcimInterfacesPartialUpdateParams{}, req)
+	body, err := json.Marshal(req)
+	if err != nil {
+		return fmt.Errorf(errFmtAPIError, err)
+	}
+	resp, err := e.Client.DcimInterfacesPartialUpdateWithBodyWithResponse(ctx, interfaceID, &nautobotapi.DcimInterfacesPartialUpdateParams{}, "application/json", bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf(errFmtAPIError, err)
 	}

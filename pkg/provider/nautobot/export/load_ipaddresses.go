@@ -121,20 +121,18 @@ func (e *Exporter) createIPAddress(
 
 	req := nautobotapi.IPAddressRequest{
 		Address: addr.Address,
-		Status:  makeIDRef(statusItem.ID),
 	}
+	setRefID(&req.Status, statusItem.ID)
 
 	// Resolve parent prefix first
 	if addr.Parent != uuid.Nil {
 		if parentNID, ok := prefixMap[addr.Parent]; ok {
-			parentRef := makeIPParentRef(parentNID)
-			req.Parent = &parentRef
+			setRefID(&req.Parent, parentNID)
 		}
 	}
 
 	// Always set namespace — Nautobot requires at least one of parent or namespace.
-	nsRef := makeIPNamespaceRef(namespaceID)
-	req.Namespace = &nsRef
+	setRefID(&req.Namespace, namespaceID)
 
 	// Set type
 	if addr.Type != "" {
@@ -156,8 +154,7 @@ func (e *Exporter) createIPAddress(
 	if addr.IPRole != "" {
 		roleItem, err := e.Cache.GetRole(string(addr.IPRole))
 		if err == nil && roleItem != nil {
-			ref := makeObjectRef(roleItem.ID)
-			req.Role = ref
+			setRefID(&req.Role, roleItem.ID)
 		}
 	}
 
@@ -240,11 +237,9 @@ func (e *Exporter) assignIPToInterfaces(
 		}
 
 		// Create the IP-to-interface assignment
-		ifaceRef := makeObjectRef(nautobotIface.ID)
-		assignReq := nautobotapi.IPAddressToInterfaceRequest{
-			IpAddress: makeIDRef(ipNautobotID),
-			Interface: ifaceRef,
-		}
+		assignReq := nautobotapi.IPAddressToInterfaceRequest{}
+		setRefID(&assignReq.IpAddress, ipNautobotID)
+		setRefID(&assignReq.Interface, nautobotIface.ID)
 
 		httpResp, err := e.Client.IpamIpAddressToInterfaceCreate(
 			ctx,
@@ -274,12 +269,12 @@ func (e *Exporter) assignIPToInterfaces(
 func mapIPAddressType(t devicetypes.IPAddressType) nautobotapi.IPAddressTypeChoices {
 	switch t {
 	case devicetypes.IPAddressTypeHost:
-		return nautobotapi.Host
+		return nautobotapi.IPAddressTypeChoicesHost
 	case devicetypes.IPAddressTypeDHCP:
-		return nautobotapi.Dhcp
+		return nautobotapi.IPAddressTypeChoicesDhcp
 	case devicetypes.IPAddressTypeSLAAC:
-		return nautobotapi.Slaac
+		return nautobotapi.IPAddressTypeChoicesSlaac
 	default:
-		return nautobotapi.Host
+		return nautobotapi.IPAddressTypeChoicesHost
 	}
 }

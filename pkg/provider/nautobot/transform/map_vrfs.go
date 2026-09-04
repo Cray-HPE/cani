@@ -64,7 +64,7 @@ func MapVRFs(
 			},
 		}
 		if vrf.CustomFields != nil {
-			caniVRF.CustomFields = *vrf.CustomFields
+			caniVRF.CustomFields = convCustomFields(vrf.CustomFields)
 		}
 
 		result[caniID] = caniVRF

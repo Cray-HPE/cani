@@ -29,6 +29,7 @@ import (
 	"testing"
 
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
+	"github.com/Cray-HPE/cani/pkg/provider/nautobot/transform"
 	"github.com/google/uuid"
 )
 
@@ -60,16 +61,13 @@ func TestMakeStatusRef(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ref := makeStatusRef(tt.id)
-			if ref.Id == nil {
-				t.Fatal("expected ref.Id to be non-nil")
+			var req nautobotapi.WritableDeviceRequest
+			setRefID(&req.Status, tt.id)
+			if req.Status.Id == nil {
+				t.Fatal("expected req.Status.Id to be non-nil")
 			}
-			got, err := ref.Id.AsBulkWritableCableRequestStatusId0()
-			if err != nil {
-				t.Fatalf("unexpected error extracting UUID: %v", err)
-			}
-			if uuid.UUID(got) != tt.id {
-				t.Errorf("makeStatusRef() round-trip = %s, want %s", uuid.UUID(got), tt.id)
+			if got := transform.RefUUID(req.Status.Id); got != tt.id {
+				t.Errorf("setRefID() round-trip = %s, want %s", got, tt.id)
 			}
 		})
 	}
@@ -109,16 +107,17 @@ func TestResolveFace(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := resolveFace(tt.face)
-			if got == nil {
-				t.Fatal("expected non-nil RackFace")
+			var req nautobotapi.WritableDeviceRequest
+			setDeviceFace(&req.Face, tt.face)
+			if req.Face == nil {
+				t.Fatal("expected non-nil device face")
 			}
-			val, err := got.AsFaceEnum()
+			val, err := req.Face.AsFaceEnum()
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			if val != tt.expected {
-				t.Errorf("resolveFace(%q) = %v, want %v", tt.face, val, tt.expected)
+				t.Errorf("setDeviceFace(%q) = %v, want %v", tt.face, val, tt.expected)
 			}
 		})
 	}

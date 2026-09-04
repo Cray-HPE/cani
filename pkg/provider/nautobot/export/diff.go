@@ -26,12 +26,14 @@
 package export
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strconv"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
+	"github.com/Cray-HPE/cani/pkg/provider/nautobot/transform"
 	"github.com/google/uuid"
 )
 
@@ -47,10 +49,10 @@ type FieldDiff struct {
 // It resolves UUIDs to human-readable names via the mapper and cache.
 // refFieldSpec drives the table-driven comparison of UUID-referenced fields.
 type refFieldSpec struct {
-	field    string                                                                  // diff field name
-	cache    string                                                                  // cache category for reverse lookup
-	resolve  func(*devicetypes.CaniDeviceType, *DeviceMapper) *CachedItem            // resolve local intent
-	remoteID func(*nautobotapi.Device) *nautobotapi.BulkWritableCableRequestStatusId // extract remote ref
+	field    string                                                       // diff field name
+	cache    string                                                       // cache category for reverse lookup
+	resolve  func(*devicetypes.CaniDeviceType, *DeviceMapper) *CachedItem // resolve local intent
+	remoteID func(*nautobotapi.Device) json.Marshaler                     // extract remote ref Id union
 }
 
 func compareDeviceFields(
@@ -62,10 +64,10 @@ func compareDeviceFields(
 
 	// Table-driven comparison for UUID-referenced fields.
 	refFields := []refFieldSpec{
-		{"device_type", "deviceType", resolveLocalDeviceType, func(d *nautobotapi.Device) *nautobotapi.BulkWritableCableRequestStatusId { return d.DeviceType.Id }},
-		{"location", "location", resolveLocalLocation, func(d *nautobotapi.Device) *nautobotapi.BulkWritableCableRequestStatusId { return d.Location.Id }},
-		{"status", "status", resolveLocalStatus, func(d *nautobotapi.Device) *nautobotapi.BulkWritableCableRequestStatusId { return d.Status.Id }},
-		{"role", "role", resolveLocalRole, func(d *nautobotapi.Device) *nautobotapi.BulkWritableCableRequestStatusId { return d.Role.Id }},
+		{"device_type", "deviceType", resolveLocalDeviceType, func(d *nautobotapi.Device) json.Marshaler { return d.DeviceType.Id }},
+		{"location", "location", resolveLocalLocation, func(d *nautobotapi.Device) json.Marshaler { return d.Location.Id }},
+		{"status", "status", resolveLocalStatus, func(d *nautobotapi.Device) json.Marshaler { return d.Status.Id }},
+		{"role", "role", resolveLocalRole, func(d *nautobotapi.Device) json.Marshaler { return d.Role.Id }},
 	}
 	for _, spec := range refFields {
 		if local := spec.resolve(device, mapper); local != nil {
@@ -90,14 +92,11 @@ func compareDeviceFields(
 
 // compareCustomFields compares local custom field values against the remote
 // object's custom_fields map, returning diffs for changed or new values.
-func compareCustomFields(local map[string]any, remote *map[string]interface{}) []FieldDiff {
+func compareCustomFields(local map[string]any, remote *map[string]*interface{}) []FieldDiff {
 	if len(local) == 0 {
 		return nil
 	}
-	remoteMap := map[string]interface{}{}
-	if remote != nil {
-		remoteMap = *remote
-	}
+	remoteMap := derefCustomFields(remote)
 	var diffs []FieldDiff
 	for _, k := range sortedMapKeys(local) {
 		localStr := fmt.Sprintf("%v", local[k])
@@ -271,20 +270,12 @@ func resolveLocalRackName(device *devicetypes.CaniDeviceType, mapper *DeviceMapp
 	return ""
 }
 
-// refID extracts a UUID from a BulkWritableCableRequestStatusId union.
-func refID(id *nautobotapi.BulkWritableCableRequestStatusId) uuid.UUID {
-	if id == nil {
-		return uuid.Nil
-	}
-	u, err := id.AsBulkWritableCableRequestStatusId0()
-	if err != nil {
-		return uuid.Nil
-	}
-	return uuid.UUID(u)
+// refID extracts a UUID from any generated per-field reference Id union.
+func refID(id json.Marshaler) uuid.UUID {
+	return transform.RefUUID(id)
 }
 
-// tenantRefID extracts a UUID from a BulkWritableCableRequestStatusId used
-// in BulkWritableCircuitRequestTenant references.
-func tenantRefID(id *nautobotapi.BulkWritableCableRequestStatusId) uuid.UUID {
-	return refID(id)
+// tenantRefID extracts a UUID from any generated per-field reference Id union.
+func tenantRefID(id json.Marshaler) uuid.UUID {
+	return transform.RefUUID(id)
 }

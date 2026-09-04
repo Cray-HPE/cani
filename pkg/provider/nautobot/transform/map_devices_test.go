@@ -47,7 +47,6 @@ import (
 // on device identity rather than coincidentally passing with a single bucket.
 func TestGroupInterfacesByDevice(t *testing.T) {
 	devID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
-	devRef := makeObjectRefFromUUID(devID)
 
 	t.Run("empty input returns empty map", func(t *testing.T) {
 		got := GroupInterfacesByDevice(nil)
@@ -68,12 +67,14 @@ func TestGroupInterfacesByDevice(t *testing.T) {
 
 	t.Run("interfaces grouped by device", func(t *testing.T) {
 		dev2ID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
-		dev2Ref := makeObjectRefFromUUID(dev2ID)
 		ifaces := []nautobotapi.Interface{
-			{Name: "eth0", Device: &devRef},
-			{Name: "eth1", Device: &devRef},
-			{Name: "mgmt0", Device: &dev2Ref},
+			{Name: "eth0"},
+			{Name: "eth1"},
+			{Name: "mgmt0"},
 		}
+		setNBRef(&ifaces[0].Device, devID)
+		setNBRef(&ifaces[1].Device, devID)
+		setNBRef(&ifaces[2].Device, dev2ID)
 
 		got := GroupInterfacesByDevice(ifaces)
 		if len(got[devID]) != 2 {
@@ -171,8 +172,10 @@ func TestMapDevices(t *testing.T) {
 	slug := "hpe-dl380"
 	uHeight := 2
 	fullDepth := true
+	deviceType := nautobotapi.DeviceType{Model: "DL380", NaturalSlug: &slug, UHeight: &uHeight, IsFullDepth: &fullDepth}
+	setNBRef(&deviceType.Manufacturer, uuid.New())
 	deviceTypeMap := map[uuid.UUID]nautobotapi.DeviceType{
-		dtID: {Model: "DL380", NaturalSlug: &slug, UHeight: &uHeight, IsFullDepth: &fullDepth, Manufacturer: makeStatusRefFromUUID(uuid.New())},
+		dtID: deviceType,
 	}
 
 	t.Run("empty input returns empty maps", func(t *testing.T) {
@@ -183,9 +186,10 @@ func TestMapDevices(t *testing.T) {
 	})
 
 	t.Run("device with nil ID is skipped", func(t *testing.T) {
-		raw := []nautobotapi.Device{
-			{Id: nil, Status: makeStatusRefFromUUID(statusID), DeviceType: makeStatusRefFromUUID(dtID), Role: makeStatusRefFromUUID(roleID)},
-		}
+		raw := []nautobotapi.Device{{Id: nil}}
+		setNBRef(&raw[0].Status, statusID)
+		setNBRef(&raw[0].DeviceType, dtID)
+		setNBRef(&raw[0].Role, roleID)
 		devs, _ := MapDevices(raw, rackMap, locationMap, deviceTypeMap, nil, statusNameMap, roleNameMap)
 		if len(devs) != 0 {
 			t.Errorf("expected 0, got %d", len(devs))
@@ -200,38 +204,34 @@ func TestMapDevices(t *testing.T) {
 		tag := "TAG001"
 		comment := "installed from Nautobot"
 		pos := 10
-		faceVal := nautobotapi.DeviceFaceValue("front")
-		rackRef := makeObjectRefFromUUID(rackNBID)
-		roleRef := makeStatusRefFromUUID(roleID)
 
 		raw := []nautobotapi.Device{
 			{
-				Id:         &oaID,
-				Name:       &name,
-				Serial:     &serial,
-				AssetTag:   &tag,
-				Status:     makeStatusRefFromUUID(statusID),
-				DeviceType: makeStatusRefFromUUID(dtID),
-				Comments:   &comment,
-				Location:   makeStatusRefFromUUID(locNBID),
-				Rack:       &rackRef,
-				Position:   &pos,
-				Face:       &nautobotapi.DeviceFace{Value: &faceVal},
-				Role:       roleRef,
+				Id:       &oaID,
+				Name:     &name,
+				Serial:   &serial,
+				AssetTag: &tag,
+				Comments: &comment,
+				Position: &pos,
 			},
 		}
+		setNBRef(&raw[0].Status, statusID)
+		setNBRef(&raw[0].DeviceType, dtID)
+		setNBRef(&raw[0].Location, locNBID)
+		setNBRef(&raw[0].Rack, rackNBID)
+		setNBRef(&raw[0].Role, roleID)
+		setNBValue(&raw[0].Face, "front")
 
 		// Add interfaces for this device.
-		devRef := makeObjectRefFromUUID(devNBID)
 		ifaceNBID := uuid.MustParse("99999999-9999-9999-9999-999999999999")
 		ifaceOAID := openapi_types.UUID(ifaceNBID)
 		mgmtOnly := true
-		ifType := nautobotapi.InterfaceTypeValue("1000base-t")
 		ifaceDescription := "ISL uplink to spine"
+		iface := nautobotapi.Interface{Id: &ifaceOAID, Name: "eth0", MgmtOnly: &mgmtOnly, Description: &ifaceDescription}
+		setNBRef(&iface.Device, devNBID)
+		setNBValue(&iface.Type, "1000base-t")
 		ifaces := map[uuid.UUID][]nautobotapi.Interface{
-			devNBID: {
-				{Id: &ifaceOAID, Name: "eth0", Device: &devRef, MgmtOnly: &mgmtOnly, Type: nautobotapi.InterfaceType{Value: &ifType}, Description: &ifaceDescription},
-			},
+			devNBID: {iface},
 		}
 
 		devs, nbMap := MapDevices(raw, rackMap, locationMap, deviceTypeMap, ifaces, statusNameMap, roleNameMap)
@@ -309,18 +309,17 @@ func TestMapDevices(t *testing.T) {
 		devNBID := uuid.MustParse("88888888-8888-8888-8888-888888888888")
 		oaID := openapi_types.UUID(devNBID)
 		pos := 5
-		rackRef := makeObjectRefFromUUID(rackNBID)
 
 		raw := []nautobotapi.Device{
 			{
-				Id:         &oaID,
-				Status:     makeStatusRefFromUUID(statusID),
-				DeviceType: makeStatusRefFromUUID(dtID),
-				Rack:       &rackRef,
-				Position:   &pos,
-				Role:       makeStatusRefFromUUID(roleID),
+				Id:       &oaID,
+				Position: &pos,
 			},
 		}
+		setNBRef(&raw[0].Status, statusID)
+		setNBRef(&raw[0].DeviceType, dtID)
+		setNBRef(&raw[0].Rack, rackNBID)
+		setNBRef(&raw[0].Role, roleID)
 
 		devs, nbMap := MapDevices(raw, rackMap, locationMap, deviceTypeMap, nil, statusNameMap, roleNameMap)
 		caniID := nbMap[devNBID]
@@ -350,12 +349,12 @@ func TestMapDevices_CustomFields(t *testing.T) {
 	raw := []nautobotapi.Device{
 		{
 			Id:           &oaID,
-			Status:       makeStatusRefFromUUID(uuid.New()),
-			DeviceType:   makeStatusRefFromUUID(uuid.New()),
-			Role:         makeStatusRefFromUUID(uuid.New()),
-			CustomFields: &cf,
+			CustomFields: nbCF(cf),
 		},
 	}
+	setNBRef(&raw[0].Status, uuid.New())
+	setNBRef(&raw[0].DeviceType, uuid.New())
+	setNBRef(&raw[0].Role, uuid.New())
 
 	devs, nbMap := MapDevices(
 		raw,

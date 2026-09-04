@@ -57,15 +57,14 @@ func TestMapVRFs(t *testing.T) {
 		oaID := openapi_types.UUID(nbID)
 		rd := "65000:1"
 		desc := "test vrf"
-		statusRef := makeObjectRefFromUUID(statusID)
 
 		raw := []nautobotapi.VRF{{
 			Id:          &oaID,
 			Name:        "PROD",
 			Rd:          &rd,
 			Description: &desc,
-			Status:      &statusRef,
 		}}
+		setNBRef(&raw[0].Status, statusID)
 
 		result := MapVRFs(raw, nil, nil, statusNameMap)
 		if len(result) != 1 {
@@ -98,11 +97,9 @@ func TestMapVRFs(t *testing.T) {
 
 		raw := []nautobotapi.VRF{{Id: &oaID, Name: "VRF1"}}
 		deviceMap := map[uuid.UUID]uuid.UUID{deviceNbID: deviceCaniID}
-		deviceRef := makeObjectRefFromUUID(deviceNbID)
-		assignments := []nautobotapi.VRFDeviceAssignment{{
-			Vrf:    makeStatusRefFromUUID(vrfNbID),
-			Device: &deviceRef,
-		}}
+		assignments := []nautobotapi.VRFDeviceAssignment{{}}
+		setNBRef(&assignments[0].Vrf, vrfNbID)
+		setNBRef(&assignments[0].Device, deviceNbID)
 
 		result := MapVRFs(raw, assignments, deviceMap, statusNameMap)
 		if len(result) != 1 {
@@ -123,10 +120,8 @@ func TestMapVRFs(t *testing.T) {
 		oaID := openapi_types.UUID(vrfNbID)
 
 		raw := []nautobotapi.VRF{{Id: &oaID, Name: "VRF2"}}
-		assignments := []nautobotapi.VRFDeviceAssignment{{
-			Vrf:    makeStatusRefFromUUID(vrfNbID),
-			Device: nil,
-		}}
+		assignments := []nautobotapi.VRFDeviceAssignment{{Device: nil}}
+		setNBRef(&assignments[0].Vrf, vrfNbID)
 
 		result := MapVRFs(raw, assignments, nil, statusNameMap)
 		for _, v := range result {
@@ -143,11 +138,9 @@ func TestMapVRFs(t *testing.T) {
 		deviceNbID := uuid.MustParse("88888888-8888-8888-8888-888888888888")
 
 		raw := []nautobotapi.VRF{{Id: &oaID, Name: "VRF3"}}
-		deviceRef := makeObjectRefFromUUID(deviceNbID)
-		assignments := []nautobotapi.VRFDeviceAssignment{{
-			Vrf:    makeStatusRefFromUUID(unknownVRF),
-			Device: &deviceRef,
-		}}
+		assignments := []nautobotapi.VRFDeviceAssignment{{}}
+		setNBRef(&assignments[0].Vrf, unknownVRF)
+		setNBRef(&assignments[0].Device, deviceNbID)
 		deviceMap := map[uuid.UUID]uuid.UUID{deviceNbID: uuid.New()}
 
 		result := MapVRFs(raw, assignments, deviceMap, statusNameMap)
@@ -164,11 +157,9 @@ func TestMapVRFs(t *testing.T) {
 		deviceNbID := uuid.MustParse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
 
 		raw := []nautobotapi.VRF{{Id: &oaID, Name: "VRF4"}}
-		deviceRef := makeObjectRefFromUUID(deviceNbID)
-		assignments := []nautobotapi.VRFDeviceAssignment{{
-			Vrf:    makeStatusRefFromUUID(vrfNbID),
-			Device: &deviceRef,
-		}}
+		assignments := []nautobotapi.VRFDeviceAssignment{{}}
+		setNBRef(&assignments[0].Vrf, vrfNbID)
+		setNBRef(&assignments[0].Device, deviceNbID)
 		// deviceMap does not contain deviceNbID
 		deviceMap := map[uuid.UUID]uuid.UUID{}
 
@@ -188,11 +179,11 @@ func TestMapVRFs(t *testing.T) {
 
 		raw := []nautobotapi.VRF{{Id: &oaID, Name: "VRF-DUP"}}
 		deviceMap := map[uuid.UUID]uuid.UUID{deviceNbID: deviceCaniID}
-		deviceRef := makeObjectRefFromUUID(deviceNbID)
-		assignments := []nautobotapi.VRFDeviceAssignment{
-			{Vrf: makeStatusRefFromUUID(vrfNbID), Device: &deviceRef},
-			{Vrf: makeStatusRefFromUUID(vrfNbID), Device: &deviceRef},
-		}
+		assignments := []nautobotapi.VRFDeviceAssignment{{}, {}}
+		setNBRef(&assignments[0].Vrf, vrfNbID)
+		setNBRef(&assignments[0].Device, deviceNbID)
+		setNBRef(&assignments[1].Vrf, vrfNbID)
+		setNBRef(&assignments[1].Device, deviceNbID)
 
 		result := MapVRFs(raw, assignments, deviceMap, statusNameMap)
 		for _, v := range result {

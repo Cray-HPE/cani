@@ -75,7 +75,7 @@ func MapIPAddresses(
 			caniIP.IPRole = devicetypes.IPAddressRole(roleName)
 		}
 		if ip.CustomFields != nil {
-			caniIP.CustomFields = *ip.CustomFields
+			caniIP.CustomFields = convCustomFields(ip.CustomFields)
 		}
 
 		result[caniID] = caniIP

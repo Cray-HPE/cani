@@ -88,7 +88,7 @@ func TestResolveTagRefs_ResolvesCachedTagsWithoutHTTP(t *testing.T) {
 	seedTag(e, "hosts-edge", id2)
 
 	refs := e.Cache.resolveTagRefs([]string{"multi-chassis", "hosts-edge"})
-	if refs == nil || len(*refs) != 2 {
+	if refs == nil || len(refs) != 2 {
 		t.Fatalf("expected 2 tag refs, got %v", refs)
 	}
 	blob, _ := json.Marshal(refs)
@@ -121,7 +121,7 @@ func TestResolveTagRefs_SkipsEmptyNames(t *testing.T) {
 	seedTag(e, "real", id)
 
 	refs := e.Cache.resolveTagRefs([]string{"", "real"})
-	if refs == nil || len(*refs) != 1 {
+	if refs == nil || len(refs) != 1 {
 		t.Fatalf("expected 1 tag ref (empty name skipped), got %v", refs)
 	}
 }

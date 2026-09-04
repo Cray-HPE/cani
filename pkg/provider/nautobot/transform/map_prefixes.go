@@ -62,7 +62,9 @@ func MapPrefixes(
 			PrefixLen:   intVal(prefix.PrefixLength),
 			IPVersion:   intVal(prefix.IpVersion),
 			Description: strVal(prefix.Description),
-			Location:    firstLocation(prefix.Locations, locationMap),
+			// TODO(nautobot-3.2): Prefix responses no longer expose a location;
+			// resolve via a separate location lookup if needed.
+			Location: uuid.Nil,
 			ObjectMeta: devicetypes.ObjectMeta{
 				Status:      resolveRefName(prefix.Status, statusNameMap),
 				ExternalIDs: map[string]uuid.UUID{"nautobot": nbID},
@@ -80,7 +82,7 @@ func MapPrefixes(
 			caniPrefix.Role = roleName
 		}
 		if prefix.CustomFields != nil {
-			caniPrefix.CustomFields = *prefix.CustomFields
+			caniPrefix.CustomFields = convCustomFields(prefix.CustomFields)
 		}
 
 		result[caniID] = caniPrefix

@@ -30,6 +30,7 @@ import (
 	"fmt"
 	"net/http"
 
+	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/google/uuid"
@@ -92,7 +93,7 @@ func buildLocationPatch(loc *devicetypes.CaniLocationType, remote *nautobotapi.L
 	drifted = driftStr(loc.ShippingAddress, remote.ShippingAddress, &req.ShippingAddress) || drifted
 	drifted = driftStr(loc.ContactName, remote.ContactName, &req.ContactName) || drifted
 	drifted = driftStr(loc.ContactPhone, remote.ContactPhone, &req.ContactPhone) || drifted
-	drifted = driftStr(loc.ContactEmail, remote.ContactEmail, &req.ContactEmail) || drifted
+	drifted = driftEmail(loc.ContactEmail, remote.ContactEmail, &req.ContactEmail) || drifted
 	drifted = driftStr(loc.TimeZone, remote.TimeZone, &req.TimeZone) || drifted
 	drifted = driftStr(loc.Latitude, remote.Latitude, &req.Latitude) || drifted
 	drifted = driftStr(loc.Longitude, remote.Longitude, &req.Longitude) || drifted
@@ -101,11 +102,26 @@ func buildLocationPatch(loc *devicetypes.CaniLocationType, remote *nautobotapi.L
 	// Compare custom fields (explicit + flattened provider metadata)
 	localCF := mergedCustomFields(loc.CustomFields, loc.FlattenProviderMetadata())
 	if len(localCF) > 0 && customFieldsDrifted(localCF, remote.CustomFields) {
-		req.CustomFields = &localCF
+		req.CustomFields = toNautobotCustomFields(localCF)
 		drifted = true
 	}
 
 	return req, drifted
+}
+
+// driftEmail sets target when local differs from the remote email (including
+// clearing), mirroring driftStr for the openapi_types.Email field type.
+func driftEmail(local string, remote *openapi_types.Email, target **openapi_types.Email) bool {
+	remoteStr := ""
+	if remote != nil {
+		remoteStr = string(*remote)
+	}
+	if local != remoteStr {
+		e := openapi_types.Email(local)
+		*target = &e
+		return true
+	}
+	return false
 }
 
 // driftStr sets target when local differs from remote (including clearing).

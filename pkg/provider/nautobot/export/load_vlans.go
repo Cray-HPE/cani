@@ -136,10 +136,10 @@ func (e *Exporter) createVLAN(
 	}
 
 	req := nautobotapi.VLANRequest{
-		Vid:    vlan.VID,
-		Name:   vlan.Name,
-		Status: makeIDRef(statusItem.ID),
+		Vid:  vlan.VID,
+		Name: vlan.Name,
 	}
+	setRefID(&req.Status, statusItem.ID)
 
 	// Set description
 	if vlan.Description != "" {
@@ -148,15 +148,14 @@ func (e *Exporter) createVLAN(
 
 	// Scope to the location when it maps to a known Nautobot location.
 	if locationID != uuid.Nil {
-		ref := makeLocationRef(locationID)
-		req.Location = &ref
+		setRefID(&req.Location, locationID)
 	}
 
 	// Resolve role
 	if vlan.Role != "" {
 		roleItem, rerr := e.Cache.GetRole(vlan.Role)
 		if rerr == nil && roleItem != nil {
-			req.Role = makeObjectRef(roleItem.ID)
+			setRefID(&req.Role, roleItem.ID)
 		}
 	}
 
@@ -171,7 +170,7 @@ func (e *Exporter) createVLAN(
 		}
 	}
 	if len(cf) > 0 {
-		req.CustomFields = &cf
+		req.CustomFields = toNautobotCustomFields(cf)
 		clog.Info("  VLAN %d custom_fields: %d key(s)", vlan.VID, len(cf))
 	}
 

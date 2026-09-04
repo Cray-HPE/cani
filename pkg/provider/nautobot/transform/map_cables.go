@@ -47,7 +47,7 @@ func MapCables(
 		}
 
 		// Resolve termination A.
-		termAIfaceID := uuid.UUID(cable.TerminationAId)
+		termAIfaceID := directUUID(cable.TerminationAId)
 		if ref, ok := ifaceMap[termAIfaceID]; ok {
 			if caniDevID, ok2 := deviceMap[ref.deviceID]; ok2 {
 				caniCable.TerminationA = termAIfaceID
@@ -55,10 +55,10 @@ func MapCables(
 				caniCable.TerminationAPort = ref.name
 			}
 		}
-		caniCable.TerminationAType = cable.TerminationAType
+		caniCable.TerminationAType = strVal(cable.TerminationAType)
 
 		// Resolve termination B.
-		termBIfaceID := uuid.UUID(cable.TerminationBId)
+		termBIfaceID := directUUID(cable.TerminationBId)
 		if ref, ok := ifaceMap[termBIfaceID]; ok {
 			if caniDevID, ok2 := deviceMap[ref.deviceID]; ok2 {
 				caniCable.TerminationB = termBIfaceID
@@ -66,10 +66,10 @@ func MapCables(
 				caniCable.TerminationBPort = ref.name
 			}
 		}
-		caniCable.TerminationBType = cable.TerminationBType
+		caniCable.TerminationBType = strVal(cable.TerminationBType)
 
 		if cable.CustomFields != nil {
-			caniCable.CustomFields = *cable.CustomFields
+			caniCable.CustomFields = convCustomFields(cable.CustomFields)
 		}
 
 		result[caniID] = caniCable

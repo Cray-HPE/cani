@@ -178,8 +178,8 @@ func TestLoadIPAddresses_CreatesAddressAndAssignsToInterface(t *testing.T) {
 	if ip.Parent == nil || ip.Parent.ID != parentPrefixNID.String() {
 		t.Errorf("parent.id = %v, want remote prefix ID %q", ip.Parent, parentPrefixNID)
 	}
-	if ip.Type != string(nautobotapi.Host) {
-		t.Errorf("type = %q, want %q", ip.Type, nautobotapi.Host)
+	if ip.Type != string(nautobotapi.IPAddressTypeChoicesHost) {
+		t.Errorf("type = %q, want %q", ip.Type, nautobotapi.IPAddressTypeChoicesHost)
 	}
 	if ip.DnsName != "host.example.com" {
 		t.Errorf("dns_name = %q, want host.example.com", ip.DnsName)

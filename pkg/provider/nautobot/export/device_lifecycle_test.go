@@ -232,16 +232,9 @@ func TestStatusRef_BuildsReferenceFromCachedStatus(t *testing.T) {
 	cache.statusesMu.Unlock()
 
 	e := &Exporter{Cache: cache}
-	ref, err := e.statusRef("Active")
+	got, err := e.statusRef("Active")
 	if err != nil {
 		t.Fatalf("statusRef() error = %v", err)
-	}
-	if ref.Id == nil {
-		t.Fatal("expected a populated status reference ID")
-	}
-	got, err := ref.Id.AsBulkWritableCableRequestStatusId0()
-	if err != nil {
-		t.Fatalf("decoding reference ID: %v", err)
 	}
 	if got != statusID {
 		t.Errorf("status reference ID = %s, want %s", got, statusID)

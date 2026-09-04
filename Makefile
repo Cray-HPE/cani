@@ -294,7 +294,7 @@ NAUTOBOT_TOKEN ?= $(shell sed -n 's/^NAUTOBOT_SUPERUSER_API_TOKEN=//p' $(NAUTOBO
 # (dropping the external github.com/oapi-codegen/runtime module dependency).
 define generate_nautobot_client
 go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@$(OAPI_CODEGEN_VERSION) -package nautobot -generate client,models,std-http -o pkg/nautobot/nautobot_api.go ./pkg/nautobot/openapi.yml
-perl -i -pe 's{"github.com/oapi-codegen/runtime/types"}{"github.com/Cray-HPE/cani/internal/openapi/types"}g; s{"github.com/oapi-codegen/runtime"}{"github.com/Cray-HPE/cani/internal/openapi/runtime"}g' pkg/nautobot/nautobot_api.go
+perl -i -pe 's{"github.com/oapi-codegen/runtime/types"}{"github.com/Cray-HPE/cani/internal/openapi/types"}g; s{"github.com/oapi-codegen/runtime"}{"github.com/Cray-HPE/cani/internal/openapi/runtime"}g; s{"go.yaml.in/yaml/v3"}{"gopkg.in/yaml.v3"}g; s{\s=\snull$$}{ = -1}g' pkg/nautobot/nautobot_api.go
 endef
 
 .PHONY: nautobot_client

@@ -305,20 +305,19 @@ func TestInterfaceDescriptionImportExportRoundTrip(t *testing.T) {
 	interfaceOpenAPIID := openapi_types.UUID(interfaceID)
 	deviceName := "switch-01"
 	description := "ISL uplink to spine"
-	interfaceType := nautobotapi.InterfaceTypeValue("100gbase-x-qsfp28")
-	deviceRef := makeObjectRef(deviceID)
+	iface := nautobotapi.Interface{
+		Id:          &interfaceOpenAPIID,
+		Name:        "1/1/49",
+		Description: &description,
+	}
+	setRefID(&iface.Device, deviceID)
+	setNBValue(&iface.Type, "100gbase-x-qsfp28")
 
 	devices, idMap := providertransform.MapDevices(
 		[]nautobotapi.Device{{Id: &deviceOpenAPIID, Name: &deviceName}},
 		nil, nil, nil,
 		map[uuid.UUID][]nautobotapi.Interface{
-			deviceID: {{
-				Id:          &interfaceOpenAPIID,
-				Name:        "1/1/49",
-				Device:      deviceRef,
-				Type:        nautobotapi.InterfaceType{Value: &interfaceType},
-				Description: &description,
-			}},
+			deviceID: {iface},
 		},
 		nil, nil,
 	)

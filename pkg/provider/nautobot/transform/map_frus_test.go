@@ -61,8 +61,9 @@ func TestMapFrus(t *testing.T) {
 
 	t.Run("item with nil ID is skipped", func(t *testing.T) {
 		raw := []nautobotapi.InventoryItem{
-			{Id: nil, Name: "orphan", Device: makeStatusRefFromUUID(uuid.New())},
+			{Id: nil, Name: "orphan"},
 		}
+		setNBRef(&raw[0].Device, uuid.New())
 		got := MapFrus(raw, deviceMap)
 		if len(got) != 0 {
 			t.Errorf("expected 0, got %d", len(got))
@@ -89,9 +90,9 @@ func TestMapFrus(t *testing.T) {
 				PartId:      &partID,
 				AssetTag:    &tag,
 				Discovered:  &discovered,
-				Device:      makeStatusRefFromUUID(devNBID),
 			},
 		}
+		setNBRef(&raw[0].Device, devNBID)
 
 		got := MapFrus(raw, deviceMap)
 		if len(got) != 1 {
@@ -133,11 +134,11 @@ func TestMapFrus(t *testing.T) {
 
 		raw := []nautobotapi.InventoryItem{
 			{
-				Id:     &oaItemID,
-				Name:   "orphan-fru",
-				Device: makeStatusRefFromUUID(unknownDevID),
+				Id:   &oaItemID,
+				Name: "orphan-fru",
 			},
 		}
+		setNBRef(&raw[0].Device, unknownDevID)
 
 		got := MapFrus(raw, deviceMap)
 		for _, fru := range got {
@@ -151,16 +152,15 @@ func TestMapFrus(t *testing.T) {
 		parentNBID := uuid.MustParse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
 		itemID := uuid.MustParse("11111111-2222-3333-4444-555555555555")
 		oaItemID := openapi_types.UUID(itemID)
-		parentRef := makeObjectRefFromUUID(parentNBID)
 
 		raw := []nautobotapi.InventoryItem{
 			{
-				Id:     &oaItemID,
-				Name:   "child-fru",
-				Parent: &parentRef,
-				Device: makeStatusRefFromUUID(devNBID),
+				Id:   &oaItemID,
+				Name: "child-fru",
 			},
 		}
+		setNBRef(&raw[0].Parent, parentNBID)
+		setNBRef(&raw[0].Device, devNBID)
 
 		got := MapFrus(raw, deviceMap)
 		for _, fru := range got {
@@ -174,16 +174,15 @@ func TestMapFrus(t *testing.T) {
 		mfgID := uuid.MustParse("99999999-9999-9999-9999-999999999999")
 		itemID := uuid.MustParse("66666666-6666-6666-6666-666666666666")
 		oaItemID := openapi_types.UUID(itemID)
-		mfgRef := makeObjectRefFromUUID(mfgID)
 
 		raw := []nautobotapi.InventoryItem{
 			{
-				Id:           &oaItemID,
-				Name:         "mfg-fru",
-				Manufacturer: &mfgRef,
-				Device:       makeStatusRefFromUUID(devNBID),
+				Id:   &oaItemID,
+				Name: "mfg-fru",
 			},
 		}
+		setNBRef(&raw[0].Manufacturer, mfgID)
+		setNBRef(&raw[0].Device, devNBID)
 
 		got := MapFrus(raw, deviceMap)
 		for _, fru := range got {
@@ -213,10 +212,10 @@ func TestMapFrus_CustomFields(t *testing.T) {
 		{
 			Id:           &oaItemID,
 			Name:         "cf-fru",
-			CustomFields: &cf,
-			Device:       makeStatusRefFromUUID(uuid.New()),
+			CustomFields: nbCF(cf),
 		},
 	}
+	setNBRef(&raw[0].Device, uuid.New())
 
 	got := MapFrus(raw, map[uuid.UUID]uuid.UUID{})
 	if len(got) != 1 {

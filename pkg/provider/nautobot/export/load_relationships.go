@@ -60,12 +60,12 @@ var (
 	assignedVLANsRel = relationshipDef{
 		key: relKeyAssignedVLANs, label: "Assigned VLANs",
 		srcType: contentTypeDevice, dstType: contentTypeVLAN,
-		relType: nautobotapi.ManyToMany,
+		relType: nautobotapi.RelationshipTypeChoicesManyToMany,
 	}
 	bmcDeviceRel = relationshipDef{
 		key: relKeyBMCDevice, label: "BMC Device",
 		srcType: contentTypeDevice, dstType: contentTypeDevice,
-		relType: nautobotapi.OneToOne,
+		relType: nautobotapi.RelationshipTypeChoicesOneToOne,
 	}
 )
 
@@ -190,12 +190,12 @@ func (e *Exporter) createAssociation(
 		return
 	}
 	req := nautobotapi.RelationshipAssociationRequest{
-		Relationship:    makeStatusRef(relID),
 		SourceType:      ep.srcType,
 		SourceId:        openapi_types.UUID(ep.srcID),
 		DestinationType: ep.dstType,
 		DestinationId:   openapi_types.UUID(ep.dstID),
 	}
+	setRefID(&req.Relationship, relID)
 	resp, err := e.Client.ExtrasRelationshipAssociationsCreateWithResponse(
 		ctx, &nautobotapi.ExtrasRelationshipAssociationsCreateParams{}, req)
 	if err != nil {

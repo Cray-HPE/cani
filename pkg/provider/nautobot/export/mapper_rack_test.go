@@ -26,6 +26,7 @@
 package export
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -33,6 +34,7 @@ import (
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
+	"github.com/Cray-HPE/cani/pkg/provider/nautobot/transform"
 	"github.com/google/uuid"
 )
 
@@ -55,13 +57,9 @@ func rackLookupServer(nautobotRackID uuid.UUID) http.HandlerFunc {
 }
 
 // extractRackID unwraps the rack reference union on a write request into a UUID.
-func extractRackID(t *testing.T, id *nautobotapi.BulkWritableCableRequestStatusId) uuid.UUID {
+func extractRackID(t *testing.T, id json.Marshaler) uuid.UUID {
 	t.Helper()
-	got, err := id.AsBulkWritableCableRequestStatusId0()
-	if err != nil {
-		t.Fatalf("decode rack id union: %v", err)
-	}
-	return uuid.UUID(got)
+	return transform.RefUUID(id)
 }
 
 // TestMapToWritableDeviceRequest_FullRackPlacement verifies the single-create
@@ -138,7 +136,7 @@ func TestMapToWritableDeviceRequest_FullRackPlacement(t *testing.T) {
 	if req.Comments == nil || *req.Comments != "rack unit 12" {
 		t.Errorf("comments = %v, want 'rack unit 12'", req.Comments)
 	}
-	if req.CustomFields == nil || (*req.CustomFields)["nid"] != "42" {
+	if req.CustomFields == nil || derefCustomFields(req.CustomFields)["nid"] != "42" {
 		t.Errorf("custom fields = %v, want nid=42", req.CustomFields)
 	}
 }
@@ -265,7 +263,7 @@ func TestMapToPatchRequest_FullRackPlacement(t *testing.T) {
 	if req.Comments == nil || *req.Comments != "updated placement" {
 		t.Errorf("comments = %v, want 'updated placement'", req.Comments)
 	}
-	if req.CustomFields == nil || (*req.CustomFields)["alias"] != "c3" {
+	if req.CustomFields == nil || derefCustomFields(req.CustomFields)["alias"] != "c3" {
 		t.Errorf("custom fields = %v, want alias=c3", req.CustomFields)
 	}
 }

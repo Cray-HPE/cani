@@ -62,7 +62,7 @@ func MapFrus(
 		}
 
 		if item.CustomFields != nil {
-			fru.CustomFields = *item.CustomFields
+			fru.CustomFields = convCustomFields(item.CustomFields)
 		}
 
 		result[caniID] = fru

@@ -61,7 +61,9 @@ func MapVLANs(
 			VID:         vlan.Vid,
 			Name:        vlan.Name,
 			Description: strVal(vlan.Description),
-			Location:    firstLocation(vlan.Locations, locationMap),
+			// TODO(nautobot-3.2): VLAN responses no longer expose a location;
+			// resolve via a separate location lookup if needed.
+			Location: uuid.Nil,
 			ObjectMeta: devicetypes.ObjectMeta{
 				Status:      resolveRefName(vlan.Status, statusNameMap),
 				ExternalIDs: map[string]uuid.UUID{"nautobot": nbID},
@@ -71,7 +73,7 @@ func MapVLANs(
 			caniVLAN.Role = roleName
 		}
 		if vlan.CustomFields != nil {
-			caniVLAN.CustomFields = *vlan.CustomFields
+			caniVLAN.CustomFields = convCustomFields(vlan.CustomFields)
 		}
 
 		result[caniID] = caniVLAN

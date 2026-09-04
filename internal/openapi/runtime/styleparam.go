@@ -53,6 +53,23 @@ func StyleParam(style string, explode bool, paramName string, value interface{})
 	return StyleParamWithLocation(style, explode, paramName, ParamLocationUndefined, value)
 }
 
+// StyleParamOptions defines optional arguments for StyleParamWithOptions.
+type StyleParamOptions struct {
+	// ParamLocation controls URL escaping behavior.
+	ParamLocation ParamLocation
+	// Type is the OpenAPI type of the parameter (e.g. "string", "array").
+	Type string
+	// Format is the OpenAPI format of the parameter (e.g. "byte", "date-time").
+	Format string
+}
+
+// StyleParamWithOptions serializes a Go value into an OpenAPI-styled parameter
+// string. The options are accepted for signature compatibility with newer
+// generated code; escaping is driven by ParamLocation.
+func StyleParamWithOptions(style string, explode bool, paramName string, value interface{}, opts StyleParamOptions) (string, error) {
+	return StyleParamWithLocation(style, explode, paramName, opts.ParamLocation, value)
+}
+
 // Given an input value, such as a primitive type, array or object, turn it
 // into a parameter based on style/explode definition, performing whatever
 // escaping is necessary based on parameter location

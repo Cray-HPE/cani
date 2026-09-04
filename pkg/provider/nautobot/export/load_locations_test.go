@@ -29,6 +29,8 @@ import (
 	"testing"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
+	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
+	"github.com/Cray-HPE/cani/pkg/provider/nautobot/transform"
 	"github.com/google/uuid"
 )
 
@@ -118,26 +120,24 @@ func TestTopologicalSortLocations(t *testing.T) {
 func TestMakeObjectRef(t *testing.T) {
 	t.Run("creates ref from valid UUID", func(t *testing.T) {
 		id := uuid.MustParse("22222222-2222-2222-2222-222222222222")
-		ref := makeObjectRef(id)
+		var req nautobotapi.LocationRequest
+		setRefID(&req.Parent, id)
 
-		if ref == nil {
+		if req.Parent == nil {
 			t.Fatal("expected non-nil ref")
 		}
-		if ref.Id == nil {
+		if req.Parent.Id == nil {
 			t.Fatal("expected ref.Id to be non-nil")
 		}
-		got, err := ref.Id.AsBulkWritableCableRequestStatusId0()
-		if err != nil {
-			t.Fatalf("unexpected error extracting UUID: %v", err)
-		}
-		if uuid.UUID(got) != id {
-			t.Errorf("makeObjectRef() round-trip = %s, want %s", uuid.UUID(got), id)
+		if got := transform.RefUUID(req.Parent.Id); got != id {
+			t.Errorf("round-trip = %s, want %s", got, id)
 		}
 	})
 
 	t.Run("creates ref from nil UUID", func(t *testing.T) {
-		ref := makeObjectRef(uuid.Nil)
-		if ref == nil {
+		var req nautobotapi.LocationRequest
+		setRefID(&req.Parent, uuid.Nil)
+		if req.Parent == nil {
 			t.Fatal("expected non-nil ref even for nil UUID")
 		}
 	})

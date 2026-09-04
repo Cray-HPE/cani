@@ -843,17 +843,11 @@ func (c *LookupCache) CreateDeviceTypeFromLocal(slug string) (*CachedItem, error
 		return nil, fmt.Errorf("failed to get/create manufacturer for device type %s: %w", slug, err)
 	}
 
-	// Build manufacturer reference using the proper type
-	mfrID := nautobotapi.BulkWritableCableRequestStatusId{}
-	mfrID.FromBulkWritableCableRequestStatusId0(manufacturer.ID)
-
 	// Build the device type request
 	req := nautobotapi.WritableDeviceTypeRequest{
 		Model: localDT.Model,
-		Manufacturer: nautobotapi.BulkWritableCableRequestStatus{
-			Id: &mfrID,
-		},
 	}
+	setRefID(&req.Manufacturer, manufacturer.ID)
 
 	// Set optional fields if available
 	if localDT.PartNumber != "" {
@@ -866,14 +860,14 @@ func (c *LookupCache) CreateDeviceTypeFromLocal(slug string) (*CachedItem, error
 
 	// Map SubdeviceRole for chassis/blade relationships
 	if localDT.SubdeviceRole != "" {
-		sr := &nautobotapi.ParentChildStatus{}
+		sr := &nautobotapi.WritableDeviceTypeRequest_SubdeviceRole{}
 		switch localDT.SubdeviceRole {
 		case "parent":
-			if err := sr.FromSubdeviceRoleEnum(nautobotapi.Parent); err == nil {
+			if err := sr.FromSubdeviceRoleEnum(nautobotapi.SubdeviceRoleEnumParent); err == nil {
 				req.SubdeviceRole = sr
 			}
 		case "child":
-			if err := sr.FromSubdeviceRoleEnum(nautobotapi.Child); err == nil {
+			if err := sr.FromSubdeviceRoleEnum(nautobotapi.SubdeviceRoleEnumChild); err == nil {
 				req.SubdeviceRole = sr
 			}
 			// Nautobot requires child device types to have u_height=0
@@ -936,9 +930,6 @@ func (c *LookupCache) CreateDeviceTypeFromCaniDevice(device *devicetypes.CaniDev
 		return nil, fmt.Errorf("manufacturer for %s: %w", device.Slug, err)
 	}
 
-	mfrID := nautobotapi.BulkWritableCableRequestStatusId{}
-	mfrID.FromBulkWritableCableRequestStatusId0(manufacturer.ID)
-
 	model := device.Model
 	if model == "" {
 		model = device.Slug
@@ -946,10 +937,8 @@ func (c *LookupCache) CreateDeviceTypeFromCaniDevice(device *devicetypes.CaniDev
 
 	req := nautobotapi.WritableDeviceTypeRequest{
 		Model: model,
-		Manufacturer: nautobotapi.BulkWritableCableRequestStatus{
-			Id: &mfrID,
-		},
 	}
+	setRefID(&req.Manufacturer, manufacturer.ID)
 
 	if device.PartNumber != "" {
 		req.PartNumber = &device.PartNumber
@@ -1087,14 +1076,11 @@ func (c *LookupCache) CreateLocation(name string) (*CachedItem, error) {
 		return nil, fmt.Errorf("cannot create location %q: failed to resolve status: %w", name, err)
 	}
 
-	locTypeRef := makeStatusRef(locType.ID)
-	statusRef := makeStatusRef(status.ID)
-
 	req := nautobotapi.LocationRequest{
-		Name:         name,
-		LocationType: locTypeRef,
-		Status:       statusRef,
+		Name: name,
 	}
+	setRefID(&req.LocationType, locType.ID)
+	setRefID(&req.Status, status.ID)
 
 	resp, err := c.client.DcimLocationsCreateWithResponse(c.ctx,
 		&nautobotapi.DcimLocationsCreateParams{}, req)
@@ -1172,7 +1158,7 @@ func (c *LookupCache) createLocationType(name string, def *devicetypes.LocationT
 		if def.Parent != "" {
 			parentItem, perr := c.GetOrCreateLocationType(def.Parent, parentDef(def.Parent))
 			if perr == nil && parentItem != nil {
-				req.Parent = makeObjectRef(parentItem.ID)
+				setRefID(&req.Parent, parentItem.ID)
 			}
 		}
 	} else {
@@ -1492,10 +1478,15 @@ func (c *LookupCache) GetInterfacesByDevice(deviceID uuid.UUID) ([]*CachedItem, 
 				Name:    iface.Name,
 				Display: *iface.Display,
 			}
-			// Extract cable ID if interface has a cable attached
-			if iface.Cable != nil && iface.Cable.Id != nil {
-				if cableUUID, err := iface.Cable.Id.AsBulkWritableCableRequestStatusId0(); err == nil {
-					item.CableID = uuid.UUID(cableUUID)
+			// Extract cable ID if interface has a cable attached.
+			// Nautobot 3.2 returns the cable as a generic nested object map.
+			if iface.Cable != nil {
+				if idVal, ok := (*iface.Cable)["id"]; ok {
+					if idStr, ok := idVal.(string); ok {
+						if cableUUID, err := uuid.Parse(idStr); err == nil {
+							item.CableID = cableUUID
+						}
+					}
 				}
 			}
 			items = append(items, item)
@@ -1656,7 +1647,7 @@ func (c *LookupCache) GetCableByTerminations(interfaceAID, interfaceBID uuid.UUI
 
 	// Check if any cable has termination_b matching interfaceB
 	for _, cable := range resp.JSON200.Results {
-		if openapi_types.UUID(cable.TerminationBId) == bID {
+		if cable.TerminationBId != nil && *cable.TerminationBId == bID {
 			cableID := uuid.UUID(*cable.Id)
 			label := ""
 			if cable.Label != nil {
@@ -1680,7 +1671,7 @@ func (c *LookupCache) GetCableByTerminations(interfaceAID, interfaceBID uuid.UUI
 
 	// Check if any cable has termination_b matching interfaceA
 	for _, cable := range resp2.JSON200.Results {
-		if openapi_types.UUID(cable.TerminationBId) == aID {
+		if cable.TerminationBId != nil && *cable.TerminationBId == aID {
 			cableID := uuid.UUID(*cable.Id)
 			label := ""
 			if cable.Label != nil {

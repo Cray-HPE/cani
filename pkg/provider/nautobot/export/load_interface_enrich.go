@@ -26,7 +26,9 @@
 package export
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -156,8 +158,13 @@ func (e *Exporter) enrichOneInterface(
 		return
 	}
 
-	resp, err := e.Client.DcimInterfacesPartialUpdateWithResponse(
-		ctx, iface.ID, &nautobotapi.DcimInterfacesPartialUpdateParams{}, req)
+	body, err := json.Marshal(req)
+	if err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("enrich %s: marshal: %v", spec.Name, err))
+		return
+	}
+	resp, err := e.Client.DcimInterfacesPartialUpdateWithBodyWithResponse(
+		ctx, iface.ID, &nautobotapi.DcimInterfacesPartialUpdateParams{}, "application/json", bytes.NewReader(body))
 	if err != nil {
 		result.Errors = append(result.Errors, fmt.Sprintf("enrich %s: API error: %v", spec.Name, err))
 		return
@@ -177,35 +184,37 @@ func (e *Exporter) buildInterfaceEnrichment(
 	deviceID uuid.UUID,
 	spec interfaceSpec,
 	vidToVLAN map[int]uuid.UUID,
-) (nautobotapi.PatchedWritableInterfaceRequest, bool, int, error) {
-	req := nautobotapi.PatchedWritableInterfaceRequest{}
+) (interfacePatch, bool, int, error) {
+	req := interfacePatch{}
 	changed := false
 	unresolved := 0
 
-	if ref := e.lagRef(deviceID, spec.Lag); ref != nil {
-		req.Lag = ref
+	if id := e.lagRef(deviceID, spec.Lag); id != uuid.Nil {
+		setRefID(&req.Lag, id)
 		changed = true
 	} else if spec.Lag != "" {
 		unresolved++
 	}
-	if ref := modeRef(spec.Mode); ref != nil {
-		req.Mode = ref
-		changed = true
+	if spec.Mode != "" {
+		setPatchedInterfaceMode(&req.PatchedWritableInterfaceRequest, spec.Mode)
+		if req.Mode != nil {
+			changed = true
+		}
 	}
-	if ref := untaggedVLANRef(spec.UntaggedVLAN, vidToVLAN); ref != nil {
-		req.UntaggedVlan = ref
+	if id := untaggedVLANRef(spec.UntaggedVLAN, vidToVLAN); id != uuid.Nil {
+		setRefID(&req.UntaggedVlan, id)
 		changed = true
 	} else if spec.UntaggedVLAN != 0 {
 		unresolved++
 	}
 	tagged := resolveTaggedVLANRefs(spec.TaggedVLANs, vidToVLAN)
 	if len(tagged) > 0 {
-		req.TaggedVlans = &tagged
+		setRefSlice(&req.TaggedVlans, tagged)
 		changed = true
 	}
 	unresolved += len(spec.TaggedVLANs) - len(tagged)
-	if ref := e.vrfRef(spec.VRF); ref != nil {
-		req.Vrf = ref
+	if id := e.vrfRef(spec.VRF); id != uuid.Nil {
+		setRefID(&req.Vrf, id)
 		changed = true
 	} else if spec.VRF != "" {
 		unresolved++
@@ -216,20 +225,23 @@ func (e *Exporter) buildInterfaceEnrichment(
 		req.Description = &desc
 	}
 
-	// Re-send the role on every enrichment PATCH. The role FK has no
-	// `omitempty`, so leaving it nil would serialize as `"role":null` and clear
-	// the role set at creation (FORGE-305); see roleRef.
-	role, err := e.roleRef(spec.Role)
+	// Re-send the role on every enrichment PATCH so adding LAG/VLAN settings
+	// never drops a role set at creation (FORGE-305). An empty role serializes
+	// as an explicit `"role":null` via interfacePatch to clear it, since
+	// Nautobot 3.2 marks the Role FK omitempty.
+	roleID, err := e.roleRef(spec.Role)
 	if err != nil {
 		return req, false, unresolved + 1, err
 	}
-	req.Role = role
+	if roleID != uuid.Nil {
+		setRefID(&req.Role, roleID)
+	}
 
 	// Nautobot's interface serializer validates that a device (or module) is
 	// set even on a partial update; omitting it fails with "Either device or
 	// module must be set". Include the device reference whenever we PATCH.
 	if changed {
-		req.Device = makeObjectRef(deviceID)
+		setRefID(&req.Device, deviceID)
 	}
 	return req, changed, unresolved, nil
 }

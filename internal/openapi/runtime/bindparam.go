@@ -65,6 +65,13 @@ type BindStyledParameterOptions struct {
 	Explode bool
 	// Whether the parameter is required in the query
 	Required bool
+	// Type is the OpenAPI type of the parameter (e.g. "string", "integer").
+	Type string
+	// Format is the OpenAPI format of the parameter (e.g. "uuid", "date-time").
+	Format string
+	// ValueIsUnescaped indicates the value was already unescaped by the caller
+	// (e.g. std-http's r.PathValue), so no further unescaping is needed.
+	ValueIsUnescaped bool
 }
 
 // BindStyledParameterWithOptions binds a parameter as described in the Path Parameters
@@ -77,23 +84,26 @@ func BindStyledParameterWithOptions(style string, paramName string, value string
 		}
 	}
 
-	// Based on the location of the parameter, we need to unescape it properly.
+	// Based on the location of the parameter, we need to unescape it properly,
+	// unless the caller already provided an unescaped value.
 	var err error
-	switch opts.ParamLocation {
-	case ParamLocationQuery, ParamLocationUndefined:
-		// We unescape undefined parameter locations here for older generated code,
-		// since prior to this refactoring, they always query unescaped.
-		value, err = url.QueryUnescape(value)
-		if err != nil {
-			return fmt.Errorf("error unescaping query parameter '%s': %w", paramName, err)
+	if !opts.ValueIsUnescaped {
+		switch opts.ParamLocation {
+		case ParamLocationQuery, ParamLocationUndefined:
+			// We unescape undefined parameter locations here for older generated code,
+			// since prior to this refactoring, they always query unescaped.
+			value, err = url.QueryUnescape(value)
+			if err != nil {
+				return fmt.Errorf("error unescaping query parameter '%s': %w", paramName, err)
+			}
+		case ParamLocationPath:
+			value, err = url.PathUnescape(value)
+			if err != nil {
+				return fmt.Errorf("error unescaping path parameter '%s': %w", paramName, err)
+			}
+		default:
+			// Headers and cookies aren't escaped.
 		}
-	case ParamLocationPath:
-		value, err = url.PathUnescape(value)
-		if err != nil {
-			return fmt.Errorf("error unescaping path parameter '%s': %w", paramName, err)
-		}
-	default:
-		// Headers and cookies aren't escaped.
 	}
 
 	// If the destination implements encoding.TextUnmarshaler we use it for binding
@@ -294,6 +304,32 @@ func bindSplitPartsToDestinationStruct(paramName string, parts []string, explode
 	return nil
 }
 
+// RequiredParameterError signals that a required query parameter was absent.
+// It matches the type generated code inspects via errors.As.
+type RequiredParameterError struct {
+	ParamName string
+}
+
+func (e *RequiredParameterError) Error() string {
+	return fmt.Sprintf("query parameter '%s' is required", e.ParamName)
+}
+
+// BindQueryParameterOptions defines optional arguments for BindQueryParameterWithOptions.
+type BindQueryParameterOptions struct {
+	// Type is the OpenAPI type of the parameter (e.g. "string", "array").
+	Type string
+	// Format is the OpenAPI format of the parameter (e.g. "byte", "date-time").
+	Format string
+}
+
+// BindQueryParameterWithOptions binds a query parameter, matching the newer
+// generated-code call site. The options are accepted for signature
+// compatibility; binding is driven by the destination's reflected kind.
+func BindQueryParameterWithOptions(style string, explode bool, required bool, paramName string,
+	queryParams url.Values, dest interface{}, _ BindQueryParameterOptions) error {
+	return BindQueryParameter(style, explode, required, paramName, queryParams, dest)
+}
+
 // BindQueryParameter works much like BindStyledParameter, however it takes a query argument
 // input array from the url package, since query arguments come through a
 // different path than the styled arguments. They're also exceptionally fussy.
@@ -374,7 +410,7 @@ func BindQueryParameter(style string, explode bool, required bool, paramName str
 
 				if !found {
 					if required {
-						return fmt.Errorf("query parameter '%s' is required", paramName)
+						return &RequiredParameterError{ParamName: paramName}
 					} else {
 						// If an optional parameter is not found, we do nothing,
 						return nil
@@ -398,7 +434,7 @@ func BindQueryParameter(style string, explode bool, required bool, paramName str
 				// unmarshal.
 				if len(values) == 0 {
 					if required {
-						return fmt.Errorf("query parameter '%s' is required", paramName)
+						return &RequiredParameterError{ParamName: paramName}
 					} else {
 						return nil
 					}
@@ -409,7 +445,7 @@ func BindQueryParameter(style string, explode bool, required bool, paramName str
 
 				if !found {
 					if required {
-						return fmt.Errorf("query parameter '%s' is required", paramName)
+						return &RequiredParameterError{ParamName: paramName}
 					} else {
 						// If an optional parameter is not found, we do nothing,
 						return nil
@@ -431,7 +467,7 @@ func BindQueryParameter(style string, explode bool, required bool, paramName str
 			values, found := queryParams[paramName]
 			if !found {
 				if required {
-					return fmt.Errorf("query parameter '%s' is required", paramName)
+					return &RequiredParameterError{ParamName: paramName}
 				} else {
 					return nil
 				}
@@ -450,7 +486,7 @@ func BindQueryParameter(style string, explode bool, required bool, paramName str
 		default:
 			if len(parts) == 0 {
 				if required {
-					return fmt.Errorf("query parameter '%s' is required", paramName)
+					return &RequiredParameterError{ParamName: paramName}
 				} else {
 					return nil
 				}

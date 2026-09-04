@@ -59,7 +59,7 @@ func MapModules(
 		}
 
 		if mod.CustomFields != nil {
-			m.CustomFields = *mod.CustomFields
+			m.CustomFields = convCustomFields(mod.CustomFields)
 		}
 
 		result[caniID] = m

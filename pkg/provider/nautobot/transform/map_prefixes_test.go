@@ -67,7 +67,7 @@ func TestMapPrefixes(t *testing.T) {
 	})
 
 	t.Run("prefix with nil ID is skipped", func(t *testing.T) {
-		raw := []nautobotapi.Prefix{{Prefix: "10.0.0.0/24", Id: nil, Status: makeStatusRefFromUUID(uuid.New())}}
+		raw := []nautobotapi.Prefix{{Prefix: "10.0.0.0/24", Id: nil}}
 		if got := MapPrefixes(raw, locationMap, vlanMap, nil, nil); len(got) != 0 {
 			t.Errorf("expected 0 prefixes, got %d", len(got))
 		}
@@ -80,9 +80,6 @@ func TestMapPrefixes(t *testing.T) {
 		roleID := uuid.MustParse("77777777-7777-7777-7777-777777777777")
 		statusNameMap := map[uuid.UUID]string{statusID: "Active"}
 		roleNameMap := map[uuid.UUID]string{roleID: "mgmt"}
-		role := makeObjectRefFromUUID(roleID)
-		vlanRef := makeObjectRefFromUUID(vlanNBID)
-		prefixType := nautobotapi.PrefixTypeValue("network")
 
 		raw := []nautobotapi.Prefix{
 			{
@@ -91,14 +88,13 @@ func TestMapPrefixes(t *testing.T) {
 				PrefixLength: intPtr(24),
 				IpVersion:    intPtr(4),
 				Description:  strPtr("mgmt net"),
-				Status:       makeStatusRefFromUUID(statusID),
-				Role:         &role,
-				Locations:    &[]nautobotapi.BulkWritableCableRequestStatus{makeStatusRefFromUUID(locNBID)},
-				Vlan:         &vlanRef,
-				Type:         &nautobotapi.PrefixType{Value: &prefixType},
-				CustomFields: &map[string]interface{}{"env": "prod"},
+				CustomFields: nbCF(map[string]interface{}{"env": "prod"}),
 			},
 		}
+		setNBRef(&raw[0].Status, statusID)
+		setNBRef(&raw[0].Role, roleID)
+		setNBRef(&raw[0].Vlan, vlanNBID)
+		setNBValue(&raw[0].Type, "network")
 
 		got := onlyValue(t, MapPrefixes(raw, locationMap, vlanMap, statusNameMap, roleNameMap))
 		got.ID = uuid.Nil // normalize randomly generated ID
@@ -108,7 +104,7 @@ func TestMapPrefixes(t *testing.T) {
 			IPVersion:   4,
 			Type:        devicetypes.PrefixTypeNetwork,
 			Description: "mgmt net",
-			Location:    locCaniID,
+			Location:    uuid.Nil,
 			VLAN:        vlanCaniID,
 			ObjectMeta: devicetypes.ObjectMeta{
 				Status:       "Active",
@@ -125,15 +121,15 @@ func TestMapPrefixes(t *testing.T) {
 	t.Run("unknown vlan resolves to nil", func(t *testing.T) {
 		nbID := uuid.MustParse("44444444-4444-4444-4444-444444444444")
 		oaID := openapi_types.UUID(nbID)
-		unknownVLAN := makeObjectRefFromUUID(uuid.MustParse("ffffffff-ffff-ffff-ffff-ffffffffffff"))
+		unknownVLAN := uuid.MustParse("ffffffff-ffff-ffff-ffff-ffffffffffff")
 		raw := []nautobotapi.Prefix{
 			{
 				Id:     &oaID,
 				Prefix: "10.1.0.0/24",
-				Status: makeStatusRefFromUUID(uuid.New()),
-				Vlan:   &unknownVLAN,
 			},
 		}
+		setNBRef(&raw[0].Status, uuid.New())
+		setNBRef(&raw[0].Vlan, unknownVLAN)
 		got := onlyValue(t, MapPrefixes(raw, locationMap, vlanMap, nil, nil))
 		if got.VLAN != uuid.Nil {
 			t.Errorf("VLAN = %s, want Nil", got.VLAN)

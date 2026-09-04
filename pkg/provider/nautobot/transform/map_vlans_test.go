@@ -63,7 +63,7 @@ func TestMapVLANs(t *testing.T) {
 	})
 
 	t.Run("vlan with nil ID is skipped", func(t *testing.T) {
-		raw := []nautobotapi.VLAN{{Name: "orphan", Vid: 10, Id: nil, Status: makeStatusRefFromUUID(uuid.New())}}
+		raw := []nautobotapi.VLAN{{Name: "orphan", Vid: 10, Id: nil}}
 		vlans, _ := MapVLANs(raw, locationMap, nil, nil)
 		if len(vlans) != 0 {
 			t.Errorf("expected 0 vlans, got %d", len(vlans))
@@ -77,7 +77,6 @@ func TestMapVLANs(t *testing.T) {
 		roleID := uuid.MustParse("77777777-7777-7777-7777-777777777777")
 		statusNameMap := map[uuid.UUID]string{statusID: "Active"}
 		roleNameMap := map[uuid.UUID]string{roleID: "server"}
-		role := makeObjectRefFromUUID(roleID)
 
 		raw := []nautobotapi.VLAN{
 			{
@@ -85,12 +84,11 @@ func TestMapVLANs(t *testing.T) {
 				Vid:          100,
 				Name:         "prod",
 				Description:  strPtr("production vlan"),
-				Status:       makeStatusRefFromUUID(statusID),
-				Role:         &role,
-				Locations:    &[]nautobotapi.BulkWritableCableRequestStatus{makeStatusRefFromUUID(locNBID)},
-				CustomFields: &map[string]interface{}{"zone": "a"},
+				CustomFields: nbCF(map[string]interface{}{"zone": "a"}),
 			},
 		}
+		setNBRef(&raw[0].Status, statusID)
+		setNBRef(&raw[0].Role, roleID)
 
 		vlans, nbMap := MapVLANs(raw, locationMap, statusNameMap, roleNameMap)
 		got := vlans[nbMap[nbID]]
@@ -102,7 +100,7 @@ func TestMapVLANs(t *testing.T) {
 			VID:         100,
 			Name:        "prod",
 			Description: "production vlan",
-			Location:    locCaniID,
+			Location:    uuid.Nil,
 			ObjectMeta: devicetypes.ObjectMeta{
 				Status:       "Active",
 				Role:         "server",
@@ -118,16 +116,14 @@ func TestMapVLANs(t *testing.T) {
 	t.Run("unknown location resolves to nil", func(t *testing.T) {
 		nbID := uuid.MustParse("44444444-4444-4444-4444-444444444444")
 		oaID := openapi_types.UUID(nbID)
-		unknownLoc := uuid.MustParse("ffffffff-ffff-ffff-ffff-ffffffffffff")
 		raw := []nautobotapi.VLAN{
 			{
-				Id:        &oaID,
-				Vid:       200,
-				Name:      "floating",
-				Status:    makeStatusRefFromUUID(uuid.New()),
-				Locations: &[]nautobotapi.BulkWritableCableRequestStatus{makeStatusRefFromUUID(unknownLoc)},
+				Id:   &oaID,
+				Vid:  200,
+				Name: "floating",
 			},
 		}
+		setNBRef(&raw[0].Status, uuid.New())
 		vlans, _ := MapVLANs(raw, locationMap, nil, nil)
 		if got := onlyValue(t, vlans); got.Location != uuid.Nil {
 			t.Errorf("Location = %s, want Nil", got.Location)

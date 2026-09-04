@@ -66,11 +66,11 @@ func TestBuildModuleBayMap(t *testing.T) {
 		bayID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 		devID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
 		oaBayID := openapi_types.UUID(bayID)
-		devRef := makeObjectRefFromUUID(devID)
 
 		bays := []nautobotapi.ModuleBay{
-			{Id: &oaBayID, Name: "bay-1", ParentDevice: &devRef},
+			{Id: &oaBayID, Name: "bay-1"},
 		}
+		setNBRef(&bays[0].ParentDevice, devID)
 
 		got := BuildModuleBayMap(bays)
 		if len(got) != 1 {
@@ -133,7 +133,7 @@ func TestMapModules(t *testing.T) {
 
 	t.Run("module with nil ID is skipped", func(t *testing.T) {
 		raw := []nautobotapi.Module{
-			{Id: nil, Status: makeStatusRefFromUUID(uuid.New())},
+			{Id: nil},
 		}
 		got := MapModules(raw, moduleBayMap, deviceMap, nil, nil, nil)
 		if len(got) != 0 {
@@ -147,17 +147,16 @@ func TestMapModules(t *testing.T) {
 		serial := "MOD-SN1"
 		tag := "MOD-TAG"
 		statusID := uuid.MustParse("99999999-9999-9999-9999-999999999999")
-		bayRef := makeObjectRefFromUUID(bayID)
 
 		raw := []nautobotapi.Module{
 			{
-				Id:              &oaModID,
-				Serial:          &serial,
-				AssetTag:        &tag,
-				Status:          makeStatusRefFromUUID(statusID),
-				ParentModuleBay: &bayRef,
+				Id:       &oaModID,
+				Serial:   &serial,
+				AssetTag: &tag,
 			},
 		}
+		setNBRef(&raw[0].Status, statusID)
+		setNBRef(&raw[0].ParentModuleBay, bayID)
 
 		got := MapModules(raw, moduleBayMap, deviceMap, nil, map[uuid.UUID]string{statusID: "Active"}, nil)
 		if len(got) != 1 {
@@ -199,10 +198,10 @@ func TestMapModules(t *testing.T) {
 		raw := []nautobotapi.Module{
 			{
 				Id:           &oaModID,
-				Status:       makeStatusRefFromUUID(uuid.New()),
-				CustomFields: &cf,
+				CustomFields: nbCF(cf),
 			},
 		}
+		setNBRef(&raw[0].Status, uuid.New())
 
 		got := MapModules(raw, moduleBayMap, deviceMap, nil, nil, nil)
 		for _, m := range got {
@@ -236,17 +235,15 @@ func TestMapModules_LocationAndRole(t *testing.T) {
 	locCaniID := uuid.MustParse("bbbbbbbb-0000-0000-0000-000000000004")
 	roleID := uuid.MustParse("bbbbbbbb-0000-0000-0000-000000000003")
 	statusID := uuid.MustParse("bbbbbbbb-0000-0000-0000-000000000005")
-	locRef := makeObjectRefFromUUID(locID)
-	roleRef := makeObjectRefFromUUID(roleID)
 
 	raw := []nautobotapi.Module{
 		{
-			Id:       &oaModID,
-			Status:   makeStatusRefFromUUID(statusID),
-			Location: &locRef,
-			Role:     &roleRef,
+			Id: &oaModID,
 		},
 	}
+	setNBRef(&raw[0].Status, statusID)
+	setNBRef(&raw[0].Location, locID)
+	setNBRef(&raw[0].Role, roleID)
 
 	got := MapModules(
 		raw,

@@ -67,11 +67,11 @@ func TestBuildInterfaceMap(t *testing.T) {
 		ifaceID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 		devID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
 		oaIfaceID := openapi_types.UUID(ifaceID)
-		devRef := makeObjectRefFromUUID(devID)
 
 		ifaces := []nautobotapi.Interface{
-			{Id: &oaIfaceID, Name: "eth0", Device: &devRef},
+			{Id: &oaIfaceID, Name: "eth0"},
 		}
+		setNBRef(&ifaces[0].Device, devID)
 
 		got := BuildInterfaceMap(ifaces)
 		if len(got) != 1 {
@@ -142,9 +142,9 @@ func TestMapCables(t *testing.T) {
 
 	t.Run("cable with nil ID is skipped", func(t *testing.T) {
 		raw := []nautobotapi.Cable{
-			{Id: nil, Status: makeStatusRefFromUUID(uuid.New()),
-				TerminationAId: openapi_types.UUID(ifaceAID), TerminationBId: openapi_types.UUID(ifaceBID)},
+			{Id: nil, TerminationAId: oaPtr(ifaceAID), TerminationBId: oaPtr(ifaceBID)},
 		}
+		setNBRef(&raw[0].Status, uuid.New())
 		got := MapCables(raw, deviceMap, ifaceMap, nil)
 		if len(got) != 0 {
 			t.Errorf("expected 0, got %d", len(got))
@@ -158,8 +158,6 @@ func TestMapCables(t *testing.T) {
 		color := "blue"
 		length := float64(3)
 		statusID := uuid.MustParse("77777777-7777-7777-7777-777777777777")
-		cableType := nautobotapi.CableTypeValue("cat6")
-		lengthUnit := nautobotapi.CableLengthUnitValue("m")
 		termAType := "dcim.interface"
 		termBType := "dcim.interface"
 
@@ -168,16 +166,16 @@ func TestMapCables(t *testing.T) {
 				Id:               &oaCableID,
 				Label:            &label,
 				Color:            &color,
-				Status:           makeStatusRefFromUUID(statusID),
-				TerminationAId:   openapi_types.UUID(ifaceAID),
-				TerminationBId:   openapi_types.UUID(ifaceBID),
-				TerminationAType: termAType,
-				TerminationBType: termBType,
-				Type:             &nautobotapi.CableType{Value: &cableType},
+				TerminationAId:   oaPtr(ifaceAID),
+				TerminationBId:   oaPtr(ifaceBID),
+				TerminationAType: &termAType,
+				TerminationBType: &termBType,
 				Length:           intPtr(3),
-				LengthUnit:       &nautobotapi.CableLengthUnit{Value: &lengthUnit},
 			},
 		}
+		setNBValue(&raw[0].Type, "cat6")
+		setNBValue(&raw[0].LengthUnit, "m")
+		setNBRef(&raw[0].Status, statusID)
 
 		got := MapCables(raw, deviceMap, ifaceMap, map[uuid.UUID]string{statusID: "Connected"})
 		if len(got) != 1 {
@@ -239,11 +237,11 @@ func TestMapCables(t *testing.T) {
 		raw := []nautobotapi.Cable{
 			{
 				Id:             &oaCableID,
-				Status:         makeStatusRefFromUUID(uuid.New()),
-				TerminationAId: openapi_types.UUID(unknownA),
-				TerminationBId: openapi_types.UUID(unknownB),
+				TerminationAId: oaPtr(unknownA),
+				TerminationBId: oaPtr(unknownB),
 			},
 		}
+		setNBRef(&raw[0].Status, uuid.New())
 
 		got := MapCables(raw, deviceMap, ifaceMap, nil)
 		for _, cable := range got {
@@ -270,12 +268,12 @@ func TestMapCables(t *testing.T) {
 		raw := []nautobotapi.Cable{
 			{
 				Id:             &oaCableID,
-				Status:         makeStatusRefFromUUID(uuid.New()),
-				CustomFields:   &cf,
-				TerminationAId: openapi_types.UUID(ifaceAID),
-				TerminationBId: openapi_types.UUID(ifaceBID),
+				CustomFields:   nbCF(cf),
+				TerminationAId: oaPtr(ifaceAID),
+				TerminationBId: oaPtr(ifaceBID),
 			},
 		}
+		setNBRef(&raw[0].Status, uuid.New())
 
 		got := MapCables(raw, deviceMap, ifaceMap, nil)
 		for _, cable := range got {

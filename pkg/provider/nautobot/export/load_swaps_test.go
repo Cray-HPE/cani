@@ -1,9 +1,9 @@
 package export
 
 import (
+	"encoding/json"
 	"testing"
 
-	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/google/uuid"
 )
@@ -68,19 +68,12 @@ func TestRemoteSlotKey_NilRack(t *testing.T) {
 // lacking the Id union, hitting the final nil guard.
 func TestRemoteSlotKey_NilRackID(t *testing.T) {
 	pos := 1
-	d := &nautobotapi.Device{
-		Position: &pos,
-		Rack:     &nautobotapi.BulkWritableCircuitRequestTenant{},
-	}
+	d := &nautobotapi.Device{Position: &pos}
+	// Allocate a rack reference whose Id union is absent.
+	_ = json.Unmarshal([]byte(`{"rack":{}}`), d)
 	if got := remoteSlotKey(d); got != nil {
 		t.Errorf("expected nil when Rack.Id is nil, got %v", got)
 	}
-}
-
-func makeRackRef(id uuid.UUID) *nautobotapi.BulkWritableCircuitRequestTenant {
-	var union nautobotapi.BulkWritableCableRequestStatusId
-	_ = union.FromBulkWritableCableRequestStatusId0(openapi_types.UUID(id))
-	return &nautobotapi.BulkWritableCircuitRequestTenant{Id: &union}
 }
 
 // TestRemoteSlotKey_FrontDefault verifies remoteSlotKey builds a slotKey from a
@@ -98,8 +91,8 @@ func TestRemoteSlotKey_FrontDefault(t *testing.T) {
 	pos := 5
 	d := &nautobotapi.Device{
 		Position: &pos,
-		Rack:     makeRackRef(rackID),
 	}
+	setRefID(&d.Rack, rackID)
 	got := remoteSlotKey(d)
 	if got == nil {
 		t.Fatal("expected non-nil slotKey")
@@ -128,12 +121,11 @@ func TestRemoteSlotKey_FrontDefault(t *testing.T) {
 func TestRemoteSlotKey_RearFace(t *testing.T) {
 	rackID := uuid.New()
 	pos := 10
-	rear := nautobotapi.DeviceFaceValue("rear")
 	d := &nautobotapi.Device{
 		Position: &pos,
-		Rack:     makeRackRef(rackID),
-		Face:     &nautobotapi.DeviceFace{Value: &rear},
 	}
+	setRefID(&d.Rack, rackID)
+	setNBValue(&d.Face, "rear")
 	got := remoteSlotKey(d)
 	if got == nil {
 		t.Fatal("expected non-nil slotKey")
@@ -156,12 +148,11 @@ func TestRemoteSlotKey_RearFace(t *testing.T) {
 func TestRemoteSlotKey_NonRearFaceDefaultsToFront(t *testing.T) {
 	rackID := uuid.New()
 	pos := 3
-	front := nautobotapi.DeviceFaceValue("front")
 	d := &nautobotapi.Device{
 		Position: &pos,
-		Rack:     makeRackRef(rackID),
-		Face:     &nautobotapi.DeviceFace{Value: &front},
 	}
+	setRefID(&d.Rack, rackID)
+	setNBValue(&d.Face, "front")
 	got := remoteSlotKey(d)
 	if got == nil {
 		t.Fatal("expected non-nil slotKey")

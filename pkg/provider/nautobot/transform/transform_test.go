@@ -109,34 +109,36 @@ func TestTransform(t *testing.T) {
 		oaRoleID := openapi_types.UUID(roleID)
 
 		devName := "compute-001"
-		rackRef := makeObjectRefFromUUID(rackNBID)
+
+		locs := []nautobotapi.Location{
+			{Id: &oaLocID, Name: "Site-A"},
+		}
+		setNBRef(&locs[0].Status, statusID)
+		setNBRef(&locs[0].LocationType, uuid.New())
+
+		racks := []nautobotapi.Rack{
+			{Id: &oaRackID, Name: "Rack-1"},
+		}
+		setNBRef(&racks[0].Status, statusID)
+		setNBRef(&racks[0].Location, locNBID)
+
+		dev := nautobotapi.Device{Id: &oaDevID, Name: &devName}
+		setNBRef(&dev.Status, statusID)
+		setNBRef(&dev.DeviceType, dtNBID)
+		setNBRef(&dev.Location, locNBID)
+		setNBRef(&dev.Rack, rackNBID)
+		setNBRef(&dev.Role, roleID)
+
+		dts := []nautobotapi.DeviceType{
+			{Id: &oaDtID, Model: "DL380"},
+		}
+		setNBRef(&dts[0].Manufacturer, uuid.New())
 
 		raw := &RawData{
-			Locations: []nautobotapi.Location{
-				{Id: &oaLocID, Name: "Site-A", Status: makeStatusRefFromUUID(statusID), LocationType: makeStatusRefFromUUID(uuid.New())},
-			},
-			Racks: []nautobotapi.Rack{
-				{Id: &oaRackID, Name: "Rack-1", Status: makeStatusRefFromUUID(statusID), Location: makeStatusRefFromUUID(locNBID)},
-			},
-			Devices: []nautobotapi.Device{
-				{
-					Id:         &oaDevID,
-					Name:       &devName,
-					Status:     makeStatusRefFromUUID(statusID),
-					DeviceType: makeStatusRefFromUUID(dtNBID),
-					Location:   makeStatusRefFromUUID(locNBID),
-					Rack:       &rackRef,
-					Role: func() nautobotapi.BulkWritableCableRequestStatus {
-						r := makeStatusRefFromUUID(roleID)
-						url := "http://api/roles/compute/"
-						r.Url = &url
-						return r
-					}(),
-				},
-			},
-			DeviceTypes: []nautobotapi.DeviceType{
-				{Id: &oaDtID, Model: "DL380", Manufacturer: makeStatusRefFromUUID(uuid.New())},
-			},
+			Locations:   locs,
+			Racks:       racks,
+			Devices:     []nautobotapi.Device{dev},
+			DeviceTypes: dts,
 			Statuses: []nautobotapi.Status{
 				{Id: &oaStatusID, Name: "Active"},
 			},

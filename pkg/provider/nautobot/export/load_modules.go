@@ -112,11 +112,10 @@ func (e *Exporter) createModuleFromCani(
 	}
 
 	// Build the Module request.
-	req := nautobotapi.ModuleRequest{
-		ModuleType:      makeStatusRef(moduleTypeItem.ID),
-		ParentModuleBay: makeObjectRef(moduleBayItem.ID),
-		Status:          makeStatusRef(status.ID),
-	}
+	req := nautobotapi.ModuleRequest{}
+	setRefID(&req.ModuleType, moduleTypeItem.ID)
+	setRefID(&req.ParentModuleBay, moduleBayItem.ID)
+	setRefID(&req.Status, status.ID)
 
 	// Optional fields.
 	if module.Serial != "" {
@@ -128,7 +127,7 @@ func (e *Exporter) createModuleFromCani(
 	if module.Role != "" {
 		role, err := e.Cache.GetRole(module.Role)
 		if err == nil && role != nil {
-			req.Role = makeObjectRef(role.ID)
+			setRefID(&req.Role, role.ID)
 		}
 	}
 	if module.Location != uuid.Nil {
@@ -136,7 +135,7 @@ func (e *Exporter) createModuleFromCani(
 		if loc, ok := inventory.Locations[module.Location]; ok && loc != nil {
 			locItem, err := e.Cache.GetLocation(loc.Name)
 			if err == nil && locItem != nil {
-				req.Location = makeObjectRef(locItem.ID)
+				setRefID(&req.Location, locItem.ID)
 			}
 		}
 	}
@@ -228,11 +227,10 @@ func (e *Exporter) getOrCreateModuleType(
 		return nil, fmt.Errorf("manufacturer resolution: %w", err)
 	}
 
-	mfrRef := makeStatusRef(manufacturer.ID)
 	createReq := nautobotapi.ModuleTypeRequest{
-		Model:        model,
-		Manufacturer: mfrRef,
+		Model: model,
 	}
+	setRefID(&createReq.Manufacturer, manufacturer.ID)
 	if module.PartNumber != "" {
 		createReq.PartNumber = &module.PartNumber
 	}
@@ -290,9 +288,9 @@ func (e *Exporter) getOrCreateModuleBay(
 
 	// Create the module bay.
 	createReq := nautobotapi.ModuleBayRequest{
-		Name:         bayName,
-		ParentDevice: makeObjectRef(deviceNautobotID),
+		Name: bayName,
 	}
+	setRefID(&createReq.ParentDevice, deviceNautobotID)
 
 	// clog.Detail("[nautobot] Creating module bay: %s on device %s", bayName, deviceNautobotID)
 	createResp, err := e.Client.DcimModuleBaysCreateWithResponse(ctx,

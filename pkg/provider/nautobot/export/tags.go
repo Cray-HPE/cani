@@ -26,29 +26,29 @@
 package export
 
 import (
-	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
+	"github.com/google/uuid"
 )
 
-// resolveTagRefs converts a list of tag names into Nautobot tag references,
+// resolveTagRefs converts a list of tag names into the Nautobot tag UUIDs,
 // creating any tags that do not yet exist. It returns nil when the input is
-// empty or no tags resolve, so callers can assign the result directly to an
-// optional request field (leaving it unset rather than an empty list).
-func (c *LookupCache) resolveTagRefs(names []string) *[]nautobotapi.BulkWritableCableRequestStatus {
+// empty or no tags resolve, so callers can pass the result to setRefSlice
+// (leaving the request field unset rather than an empty list).
+func (c *LookupCache) resolveTagRefs(names []string) []uuid.UUID {
 	if len(names) == 0 {
 		return nil
 	}
-	refs := make([]nautobotapi.BulkWritableCableRequestStatus, 0, len(names))
+	ids := make([]uuid.UUID, 0, len(names))
 	for _, name := range names {
 		if name == "" {
 			continue
 		}
 		tag, err := c.GetOrCreateTag(name)
 		if err == nil && tag != nil {
-			refs = append(refs, makeStatusRef(tag.ID))
+			ids = append(ids, tag.ID)
 		}
 	}
-	if len(refs) == 0 {
+	if len(ids) == 0 {
 		return nil
 	}
-	return &refs
+	return ids
 }

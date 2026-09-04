@@ -31,6 +31,7 @@ import (
 	"net/http"
 	"sort"
 
+	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/google/uuid"
@@ -125,14 +126,11 @@ func (e *Exporter) createLocationFromCani(
 	}
 
 	// Build references.
-	locTypeRef := makeStatusRef(locType.ID)
-	statusRef := makeStatusRef(status.ID)
-
 	req := nautobotapi.LocationRequest{
-		Name:         loc.Name,
-		LocationType: locTypeRef,
-		Status:       statusRef,
+		Name: loc.Name,
 	}
+	setRefID(&req.LocationType, locType.ID)
+	setRefID(&req.Status, status.ID)
 
 	// Map parent FK if present.
 	if loc.Parent != uuid.Nil {
@@ -140,8 +138,7 @@ func (e *Exporter) createLocationFromCani(
 		if !ok {
 			return uuid.Nil, fmt.Errorf("parent %s not yet created in Nautobot (ordering bug?)", loc.Parent)
 		}
-		parentRef := makeObjectRef(parentNautobotID)
-		req.Parent = parentRef
+		setRefID(&req.Parent, parentNautobotID)
 	}
 
 	// Map optional fields.
@@ -164,7 +161,8 @@ func (e *Exporter) createLocationFromCani(
 		req.ContactPhone = &loc.ContactPhone
 	}
 	if loc.ContactEmail != "" {
-		req.ContactEmail = &loc.ContactEmail
+		email := openapi_types.Email(loc.ContactEmail)
+		req.ContactEmail = &email
 	}
 	if loc.TimeZone != "" {
 		req.TimeZone = &loc.TimeZone
@@ -192,7 +190,7 @@ func (e *Exporter) createLocationFromCani(
 		}
 	}
 	if len(cf) > 0 {
-		req.CustomFields = &cf
+		req.CustomFields = toNautobotCustomFields(cf)
 	}
 
 	if e.Options.DryRun {
@@ -276,18 +274,4 @@ func topologicalSortLocations(locs map[uuid.UUID]*devicetypes.CaniLocationType) 
 		}
 	}
 	return ordered
-}
-
-// objectRef is a generic Nautobot "{id}" object reference. The generated API
-// reuses BulkWritableCircuitRequestTenant as the shape for every id-only FK
-// (device, rack, role, VRF, VLAN); this alias names it for what it is.
-type objectRef = nautobotapi.BulkWritableCircuitRequestTenant
-
-// makeObjectRef creates an object reference from a UUID.
-func makeObjectRef(id uuid.UUID) *objectRef {
-	idUnion := nautobotapi.BulkWritableCableRequestStatusId{}
-	idUnion.FromBulkWritableCableRequestStatusId0(id)
-	return &objectRef{
-		Id: &idUnion,
-	}
 }

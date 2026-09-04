@@ -108,12 +108,10 @@ func (e *Exporter) createFruFromCani(
 	}
 
 	// Build device reference.
-	deviceRef := makeStatusRef(parentNautobotID)
-
 	req := nautobotapi.InventoryItemRequest{
-		Name:   fru.Name,
-		Device: deviceRef,
+		Name: fru.Name,
 	}
+	setRefID(&req.Device, parentNautobotID)
 
 	// Map PartNumber → PartId.
 	if fru.PartNumber != "" {
@@ -124,14 +122,14 @@ func (e *Exporter) createFruFromCani(
 	if fru.Manufacturer != "" {
 		mfr, err := e.Cache.GetOrCreateManufacturer(fru.Manufacturer)
 		if err == nil && mfr != nil {
-			req.Manufacturer = makeObjectRef(mfr.ID)
+			setRefID(&req.Manufacturer, mfr.ID)
 		}
 	}
 
 	// Map parent FRU → InventoryItem.Parent FK.
 	if fru.Parent != uuid.Nil {
 		if parentFruNautobotID, ok := createdFruIDs[fru.Parent]; ok {
-			req.Parent = makeObjectRef(parentFruNautobotID)
+			setRefID(&req.Parent, parentFruNautobotID)
 		}
 	}
 
@@ -153,12 +151,12 @@ func (e *Exporter) createFruFromCani(
 	}
 
 	// Map Tags — convert string tag names to Nautobot tag references.
-	req.Tags = e.Cache.resolveTagRefs(fru.Tags)
+	setRefSlice(&req.Tags, e.Cache.resolveTagRefs(fru.Tags))
 
 	// Map CustomFields
 	if len(fru.CustomFields) > 0 {
 		cf := map[string]interface{}(fru.CustomFields)
-		req.CustomFields = &cf
+		req.CustomFields = toNautobotCustomFields(cf)
 	}
 
 	if e.Options.DryRun {

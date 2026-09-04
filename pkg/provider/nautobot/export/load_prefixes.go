@@ -133,12 +133,11 @@ func (e *Exporter) createPrefix(
 
 	req := nautobotapi.WritablePrefixRequest{
 		Prefix: prefix.Prefix,
-		Status: makeIDRef(statusItem.ID),
 	}
+	setRefID(&req.Status, statusItem.ID)
 
 	// Set namespace
-	nsRef := makeIDRef(namespaceID)
-	req.Namespace = &nsRef
+	setRefID(&req.Namespace, namespaceID)
 
 	// Set type
 	if prefix.Type != "" {
@@ -153,23 +152,20 @@ func (e *Exporter) createPrefix(
 
 	// Scope to the location when it maps to a known Nautobot location.
 	if locationID != uuid.Nil {
-		ref := makeLocationRef(locationID)
-		req.Location = &ref
+		setRefID(&req.Location, locationID)
 	}
 
 	// Resolve parent prefix
 	if prefix.Parent != uuid.Nil {
 		if parentNID, ok := createdPrefixes[prefix.Parent]; ok {
-			parentRef := makePrefixParentRef(parentNID)
-			req.Parent = &parentRef
+			setRefID(&req.Parent, parentNID)
 		}
 	}
 
 	// Resolve VLAN
 	if prefix.VLAN != uuid.Nil {
 		if vlanNID, ok := vlanMap[prefix.VLAN]; ok {
-			ref := makeObjectRef(vlanNID)
-			req.Vlan = ref
+			setRefID(&req.Vlan, vlanNID)
 		}
 	}
 
@@ -177,8 +173,7 @@ func (e *Exporter) createPrefix(
 	if prefix.Role != "" {
 		roleItem, err := e.Cache.GetRole(prefix.Role)
 		if err == nil && roleItem != nil {
-			ref := makeObjectRef(roleItem.ID)
-			req.Role = ref
+			setRefID(&req.Role, roleItem.ID)
 		}
 	}
 

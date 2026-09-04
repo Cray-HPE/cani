@@ -147,21 +147,16 @@ func TestLoadPrimaryIPs_IndependentFamilyResolution(t *testing.T) {
 // primaryIPsMatch — pure logic
 // -----------------------------------------------------------------------------
 
-func makePrimaryIPRef(id uuid.UUID) *nautobotapi.PrimaryIPv4 {
-	var union nautobotapi.BulkWritableCableRequestStatusId
-	union.FromBulkWritableCableRequestStatusId0(id)
-	return &nautobotapi.PrimaryIPv4{Id: &union}
+// setPrimaryIP sets a device's primary IPv4 reference to the given UUID.
+func setPrimaryIP(remote *nautobotapi.Device, id uuid.UUID) {
+	setRefID(&remote.PrimaryIp4, id)
 }
 
 func TestPrimaryIPsMatch_TrueWhenSameIPv4(t *testing.T) {
 	ipID := uuid.New()
 	payload := map[string]any{"primary_ip4": map[string]string{"id": ipID.String()}}
-	remote := &nautobotapi.Device{
-		PrimaryIp4: makePrimaryIPRef(ipID),
-		DeviceType: nautobotapi.BulkWritableCableRequestStatus{},
-		Location:   nautobotapi.BulkWritableCableRequestStatus{},
-		Status:     nautobotapi.BulkWritableCableRequestStatus{},
-	}
+	remote := &nautobotapi.Device{}
+	setPrimaryIP(remote, ipID)
 	if !primaryIPsMatch(payload, remote) {
 		t.Error("expected match when IPv4 IDs are the same")
 	}
@@ -169,12 +164,8 @@ func TestPrimaryIPsMatch_TrueWhenSameIPv4(t *testing.T) {
 
 func TestPrimaryIPsMatch_FalseWhenDifferentIPv4(t *testing.T) {
 	payload := map[string]any{"primary_ip4": map[string]string{"id": uuid.New().String()}}
-	remote := &nautobotapi.Device{
-		PrimaryIp4: makePrimaryIPRef(uuid.New()),
-		DeviceType: nautobotapi.BulkWritableCableRequestStatus{},
-		Location:   nautobotapi.BulkWritableCableRequestStatus{},
-		Status:     nautobotapi.BulkWritableCableRequestStatus{},
-	}
+	remote := &nautobotapi.Device{}
+	setPrimaryIP(remote, uuid.New())
 	if primaryIPsMatch(payload, remote) {
 		t.Error("expected mismatch when IPv4 IDs differ")
 	}
@@ -182,23 +173,15 @@ func TestPrimaryIPsMatch_FalseWhenDifferentIPv4(t *testing.T) {
 
 func TestPrimaryIPsMatch_FalseWhenRemoteHasNoIPv4(t *testing.T) {
 	payload := map[string]any{"primary_ip4": map[string]string{"id": uuid.New().String()}}
-	remote := &nautobotapi.Device{
-		DeviceType: nautobotapi.BulkWritableCableRequestStatus{},
-		Location:   nautobotapi.BulkWritableCableRequestStatus{},
-		Status:     nautobotapi.BulkWritableCableRequestStatus{},
-	}
+	remote := &nautobotapi.Device{}
 	if primaryIPsMatch(payload, remote) {
 		t.Error("expected mismatch when remote has no primary IPv4")
 	}
 }
 
 func TestPrimaryIPsMatch_TrueWhenNoIPInPayload(t *testing.T) {
-	remote := &nautobotapi.Device{
-		PrimaryIp4: makePrimaryIPRef(uuid.New()),
-		DeviceType: nautobotapi.BulkWritableCableRequestStatus{},
-		Location:   nautobotapi.BulkWritableCableRequestStatus{},
-		Status:     nautobotapi.BulkWritableCableRequestStatus{},
-	}
+	remote := &nautobotapi.Device{}
+	setPrimaryIP(remote, uuid.New())
 	if !primaryIPsMatch(map[string]any{}, remote) {
 		t.Error("empty payload should match anything")
 	}

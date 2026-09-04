@@ -26,6 +26,8 @@
 package transform
 
 import (
+	"encoding/json"
+	"reflect"
 	"testing"
 
 	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
@@ -33,29 +35,111 @@ import (
 	"github.com/google/uuid"
 )
 
-// makeStatusRefFromUUID creates a BulkWritableCableRequestStatus with the given UUID.
-func makeStatusRefFromUUID(id uuid.UUID) nautobotapi.BulkWritableCableRequestStatus {
-	var idUnion nautobotapi.BulkWritableCableRequestStatusId
-	_ = idUnion.FromBulkWritableCableRequestStatusId0(openapi_types.UUID(id))
-	return nautobotapi.BulkWritableCableRequestStatus{Id: &idUnion}
+// setNBRef sets the Id union of a Nautobot per-field reference struct to a UUID.
+// field is a pointer to the (possibly anonymous) reference field, matching how
+// the export layer builds request references; it lets tests populate a real
+// Device/Cable/VLAN ref field without naming its anonymous struct type.
+func setNBRef(field any, id uuid.UUID) {
+	rv := reflect.ValueOf(field)
+	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+		return
+	}
+	target := rv.Elem()
+	if target.Kind() == reflect.Ptr {
+		if target.IsNil() {
+			if !target.CanSet() {
+				return
+			}
+			target.Set(reflect.New(target.Type().Elem()))
+		}
+		target = target.Elem()
+	}
+	if target.Kind() != reflect.Struct {
+		return
+	}
+	idField := target.FieldByName("Id")
+	if !idField.IsValid() || !idField.CanSet() || idField.Kind() != reflect.Ptr {
+		return
+	}
+	nv := reflect.New(idField.Type().Elem())
+	if u, ok := nv.Interface().(json.Unmarshaler); ok {
+		b, _ := json.Marshal(id)
+		_ = u.UnmarshalJSON(b)
+		idField.Set(nv)
+	}
 }
 
-// makeObjectRefFromUUID builds an id-only Nautobot object reference (the
-// BulkWritableCircuitRequestTenant shape reused for every id-only FK) from a
-// UUID. The value-returning counterpart of the export package's makeObjectRef.
-func makeObjectRefFromUUID(id uuid.UUID) nautobotapi.BulkWritableCircuitRequestTenant {
-	var idUnion nautobotapi.BulkWritableCableRequestStatusId
-	_ = idUnion.FromBulkWritableCableRequestStatusId0(openapi_types.UUID(id))
-	return nautobotapi.BulkWritableCircuitRequestTenant{Id: &idUnion}
+// oaPtr returns a pointer to an openapi_types.UUID copy of id.
+func oaPtr(id uuid.UUID) *openapi_types.UUID {
+	u := openapi_types.UUID(id)
+	return &u
 }
 
-// makeInvalidIDUnion builds an Id union holding the integer variant. The UUID
-// accessor (AsBulkWritableCableRequestStatusId0) then fails to decode it,
-// exercising the error path in refID/tenantRefID.
-func makeInvalidIDUnion() nautobotapi.BulkWritableCableRequestStatusId {
-	var idUnion nautobotapi.BulkWritableCableRequestStatusId
-	_ = idUnion.FromBulkWritableCableRequestStatusId1(123)
-	return idUnion
+// nbCF wraps a flat custom-fields map in the Nautobot 3.2 pointer-value shape.
+func nbCF(cf map[string]interface{}) *map[string]*interface{} {
+	out := make(map[string]*interface{}, len(cf))
+	for k, v := range cf {
+		v := v
+		out[k] = &v
+	}
+	return &out
+}
+
+// setNBValue sets the string ".Value" of a Nautobot label/value inline struct
+// (e.g. Cable.Type, Cable.LengthUnit), allocating the pointer field as needed.
+// field is a pointer to the (possibly anonymous) inline-struct field.
+func setNBValue(field any, value string) {
+	rv := reflect.ValueOf(field)
+	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+		return
+	}
+	slot := rv.Elem()
+	if slot.Kind() == reflect.Ptr {
+		if slot.IsNil() {
+			if !slot.CanSet() {
+				return
+			}
+			slot.Set(reflect.New(slot.Type().Elem()))
+		}
+		slot = slot.Elem()
+	}
+	vf := slot.FieldByName("Value")
+	if !vf.IsValid() || !vf.CanSet() || vf.Kind() != reflect.Ptr {
+		return
+	}
+	ev := reflect.New(vf.Type().Elem())
+	ev.Elem().SetString(value)
+	vf.Set(ev)
+}
+
+// testRef mimics a Nautobot 3.2 per-field reference object (an Id union plus a
+// Url) so the reflection-based ref helpers can be exercised without naming an
+// anonymous per-field struct. Any generated *_Id union has the same shape, so
+// Device_Status_Id stands in for all of them.
+type testRef struct {
+	Id  *nautobotapi.Device_Status_Id
+	Url *string
+}
+
+// makeStatusRefFromUUID creates a testRef whose Id union wraps the given UUID.
+func makeStatusRefFromUUID(id uuid.UUID) testRef {
+	var idUnion nautobotapi.Device_Status_Id
+	_ = SetRefUUID(&idUnion, id)
+	return testRef{Id: &idUnion}
+}
+
+// makeObjectRefFromUUID builds an id-only Nautobot object reference from a UUID.
+// The value-returning counterpart of the export package's makeObjectRef.
+func makeObjectRefFromUUID(id uuid.UUID) testRef {
+	return makeStatusRefFromUUID(id)
+}
+
+// makeInvalidIDUnion builds an Id union holding the integer variant. RefUUID
+// then fails to decode it as a UUID, exercising the error path in refID.
+func makeInvalidIDUnion() *nautobotapi.Device_Status_Id {
+	var idUnion nautobotapi.Device_Status_Id
+	_ = idUnion.FromDeviceStatusId1(123)
+	return &idUnion
 }
 
 func strPtr(s string) *string { return &s }
@@ -90,7 +174,7 @@ func TestRefID(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		ref      *nautobotapi.BulkWritableCableRequestStatus
+		ref      *testRef
 		expected uuid.UUID
 	}{
 		{
@@ -100,12 +184,12 @@ func TestRefID(t *testing.T) {
 		},
 		{
 			name:     "ref with nil Id returns nil UUID",
-			ref:      &nautobotapi.BulkWritableCableRequestStatus{Id: nil},
+			ref:      &testRef{Id: nil},
 			expected: uuid.Nil,
 		},
 		{
 			name: "ref with valid UUID returns it",
-			ref: func() *nautobotapi.BulkWritableCableRequestStatus {
+			ref: func() *testRef {
 				r := makeStatusRefFromUUID(id)
 				return &r
 			}(),
@@ -158,7 +242,7 @@ func TestTenantRefID(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		ref      *nautobotapi.BulkWritableCircuitRequestTenant
+		ref      *testRef
 		expected uuid.UUID
 	}{
 		{
@@ -168,12 +252,12 @@ func TestTenantRefID(t *testing.T) {
 		},
 		{
 			name:     "ref with nil Id returns nil UUID",
-			ref:      &nautobotapi.BulkWritableCircuitRequestTenant{Id: nil},
+			ref:      &testRef{Id: nil},
 			expected: uuid.Nil,
 		},
 		{
 			name: "ref with valid UUID returns it",
-			ref: func() *nautobotapi.BulkWritableCircuitRequestTenant {
+			ref: func() *testRef {
 				r := makeObjectRefFromUUID(id)
 				return &r
 			}(),
@@ -312,7 +396,7 @@ func TestIntVal(t *testing.T) {
 func TestRefDisplay(t *testing.T) {
 	tests := []struct {
 		name     string
-		ref      *nautobotapi.BulkWritableCableRequestStatus
+		ref      *testRef
 		expected string
 	}{
 		{
@@ -322,12 +406,12 @@ func TestRefDisplay(t *testing.T) {
 		},
 		{
 			name:     "ref with nil Url returns empty",
-			ref:      &nautobotapi.BulkWritableCableRequestStatus{},
+			ref:      &testRef{},
 			expected: "",
 		},
 		{
 			name:     "ref with Url returns it",
-			ref:      &nautobotapi.BulkWritableCableRequestStatus{Url: strPtr("http://example.com/api/status/1/")},
+			ref:      &testRef{Url: strPtr("http://example.com/api/status/1/")},
 			expected: "http://example.com/api/status/1/",
 		},
 	}
@@ -482,7 +566,7 @@ func TestResolveRefName(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		ref      nautobotapi.BulkWritableCableRequestStatus
+		ref      testRef
 		nameMap  map[uuid.UUID]string
 		expected string
 	}{
@@ -500,7 +584,7 @@ func TestResolveRefName(t *testing.T) {
 		},
 		{
 			name: "not in map with URL returns URL",
-			ref: func() nautobotapi.BulkWritableCableRequestStatus {
+			ref: func() testRef {
 				r := makeStatusRefFromUUID(uuid.MustParse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"))
 				r.Url = strPtr("http://example.com/status/unknown/")
 				return r
@@ -510,7 +594,7 @@ func TestResolveRefName(t *testing.T) {
 		},
 		{
 			name:     "nil ID ref returns URL",
-			ref:      nautobotapi.BulkWritableCableRequestStatus{Url: strPtr("http://fallback/")},
+			ref:      testRef{Url: strPtr("http://fallback/")},
 			nameMap:  nameMap,
 			expected: "http://fallback/",
 		},
@@ -543,13 +627,13 @@ func TestResolveTenantRefName(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		ref      *nautobotapi.BulkWritableCircuitRequestTenant
+		ref      *testRef
 		nameMap  map[uuid.UUID]string
 		expected string
 	}{
 		{
 			name: "found in map returns name",
-			ref: func() *nautobotapi.BulkWritableCircuitRequestTenant {
+			ref: func() *testRef {
 				r := makeObjectRefFromUUID(id)
 				return &r
 			}(),
@@ -558,7 +642,7 @@ func TestResolveTenantRefName(t *testing.T) {
 		},
 		{
 			name: "not in map with URL returns URL",
-			ref: func() *nautobotapi.BulkWritableCircuitRequestTenant {
+			ref: func() *testRef {
 				r := makeObjectRefFromUUID(uuid.MustParse("34343434-3434-3434-3434-343434343434"))
 				r.Url = strPtr("http://example.com/roles/unknown/")
 				return &r
@@ -568,7 +652,7 @@ func TestResolveTenantRefName(t *testing.T) {
 		},
 		{
 			name: "not in map without URL returns empty",
-			ref: func() *nautobotapi.BulkWritableCircuitRequestTenant {
+			ref: func() *testRef {
 				r := makeObjectRefFromUUID(uuid.MustParse("56565656-5656-5656-5656-565656565656"))
 				return &r
 			}(),
@@ -607,7 +691,7 @@ func TestResolveTenantRefName(t *testing.T) {
 // branch rather than the nil-pointer guard already covered elsewhere.
 func TestRefID_UnionDecodeError(t *testing.T) {
 	idUnion := makeInvalidIDUnion()
-	ref := &nautobotapi.BulkWritableCableRequestStatus{Id: &idUnion}
+	ref := &testRef{Id: idUnion}
 
 	if got := refID(ref); got != uuid.Nil {
 		t.Errorf("refID() = %s, want %s for undecodable union", got, uuid.Nil)
@@ -627,7 +711,7 @@ func TestRefID_UnionDecodeError(t *testing.T) {
 // the decode-failure branch that the nil-ref and nil-Id cases cannot reach.
 func TestTenantRefID_UnionDecodeError(t *testing.T) {
 	idUnion := makeInvalidIDUnion()
-	ref := &nautobotapi.BulkWritableCircuitRequestTenant{Id: &idUnion}
+	ref := &testRef{Id: idUnion}
 
 	if got := tenantRefID(ref); got != uuid.Nil {
 		t.Errorf("tenantRefID() = %s, want %s for undecodable union", got, uuid.Nil)

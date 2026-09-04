@@ -8,6 +8,7 @@ import (
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
+	"github.com/Cray-HPE/cani/pkg/provider/nautobot/transform"
 	"github.com/google/uuid"
 )
 
@@ -205,8 +206,8 @@ func remoteSlotKey(d *nautobotapi.Device) *slotKey {
 	if d == nil || d.Position == nil || d.Rack == nil || d.Rack.Id == nil {
 		return nil
 	}
-	rackID, err := d.Rack.Id.AsBulkWritableCableRequestStatusId0()
-	if err != nil {
+	rackID := transform.RefUUID(d.Rack.Id)
+	if rackID == uuid.Nil {
 		return nil
 	}
 
