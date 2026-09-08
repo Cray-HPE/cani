@@ -111,7 +111,9 @@ func (e *Exporter) createFruFromCani(
 	req := nautobotapi.InventoryItemRequest{
 		Name: fru.Name,
 	}
-	setRefID(&req.Device, parentNautobotID)
+	if err := setRefID(&req.Device, parentNautobotID); err != nil {
+		return uuid.Nil, fmt.Errorf("set inventory item device reference: %w", err)
+	}
 
 	// Map PartNumber → PartId.
 	if fru.PartNumber != "" {
@@ -122,14 +124,18 @@ func (e *Exporter) createFruFromCani(
 	if fru.Manufacturer != "" {
 		mfr, err := e.Cache.GetOrCreateManufacturer(fru.Manufacturer)
 		if err == nil && mfr != nil {
-			setRefID(&req.Manufacturer, mfr.ID)
+			if err := setRefID(&req.Manufacturer, mfr.ID); err != nil {
+				return uuid.Nil, fmt.Errorf("set inventory item manufacturer reference: %w", err)
+			}
 		}
 	}
 
 	// Map parent FRU → InventoryItem.Parent FK.
 	if fru.Parent != uuid.Nil {
 		if parentFruNautobotID, ok := createdFruIDs[fru.Parent]; ok {
-			setRefID(&req.Parent, parentFruNautobotID)
+			if err := setRefID(&req.Parent, parentFruNautobotID); err != nil {
+				return uuid.Nil, fmt.Errorf("set parent inventory item reference: %w", err)
+			}
 		}
 	}
 
@@ -151,7 +157,9 @@ func (e *Exporter) createFruFromCani(
 	}
 
 	// Map Tags — convert string tag names to Nautobot tag references.
-	setRefSlice(&req.Tags, e.Cache.resolveTagRefs(fru.Tags))
+	if err := setRefSlice(&req.Tags, e.Cache.resolveTagRefs(fru.Tags)); err != nil {
+		return uuid.Nil, fmt.Errorf("set inventory item tag references: %w", err)
+	}
 
 	// Map CustomFields
 	if len(fru.CustomFields) > 0 {

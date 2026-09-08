@@ -232,15 +232,34 @@ func showInterfaces(cmd *cli.Command, args []string) error {
 	}
 
 	if len(args) == 1 {
-		return showSingleInterface(cmd, inv, args[0])
+		ifaces, err := findInterfacesByNameOrUUID(args[0], inv)
+		if err != nil {
+			return err
+		}
+		if len(ifaces) == 1 {
+			return showSingleInterface(cmd, inv, ifaces[0])
+		}
+		return showInterfaceList(cmd, inv, ifaces)
 	}
 
 	ifaces := make([]*devicetypes.CaniInterface, 0, len(inv.Interfaces))
 	for _, iface := range inv.Interfaces {
 		ifaces = append(ifaces, iface)
 	}
+	return showInterfaceList(cmd, inv, ifaces)
+}
+
+func showInterfaceList(cmd *cli.Command, inv *devicetypes.Inventory, ifaces []*devicetypes.CaniInterface) error {
 	sort.Slice(ifaces, func(i, j int) bool {
-		return ifaces[i].Name < ifaces[j].Name
+		if ifaces[i].Name != ifaces[j].Name {
+			return ifaces[i].Name < ifaces[j].Name
+		}
+		leftDevice := visual.ResolveDeviceName(ifaces[i].DeviceID, inv)
+		rightDevice := visual.ResolveDeviceName(ifaces[j].DeviceID, inv)
+		if leftDevice != rightDevice {
+			return leftDevice < rightDevice
+		}
+		return ifaces[i].ID.String() < ifaces[j].ID.String()
 	})
 
 	format, _ := cmd.Flags().GetString("format")
@@ -258,11 +277,7 @@ func showInterfaces(cmd *cli.Command, args []string) error {
 	}
 }
 
-func showSingleInterface(cmd *cli.Command, inv *devicetypes.Inventory, arg string) error {
-	iface, err := findInterfaceByNameOrUUID(arg, inv)
-	if err != nil {
-		return err
-	}
+func showSingleInterface(cmd *cli.Command, inv *devicetypes.Inventory, iface *devicetypes.CaniInterface) error {
 	format, _ := cmd.Flags().GetString("format")
 	switch format {
 	case "table":

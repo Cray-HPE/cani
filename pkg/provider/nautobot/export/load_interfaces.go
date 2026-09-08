@@ -221,9 +221,15 @@ func (e *Exporter) sendInterfaceBatch(
 			Type:     ifaceType,
 			MgmtOnly: &mgmtOnly,
 		}
-		setRefID(&req.Device, item.DeviceID)
-		setRefID(&req.Status, statusID)
-		setRefSlice(&req.Tags, e.Cache.resolveTagRefs(item.Spec.Tags))
+		if err := setRefID(&req.Device, item.DeviceID); err != nil {
+			return nil, fmt.Errorf("interface %s on %s: set device reference: %w", item.Spec.Name, item.DeviceName, err)
+		}
+		if err := setRefID(&req.Status, statusID); err != nil {
+			return nil, fmt.Errorf("interface %s on %s: set status reference: %w", item.Spec.Name, item.DeviceName, err)
+		}
+		if err := setRefSlice(&req.Tags, e.Cache.resolveTagRefs(item.Spec.Tags)); err != nil {
+			return nil, fmt.Errorf("interface %s on %s: set tag references: %w", item.Spec.Name, item.DeviceName, err)
+		}
 
 		if item.Spec.Mac != "" {
 			mac := item.Spec.Mac
@@ -240,7 +246,9 @@ func (e *Exporter) sendInterfaceBatch(
 			return nil, fmt.Errorf("interface %s on %s: %w", item.Spec.Name, item.DeviceName, err)
 		}
 		if roleID != uuid.Nil {
-			setRefID(&req.Role, roleID)
+			if err := setRefID(&req.Role, roleID); err != nil {
+				return nil, fmt.Errorf("interface %s on %s: set role reference: %w", item.Spec.Name, item.DeviceName, err)
+			}
 		}
 
 		reqs = append(reqs, req)

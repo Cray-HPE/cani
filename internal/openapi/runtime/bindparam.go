@@ -133,6 +133,22 @@ func BindStyledParameterWithOptions(style string, paramName string, value string
 	}
 
 	if t.Kind() == reflect.Slice {
+		if opts.Format == "byte" && isByteSlice(t) {
+			parts, err := splitStyledParameter(style, opts.Explode, false, paramName, value)
+			if err != nil {
+				return fmt.Errorf("error splitting input '%s' into parts: %w", value, err)
+			}
+			if len(parts) != 1 {
+				return fmt.Errorf("expected single base64 value for byte slice parameter '%s', got %d parts", paramName, len(parts))
+			}
+			decoded, err := base64Decode(parts[0])
+			if err != nil {
+				return fmt.Errorf("error decoding base64 parameter '%s': %w", paramName, err)
+			}
+			v.SetBytes(decoded)
+			return nil
+		}
+
 		// Chop up the parameter into parts based on its style
 		parts, err := splitStyledParameter(style, opts.Explode, false, paramName, value)
 		if err != nil {
@@ -320,14 +336,9 @@ type BindQueryParameterOptions struct {
 	Type string
 	// Format is the OpenAPI format of the parameter (e.g. "byte", "date-time").
 	Format string
-}
-
-// BindQueryParameterWithOptions binds a query parameter, matching the newer
-// generated-code call site. The options are accepted for signature
-// compatibility; binding is driven by the destination's reflected kind.
-func BindQueryParameterWithOptions(style string, explode bool, required bool, paramName string,
-	queryParams url.Values, dest interface{}, _ BindQueryParameterOptions) error {
-	return BindQueryParameter(style, explode, required, paramName, queryParams, dest)
+	// AllowReserved indicates that the query value may contain RFC 3986
+	// reserved characters without percent-encoding.
+	AllowReserved bool
 }
 
 // BindQueryParameter works much like BindStyledParameter, however it takes a query argument
@@ -346,6 +357,13 @@ func BindQueryParameterWithOptions(style string, explode bool, required bool, pa
 // the Content parameter form.
 func BindQueryParameter(style string, explode bool, required bool, paramName string,
 	queryParams url.Values, dest interface{}) error {
+	return BindQueryParameterWithOptions(style, explode, required, paramName, queryParams, dest, BindQueryParameterOptions{})
+}
+
+// BindQueryParameterWithOptions binds a query parameter with additional
+// OpenAPI type and format metadata.
+func BindQueryParameterWithOptions(style string, explode bool, required bool, paramName string,
+	queryParams url.Values, dest interface{}, opts BindQueryParameterOptions) error {
 
 	// dv = destination value.
 	dv := reflect.Indirect(reflect.ValueOf(dest))
@@ -416,7 +434,18 @@ func BindQueryParameter(style string, explode bool, required bool, paramName str
 						return nil
 					}
 				}
-				err = bindSplitPartsToDestinationArray(values, output)
+				if opts.Format == "byte" && isByteSlice(t) {
+					if len(values) != 1 {
+						return fmt.Errorf("expected single base64 value for byte slice parameter '%s', got %d values", paramName, len(values))
+					}
+					decoded, decodeErr := base64Decode(values[0])
+					if decodeErr != nil {
+						return fmt.Errorf("error decoding base64 parameter '%s': %w", paramName, decodeErr)
+					}
+					v.SetBytes(decoded)
+				} else {
+					err = bindSplitPartsToDestinationArray(values, output)
+				}
 			case reflect.Struct:
 				// This case is really annoying, and error prone, but the
 				// form style object binding doesn't tell us which arguments
@@ -480,7 +509,15 @@ func BindQueryParameter(style string, explode bool, required bool, paramName str
 		var err error
 		switch k {
 		case reflect.Slice:
-			err = bindSplitPartsToDestinationArray(parts, output)
+			if opts.Format == "byte" && isByteSlice(t) {
+				decoded, decodeErr := base64Decode(strings.Join(parts, ","))
+				if decodeErr != nil {
+					return fmt.Errorf("error decoding base64 parameter '%s': %w", paramName, decodeErr)
+				}
+				v.SetBytes(decoded)
+			} else {
+				err = bindSplitPartsToDestinationArray(parts, output)
+			}
 		case reflect.Struct:
 			err = bindSplitPartsToDestinationStruct(paramName, parts, explode, output)
 		default:

@@ -129,8 +129,12 @@ func (e *Exporter) createLocationFromCani(
 	req := nautobotapi.LocationRequest{
 		Name: loc.Name,
 	}
-	setRefID(&req.LocationType, locType.ID)
-	setRefID(&req.Status, status.ID)
+	if err := setRefID(&req.LocationType, locType.ID); err != nil {
+		return uuid.Nil, fmt.Errorf("set location type reference: %w", err)
+	}
+	if err := setRefID(&req.Status, status.ID); err != nil {
+		return uuid.Nil, fmt.Errorf("set location status reference: %w", err)
+	}
 
 	// Map parent FK if present.
 	if loc.Parent != uuid.Nil {
@@ -138,7 +142,9 @@ func (e *Exporter) createLocationFromCani(
 		if !ok {
 			return uuid.Nil, fmt.Errorf("parent %s not yet created in Nautobot (ordering bug?)", loc.Parent)
 		}
-		setRefID(&req.Parent, parentNautobotID)
+		if err := setRefID(&req.Parent, parentNautobotID); err != nil {
+			return uuid.Nil, fmt.Errorf("set parent location reference: %w", err)
+		}
 	}
 
 	// Map optional fields.

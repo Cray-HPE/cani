@@ -67,9 +67,15 @@ func (e *Exporter) createInterface(ctx context.Context, deviceID uuid.UUID, ifac
 		Type:     ifaceType,
 		MgmtOnly: &mgmtOnly,
 	}
-	setRefID(&req.Device, deviceID)
-	setRefID(&req.Status, statusID)
-	setRefSlice(&req.Tags, e.Cache.resolveTagRefs(iface.Tags))
+	if err := setRefID(&req.Device, deviceID); err != nil {
+		return fmt.Errorf("set interface device reference: %w", err)
+	}
+	if err := setRefID(&req.Status, statusID); err != nil {
+		return fmt.Errorf("set interface status reference: %w", err)
+	}
+	if err := setRefSlice(&req.Tags, e.Cache.resolveTagRefs(iface.Tags)); err != nil {
+		return fmt.Errorf("set interface tag references: %w", err)
+	}
 
 	if iface.Mac != "" {
 		mac := iface.Mac
@@ -86,7 +92,9 @@ func (e *Exporter) createInterface(ctx context.Context, deviceID uuid.UUID, ifac
 		return err
 	}
 	if roleID != uuid.Nil {
-		setRefID(&req.Role, roleID)
+		if err := setRefID(&req.Role, roleID); err != nil {
+			return fmt.Errorf("set interface role reference: %w", err)
+		}
 	}
 
 	resp, err := e.Client.DcimInterfacesCreateWithResponse(ctx, &nautobotapi.DcimInterfacesCreateParams{}, req)
@@ -131,9 +139,15 @@ func (e *Exporter) updateInterface(ctx context.Context, interfaceID uuid.UUID, d
 	req := interfacePatch{}
 	req.Type = &ifaceType
 	req.MgmtOnly = &mgmtOnly
-	setRefID(&req.Device, deviceID)
-	setRefID(&req.Status, statusID)
-	setRefSlice(&req.Tags, e.Cache.resolveTagRefs(iface.Tags))
+	if err := setRefID(&req.Device, deviceID); err != nil {
+		return fmt.Errorf("set interface device reference: %w", err)
+	}
+	if err := setRefID(&req.Status, statusID); err != nil {
+		return fmt.Errorf("set interface status reference: %w", err)
+	}
+	if err := setRefSlice(&req.Tags, e.Cache.resolveTagRefs(iface.Tags)); err != nil {
+		return fmt.Errorf("set interface tag references: %w", err)
+	}
 
 	if iface.Mac != "" {
 		mac := iface.Mac
@@ -150,7 +164,9 @@ func (e *Exporter) updateInterface(ctx context.Context, interfaceID uuid.UUID, d
 		return err
 	}
 	if roleID != uuid.Nil {
-		setRefID(&req.Role, roleID)
+		if err := setRefID(&req.Role, roleID); err != nil {
+			return fmt.Errorf("set interface role reference: %w", err)
+		}
 	}
 
 	body, err := json.Marshal(req)

@@ -92,7 +92,7 @@ func TestRemoteSlotKey_FrontDefault(t *testing.T) {
 	d := &nautobotapi.Device{
 		Position: &pos,
 	}
-	setRefID(&d.Rack, rackID)
+	mustSetRefID(t, &d.Rack, rackID)
 	got := remoteSlotKey(d)
 	if got == nil {
 		t.Fatal("expected non-nil slotKey")
@@ -124,7 +124,7 @@ func TestRemoteSlotKey_RearFace(t *testing.T) {
 	d := &nautobotapi.Device{
 		Position: &pos,
 	}
-	setRefID(&d.Rack, rackID)
+	mustSetRefID(t, &d.Rack, rackID)
 	setNBValue(&d.Face, "rear")
 	got := remoteSlotKey(d)
 	if got == nil {
@@ -151,7 +151,7 @@ func TestRemoteSlotKey_NonRearFaceDefaultsToFront(t *testing.T) {
 	d := &nautobotapi.Device{
 		Position: &pos,
 	}
-	setRefID(&d.Rack, rackID)
+	mustSetRefID(t, &d.Rack, rackID)
 	setNBValue(&d.Face, "front")
 	got := remoteSlotKey(d)
 	if got == nil {

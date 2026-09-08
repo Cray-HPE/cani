@@ -121,7 +121,7 @@ func TestMakeObjectRef(t *testing.T) {
 	t.Run("creates ref from valid UUID", func(t *testing.T) {
 		id := uuid.MustParse("22222222-2222-2222-2222-222222222222")
 		var req nautobotapi.LocationRequest
-		setRefID(&req.Parent, id)
+		mustSetRefID(t, &req.Parent, id)
 
 		if req.Parent == nil {
 			t.Fatal("expected non-nil ref")
@@ -136,7 +136,7 @@ func TestMakeObjectRef(t *testing.T) {
 
 	t.Run("creates ref from nil UUID", func(t *testing.T) {
 		var req nautobotapi.LocationRequest
-		setRefID(&req.Parent, uuid.Nil)
+		mustSetRefID(t, &req.Parent, uuid.Nil)
 		if req.Parent == nil {
 			t.Fatal("expected non-nil ref even for nil UUID")
 		}

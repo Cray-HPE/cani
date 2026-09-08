@@ -139,7 +139,9 @@ func (e *Exporter) createVLAN(
 		Vid:  vlan.VID,
 		Name: vlan.Name,
 	}
-	setRefID(&req.Status, statusItem.ID)
+	if err := setRefID(&req.Status, statusItem.ID); err != nil {
+		return uuid.Nil, fmt.Errorf("set VLAN status reference: %w", err)
+	}
 
 	// Set description
 	if vlan.Description != "" {
@@ -148,14 +150,18 @@ func (e *Exporter) createVLAN(
 
 	// Scope to the location when it maps to a known Nautobot location.
 	if locationID != uuid.Nil {
-		setRefID(&req.Location, locationID)
+		if err := setRefID(&req.Location, locationID); err != nil {
+			return uuid.Nil, fmt.Errorf("set VLAN location reference: %w", err)
+		}
 	}
 
 	// Resolve role
 	if vlan.Role != "" {
 		roleItem, rerr := e.Cache.GetRole(vlan.Role)
 		if rerr == nil && roleItem != nil {
-			setRefID(&req.Role, roleItem.ID)
+			if err := setRefID(&req.Role, roleItem.ID); err != nil {
+				return uuid.Nil, fmt.Errorf("set VLAN role reference: %w", err)
+			}
 		}
 	}
 

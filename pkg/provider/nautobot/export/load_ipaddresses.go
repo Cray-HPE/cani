@@ -122,17 +122,23 @@ func (e *Exporter) createIPAddress(
 	req := nautobotapi.IPAddressRequest{
 		Address: addr.Address,
 	}
-	setRefID(&req.Status, statusItem.ID)
+	if err := setRefID(&req.Status, statusItem.ID); err != nil {
+		return uuid.Nil, fmt.Errorf("set IP address status reference: %w", err)
+	}
 
 	// Resolve parent prefix first
 	if addr.Parent != uuid.Nil {
 		if parentNID, ok := prefixMap[addr.Parent]; ok {
-			setRefID(&req.Parent, parentNID)
+			if err := setRefID(&req.Parent, parentNID); err != nil {
+				return uuid.Nil, fmt.Errorf("set IP address parent reference: %w", err)
+			}
 		}
 	}
 
 	// Always set namespace — Nautobot requires at least one of parent or namespace.
-	setRefID(&req.Namespace, namespaceID)
+	if err := setRefID(&req.Namespace, namespaceID); err != nil {
+		return uuid.Nil, fmt.Errorf("set IP address namespace reference: %w", err)
+	}
 
 	// Set type
 	if addr.Type != "" {
@@ -154,7 +160,9 @@ func (e *Exporter) createIPAddress(
 	if addr.IPRole != "" {
 		roleItem, err := e.Cache.GetRole(string(addr.IPRole))
 		if err == nil && roleItem != nil {
-			setRefID(&req.Role, roleItem.ID)
+			if err := setRefID(&req.Role, roleItem.ID); err != nil {
+				return uuid.Nil, fmt.Errorf("set IP address role reference: %w", err)
+			}
 		}
 	}
 
@@ -238,8 +246,14 @@ func (e *Exporter) assignIPToInterfaces(
 
 		// Create the IP-to-interface assignment
 		assignReq := nautobotapi.IPAddressToInterfaceRequest{}
-		setRefID(&assignReq.IpAddress, ipNautobotID)
-		setRefID(&assignReq.Interface, nautobotIface.ID)
+		if err := setRefID(&assignReq.IpAddress, ipNautobotID); err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("ip %s: set assignment IP reference: %v", addr.Address, err))
+			continue
+		}
+		if err := setRefID(&assignReq.Interface, nautobotIface.ID); err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("ip %s: set assignment interface reference: %v", addr.Address, err))
+			continue
+		}
 
 		httpResp, err := e.Client.IpamIpAddressToInterfaceCreate(
 			ctx,

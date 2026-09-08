@@ -113,9 +113,15 @@ func (e *Exporter) createModuleFromCani(
 
 	// Build the Module request.
 	req := nautobotapi.ModuleRequest{}
-	setRefID(&req.ModuleType, moduleTypeItem.ID)
-	setRefID(&req.ParentModuleBay, moduleBayItem.ID)
-	setRefID(&req.Status, status.ID)
+	if err := setRefID(&req.ModuleType, moduleTypeItem.ID); err != nil {
+		return fmt.Errorf("set module type reference: %w", err)
+	}
+	if err := setRefID(&req.ParentModuleBay, moduleBayItem.ID); err != nil {
+		return fmt.Errorf("set parent module bay reference: %w", err)
+	}
+	if err := setRefID(&req.Status, status.ID); err != nil {
+		return fmt.Errorf("set module status reference: %w", err)
+	}
 
 	// Optional fields.
 	if module.Serial != "" {
@@ -127,7 +133,9 @@ func (e *Exporter) createModuleFromCani(
 	if module.Role != "" {
 		role, err := e.Cache.GetRole(module.Role)
 		if err == nil && role != nil {
-			setRefID(&req.Role, role.ID)
+			if err := setRefID(&req.Role, role.ID); err != nil {
+				return fmt.Errorf("set module role reference: %w", err)
+			}
 		}
 	}
 	if module.Location != uuid.Nil {
@@ -135,7 +143,9 @@ func (e *Exporter) createModuleFromCani(
 		if loc, ok := inventory.Locations[module.Location]; ok && loc != nil {
 			locItem, err := e.Cache.GetLocation(loc.Name)
 			if err == nil && locItem != nil {
-				setRefID(&req.Location, locItem.ID)
+				if err := setRefID(&req.Location, locItem.ID); err != nil {
+					return fmt.Errorf("set module location reference: %w", err)
+				}
 			}
 		}
 	}
@@ -230,7 +240,9 @@ func (e *Exporter) getOrCreateModuleType(
 	createReq := nautobotapi.ModuleTypeRequest{
 		Model: model,
 	}
-	setRefID(&createReq.Manufacturer, manufacturer.ID)
+	if err := setRefID(&createReq.Manufacturer, manufacturer.ID); err != nil {
+		return nil, fmt.Errorf("set module type manufacturer reference: %w", err)
+	}
 	if module.PartNumber != "" {
 		createReq.PartNumber = &module.PartNumber
 	}
@@ -290,7 +302,9 @@ func (e *Exporter) getOrCreateModuleBay(
 	createReq := nautobotapi.ModuleBayRequest{
 		Name: bayName,
 	}
-	setRefID(&createReq.ParentDevice, deviceNautobotID)
+	if err := setRefID(&createReq.ParentDevice, deviceNautobotID); err != nil {
+		return nil, fmt.Errorf("set module bay parent device reference: %w", err)
+	}
 
 	// clog.Detail("[nautobot] Creating module bay: %s on device %s", bayName, deviceNautobotID)
 	createResp, err := e.Client.DcimModuleBaysCreateWithResponse(ctx,

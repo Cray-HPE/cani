@@ -847,7 +847,9 @@ func (c *LookupCache) CreateDeviceTypeFromLocal(slug string) (*CachedItem, error
 	req := nautobotapi.WritableDeviceTypeRequest{
 		Model: localDT.Model,
 	}
-	setRefID(&req.Manufacturer, manufacturer.ID)
+	if err := setRefID(&req.Manufacturer, manufacturer.ID); err != nil {
+		return nil, fmt.Errorf("set manufacturer reference for device type %s: %w", slug, err)
+	}
 
 	// Set optional fields if available
 	if localDT.PartNumber != "" {
@@ -938,7 +940,9 @@ func (c *LookupCache) CreateDeviceTypeFromCaniDevice(device *devicetypes.CaniDev
 	req := nautobotapi.WritableDeviceTypeRequest{
 		Model: model,
 	}
-	setRefID(&req.Manufacturer, manufacturer.ID)
+	if err := setRefID(&req.Manufacturer, manufacturer.ID); err != nil {
+		return nil, fmt.Errorf("set manufacturer reference for device type %s: %w", device.Slug, err)
+	}
 
 	if device.PartNumber != "" {
 		req.PartNumber = &device.PartNumber
@@ -1079,8 +1083,12 @@ func (c *LookupCache) CreateLocation(name string) (*CachedItem, error) {
 	req := nautobotapi.LocationRequest{
 		Name: name,
 	}
-	setRefID(&req.LocationType, locType.ID)
-	setRefID(&req.Status, status.ID)
+	if err := setRefID(&req.LocationType, locType.ID); err != nil {
+		return nil, fmt.Errorf("cannot create location %q: set location type reference: %w", name, err)
+	}
+	if err := setRefID(&req.Status, status.ID); err != nil {
+		return nil, fmt.Errorf("cannot create location %q: set status reference: %w", name, err)
+	}
 
 	resp, err := c.client.DcimLocationsCreateWithResponse(c.ctx,
 		&nautobotapi.DcimLocationsCreateParams{}, req)
@@ -1158,7 +1166,9 @@ func (c *LookupCache) createLocationType(name string, def *devicetypes.LocationT
 		if def.Parent != "" {
 			parentItem, perr := c.GetOrCreateLocationType(def.Parent, parentDef(def.Parent))
 			if perr == nil && parentItem != nil {
-				setRefID(&req.Parent, parentItem.ID)
+				if err := setRefID(&req.Parent, parentItem.ID); err != nil {
+					return nil, fmt.Errorf("set parent reference for location type %s: %w", name, err)
+				}
 			}
 		}
 	} else {

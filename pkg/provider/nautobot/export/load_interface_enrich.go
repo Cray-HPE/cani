@@ -190,7 +190,9 @@ func (e *Exporter) buildInterfaceEnrichment(
 	unresolved := 0
 
 	if id := e.lagRef(deviceID, spec.Lag); id != uuid.Nil {
-		setRefID(&req.Lag, id)
+		if err := setRefID(&req.Lag, id); err != nil {
+			return req, false, unresolved, fmt.Errorf("set interface LAG reference: %w", err)
+		}
 		changed = true
 	} else if spec.Lag != "" {
 		unresolved++
@@ -202,19 +204,25 @@ func (e *Exporter) buildInterfaceEnrichment(
 		}
 	}
 	if id := untaggedVLANRef(spec.UntaggedVLAN, vidToVLAN); id != uuid.Nil {
-		setRefID(&req.UntaggedVlan, id)
+		if err := setRefID(&req.UntaggedVlan, id); err != nil {
+			return req, false, unresolved, fmt.Errorf("set interface untagged VLAN reference: %w", err)
+		}
 		changed = true
 	} else if spec.UntaggedVLAN != 0 {
 		unresolved++
 	}
 	tagged := resolveTaggedVLANRefs(spec.TaggedVLANs, vidToVLAN)
 	if len(tagged) > 0 {
-		setRefSlice(&req.TaggedVlans, tagged)
+		if err := setRefSlice(&req.TaggedVlans, tagged); err != nil {
+			return req, false, unresolved, fmt.Errorf("set interface tagged VLAN references: %w", err)
+		}
 		changed = true
 	}
 	unresolved += len(spec.TaggedVLANs) - len(tagged)
 	if id := e.vrfRef(spec.VRF); id != uuid.Nil {
-		setRefID(&req.Vrf, id)
+		if err := setRefID(&req.Vrf, id); err != nil {
+			return req, false, unresolved, fmt.Errorf("set interface VRF reference: %w", err)
+		}
 		changed = true
 	} else if spec.VRF != "" {
 		unresolved++
@@ -234,14 +242,18 @@ func (e *Exporter) buildInterfaceEnrichment(
 		return req, false, unresolved + 1, err
 	}
 	if roleID != uuid.Nil {
-		setRefID(&req.Role, roleID)
+		if err := setRefID(&req.Role, roleID); err != nil {
+			return req, false, unresolved, fmt.Errorf("set interface role reference: %w", err)
+		}
 	}
 
 	// Nautobot's interface serializer validates that a device (or module) is
 	// set even on a partial update; omitting it fails with "Either device or
 	// module must be set". Include the device reference whenever we PATCH.
 	if changed {
-		setRefID(&req.Device, deviceID)
+		if err := setRefID(&req.Device, deviceID); err != nil {
+			return req, false, unresolved, fmt.Errorf("set interface device reference: %w", err)
+		}
 	}
 	return req, changed, unresolved, nil
 }

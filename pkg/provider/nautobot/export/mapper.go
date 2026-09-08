@@ -48,6 +48,28 @@ type DeviceMapper struct {
 	inventory *devicetypes.Inventory
 }
 
+func setDeviceRequestRefs(
+	deviceTypeField, locationField, statusField, roleField any,
+	deviceTypeID, locationID, statusID, roleID uuid.UUID,
+) error {
+	references := []struct {
+		name  string
+		field any
+		id    uuid.UUID
+	}{
+		{name: "device type", field: deviceTypeField, id: deviceTypeID},
+		{name: "location", field: locationField, id: locationID},
+		{name: "status", field: statusField, id: statusID},
+		{name: "role", field: roleField, id: roleID},
+	}
+	for _, reference := range references {
+		if err := setRefID(reference.field, reference.id); err != nil {
+			return fmt.Errorf("set %s reference: %w", reference.name, err)
+		}
+	}
+	return nil
+}
+
 // NewDeviceMapper creates a new device mapper
 func NewDeviceMapper(cache *LookupCache, defaults *MapperOpts) *DeviceMapper {
 	return &DeviceMapper{
@@ -96,10 +118,9 @@ func (m *DeviceMapper) MapToNautobotDevice(device *devicetypes.CaniDeviceType) (
 		Id:   device.ID,
 		Name: &device.Name,
 	}
-	setRefID(&req.DeviceType, deviceType.ID)
-	setRefID(&req.Location, location.ID)
-	setRefID(&req.Status, status.ID)
-	setRefID(&req.Role, role.ID)
+	if err := setDeviceRequestRefs(&req.DeviceType, &req.Location, &req.Status, &req.Role, deviceType.ID, location.ID, status.ID, role.ID); err != nil {
+		return nil, fmt.Errorf("failed to build references for %s: %w", device.Name, err)
+	}
 
 	// Map optional fields - use flattened ProviderMetadata for custom fields
 	if flat := device.FlattenProviderMetadata(); len(flat) > 0 {
@@ -158,10 +179,9 @@ func (m *DeviceMapper) MapToWritableDeviceRequest(device *devicetypes.CaniDevice
 	req := &nautobotapi.WritableDeviceRequest{
 		Name: &device.Name,
 	}
-	setRefID(&req.DeviceType, deviceType.ID)
-	setRefID(&req.Location, location.ID)
-	setRefID(&req.Status, status.ID)
-	setRefID(&req.Role, role.ID)
+	if err := setDeviceRequestRefs(&req.DeviceType, &req.Location, &req.Status, &req.Role, deviceType.ID, location.ID, status.ID, role.ID); err != nil {
+		return nil, fmt.Errorf("failed to build references for %s: %w", device.Name, err)
+	}
 
 	// Map optional fields - use flattened ProviderMetadata for custom fields
 	if flat := device.FlattenProviderMetadata(); len(flat) > 0 {
@@ -194,7 +214,9 @@ func (m *DeviceMapper) MapToWritableDeviceRequest(device *devicetypes.CaniDevice
 			rack, err := m.cache.GetRackByName(parentRack.Name)
 			if err == nil && rack != nil {
 				// Build rack reference using the same pattern as other references
-				setRefID(&req.Rack, rack.ID)
+				if err := setRefID(&req.Rack, rack.ID); err != nil {
+					return nil, fmt.Errorf("set rack reference for %s: %w", device.Name, err)
+				}
 
 				// Set position from RackPosition field
 				if device.RackPosition > 0 {
@@ -209,7 +231,9 @@ func (m *DeviceMapper) MapToWritableDeviceRequest(device *devicetypes.CaniDevice
 			// Fallback: check if parent is a rack-type device in Devices collection (legacy)
 			rack, err := m.cache.GetRackByName(parentDevice.Name)
 			if err == nil && rack != nil {
-				setRefID(&req.Rack, rack.ID)
+				if err := setRefID(&req.Rack, rack.ID); err != nil {
+					return nil, fmt.Errorf("set rack reference for %s: %w", device.Name, err)
+				}
 
 				if device.RackPosition > 0 {
 					pos := device.RackPosition
@@ -238,23 +262,31 @@ func (m *DeviceMapper) MapToPatchRequest(device *devicetypes.CaniDeviceType, exi
 	if device.Slug != "" {
 		deviceType, err := m.resolveDeviceType(device)
 		if err == nil {
-			setRefID(&req.DeviceType, deviceType.ID)
+			if err := setRefID(&req.DeviceType, deviceType.ID); err != nil {
+				return nil, fmt.Errorf("set device type reference for %s: %w", device.Name, err)
+			}
 		}
 	}
 
 	// Resolve and set location
 	if location, err := m.resolveLocation(device); err == nil {
-		setRefID(&req.Location, location.ID)
+		if err := setRefID(&req.Location, location.ID); err != nil {
+			return nil, fmt.Errorf("set location reference for %s: %w", device.Name, err)
+		}
 	}
 
 	// Resolve and set status
 	if status, err := m.resolveStatus(device); err == nil {
-		setRefID(&req.Status, status.ID)
+		if err := setRefID(&req.Status, status.ID); err != nil {
+			return nil, fmt.Errorf("set status reference for %s: %w", device.Name, err)
+		}
 	}
 
 	// Resolve and set role
 	if role, err := m.resolveRole(device); err == nil {
-		setRefID(&req.Role, role.ID)
+		if err := setRefID(&req.Role, role.ID); err != nil {
+			return nil, fmt.Errorf("set role reference for %s: %w", device.Name, err)
+		}
 	}
 
 	// Map optional fields - use flattened ProviderMetadata for custom fields
@@ -286,7 +318,9 @@ func (m *DeviceMapper) MapToPatchRequest(device *devicetypes.CaniDeviceType, exi
 			// Look up the rack in Nautobot by name
 			rack, err := m.cache.GetRackByName(parentRack.Name)
 			if err == nil && rack != nil {
-				setRefID(&req.Rack, rack.ID)
+				if err := setRefID(&req.Rack, rack.ID); err != nil {
+					return nil, fmt.Errorf("set rack reference for %s: %w", device.Name, err)
+				}
 
 				if device.RackPosition > 0 {
 					pos := device.RackPosition
@@ -299,7 +333,9 @@ func (m *DeviceMapper) MapToPatchRequest(device *devicetypes.CaniDeviceType, exi
 			// Fallback: check if parent is a rack-type device in Devices collection (legacy)
 			rack, err := m.cache.GetRackByName(parentDevice.Name)
 			if err == nil && rack != nil {
-				setRefID(&req.Rack, rack.ID)
+				if err := setRefID(&req.Rack, rack.ID); err != nil {
+					return nil, fmt.Errorf("set rack reference for %s: %w", device.Name, err)
+				}
 
 				if device.RackPosition > 0 {
 					pos := device.RackPosition
@@ -479,8 +515,12 @@ func (m *DeviceMapper) MapToWritableRackRequest(device *devicetypes.CaniDeviceTy
 	req := &nautobotapi.WritableRackRequest{
 		Name: device.Name,
 	}
-	setRefID(&req.Location, location.ID)
-	setRefID(&req.Status, status.ID)
+	if err := setRefID(&req.Location, location.ID); err != nil {
+		return nil, fmt.Errorf("set location reference for rack %s: %w", device.Name, err)
+	}
+	if err := setRefID(&req.Status, status.ID); err != nil {
+		return nil, fmt.Errorf("set status reference for rack %s: %w", device.Name, err)
+	}
 
 	// Set rack height (default to 48U if not specified)
 	uHeight := 48

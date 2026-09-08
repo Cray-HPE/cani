@@ -310,7 +310,7 @@ func TestInterfaceDescriptionImportExportRoundTrip(t *testing.T) {
 		Name:        "1/1/49",
 		Description: &description,
 	}
-	setRefID(&iface.Device, deviceID)
+	mustSetRefID(t, &iface.Device, deviceID)
 	setNBValue(&iface.Type, "100gbase-x-qsfp28")
 
 	devices, idMap := providertransform.MapDevices(

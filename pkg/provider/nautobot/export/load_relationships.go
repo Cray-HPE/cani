@@ -195,7 +195,10 @@ func (e *Exporter) createAssociation(
 		DestinationType: ep.dstType,
 		DestinationId:   openapi_types.UUID(ep.dstID),
 	}
-	setRefID(&req.Relationship, relID)
+	if err := setRefID(&req.Relationship, relID); err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("association %s: set relationship reference: %v", relKey, err))
+		return
+	}
 	resp, err := e.Client.ExtrasRelationshipAssociationsCreateWithResponse(
 		ctx, &nautobotapi.ExtrasRelationshipAssociationsCreateParams{}, req)
 	if err != nil {

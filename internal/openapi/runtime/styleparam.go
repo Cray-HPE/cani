@@ -18,6 +18,7 @@ package runtime
 import (
 	"bytes"
 	"encoding"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -53,6 +54,14 @@ func StyleParam(style string, explode bool, paramName string, value interface{})
 	return StyleParamWithLocation(style, explode, paramName, ParamLocationUndefined, value)
 }
 
+// StyleParamWithLocation serializes a Go value into an OpenAPI-styled parameter
+// string, performing escaping based on parameter location.
+func StyleParamWithLocation(style string, explode bool, paramName string, paramLocation ParamLocation, value interface{}) (string, error) {
+	return StyleParamWithOptions(style, explode, paramName, value, StyleParamOptions{
+		ParamLocation: paramLocation,
+	})
+}
+
 // StyleParamOptions defines optional arguments for StyleParamWithOptions.
 type StyleParamOptions struct {
 	// ParamLocation controls URL escaping behavior.
@@ -61,19 +70,14 @@ type StyleParamOptions struct {
 	Type string
 	// Format is the OpenAPI format of the parameter (e.g. "byte", "date-time").
 	Format string
+	// Required indicates whether the parameter is required.
+	Required bool
+	// AllowReserved preserves RFC 3986 reserved characters in query values.
+	AllowReserved bool
 }
 
-// StyleParamWithOptions serializes a Go value into an OpenAPI-styled parameter
-// string. The options are accepted for signature compatibility with newer
-// generated code; escaping is driven by ParamLocation.
+// StyleParamWithOptions serializes a Go value with additional OpenAPI options.
 func StyleParamWithOptions(style string, explode bool, paramName string, value interface{}, opts StyleParamOptions) (string, error) {
-	return StyleParamWithLocation(style, explode, paramName, opts.ParamLocation, value)
-}
-
-// Given an input value, such as a primitive type, array or object, turn it
-// into a parameter based on style/explode definition, performing whatever
-// escaping is necessary based on parameter location
-func StyleParamWithLocation(style string, explode bool, paramName string, paramLocation ParamLocation, value interface{}) (string, error) {
 	t := reflect.TypeOf(value)
 	v := reflect.ValueOf(value)
 
@@ -102,28 +106,32 @@ func StyleParamWithLocation(style string, explode bool, paramName string, paramL
 				return "", fmt.Errorf("error marshaling '%s' as text: %w", value, err)
 			}
 
-			return stylePrimitive(style, explode, paramName, paramLocation, string(b))
+			return stylePrimitive(style, explode, paramName, opts.ParamLocation, opts.AllowReserved, string(b))
 		}
 	}
 
 	switch t.Kind() {
 	case reflect.Slice:
+		if opts.Format == "byte" && isByteSlice(t) {
+			encoded := base64.StdEncoding.EncodeToString(v.Bytes())
+			return stylePrimitive(style, explode, paramName, opts.ParamLocation, opts.AllowReserved, encoded)
+		}
 		n := v.Len()
 		sliceVal := make([]interface{}, n)
 		for i := 0; i < n; i++ {
 			sliceVal[i] = v.Index(i).Interface()
 		}
-		return styleSlice(style, explode, paramName, paramLocation, sliceVal)
+		return styleSlice(style, explode, paramName, opts.ParamLocation, opts.AllowReserved, sliceVal)
 	case reflect.Struct:
-		return styleStruct(style, explode, paramName, paramLocation, value)
+		return styleStruct(style, explode, paramName, opts.ParamLocation, opts.AllowReserved, value)
 	case reflect.Map:
-		return styleMap(style, explode, paramName, paramLocation, value)
+		return styleMap(style, explode, paramName, opts.ParamLocation, opts.AllowReserved, value)
 	default:
-		return stylePrimitive(style, explode, paramName, paramLocation, value)
+		return stylePrimitive(style, explode, paramName, opts.ParamLocation, opts.AllowReserved, value)
 	}
 }
 
-func styleSlice(style string, explode bool, paramName string, paramLocation ParamLocation, values []interface{}) (string, error) {
+func styleSlice(style string, explode bool, paramName string, paramLocation ParamLocation, allowReserved bool, values []interface{}) (string, error) {
 	if style == "deepObject" {
 		if !explode {
 			return "", errors.New("deepObjects must be exploded")
@@ -133,6 +141,7 @@ func styleSlice(style string, explode bool, paramName string, paramLocation Para
 
 	var prefix string
 	var separator string
+	escapedName := escapeParameterName(paramName, paramLocation)
 
 	switch style {
 	case "simple":
@@ -145,28 +154,28 @@ func styleSlice(style string, explode bool, paramName string, paramLocation Para
 			separator = ","
 		}
 	case "matrix":
-		prefix = fmt.Sprintf(";%s=", paramName)
+		prefix = fmt.Sprintf(";%s=", escapedName)
 		if explode {
 			separator = prefix
 		} else {
 			separator = ","
 		}
 	case "form":
-		prefix = fmt.Sprintf("%s=", paramName)
+		prefix = fmt.Sprintf("%s=", escapedName)
 		if explode {
 			separator = "&" + prefix
 		} else {
 			separator = ","
 		}
 	case "spaceDelimited":
-		prefix = fmt.Sprintf("%s=", paramName)
+		prefix = fmt.Sprintf("%s=", escapedName)
 		if explode {
 			separator = "&" + prefix
 		} else {
 			separator = " "
 		}
 	case "pipeDelimited":
-		prefix = fmt.Sprintf("%s=", paramName)
+		prefix = fmt.Sprintf("%s=", escapedName)
 		if explode {
 			separator = "&" + prefix
 		} else {
@@ -182,7 +191,7 @@ func styleSlice(style string, explode bool, paramName string, paramLocation Para
 	parts := make([]string, len(values))
 	for i, v := range values {
 		part, err = primitiveToString(v)
-		part = escapeParameterString(part, paramLocation)
+		part = escapeParameterString(part, paramLocation, allowReserved)
 		parts[i] = part
 		if err != nil {
 			return "", fmt.Errorf("error formatting '%s': %w", paramName, err)
@@ -229,9 +238,9 @@ func marshalKnownTypes(value interface{}) (string, bool) {
 	return "", false
 }
 
-func styleStruct(style string, explode bool, paramName string, paramLocation ParamLocation, value interface{}) (string, error) {
+func styleStruct(style string, explode bool, paramName string, paramLocation ParamLocation, allowReserved bool, value interface{}) (string, error) {
 	if timeVal, ok := marshalKnownTypes(value); ok {
-		styledVal, err := stylePrimitive(style, explode, paramName, paramLocation, timeVal)
+		styledVal, err := stylePrimitive(style, explode, paramName, paramLocation, allowReserved, timeVal)
 		if err != nil {
 			return "", fmt.Errorf("failed to style time: %w", err)
 		}
@@ -259,7 +268,10 @@ func styleStruct(style string, explode bool, paramName string, paramLocation Par
 		if err != nil {
 			return "", fmt.Errorf("failed to unmarshal JSON: %w", err)
 		}
-		s, err := StyleParamWithLocation(style, explode, paramName, paramLocation, i2)
+		s, err := StyleParamWithOptions(style, explode, paramName, i2, StyleParamOptions{
+			ParamLocation: paramLocation,
+			AllowReserved: allowReserved,
+		})
 		if err != nil {
 			return "", fmt.Errorf("error style JSON structure: %w", err)
 		}
@@ -298,10 +310,10 @@ func styleStruct(style string, explode bool, paramName string, paramLocation Par
 		fieldDict[fieldName] = str
 	}
 
-	return processFieldDict(style, explode, paramName, paramLocation, fieldDict)
+	return processFieldDict(style, explode, paramName, paramLocation, allowReserved, fieldDict)
 }
 
-func styleMap(style string, explode bool, paramName string, paramLocation ParamLocation, value interface{}) (string, error) {
+func styleMap(style string, explode bool, paramName string, paramLocation ParamLocation, allowReserved bool, value interface{}) (string, error) {
 	if style == "deepObject" {
 		if !explode {
 			return "", errors.New("deepObjects must be exploded")
@@ -318,10 +330,10 @@ func styleMap(style string, explode bool, paramName string, paramLocation ParamL
 		}
 		fieldDict[fieldName.String()] = str
 	}
-	return processFieldDict(style, explode, paramName, paramLocation, fieldDict)
+	return processFieldDict(style, explode, paramName, paramLocation, allowReserved, fieldDict)
 }
 
-func processFieldDict(style string, explode bool, paramName string, paramLocation ParamLocation, fieldDict map[string]string) (string, error) {
+func processFieldDict(style string, explode bool, paramName string, paramLocation ParamLocation, allowReserved bool, fieldDict map[string]string) (string, error) {
 	var parts []string
 
 	// This works for everything except deepObject. We'll handle that one
@@ -329,12 +341,12 @@ func processFieldDict(style string, explode bool, paramName string, paramLocatio
 	if style != "deepObject" {
 		if explode {
 			for _, k := range sortedKeys(fieldDict) {
-				v := escapeParameterString(fieldDict[k], paramLocation)
+				v := escapeParameterString(fieldDict[k], paramLocation, allowReserved)
 				parts = append(parts, k+"="+v)
 			}
 		} else {
 			for _, k := range sortedKeys(fieldDict) {
-				v := escapeParameterString(fieldDict[k], paramLocation)
+				v := escapeParameterString(fieldDict[k], paramLocation, allowReserved)
 				parts = append(parts, k)
 				parts = append(parts, v)
 			}
@@ -343,6 +355,7 @@ func processFieldDict(style string, explode bool, paramName string, paramLocatio
 
 	var prefix string
 	var separator string
+	escapedName := escapeParameterName(paramName, paramLocation)
 
 	switch style {
 	case "simple":
@@ -360,13 +373,13 @@ func processFieldDict(style string, explode bool, paramName string, paramLocatio
 			prefix = ";"
 		} else {
 			separator = ","
-			prefix = fmt.Sprintf(";%s=", paramName)
+			prefix = fmt.Sprintf(";%s=", escapedName)
 		}
 	case "form":
 		if explode {
 			separator = "&"
 		} else {
-			prefix = fmt.Sprintf("%s=", paramName)
+			prefix = fmt.Sprintf("%s=", escapedName)
 			separator = ","
 		}
 	case "deepObject":
@@ -376,7 +389,7 @@ func processFieldDict(style string, explode bool, paramName string, paramLocatio
 			}
 			for _, k := range sortedKeys(fieldDict) {
 				v := fieldDict[k]
-				part := fmt.Sprintf("%s[%s]=%s", paramName, k, v)
+				part := fmt.Sprintf("%s[%s]=%s", escapedName, k, v)
 				parts = append(parts, part)
 			}
 			separator = "&"
@@ -388,25 +401,26 @@ func processFieldDict(style string, explode bool, paramName string, paramLocatio
 	return prefix + strings.Join(parts, separator), nil
 }
 
-func stylePrimitive(style string, explode bool, paramName string, paramLocation ParamLocation, value interface{}) (string, error) {
+func stylePrimitive(style string, explode bool, paramName string, paramLocation ParamLocation, allowReserved bool, value interface{}) (string, error) {
 	strVal, err := primitiveToString(value)
 	if err != nil {
 		return "", err
 	}
 
 	var prefix string
+	escapedName := escapeParameterName(paramName, paramLocation)
 	switch style {
 	case "simple":
 	case "label":
 		prefix = "."
 	case "matrix":
-		prefix = fmt.Sprintf(";%s=", paramName)
+		prefix = fmt.Sprintf(";%s=", escapedName)
 	case "form":
-		prefix = fmt.Sprintf("%s=", paramName)
+		prefix = fmt.Sprintf("%s=", escapedName)
 	default:
 		return "", fmt.Errorf("unsupported style '%s'", style)
 	}
-	return prefix + escapeParameterString(strVal, paramLocation), nil
+	return prefix + escapeParameterString(strVal, paramLocation, allowReserved), nil
 }
 
 // Converts a primitive value to a string. We need to do this based on the
@@ -482,13 +496,41 @@ func primitiveToString(value interface{}) (string, error) {
 // escapeParameterString escapes a parameter value bas on the location of that parameter.
 // Query params and path params need different kinds of escaping, while header
 // and cookie params seem not to need escaping.
-func escapeParameterString(value string, paramLocation ParamLocation) string {
+func escapeParameterName(name string, paramLocation ParamLocation) string {
+	return escapeParameterString(name, paramLocation, false)
+}
+
+func escapeParameterString(value string, paramLocation ParamLocation, allowReserved bool) string {
 	switch paramLocation {
 	case ParamLocationQuery:
+		if allowReserved {
+			return escapeQueryAllowReserved(value)
+		}
 		return url.QueryEscape(value)
 	case ParamLocationPath:
 		return url.PathEscape(value)
 	default:
 		return value
 	}
+}
+
+func escapeQueryAllowReserved(value string) string {
+	const reserved = `:/?#[]@!$&'()*+,;=`
+
+	var buf strings.Builder
+	for _, b := range []byte(value) {
+		if isUnreserved(b) || strings.IndexByte(reserved, b) >= 0 {
+			buf.WriteByte(b)
+		} else {
+			fmt.Fprintf(&buf, "%%%02X", b)
+		}
+	}
+	return buf.String()
+}
+
+func isUnreserved(char byte) bool {
+	return (char >= 'A' && char <= 'Z') ||
+		(char >= 'a' && char <= 'z') ||
+		(char >= '0' && char <= '9') ||
+		char == '-' || char == '.' || char == '_' || char == '~'
 }

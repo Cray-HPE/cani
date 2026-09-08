@@ -569,7 +569,9 @@ func (e *Exporter) createDevice(ctx context.Context, device *devicetypes.CaniDev
 	if err != nil {
 		return err
 	}
-	setRefSlice(&req.Tags, e.Cache.resolveTagRefs(device.Tags))
+	if err := setRefSlice(&req.Tags, e.Cache.resolveTagRefs(device.Tags)); err != nil {
+		return fmt.Errorf("set device tag references: %w", err)
+	}
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create device: %s", device.Name)
@@ -628,7 +630,9 @@ func (e *Exporter) createRack(ctx context.Context, device *devicetypes.CaniDevic
 	if err != nil {
 		return err
 	}
-	setRefSlice(&req.Tags, e.Cache.resolveTagRefs(device.Tags))
+	if err := setRefSlice(&req.Tags, e.Cache.resolveTagRefs(device.Tags)); err != nil {
+		return fmt.Errorf("set rack tag references: %w", err)
+	}
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create rack: %s", device.Name)
@@ -713,9 +717,15 @@ func (e *Exporter) createRackFromCaniRack(ctx context.Context, rack *devicetypes
 		Name:    rack.Name,
 		UHeight: &uHeight,
 	}
-	setRefID(&req.Location, location.ID)
-	setRefID(&req.Status, status.ID)
-	setRefSlice(&req.Tags, e.Cache.resolveTagRefs(rack.Tags))
+	if err := setRefID(&req.Location, location.ID); err != nil {
+		return uuid.Nil, fmt.Errorf("set rack location reference: %w", err)
+	}
+	if err := setRefID(&req.Status, status.ID); err != nil {
+		return uuid.Nil, fmt.Errorf("set rack status reference: %w", err)
+	}
+	if err := setRefSlice(&req.Tags, e.Cache.resolveTagRefs(rack.Tags)); err != nil {
+		return uuid.Nil, fmt.Errorf("set rack tag references: %w", err)
+	}
 
 	// Map OuterWidth, OuterDepth, and OuterUnit if present.
 	if rack.OuterWidth > 0 {
@@ -837,7 +847,9 @@ func (e *Exporter) createDeviceWithID(ctx context.Context, device *devicetypes.C
 	if err != nil {
 		return uuid.Nil, err
 	}
-	setRefSlice(&req.Tags, e.Cache.resolveTagRefs(device.Tags))
+	if err := setRefSlice(&req.Tags, e.Cache.resolveTagRefs(device.Tags)); err != nil {
+		return uuid.Nil, fmt.Errorf("set device tag references: %w", err)
+	}
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create device: %s", device.Name)
@@ -1188,7 +1200,9 @@ func (e *Exporter) createCaniCableType(ctx context.Context, cableID uuid.UUID, c
 		Type:             cableType,
 		Length:           lengthInt,
 	}
-	setRefID(&req.Status, statusID)
+	if err := setRefID(&req.Status, statusID); err != nil {
+		return fmt.Errorf("set cable status reference: %w", err)
+	}
 
 	// Map cable Color if present (RGB hex, e.g. "00ff00").
 	// Accept both hex codes and common named colors.

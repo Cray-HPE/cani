@@ -148,15 +148,16 @@ func TestLoadPrimaryIPs_IndependentFamilyResolution(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 // setPrimaryIP sets a device's primary IPv4 reference to the given UUID.
-func setPrimaryIP(remote *nautobotapi.Device, id uuid.UUID) {
-	setRefID(&remote.PrimaryIp4, id)
+func setPrimaryIP(t testing.TB, remote *nautobotapi.Device, id uuid.UUID) {
+	t.Helper()
+	mustSetRefID(t, &remote.PrimaryIp4, id)
 }
 
 func TestPrimaryIPsMatch_TrueWhenSameIPv4(t *testing.T) {
 	ipID := uuid.New()
 	payload := map[string]any{"primary_ip4": map[string]string{"id": ipID.String()}}
 	remote := &nautobotapi.Device{}
-	setPrimaryIP(remote, ipID)
+	setPrimaryIP(t, remote, ipID)
 	if !primaryIPsMatch(payload, remote) {
 		t.Error("expected match when IPv4 IDs are the same")
 	}
@@ -165,7 +166,7 @@ func TestPrimaryIPsMatch_TrueWhenSameIPv4(t *testing.T) {
 func TestPrimaryIPsMatch_FalseWhenDifferentIPv4(t *testing.T) {
 	payload := map[string]any{"primary_ip4": map[string]string{"id": uuid.New().String()}}
 	remote := &nautobotapi.Device{}
-	setPrimaryIP(remote, uuid.New())
+	setPrimaryIP(t, remote, uuid.New())
 	if primaryIPsMatch(payload, remote) {
 		t.Error("expected mismatch when IPv4 IDs differ")
 	}
@@ -181,7 +182,7 @@ func TestPrimaryIPsMatch_FalseWhenRemoteHasNoIPv4(t *testing.T) {
 
 func TestPrimaryIPsMatch_TrueWhenNoIPInPayload(t *testing.T) {
 	remote := &nautobotapi.Device{}
-	setPrimaryIP(remote, uuid.New())
+	setPrimaryIP(t, remote, uuid.New())
 	if !primaryIPsMatch(map[string]any{}, remote) {
 		t.Error("empty payload should match anything")
 	}

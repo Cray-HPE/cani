@@ -191,7 +191,9 @@ func (e *Exporter) ensureCustomFieldChoices(ctx context.Context, cfID uuid.UUID,
 			Value:  value,
 			Weight: &weight,
 		}
-		setRefID(&choiceReq.CustomField, cfID)
+		if err := setRefID(&choiceReq.CustomField, cfID); err != nil {
+			return fmt.Errorf("set custom field reference for choice %q: %w", value, err)
+		}
 
 		choiceResp, err := e.Client.ExtrasCustomFieldChoicesCreateWithResponse(ctx,
 			&nautobotapi.ExtrasCustomFieldChoicesCreateParams{},

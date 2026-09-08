@@ -27,6 +27,7 @@ package export
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strings"
 
@@ -43,94 +44,82 @@ import (
 // setRefID sets the Id union of a Nautobot request reference field to a UUID.
 // field must be a pointer to the reference field, which may be a value struct
 // or a (possibly nil) pointer to struct; nil pointers are allocated.
-func setRefID(field any, id uuid.UUID) {
+func setRefID(field any, id uuid.UUID) error {
 	rv := reflect.ValueOf(field)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
-		return
+		return fmt.Errorf("reference field must be a non-nil pointer, got %T", field)
 	}
 	target := rv.Elem()
 	if target.Kind() == reflect.Ptr {
 		if target.IsNil() {
 			if !target.CanSet() {
-				return
+				return fmt.Errorf("reference pointer %T cannot be set", field)
 			}
 			target.Set(reflect.New(target.Type().Elem()))
 		}
 		target = target.Elem()
 	}
 	if target.Kind() != reflect.Struct {
-		return
+		return fmt.Errorf("reference field must point to a struct, got %s", target.Kind())
 	}
 	idField := target.FieldByName("Id")
 	if !idField.IsValid() || !idField.CanSet() || idField.Kind() != reflect.Ptr {
-		return
+		return fmt.Errorf("reference struct %s has no settable pointer Id field", target.Type())
 	}
 	// idField is *<...>_Id; allocate one and load the UUID via its
 	// json.Unmarshaler (member 0 is the UUID variant).
 	nv := reflect.New(idField.Type().Elem())
 	u, ok := nv.Interface().(json.Unmarshaler)
 	if !ok {
-		return
+		return fmt.Errorf("reference Id type %s does not implement json.Unmarshaler", idField.Type().Elem())
 	}
 	b, err := json.Marshal(id)
 	if err != nil {
-		return
+		return fmt.Errorf("marshal reference UUID: %w", err)
 	}
 	if err := u.UnmarshalJSON(b); err != nil {
-		return
+		return fmt.Errorf("set reference UUID on %s: %w", target.Type(), err)
 	}
 	idField.Set(nv)
-}
-
-// newRef returns a new reference value of type T with its Id union set to the
-// given UUID. T is the concrete (possibly anonymous) reference struct type of a
-// request field, inferred at the call site.
-func newRef[T any](id uuid.UUID) T {
-	var ref T
-	setRefID(&ref, id)
-	return ref
-}
-
-// newRefPtr returns a pointer to a new reference value of type T with its Id
-// union set to the given UUID.
-func newRefPtr[T any](id uuid.UUID) *T {
-	ref := newRef[T](id)
-	return &ref
+	return nil
 }
 
 // setRefSlice populates a request's repeated reference field (e.g. Tags,
 // TaggedVlans) from a list of UUIDs. field must be a pointer to the field,
 // which is typically `*[]struct{ Id *<...>_Id; ... }`; a nil slice pointer is
 // allocated. A nil/empty ids list leaves the field untouched.
-func setRefSlice(field any, ids []uuid.UUID) {
+func setRefSlice(field any, ids []uuid.UUID) error {
 	if len(ids) == 0 {
-		return
+		return nil
 	}
 	rv := reflect.ValueOf(field)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
-		return
+		return fmt.Errorf("reference slice must be a non-nil pointer, got %T", field)
 	}
 	target := rv.Elem()
 	if target.Kind() == reflect.Ptr {
 		if target.IsNil() {
 			if !target.CanSet() {
-				return
+				return fmt.Errorf("reference slice pointer %T cannot be set", field)
 			}
 			target.Set(reflect.New(target.Type().Elem()))
 		}
 		target = target.Elem()
 	}
 	if target.Kind() != reflect.Slice {
-		return
+		return fmt.Errorf("reference slice field must point to a slice, got %s", target.Kind())
 	}
 	elemType := target.Type().Elem()
 	out := reflect.MakeSlice(target.Type(), 0, len(ids))
 	for _, id := range ids {
 		ev := reflect.New(elemType)
-		setRefID(ev.Interface(), id)
+		if err := setRefID(ev.Interface(), id); err != nil {
+			return fmt.Errorf("set reference slice item %s: %w", id, err)
+		}
 		out = reflect.Append(out, ev.Elem())
 	}
 	target.Set(out)
+	return nil
 }
 
 // setDeviceFace sets a device request's Face union field ("front"/"rear",

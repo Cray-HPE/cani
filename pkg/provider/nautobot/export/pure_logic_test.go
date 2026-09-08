@@ -501,7 +501,7 @@ func TestRefID(t *testing.T) {
 	// valid union
 	id := uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 	var req nautobotapi.WritablePrefixRequest
-	setRefID(&req.Status, id)
+	mustSetRefID(t, &req.Status, id)
 	if got := refID(req.Status.Id); got != id {
 		t.Errorf("refID() = %s, want %s", got, id)
 	}
@@ -743,7 +743,7 @@ func TestCacheIPAddress(t *testing.T) {
 func TestMakeIDRef(t *testing.T) {
 	id := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	var req nautobotapi.WritablePrefixRequest
-	setRefID(&req.Status, id)
+	mustSetRefID(t, &req.Status, id)
 	if req.Status.Id == nil {
 		t.Fatal("expected non-nil Id")
 	}
@@ -763,7 +763,7 @@ func TestMakeIDRef(t *testing.T) {
 func TestMakeLocationRef(t *testing.T) {
 	id := uuid.MustParse("22222222-2222-2222-2222-222222222222")
 	var req nautobotapi.WritablePrefixRequest
-	setRefID(&req.Location, id)
+	mustSetRefID(t, &req.Location, id)
 	if req.Location == nil || req.Location.Id == nil {
 		t.Fatal("expected non-nil Id")
 	}
@@ -783,7 +783,7 @@ func TestMakeLocationRef(t *testing.T) {
 func TestMakePrefixParentRef(t *testing.T) {
 	id := uuid.MustParse("33333333-3333-3333-3333-333333333333")
 	var req nautobotapi.WritablePrefixRequest
-	setRefID(&req.Parent, id)
+	mustSetRefID(t, &req.Parent, id)
 	if req.Parent == nil || req.Parent.Id == nil {
 		t.Fatal("expected non-nil Id")
 	}
@@ -803,7 +803,7 @@ func TestMakePrefixParentRef(t *testing.T) {
 func TestMakeIPParentRef(t *testing.T) {
 	id := uuid.MustParse("44444444-4444-4444-4444-444444444444")
 	var req nautobotapi.IPAddressRequest
-	setRefID(&req.Parent, id)
+	mustSetRefID(t, &req.Parent, id)
 	if req.Parent == nil || req.Parent.Id == nil {
 		t.Fatal("expected non-nil Id")
 	}
@@ -823,7 +823,7 @@ func TestMakeIPParentRef(t *testing.T) {
 func TestMakeIPNamespaceRef(t *testing.T) {
 	id := uuid.MustParse("55555555-5555-5555-5555-555555555555")
 	var req nautobotapi.IPAddressRequest
-	setRefID(&req.Namespace, id)
+	mustSetRefID(t, &req.Namespace, id)
 	if req.Namespace == nil || req.Namespace.Id == nil {
 		t.Fatal("expected non-nil Id")
 	}
@@ -1074,7 +1074,7 @@ func TestRemoteSlotKeyValid(t *testing.T) {
 	d := &nautobotapi.Device{
 		Position: &pos,
 	}
-	setRefID(&d.Rack, rackID)
+	mustSetRefID(t, &d.Rack, rackID)
 	sk := remoteSlotKey(d)
 	if sk == nil {
 		t.Fatal("expected non-nil slotKey")
@@ -2767,10 +2767,10 @@ func TestCompareDeviceFieldsTypeDiff(t *testing.T) {
 
 	// Build remote with a different device type ID
 	remote := &nautobotapi.Device{}
-	setRefID(&remote.DeviceType, remoteDtID)
-	setRefID(&remote.Location, uuid.New())
-	setRefID(&remote.Status, uuid.New())
-	setRefID(&remote.Role, uuid.New())
+	mustSetRefID(t, &remote.DeviceType, remoteDtID)
+	mustSetRefID(t, &remote.Location, uuid.New())
+	mustSetRefID(t, &remote.Status, uuid.New())
+	mustSetRefID(t, &remote.Role, uuid.New())
 
 	diffs := compareDeviceFields(dev, remote, mapper)
 	found := false
@@ -2824,10 +2824,10 @@ func TestCompareDeviceFieldsStatusDiff(t *testing.T) {
 	}
 
 	remote := &nautobotapi.Device{}
-	setRefID(&remote.DeviceType, uuid.New())
-	setRefID(&remote.Location, uuid.New())
-	setRefID(&remote.Status, remoteStatusID)
-	setRefID(&remote.Role, uuid.New())
+	mustSetRefID(t, &remote.DeviceType, uuid.New())
+	mustSetRefID(t, &remote.Location, uuid.New())
+	mustSetRefID(t, &remote.Status, remoteStatusID)
+	mustSetRefID(t, &remote.Role, uuid.New())
 
 	diffs := compareDeviceFields(dev, remote, mapper)
 	found := false
@@ -2878,10 +2878,10 @@ func TestCompareDeviceFieldsRoleDiff(t *testing.T) {
 	dev := &devicetypes.CaniDeviceType{}
 
 	remote := &nautobotapi.Device{}
-	setRefID(&remote.DeviceType, uuid.New())
-	setRefID(&remote.Location, uuid.New())
-	setRefID(&remote.Status, uuid.New())
-	setRefID(&remote.Role, uuid.New()) // different from localRoleID
+	mustSetRefID(t, &remote.DeviceType, uuid.New())
+	mustSetRefID(t, &remote.Location, uuid.New())
+	mustSetRefID(t, &remote.Status, uuid.New())
+	mustSetRefID(t, &remote.Role, uuid.New()) // different from localRoleID
 
 	diffs := compareDeviceFields(dev, remote, mapper)
 	found := false
@@ -2932,10 +2932,10 @@ func TestCompareDeviceFieldsLocationDiff(t *testing.T) {
 	dev := &devicetypes.CaniDeviceType{}
 
 	remote := &nautobotapi.Device{}
-	setRefID(&remote.DeviceType, uuid.New())
-	setRefID(&remote.Location, uuid.New()) // different
-	setRefID(&remote.Status, uuid.New())
-	setRefID(&remote.Role, uuid.New())
+	mustSetRefID(t, &remote.DeviceType, uuid.New())
+	mustSetRefID(t, &remote.Location, uuid.New()) // different
+	mustSetRefID(t, &remote.Status, uuid.New())
+	mustSetRefID(t, &remote.Role, uuid.New())
 
 	diffs := compareDeviceFields(dev, remote, mapper)
 	found := false
@@ -2989,10 +2989,10 @@ func TestCompareDeviceFieldsNoTypeDiffWhenMatching(t *testing.T) {
 	dev := &devicetypes.CaniDeviceType{Slug: "shared"}
 
 	remote := &nautobotapi.Device{}
-	setRefID(&remote.DeviceType, sharedID)
-	setRefID(&remote.Location, sharedID)
-	setRefID(&remote.Status, sharedID)
-	setRefID(&remote.Role, sharedID)
+	mustSetRefID(t, &remote.DeviceType, sharedID)
+	mustSetRefID(t, &remote.Location, sharedID)
+	mustSetRefID(t, &remote.Status, sharedID)
+	mustSetRefID(t, &remote.Role, sharedID)
 
 	diffs := compareDeviceFields(dev, remote, mapper)
 	if len(diffs) != 0 {
@@ -4554,7 +4554,7 @@ func TestCompareRackRemoteHasRackLocalDoesNot(t *testing.T) {
 	// Remote device has a rack with an ID
 	rackID := uuid.New()
 	remote := &nautobotapi.Device{}
-	setRefID(&remote.Rack, rackID)
+	mustSetRefID(t, &remote.Rack, rackID)
 	diffs := compareRack(dev, remote, mapper)
 	// Local is nil, remote is non-nil → should produce a diff
 	if len(diffs) != 1 {
@@ -5145,7 +5145,7 @@ func TestRemoteSlotKeyValidFront(t *testing.T) {
 		Position: &pos,
 		Face:     nil, // nil face → defaults to "front"
 	}
-	setRefID(&d.Rack, rackID)
+	mustSetRefID(t, &d.Rack, rackID)
 
 	sk := remoteSlotKey(d)
 	if sk == nil {
@@ -5177,7 +5177,7 @@ func TestRemoteSlotKeyValidRear(t *testing.T) {
 	d := &nautobotapi.Device{
 		Position: &pos,
 	}
-	setRefID(&d.Rack, rackID)
+	mustSetRefID(t, &d.Rack, rackID)
 	setNBValue(&d.Face, "rear")
 
 	sk := remoteSlotKey(d)
@@ -5202,7 +5202,7 @@ func TestRemoteSlotKeyNilPosition(t *testing.T) {
 	d := &nautobotapi.Device{
 		Position: nil, // no position
 	}
-	setRefID(&d.Rack, rackID)
+	mustSetRefID(t, &d.Rack, rackID)
 	if remoteSlotKey(d) != nil {
 		t.Error("expected nil when Position is nil")
 	}
@@ -6332,7 +6332,7 @@ func TestMapToPatchRequestWithRackPositionNoParent(t *testing.T) {
 func TestRefIDValidUnion(t *testing.T) {
 	expected := uuid.New()
 	var req nautobotapi.WritablePrefixRequest
-	setRefID(&req.Status, expected)
+	mustSetRefID(t, &req.Status, expected)
 
 	got := refID(req.Status.Id)
 	if got != expected {
@@ -6976,7 +6976,7 @@ func TestCompareRackRemoteHasRackLocalNil(t *testing.T) {
 
 	dev := &devicetypes.CaniDeviceType{Rack: uuid.Nil}
 	remote := &nautobotapi.Device{}
-	setRefID(&remote.Rack, rackUUID)
+	mustSetRefID(t, &remote.Rack, rackUUID)
 	diffs := compareRack(dev, remote, mapper)
 	if len(diffs) != 1 {
 		t.Fatalf("expected 1 diff, got %d", len(diffs))

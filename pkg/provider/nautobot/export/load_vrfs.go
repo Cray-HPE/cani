@@ -139,16 +139,22 @@ func (e *Exporter) createVRF(ctx context.Context, vrf *devicetypes.CaniVRF) (uui
 		nsName = "Global"
 	}
 	if ns, err := e.Cache.GetOrCreateNamespace(nsName); err == nil && ns != nil {
-		setRefID(&req.Namespace, ns.ID)
+		if err := setRefID(&req.Namespace, ns.ID); err != nil {
+			return uuid.Nil, fmt.Errorf("set VRF namespace reference: %w", err)
+		}
 	}
 
 	if vrf.Status != "" {
 		if statusItem, err := e.Cache.GetStatus(vrf.Status); err == nil && statusItem != nil {
-			setRefID(&req.Status, statusItem.ID)
+			if err := setRefID(&req.Status, statusItem.ID); err != nil {
+				return uuid.Nil, fmt.Errorf("set VRF status reference: %w", err)
+			}
 		}
 	}
 
-	setRefSlice(&req.Tags, e.Cache.resolveTagRefs(vrf.Tags))
+	if err := setRefSlice(&req.Tags, e.Cache.resolveTagRefs(vrf.Tags)); err != nil {
+		return uuid.Nil, fmt.Errorf("set VRF tag references: %w", err)
+	}
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create VRF: %s", vrf.Name)
@@ -194,8 +200,12 @@ func (e *Exporter) ensureVRFDeviceAssignment(ctx context.Context, deviceID uuid.
 	}
 
 	req := nautobotapi.VRFDeviceAssignmentRequest{}
-	setRefID(&req.Device, deviceID)
-	setRefID(&req.Vrf, vrf.ID)
+	if err := setRefID(&req.Device, deviceID); err != nil {
+		return fmt.Errorf("set VRF assignment device reference: %w", err)
+	}
+	if err := setRefID(&req.Vrf, vrf.ID); err != nil {
+		return fmt.Errorf("set VRF assignment VRF reference: %w", err)
+	}
 	createResp, err := e.Client.IpamVrfDeviceAssignmentsCreateWithResponse(ctx,
 		&nautobotapi.IpamVrfDeviceAssignmentsCreateParams{}, req)
 	if err != nil {
