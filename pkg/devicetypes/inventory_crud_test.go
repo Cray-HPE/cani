@@ -404,6 +404,33 @@ func TestMergeDevicesByName(t *testing.T) {
 	}
 }
 
+// TestMergeDevicesStrictRemapNameMatch verifies a name-matched merge returns a
+// remap from the incoming (ephemeral) UUID to the retained existing UUID. This
+// is what lets a merge re-import re-point cable terminations at the surviving
+// device instead of the discarded transform UUID.
+func TestMergeDevicesStrictRemapNameMatch(t *testing.T) {
+	inv := NewInventory()
+	inv.RebuildProviderKeyIndex()
+
+	existingID := uuid.New()
+	inv.Devices[existingID] = &CaniDeviceType{ID: existingID, Name: "compute-001"}
+
+	incomingID := uuid.New()
+	remap, skipped := inv.MergeDevicesStrict(map[uuid.UUID]*CaniDeviceType{
+		incomingID: {ID: incomingID, Name: "compute-001"},
+	}, false)
+
+	if len(skipped) != 0 {
+		t.Fatalf("expected no skipped devices, got %d", len(skipped))
+	}
+	if got := remap[incomingID]; got != existingID {
+		t.Fatalf("remap[incoming] = %s, want existing %s", got, existingID)
+	}
+	if _, ok := inv.Devices[incomingID]; ok {
+		t.Error("ephemeral incoming UUID should not have been inserted")
+	}
+}
+
 func TestMergeDevicesSkipsInvalidSlug(t *testing.T) {
 	inv := NewInventory()
 

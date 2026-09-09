@@ -71,6 +71,31 @@ func remapDeviceParents(
 	}
 }
 
+// remapCableTerminations rewrites cable endpoint device UUIDs using the remap
+// returned by MergeDevicesStrict. On a merge re-import the transform assigns
+// fresh device UUIDs, but existing devices are matched by name and keep their
+// original UUIDs; without this the cable would point at the discarded ephemeral
+// device and fail relationship validation.
+func remapCableTerminations(
+	cables map[uuid.UUID]*devicetypes.CaniCableType,
+	deviceRemap map[uuid.UUID]uuid.UUID,
+) {
+	if len(deviceRemap) == 0 {
+		return
+	}
+	for _, cable := range cables {
+		if cable == nil {
+			continue
+		}
+		if mapped, ok := deviceRemap[cable.TerminationADevice]; ok {
+			cable.TerminationADevice = mapped
+		}
+		if mapped, ok := deviceRemap[cable.TerminationBDevice]; ok {
+			cable.TerminationBDevice = mapped
+		}
+	}
+}
+
 // mergeLocations adds transformed locations to the inventory.
 func mergeLocations(ctx *etlContext, locations map[uuid.UUID]*devicetypes.CaniLocationType) map[uuid.UUID]uuid.UUID {
 	if len(locations) == 0 {
@@ -96,25 +121,26 @@ func mergeRacks(ctx *etlContext, racks map[uuid.UUID]*devicetypes.CaniRackType) 
 // mergeDevices adds transformed devices to the inventory.
 // In strict mode, unclassified devices (no slug/model) are rejected.
 // In step mode, the user is prompted to interactively classify them.
-func mergeDevices(ctx *etlContext, devices map[uuid.UUID]*devicetypes.CaniDeviceType) {
+func mergeDevices(ctx *etlContext, devices map[uuid.UUID]*devicetypes.CaniDeviceType) map[uuid.UUID]uuid.UUID {
 	if len(devices) == 0 {
-		return
+		return nil
 	}
 	if ctx.debug {
 		visual.PrintCaniOperation(fmt.Sprintf("Merging %d transformed devices into inventory", len(devices)), ctx.opts)
 	}
 
-	skipped := ctx.inventory.MergeDevicesStrict(devices, config.Cfg.Strict)
+	remap, skipped := ctx.inventory.MergeDevicesStrict(devices, config.Cfg.Strict)
 	if len(skipped) == 0 {
-		return
+		return remap
 	}
 
 	if stepFlag {
 		classifySkippedDevices(ctx, devices, skipped)
-		return
+		return remap
 	}
 
 	warnUnclassifiedDevices(ctx, devices, skipped)
+	return remap
 }
 
 // classifySkippedDevices prompts the user to classify each unclassified device

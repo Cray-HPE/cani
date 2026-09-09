@@ -103,11 +103,14 @@ func (inv *Inventory) MergeDevices(incoming map[uuid.UUID]*CaniDeviceType) {
 // skips any device whose Slug and Model are both empty (unclassified). Skipped
 // devices are collected and returned so callers can report or interactively
 // resolve them.
-func (inv *Inventory) MergeDevicesStrict(incoming map[uuid.UUID]*CaniDeviceType, strict bool) []UnclassifiedDevice {
+func (inv *Inventory) MergeDevicesStrict(incoming map[uuid.UUID]*CaniDeviceType, strict bool) (map[uuid.UUID]uuid.UUID, []UnclassifiedDevice) {
 	if inv.Devices == nil {
 		inv.Devices = make(map[uuid.UUID]*CaniDeviceType)
 	}
 
+	// remap records incoming (ephemeral) device UUID -> resolved inventory UUID
+	// so callers can re-point references (e.g. cable terminations) after a merge.
+	remap := make(map[uuid.UUID]uuid.UUID)
 	changesDetected := false
 	var skipped []UnclassifiedDevice
 
@@ -139,36 +142,40 @@ func (inv *Inventory) MergeDevicesStrict(incoming map[uuid.UUID]*CaniDeviceType,
 				changesDetected = true
 			}
 			inv.indexDevice(id, existing)
+			remap[id] = id
 			continue
 		}
 
 		// Case 2: Existing device with same name
-		if matched, changed := inv.mergeByName(device); matched {
+		if matchedID, changed, matched := inv.mergeByName(device); matched {
 			if changed {
 				changesDetected = true
 			}
+			remap[id] = matchedID
 			continue
 		}
 
 		// Case 3: New device
 		inv.Devices[id] = device
 		inv.indexDevice(id, device)
+		remap[id] = id
 		changesDetected = true
 	}
 
 	if changesDetected {
 		log.Printf("Changes detected during merge")
 	}
-	return skipped
+	return remap, skipped
 }
 
 // mergeByName finds an existing device with the same name and merges
-// properties. It returns whether a compatible device matched and whether that
-// merge changed fields. If the incoming device carries provider metadata with a
-// distinguishing key (e.g. bmc_fqdn, bmc_hostname) it must also match
+// properties. It returns the matched device's UUID, whether the merge changed
+// fields, and whether a compatible device matched. If the incoming device
+// carries provider metadata with a distinguishing key (e.g. bmc_fqdn,
+// bmc_hostname) it must also match
 // the existing device; otherwise two servers of the same model but with
 // different BMC identities would be collapsed into one.
-func (inv *Inventory) mergeByName(device *CaniDeviceType) (bool, bool) {
+func (inv *Inventory) mergeByName(device *CaniDeviceType) (uuid.UUID, bool, bool) {
 	for id, existing := range inv.Devices {
 		if existing == nil || existing.Name != device.Name {
 			continue
@@ -179,9 +186,9 @@ func (inv *Inventory) mergeByName(device *CaniDeviceType) (bool, bool) {
 		inv.unindexDevice(id, existing)
 		changed := existing.MergeProperties(device)
 		inv.indexDevice(id, existing)
-		return true, changed
+		return id, changed, true
 	}
-	return false, false
+	return uuid.Nil, false, false
 }
 
 // providerIdentityKeys lists metadata keys that uniquely identify a
