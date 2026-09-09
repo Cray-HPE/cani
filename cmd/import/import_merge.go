@@ -60,30 +60,67 @@ func remapDeviceParents(
 	locationRemap, rackRemap map[uuid.UUID]uuid.UUID,
 ) {
 	for _, dev := range devices {
-		if dev == nil || dev.Parent == uuid.Nil {
+		if dev == nil {
 			continue
 		}
-		if mapped, ok := rackRemap[dev.Parent]; ok {
-			dev.Parent = mapped
-		} else if mapped, ok := locationRemap[dev.Parent]; ok {
-			dev.Parent = mapped
+		if dev.Parent != uuid.Nil {
+			if mapped, ok := rackRemap[dev.Parent]; ok {
+				dev.Parent = mapped
+			} else if mapped, ok := locationRemap[dev.Parent]; ok {
+				dev.Parent = mapped
+			}
+		}
+		if mapped, ok := rackRemap[dev.Rack]; ok {
+			dev.Rack = mapped
 		}
 	}
 }
 
-// remapCableTerminations rewrites cable endpoint device UUIDs using the remap
-// returned by MergeDevicesStrict. On a merge re-import the transform assigns
-// fresh device UUIDs, but existing devices are matched by name and keep their
-// original UUIDs; without this the cable would point at the discarded ephemeral
-// device and fail relationship validation.
-func remapCableTerminations(
-	cables map[uuid.UUID]*devicetypes.CaniCableType,
+// remapDeviceReferences rewrites foreign keys that target devices using the
+// UUID remap returned by MergeDevicesStrict.
+func remapDeviceReferences(
+	inventory *devicetypes.Inventory,
+	result *devicetypes.TransformResult,
 	deviceRemap map[uuid.UUID]uuid.UUID,
 ) {
 	if len(deviceRemap) == 0 {
 		return
 	}
-	for _, cable := range cables {
+	for incomingID, device := range result.Devices {
+		if device == nil {
+			continue
+		}
+		if mapped, ok := deviceRemap[device.Parent]; ok {
+			device.Parent = mapped
+		}
+		resolvedID, ok := deviceRemap[incomingID]
+		if !ok || resolvedID == incomingID {
+			continue
+		}
+		if resolved := inventory.Devices[resolvedID]; resolved != nil {
+			if device.Parent != uuid.Nil {
+				resolved.Parent = device.Parent
+			}
+			if device.Rack != uuid.Nil {
+				resolved.Rack = device.Rack
+			}
+		}
+	}
+	for _, module := range result.Modules {
+		if module != nil {
+			if mapped, ok := deviceRemap[module.ParentDevice]; ok {
+				module.ParentDevice = mapped
+			}
+		}
+	}
+	for _, fru := range result.Frus {
+		if fru != nil {
+			if mapped, ok := deviceRemap[fru.Device]; ok {
+				fru.Device = mapped
+			}
+		}
+	}
+	for _, cable := range result.Cables {
 		if cable == nil {
 			continue
 		}

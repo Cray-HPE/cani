@@ -40,7 +40,7 @@ import (
 // loadLocations exports CaniLocationType records to Nautobot as Location objects.
 // It walks the location tree top-down (roots first, then children) so parent
 // FKs are always resolvable. Each location's LocationType field drives the
-// Nautobot LocationType, replacing the old hardcoded "Site" default.
+// Nautobot LocationType, with "Site" as the fallback when the field is empty.
 func (e *Exporter) loadLocations(
 	ctx context.Context,
 	inventory *devicetypes.Inventory,
@@ -105,7 +105,7 @@ func (e *Exporter) createLocationFromCani(
 	// Resolve LocationType from the CaniLocationType field.
 	locTypeName := loc.LocationType
 	if locTypeName == "" {
-		return uuid.Nil, fmt.Errorf("location %q has no locationType set", loc.Name)
+		locTypeName = "Site"
 	}
 	locType, err := e.Cache.GetOrCreateLocationType(locTypeName, parentDef(locTypeName))
 	if err != nil {

@@ -125,25 +125,51 @@ func TestCreateLocationFromCani_CreatesOn201(t *testing.T) {
 	}
 }
 
-// TestCreateLocationFromCani_ErrorsWhenNoLocationType verifies the create fails
-// when the location has no LocationType set.
+// TestCreateLocationFromCani_DefaultsEmptyLocationTypeToSite verifies an empty
+// LocationType resolves the documented Site default and creates successfully.
 //
-// Why it matters: Nautobot requires every location to declare a location-type;
-// exporting one without it would be rejected, so cani fails fast with a clear
-// error.
-// Inputs: a location whose LocationType is "". Outputs: a non-nil error.
-// Data choice: an empty LocationType is the precise precondition under test,
-// with all other fields valid so the empty type is the sole cause of failure.
-func TestCreateLocationFromCani_ErrorsWhenNoLocationType(t *testing.T) {
+// Why it matters: older CANI inventories may omit LocationType, and the mapping
+// contract preserves their exportability by treating those locations as sites.
+// Inputs: a location whose LocationType is "". Outputs: a successful create and
+// a location-type lookup filtered to Site.
+func TestCreateLocationFromCani_DefaultsEmptyLocationTypeToSite(t *testing.T) {
+	locTypeID, createdLocID := uuid.New(), uuid.New()
 	var locPosts int
-	e, cleanup := newExporterWithServer(t, locationCreateHandler(uuid.New(), uuid.New(), http.StatusCreated, emptyListJSON, &locPosts))
+	var requestedType string
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case strings.Contains(r.URL.Path, "dcim/location-types"):
+			requestedType = r.URL.Query().Get("name")
+			_, _ = io.WriteString(w, fmt.Sprintf(`{"count":1,"results":[%s]}`,
+				refObjectJSON(locTypeID, "Site")))
+		case strings.Contains(r.URL.Path, "dcim/locations") && r.Method == http.MethodPost:
+			locPosts++
+			w.WriteHeader(http.StatusCreated)
+			_, _ = io.WriteString(w, refObjectJSON(createdLocID, "DC1"))
+		default:
+			_, _ = io.WriteString(w, emptyListJSON)
+		}
+	})
+	e, cleanup := newExporterWithServer(t, handler)
 	defer cleanup()
+	seedActiveStatus(t, e)
 
-	loc := newCaniLocation("DC1", "") // missing location type
+	loc := newCaniLocation("DC1", "")
 
 	result := &LoadResult{}
-	if _, err := e.createLocationFromCani(context.Background(), loc, map[uuid.UUID]uuid.UUID{}, result); err == nil {
-		t.Fatal("expected an error when the location has no locationType set")
+	got, err := e.createLocationFromCani(context.Background(), loc, map[uuid.UUID]uuid.UUID{}, result)
+	if err != nil {
+		t.Fatalf("createLocationFromCani() error = %v", err)
+	}
+	if got != createdLocID {
+		t.Errorf("returned ID = %s, want %s", got, createdLocID)
+	}
+	if requestedType != "Site" {
+		t.Errorf("location type lookup = %q, want Site", requestedType)
+	}
+	if locPosts != 1 {
+		t.Errorf("location POST count = %d, want 1", locPosts)
 	}
 }
 

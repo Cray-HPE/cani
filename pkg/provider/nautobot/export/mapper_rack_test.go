@@ -193,19 +193,18 @@ func TestMapToWritableDeviceRequest_LegacyRackDevice(t *testing.T) {
 
 // TestMapToPatchRequest_FullRackPlacement verifies the update (PATCH) mapper
 // populates the rack reference, position, face, and optional attributes when the
-// device's parent is a rack in the inventory's Racks collection.
+// device's explicit Rack FK identifies a rack in the inventory's Racks collection.
 //
 // Why it matters: merge exports update existing Nautobot devices in place, so a
 // re-placed or re-tagged device must carry its new rack slot and metadata into
 // the PATCH; dropping them would silently revert remote state on every sync.
-// Inputs: a device whose Parent points at a rack in inv.Racks, with
+// Inputs: a device whose Rack points at a rack in inv.Racks, with
 // RackPosition=7, Face=rear, serial, asset tag, comments and provider metadata,
 // references seeded in the cache, rack resolved via the fake server, and an
 // existing device UUID. Outputs: a PatchedWritableDeviceRequest whose Rack
 // decodes to the Nautobot rack UUID, Position is 7, Face is rear, and the
-// optional fields are set. Data choice: driving the patch path via device.Parent
-// (not the Rack FK) matches how MapToPatchRequest resolves the rack and covers
-// its dedicated rack branch independent of the create path.
+// optional fields are set. Data choice: driving the patch path via device.Rack
+// verifies PATCH uses the same portable rack FK as create.
 func TestMapToPatchRequest_FullRackPlacement(t *testing.T) {
 	caniRackID := uuid.New()
 	nautobotRackID := uuid.New()
@@ -219,7 +218,7 @@ func TestMapToPatchRequest_FullRackPlacement(t *testing.T) {
 		Serial:       "SGH777",
 		AssetTag:     "ASSET-7",
 		Comments:     "updated placement",
-		Parent:       caniRackID,
+		Rack:         caniRackID,
 		RackPosition: 7,
 		Face:         "rear",
 		ObjectMeta: devicetypes.ObjectMeta{
@@ -270,13 +269,13 @@ func TestMapToPatchRequest_FullRackPlacement(t *testing.T) {
 
 // TestMapToPatchRequest_LegacyRackDevice verifies the update (PATCH) mapper
 // resolves a rack modelled as a rack-type entry in the Devices collection (the
-// legacy representation) when reached through the device's parent reference.
+// legacy representation) when reached through the device's rack reference.
 //
 // Why it matters: merge syncs of legacy-sourced inventories must keep updating
 // the rack placement of child devices whose rack is stored as a Type=rack
 // device; without the patch-path fallback, every merge would strip those
 // devices' rack and position.
-// Inputs: a device whose Parent points at a Type=rack entry in inv.Devices (and
+// Inputs: a device whose Rack points at a Type=rack entry in inv.Devices (and
 // deliberately absent from inv.Racks), with RackPosition=5, references seeded in
 // the cache, and the rack resolvable via the fake server. Outputs: a
 // PatchedWritableDeviceRequest whose Rack decodes to the Nautobot rack UUID and
@@ -293,7 +292,7 @@ func TestMapToPatchRequest_LegacyRackDevice(t *testing.T) {
 	device := &devicetypes.CaniDeviceType{
 		Name:         "compute-004",
 		Slug:         "hpe-dl380",
-		Parent:       legacyRackID,
+		Rack:         legacyRackID,
 		RackPosition: 5,
 		ObjectMeta:   devicetypes.ObjectMeta{Status: "Active", Role: "Compute"},
 	}
@@ -317,5 +316,53 @@ func TestMapToPatchRequest_LegacyRackDevice(t *testing.T) {
 	}
 	if req.Position == nil || *req.Position != 5 {
 		t.Errorf("position = %v, want 5", req.Position)
+	}
+}
+
+func TestMapToPatchRequestExplicitRackTakesPrecedence(t *testing.T) {
+	explicitRackID, parentRackID := uuid.New(), uuid.New()
+	explicitNautobotID, parentNautobotID := uuid.New(), uuid.New()
+	e, cleanup := newExporterWithServer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		if !strings.Contains(r.URL.Path, "dcim/racks") {
+			_, _ = w.Write([]byte(emptyListJSON))
+			return
+		}
+		name := strings.Join(r.URL.Query()["name"], "")
+		id := parentNautobotID
+		if name == "explicit-rack" {
+			id = explicitNautobotID
+		}
+		_, _ = fmt.Fprintf(w, `{"count":1,"results":[%s]}`, createdItemJSON(id, name))
+	})
+	defer cleanup()
+	seedDeviceRefs(t, e)
+
+	device := &devicetypes.CaniDeviceType{
+		Name:   "compute-005",
+		Slug:   "hpe-dl380",
+		Rack:   explicitRackID,
+		Parent: parentRackID,
+		ObjectMeta: devicetypes.ObjectMeta{
+			Status: "Active",
+			Role:   "Compute",
+		},
+	}
+	inv := devicetypes.NewInventory()
+	inv.Racks[explicitRackID] = &devicetypes.CaniRackType{ID: explicitRackID, Name: "explicit-rack"}
+	inv.Racks[parentRackID] = &devicetypes.CaniRackType{ID: parentRackID, Name: "parent-rack"}
+	mapper := newCrudMapper(e)
+	mapper.SetInventory(inv)
+
+	req, err := mapper.MapToPatchRequest(device, uuid.New())
+	if err != nil {
+		t.Fatalf("MapToPatchRequest() error = %v", err)
+	}
+	if req.Rack == nil || req.Rack.Id == nil {
+		t.Fatal("expected explicit rack reference on patch")
+	}
+	if got := extractRackID(t, req.Rack.Id); got != explicitNautobotID {
+		t.Errorf("rack id = %s, want explicit rack %s", got, explicitNautobotID)
 	}
 }

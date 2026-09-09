@@ -15,7 +15,7 @@ The devicetypes package is a **foundational piece** of CANI. It defines the data
 | `cani_cable_types.go` | `CaniCableType` struct — cables (DAC, AOC, fiber, Cat) |
 | `cani_fru_types.go` | `CaniFruType` struct — field-replaceable units / inventory items |
 | `cani_location_types.go` | `CaniLocationType` struct — locations (site, building, floor, room) |
-| `inventory.go` | `Inventory` struct — six UUID-keyed maps + `TransformResult` dedup helper |
+| `inventory.go` | `Inventory` struct — DCIM, interface, IPAM, and metadata collections + `TransformResult` dedup helper |
 | `inventory_crud.go` | CRUD: merge, add, remove devices/racks/locations/modules/cables/FRUs |
 | `inventory_add_remove.go` | Single-item add/remove with validation and relationship rebuild |
 | `inventory_queries.go` | Query helpers (`FindByName`, `Exists`, `GetDevicesInRack`, `Validate`) |
@@ -53,7 +53,7 @@ The devicetypes package is a **foundational piece** of CANI. It defines the data
 | Type | Purpose |
 |------|---------|
 | `CaniType` | Interface: `Validate()`, `GetID()`, `GetSlug()`, `GetStatus()` — implemented by all six types |
-| `Inventory` | Holds six maps: `Locations`, `Racks`, `Devices`, `Modules`, `Cables`, `Frus` |
+| `Inventory` | Holds schema/provider context; DCIM, interface, and IPAM maps; metadata definitions; and a transient provider-key index |
 | `CaniLocationType` | Location hierarchy node (site → building → floor → room) |
 | `CaniRackType` | Rack instance + template fields from YAML library |
 | `CaniDeviceType` | Device instance + DeviceType template fields from YAML library |
@@ -148,20 +148,22 @@ Key relationships:
 - `WritePlan(path, plan)` / `ReadPlan(path)` / `ApplyPlan(inv, plan)` — Serializable resolve plans
 - `PlaceDeviceInRack(dev, devID, rack, startU, face)` — Auto-find slot and set position
 
-## Nautobot Mapping Summary
+## Nautobot Export Coverage
 
 The full field-by-field mapping lives in `NAUTOBOT_MAPPING.md`. Quick reference:
 
-| Cani Type | Nautobot Object(s) | Export Coverage | Notes |
+| Cani Type | Nautobot Object(s) | Approx. Test Coverage | Notes |
 |---|---|---|---|
-| `CaniLocationType` | `Location` + `LocationType` | ~70% | Topological sort; all optional fields mapped; Tags/Tenant not mapped |
-| `CaniRackType` | `Rack` | ~50% | UHeight, OuterWidth/Depth, Comments mapped; Role/Type/Serial not mapped |
-| `CaniDeviceType` | `Device` + `DeviceType` | ~80% | Role first-class field; SubdeviceRole on DeviceType; Platform/Tenant not mapped |
-| `CaniModuleType` | `Module` + `ModuleType` + `ModuleBay` | ~60% | ModuleType + ModuleBay auto-created; Interfaces not wired |
-| `CaniCableType` | `Cable` | ~75% | Color mapped; Type via multi-priority resolution; Tags not mapped |
-| `CaniFruType` | `InventoryItem` | ~60% | Topological sort for nesting; Manufacturer FK; Tags/CustomFields not mapped |
+| `CaniLocationType` | `Location` + `LocationType` | ~79.2% | Topological sort; custom fields and provider metadata mapped; Tags/Tenant not mapped |
+| `CaniRackType` | `Rack` | ~79.2% | Physical fields, type, serial, asset tag, facility ID, comments, location, and create-time tags mapped |
+| `CaniDeviceType` | `Device` + `DeviceType` | ~79.2% | Role and location hierarchy mapped; create-time tags mapped; Platform/Tenant not mapped |
+| `CaniModuleType` | `Module` + `ModuleType` + `ModuleBay` | ~79.2% | ModuleType + ModuleBay auto-created; module interfaces created on parent device |
+| `CaniCableType` | `Cable` | ~79.2% | Color mapped; Type via multi-priority resolution; Tags not mapped |
+| `CaniFruType` | `InventoryItem` | ~79.2% | Topological nesting, Manufacturer FK, Tags, and CustomFields mapped |
 
-Key export files: `pkg/provider/nautobot/mapper.go`, `pkg/provider/nautobot/load.go`, `pkg/provider/nautobot/lookup.go`, `pkg/provider/nautobot/load_locations.go`, `pkg/provider/nautobot/load_modules.go`, `pkg/provider/nautobot/load_frus.go`.
+Coverage is Go statement coverage for the shared `pkg/provider/nautobot/export` package, reported by the `go test -cover ./...` phase of `make test`. It is not per-object coverage or field-mapping completeness.
+
+Key export files: `pkg/provider/nautobot/export/mapper.go`, `pkg/provider/nautobot/export/load.go`, `pkg/provider/nautobot/export/lookup.go`, `pkg/provider/nautobot/export/load_locations.go`, `pkg/provider/nautobot/export/load_modules.go`, `pkg/provider/nautobot/export/load_frus.go`.
 
 ## Testing
 

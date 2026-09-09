@@ -9,8 +9,10 @@ x-nautobot-base: &nautobot-base
 services:
   nautobot:
     depends_on:
-      - "db"
-      - "redis"
+      db:
+        condition: "service_healthy"
+      redis:
+        condition: "service_healthy"
     <<: *nautobot-base
   celery_worker:
     entrypoint:
@@ -53,3 +55,8 @@ services:
     env_file:
       - "env/local.env"
       - "env/creds.env"
+    healthcheck:
+      interval: "5s"
+      timeout: "5s"
+      retries: 20
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$$NAUTOBOT_REDIS_PASSWORD valkey-cli ping | grep -q PONG"]

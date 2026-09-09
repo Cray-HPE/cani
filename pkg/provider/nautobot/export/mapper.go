@@ -311,10 +311,11 @@ func (m *DeviceMapper) MapToPatchRequest(device *devicetypes.CaniDeviceType, exi
 		req.Comments = &device.Comments
 	}
 
-	// Map rack and position if device has a parent rack
-	if device.Parent != uuid.Nil && m.inventory != nil {
+	// Map rack and position if device has a rack.
+	rackID := device.GetRackID(m.inventory)
+	if rackID != uuid.Nil && m.inventory != nil {
 		// First check if the parent is a rack in the Racks collection
-		if parentRack, ok := m.inventory.Racks[device.Parent]; ok && parentRack != nil {
+		if parentRack, ok := m.inventory.Racks[rackID]; ok && parentRack != nil {
 			// Look up the rack in Nautobot by name
 			rack, err := m.cache.GetRackByName(parentRack.Name)
 			if err == nil && rack != nil {
@@ -329,7 +330,7 @@ func (m *DeviceMapper) MapToPatchRequest(device *devicetypes.CaniDeviceType, exi
 
 				setDeviceFace(&req.Face, device.Face)
 			}
-		} else if parentDevice := m.inventory.Devices[device.Parent]; parentDevice != nil && parentDevice.Type == devicetypes.Rack {
+		} else if parentDevice := m.inventory.Devices[rackID]; parentDevice != nil && parentDevice.Type == devicetypes.Rack {
 			// Fallback: check if parent is a rack-type device in Devices collection (legacy)
 			rack, err := m.cache.GetRackByName(parentDevice.Name)
 			if err == nil && rack != nil {

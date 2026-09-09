@@ -312,22 +312,33 @@ perl -i -pe 's{"github.com/oapi-codegen/runtime/types"}{"github.com/Cray-HPE/can
 endef
 
 .PHONY: check_nautobot_codegen_source
-check_nautobot_codegen_source: ## Verify the local simulator is client-compatible with NAUTOBOT_VERSION
+check_nautobot_codegen_source: ## Verify the local simulator exactly matches the pinned client source
 	$(INFO) "verifying Nautobot client source is version $(NAUTOBOT_VERSION)"
 	@actual_version=$$(curl -sSf -H "Authorization: Token $(NAUTOBOT_TOKEN)" $(NAUTOBOT_URL)/api/status/ | sed -n 's/.*"nautobot-version":"\([^"]*\)".*/\1/p'); \
 	if [ -z "$$actual_version" ]; then \
 		printf 'Nautobot at %s reported no version; expected %s\n' "$(NAUTOBOT_URL)" "$(NAUTOBOT_VERSION)" >&2; \
 		exit 1; \
 	fi; \
+	if [ "$$actual_version" != "$(NAUTOBOT_VERSION)" ]; then \
+		printf 'Nautobot at %s reports %s; reproducible client generation requires exactly %s.\n' "$(NAUTOBOT_URL)" "$$actual_version" "$(NAUTOBOT_VERSION)" >&2; \
+		exit 1; \
+	fi
+
+.PHONY: check_nautobot_compatibility
+check_nautobot_compatibility: ## Verify a Nautobot instance is in the supported major.minor line
+	$(INFO) "verifying Nautobot runtime compatibility with $(NAUTOBOT_VERSION)"
+	@actual_version=$$(curl -sSf -H "Authorization: Token $(NAUTOBOT_TOKEN)" $(NAUTOBOT_URL)/api/status/ | sed -n 's/.*"nautobot-version":"\([^"]*\)".*/\1/p'); \
+	if [ -z "$$actual_version" ]; then \
+		printf 'Nautobot at %s reported no version\n' "$(NAUTOBOT_URL)" >&2; \
+		exit 1; \
+	fi; \
 	run_mm=$$(printf '%s' "$$actual_version" | cut -d. -f1,2); \
 	pin_mm=$$(printf '%s' "$(NAUTOBOT_VERSION)" | cut -d. -f1,2); \
 	if [ "$$run_mm" != "$$pin_mm" ]; then \
-		printf 'Nautobot at %s reports %s; client pinned to %s (minor version differs). Run make nautobot_client and bump NAUTOBOT_VERSION.\n' "$(NAUTOBOT_URL)" "$$actual_version" "$(NAUTOBOT_VERSION)" >&2; \
+		printf 'Nautobot at %s reports %s; client supports the %s.x line\n' "$(NAUTOBOT_URL)" "$$actual_version" "$$pin_mm" >&2; \
 		exit 1; \
 	fi; \
-	if [ "$$actual_version" != "$(NAUTOBOT_VERSION)" ]; then \
-		printf '$(CLR_YELLOW) ⚠  Nautobot at %s reports %s; client pinned to %s (patch differs, treated as compatible)$(CLR_RESET)\n' "$(NAUTOBOT_URL)" "$$actual_version" "$(NAUTOBOT_VERSION)" >&2; \
-	fi
+	printf '$(CLR_GREEN) ✔  Nautobot %s is compatible with the %s.x client$(CLR_RESET)\n' "$$actual_version" "$$pin_mm"
 
 .PHONY: nautobot_client
 nautobot_client: check_nautobot_codegen_source ## Regenerate the Nautobot API client from the pinned local simulator
@@ -343,17 +354,13 @@ nautobot_client_check: check_nautobot_codegen_source ## Verify the committed Nau
 	$(INFO) "checking generated Nautobot client for drift"
 	@tmp_dir=$$(mktemp -d); \
 	trap 'rm -rf "$$tmp_dir"' EXIT; \
-	actual_version=$$(curl -sSf -H "Authorization: Token $(NAUTOBOT_TOKEN)" $(NAUTOBOT_URL)/api/status/ | sed -n 's/.*"nautobot-version":"\([^"]*\)".*/\1/p'); \
 	curl -sSf -H "Authorization: Token $(NAUTOBOT_TOKEN)" $(NAUTOBOT_URL)/api/swagger.yaml > "$$tmp_dir/openapi.yml"; \
 	$(call generate_nautobot_client,$$tmp_dir/openapi.yml,$$tmp_dir/nautobot_api.go); \
 	if cmp -s pkg/nautobot/nautobot_api.go "$$tmp_dir/nautobot_api.go"; then \
 		printf '$(CLR_GREEN) ✔  Nautobot client check passed$(CLR_RESET)\n'; \
-	elif [ "$$actual_version" = "$(NAUTOBOT_VERSION)" ]; then \
+	else \
 		printf 'pkg/nautobot/nautobot_api.go is stale; run make nautobot_client\n' >&2; \
 		exit 1; \
-	else \
-		printf '$(CLR_YELLOW) ⚠  client differs from Nautobot %s output; only the patch version changed (pinned %s), treating as compatible — regenerate with make nautobot_client when convenient$(CLR_RESET)\n' "$$actual_version" "$(NAUTOBOT_VERSION)" >&2; \
-		printf '$(CLR_GREEN) ✔  Nautobot client check passed$(CLR_RESET)\n'; \
 	fi
 
 .PHONY: generate-swagger-sls-client
@@ -456,6 +463,13 @@ nautobot-up: ## Start Nautobot services
 	NAUTOBOT_VERSION=$(NAUTOBOT_VERSION) PYTHON_VER=$(PYTHON_VER) \
 		docker compose $(NAUTOBOT_COMPOSE) up -d
 	$(OK) "Nautobot running on http://localhost:8081"
+
+.PHONY: nautobot-ci-up
+nautobot-ci-up: ## Start the minimal Nautobot stack and wait for API readiness
+	$(INFO) "starting pinned Nautobot client source (version: $(NAUTOBOT_VERSION))"
+	NAUTOBOT_VERSION=$(NAUTOBOT_VERSION) PYTHON_VER=$(PYTHON_VER) \
+		docker compose $(NAUTOBOT_COMPOSE) up -d --wait --wait-timeout 600 db redis nautobot
+	$(OK) "Nautobot API ready on http://localhost:8081"
 
 .PHONY: nautobot-down
 nautobot-down: ## Stop Nautobot services and remove volumes
