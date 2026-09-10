@@ -545,6 +545,27 @@ func TestMergeLocationsNewInsert(t *testing.T) {
 	}
 }
 
+func TestMergeLocationsKeepsSameNameDifferentSourceIDs(t *testing.T) {
+	firstID, secondID := uuid.New(), uuid.New()
+	firstSourceID, secondSourceID := uuid.New(), uuid.New()
+	inv := NewInventory()
+
+	inv.MergeLocations(map[uuid.UUID]*CaniLocationType{
+		firstID: {
+			ID: firstID, Name: "room-1", LocationType: "room",
+			ObjectMeta: ObjectMeta{ExternalIDs: map[string]uuid.UUID{"nautobot": firstSourceID}},
+		},
+		secondID: {
+			ID: secondID, Name: "room-1", LocationType: "room",
+			ObjectMeta: ObjectMeta{ExternalIDs: map[string]uuid.UUID{"nautobot": secondSourceID}},
+		},
+	})
+
+	if len(inv.Locations) != 2 {
+		t.Fatalf("location count = %d, want 2", len(inv.Locations))
+	}
+}
+
 // ---------- providerIdentityCompatible ----------
 
 func TestProviderIdentityCompatibleMatch(t *testing.T) {
@@ -640,6 +661,9 @@ func TestMergeCableByLabel(t *testing.T) {
 	if inv.Cables[id].Type != "new" {
 		t.Errorf("matched cable Type = %q, want overwritten %q", inv.Cables[id].Type, "new")
 	}
+	if inv.Cables[id].ID != id {
+		t.Errorf("matched cable ID = %s, want retained map key %s", inv.Cables[id].ID, id)
+	}
 	if inv.mergeCableByLabel(&CaniCableType{Label: "link-9"}) {
 		t.Error("mergeCableByLabel(no match) = true, want false")
 	}
@@ -695,6 +719,29 @@ func TestMergeCables(t *testing.T) {
 	}
 	if len(inv.Cables) != 3 {
 		t.Errorf("final cable count = %d, want 3 (alpha + beta + gamma)", len(inv.Cables))
+	}
+}
+
+func TestMergeCablesDeduplicatesUnlabeledCableByEndpoints(t *testing.T) {
+	existingID, incomingID := uuid.New(), uuid.New()
+	interfaceA, interfaceB := uuid.New(), uuid.New()
+	inv := NewInventory()
+	inv.Cables[existingID] = &CaniCableType{
+		ID: existingID, TerminationA: interfaceA, TerminationB: interfaceB,
+	}
+
+	remap := inv.MergeCables(map[uuid.UUID]*CaniCableType{
+		incomingID: {ID: incomingID, TerminationA: interfaceB, TerminationB: interfaceA},
+	})
+
+	if len(inv.Cables) != 1 {
+		t.Fatalf("cable count = %d, want 1", len(inv.Cables))
+	}
+	if remap[incomingID] != existingID {
+		t.Errorf("remap[%s] = %s, want %s", incomingID, remap[incomingID], existingID)
+	}
+	if inv.Cables[existingID].ID != existingID {
+		t.Errorf("cable ID = %s, want retained map key %s", inv.Cables[existingID].ID, existingID)
 	}
 }
 

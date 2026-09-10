@@ -183,6 +183,9 @@ func TestMapCables(t *testing.T) {
 		}
 
 		for _, cable := range got {
+			if cable.ExternalIDs["nautobot"] != cableID {
+				t.Errorf("ExternalIDs[nautobot] = %s, want %s", cable.ExternalIDs["nautobot"], cableID)
+			}
 			if cable.Label != "uplink-1" {
 				t.Errorf("Label = %q, want %q", cable.Label, "uplink-1")
 			}

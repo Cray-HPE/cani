@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024, 2026 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -129,31 +129,11 @@ func displayTransformSummary(ctx *etlContext, result *devicetypes.TransformResul
 // mergeTransformResult merges and validates all transformed entities.
 func mergeTransformResult(ctx *etlContext, result *devicetypes.TransformResult) error {
 	result.EnsureUniqueDeviceNames()
-	mergeMetadata(ctx, result.Metadata)
-	locationRemap := mergeLocations(ctx, result.Locations)
-	rackRemap := mergeRacks(ctx, result.Racks)
-	remapDeviceParents(result.Devices, locationRemap, rackRemap)
+	prepareUnclassifiedDevices(result.Devices)
 	printImportDiff(ctx, result.Devices)
-	deviceRemap := mergeDevices(ctx, result.Devices)
-	remapDeviceReferences(ctx.inventory, result, deviceRemap)
-	mergeModules(ctx, result.Modules)
-	mergeCables(ctx, result.Cables)
-	mergeFrus(ctx, result.Frus)
-	remapIPAMLocations(result, locationRemap)
-	vlanRemap := mergeVLANs(ctx, result.VLANs)
-	remapPrefixVLANs(result.Prefixes, vlanRemap)
-	mergePrefixes(ctx, result.Prefixes)
-	mergeIPAddresses(ctx, result.IPAddresses)
-	mergeVRFs(ctx, result.VRFs)
-
-	// Single verify pass after all merges — avoids duplicate warnings
-	// from per-entity verify calls.
 	log.Printf("Verifying parent-child relationships")
-	relationships := ctx.inventory.VerifyParentChildRelationships()
-	if err := relationships.Err(); err != nil {
-		return fmt.Errorf("relationship validation failed after merge: %w", err)
-	}
-	return nil
+	_, err := ctx.inventory.MergeTransformResult(result)
+	return err
 }
 
 // runLoadPhase executes the Load phase of the ETL pipeline.

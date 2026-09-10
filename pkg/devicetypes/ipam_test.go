@@ -436,6 +436,47 @@ func TestIPAMGetID(t *testing.T) {
 	}
 }
 
+func TestIPAMTypesImplementCaniType(t *testing.T) {
+	tests := []struct {
+		name   string
+		object CaniType
+		slug   string
+	}{
+		{name: "VLAN", object: &CaniVLAN{VID: 100, Name: "management", ObjectMeta: ObjectMeta{Status: "Active"}}, slug: "management"},
+		{name: "prefix", object: &CaniPrefix{Prefix: "10.0.0.0/24", ObjectMeta: ObjectMeta{Status: "Active"}}, slug: "10.0.0.0/24"},
+		{name: "IP address", object: &CaniIPAddress{Address: "10.0.0.1/24", ObjectMeta: ObjectMeta{Status: "Active"}}, slug: "10.0.0.1/24"},
+		{name: "VRF", object: &CaniVRF{Name: "BLUE", ObjectMeta: ObjectMeta{Status: "Active"}}, slug: "BLUE"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if err := test.object.Validate(); err != nil {
+				t.Fatalf("Validate() error = %v", err)
+			}
+			if got := test.object.GetSlug(); got != test.slug {
+				t.Errorf("GetSlug() = %q, want %q", got, test.slug)
+			}
+			if got := test.object.GetStatus(); got != "Active" {
+				t.Errorf("GetStatus() = %q, want Active", got)
+			}
+		})
+	}
+}
+
+func TestIPAMTypesRejectInvalidValues(t *testing.T) {
+	tests := []CaniType{
+		&CaniVLAN{VID: 0, Name: "invalid"},
+		&CaniPrefix{Prefix: "not-a-prefix"},
+		&CaniIPAddress{Address: "not-an-address"},
+		&CaniVRF{},
+	}
+	for _, object := range tests {
+		if err := object.Validate(); err == nil {
+			t.Errorf("%T.Validate() error = nil, want validation failure", object)
+		}
+	}
+}
+
 // ---------- AddVLAN ----------
 
 // TestAddVLAN verifies AddVLAN inserts a VLAN, rejects nil, and rejects a

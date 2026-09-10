@@ -69,11 +69,11 @@ func TestRemapDeviceReferences(t *testing.T) {
 	inventory.Devices[existingA] = &devicetypes.CaniDeviceType{ID: existingA, Parent: ephemeralB}
 	inventory.Devices[childID] = result.Devices[childID]
 
-	remapDeviceReferences(inventory, result, map[uuid.UUID]uuid.UUID{
+	result.RemapReferences(inventory, devicetypes.ReferenceRemaps{Devices: map[uuid.UUID]uuid.UUID{
 		ephemeralA: existingA,
 		ephemeralB: existingB,
 		unmapped:   uuid.New(),
-	})
+	}})
 
 	if result.Devices[childID].Parent != existingA {
 		t.Errorf("child Parent = %s, want %s", result.Devices[childID].Parent, existingA)
@@ -110,7 +110,7 @@ func TestRemapDeviceReferencesNoRemap(t *testing.T) {
 		},
 	}
 
-	remapDeviceReferences(devicetypes.NewInventory(), result, nil)
+	result.RemapReferences(devicetypes.NewInventory(), devicetypes.ReferenceRemaps{})
 
 	if result.Cables[cableID].TerminationADevice != devA || result.Cables[cableID].TerminationBDevice != devB {
 		t.Error("expected terminations unchanged with an empty remap")
@@ -124,7 +124,10 @@ func TestRemapDeviceParentsRemapsExplicitRack(t *testing.T) {
 		deviceID: {ID: deviceID, Parent: ephemeralRack, Rack: ephemeralRack},
 	}
 
-	remapDeviceParents(devices, nil, map[uuid.UUID]uuid.UUID{ephemeralRack: existingRack})
+	result := &devicetypes.TransformResult{Devices: devices}
+	result.RemapReferences(nil, devicetypes.ReferenceRemaps{
+		Racks: map[uuid.UUID]uuid.UUID{ephemeralRack: existingRack},
+	})
 
 	if devices[deviceID].Parent != existingRack {
 		t.Errorf("Parent = %s, want %s", devices[deviceID].Parent, existingRack)
@@ -166,6 +169,177 @@ func TestMergeTransformResultRemapsDeviceChildren(t *testing.T) {
 	}
 	if inventory.Frus[fruID].Device != existingDeviceID {
 		t.Errorf("fru Device = %s, want %s", inventory.Frus[fruID].Device, existingDeviceID)
+	}
+}
+
+func TestMergeTransformResultRemapsNestedFrusOnRepeatImport(t *testing.T) {
+	deviceID := uuid.New()
+	existingParentID, existingChildID := uuid.New(), uuid.New()
+	incomingParentID, incomingChildID := uuid.New(), uuid.New()
+	inventory := devicetypes.NewInventory()
+	inventory.Devices[deviceID] = &devicetypes.CaniDeviceType{ID: deviceID, Name: "server-1"}
+	inventory.Frus[existingParentID] = &devicetypes.CaniFruType{
+		ID: existingParentID, Name: "system-board", Device: deviceID,
+	}
+	inventory.Frus[existingChildID] = &devicetypes.CaniFruType{
+		ID: existingChildID, Name: "dimm-1", Device: deviceID, Parent: existingParentID,
+	}
+	result := &devicetypes.TransformResult{
+		Frus: map[uuid.UUID]*devicetypes.CaniFruType{
+			incomingParentID: {ID: incomingParentID, Name: "system-board", Device: deviceID},
+			incomingChildID:  {ID: incomingChildID, Name: "dimm-1", Device: deviceID, Parent: incomingParentID},
+		},
+	}
+
+	if err := mergeTransformResult(&etlContext{inventory: inventory}, result); err != nil {
+		t.Fatalf("mergeTransformResult() error = %v", err)
+	}
+	if len(inventory.Frus) != 2 {
+		t.Fatalf("FRU count = %d, want 2", len(inventory.Frus))
+	}
+	if inventory.Frus[existingChildID].Parent != existingParentID {
+		t.Errorf("child FRU parent = %s, want %s", inventory.Frus[existingChildID].Parent, existingParentID)
+	}
+}
+
+func TestMergeTransformResultRemapsNestedLocationsOnRepeatImport(t *testing.T) {
+	existingRootID, existingChildID := uuid.New(), uuid.New()
+	incomingRootID, incomingChildID := uuid.New(), uuid.New()
+	rootSourceID, childSourceID := uuid.New(), uuid.New()
+	inventory := devicetypes.NewInventory()
+	inventory.Locations[existingRootID] = &devicetypes.CaniLocationType{
+		ID: existingRootID, Name: "campus", LocationType: "site",
+		ObjectMeta: devicetypes.ObjectMeta{ExternalIDs: map[string]uuid.UUID{"nautobot": rootSourceID}},
+	}
+	inventory.Locations[existingChildID] = &devicetypes.CaniLocationType{
+		ID: existingChildID, Name: "room-1", LocationType: "room", Parent: existingRootID,
+		ObjectMeta: devicetypes.ObjectMeta{ExternalIDs: map[string]uuid.UUID{"nautobot": childSourceID}},
+	}
+	result := &devicetypes.TransformResult{
+		Locations: map[uuid.UUID]*devicetypes.CaniLocationType{
+			incomingRootID: {
+				ID: incomingRootID, Name: "campus", LocationType: "site",
+				ObjectMeta: devicetypes.ObjectMeta{ExternalIDs: map[string]uuid.UUID{"nautobot": rootSourceID}},
+			},
+			incomingChildID: {
+				ID: incomingChildID, Name: "room-1", LocationType: "room", Parent: incomingRootID,
+				ObjectMeta: devicetypes.ObjectMeta{ExternalIDs: map[string]uuid.UUID{"nautobot": childSourceID}},
+			},
+		},
+	}
+
+	if err := mergeTransformResult(&etlContext{inventory: inventory}, result); err != nil {
+		t.Fatalf("mergeTransformResult() error = %v", err)
+	}
+	if len(inventory.Locations) != 2 {
+		t.Fatalf("location count = %d, want 2", len(inventory.Locations))
+	}
+	if inventory.Locations[existingChildID].Parent != existingRootID {
+		t.Errorf("child location parent = %s, want %s", inventory.Locations[existingChildID].Parent, existingRootID)
+	}
+}
+
+func TestMergeTransformResultRemapsVRFDevicesOnRepeatImport(t *testing.T) {
+	existingDeviceID, incomingDeviceID := uuid.New(), uuid.New()
+	vrfID := uuid.New()
+	inventory := devicetypes.NewInventory()
+	inventory.Devices[existingDeviceID] = &devicetypes.CaniDeviceType{
+		ID: existingDeviceID, Name: "leaf-1",
+	}
+	result := &devicetypes.TransformResult{
+		Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
+			incomingDeviceID: {ID: incomingDeviceID, Name: "leaf-1"},
+		},
+		VRFs: map[uuid.UUID]*devicetypes.CaniVRF{
+			vrfID: {ID: vrfID, Name: "BLUE", Devices: []uuid.UUID{incomingDeviceID}},
+		},
+	}
+
+	if err := mergeTransformResult(&etlContext{inventory: inventory}, result); err != nil {
+		t.Fatalf("mergeTransformResult() error = %v", err)
+	}
+	if got := inventory.VRFs[vrfID].Devices; len(got) != 1 || got[0] != existingDeviceID {
+		t.Fatalf("VRF devices = %v, want [%s]", got, existingDeviceID)
+	}
+}
+
+func TestMergeTransformResultDeduplicatesUnlabeledCableOnRepeatImport(t *testing.T) {
+	existingDeviceA, existingDeviceB := uuid.New(), uuid.New()
+	incomingDeviceA, incomingDeviceB := uuid.New(), uuid.New()
+	interfaceA, interfaceB := uuid.New(), uuid.New()
+	existingCableID, incomingCableID := uuid.New(), uuid.New()
+	inventory := devicetypes.NewInventory()
+	inventory.Devices[existingDeviceA] = &devicetypes.CaniDeviceType{
+		ID: existingDeviceA, Name: "leaf-a", Interfaces: []devicetypes.InterfaceSpec{{ID: interfaceA, Name: "eth0"}},
+	}
+	inventory.Devices[existingDeviceB] = &devicetypes.CaniDeviceType{
+		ID: existingDeviceB, Name: "leaf-b", Interfaces: []devicetypes.InterfaceSpec{{ID: interfaceB, Name: "eth0"}},
+	}
+	inventory.Cables[existingCableID] = &devicetypes.CaniCableType{
+		ID: existingCableID, TerminationA: interfaceA, TerminationB: interfaceB,
+		TerminationADevice: existingDeviceA, TerminationBDevice: existingDeviceB,
+		TerminationAPort: "eth0", TerminationBPort: "eth0",
+	}
+	result := &devicetypes.TransformResult{
+		Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
+			incomingDeviceA: {
+				ID: incomingDeviceA, Name: "leaf-a", Interfaces: []devicetypes.InterfaceSpec{{ID: interfaceA, Name: "eth0"}},
+			},
+			incomingDeviceB: {
+				ID: incomingDeviceB, Name: "leaf-b", Interfaces: []devicetypes.InterfaceSpec{{ID: interfaceB, Name: "eth0"}},
+			},
+		},
+		Cables: map[uuid.UUID]*devicetypes.CaniCableType{
+			incomingCableID: {
+				ID: incomingCableID, TerminationA: interfaceB, TerminationB: interfaceA,
+				TerminationADevice: incomingDeviceB, TerminationBDevice: incomingDeviceA,
+				TerminationAPort: "eth0", TerminationBPort: "eth0",
+			},
+		},
+	}
+
+	if err := mergeTransformResult(&etlContext{inventory: inventory}, result); err != nil {
+		t.Fatalf("mergeTransformResult() error = %v", err)
+	}
+	if len(inventory.Cables) != 1 {
+		t.Fatalf("cable count = %d, want 1", len(inventory.Cables))
+	}
+	if inventory.Cables[existingCableID].ID != existingCableID {
+		t.Errorf("cable ID = %s, want retained ID %s", inventory.Cables[existingCableID].ID, existingCableID)
+	}
+}
+
+func TestMergeTransformResultRemapsStrictUnclassifiedDeviceChildren(t *testing.T) {
+	originalConfig := config.Cfg
+	originalStep := stepFlag
+	config.Cfg = &config.Config{Strict: true}
+	stepFlag = false
+	t.Cleanup(func() {
+		config.Cfg = originalConfig
+		stepFlag = originalStep
+	})
+
+	existingDeviceID, incomingDeviceID := uuid.New(), uuid.New()
+	moduleID := uuid.New()
+	inventory := devicetypes.NewInventory()
+	inventory.Devices[existingDeviceID] = &devicetypes.CaniDeviceType{
+		ID:   existingDeviceID,
+		Name: "unclassified-001",
+	}
+	result := &devicetypes.TransformResult{
+		Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
+			incomingDeviceID: {ID: incomingDeviceID, Name: "unclassified-001"},
+		},
+		Modules: map[uuid.UUID]*devicetypes.CaniModuleType{
+			moduleID: {ID: moduleID, Name: "nic-1", ParentDevice: incomingDeviceID},
+		},
+	}
+
+	if err := mergeTransformResult(&etlContext{inventory: inventory}, result); err != nil {
+		t.Fatalf("mergeTransformResult() error = %v", err)
+	}
+	if inventory.Modules[moduleID].ParentDevice != existingDeviceID {
+		t.Errorf("module ParentDevice = %s, want %s", inventory.Modules[moduleID].ParentDevice, existingDeviceID)
 	}
 }
 

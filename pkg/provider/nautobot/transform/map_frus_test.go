@@ -148,24 +148,36 @@ func TestMapFrus(t *testing.T) {
 		}
 	})
 
-	t.Run("parent inventory item stores nautobot UUID", func(t *testing.T) {
+	t.Run("parent inventory item resolves to CANI UUID", func(t *testing.T) {
 		parentNBID := uuid.MustParse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
+		parentOAID := openapi_types.UUID(parentNBID)
 		itemID := uuid.MustParse("11111111-2222-3333-4444-555555555555")
 		oaItemID := openapi_types.UUID(itemID)
 
 		raw := []nautobotapi.InventoryItem{
 			{
+				Id:   &parentOAID,
+				Name: "parent-fru",
+			},
+			{
 				Id:   &oaItemID,
 				Name: "child-fru",
 			},
 		}
-		setNBRef(&raw[0].Parent, parentNBID)
 		setNBRef(&raw[0].Device, devNBID)
+		setNBRef(&raw[1].Parent, parentNBID)
+		setNBRef(&raw[1].Device, devNBID)
 
 		got := MapFrus(raw, deviceMap)
+		var parentCaniID uuid.UUID
+		for id, fru := range got {
+			if fru.Name == "parent-fru" {
+				parentCaniID = id
+			}
+		}
 		for _, fru := range got {
-			if fru.Parent != parentNBID {
-				t.Errorf("Parent = %s, want %s", fru.Parent, parentNBID)
+			if fru.Name == "child-fru" && fru.Parent != parentCaniID {
+				t.Errorf("Parent = %s, want CANI UUID %s", fru.Parent, parentCaniID)
 			}
 		}
 	})

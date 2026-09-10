@@ -168,6 +168,9 @@ func TestMapModules(t *testing.T) {
 			found bool
 		}
 		for _, m := range got {
+			if m.ExternalIDs["nautobot"] != modID {
+				t.Errorf("ExternalIDs[nautobot] = %s, want %s", m.ExternalIDs["nautobot"], modID)
+			}
 			if m.Serial != "MOD-SN1" {
 				continue
 			}

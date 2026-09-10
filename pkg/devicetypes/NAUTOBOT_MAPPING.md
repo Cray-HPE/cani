@@ -32,7 +32,7 @@ type Inventory struct {
 
 The concrete struct also maintains an unexported, non-serialized `pkIndex` cache for provider-key device lookups.
 
-Each `Cani*Type` implements the `CaniType` interface (`Validate()`, `GetID()`, `GetSlug()`, `GetStatus()`).
+Each DCIM and IPAM `Cani*Type` implements the `CaniType` interface (`Validate()`, `GetID()`, `GetSlug()`, `GetStatus()`). Provider transforms are merged atomically by `Inventory.MergeTransformResult()`: the inventory and transform output are cloned, natural-key matches retain canonical inventory UUIDs, all persisted foreign keys are remapped, IPAM parents are derived, and the live inventory is replaced only after relationship validation succeeds.
 
 **Current export coverage:**
 
@@ -241,6 +241,7 @@ Exported in Phase 4 by `loadModules()` in `export/load_modules.go`. For each mod
 | `Tenant` | `string` | `Module.Tenant` (FK) | Not Mapped | |
 | `Tags` | `[]string` | `Module.Tags` | Not Mapped | |
 | `CustomFields` | `map[string]any` | `Module.CustomFields` | Not Mapped | |
+| `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Import records the source Nautobot UUID for stable re-import identity |
 | `Source` | `string` | — | Cani-Internal | |
 
 ---
@@ -280,6 +281,7 @@ Cables use a library mechanism identical to devices: a slug/part-number resolves
 | `TerminationBPort` | `string` | — | Cani-Internal | Same |
 | `Tags` | `[]string` | `Cable.Tags` | Not Mapped | |
 | `CustomFields` | `map[string]any` | `Cable.CustomFields` | Not Mapped | |
+| `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Import records the source Nautobot UUID; merge falls back to label or unordered endpoints |
 | `Source` | `string` | — | Cani-Internal | |
 
 **Cable type derivation** (`resolveCableType()` in `load.go`):
@@ -319,6 +321,7 @@ Exported in Phase 5 by `loadFrus()` in `export/load_frus.go`. Uses a topological
 | `Discovered` | `bool` | `InventoryItem.Discovered` | **Mapped** | |
 | `Tags` | `[]string` | `InventoryItem.Tags` | **Mapped** | Resolved by name on create |
 | `CustomFields` | `map[string]any` | `InventoryItem.CustomFields` | **Mapped** | Mapped when non-empty |
+| `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Import records the source Nautobot UUID for stable nested-FRU re-imports |
 | `Source` | `string` | — | Cani-Internal | |
 
 ---
@@ -351,7 +354,7 @@ template (name/type/mgmt-only) and are **not** device-type template fields.
 | `TaggedVLANs` | `[]int` | `Interface.tagged_vlans` (FK) | **Mapped** | Trunk VLAN IDs, resolved to VLAN FKs |
 | `VRF` | `string` | `Interface.vrf` (FK) | **Mapped** | VRF name, resolved to the VRF FK created in Phase 6c |
 | `Description` | `string` | `Interface.description` | **Mapped** | Free-text interface description; sent unconditionally on `updateInterface`, so an emptied local value clears it in Nautobot (inventory is authoritative on reconcile) |
-| `Role` | `string` | `Interface.role` (FK) | **Mapped** | e.g. `management`, `hsn`; validated against registered roles. The `role` FK has no `omitempty`, so an empty local role serializes as `role: null` and clears it on reconcile (inventory is authoritative); enrichment re-sends the role to avoid clobbering it |
+| `Role` | `string` | `Interface.role` (FK) | **Mapped** | e.g. `management`, `hsn`; validated against registered roles. Nautobot 3.2 marks the FK `omitempty`, so `interfacePatch` injects explicit `role: null` when the local role is empty; enrichment otherwise re-sends the role to avoid clobbering it |
 | `Tags` | `[]string` | `Interface.tags` | **Mapped** | Exported via the shared tag resolver |
 | `MacAddress` | `string` | `Interface.mac_address` | **Mapped** | Normalized on `update interface` |
 
@@ -429,7 +432,35 @@ Imported by `FetchPrefixes()` + `FetchPrefixLocationAssignments()` +
 | `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Tracks the source Nautobot UUID |
 | `ProviderMetadata` | `map[string]any` | — | Cani-Internal | Provider escape hatch; not exported for prefixes |
 
-### 2a.5 `InventoryMetadata` / `CustomFieldDefinition` → Nautobot Custom Fields
+### 2a.5 `CaniIPAddress` → Nautobot `IPAddress`
+
+Source: `pkg/devicetypes/ipam_address.go`
+Imported by `FetchIPAddresses()` + `MapIPAddresses()`; exported in Phase 9 by
+`loadIPAddresses()` in `load_ipaddresses.go`. After prefix merge, import derives
+the most-specific retained prefix for each address and remaps the parent to its
+canonical inventory UUID.
+
+| Cani Field | Go Type | Nautobot Field | Status | Notes |
+|---|---|---|---|---|
+| `ID` | `uuid.UUID` | — | Cani-Internal | Primary key |
+| `Host` | `string` | `IPAddress.host` | **Mapped** | Derived from `Address` on import |
+| `MaskLength` | `int` | `IPAddress.mask_length` | **Mapped** | Imported; derived from `Address` for local additions |
+| `Address` | `string` | `IPAddress.address` | **Mapped** | Natural key for merge and lookup |
+| `IPVersion` | `int` | `IPAddress.ip_version` | **Mapped** | Imported; derived from `Address` for local additions |
+| `Type` | `IPAddressType` | `IPAddress.type` | **Mapped** | `host`, `dhcp`, or `slaac` |
+| `IPRole` | `IPAddressRole` | `IPAddress.role` | **Mapped** | Resolved by name |
+| `DNSName` | `string` | `IPAddress.dns_name` | **Mapped** | |
+| `Description` | `string` | `IPAddress.description` | **Mapped** | |
+| `Parent` | `uuid.UUID` | `IPAddress.parent` (FK) | **Mapped** | Derived as the most-specific retained prefix after import; resolved on export |
+| `Interfaces` | `[]uuid.UUID` | IP address-to-interface assignment | Partial | Exported; import does not currently fetch assignment resources |
+| `NATInside` | `uuid.UUID` | `IPAddress.nat_inside` | Not Mapped | Remapped when supplied by another provider, but Nautobot import/export does not populate it |
+| `Status` | `string` | `IPAddress.status` (FK) | **Mapped** | Resolved by name |
+| `Tags` | `[]string` | `IPAddress.tags` | Not Mapped | |
+| `CustomFields` | `map[string]any` | `IPAddress.custom_fields` | Partial | Imported; not sent on export |
+| `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Tracks the source Nautobot UUID |
+| `ProviderMetadata` | `map[string]any` | — | Cani-Internal | Provider escape hatch |
+
+### 2a.6 `InventoryMetadata` / `CustomFieldDefinition` → Nautobot Custom Fields
 
 Source: `pkg/devicetypes/inventory_metadata.go`
 Exported in Phase 0a by `EnsureCustomFields()` in `lookup_custom_fields.go`.
@@ -518,7 +549,7 @@ The `rebuildDeviceRelationships()` function in `inventory_relationships.go` perf
 
 ### 4.3 Relationship Verification
 
-`VerifyParentChildRelationships()` runs five phases:
+`VerifyParentChildRelationships()` runs eight phases:
 
 1. **`rebuildLocationRelationships()`** — Clears and rebuilds `Location.Children` from `Parent`
 2. **`rebuildRackRelationships()`** — Clears and rebuilds `Location.Racks` from `Rack.Location`

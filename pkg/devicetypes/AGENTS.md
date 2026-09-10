@@ -8,7 +8,7 @@ The devicetypes package is a **foundational piece** of CANI. It defines the data
 
 | File | Purpose |
 |------|---------|
-| `cani_type.go` | `CaniType` interface — shared contract for all six inventory types |
+| `cani_type.go` | `CaniType` interface — shared contract for all DCIM and IPAM inventory types |
 | `cani_device_types.go` | `CaniDeviceType` struct — devices (chassis, blades, switches, nodes, PDUs, CDUs) |
 | `cani_rack_types.go` | `CaniRackType` struct — racks and cabinets |
 | `cani_module_types.go` | `CaniModuleType` struct — modules (NICs, GPUs, CPUs, memory, PSUs) |
@@ -16,9 +16,18 @@ The devicetypes package is a **foundational piece** of CANI. It defines the data
 | `cani_fru_types.go` | `CaniFruType` struct — field-replaceable units / inventory items |
 | `cani_location_types.go` | `CaniLocationType` struct — locations (site, building, floor, room) |
 | `inventory.go` | `Inventory` struct — DCIM, interface, IPAM, and metadata collections + `TransformResult` dedup helper |
-| `inventory_crud.go` | CRUD: merge, add, remove devices/racks/locations/modules/cables/FRUs |
+| `inventory_crud.go` | Shared add/remove operations and relationship verification |
+| `inventory_merge_devices.go` | Device merge and provider-identity lookup |
+| `inventory_merge_locations.go` | Location and rack natural-key merges |
+| `inventory_merge_components.go` | Module and FRU natural-key merges |
+| `inventory_merge_cables.go` | Cable identity and endpoint-based merge |
+| `inventory_merge_ipam.go` | VLAN, prefix, IP address, and VRF merges |
+| `transform_merge.go` | Atomic full-result merge transaction |
+| `transform_remap.go` | Canonical UUID remapping and IPAM parent derivation |
 | `inventory_add_remove.go` | Single-item add/remove with validation and relationship rebuild |
-| `inventory_queries.go` | Query helpers (`FindByName`, `Exists`, `GetDevicesInRack`, `Validate`) |
+| `inventory_queries.go` | Location, rack, component, and interface query helpers |
+| `inventory_device_queries.go` | Device lookup, connectable lookup, module-bay occupancy, and parent-kind checks |
+| `inventory_validate.go` | Full-inventory referential validation |
 | `inventory_relationships.go` | Rebuilds and validates parent/child relationships at load time |
 | `inventory_index.go` | O(1) provider-key lookup index for device dedup during merge |
 | `inventory_orphans.go` | Orphan detection for devices and racks without parents |
@@ -52,7 +61,7 @@ The devicetypes package is a **foundational piece** of CANI. It defines the data
 
 | Type | Purpose |
 |------|---------|
-| `CaniType` | Interface: `Validate()`, `GetID()`, `GetSlug()`, `GetStatus()` — implemented by all six types |
+| `CaniType` | Interface: `Validate()`, `GetID()`, `GetSlug()`, `GetStatus()` — implemented by all ten DCIM/IPAM object types |
 | `Inventory` | Holds schema/provider context; DCIM, interface, and IPAM maps; metadata definitions; and a transient provider-key index |
 | `CaniLocationType` | Location hierarchy node (site → building → floor → room) |
 | `CaniRackType` | Rack instance + template fields from YAML library |
@@ -125,7 +134,9 @@ Key relationships:
 - `EnsureLocation()` — Guarantee at least one location exists
 - `AssignRacksToLocation(locID)` — Link orphan racks to a location
 - `AddDevices(batch)` / `MergeDevices(incoming)` / `MergeDevicesStrict(incoming, strict)` — Batch device operations
-- `MergeRacks(incoming)` / `MergeLocations(incoming)` / `MergeModules(incoming)` / `MergeFrus(incoming)` / `MergeCables(incoming)` — Merge by UUID → name → insert
+- `MergeTransformResult(result)` — atomically clone, merge, remap, validate, and commit a complete provider transform result
+- `MergeRacks(incoming)` / `MergeLocations(incoming)` / `MergeModules(incoming)` / `MergeFrus(incoming)` / `MergeCables(incoming)` — Merge by UUID → external identity → natural key → insert
+- `MergeVLANs(incoming)` / `MergePrefixes(incoming)` / `MergeIPAddresses(incoming)` / `MergeVRFs(incoming)` — IPAM natural-key merges returning canonical UUID remaps
 - `RemoveDevice(id)` — Cascading delete (unlinks parent, removes cables/modules/children)
 - `AddLocation(loc)` / `AddRack(rack)` / `AddModule(mod)` / `AddCable(cable)` — Single-item insert with validation
 - `RemoveLocation(id)` / `RemoveRack(id)` / `RemoveModule(id)` / `RemoveCable(id)` — Single-item delete with constraints
