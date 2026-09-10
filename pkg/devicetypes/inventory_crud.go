@@ -556,8 +556,10 @@ func mergeFruProperties(existing, incoming *CaniFruType) {
 
 // MergeVLANs merges VLANs by UUID, then by VID + Location, then inserts. The
 // existing UUID is preserved on a natural-key match so re-imports update in
-// place instead of creating duplicates.
-func (inv *Inventory) MergeVLANs(incoming map[uuid.UUID]*CaniVLAN) {
+// place instead of creating duplicates. It returns incoming UUIDs mapped to
+// their resolved inventory UUIDs.
+func (inv *Inventory) MergeVLANs(incoming map[uuid.UUID]*CaniVLAN) map[uuid.UUID]uuid.UUID {
+	remap := make(map[uuid.UUID]uuid.UUID)
 	if inv.VLANs == nil {
 		inv.VLANs = make(map[uuid.UUID]*CaniVLAN)
 	}
@@ -567,6 +569,7 @@ func (inv *Inventory) MergeVLANs(incoming map[uuid.UUID]*CaniVLAN) {
 		}
 		if _, ok := inv.VLANs[id]; ok {
 			inv.VLANs[id] = vlan
+			remap[id] = id
 			continue
 		}
 		matched := false
@@ -574,14 +577,17 @@ func (inv *Inventory) MergeVLANs(incoming map[uuid.UUID]*CaniVLAN) {
 			if existing != nil && existing.VID == vlan.VID && existing.Location == vlan.Location {
 				vlan.ID = existingID
 				inv.VLANs[existingID] = vlan
+				remap[id] = existingID
 				matched = true
 				break
 			}
 		}
 		if !matched {
 			inv.VLANs[id] = vlan
+			remap[id] = id
 		}
 	}
+	return remap
 }
 
 // MergePrefixes merges prefixes by UUID, then by CIDR + VRF, then inserts.

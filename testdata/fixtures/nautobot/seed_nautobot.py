@@ -13,94 +13,9 @@ Reads nautobot URL and token from the cani config file (CANI_CONF env var),
 falling back to NAUTOBOT_URL / NAUTOBOT_TOKEN env vars if the config is
 unavailable.
 """
-import json
-import os
-import sys
 import urllib.parse
-import urllib.request
 
-try:
-    import yaml  # PyYAML
-    _HAS_YAML = True
-except ImportError:
-    _HAS_YAML = False
-
-
-def _load_from_config():
-    """Read nautobot url/token from the cani config file."""
-    conf_path = os.environ.get("CANI_CONF", "")
-    if not conf_path or not os.path.isfile(conf_path):
-        return None, None
-    if not _HAS_YAML:
-        return None, None
-    with open(conf_path) as f:
-        cfg = yaml.safe_load(f)
-    nb = (cfg or {}).get("providers", {}).get("nautobot", {})
-    return nb.get("url"), nb.get("token")
-
-
-_cfg_url, _cfg_token = _load_from_config()
-NAUTOBOT_URL = _cfg_url or os.environ.get("NAUTOBOT_URL", "http://localhost:8081/api")
-NAUTOBOT_TOKEN = _cfg_token or os.environ.get(
-    "NAUTOBOT_TOKEN", "0123456789abcdef0123456789abcdef01234567"
-)
-
-
-def api(method, path, data=None):
-    """Make an API call and return the parsed JSON response."""
-    url = f"{NAUTOBOT_URL}/{path}"
-    body = json.dumps(data).encode() if data else None
-    req = urllib.request.Request(
-        url,
-        data=body,
-        method=method,
-        headers={
-            "Authorization": f"Token {NAUTOBOT_TOKEN}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        },
-    )
-    try:
-        with urllib.request.urlopen(req) as resp:
-            return json.loads(resp.read())
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode()
-        print(f"ERROR {exc.code} {method} {url}: {detail}", file=sys.stderr)
-        sys.exit(1)
-
-
-def find_or_create(path, match_field, match_value, payload):
-    """Return an existing object or create a new one."""
-    results = api("GET", f"{path}?{match_field}={urllib.parse.quote(str(match_value))}")
-    if results.get("results"):
-        return results["results"][0]
-    return api("POST", path, payload)
-
-
-def delete_all(path):
-    """Delete every object at the given API list endpoint."""
-    while True:
-        data = api("GET", f"{path}?limit=50")
-        results = data.get("results", [])
-        if not results:
-            break
-        for obj in results:
-            url = f"{NAUTOBOT_URL}/{path}{obj['id']}/"
-            req = urllib.request.Request(
-                url,
-                method="DELETE",
-                headers={
-                    "Authorization": f"Token {NAUTOBOT_TOKEN}",
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                },
-            )
-            try:
-                urllib.request.urlopen(req)
-            except urllib.error.HTTPError as exc:
-                if exc.code != 404:
-                    detail = exc.read().decode()
-                    print(f"WARN: DELETE {url}: {detail}", file=sys.stderr)
+from seed_nautobot_api import api, delete_all, find_or_create
 
 
 def purge_all():

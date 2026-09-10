@@ -168,3 +168,51 @@ func TestMergeTransformResultRemapsDeviceChildren(t *testing.T) {
 		t.Errorf("fru Device = %s, want %s", inventory.Frus[fruID].Device, existingDeviceID)
 	}
 }
+
+func TestMergeTransformResultRemapsIPAMReferences(t *testing.T) {
+	existingLocationID, incomingLocationID := uuid.New(), uuid.New()
+	existingVLANID, incomingVLANID := uuid.New(), uuid.New()
+	existingPrefixID, incomingPrefixID := uuid.New(), uuid.New()
+	inventory := devicetypes.NewInventory()
+	inventory.Locations[existingLocationID] = &devicetypes.CaniLocationType{
+		ID: existingLocationID, Name: "test-dc",
+	}
+	inventory.VLANs[existingVLANID] = &devicetypes.CaniVLAN{
+		ID: existingVLANID, VID: 3101, Name: "cani-exported-vlan", Location: existingLocationID,
+	}
+	inventory.Prefixes[existingPrefixID] = &devicetypes.CaniPrefix{
+		ID: existingPrefixID, Prefix: "10.31.1.0/24", Location: existingLocationID, VLAN: existingVLANID,
+	}
+	result := &devicetypes.TransformResult{
+		Locations: map[uuid.UUID]*devicetypes.CaniLocationType{
+			incomingLocationID: {ID: incomingLocationID, Name: "test-dc"},
+		},
+		VLANs: map[uuid.UUID]*devicetypes.CaniVLAN{
+			incomingVLANID: {
+				ID: incomingVLANID, VID: 3101, Name: "cani-exported-vlan", Location: incomingLocationID,
+			},
+		},
+		Prefixes: map[uuid.UUID]*devicetypes.CaniPrefix{
+			incomingPrefixID: {
+				ID: incomingPrefixID, Prefix: "10.31.1.0/24", Location: incomingLocationID, VLAN: incomingVLANID,
+			},
+		},
+	}
+
+	if err := mergeTransformResult(&etlContext{inventory: inventory}, result); err != nil {
+		t.Fatalf("mergeTransformResult() error = %v", err)
+	}
+	if len(inventory.VLANs) != 1 {
+		t.Fatalf("VLAN count = %d, want 1", len(inventory.VLANs))
+	}
+	if got := inventory.VLANs[existingVLANID]; got == nil || got.Location != existingLocationID {
+		t.Fatalf("merged VLAN = %+v, want existing location %s", got, existingLocationID)
+	}
+	if len(inventory.Prefixes) != 1 {
+		t.Fatalf("prefix count = %d, want 1", len(inventory.Prefixes))
+	}
+	if got := inventory.Prefixes[existingPrefixID]; got == nil ||
+		got.Location != existingLocationID || got.VLAN != existingVLANID {
+		t.Fatalf("merged prefix = %+v, want location %s and VLAN %s", got, existingLocationID, existingVLANID)
+	}
+}

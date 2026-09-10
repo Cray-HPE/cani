@@ -37,22 +37,24 @@ import (
 
 // RawData holds all raw API responses fetched during import.
 type RawData struct {
-	Locations            []nautobotapi.Location
-	Racks                []nautobotapi.Rack
-	Devices              []nautobotapi.Device
-	DeviceTypes          []nautobotapi.DeviceType
-	Interfaces           []nautobotapi.Interface
-	Modules              []nautobotapi.Module
-	ModuleBays           []nautobotapi.ModuleBay
-	Cables               []nautobotapi.Cable
-	InventoryItems       []nautobotapi.InventoryItem
-	Statuses             []nautobotapi.Status
-	Roles                []nautobotapi.Role
-	VLANs                []nautobotapi.VLAN
-	Prefixes             []nautobotapi.Prefix
-	IPAddresses          []nautobotapi.IPAddress
-	VRFs                 []nautobotapi.VRF
-	VRFDeviceAssignments []nautobotapi.VRFDeviceAssignment
+	Locations                 []nautobotapi.Location
+	Racks                     []nautobotapi.Rack
+	Devices                   []nautobotapi.Device
+	DeviceTypes               []nautobotapi.DeviceType
+	Interfaces                []nautobotapi.Interface
+	Modules                   []nautobotapi.Module
+	ModuleBays                []nautobotapi.ModuleBay
+	Cables                    []nautobotapi.Cable
+	InventoryItems            []nautobotapi.InventoryItem
+	Statuses                  []nautobotapi.Status
+	Roles                     []nautobotapi.Role
+	VLANs                     []nautobotapi.VLAN
+	VLANLocationAssignments   []nautobotapi.VLANLocationAssignment
+	Prefixes                  []nautobotapi.Prefix
+	PrefixLocationAssignments []nautobotapi.PrefixLocationAssignment
+	IPAddresses               []nautobotapi.IPAddress
+	VRFs                      []nautobotapi.VRF
+	VRFDeviceAssignments      []nautobotapi.VRFDeviceAssignment
 }
 
 // providerGetter is used to get the Nautobot singleton from the parent package.
@@ -159,10 +161,18 @@ func Import(cmd *cli.Command, args []string, inventory *devicetypes.Inventory) e
 	if err != nil {
 		return fmt.Errorf("fetching vlans: %w", err)
 	}
+	d.VLANLocationAssignments, err = FetchVLANLocationAssignments(ctx, client)
+	if err != nil {
+		return fmt.Errorf("fetching VLAN location assignments: %w", err)
+	}
 
 	d.Prefixes, err = FetchPrefixes(ctx, client)
 	if err != nil {
 		return fmt.Errorf("fetching prefixes: %w", err)
+	}
+	d.PrefixLocationAssignments, err = FetchPrefixLocationAssignments(ctx, client)
+	if err != nil {
+		return fmt.Errorf("fetching prefix location assignments: %w", err)
 	}
 
 	d.IPAddresses, err = FetchIPAddresses(ctx, client)

@@ -2,7 +2,9 @@ package transform
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
+	"sync"
 
 	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
@@ -13,30 +15,53 @@ import (
 // (e.g. Device_Status_Id, Cable_Status_Id). Nautobot 3.2 emits a distinct
 // oneOf(UUID|int) union per reference field; every such type implements
 // json.Marshaler with the UUID as member 0. Marshaling then parsing keeps the
-// read path type-agnostic. Returns uuid.Nil when the union is nil, holds an
-// integer id, or is otherwise not a UUID.
+// read path type-agnostic. Returns uuid.Nil when the union is nil or holds an
+// integer id; malformed union output is reported once per generated type.
 func RefUUID(m json.Marshaler) uuid.UUID {
+	id, err := RefUUIDChecked(m)
+	if err != nil {
+		warnReferenceShape(m, err)
+	}
+	return id
+}
+
+// RefUUIDChecked extracts a UUID while distinguishing normal absent/integer
+// variants from malformed generated union output.
+func RefUUIDChecked(m json.Marshaler) (uuid.UUID, error) {
 	if m == nil {
-		return uuid.Nil
+		return uuid.Nil, nil
 	}
 	// Guard against a typed-nil pointer (e.g. a nil *Device_Status_Id) whose
 	// value-receiver MarshalJSON would panic on dereference.
 	if rv := reflect.ValueOf(m); rv.Kind() == reflect.Ptr && rv.IsNil() {
-		return uuid.Nil
+		return uuid.Nil, nil
 	}
 	b, err := m.MarshalJSON()
-	if err != nil || len(b) == 0 {
-		return uuid.Nil
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("marshal reference ID %T: %w", m, err)
 	}
-	var s string
-	if err := json.Unmarshal(b, &s); err != nil {
-		return uuid.Nil
+	if len(b) == 0 {
+		return uuid.Nil, fmt.Errorf("marshal reference ID %T: empty JSON", m)
+	}
+	var value any
+	if err := json.Unmarshal(b, &value); err != nil {
+		return uuid.Nil, fmt.Errorf("decode reference ID %T: %w", m, err)
+	}
+	s, ok := value.(string)
+	if !ok {
+		if value == nil {
+			return uuid.Nil, nil
+		}
+		if _, ok := value.(float64); ok {
+			return uuid.Nil, nil
+		}
+		return uuid.Nil, fmt.Errorf("decode reference ID %T: unexpected JSON type %T", m, value)
 	}
 	id, err := uuid.Parse(s)
 	if err != nil {
-		return uuid.Nil
+		return uuid.Nil, fmt.Errorf("decode reference ID %T: %w", m, err)
 	}
-	return id
+	return id, nil
 }
 
 // SetRefUUID sets any generated per-field reference union type to a UUID by
@@ -50,44 +75,72 @@ func SetRefUUID(u json.Unmarshaler, id uuid.UUID) error {
 	return u.UnmarshalJSON(b)
 }
 
-// refFields extracts the Id (as json.Marshaler) and Url (*string) from a
+// referenceFields extracts the Id (as json.Marshaler) and Url (*string) from a
 // Nautobot 3.2 reference value. References are now per-field inline structs
 // shaped `struct{ Id *<Type>_<Field>_Id; ObjectType *string; Url *string }`,
 // so a single named type can no longer cover them; reflection keeps access
-// type-agnostic. ref may be a struct, a pointer to one, or nil.
-func refFields(ref any) (json.Marshaler, *string) {
+// type-agnostic. Nil references are normal; non-nil values with a different
+// generated shape return an error.
+func referenceFields(ref any) (json.Marshaler, *string, error) {
 	if ref == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 	v := reflect.ValueOf(ref)
 	for v.Kind() == reflect.Ptr {
 		if v.IsNil() {
-			return nil, nil
+			return nil, nil, nil
 		}
 		v = v.Elem()
 	}
 	if v.Kind() != reflect.Struct {
-		return nil, nil
+		return nil, nil, fmt.Errorf("reference %T must be a struct or pointer to struct", ref)
 	}
-	var m json.Marshaler
-	var url *string
-	if f := v.FieldByName("Id"); f.IsValid() && f.CanInterface() {
-		if mm, ok := f.Interface().(json.Marshaler); ok {
-			m = mm
-		}
+	idField := v.FieldByName("Id")
+	if !idField.IsValid() || !idField.CanInterface() {
+		return nil, nil, fmt.Errorf("reference %T has no readable Id field", ref)
 	}
-	if f := v.FieldByName("Url"); f.IsValid() && f.CanInterface() {
-		if uu, ok := f.Interface().(*string); ok {
-			url = uu
-		}
+	m, ok := idField.Interface().(json.Marshaler)
+	if !ok {
+		return nil, nil, fmt.Errorf("reference %T Id field %s does not implement json.Marshaler", ref, idField.Type())
 	}
-	return m, url
+	urlField := v.FieldByName("Url")
+	if !urlField.IsValid() || !urlField.CanInterface() {
+		return nil, nil, fmt.Errorf("reference %T has no readable Url field", ref)
+	}
+	url, ok := urlField.Interface().(*string)
+	if !ok {
+		return nil, nil, fmt.Errorf("reference %T Url field %s is not *string", ref, urlField.Type())
+	}
+	return m, url, nil
 }
 
-// refID extracts the UUID from a Nautobot reference value's Id union.
+// ReferenceUUID validates a generated reference object and extracts its UUID.
+func ReferenceUUID(ref any) (uuid.UUID, error) {
+	m, _, err := referenceFields(ref)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return RefUUIDChecked(m)
+}
+
+var referenceShapeWarnings sync.Map
+
+func warnReferenceShape(ref any, err error) {
+	key := fmt.Sprintf("%T", ref)
+	if _, loaded := referenceShapeWarnings.LoadOrStore(key, struct{}{}); loaded {
+		return
+	}
+	clog.Warn("generated reference shape mismatch: %v", err)
+}
+
+// refID extracts the UUID from a Nautobot reference value's Id union. Invalid
+// generated shapes are reported once and retain the legacy uuid.Nil fallback.
 func refID(ref any) uuid.UUID {
-	m, _ := refFields(ref)
-	return RefUUID(m)
+	id, err := ReferenceUUID(ref)
+	if err != nil {
+		warnReferenceShape(ref, err)
+	}
+	return id
 }
 
 // refIDVal is retained for call-site compatibility; identical to refID.
@@ -132,7 +185,10 @@ func intVal(p *int) int {
 
 // refDisplay returns the reference URL as a display fallback.
 func refDisplay(ref any) string {
-	_, url := refFields(ref)
+	_, url, err := referenceFields(ref)
+	if err != nil {
+		warnReferenceShape(ref, err)
+	}
 	return strVal(url)
 }
 
@@ -186,8 +242,16 @@ func BuildRoleNameMap(roles []nautobotapi.Role) map[uuid.UUID]string {
 // resolveRefName looks up the name for a Nautobot reference using the provided
 // UUID-to-name map, falling back to the reference URL when the UUID is absent.
 func resolveRefName(ref any, nameMap map[uuid.UUID]string) string {
-	m, url := refFields(ref)
-	if id := RefUUID(m); id != uuid.Nil {
+	m, url, err := referenceFields(ref)
+	if err != nil {
+		warnReferenceShape(ref, err)
+		return ""
+	}
+	id, err := RefUUIDChecked(m)
+	if err != nil {
+		warnReferenceShape(ref, err)
+	}
+	if id != uuid.Nil {
 		if name, ok := nameMap[id]; ok {
 			return name
 		}

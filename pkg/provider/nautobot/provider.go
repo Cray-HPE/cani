@@ -44,22 +44,24 @@ type Nautobot struct {
 	cache  *export.LookupCache
 
 	// Raw API responses stored during Import() for use by Transform().
-	rawLocations            []nautobotapi.Location
-	rawRacks                []nautobotapi.Rack
-	rawDevices              []nautobotapi.Device
-	rawDeviceTypes          []nautobotapi.DeviceType
-	rawInterfaces           []nautobotapi.Interface
-	rawModules              []nautobotapi.Module
-	rawModuleBays           []nautobotapi.ModuleBay
-	rawCables               []nautobotapi.Cable
-	rawInventoryItems       []nautobotapi.InventoryItem
-	rawStatuses             []nautobotapi.Status
-	rawRoles                []nautobotapi.Role
-	rawVLANs                []nautobotapi.VLAN
-	rawPrefixes             []nautobotapi.Prefix
-	rawIPAddresses          []nautobotapi.IPAddress
-	rawVRFs                 []nautobotapi.VRF
-	rawVRFDeviceAssignments []nautobotapi.VRFDeviceAssignment
+	rawLocations                 []nautobotapi.Location
+	rawRacks                     []nautobotapi.Rack
+	rawDevices                   []nautobotapi.Device
+	rawDeviceTypes               []nautobotapi.DeviceType
+	rawInterfaces                []nautobotapi.Interface
+	rawModules                   []nautobotapi.Module
+	rawModuleBays                []nautobotapi.ModuleBay
+	rawCables                    []nautobotapi.Cable
+	rawInventoryItems            []nautobotapi.InventoryItem
+	rawStatuses                  []nautobotapi.Status
+	rawRoles                     []nautobotapi.Role
+	rawVLANs                     []nautobotapi.VLAN
+	rawVLANLocationAssignments   []nautobotapi.VLANLocationAssignment
+	rawPrefixes                  []nautobotapi.Prefix
+	rawPrefixLocationAssignments []nautobotapi.PrefixLocationAssignment
+	rawIPAddresses               []nautobotapi.IPAddress
+	rawVRFs                      []nautobotapi.VRF
+	rawVRFDeviceAssignments      []nautobotapi.VRFDeviceAssignment
 }
 
 // New creates a new instance of the Nautobot provider
@@ -95,7 +97,9 @@ func (p *Nautobot) ClearRawData() {
 	p.rawStatuses = nil
 	p.rawRoles = nil
 	p.rawVLANs = nil
+	p.rawVLANLocationAssignments = nil
 	p.rawPrefixes = nil
+	p.rawPrefixLocationAssignments = nil
 	p.rawIPAddresses = nil
 	p.rawVRFs = nil
 	p.rawVRFDeviceAssignments = nil
@@ -115,7 +119,9 @@ func (p *Nautobot) SetRawData(d imprt.RawData) {
 	p.rawStatuses = d.Statuses
 	p.rawRoles = d.Roles
 	p.rawVLANs = d.VLANs
+	p.rawVLANLocationAssignments = d.VLANLocationAssignments
 	p.rawPrefixes = d.Prefixes
+	p.rawPrefixLocationAssignments = d.PrefixLocationAssignments
 	p.rawIPAddresses = d.IPAddresses
 	p.rawVRFs = d.VRFs
 	p.rawVRFDeviceAssignments = d.VRFDeviceAssignments

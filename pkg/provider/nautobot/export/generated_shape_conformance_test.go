@@ -38,6 +38,39 @@ import (
 // the provider adapters. A regenerated client that changes one of these shapes
 // should fail here before request construction can silently drift.
 func TestGeneratedShapeConformance(t *testing.T) {
+	t.Run("response reference", func(t *testing.T) {
+		id := uuid.New()
+		var device nautobotapi.Device
+		mustSetRefID(t, &device.Status, id)
+		got, err := transform.ReferenceUUID(device.Status)
+		if err != nil {
+			t.Fatalf("read device status reference: %v", err)
+		}
+		if got != id {
+			t.Fatalf("device status ID = %s, want %s", got, id)
+		}
+	})
+
+	t.Run("assignment response references", func(t *testing.T) {
+		vlanID := uuid.New()
+		locationID := uuid.New()
+		var assignment nautobotapi.VLANLocationAssignment
+		mustSetRefID(t, &assignment.Vlan, vlanID)
+		mustSetRefID(t, &assignment.Location, locationID)
+		gotVLAN, err := transform.ReferenceUUID(assignment.Vlan)
+		if err != nil {
+			t.Fatalf("read VLAN assignment reference: %v", err)
+		}
+		gotLocation, err := transform.ReferenceUUID(assignment.Location)
+		if err != nil {
+			t.Fatalf("read location assignment reference: %v", err)
+		}
+		if gotVLAN != vlanID || gotLocation != locationID {
+			t.Fatalf("assignment IDs = VLAN %s, location %s; want %s and %s",
+				gotVLAN, gotLocation, vlanID, locationID)
+		}
+	})
+
 	t.Run("scalar reference", func(t *testing.T) {
 		id := uuid.New()
 		var req nautobotapi.WritableDeviceRequest

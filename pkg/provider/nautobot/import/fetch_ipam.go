@@ -86,6 +86,24 @@ func FetchVLANs(ctx context.Context, client *nautobotapi.ClientWithResponses) ([
 	})
 }
 
+// FetchVLANLocationAssignments retrieves the location memberships that
+// Nautobot 3.2 exposes separately from VLAN objects.
+func FetchVLANLocationAssignments(ctx context.Context, client *nautobotapi.ClientWithResponses) ([]nautobotapi.VLANLocationAssignment, error) {
+	return paginate(ctx, "VLAN location assignments", func(ctx context.Context, offset int) (pageResult[nautobotapi.VLANLocationAssignment], error) {
+		resp, err := client.IpamVlanLocationAssignmentsListWithResponse(ctx, &nautobotapi.IpamVlanLocationAssignmentsListParams{
+			Limit:  intPtr(pageSize),
+			Offset: &offset,
+		})
+		if err != nil {
+			return pageResult[nautobotapi.VLANLocationAssignment]{}, err
+		}
+		return stdPage(resp.StatusCode(), resp.JSON200, "VLAN location assignments",
+			func(b *nautobotapi.PaginatedVLANLocationAssignmentList) ([]nautobotapi.VLANLocationAssignment, *string) {
+				return b.Results, b.Next
+			})
+	})
+}
+
 // The generated client types Nautobot's network/broadcast/host address fields
 // as []byte, which Go's encoding/json decodes from base64. Nautobot returns them
 // as plain dotted-decimal strings (e.g. "10.0.0.0"), so decoding the generated
@@ -148,6 +166,24 @@ func FetchPrefixes(ctx context.Context, client *nautobotapi.ClientWithResponses)
 			return pageResult[nautobotapi.Prefix]{}, err
 		}
 		return shadowPage(resp, func(s prefixNoBinary) nautobotapi.Prefix { return s.Prefix })
+	})
+}
+
+// FetchPrefixLocationAssignments retrieves the location memberships that
+// Nautobot 3.2 exposes separately from prefix objects.
+func FetchPrefixLocationAssignments(ctx context.Context, client *nautobotapi.ClientWithResponses) ([]nautobotapi.PrefixLocationAssignment, error) {
+	return paginate(ctx, "prefix location assignments", func(ctx context.Context, offset int) (pageResult[nautobotapi.PrefixLocationAssignment], error) {
+		resp, err := client.IpamPrefixLocationAssignmentsListWithResponse(ctx, &nautobotapi.IpamPrefixLocationAssignmentsListParams{
+			Limit:  intPtr(pageSize),
+			Offset: &offset,
+		})
+		if err != nil {
+			return pageResult[nautobotapi.PrefixLocationAssignment]{}, err
+		}
+		return stdPage(resp.StatusCode(), resp.JSON200, "prefix location assignments",
+			func(b *nautobotapi.PaginatedPrefixLocationAssignmentList) ([]nautobotapi.PrefixLocationAssignment, *string) {
+				return b.Results, b.Next
+			})
 	})
 }
 

@@ -52,87 +52,6 @@ func mergeMetadata(ctx *etlContext, meta *devicetypes.InventoryMetadata) {
 	}
 }
 
-// remapDeviceParents rewrites device Parent fields using the UUID remap
-// maps returned by MergeLocations and MergeRacks. This ensures devices
-// point to existing inventory UUIDs rather than ephemeral transform UUIDs.
-func remapDeviceParents(
-	devices map[uuid.UUID]*devicetypes.CaniDeviceType,
-	locationRemap, rackRemap map[uuid.UUID]uuid.UUID,
-) {
-	for _, dev := range devices {
-		if dev == nil {
-			continue
-		}
-		if dev.Parent != uuid.Nil {
-			if mapped, ok := rackRemap[dev.Parent]; ok {
-				dev.Parent = mapped
-			} else if mapped, ok := locationRemap[dev.Parent]; ok {
-				dev.Parent = mapped
-			}
-		}
-		if mapped, ok := rackRemap[dev.Rack]; ok {
-			dev.Rack = mapped
-		}
-	}
-}
-
-// remapDeviceReferences rewrites foreign keys that target devices using the
-// UUID remap returned by MergeDevicesStrict.
-func remapDeviceReferences(
-	inventory *devicetypes.Inventory,
-	result *devicetypes.TransformResult,
-	deviceRemap map[uuid.UUID]uuid.UUID,
-) {
-	if len(deviceRemap) == 0 {
-		return
-	}
-	for incomingID, device := range result.Devices {
-		if device == nil {
-			continue
-		}
-		if mapped, ok := deviceRemap[device.Parent]; ok {
-			device.Parent = mapped
-		}
-		resolvedID, ok := deviceRemap[incomingID]
-		if !ok || resolvedID == incomingID {
-			continue
-		}
-		if resolved := inventory.Devices[resolvedID]; resolved != nil {
-			if device.Parent != uuid.Nil {
-				resolved.Parent = device.Parent
-			}
-			if device.Rack != uuid.Nil {
-				resolved.Rack = device.Rack
-			}
-		}
-	}
-	for _, module := range result.Modules {
-		if module != nil {
-			if mapped, ok := deviceRemap[module.ParentDevice]; ok {
-				module.ParentDevice = mapped
-			}
-		}
-	}
-	for _, fru := range result.Frus {
-		if fru != nil {
-			if mapped, ok := deviceRemap[fru.Device]; ok {
-				fru.Device = mapped
-			}
-		}
-	}
-	for _, cable := range result.Cables {
-		if cable == nil {
-			continue
-		}
-		if mapped, ok := deviceRemap[cable.TerminationADevice]; ok {
-			cable.TerminationADevice = mapped
-		}
-		if mapped, ok := deviceRemap[cable.TerminationBDevice]; ok {
-			cable.TerminationBDevice = mapped
-		}
-	}
-}
-
 // mergeLocations adds transformed locations to the inventory.
 func mergeLocations(ctx *etlContext, locations map[uuid.UUID]*devicetypes.CaniLocationType) map[uuid.UUID]uuid.UUID {
 	if len(locations) == 0 {
@@ -297,15 +216,16 @@ func mergeFrus(ctx *etlContext, frus map[uuid.UUID]*devicetypes.CaniFruType) {
 	ctx.inventory.MergeFrus(frus)
 }
 
-// mergeVLANs adds transformed VLANs to the inventory.
-func mergeVLANs(ctx *etlContext, vlans map[uuid.UUID]*devicetypes.CaniVLAN) {
+// mergeVLANs adds transformed VLANs to the inventory and returns their resolved
+// inventory UUIDs for prefix reference remapping.
+func mergeVLANs(ctx *etlContext, vlans map[uuid.UUID]*devicetypes.CaniVLAN) map[uuid.UUID]uuid.UUID {
 	if len(vlans) == 0 {
-		return
+		return nil
 	}
 	if ctx.debug {
 		visual.PrintCaniOperation(fmt.Sprintf("Merging %d VLANs into inventory", len(vlans)), ctx.opts)
 	}
-	ctx.inventory.MergeVLANs(vlans)
+	return ctx.inventory.MergeVLANs(vlans)
 }
 
 // mergePrefixes adds transformed prefixes to the inventory.

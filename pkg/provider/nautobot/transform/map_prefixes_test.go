@@ -36,7 +36,7 @@ import (
 )
 
 // TestMapPrefixes verifies MapPrefixes converts prefixes, resolves status and
-// role names, rewrites the first location to a CANI UUID, resolves the VLAN
+// role names, rewrites the assigned location to a CANI UUID, resolves the VLAN
 // association through the VLAN ID map, maps the prefix type, passes custom
 // fields through, and skips prefixes with a nil Id.
 //
@@ -45,13 +45,14 @@ import (
 // not rewritten would point at objects that were never imported, and a prefix
 // type that is dropped would lose the container/network/pool classification the
 // address plan depends on.
-// Inputs: location and VLAN lookup maps plus prefixes that are nil-Id, fully
-// populated (known location, VLAN, status, role, type, custom fields), and one
-// carrying an unknown VLAN. Outputs: the CANI prefix map with CIDR, length, IP
-// version, type, location, VLAN, status, role, and custom fields.
-// Data choice: "10.0.0.0/24" type "network" with a populated VLAN map proves the
-// VLAN resolves; a deliberately absent VLAN UUID proves the miss leaves VLAN at
-// uuid.Nil. Parent is intentionally not asserted because CANI recomputes it.
+// Inputs: assignment, location, and VLAN lookup maps plus prefixes that are
+// nil-Id, fully populated (known location, VLAN, status, role, type, custom
+// fields), and one carrying an unknown VLAN. Outputs: the CANI prefix map with
+// CIDR, length, IP version, type, location, VLAN, status, role, and custom
+// fields. Data choice: "10.0.0.0/24" type "network" with populated assignment
+// and VLAN maps proves both references resolve; a deliberately absent VLAN UUID
+// proves the miss leaves VLAN at uuid.Nil. Parent is intentionally not asserted
+// because CANI recomputes it.
 func TestMapPrefixes(t *testing.T) {
 	locNBID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	locCaniID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
@@ -61,14 +62,14 @@ func TestMapPrefixes(t *testing.T) {
 	vlanMap := map[uuid.UUID]uuid.UUID{vlanNBID: vlanCaniID}
 
 	t.Run("empty input returns empty map", func(t *testing.T) {
-		if got := MapPrefixes(nil, locationMap, vlanMap, nil, nil); len(got) != 0 {
+		if got := MapPrefixes(nil, nil, locationMap, vlanMap, nil, nil); len(got) != 0 {
 			t.Fatalf("expected 0 prefixes, got %d", len(got))
 		}
 	})
 
 	t.Run("prefix with nil ID is skipped", func(t *testing.T) {
 		raw := []nautobotapi.Prefix{{Prefix: "10.0.0.0/24", Id: nil}}
-		if got := MapPrefixes(raw, locationMap, vlanMap, nil, nil); len(got) != 0 {
+		if got := MapPrefixes(raw, nil, locationMap, vlanMap, nil, nil); len(got) != 0 {
 			t.Errorf("expected 0 prefixes, got %d", len(got))
 		}
 	})
@@ -96,7 +97,8 @@ func TestMapPrefixes(t *testing.T) {
 		setNBRef(&raw[0].Vlan, vlanNBID)
 		setNBValue(&raw[0].Type, "network")
 
-		got := onlyValue(t, MapPrefixes(raw, locationMap, vlanMap, statusNameMap, roleNameMap))
+		assignedLocations := map[uuid.UUID]uuid.UUID{nbID: locNBID}
+		got := onlyValue(t, MapPrefixes(raw, assignedLocations, locationMap, vlanMap, statusNameMap, roleNameMap))
 		got.ID = uuid.Nil // normalize randomly generated ID
 		want := &devicetypes.CaniPrefix{
 			Prefix:      "10.0.0.0/24",
@@ -104,7 +106,7 @@ func TestMapPrefixes(t *testing.T) {
 			IPVersion:   4,
 			Type:        devicetypes.PrefixTypeNetwork,
 			Description: "mgmt net",
-			Location:    uuid.Nil,
+			Location:    locCaniID,
 			VLAN:        vlanCaniID,
 			ObjectMeta: devicetypes.ObjectMeta{
 				Status:       "Active",
@@ -130,7 +132,7 @@ func TestMapPrefixes(t *testing.T) {
 		}
 		setNBRef(&raw[0].Status, uuid.New())
 		setNBRef(&raw[0].Vlan, unknownVLAN)
-		got := onlyValue(t, MapPrefixes(raw, locationMap, vlanMap, nil, nil))
+		got := onlyValue(t, MapPrefixes(raw, nil, locationMap, vlanMap, nil, nil))
 		if got.VLAN != uuid.Nil {
 			t.Errorf("VLAN = %s, want Nil", got.VLAN)
 		}

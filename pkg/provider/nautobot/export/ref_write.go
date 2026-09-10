@@ -45,43 +45,39 @@ import (
 // field must be a pointer to the reference field, which may be a value struct
 // or a (possibly nil) pointer to struct; nil pointers are allocated.
 func setRefID(field any, id uuid.UUID) error {
-	rv := reflect.ValueOf(field)
-	if rv.Kind() != reflect.Ptr || rv.IsNil() {
-		return fmt.Errorf("reference field must be a non-nil pointer, got %T", field)
-	}
-	target := rv.Elem()
-	if target.Kind() == reflect.Ptr {
-		if target.IsNil() {
-			if !target.CanSet() {
-				return fmt.Errorf("reference pointer %T cannot be set", field)
-			}
-			target.Set(reflect.New(target.Type().Elem()))
-		}
-		target = target.Elem()
+	target, err := writableTarget(field, "reference field")
+	if err != nil {
+		return err
 	}
 	if target.Kind() != reflect.Struct {
 		return fmt.Errorf("reference field must point to a struct, got %s", target.Kind())
 	}
-	idField := target.FieldByName("Id")
-	if !idField.IsValid() || !idField.CanSet() || idField.Kind() != reflect.Ptr {
-		return fmt.Errorf("reference struct %s has no settable pointer Id field", target.Type())
-	}
-	// idField is *<...>_Id; allocate one and load the UUID via its
-	// json.Unmarshaler (member 0 is the UUID variant).
-	nv := reflect.New(idField.Type().Elem())
-	u, ok := nv.Interface().(json.Unmarshaler)
-	if !ok {
-		return fmt.Errorf("reference Id type %s does not implement json.Unmarshaler", idField.Type().Elem())
-	}
-	b, err := json.Marshal(id)
+	idField, err := writablePointerField(target, "Id")
 	if err != nil {
-		return fmt.Errorf("marshal reference UUID: %w", err)
+		return fmt.Errorf("reference struct %s: %w", target.Type(), err)
 	}
-	if err := u.UnmarshalJSON(b); err != nil {
-		return fmt.Errorf("set reference UUID on %s: %w", target.Type(), err)
+	idValue, err := newReferenceID(idField.Type().Elem(), id)
+	if err != nil {
+		return err
 	}
-	idField.Set(nv)
+	idField.Set(idValue)
 	return nil
+}
+
+func newReferenceID(idType reflect.Type, id uuid.UUID) (reflect.Value, error) {
+	value := reflect.New(idType)
+	unmarshaler, ok := value.Interface().(json.Unmarshaler)
+	if !ok {
+		return reflect.Value{}, fmt.Errorf("reference Id type %s does not implement json.Unmarshaler", idType)
+	}
+	payload, err := json.Marshal(id)
+	if err != nil {
+		return reflect.Value{}, fmt.Errorf("marshal reference UUID: %w", err)
+	}
+	if err := unmarshaler.UnmarshalJSON(payload); err != nil {
+		return reflect.Value{}, fmt.Errorf("set reference UUID on %s: %w", idType, err)
+	}
+	return value, nil
 }
 
 // setRefSlice populates a request's repeated reference field (e.g. Tags,
@@ -92,34 +88,49 @@ func setRefSlice(field any, ids []uuid.UUID) error {
 	if len(ids) == 0 {
 		return nil
 	}
-	rv := reflect.ValueOf(field)
-	if rv.Kind() != reflect.Ptr || rv.IsNil() {
-		return fmt.Errorf("reference slice must be a non-nil pointer, got %T", field)
-	}
-	target := rv.Elem()
-	if target.Kind() == reflect.Ptr {
-		if target.IsNil() {
-			if !target.CanSet() {
-				return fmt.Errorf("reference slice pointer %T cannot be set", field)
-			}
-			target.Set(reflect.New(target.Type().Elem()))
-		}
-		target = target.Elem()
+	target, err := writableTarget(field, "reference slice")
+	if err != nil {
+		return err
 	}
 	if target.Kind() != reflect.Slice {
 		return fmt.Errorf("reference slice field must point to a slice, got %s", target.Kind())
 	}
-	elemType := target.Type().Elem()
-	out := reflect.MakeSlice(target.Type(), 0, len(ids))
+	values := reflect.MakeSlice(target.Type(), 0, len(ids))
 	for _, id := range ids {
-		ev := reflect.New(elemType)
-		if err := setRefID(ev.Interface(), id); err != nil {
+		item := reflect.New(target.Type().Elem())
+		if err := setRefID(item.Interface(), id); err != nil {
 			return fmt.Errorf("set reference slice item %s: %w", id, err)
 		}
-		out = reflect.Append(out, ev.Elem())
+		values = reflect.Append(values, item.Elem())
 	}
-	target.Set(out)
+	target.Set(values)
 	return nil
+}
+
+func writableTarget(field any, label string) (reflect.Value, error) {
+	value := reflect.ValueOf(field)
+	if value.Kind() != reflect.Ptr || value.IsNil() {
+		return reflect.Value{}, fmt.Errorf("%s must be a non-nil pointer, got %T", label, field)
+	}
+	target := value.Elem()
+	if target.Kind() != reflect.Ptr {
+		return target, nil
+	}
+	if target.IsNil() {
+		if !target.CanSet() {
+			return reflect.Value{}, fmt.Errorf("%s pointer %T cannot be set", label, field)
+		}
+		target.Set(reflect.New(target.Type().Elem()))
+	}
+	return target.Elem(), nil
+}
+
+func writablePointerField(target reflect.Value, name string) (reflect.Value, error) {
+	field := target.FieldByName(name)
+	if !field.IsValid() || !field.CanSet() || field.Kind() != reflect.Ptr {
+		return reflect.Value{}, fmt.Errorf("no settable pointer %s field", name)
+	}
+	return field, nil
 }
 
 // setDeviceFace sets a device request's Face union field ("front"/"rear",
@@ -131,19 +142,15 @@ func setDeviceFace(field any, face string) {
 	if strings.EqualFold(face, "rear") {
 		fe = nautobotapi.FaceEnumRear
 	}
-	rv := reflect.ValueOf(field)
-	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+	target, err := writableTarget(field, "device face")
+	if err != nil || target.Kind() != reflect.Struct {
 		return
 	}
-	slot := rv.Elem() // the *_Face pointer field
-	if slot.Kind() != reflect.Ptr || !slot.CanSet() {
+	value := reflect.New(target.Type())
+	method := value.MethodByName("FromFaceEnum")
+	if !method.IsValid() {
 		return
 	}
-	nv := reflect.New(slot.Type().Elem())
-	m := nv.MethodByName("FromFaceEnum")
-	if !m.IsValid() {
-		return
-	}
-	m.Call([]reflect.Value{reflect.ValueOf(fe)})
-	slot.Set(nv)
+	method.Call([]reflect.Value{reflect.ValueOf(fe)})
+	reflect.ValueOf(field).Elem().Set(value)
 }

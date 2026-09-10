@@ -44,8 +44,8 @@ Each `Cani*Type` implements the `CaniType` interface (`Validate()`, `GetID()`, `
 | `Modules` | `Module` + `ModuleType` + `ModuleBay` | ~60% | `loadModules()` in `load_modules.go` |
 | `Cables` | `Cable` | ~75% | `createCaniCableType()` in `load.go` |
 | `Frus` | `InventoryItem` | ~60% | `loadFrus()` in `load_frus.go` |
-| `VLANs` | `VLAN` | Import + Export | `loadVLANs()` in `load_vlans.go` |
-| `Prefixes` | `Prefix` | Import + Export | `loadPrefixes()` in `load_prefixes.go` |
+| `VLANs` | `VLAN` + `VLANLocationAssignment` | Import + Export | `loadVLANs()` in `load_vlans.go` |
+| `Prefixes` | `Prefix` + `PrefixLocationAssignment` | Import + Export | `loadPrefixes()` in `load_prefixes.go` |
 | `IPAddresses` | `IPAddress` | Import + Export | `loadIPAddresses()` in `load.go` |
 | `VRFs` | `VRF` | Import + Export | `loadVRFs()` in `load_vrfs.go` |
 
@@ -329,7 +329,11 @@ IPAM types (`VLANs`, `Prefixes`, `IPAddresses`, `VRFs`) and the interface
 switchport fields are UUID-keyed like the DCIM types and follow the same tag
 convention (camelCase JSON, snake_case YAML). They round-trip through the same
 ETL: fetched on import (`FetchVLANs`/`FetchPrefixes`/`FetchIPAddresses`/`FetchVRFs`),
-mapped in `transform/map_*.go`, and exported in Phases 6c–10 (see §5).
+mapped in `transform/map_*.go`, and exported in Phases 6c–10 (see §5). Nautobot
+3.2 exposes VLAN and prefix location scope through separate
+`VLANLocationAssignment` and `PrefixLocationAssignment` resources. Import fetches
+those resources and projects the first valid assignment onto CANI's single
+`Location` FK.
 
 ### 2a.1 Interface enrichment fields (`CaniInterface` / `InterfaceSpec`)
 
@@ -379,8 +383,9 @@ Imported by `FetchVRFs()` + `MapVRFs()`; exported in Phase 6c by `loadVRFs()` in
 ### 2a.3 `CaniVLAN` → Nautobot `VLAN`
 
 Source: `pkg/devicetypes/ipam_vlan.go`
-Imported by `FetchVLANs()` + `MapVLANs()`; exported in Phase 7 by `loadVLANs()` in
-`load_vlans.go` (find-or-create scoped to location).
+Imported by `FetchVLANs()` + `FetchVLANLocationAssignments()` + `MapVLANs()`;
+exported in Phase 7 by `loadVLANs()` in `load_vlans.go` (find-or-create scoped to
+location).
 
 | Cani Field | Go Type | Nautobot Field | Status | Notes |
 |---|---|---|---|---|
@@ -388,7 +393,7 @@ Imported by `FetchVLANs()` + `MapVLANs()`; exported in Phase 7 by `loadVLANs()` 
 | `VID` | `int` | `VLAN.vid` | **Mapped** | Natural key (with location) for find-or-create |
 | `Name` | `string` | `VLAN.name` | **Mapped** | |
 | `Description` | `string` | `VLAN.description` | **Mapped** | Mapped when non-empty |
-| `Location` | `uuid.UUID` | `VLAN.location` (FK) | **Mapped** | Resolved to Nautobot location; retries without location on rejection |
+| `Location` | `uuid.UUID` | `VLANLocationAssignment.location` | **Mapped** | Import resolves the first valid assignment; export sends `VLANRequest.location`, which creates the assignment, and retries unscoped on rejection |
 | `Status` | `string` | `VLAN.status` (FK) | **Mapped** | Resolved by name; falls back to provider default then `"Active"` |
 | `Role` | `string` | `VLAN.role` (FK) | **Mapped** | Resolved by name when non-empty |
 | `Tags` | `[]string` | `VLAN.tags` | Not Mapped | |
@@ -396,7 +401,35 @@ Imported by `FetchVLANs()` + `MapVLANs()`; exported in Phase 7 by `loadVLANs()` 
 | `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Tracks the source Nautobot UUID |
 | `ProviderMetadata` | `map[string]any` | `VLAN.custom_fields` | **Mapped** | Flattened and merged into custom_fields payload |
 
-### 2a.4 `InventoryMetadata` / `CustomFieldDefinition` → Nautobot Custom Fields
+### 2a.4 `CaniPrefix` → Nautobot `Prefix`
+
+Source: `pkg/devicetypes/ipam_prefix.go`
+Imported by `FetchPrefixes()` + `FetchPrefixLocationAssignments()` +
+`MapPrefixes()`; exported in Phase 8 by `loadPrefixes()` in `load_prefixes.go`.
+
+| Cani Field | Go Type | Nautobot Field | Status | Notes |
+|---|---|---|---|---|
+| `ID` | `uuid.UUID` | — | Cani-Internal | Primary key |
+| `Prefix` | `string` | `Prefix.prefix` | **Mapped** | CIDR is the find-or-create key within the global namespace |
+| `Network` | `string` | `Prefix.network` | Cani-Internal | Derived from the CIDR; not sent on export |
+| `Broadcast` | `string` | `Prefix.broadcast` | Cani-Internal | Derived from the CIDR; not sent on export |
+| `PrefixLen` | `int` | `Prefix.prefix_length` | **Mapped** | Imported directly; Nautobot derives it from `prefix` on export |
+| `IPVersion` | `int` | `Prefix.ip_version` | **Mapped** | Imported directly; Nautobot derives it from `prefix` on export |
+| `Type` | `PrefixType` | `Prefix.type` | **Mapped** | `container`, `network`, or `pool` |
+| `Description` | `string` | `Prefix.description` | **Mapped** | Mapped when non-empty |
+| `Location` | `uuid.UUID` | `PrefixLocationAssignment.location` | **Mapped** | Import resolves the first valid assignment; export sends `WritablePrefixRequest.location`, which creates the assignment, and retries unscoped on rejection |
+| `VLAN` | `uuid.UUID` | `Prefix.vlan` (FK) | **Mapped** | Resolved through the imported/exported VLAN UUID map |
+| `VRF` | `string` | — | Not Mapped | CANI stores a VRF name, but prefix import/export does not currently wire it |
+| `Parent` | `uuid.UUID` | `Prefix.parent` (FK) | **Mapped** | Recomputed from CIDRs after import; exported parent-first |
+| `Status` | `string` | `Prefix.status` (FK) | **Mapped** | Resolved by name; falls back to provider default then `"Active"` |
+| `Role` | `string` | `Prefix.role` (FK) | **Mapped** | Resolved by name when non-empty |
+| `Tenant` | `string` | `Prefix.tenant` (FK) | Not Mapped | |
+| `Tags` | `[]string` | `Prefix.tags` | Not Mapped | |
+| `CustomFields` | `map[string]any` | `Prefix.custom_fields` | Partial | Imported; not sent on export |
+| `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Tracks the source Nautobot UUID |
+| `ProviderMetadata` | `map[string]any` | — | Cani-Internal | Provider escape hatch; not exported for prefixes |
+
+### 2a.5 `InventoryMetadata` / `CustomFieldDefinition` → Nautobot Custom Fields
 
 Source: `pkg/devicetypes/inventory_metadata.go`
 Exported in Phase 0a by `EnsureCustomFields()` in `lookup_custom_fields.go`.
@@ -594,7 +627,7 @@ Implemented in `loadVRFs()` in `load_vrfs.go`. Iterates `inventory.VRFs`. Find-o
 
 ### Phase 7: VLANs
 
-Implemented in `loadVLANs()` in `load_vlans.go`. Iterates `inventory.VLANs`. Find-or-create scoped to the VLAN's location; caches created VLAN IDs for interface enrichment and prefix FK resolution. Merges `CustomFields` and flattened `ProviderMetadata` into the `custom_fields` payload on create.
+Implemented in `loadVLANs()` in `load_vlans.go`. Iterates `inventory.VLANs`. Find-or-create scoped to the VLAN's location; the create request's `location` field materializes a Nautobot 3.2 `VLANLocationAssignment`. Caches created VLAN IDs for interface enrichment and prefix FK resolution. Merges `CustomFields` and flattened `ProviderMetadata` into the `custom_fields` payload on create.
 
 ### Phase 7b: Interface enrichment
 
@@ -602,7 +635,7 @@ Implemented in `enrichInterfaces()` in `load_interface_enrich.go`. PATCHes exist
 
 ### Phase 8: Prefixes
 
-Implemented in `loadPrefixes()` in `load_prefixes.go`. Iterates `inventory.Prefixes`. Find-or-create scoped to location; resolves the optional VLAN FK from Phase 7.
+Implemented in `loadPrefixes()` in `load_prefixes.go`. Iterates `inventory.Prefixes`. Find-or-create scoped to location; the create request's `location` field materializes a Nautobot 3.2 `PrefixLocationAssignment`. Resolves the optional VLAN FK from Phase 7.
 
 ### Phase 9: IP Addresses
 

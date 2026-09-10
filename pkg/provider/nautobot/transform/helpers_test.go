@@ -121,6 +121,17 @@ type testRef struct {
 	Url *string
 }
 
+type malformedReferenceID struct{}
+
+func (malformedReferenceID) MarshalJSON() ([]byte, error) {
+	return []byte(`{"unexpected":true}`), nil
+}
+
+type malformedReference struct {
+	Id  malformedReferenceID
+	Url *string
+}
+
 // makeStatusRefFromUUID creates a testRef whose Id union wraps the given UUID.
 func makeStatusRefFromUUID(id uuid.UUID) testRef {
 	var idUnion nautobotapi.Device_Status_Id
@@ -715,5 +726,42 @@ func TestTenantRefID_UnionDecodeError(t *testing.T) {
 
 	if got := tenantRefID(ref); got != uuid.Nil {
 		t.Errorf("tenantRefID() = %s, want %s for undecodable union", got, uuid.Nil)
+	}
+}
+
+func TestReferenceUUIDRejectsGeneratedShapeDrift(t *testing.T) {
+	tests := []struct {
+		name string
+		ref  any
+	}{
+		{name: "non-struct reference", ref: "not-a-reference"},
+		{name: "missing Id field", ref: struct{ Url *string }{}},
+		{name: "wrong Id field type", ref: struct {
+			Id  string
+			Url *string
+		}{}},
+		{name: "missing Url field", ref: struct {
+			Id *nautobotapi.Device_Status_Id
+		}{}},
+		{name: "malformed union JSON", ref: malformedReference{}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got, err := ReferenceUUID(tt.ref); err == nil {
+				t.Fatalf("ReferenceUUID(%T) = %s, want shape error", tt.ref, got)
+			}
+		})
+	}
+}
+
+func TestReferenceUUIDAllowsAbsentReference(t *testing.T) {
+	var ref *testRef
+	got, err := ReferenceUUID(ref)
+	if err != nil {
+		t.Fatalf("ReferenceUUID(nil) error = %v", err)
+	}
+	if got != uuid.Nil {
+		t.Fatalf("ReferenceUUID(nil) = %s, want %s", got, uuid.Nil)
 	}
 }
