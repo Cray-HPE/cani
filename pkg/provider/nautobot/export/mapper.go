@@ -26,6 +26,7 @@
 package export
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
@@ -89,7 +90,7 @@ const errMsgDeviceNil = "device is nil"
 // MapToNautobotDevice converts a CaniDeviceType to a BulkWritableDeviceRequest
 func (m *DeviceMapper) MapToNautobotDevice(device *devicetypes.CaniDeviceType) (*nautobotapi.BulkWritableDeviceRequest, error) {
 	if device == nil {
-		return nil, fmt.Errorf(errMsgDeviceNil)
+		return nil, errors.New(errMsgDeviceNil)
 	}
 
 	// Lookup required references
@@ -151,7 +152,7 @@ func (m *DeviceMapper) MapToNautobotDevice(device *devicetypes.CaniDeviceType) (
 // MapToWritableDeviceRequest converts a CaniDeviceType to a WritableDeviceRequest for single creates
 func (m *DeviceMapper) MapToWritableDeviceRequest(device *devicetypes.CaniDeviceType) (*nautobotapi.WritableDeviceRequest, error) {
 	if device == nil {
-		return nil, fmt.Errorf(errMsgDeviceNil)
+		return nil, errors.New(errMsgDeviceNil)
 	}
 
 	// Lookup required references
@@ -251,7 +252,7 @@ func (m *DeviceMapper) MapToWritableDeviceRequest(device *devicetypes.CaniDevice
 // MapToPatchRequest converts a CaniDeviceType to a PatchedWritableDeviceRequest for updates
 func (m *DeviceMapper) MapToPatchRequest(device *devicetypes.CaniDeviceType, existingID uuid.UUID) (*nautobotapi.PatchedWritableDeviceRequest, error) {
 	if device == nil {
-		return nil, fmt.Errorf(errMsgDeviceNil)
+		return nil, errors.New(errMsgDeviceNil)
 	}
 
 	req := &nautobotapi.PatchedWritableDeviceRequest{
@@ -497,7 +498,7 @@ func (m *DeviceMapper) resolveRole(device *devicetypes.CaniDeviceType) (*CachedI
 // MapToWritableRackRequest converts a CaniDeviceType (rack) to a WritableRackRequest
 func (m *DeviceMapper) MapToWritableRackRequest(device *devicetypes.CaniDeviceType) (*nautobotapi.WritableRackRequest, error) {
 	if device == nil {
-		return nil, fmt.Errorf(errMsgDeviceNil)
+		return nil, errors.New(errMsgDeviceNil)
 	}
 
 	// Resolve location

@@ -74,8 +74,5 @@ func hardwareNeedsUpdate(
 	// If the CANI status changed, update it.
 	curStatus, _ := current.ExtraProperties["@cani.status"].(string)
 	expStatus, _ := expected.ExtraProperties["@cani.status"].(string)
-	if curStatus != expStatus {
-		return true
-	}
-	return false
+	return curStatus != expStatus
 }

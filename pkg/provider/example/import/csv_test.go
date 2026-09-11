@@ -362,7 +362,7 @@ func TestParseRow(t *testing.T) {
 			row:       []string{"P9K58A", "HPE Rack", "0", "0100"},
 			idx:       baseIdx,
 			expectErr: true,
-			errorMsg:  "Quantity must be >= 1",
+			errorMsg:  "quantity must be >= 1",
 		},
 		{
 			name: "with cable fields",

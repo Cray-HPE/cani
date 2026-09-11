@@ -220,9 +220,7 @@ func topologicalSortFrus(frus map[uuid.UUID]*devicetypes.CaniFruType) []*devicet
 		if fru, ok := frus[id]; ok && fru != nil {
 			ordered = append(ordered, fru)
 		}
-		for _, childID := range children[id] {
-			queue = append(queue, childID)
-		}
+		queue = append(queue, children[id]...)
 	}
 
 	// Detect unreachable FRUs (cycles or orphaned parent references).

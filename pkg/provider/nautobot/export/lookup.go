@@ -118,7 +118,6 @@ type LookupCache struct {
 	locationsLoaded   bool
 	statusesLoaded    bool
 	rolesLoaded       bool
-	devicesLoaded     bool
 
 	// Options for auto-creation
 	createDeviceTypes   bool

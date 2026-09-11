@@ -39,13 +39,6 @@ func MapLocations(raw []nautobotapi.Location, statusNameMap map[uuid.UUID]string
 			Comments:        strVal(loc.Comments),
 		}
 
-		// Extract location type display name if available.
-		if loc.LocationType.Id != nil {
-			// Best effort: use the URL as-is or just store the name.
-			// The name isn't directly in BulkWritableCableRequestStatus,
-			// but the fixture data provides it.
-		}
-
 		// Map parent reference.
 		if loc.Parent != nil {
 			parentNBID := tenantRefID(loc.Parent)

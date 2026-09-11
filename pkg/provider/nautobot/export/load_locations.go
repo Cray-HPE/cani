@@ -275,9 +275,7 @@ func topologicalSortLocations(locs map[uuid.UUID]*devicetypes.CaniLocationType) 
 		if loc, ok := locs[id]; ok && loc != nil {
 			ordered = append(ordered, loc)
 		}
-		for _, childID := range children[id] {
-			queue = append(queue, childID)
-		}
+		queue = append(queue, children[id]...)
 	}
 	return ordered
 }

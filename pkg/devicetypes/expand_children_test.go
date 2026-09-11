@@ -47,9 +47,6 @@ func TestExpandChildrenEX235A(t *testing.T) {
 		if c.Status != string(StatusStaged) {
 			t.Errorf("child %s status = %q, want %q", c.Slug, c.Status, StatusStaged)
 		}
-		if c.Parent == d.ID {
-			// direct child
-		}
 	}
 	if !foundNode {
 		t.Error("expected at least one hpe-crayex-ex235a-compute-node child")

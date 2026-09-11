@@ -77,10 +77,6 @@ func trimRightFunc(s string, f func(rune) bool) string {
 	return string(runes[:i+1])
 }
 
-func formatXname(format string, args ...any) string {
-	return sprintf(format, args...)
-}
-
 // xnamePattern defines a regex pattern to match and the type it identifies.
 type xnamePattern struct {
 	re       *regexp.Regexp
@@ -250,24 +246,4 @@ func ParseXname(xname string) XnameInfo {
 func atoi(s string) int {
 	v, _ := strconv.Atoi(s)
 	return v
-}
-
-// sprintf is a thin wrapper to avoid importing fmt for simple formatting.
-func sprintf(format string, args ...any) string {
-	// Use strconv-based approach for the simple "x%d" patterns we need.
-	// For the xname formats, all args are ints so we build manually.
-	result := make([]byte, 0, 32)
-	argIdx := 0
-	for i := 0; i < len(format); i++ {
-		if format[i] == '%' && i+1 < len(format) && format[i+1] == 'd' {
-			if argIdx < len(args) {
-				result = strconv.AppendInt(result, int64(args[argIdx].(int)), 10)
-				argIdx++
-			}
-			i++ // skip 'd'
-		} else {
-			result = append(result, format[i])
-		}
-	}
-	return string(result)
 }

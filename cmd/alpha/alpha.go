@@ -37,7 +37,7 @@ func NewCommand() *cli.Command {
 		Long:  `Run commands that are considered unstable.`,
 		Args:  cli.ArbitraryArgs,
 		RunE: func(cmd *cli.Command, args []string) error {
-			cmd.Help()
+			_ = cmd.Help()
 			return nil
 		},
 	}

@@ -119,7 +119,7 @@ func runTransformPhase(ctx *etlContext) error {
 // displayTransformSummary shows the transform results based on current mode.
 func displayTransformSummary(ctx *etlContext, result *devicetypes.TransformResult) {
 	if stepFlag {
-		displayBriefSummary(result, ctx.opts)
+		_ = displayBriefSummary(result, ctx.opts)
 	} else if ctx.debug {
 		summary := buildImportSummary(result.Racks, result.Devices, result.Cables)
 		visual.PrintImportSummary(summary, ctx.opts, false)

@@ -122,8 +122,8 @@ func TestMapRacks(t *testing.T) {
 		if rack.Location != locCaniID {
 			t.Errorf("Location = %s, want %s", rack.Location, locCaniID)
 		}
-		if rack.ObjectMeta.ExternalIDs["nautobot"] != nbID {
-			t.Errorf("ExternalIDs[nautobot] = %s, want %s", rack.ObjectMeta.ExternalIDs["nautobot"], nbID)
+		if rack.ExternalIDs["nautobot"] != nbID {
+			t.Errorf("ExternalIDs[nautobot] = %s, want %s", rack.ExternalIDs["nautobot"], nbID)
 		}
 	})
 

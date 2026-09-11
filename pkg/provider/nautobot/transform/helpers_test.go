@@ -41,11 +41,11 @@ import (
 // Device/Cable/VLAN ref field without naming its anonymous struct type.
 func setNBRef(field any, id uuid.UUID) {
 	rv := reflect.ValueOf(field)
-	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+	if rv.Kind() != reflect.Pointer || rv.IsNil() {
 		return
 	}
 	target := rv.Elem()
-	if target.Kind() == reflect.Ptr {
+	if target.Kind() == reflect.Pointer {
 		if target.IsNil() {
 			if !target.CanSet() {
 				return
@@ -58,7 +58,7 @@ func setNBRef(field any, id uuid.UUID) {
 		return
 	}
 	idField := target.FieldByName("Id")
-	if !idField.IsValid() || !idField.CanSet() || idField.Kind() != reflect.Ptr {
+	if !idField.IsValid() || !idField.CanSet() || idField.Kind() != reflect.Pointer {
 		return
 	}
 	nv := reflect.New(idField.Type().Elem())
@@ -90,11 +90,11 @@ func nbCF(cf map[string]interface{}) *map[string]*interface{} {
 // field is a pointer to the (possibly anonymous) inline-struct field.
 func setNBValue(field any, value string) {
 	rv := reflect.ValueOf(field)
-	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+	if rv.Kind() != reflect.Pointer || rv.IsNil() {
 		return
 	}
 	slot := rv.Elem()
-	if slot.Kind() == reflect.Ptr {
+	if slot.Kind() == reflect.Pointer {
 		if slot.IsNil() {
 			if !slot.CanSet() {
 				return
@@ -104,7 +104,7 @@ func setNBValue(field any, value string) {
 		slot = slot.Elem()
 	}
 	vf := slot.FieldByName("Value")
-	if !vf.IsValid() || !vf.CanSet() || vf.Kind() != reflect.Ptr {
+	if !vf.IsValid() || !vf.CanSet() || vf.Kind() != reflect.Pointer {
 		return
 	}
 	ev := reflect.New(vf.Type().Elem())

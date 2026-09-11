@@ -498,8 +498,8 @@ func TestParseDcimRow_ZeroQty(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for zero qty")
 	}
-	if !contains(err.Error(), "Qty must be >= 1") {
-		t.Errorf("error = %q, want containing 'Qty must be >= 1'", err.Error())
+	if !contains(err.Error(), "qty must be >= 1") {
+		t.Errorf("error = %q, want containing 'qty must be >= 1'", err.Error())
 	}
 }
 

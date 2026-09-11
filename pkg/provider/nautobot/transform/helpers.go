@@ -33,7 +33,7 @@ func RefUUIDChecked(m json.Marshaler) (uuid.UUID, error) {
 	}
 	// Guard against a typed-nil pointer (e.g. a nil *Device_Status_Id) whose
 	// value-receiver MarshalJSON would panic on dereference.
-	if rv := reflect.ValueOf(m); rv.Kind() == reflect.Ptr && rv.IsNil() {
+	if rv := reflect.ValueOf(m); rv.Kind() == reflect.Pointer && rv.IsNil() {
 		return uuid.Nil, nil
 	}
 	b, err := m.MarshalJSON()
@@ -86,7 +86,7 @@ func referenceFields(ref any) (json.Marshaler, *string, error) {
 		return nil, nil, nil
 	}
 	v := reflect.ValueOf(ref)
-	for v.Kind() == reflect.Ptr {
+	for v.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			return nil, nil, nil
 		}

@@ -185,7 +185,7 @@ func parseRow(row []string, idx columnIndex, lineNum int) (CsvRecord, error) {
 		return CsvRecord{}, fmt.Errorf("invalid Quantity %q: %w", qtyStr, err)
 	}
 	if qty < 1 {
-		return CsvRecord{}, fmt.Errorf("Quantity must be >= 1, got %d", qty)
+		return CsvRecord{}, fmt.Errorf("quantity must be >= 1, got %d", qty)
 	}
 
 	var configGroup string

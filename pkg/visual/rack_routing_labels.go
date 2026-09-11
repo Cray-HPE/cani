@@ -75,17 +75,6 @@ func collectAnnotationEndpoints(u int, cables []routingCable) []connEndpoint {
 	return endpoints
 }
 
-// buildEndpointAnnotation produces a compact annotation for cables at row u.
-// Intra-rack:  →U(localPort:remotePort, ...)
-// Inter-rack:  ⇢rack(localPort:remotePort, ...)
-func buildEndpointAnnotation(u int, cables []routingCable) string {
-	endpoints := collectAnnotationEndpoints(u, cables)
-	if len(endpoints) == 0 {
-		return ""
-	}
-	return formatEndpoints(endpoints, colorFuncs{})
-}
-
 // buildColoredAnnotation is like buildEndpointAnnotation but applies ANSI
 // colors: intra-rack labels use the cable group color, inter-rack labels
 // are dimmed gray, and local U references are bold.
