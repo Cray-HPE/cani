@@ -32,103 +32,91 @@ import (
 	"github.com/google/uuid"
 )
 
-// roleRef resolves an interface role name to its Nautobot reference.
+// roleRef resolves an interface role name to its Nautobot UUID (uuid.Nil when
+// the name is empty).
 //
 // The generated PatchedWritableInterfaceRequest.Role FK has no `omitempty`, so
 // a nil ref serializes as `"role":null` and CLEARS the role in Nautobot. Any
 // PATCH that means to keep an existing role must therefore re-send it via this
 // helper; an enrichment PATCH that left Role nil is what dropped roles in
 // FORGE-305.
-func (e *Exporter) roleRef(name string) (*objectRef, error) {
+func (e *Exporter) roleRef(name string) (uuid.UUID, error) {
 	if name == "" {
-		return nil, nil
+		return uuid.Nil, nil
 	}
 	item, err := e.Cache.GetRole(name)
 	if err != nil {
-		return nil, fmt.Errorf("resolve interface role %q: %w", name, err)
+		return uuid.Nil, fmt.Errorf("resolve interface role %q: %w", name, err)
 	}
 	if item == nil {
-		return nil, fmt.Errorf("resolve interface role %q: not found", name)
+		return uuid.Nil, fmt.Errorf("resolve interface role %q: not found", name)
 	}
-	return makeObjectRef(item.ID), nil
+	return item.ID, nil
 }
 
-// vrfRef resolves a VRF name to its Nautobot reference using the VRF cache
-// populated by the VRF phase, or nil when the name is empty or unknown.
-func (e *Exporter) vrfRef(name string) *objectRef {
+// vrfRef resolves a VRF name to its Nautobot UUID using the VRF cache populated
+// by the VRF phase, or uuid.Nil when the name is empty or unknown.
+func (e *Exporter) vrfRef(name string) uuid.UUID {
 	if name == "" {
-		return nil
+		return uuid.Nil
 	}
 	item, ok := e.Cache.LookupCachedVRF(name)
 	if !ok || item == nil {
 		clog.Warn("unresolved VRF reference %q, skipping", name)
-		return nil
+		return uuid.Nil
 	}
-	return makeObjectRef(item.ID)
+	return item.ID
 }
 
-// lagRef resolves the parent LAG interface on the same device to a ParentLAG
-// reference, or nil when the LAG name is empty or cannot be resolved.
-func (e *Exporter) lagRef(deviceID uuid.UUID, lagName string) *nautobotapi.ParentLAG {
+// lagRef resolves the parent LAG interface on the same device to its Nautobot
+// UUID, or uuid.Nil when the LAG name is empty or cannot be resolved.
+func (e *Exporter) lagRef(deviceID uuid.UUID, lagName string) uuid.UUID {
 	if lagName == "" {
-		return nil
+		return uuid.Nil
 	}
 	lagIface, err := e.Cache.GetInterfaceByDeviceAndName(deviceID, lagName)
 	if err != nil || lagIface == nil {
 		clog.Warn("unresolved LAG reference %q on device %s, skipping", lagName, deviceID)
-		return nil
+		return uuid.Nil
 	}
-	return makeParentLagRef(lagIface.ID)
+	return lagIface.ID
 }
 
-// modeRef builds a switchport-mode reference, or nil when mode is empty or invalid.
-func modeRef(mode string) *nautobotapi.PatchedWritableInterfaceRequestMode {
+// setPatchedInterfaceMode sets a switchport-mode on a patched interface request,
+// leaving it unset when mode is empty or invalid.
+func setPatchedInterfaceMode(req *nautobotapi.PatchedWritableInterfaceRequest, mode string) {
 	if mode == "" {
-		return nil
+		return
 	}
-	var m nautobotapi.PatchedWritableInterfaceRequestMode
-	if err := m.FromModeEnum(nautobotapi.ModeEnum(mode)); err != nil {
-		return nil
+	var m nautobotapi.PatchedWritableInterfaceRequest_Mode
+	if err := m.FromInterfaceModeChoices(nautobotapi.InterfaceModeChoices(mode)); err != nil {
+		return
 	}
-	return &m
+	req.Mode = &m
 }
 
-// untaggedVLANRef resolves a VLAN ID to an untagged-VLAN reference, or nil.
-func untaggedVLANRef(vid int, vidToVLAN map[int]uuid.UUID) *objectRef {
+// untaggedVLANRef resolves a VLAN ID to its Nautobot UUID, or uuid.Nil.
+func untaggedVLANRef(vid int, vidToVLAN map[int]uuid.UUID) uuid.UUID {
 	if vid == 0 {
-		return nil
+		return uuid.Nil
 	}
 	if vlanID, ok := vidToVLAN[vid]; ok {
-		return makeObjectRef(vlanID)
+		return vlanID
 	}
 	clog.Warn("unresolved untagged VLAN reference (VID %d), skipping", vid)
-	return nil
+	return uuid.Nil
 }
 
-// resolveTaggedVLANRefs maps tagged VLAN IDs to Nautobot tagged-VLAN references,
-// skipping any VLAN that was not created.
-func resolveTaggedVLANRefs(vids []int, vidToVLAN map[int]uuid.UUID) []nautobotapi.TaggedVLANs {
-	refs := make([]nautobotapi.TaggedVLANs, 0, len(vids))
+// resolveTaggedVLANRefs maps tagged VLAN IDs to Nautobot VLAN UUIDs, skipping
+// any VLAN that was not created.
+func resolveTaggedVLANRefs(vids []int, vidToVLAN map[int]uuid.UUID) []uuid.UUID {
+	ids := make([]uuid.UUID, 0, len(vids))
 	for _, vid := range vids {
 		if vlanID, ok := vidToVLAN[vid]; ok {
-			refs = append(refs, makeTaggedVLANRef(vlanID))
+			ids = append(ids, vlanID)
 		} else {
 			clog.Warn("unresolved tagged VLAN reference (VID %d), skipping", vid)
 		}
 	}
-	return refs
-}
-
-// makeParentLagRef builds a ParentLAG reference from a Nautobot interface UUID.
-func makeParentLagRef(id uuid.UUID) *nautobotapi.ParentLAG {
-	var union nautobotapi.BulkWritableCableRequestStatusId
-	_ = union.FromBulkWritableCableRequestStatusId0(id)
-	return &nautobotapi.ParentLAG{Id: &union}
-}
-
-// makeTaggedVLANRef builds a TaggedVLANs reference from a Nautobot VLAN UUID.
-func makeTaggedVLANRef(id uuid.UUID) nautobotapi.TaggedVLANs {
-	var union nautobotapi.BulkWritableCableRequestStatusId
-	_ = union.FromBulkWritableCableRequestStatusId0(id)
-	return nautobotapi.TaggedVLANs{Id: &union}
+	return ids
 }

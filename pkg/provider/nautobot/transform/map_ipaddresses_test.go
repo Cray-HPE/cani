@@ -57,7 +57,7 @@ func TestMapIPAddresses(t *testing.T) {
 	})
 
 	t.Run("address with nil ID is skipped", func(t *testing.T) {
-		raw := []nautobotapi.IPAddress{{Address: "10.0.0.1/24", Id: nil, Status: makeStatusRefFromUUID(uuid.New())}}
+		raw := []nautobotapi.IPAddress{{Address: "10.0.0.1/24", Id: nil}}
 		if got := MapIPAddresses(raw, nil, nil); len(got) != 0 {
 			t.Errorf("expected 0 addresses, got %d", len(got))
 		}
@@ -70,7 +70,6 @@ func TestMapIPAddresses(t *testing.T) {
 		roleID := uuid.MustParse("77777777-7777-7777-7777-777777777777")
 		statusNameMap := map[uuid.UUID]string{statusID: "Active"}
 		roleNameMap := map[uuid.UUID]string{roleID: "loopback"}
-		role := makeObjectRefFromUUID(roleID)
 		ipType := nautobotapi.IPAddressTypeChoices("host")
 
 		raw := []nautobotapi.IPAddress{
@@ -81,12 +80,12 @@ func TestMapIPAddresses(t *testing.T) {
 				IpVersion:    intPtr(4),
 				DnsName:      strPtr("host1.example.com"),
 				Description:  strPtr("loopback addr"),
-				Status:       makeStatusRefFromUUID(statusID),
-				Role:         &role,
 				Type:         &ipType,
-				CustomFields: &map[string]interface{}{"rack": "r1"},
+				CustomFields: nbCF(map[string]interface{}{"rack": "r1"}),
 			},
 		}
+		setNBRef(&raw[0].Status, statusID)
+		setNBRef(&raw[0].Role, roleID)
 
 		got := onlyValue(t, MapIPAddresses(raw, statusNameMap, roleNameMap))
 		got.ID = uuid.Nil // normalize randomly generated ID
@@ -114,7 +113,7 @@ func TestMapIPAddresses(t *testing.T) {
 		nbID := uuid.MustParse("44444444-4444-4444-4444-444444444444")
 		oaID := openapi_types.UUID(nbID)
 		raw := []nautobotapi.IPAddress{
-			{Id: &oaID, Address: "10.0.0.9", Status: makeStatusRefFromUUID(uuid.New())},
+			{Id: &oaID, Address: "10.0.0.9"},
 		}
 		got := onlyValue(t, MapIPAddresses(raw, nil, nil))
 		if got.Host != "10.0.0.9" {

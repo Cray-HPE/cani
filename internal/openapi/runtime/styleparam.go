@@ -18,17 +18,13 @@ package runtime
 import (
 	"bytes"
 	"encoding"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/url"
 	"reflect"
-	"sort"
-	"strconv"
 	"strings"
 	"time"
-
-	"github.com/google/uuid"
 
 	"github.com/Cray-HPE/cani/internal/openapi/types"
 )
@@ -53,10 +49,30 @@ func StyleParam(style string, explode bool, paramName string, value interface{})
 	return StyleParamWithLocation(style, explode, paramName, ParamLocationUndefined, value)
 }
 
-// Given an input value, such as a primitive type, array or object, turn it
-// into a parameter based on style/explode definition, performing whatever
-// escaping is necessary based on parameter location
+// StyleParamWithLocation serializes a Go value into an OpenAPI-styled parameter
+// string, performing escaping based on parameter location.
 func StyleParamWithLocation(style string, explode bool, paramName string, paramLocation ParamLocation, value interface{}) (string, error) {
+	return StyleParamWithOptions(style, explode, paramName, value, StyleParamOptions{
+		ParamLocation: paramLocation,
+	})
+}
+
+// StyleParamOptions defines optional arguments for StyleParamWithOptions.
+type StyleParamOptions struct {
+	// ParamLocation controls URL escaping behavior.
+	ParamLocation ParamLocation
+	// Type is the OpenAPI type of the parameter (e.g. "string", "array").
+	Type string
+	// Format is the OpenAPI format of the parameter (e.g. "byte", "date-time").
+	Format string
+	// Required indicates whether the parameter is required.
+	Required bool
+	// AllowReserved preserves RFC 3986 reserved characters in query values.
+	AllowReserved bool
+}
+
+// StyleParamWithOptions serializes a Go value with additional OpenAPI options.
+func StyleParamWithOptions(style string, explode bool, paramName string, value interface{}, opts StyleParamOptions) (string, error) {
 	t := reflect.TypeOf(value)
 	v := reflect.ValueOf(value)
 
@@ -85,28 +101,32 @@ func StyleParamWithLocation(style string, explode bool, paramName string, paramL
 				return "", fmt.Errorf("error marshaling '%s' as text: %w", value, err)
 			}
 
-			return stylePrimitive(style, explode, paramName, paramLocation, string(b))
+			return stylePrimitive(style, explode, paramName, opts.ParamLocation, opts.AllowReserved, string(b))
 		}
 	}
 
 	switch t.Kind() {
 	case reflect.Slice:
+		if opts.Format == "byte" && isByteSlice(t) {
+			encoded := base64.StdEncoding.EncodeToString(v.Bytes())
+			return stylePrimitive(style, explode, paramName, opts.ParamLocation, opts.AllowReserved, encoded)
+		}
 		n := v.Len()
 		sliceVal := make([]interface{}, n)
 		for i := 0; i < n; i++ {
 			sliceVal[i] = v.Index(i).Interface()
 		}
-		return styleSlice(style, explode, paramName, paramLocation, sliceVal)
+		return styleSlice(style, explode, paramName, opts.ParamLocation, opts.AllowReserved, sliceVal)
 	case reflect.Struct:
-		return styleStruct(style, explode, paramName, paramLocation, value)
+		return styleStruct(style, explode, paramName, opts.ParamLocation, opts.AllowReserved, value)
 	case reflect.Map:
-		return styleMap(style, explode, paramName, paramLocation, value)
+		return styleMap(style, explode, paramName, opts.ParamLocation, opts.AllowReserved, value)
 	default:
-		return stylePrimitive(style, explode, paramName, paramLocation, value)
+		return stylePrimitive(style, explode, paramName, opts.ParamLocation, opts.AllowReserved, value)
 	}
 }
 
-func styleSlice(style string, explode bool, paramName string, paramLocation ParamLocation, values []interface{}) (string, error) {
+func styleSlice(style string, explode bool, paramName string, paramLocation ParamLocation, allowReserved bool, values []interface{}) (string, error) {
 	if style == "deepObject" {
 		if !explode {
 			return "", errors.New("deepObjects must be exploded")
@@ -116,6 +136,7 @@ func styleSlice(style string, explode bool, paramName string, paramLocation Para
 
 	var prefix string
 	var separator string
+	escapedName := escapeParameterName(paramName, paramLocation)
 
 	switch style {
 	case "simple":
@@ -128,28 +149,28 @@ func styleSlice(style string, explode bool, paramName string, paramLocation Para
 			separator = ","
 		}
 	case "matrix":
-		prefix = fmt.Sprintf(";%s=", paramName)
+		prefix = fmt.Sprintf(";%s=", escapedName)
 		if explode {
 			separator = prefix
 		} else {
 			separator = ","
 		}
 	case "form":
-		prefix = fmt.Sprintf("%s=", paramName)
+		prefix = fmt.Sprintf("%s=", escapedName)
 		if explode {
 			separator = "&" + prefix
 		} else {
 			separator = ","
 		}
 	case "spaceDelimited":
-		prefix = fmt.Sprintf("%s=", paramName)
+		prefix = fmt.Sprintf("%s=", escapedName)
 		if explode {
 			separator = "&" + prefix
 		} else {
 			separator = " "
 		}
 	case "pipeDelimited":
-		prefix = fmt.Sprintf("%s=", paramName)
+		prefix = fmt.Sprintf("%s=", escapedName)
 		if explode {
 			separator = "&" + prefix
 		} else {
@@ -165,24 +186,13 @@ func styleSlice(style string, explode bool, paramName string, paramLocation Para
 	parts := make([]string, len(values))
 	for i, v := range values {
 		part, err = primitiveToString(v)
-		part = escapeParameterString(part, paramLocation)
+		part = escapeParameterString(part, paramLocation, allowReserved)
 		parts[i] = part
 		if err != nil {
 			return "", fmt.Errorf("error formatting '%s': %w", paramName, err)
 		}
 	}
 	return prefix + strings.Join(parts, separator), nil
-}
-
-func sortedKeys(strMap map[string]string) []string {
-	keys := make([]string, len(strMap))
-	i := 0
-	for k := range strMap {
-		keys[i] = k
-		i++
-	}
-	sort.Strings(keys)
-	return keys
 }
 
 // These are special cases. The value may be a date, time, or uuid,
@@ -212,9 +222,9 @@ func marshalKnownTypes(value interface{}) (string, bool) {
 	return "", false
 }
 
-func styleStruct(style string, explode bool, paramName string, paramLocation ParamLocation, value interface{}) (string, error) {
+func styleStruct(style string, explode bool, paramName string, paramLocation ParamLocation, allowReserved bool, value interface{}) (string, error) {
 	if timeVal, ok := marshalKnownTypes(value); ok {
-		styledVal, err := stylePrimitive(style, explode, paramName, paramLocation, timeVal)
+		styledVal, err := stylePrimitive(style, explode, paramName, paramLocation, allowReserved, timeVal)
 		if err != nil {
 			return "", fmt.Errorf("failed to style time: %w", err)
 		}
@@ -242,7 +252,10 @@ func styleStruct(style string, explode bool, paramName string, paramLocation Par
 		if err != nil {
 			return "", fmt.Errorf("failed to unmarshal JSON: %w", err)
 		}
-		s, err := StyleParamWithLocation(style, explode, paramName, paramLocation, i2)
+		s, err := StyleParamWithOptions(style, explode, paramName, i2, StyleParamOptions{
+			ParamLocation: paramLocation,
+			AllowReserved: allowReserved,
+		})
 		if err != nil {
 			return "", fmt.Errorf("error style JSON structure: %w", err)
 		}
@@ -281,197 +294,5 @@ func styleStruct(style string, explode bool, paramName string, paramLocation Par
 		fieldDict[fieldName] = str
 	}
 
-	return processFieldDict(style, explode, paramName, paramLocation, fieldDict)
-}
-
-func styleMap(style string, explode bool, paramName string, paramLocation ParamLocation, value interface{}) (string, error) {
-	if style == "deepObject" {
-		if !explode {
-			return "", errors.New("deepObjects must be exploded")
-		}
-		return MarshalDeepObject(value, paramName)
-	}
-	v := reflect.ValueOf(value)
-
-	fieldDict := make(map[string]string)
-	for _, fieldName := range v.MapKeys() {
-		str, err := primitiveToString(v.MapIndex(fieldName).Interface())
-		if err != nil {
-			return "", fmt.Errorf("error formatting '%s': %w", paramName, err)
-		}
-		fieldDict[fieldName.String()] = str
-	}
-	return processFieldDict(style, explode, paramName, paramLocation, fieldDict)
-}
-
-func processFieldDict(style string, explode bool, paramName string, paramLocation ParamLocation, fieldDict map[string]string) (string, error) {
-	var parts []string
-
-	// This works for everything except deepObject. We'll handle that one
-	// separately.
-	if style != "deepObject" {
-		if explode {
-			for _, k := range sortedKeys(fieldDict) {
-				v := escapeParameterString(fieldDict[k], paramLocation)
-				parts = append(parts, k+"="+v)
-			}
-		} else {
-			for _, k := range sortedKeys(fieldDict) {
-				v := escapeParameterString(fieldDict[k], paramLocation)
-				parts = append(parts, k)
-				parts = append(parts, v)
-			}
-		}
-	}
-
-	var prefix string
-	var separator string
-
-	switch style {
-	case "simple":
-		separator = ","
-	case "label":
-		prefix = "."
-		if explode {
-			separator = prefix
-		} else {
-			separator = ","
-		}
-	case "matrix":
-		if explode {
-			separator = ";"
-			prefix = ";"
-		} else {
-			separator = ","
-			prefix = fmt.Sprintf(";%s=", paramName)
-		}
-	case "form":
-		if explode {
-			separator = "&"
-		} else {
-			prefix = fmt.Sprintf("%s=", paramName)
-			separator = ","
-		}
-	case "deepObject":
-		{
-			if !explode {
-				return "", fmt.Errorf("deepObject parameters must be exploded")
-			}
-			for _, k := range sortedKeys(fieldDict) {
-				v := fieldDict[k]
-				part := fmt.Sprintf("%s[%s]=%s", paramName, k, v)
-				parts = append(parts, part)
-			}
-			separator = "&"
-		}
-	default:
-		return "", fmt.Errorf("unsupported style '%s'", style)
-	}
-
-	return prefix + strings.Join(parts, separator), nil
-}
-
-func stylePrimitive(style string, explode bool, paramName string, paramLocation ParamLocation, value interface{}) (string, error) {
-	strVal, err := primitiveToString(value)
-	if err != nil {
-		return "", err
-	}
-
-	var prefix string
-	switch style {
-	case "simple":
-	case "label":
-		prefix = "."
-	case "matrix":
-		prefix = fmt.Sprintf(";%s=", paramName)
-	case "form":
-		prefix = fmt.Sprintf("%s=", paramName)
-	default:
-		return "", fmt.Errorf("unsupported style '%s'", style)
-	}
-	return prefix + escapeParameterString(strVal, paramLocation), nil
-}
-
-// Converts a primitive value to a string. We need to do this based on the
-// Kind of an interface, not the Type to work with aliased types.
-func primitiveToString(value interface{}) (string, error) {
-	var output string
-
-	// sometimes time and date used like primitive types
-	// it can happen if paramether is object and has time or date as field
-	if res, ok := marshalKnownTypes(value); ok {
-		return res, nil
-	}
-
-	// Values may come in by pointer for optionals, so make sure to dereferene.
-	v := reflect.Indirect(reflect.ValueOf(value))
-	t := v.Type()
-	kind := t.Kind()
-
-	switch kind {
-	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
-		output = strconv.FormatInt(v.Int(), 10)
-	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
-		output = strconv.FormatUint(v.Uint(), 10)
-	case reflect.Float64:
-		output = strconv.FormatFloat(v.Float(), 'f', -1, 64)
-	case reflect.Float32:
-		output = strconv.FormatFloat(v.Float(), 'f', -1, 32)
-	case reflect.Bool:
-		if v.Bool() {
-			output = "true"
-		} else {
-			output = "false"
-		}
-	case reflect.String:
-		output = v.String()
-	case reflect.Struct:
-		// If input has Marshaler, such as object has Additional Property or AnyOf,
-		// We use this Marshaler and convert into interface{} before styling.
-		if v, ok := value.(uuid.UUID); ok {
-			output = v.String()
-			break
-		}
-		if m, ok := value.(json.Marshaler); ok {
-			buf, err := m.MarshalJSON()
-			if err != nil {
-				return "", fmt.Errorf("failed to marshal input to JSON: %w", err)
-			}
-			e := json.NewDecoder(bytes.NewReader(buf))
-			e.UseNumber()
-			var i2 interface{}
-			err = e.Decode(&i2)
-			if err != nil {
-				return "", fmt.Errorf("failed to unmarshal JSON: %w", err)
-			}
-			output, err = primitiveToString(i2)
-			if err != nil {
-				return "", fmt.Errorf("error convert JSON structure: %w", err)
-			}
-			break
-		}
-		fallthrough
-	default:
-		v, ok := value.(fmt.Stringer)
-		if !ok {
-			return "", fmt.Errorf("unsupported type %s", reflect.TypeOf(value).String())
-		}
-
-		output = v.String()
-	}
-	return output, nil
-}
-
-// escapeParameterString escapes a parameter value bas on the location of that parameter.
-// Query params and path params need different kinds of escaping, while header
-// and cookie params seem not to need escaping.
-func escapeParameterString(value string, paramLocation ParamLocation) string {
-	switch paramLocation {
-	case ParamLocationQuery:
-		return url.QueryEscape(value)
-	case ParamLocationPath:
-		return url.PathEscape(value)
-	default:
-		return value
-	}
+	return processFieldDict(style, explode, paramName, paramLocation, allowReserved, fieldDict)
 }

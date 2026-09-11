@@ -73,6 +73,8 @@ func TestClearRawData(t *testing.T) {
 	p.rawInventoryItems = []nautobotapi.InventoryItem{{}}
 	p.rawStatuses = []nautobotapi.Status{{}}
 	p.rawRoles = []nautobotapi.Role{{}}
+	p.rawVLANLocationAssignments = []nautobotapi.VLANLocationAssignment{{}}
+	p.rawPrefixLocationAssignments = []nautobotapi.PrefixLocationAssignment{{}}
 
 	p.ClearRawData()
 
@@ -109,23 +111,31 @@ func TestClearRawData(t *testing.T) {
 	if p.rawRoles != nil {
 		t.Error("rawRoles not cleared")
 	}
+	if p.rawVLANLocationAssignments != nil {
+		t.Error("rawVLANLocationAssignments not cleared")
+	}
+	if p.rawPrefixLocationAssignments != nil {
+		t.Error("rawPrefixLocationAssignments not cleared")
+	}
 }
 
 func TestSetRawData(t *testing.T) {
 	p := New()
 
 	d := imprt.RawData{
-		Locations:      []nautobotapi.Location{{Name: "site-a"}},
-		Racks:          []nautobotapi.Rack{{Name: "rack-1"}},
-		Devices:        []nautobotapi.Device{{}},
-		DeviceTypes:    []nautobotapi.DeviceType{{Model: "DL380"}},
-		Interfaces:     []nautobotapi.Interface{{Name: "eth0"}},
-		Modules:        []nautobotapi.Module{{}},
-		ModuleBays:     []nautobotapi.ModuleBay{{Name: "bay-0"}},
-		Cables:         []nautobotapi.Cable{{}},
-		InventoryItems: []nautobotapi.InventoryItem{{Name: "gpu-0"}},
-		Statuses:       []nautobotapi.Status{{Name: "Active"}},
-		Roles:          []nautobotapi.Role{{Name: "Compute"}},
+		Locations:                 []nautobotapi.Location{{Name: "site-a"}},
+		Racks:                     []nautobotapi.Rack{{Name: "rack-1"}},
+		Devices:                   []nautobotapi.Device{{}},
+		DeviceTypes:               []nautobotapi.DeviceType{{Model: "DL380"}},
+		Interfaces:                []nautobotapi.Interface{{Name: "eth0"}},
+		Modules:                   []nautobotapi.Module{{}},
+		ModuleBays:                []nautobotapi.ModuleBay{{Name: "bay-0"}},
+		Cables:                    []nautobotapi.Cable{{}},
+		InventoryItems:            []nautobotapi.InventoryItem{{Name: "gpu-0"}},
+		Statuses:                  []nautobotapi.Status{{Name: "Active"}},
+		Roles:                     []nautobotapi.Role{{Name: "Compute"}},
+		VLANLocationAssignments:   []nautobotapi.VLANLocationAssignment{{}},
+		PrefixLocationAssignments: []nautobotapi.PrefixLocationAssignment{{}},
 	}
 
 	p.SetRawData(d)
@@ -162,6 +172,12 @@ func TestSetRawData(t *testing.T) {
 	}
 	if len(p.rawRoles) != 1 || p.rawRoles[0].Name != "Compute" {
 		t.Error("rawRoles not set correctly")
+	}
+	if len(p.rawVLANLocationAssignments) != 1 {
+		t.Error("rawVLANLocationAssignments not set correctly")
+	}
+	if len(p.rawPrefixLocationAssignments) != 1 {
+		t.Error("rawPrefixLocationAssignments not set correctly")
 	}
 }
 

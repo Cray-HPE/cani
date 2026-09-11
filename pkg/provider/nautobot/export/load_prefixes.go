@@ -133,12 +133,15 @@ func (e *Exporter) createPrefix(
 
 	req := nautobotapi.WritablePrefixRequest{
 		Prefix: prefix.Prefix,
-		Status: makeIDRef(statusItem.ID),
+	}
+	if err := setRefID(&req.Status, statusItem.ID); err != nil {
+		return uuid.Nil, fmt.Errorf("set prefix status reference: %w", err)
 	}
 
 	// Set namespace
-	nsRef := makeIDRef(namespaceID)
-	req.Namespace = &nsRef
+	if err := setRefID(&req.Namespace, namespaceID); err != nil {
+		return uuid.Nil, fmt.Errorf("set prefix namespace reference: %w", err)
+	}
 
 	// Set type
 	if prefix.Type != "" {
@@ -153,23 +156,26 @@ func (e *Exporter) createPrefix(
 
 	// Scope to the location when it maps to a known Nautobot location.
 	if locationID != uuid.Nil {
-		ref := makeLocationRef(locationID)
-		req.Location = &ref
+		if err := setRefID(&req.Location, locationID); err != nil {
+			return uuid.Nil, fmt.Errorf("set prefix location reference: %w", err)
+		}
 	}
 
 	// Resolve parent prefix
 	if prefix.Parent != uuid.Nil {
 		if parentNID, ok := createdPrefixes[prefix.Parent]; ok {
-			parentRef := makePrefixParentRef(parentNID)
-			req.Parent = &parentRef
+			if err := setRefID(&req.Parent, parentNID); err != nil {
+				return uuid.Nil, fmt.Errorf("set parent prefix reference: %w", err)
+			}
 		}
 	}
 
 	// Resolve VLAN
 	if prefix.VLAN != uuid.Nil {
 		if vlanNID, ok := vlanMap[prefix.VLAN]; ok {
-			ref := makeObjectRef(vlanNID)
-			req.Vlan = ref
+			if err := setRefID(&req.Vlan, vlanNID); err != nil {
+				return uuid.Nil, fmt.Errorf("set prefix VLAN reference: %w", err)
+			}
 		}
 	}
 
@@ -177,8 +183,9 @@ func (e *Exporter) createPrefix(
 	if prefix.Role != "" {
 		roleItem, err := e.Cache.GetRole(prefix.Role)
 		if err == nil && roleItem != nil {
-			ref := makeObjectRef(roleItem.ID)
-			req.Role = ref
+			if err := setRefID(&req.Role, roleItem.ID); err != nil {
+				return uuid.Nil, fmt.Errorf("set prefix role reference: %w", err)
+			}
 		}
 	}
 

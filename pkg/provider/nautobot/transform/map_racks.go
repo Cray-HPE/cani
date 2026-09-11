@@ -71,7 +71,7 @@ func MapRacks(
 		}
 
 		if rack.CustomFields != nil {
-			caniRack.CustomFields = *rack.CustomFields
+			caniRack.CustomFields = convCustomFields(rack.CustomFields)
 		}
 
 		result[caniID] = caniRack

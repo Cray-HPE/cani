@@ -115,7 +115,11 @@ func TestMergeTransformResult_MergesIPAM(t *testing.T) {
 func TestMergeTransformResult_IPAMIdempotent(t *testing.T) {
 	ctx := &etlContext{inventory: devicetypes.NewInventory()}
 
-	if err := mergeTransformResult(ctx, ipamResult(uuid.Nil, uuid.Nil, uuid.Nil, uuid.Nil)); err != nil {
+	first := ipamResult(uuid.Nil, uuid.Nil, uuid.Nil, uuid.Nil)
+	var firstVRFID uuid.UUID
+	for firstVRFID = range first.VRFs {
+	}
+	if err := mergeTransformResult(ctx, first); err != nil {
 		t.Fatalf("first mergeTransformResult() unexpected error: %v", err)
 	}
 	if err := mergeTransformResult(ctx, ipamResult(uuid.Nil, uuid.Nil, uuid.Nil, uuid.Nil)); err != nil {
@@ -133,6 +137,33 @@ func TestMergeTransformResult_IPAMIdempotent(t *testing.T) {
 	}
 	if got := len(ctx.inventory.VRFs); got != 1 {
 		t.Errorf("VRFs: got %d, want 1 (re-import duplicated)", got)
+	}
+	if _, ok := ctx.inventory.VRFs[firstVRFID]; !ok {
+		t.Errorf("VRF canonical UUID %s was not retained", firstVRFID)
+	}
+}
+
+func TestMergeTransformResultDerivesIPAMParents(t *testing.T) {
+	parentID, childID, addressID := uuid.New(), uuid.New(), uuid.New()
+	result := &devicetypes.TransformResult{
+		Prefixes: map[uuid.UUID]*devicetypes.CaniPrefix{
+			parentID: {ID: parentID, Prefix: "10.20.0.0/16", PrefixLen: 16},
+			childID:  {ID: childID, Prefix: "10.20.1.0/24", PrefixLen: 24},
+		},
+		IPAddresses: map[uuid.UUID]*devicetypes.CaniIPAddress{
+			addressID: {ID: addressID, Address: "10.20.1.10/24", Host: "10.20.1.10", MaskLength: 24},
+		},
+	}
+	inventory := devicetypes.NewInventory()
+
+	if err := mergeTransformResult(&etlContext{inventory: inventory}, result); err != nil {
+		t.Fatalf("mergeTransformResult() error = %v", err)
+	}
+	if inventory.Prefixes[childID].Parent != parentID {
+		t.Errorf("child prefix parent = %s, want %s", inventory.Prefixes[childID].Parent, parentID)
+	}
+	if inventory.IPAddresses[addressID].Parent != childID {
+		t.Errorf("address parent = %s, want %s", inventory.IPAddresses[addressID].Parent, childID)
 	}
 }
 
@@ -178,5 +209,8 @@ func TestMergeTransformResultRejectsInvalidCable(t *testing.T) {
 	want := `termination B port "port3" not found on device "firewall-01"`
 	if !strings.Contains(err.Error(), want) {
 		t.Errorf("mergeTransformResult() error = %q, want it to contain %q", err, want)
+	}
+	if len(ctx.inventory.Devices) != 0 || len(ctx.inventory.Cables) != 0 {
+		t.Fatalf("failed merge mutated inventory: devices=%d cables=%d", len(ctx.inventory.Devices), len(ctx.inventory.Cables))
 	}
 }

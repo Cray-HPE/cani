@@ -1,6 +1,35 @@
+/*
+ *
+ *  MIT License
+ *
+ *  (C) Copyright 2026 Hewlett Packard Enterprise Development LP
+ *
+ *  Permission is hereby granted, free of charge, to any person obtaining a
+ *  copy of this software and associated documentation files (the "Software"),
+ *  to deal in the Software without restriction, including without limitation
+ *  the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ *  and/or sell copies of the Software, and to permit persons to whom the
+ *  Software is furnished to do so, subject to the following conditions:
+ *
+ *  The above copyright notice and this permission notice shall be included
+ *  in all copies or substantial portions of the Software.
+ *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ *  THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ *  OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ *  ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ *  OTHER DEALINGS IN THE SOFTWARE.
+ *
+ */
 package devicetypes
 
-import "github.com/google/uuid"
+import (
+	"fmt"
+
+	"github.com/google/uuid"
+)
 
 // PrefixType classifies a prefix's function within the IP hierarchy.
 type PrefixType string
@@ -35,10 +64,35 @@ type CaniPrefix struct {
 	ObjectMeta `yaml:",inline"`
 }
 
+// Validate checks that the prefix is valid CIDR without mutating the receiver.
+func (p *CaniPrefix) Validate() error {
+	if p == nil {
+		return fmt.Errorf("cannot validate nil CaniPrefix")
+	}
+	copy := *p
+	return ParsePrefix(&copy)
+}
+
 // GetID returns the unique identifier.
 func (p *CaniPrefix) GetID() uuid.UUID {
 	if p == nil {
 		return uuid.Nil
 	}
 	return p.ID
+}
+
+// GetSlug returns the CIDR as the prefix's portable natural key.
+func (p *CaniPrefix) GetSlug() string {
+	if p == nil {
+		return ""
+	}
+	return p.Prefix
+}
+
+// GetStatus returns the current status.
+func (p *CaniPrefix) GetStatus() string {
+	if p == nil {
+		return ""
+	}
+	return p.Status
 }

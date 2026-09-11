@@ -31,6 +31,7 @@ import (
 	"net/http"
 	"sort"
 
+	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/google/uuid"
@@ -39,7 +40,7 @@ import (
 // loadLocations exports CaniLocationType records to Nautobot as Location objects.
 // It walks the location tree top-down (roots first, then children) so parent
 // FKs are always resolvable. Each location's LocationType field drives the
-// Nautobot LocationType, replacing the old hardcoded "Site" default.
+// Nautobot LocationType, with "Site" as the fallback when the field is empty.
 func (e *Exporter) loadLocations(
 	ctx context.Context,
 	inventory *devicetypes.Inventory,
@@ -104,7 +105,7 @@ func (e *Exporter) createLocationFromCani(
 	// Resolve LocationType from the CaniLocationType field.
 	locTypeName := loc.LocationType
 	if locTypeName == "" {
-		return uuid.Nil, fmt.Errorf("location %q has no locationType set", loc.Name)
+		locTypeName = "Site"
 	}
 	locType, err := e.Cache.GetOrCreateLocationType(locTypeName, parentDef(locTypeName))
 	if err != nil {
@@ -125,13 +126,14 @@ func (e *Exporter) createLocationFromCani(
 	}
 
 	// Build references.
-	locTypeRef := makeStatusRef(locType.ID)
-	statusRef := makeStatusRef(status.ID)
-
 	req := nautobotapi.LocationRequest{
-		Name:         loc.Name,
-		LocationType: locTypeRef,
-		Status:       statusRef,
+		Name: loc.Name,
+	}
+	if err := setRefID(&req.LocationType, locType.ID); err != nil {
+		return uuid.Nil, fmt.Errorf("set location type reference: %w", err)
+	}
+	if err := setRefID(&req.Status, status.ID); err != nil {
+		return uuid.Nil, fmt.Errorf("set location status reference: %w", err)
 	}
 
 	// Map parent FK if present.
@@ -140,8 +142,9 @@ func (e *Exporter) createLocationFromCani(
 		if !ok {
 			return uuid.Nil, fmt.Errorf("parent %s not yet created in Nautobot (ordering bug?)", loc.Parent)
 		}
-		parentRef := makeObjectRef(parentNautobotID)
-		req.Parent = parentRef
+		if err := setRefID(&req.Parent, parentNautobotID); err != nil {
+			return uuid.Nil, fmt.Errorf("set parent location reference: %w", err)
+		}
 	}
 
 	// Map optional fields.
@@ -164,7 +167,8 @@ func (e *Exporter) createLocationFromCani(
 		req.ContactPhone = &loc.ContactPhone
 	}
 	if loc.ContactEmail != "" {
-		req.ContactEmail = &loc.ContactEmail
+		email := openapi_types.Email(loc.ContactEmail)
+		req.ContactEmail = &email
 	}
 	if loc.TimeZone != "" {
 		req.TimeZone = &loc.TimeZone
@@ -192,7 +196,7 @@ func (e *Exporter) createLocationFromCani(
 		}
 	}
 	if len(cf) > 0 {
-		req.CustomFields = &cf
+		req.CustomFields = toNautobotCustomFields(cf)
 	}
 
 	if e.Options.DryRun {
@@ -276,18 +280,4 @@ func topologicalSortLocations(locs map[uuid.UUID]*devicetypes.CaniLocationType) 
 		}
 	}
 	return ordered
-}
-
-// objectRef is a generic Nautobot "{id}" object reference. The generated API
-// reuses BulkWritableCircuitRequestTenant as the shape for every id-only FK
-// (device, rack, role, VRF, VLAN); this alias names it for what it is.
-type objectRef = nautobotapi.BulkWritableCircuitRequestTenant
-
-// makeObjectRef creates an object reference from a UUID.
-func makeObjectRef(id uuid.UUID) *objectRef {
-	idUnion := nautobotapi.BulkWritableCableRequestStatusId{}
-	idUnion.FromBulkWritableCableRequestStatusId0(id)
-	return &objectRef{
-		Id: &idUnion,
-	}
 }

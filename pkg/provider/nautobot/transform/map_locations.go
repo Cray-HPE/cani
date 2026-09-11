@@ -32,7 +32,7 @@ func MapLocations(raw []nautobotapi.Location, statusNameMap map[uuid.UUID]string
 			Latitude:        strVal(loc.Latitude),
 			Longitude:       strVal(loc.Longitude),
 			ContactName:     strVal(loc.ContactName),
-			ContactEmail:    strVal(loc.ContactEmail),
+			ContactEmail:    emailVal(loc.ContactEmail),
 			ContactPhone:    strVal(loc.ContactPhone),
 			TimeZone:        strVal(loc.TimeZone),
 			Asn:             loc.Asn,
@@ -53,7 +53,7 @@ func MapLocations(raw []nautobotapi.Location, statusNameMap map[uuid.UUID]string
 		}
 
 		if loc.CustomFields != nil {
-			caniLoc.CustomFields = *loc.CustomFields
+			caniLoc.CustomFields = convCustomFields(loc.CustomFields)
 		}
 
 		result[caniID] = caniLoc

@@ -60,12 +60,11 @@ func TestReconcileCustomFieldDrift_PatchesWhenDrifted(t *testing.T) {
 	defer cleanup()
 	e.Options.Merge = true
 
-	typeValue := nautobotapi.CustomFieldTypeValue("text")
 	remote := nautobotapi.CustomField{
 		Label:        "Old Label",
-		Type:         nautobotapi.CustomFieldType{Value: &typeValue},
 		ContentTypes: []string{"dcim.device"},
 	}
+	setNBValue(&remote.Type, "text")
 	local := devicetypes.CustomFieldDefinition{
 		Key:          "my_field",
 		Label:        "New Label",
@@ -98,12 +97,11 @@ func TestReconcileCustomFieldDrift_SkipsWhenIdentical(t *testing.T) {
 	defer cleanup()
 	e.Options.Merge = true
 
-	typeValue := nautobotapi.CustomFieldTypeValue("text")
 	remote := nautobotapi.CustomField{
 		Label:        "My Field",
-		Type:         nautobotapi.CustomFieldType{Value: &typeValue},
 		ContentTypes: []string{"dcim.device"},
 	}
+	setNBValue(&remote.Type, "text")
 	local := devicetypes.CustomFieldDefinition{
 		Key:          "my_field",
 		Label:        "My Field",
@@ -137,12 +135,11 @@ func TestReconcileCustomFieldDrift_DryRunDoesNotPatch(t *testing.T) {
 	e.Options.Merge = true
 	e.Options.DryRun = true
 
-	typeValue := nautobotapi.CustomFieldTypeValue("text")
 	remote := nautobotapi.CustomField{
 		Label:        "Old",
-		Type:         nautobotapi.CustomFieldType{Value: &typeValue},
 		ContentTypes: []string{"dcim.device"},
 	}
+	setNBValue(&remote.Type, "text")
 	local := devicetypes.CustomFieldDefinition{
 		Key:          "my_field",
 		Label:        "New",
@@ -178,12 +175,11 @@ func TestReconcileCustomFieldDrift_DetectsContentTypeDrift(t *testing.T) {
 	defer cleanup()
 	e.Options.Merge = true
 
-	typeValue := nautobotapi.CustomFieldTypeValue("text")
 	remote := nautobotapi.CustomField{
 		Label:        "Field",
-		Type:         nautobotapi.CustomFieldType{Value: &typeValue},
 		ContentTypes: []string{"dcim.device"},
 	}
+	setNBValue(&remote.Type, "text")
 	local := devicetypes.CustomFieldDefinition{
 		Key:          "field",
 		Label:        "Field",
@@ -219,14 +215,13 @@ func TestReconcileCustomFieldDrift_DetectsWeightDrift(t *testing.T) {
 	defer cleanup()
 	e.Options.Merge = true
 
-	typeValue := nautobotapi.CustomFieldTypeValue("integer")
 	remoteWeight := 100
 	remote := nautobotapi.CustomField{
 		Label:        "Priority",
-		Type:         nautobotapi.CustomFieldType{Value: &typeValue},
 		ContentTypes: []string{"dcim.device"},
 		Weight:       &remoteWeight,
 	}
+	setNBValue(&remote.Type, "integer")
 	local := devicetypes.CustomFieldDefinition{
 		Key:          "priority",
 		Label:        "Priority",

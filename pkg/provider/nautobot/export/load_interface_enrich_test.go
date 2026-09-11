@@ -33,6 +33,7 @@ import (
 	"testing"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
+	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/google/uuid"
 )
 
@@ -100,11 +101,15 @@ func TestBuildVIDMap(t *testing.T) {
 // Data choice: covers the unset and set branches that drive the enrichment
 // "changed" flag.
 func TestModeRef(t *testing.T) {
-	if ref := modeRef(""); ref != nil {
-		t.Errorf("modeRef(\"\") = %v, want nil", ref)
+	var empty nautobotapi.PatchedWritableInterfaceRequest
+	setPatchedInterfaceMode(&empty, "")
+	if empty.Mode != nil {
+		t.Errorf("setPatchedInterfaceMode(\"\") Mode = %v, want nil", empty.Mode)
 	}
-	if ref := modeRef("tagged"); ref == nil {
-		t.Error("modeRef(\"tagged\") = nil, want non-nil")
+	var tagged nautobotapi.PatchedWritableInterfaceRequest
+	setPatchedInterfaceMode(&tagged, "tagged")
+	if tagged.Mode == nil {
+		t.Error("setPatchedInterfaceMode(\"tagged\") Mode = nil, want non-nil")
 	}
 }
 

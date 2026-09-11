@@ -48,12 +48,39 @@ type CaniVRF struct {
 	ObjectMeta `yaml:",inline"`
 }
 
+// Validate checks that the VRF has a portable natural key.
+func (v *CaniVRF) Validate() error {
+	if v == nil {
+		return fmt.Errorf("cannot validate nil CaniVRF")
+	}
+	if strings.TrimSpace(v.Name) == "" {
+		return fmt.Errorf("VRF name must not be empty")
+	}
+	return nil
+}
+
 // GetID returns the unique identifier.
 func (v *CaniVRF) GetID() uuid.UUID {
 	if v == nil {
 		return uuid.Nil
 	}
 	return v.ID
+}
+
+// GetSlug returns the VRF name as its portable natural key.
+func (v *CaniVRF) GetSlug() string {
+	if v == nil {
+		return ""
+	}
+	return v.Name
+}
+
+// GetStatus returns the current status.
+func (v *CaniVRF) GetStatus() string {
+	if v == nil {
+		return ""
+	}
+	return v.Status
 }
 
 // FindVRFByNameOrID looks up a VRF by UUID string or exact name (case-insensitive).

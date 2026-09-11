@@ -102,8 +102,13 @@ func TestComparePosition(t *testing.T) {
 // Data choice: front-vs-rear mismatch, matching rear, and empty-local cover the
 // diff, no-diff, and skip branches respectively.
 func TestCompareFace(t *testing.T) {
-	frontVal := nautobotapi.DeviceFaceValue("front")
-	rearVal := nautobotapi.DeviceFaceValue("rear")
+	mkRemote := func(face string) *nautobotapi.Device {
+		d := &nautobotapi.Device{}
+		if face != "" {
+			setNBValue(&d.Face, face)
+		}
+		return d
+	}
 
 	tests := []struct {
 		name     string
@@ -112,19 +117,15 @@ func TestCompareFace(t *testing.T) {
 		wantDiff bool
 	}{
 		{
-			name:   "faces differ returns diff",
-			device: &devicetypes.CaniDeviceType{Face: "rear"},
-			remote: &nautobotapi.Device{
-				Face: &nautobotapi.DeviceFace{Value: &frontVal},
-			},
+			name:     "faces differ returns diff",
+			device:   &devicetypes.CaniDeviceType{Face: "rear"},
+			remote:   mkRemote("front"),
 			wantDiff: true,
 		},
 		{
-			name:   "faces match returns no diff",
-			device: &devicetypes.CaniDeviceType{Face: "rear"},
-			remote: &nautobotapi.Device{
-				Face: &nautobotapi.DeviceFace{Value: &rearVal},
-			},
+			name:     "faces match returns no diff",
+			device:   &devicetypes.CaniDeviceType{Face: "rear"},
+			remote:   mkRemote("rear"),
 			wantDiff: false,
 		},
 		{

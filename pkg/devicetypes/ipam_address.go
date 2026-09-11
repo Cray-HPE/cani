@@ -1,6 +1,35 @@
+/*
+ *
+ *  MIT License
+ *
+ *  (C) Copyright 2026 Hewlett Packard Enterprise Development LP
+ *
+ *  Permission is hereby granted, free of charge, to any person obtaining a
+ *  copy of this software and associated documentation files (the "Software"),
+ *  to deal in the Software without restriction, including without limitation
+ *  the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ *  and/or sell copies of the Software, and to permit persons to whom the
+ *  Software is furnished to do so, subject to the following conditions:
+ *
+ *  The above copyright notice and this permission notice shall be included
+ *  in all copies or substantial portions of the Software.
+ *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ *  THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ *  OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ *  ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ *  OTHER DEALINGS IN THE SOFTWARE.
+ *
+ */
 package devicetypes
 
-import "github.com/google/uuid"
+import (
+	"fmt"
+
+	"github.com/google/uuid"
+)
 
 // IPAddressType classifies how an IP address is used.
 type IPAddressType string
@@ -50,10 +79,35 @@ type CaniIPAddress struct {
 	ObjectMeta `yaml:",inline"`
 }
 
+// Validate checks that the address is valid without mutating the receiver.
+func (ip *CaniIPAddress) Validate() error {
+	if ip == nil {
+		return fmt.Errorf("cannot validate nil CaniIPAddress")
+	}
+	copy := *ip
+	return ParseIPAddress(&copy)
+}
+
 // GetID returns the unique identifier.
 func (ip *CaniIPAddress) GetID() uuid.UUID {
 	if ip == nil {
 		return uuid.Nil
 	}
 	return ip.ID
+}
+
+// GetSlug returns the address as its portable natural key.
+func (ip *CaniIPAddress) GetSlug() string {
+	if ip == nil {
+		return ""
+	}
+	return ip.Address
+}
+
+// GetStatus returns the current status.
+func (ip *CaniIPAddress) GetStatus() string {
+	if ip == nil {
+		return ""
+	}
+	return ip.Status
 }

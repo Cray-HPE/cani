@@ -36,22 +36,24 @@ var clog = logcolor.New("[nautobot] ", false)
 
 // RawData holds all raw API responses fetched during Import.
 type RawData struct {
-	Locations            []nautobotapi.Location
-	Racks                []nautobotapi.Rack
-	Devices              []nautobotapi.Device
-	DeviceTypes          []nautobotapi.DeviceType
-	Interfaces           []nautobotapi.Interface
-	Modules              []nautobotapi.Module
-	ModuleBays           []nautobotapi.ModuleBay
-	Cables               []nautobotapi.Cable
-	InventoryItems       []nautobotapi.InventoryItem
-	Statuses             []nautobotapi.Status
-	Roles                []nautobotapi.Role
-	VLANs                []nautobotapi.VLAN
-	Prefixes             []nautobotapi.Prefix
-	IPAddresses          []nautobotapi.IPAddress
-	VRFs                 []nautobotapi.VRF
-	VRFDeviceAssignments []nautobotapi.VRFDeviceAssignment
+	Locations                 []nautobotapi.Location
+	Racks                     []nautobotapi.Rack
+	Devices                   []nautobotapi.Device
+	DeviceTypes               []nautobotapi.DeviceType
+	Interfaces                []nautobotapi.Interface
+	Modules                   []nautobotapi.Module
+	ModuleBays                []nautobotapi.ModuleBay
+	Cables                    []nautobotapi.Cable
+	InventoryItems            []nautobotapi.InventoryItem
+	Statuses                  []nautobotapi.Status
+	Roles                     []nautobotapi.Role
+	VLANs                     []nautobotapi.VLAN
+	VLANLocationAssignments   []nautobotapi.VLANLocationAssignment
+	Prefixes                  []nautobotapi.Prefix
+	PrefixLocationAssignments []nautobotapi.PrefixLocationAssignment
+	IPAddresses               []nautobotapi.IPAddress
+	VRFs                      []nautobotapi.VRF
+	VRFDeviceAssignments      []nautobotapi.VRFDeviceAssignment
 }
 
 // Transform converts raw Nautobot API data into a TransformResult.
@@ -100,11 +102,13 @@ func transformRaw(raw *RawData) (*devicetypes.TransformResult, error) {
 	clog.Detail("  Transformed %d FRUs", len(frus))
 
 	// 8. VLANs – also produces Nautobot→CANI UUID map for prefixes.
-	vlans, vlanMap := MapVLANs(raw.VLANs, locationMap, statusNameMap, roleNameMap)
+	vlanLocations := BuildVLANLocationMap(raw.VLANLocationAssignments)
+	vlans, vlanMap := MapVLANs(raw.VLANs, vlanLocations, locationMap, statusNameMap, roleNameMap)
 	clog.Detail("  Transformed %d VLANs", len(vlans))
 
 	// 9. Prefixes.
-	prefixes := MapPrefixes(raw.Prefixes, locationMap, vlanMap, statusNameMap, roleNameMap)
+	prefixLocations := BuildPrefixLocationMap(raw.PrefixLocationAssignments)
+	prefixes := MapPrefixes(raw.Prefixes, prefixLocations, locationMap, vlanMap, statusNameMap, roleNameMap)
 	clog.Detail("  Transformed %d prefixes", len(prefixes))
 
 	// 10. IP addresses.

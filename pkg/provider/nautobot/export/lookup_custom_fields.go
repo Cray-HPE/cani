@@ -186,16 +186,13 @@ func (e *Exporter) ensureCustomFieldChoices(ctx context.Context, cfID uuid.UUID,
 			continue
 		}
 
-		var cfIDUnion nautobotapi.BulkWritableCableRequestStatusId
-		if err := cfIDUnion.FromBulkWritableCableRequestStatusId0(cfID); err != nil {
-			return fmt.Errorf("failed to create custom field ID reference: %w", err)
-		}
-
 		weight := (i + 1) * 100
 		choiceReq := nautobotapi.CustomFieldChoiceRequest{
-			CustomField: nautobotapi.BulkWritableCableRequestStatus{Id: &cfIDUnion},
-			Value:       value,
-			Weight:      &weight,
+			Value:  value,
+			Weight: &weight,
+		}
+		if err := setRefID(&choiceReq.CustomField, cfID); err != nil {
+			return fmt.Errorf("set custom field reference for choice %q: %w", value, err)
 		}
 
 		choiceResp, err := e.Client.ExtrasCustomFieldChoicesCreateWithResponse(ctx,

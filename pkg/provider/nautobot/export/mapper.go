@@ -48,6 +48,28 @@ type DeviceMapper struct {
 	inventory *devicetypes.Inventory
 }
 
+func setDeviceRequestRefs(
+	deviceTypeField, locationField, statusField, roleField any,
+	deviceTypeID, locationID, statusID, roleID uuid.UUID,
+) error {
+	references := []struct {
+		name  string
+		field any
+		id    uuid.UUID
+	}{
+		{name: "device type", field: deviceTypeField, id: deviceTypeID},
+		{name: "location", field: locationField, id: locationID},
+		{name: "status", field: statusField, id: statusID},
+		{name: "role", field: roleField, id: roleID},
+	}
+	for _, reference := range references {
+		if err := setRefID(reference.field, reference.id); err != nil {
+			return fmt.Errorf("set %s reference: %w", reference.name, err)
+		}
+	}
+	return nil
+}
+
 // NewDeviceMapper creates a new device mapper
 func NewDeviceMapper(cache *LookupCache, defaults *MapperOpts) *DeviceMapper {
 	return &DeviceMapper{
@@ -93,21 +115,16 @@ func (m *DeviceMapper) MapToNautobotDevice(device *devicetypes.CaniDeviceType) (
 
 	// Build the request
 	req := &nautobotapi.BulkWritableDeviceRequest{
-		Id:         device.ID,
-		Name:       &device.Name,
-		DeviceType: makeStatusRef(deviceType.ID),
-		Location:   makeStatusRef(location.ID),
-		Status:     makeStatusRef(status.ID),
-		Role:       makeStatusRef(role.ID),
+		Id:   device.ID,
+		Name: &device.Name,
+	}
+	if err := setDeviceRequestRefs(&req.DeviceType, &req.Location, &req.Status, &req.Role, deviceType.ID, location.ID, status.ID, role.ID); err != nil {
+		return nil, fmt.Errorf("failed to build references for %s: %w", device.Name, err)
 	}
 
 	// Map optional fields - use flattened ProviderMetadata for custom fields
 	if flat := device.FlattenProviderMetadata(); len(flat) > 0 {
-		customFields := make(map[string]interface{}, len(flat))
-		for k, v := range flat {
-			customFields[k] = v
-		}
-		req.CustomFields = &customFields
+		req.CustomFields = toNautobotCustomFields(flat)
 	}
 
 	// Map serial number if available
@@ -160,20 +177,15 @@ func (m *DeviceMapper) MapToWritableDeviceRequest(device *devicetypes.CaniDevice
 
 	// Build the request
 	req := &nautobotapi.WritableDeviceRequest{
-		Name:       &device.Name,
-		DeviceType: makeStatusRef(deviceType.ID),
-		Location:   makeStatusRef(location.ID),
-		Status:     makeStatusRef(status.ID),
-		Role:       makeStatusRef(role.ID),
+		Name: &device.Name,
+	}
+	if err := setDeviceRequestRefs(&req.DeviceType, &req.Location, &req.Status, &req.Role, deviceType.ID, location.ID, status.ID, role.ID); err != nil {
+		return nil, fmt.Errorf("failed to build references for %s: %w", device.Name, err)
 	}
 
 	// Map optional fields - use flattened ProviderMetadata for custom fields
 	if flat := device.FlattenProviderMetadata(); len(flat) > 0 {
-		customFields := make(map[string]interface{}, len(flat))
-		for k, v := range flat {
-			customFields[k] = v
-		}
-		req.CustomFields = &customFields
+		req.CustomFields = toNautobotCustomFields(flat)
 	}
 
 	// Map serial number if available
@@ -202,10 +214,8 @@ func (m *DeviceMapper) MapToWritableDeviceRequest(device *devicetypes.CaniDevice
 			rack, err := m.cache.GetRackByName(parentRack.Name)
 			if err == nil && rack != nil {
 				// Build rack reference using the same pattern as other references
-				rackIDUnion := nautobotapi.BulkWritableCableRequestStatusId{}
-				rackIDUnion.FromBulkWritableCableRequestStatusId0(rack.ID)
-				req.Rack = &nautobotapi.BulkWritableCircuitRequestTenant{
-					Id: &rackIDUnion,
+				if err := setRefID(&req.Rack, rack.ID); err != nil {
+					return nil, fmt.Errorf("set rack reference for %s: %w", device.Name, err)
 				}
 
 				// Set position from RackPosition field
@@ -215,16 +225,14 @@ func (m *DeviceMapper) MapToWritableDeviceRequest(device *devicetypes.CaniDevice
 				}
 
 				// Use actual Face value, defaulting to "front" if unset
-				req.Face = resolveFace(device.Face)
+				setDeviceFace(&req.Face, device.Face)
 			}
 		} else if parentDevice := m.inventory.Devices[rackID]; parentDevice != nil && parentDevice.Type == devicetypes.Rack {
 			// Fallback: check if parent is a rack-type device in Devices collection (legacy)
 			rack, err := m.cache.GetRackByName(parentDevice.Name)
 			if err == nil && rack != nil {
-				rackIDUnion := nautobotapi.BulkWritableCableRequestStatusId{}
-				rackIDUnion.FromBulkWritableCableRequestStatusId0(rack.ID)
-				req.Rack = &nautobotapi.BulkWritableCircuitRequestTenant{
-					Id: &rackIDUnion,
+				if err := setRefID(&req.Rack, rack.ID); err != nil {
+					return nil, fmt.Errorf("set rack reference for %s: %w", device.Name, err)
 				}
 
 				if device.RackPosition > 0 {
@@ -232,7 +240,7 @@ func (m *DeviceMapper) MapToWritableDeviceRequest(device *devicetypes.CaniDevice
 					req.Position = &pos
 				}
 
-				req.Face = resolveFace(device.Face)
+				setDeviceFace(&req.Face, device.Face)
 			}
 		}
 	}
@@ -254,36 +262,36 @@ func (m *DeviceMapper) MapToPatchRequest(device *devicetypes.CaniDeviceType, exi
 	if device.Slug != "" {
 		deviceType, err := m.resolveDeviceType(device)
 		if err == nil {
-			ref := makeStatusRef(deviceType.ID)
-			req.DeviceType = &ref
+			if err := setRefID(&req.DeviceType, deviceType.ID); err != nil {
+				return nil, fmt.Errorf("set device type reference for %s: %w", device.Name, err)
+			}
 		}
 	}
 
 	// Resolve and set location
 	if location, err := m.resolveLocation(device); err == nil {
-		ref := makeStatusRef(location.ID)
-		req.Location = &ref
+		if err := setRefID(&req.Location, location.ID); err != nil {
+			return nil, fmt.Errorf("set location reference for %s: %w", device.Name, err)
+		}
 	}
 
 	// Resolve and set status
 	if status, err := m.resolveStatus(device); err == nil {
-		ref := makeStatusRef(status.ID)
-		req.Status = &ref
+		if err := setRefID(&req.Status, status.ID); err != nil {
+			return nil, fmt.Errorf("set status reference for %s: %w", device.Name, err)
+		}
 	}
 
 	// Resolve and set role
 	if role, err := m.resolveRole(device); err == nil {
-		ref := makeStatusRef(role.ID)
-		req.Role = &ref
+		if err := setRefID(&req.Role, role.ID); err != nil {
+			return nil, fmt.Errorf("set role reference for %s: %w", device.Name, err)
+		}
 	}
 
 	// Map optional fields - use flattened ProviderMetadata for custom fields
 	if flat := device.FlattenProviderMetadata(); len(flat) > 0 {
-		customFields := make(map[string]interface{}, len(flat))
-		for k, v := range flat {
-			customFields[k] = v
-		}
-		req.CustomFields = &customFields
+		req.CustomFields = toNautobotCustomFields(flat)
 	}
 
 	// Map serial number if available
@@ -303,44 +311,39 @@ func (m *DeviceMapper) MapToPatchRequest(device *devicetypes.CaniDeviceType, exi
 		req.Comments = &device.Comments
 	}
 
-	// Map rack and position if device has a parent rack
-	if device.Parent != uuid.Nil && m.inventory != nil {
+	// Map rack and position if device has a rack.
+	rackID := device.GetRackID(m.inventory)
+	if rackID != uuid.Nil && m.inventory != nil {
 		// First check if the parent is a rack in the Racks collection
-		if parentRack, ok := m.inventory.Racks[device.Parent]; ok && parentRack != nil {
+		if parentRack, ok := m.inventory.Racks[rackID]; ok && parentRack != nil {
 			// Look up the rack in Nautobot by name
 			rack, err := m.cache.GetRackByName(parentRack.Name)
 			if err == nil && rack != nil {
-				rackIDUnion := nautobotapi.BulkWritableCableRequestStatusId{}
-				rackIDUnion.FromBulkWritableCableRequestStatusId0(rack.ID)
-				rackRef := &nautobotapi.BulkWritableCircuitRequestTenant{
-					Id: &rackIDUnion,
+				if err := setRefID(&req.Rack, rack.ID); err != nil {
+					return nil, fmt.Errorf("set rack reference for %s: %w", device.Name, err)
 				}
-				req.Rack = rackRef
 
 				if device.RackPosition > 0 {
 					pos := device.RackPosition
 					req.Position = &pos
 				}
 
-				req.Face = resolveFace(device.Face)
+				setDeviceFace(&req.Face, device.Face)
 			}
-		} else if parentDevice := m.inventory.Devices[device.Parent]; parentDevice != nil && parentDevice.Type == devicetypes.Rack {
+		} else if parentDevice := m.inventory.Devices[rackID]; parentDevice != nil && parentDevice.Type == devicetypes.Rack {
 			// Fallback: check if parent is a rack-type device in Devices collection (legacy)
 			rack, err := m.cache.GetRackByName(parentDevice.Name)
 			if err == nil && rack != nil {
-				rackIDUnion := nautobotapi.BulkWritableCableRequestStatusId{}
-				rackIDUnion.FromBulkWritableCableRequestStatusId0(rack.ID)
-				rackRef := &nautobotapi.BulkWritableCircuitRequestTenant{
-					Id: &rackIDUnion,
+				if err := setRefID(&req.Rack, rack.ID); err != nil {
+					return nil, fmt.Errorf("set rack reference for %s: %w", device.Name, err)
 				}
-				req.Rack = rackRef
 
 				if device.RackPosition > 0 {
 					pos := device.RackPosition
 					req.Position = &pos
 				}
 
-				req.Face = resolveFace(device.Face)
+				setDeviceFace(&req.Face, device.Face)
 			}
 		}
 	}
@@ -491,15 +494,6 @@ func (m *DeviceMapper) resolveRole(device *devicetypes.CaniDeviceType) (*CachedI
 	return role, nil
 }
 
-// makeStatusRef creates a BulkWritableCableRequestStatus reference from a UUID
-func makeStatusRef(id uuid.UUID) nautobotapi.BulkWritableCableRequestStatus {
-	statusID := nautobotapi.BulkWritableCableRequestStatusId{}
-	statusID.FromBulkWritableCableRequestStatusId0(id)
-	return nautobotapi.BulkWritableCableRequestStatus{
-		Id: &statusID,
-	}
-}
-
 // MapToWritableRackRequest converts a CaniDeviceType (rack) to a WritableRackRequest
 func (m *DeviceMapper) MapToWritableRackRequest(device *devicetypes.CaniDeviceType) (*nautobotapi.WritableRackRequest, error) {
 	if device == nil {
@@ -520,9 +514,13 @@ func (m *DeviceMapper) MapToWritableRackRequest(device *devicetypes.CaniDeviceTy
 
 	// Build the request
 	req := &nautobotapi.WritableRackRequest{
-		Name:     device.Name,
-		Location: makeStatusRef(location.ID),
-		Status:   makeStatusRef(status.ID),
+		Name: device.Name,
+	}
+	if err := setRefID(&req.Location, location.ID); err != nil {
+		return nil, fmt.Errorf("set location reference for rack %s: %w", device.Name, err)
+	}
+	if err := setRefID(&req.Status, status.ID); err != nil {
+		return nil, fmt.Errorf("set status reference for rack %s: %w", device.Name, err)
 	}
 
 	// Set rack height (default to 48U if not specified)
@@ -545,26 +543,9 @@ func (m *DeviceMapper) MapToWritableRackRequest(device *devicetypes.CaniDeviceTy
 			}
 		}
 		if len(customFields) > 0 {
-			req.CustomFields = &customFields
+			req.CustomFields = toNautobotCustomFields(customFields)
 		}
 	}
 
 	return req, nil
-}
-
-// resolveFace converts a CANI face string to a Nautobot RackFace pointer.
-// Defaults to "front" when the face string is empty, since Nautobot requires
-// a face value whenever a rack position is defined.
-// Recognized values are "front" and "rear"; anything else defaults to front.
-func resolveFace(face string) *nautobotapi.RackFace {
-	rf := &nautobotapi.RackFace{}
-
-	switch face {
-	case "rear":
-		_ = rf.FromFaceEnum(nautobotapi.FaceEnumRear)
-	default:
-		_ = rf.FromFaceEnum(nautobotapi.FaceEnumFront)
-	}
-
-	return rf
 }

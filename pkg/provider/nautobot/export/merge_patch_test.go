@@ -28,6 +28,7 @@ package export
 import (
 	"testing"
 
+	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/google/uuid"
@@ -83,7 +84,7 @@ func TestBuildLocationPatch_DetectsContactDrift(t *testing.T) {
 	}
 	oldName := "Bob"
 	oldPhone := "555-0000"
-	oldEmail := "bob@example.com"
+	oldEmail := openapi_types.Email("bob@example.com")
 	remote := &nautobotapi.Location{
 		Name:         "DC1",
 		ContactName:  &oldName,
@@ -115,7 +116,7 @@ func TestBuildLocationPatch_DetectsCustomFieldDrift(t *testing.T) {
 		},
 	}
 	remoteCF := map[string]interface{}{"tier": "silver"}
-	remote := &nautobotapi.Location{Name: "DC1", CustomFields: &remoteCF}
+	remote := &nautobotapi.Location{Name: "DC1", CustomFields: nbCF(remoteCF)}
 
 	req, drifted := buildLocationPatch(loc, remote)
 	if !drifted {
@@ -124,8 +125,8 @@ func TestBuildLocationPatch_DetectsCustomFieldDrift(t *testing.T) {
 	if req.CustomFields == nil {
 		t.Fatal("CustomFields patch should not be nil")
 	}
-	if (*req.CustomFields)["tier"] != "gold" {
-		t.Errorf("CustomFields[tier] = %v, want 'gold'", (*req.CustomFields)["tier"])
+	if derefCustomFields(req.CustomFields)["tier"] != "gold" {
+		t.Errorf("CustomFields[tier] = %v, want 'gold'", derefCustomFields(req.CustomFields)["tier"])
 	}
 }
 
@@ -205,7 +206,7 @@ func TestBuildVLANPatch_DetectsCustomFieldDrift(t *testing.T) {
 		},
 	}
 	remoteCF := map[string]interface{}{"priority": "low"}
-	remote := &nautobotapi.VLAN{Name: "storage", Vid: 300, CustomFields: &remoteCF}
+	remote := &nautobotapi.VLAN{Name: "storage", Vid: 300, CustomFields: nbCF(remoteCF)}
 
 	req, drifted := buildVLANPatch(vlan, remote)
 	if !drifted {
@@ -263,7 +264,7 @@ func TestMergedCustomFields_EmptyInputs(t *testing.T) {
 func TestCustomFieldsDrifted_TrueWhenDifferent(t *testing.T) {
 	local := map[string]interface{}{"tier": "gold"}
 	remote := map[string]interface{}{"tier": "silver"}
-	if !customFieldsDrifted(local, &remote) {
+	if !customFieldsDrifted(local, nbCF(remote)) {
 		t.Error("expected true when values differ")
 	}
 }
@@ -271,7 +272,7 @@ func TestCustomFieldsDrifted_TrueWhenDifferent(t *testing.T) {
 func TestCustomFieldsDrifted_TrueWhenNewKey(t *testing.T) {
 	local := map[string]interface{}{"env": "prod"}
 	remote := map[string]interface{}{}
-	if !customFieldsDrifted(local, &remote) {
+	if !customFieldsDrifted(local, nbCF(remote)) {
 		t.Error("expected true when local has new key")
 	}
 }
@@ -279,7 +280,7 @@ func TestCustomFieldsDrifted_TrueWhenNewKey(t *testing.T) {
 func TestCustomFieldsDrifted_FalseWhenEqual(t *testing.T) {
 	local := map[string]interface{}{"tier": "gold"}
 	remote := map[string]interface{}{"tier": "gold"}
-	if customFieldsDrifted(local, &remote) {
+	if customFieldsDrifted(local, nbCF(remote)) {
 		t.Error("expected false when values match")
 	}
 }

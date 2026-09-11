@@ -29,44 +29,11 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"sync"
 
 	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/google/uuid"
-)
-
-const (
-	relKeyAssignedVLANs = "assigned_vlans"
-	relKeyBMCDevice     = "bmc_device"
-)
-
-var (
-	relationshipCache   = make(map[string]uuid.UUID)
-	relationshipCacheMu sync.RWMutex
-)
-
-// relationshipDef describes a Nautobot relationship definition to find-or-create.
-type relationshipDef struct {
-	key     string
-	label   string
-	srcType string
-	dstType string
-	relType nautobotapi.RelationshipTypeChoices
-}
-
-var (
-	assignedVLANsRel = relationshipDef{
-		key: relKeyAssignedVLANs, label: "Assigned VLANs",
-		srcType: contentTypeDevice, dstType: contentTypeVLAN,
-		relType: nautobotapi.ManyToMany,
-	}
-	bmcDeviceRel = relationshipDef{
-		key: relKeyBMCDevice, label: "BMC Device",
-		srcType: contentTypeDevice, dstType: contentTypeDevice,
-		relType: nautobotapi.OneToOne,
-	}
 )
 
 // loadRelationships is the final phase. It creates the assigned_vlans and
@@ -190,11 +157,14 @@ func (e *Exporter) createAssociation(
 		return
 	}
 	req := nautobotapi.RelationshipAssociationRequest{
-		Relationship:    makeStatusRef(relID),
 		SourceType:      ep.srcType,
 		SourceId:        openapi_types.UUID(ep.srcID),
 		DestinationType: ep.dstType,
 		DestinationId:   openapi_types.UUID(ep.dstID),
+	}
+	if err := setRefID(&req.Relationship, relID); err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("association %s: set relationship reference: %v", relKey, err))
+		return
 	}
 	resp, err := e.Client.ExtrasRelationshipAssociationsCreateWithResponse(
 		ctx, &nautobotapi.ExtrasRelationshipAssociationsCreateParams{}, req)
@@ -223,76 +193,4 @@ func (e *Exporter) associationExists(ctx context.Context, relKey string, srcID, 
 		return false
 	}
 	return len(resp.JSON200.Results) > 0
-}
-
-// getOrCreateRelationship find-or-creates a relationship definition by key,
-// returning its Nautobot ID.
-func (e *Exporter) getOrCreateRelationship(ctx context.Context, def relationshipDef) (uuid.UUID, error) {
-	relationshipCacheMu.RLock()
-	if id, ok := relationshipCache[def.key]; ok {
-		relationshipCacheMu.RUnlock()
-		return id, nil
-	}
-	relationshipCacheMu.RUnlock()
-
-	existing, err := e.findRelationship(ctx, def.key)
-	if err != nil {
-		return uuid.Nil, err
-	}
-	if existing != uuid.Nil {
-		e.cacheRelationship(def.key, existing)
-		return existing, nil
-	}
-
-	if e.Options.DryRun {
-		id := uuid.New()
-		e.cacheRelationship(def.key, id)
-		return id, nil
-	}
-
-	key := def.key
-	relType := def.relType
-	req := nautobotapi.RelationshipRequest{
-		Label:           def.label,
-		Key:             &key,
-		SourceType:      def.srcType,
-		DestinationType: def.dstType,
-		Type:            &relType,
-	}
-	resp, err := e.Client.ExtrasRelationshipsCreateWithResponse(ctx, &nautobotapi.ExtrasRelationshipsCreateParams{}, req)
-	if err != nil {
-		return uuid.Nil, fmt.Errorf("API error: %w", err)
-	}
-	if resp.StatusCode() != http.StatusCreated || resp.JSON201 == nil {
-		return uuid.Nil, fmt.Errorf("unexpected status %d: %s", resp.StatusCode(), string(resp.Body))
-	}
-	id := toUUID(resp.JSON201.Id)
-	e.cacheRelationship(def.key, id)
-	clog.Created("  + relationship definition: %s", def.key)
-	return id, nil
-}
-
-// findRelationship returns the ID of an existing relationship with the given
-// key, or uuid.Nil.
-func (e *Exporter) findRelationship(ctx context.Context, key string) (uuid.UUID, error) {
-	resp, err := e.Client.ExtrasRelationshipsListWithResponse(ctx, &nautobotapi.ExtrasRelationshipsListParams{})
-	if err != nil {
-		return uuid.Nil, fmt.Errorf("API error: %w", err)
-	}
-	if resp.StatusCode() != http.StatusOK || resp.JSON200 == nil {
-		return uuid.Nil, fmt.Errorf("unexpected status %d", resp.StatusCode())
-	}
-	for _, r := range resp.JSON200.Results {
-		if r.Key != nil && *r.Key == key {
-			return toUUID(r.Id), nil
-		}
-	}
-	return uuid.Nil, nil
-}
-
-// cacheRelationship stores a relationship ID by key.
-func (e *Exporter) cacheRelationship(key string, id uuid.UUID) {
-	relationshipCacheMu.Lock()
-	relationshipCache[key] = id
-	relationshipCacheMu.Unlock()
 }

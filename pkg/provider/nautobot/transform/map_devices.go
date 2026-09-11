@@ -123,7 +123,7 @@ func MapDevices(
 		}
 
 		if dev.CustomFields != nil {
-			caniDev.CustomFields = *dev.CustomFields
+			caniDev.CustomFields = convCustomFields(dev.CustomFields)
 		}
 
 		result[caniID] = caniDev

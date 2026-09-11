@@ -149,12 +149,7 @@ func (e *Exporter) createInterfacesBulk(ctx context.Context, items []bulkInterfa
 	if err != nil {
 		return fmt.Errorf("failed to get Active status: %w", err)
 	}
-
-	var statusIDUnion nautobotapi.BulkWritableCableRequestStatusId
-	if err := statusIDUnion.FromBulkWritableCableRequestStatusId0(statusItem.ID); err != nil {
-		return fmt.Errorf("failed to create status ID: %w", err)
-	}
-	status := nautobotapi.BulkWritableCableRequestStatus{Id: &statusIDUnion}
+	statusID := statusItem.ID
 
 	var mu sync.Mutex
 	var errs []string
@@ -172,7 +167,7 @@ func (e *Exporter) createInterfacesBulk(ctx context.Context, items []bulkInterfa
 
 		clog.Detail("Sending interface batch %d/%d (%d interfaces)", batchNum, totalBatches, len(batch))
 
-		created, batchErr := e.sendInterfaceBatch(ctx, batch, status)
+		created, batchErr := e.sendInterfaceBatch(ctx, batch, statusID)
 		if batchErr != nil {
 			// Batch failed — fall back to individual creates for this batch
 			clog.Warn("Bulk batch failed (%d items), falling back to individual creates: %v", len(batch), batchErr)
@@ -215,25 +210,26 @@ func (e *Exporter) createInterfacesBulk(ctx context.Context, items []bulkInterfa
 func (e *Exporter) sendInterfaceBatch(
 	ctx context.Context,
 	batch []bulkInterfaceItem,
-	status nautobotapi.BulkWritableCableRequestStatus,
+	statusID uuid.UUID,
 ) ([]nautobotapi.Interface, error) {
 	reqs := make([]nautobotapi.WritableInterfaceRequest, 0, len(batch))
 	for _, item := range batch {
-		var deviceIDUnion nautobotapi.BulkWritableCableRequestStatusId
-		if err := deviceIDUnion.FromBulkWritableCableRequestStatusId0(item.DeviceID); err != nil {
-			return nil, fmt.Errorf("failed to create device ID for %s: %w", item.DeviceName, err)
-		}
-
 		ifaceType := nautobotapi.InterfaceTypeChoices(item.Spec.Type)
 		mgmtOnly := item.Spec.MgmtOnly
 		req := nautobotapi.WritableInterfaceRequest{
-			Device:   &nautobotapi.BulkWritableCircuitRequestTenant{Id: &deviceIDUnion},
 			Name:     item.Spec.Name,
 			Type:     ifaceType,
-			Status:   status,
 			MgmtOnly: &mgmtOnly,
 		}
-		req.Tags = e.Cache.resolveTagRefs(item.Spec.Tags)
+		if err := setRefID(&req.Device, item.DeviceID); err != nil {
+			return nil, fmt.Errorf("interface %s on %s: set device reference: %w", item.Spec.Name, item.DeviceName, err)
+		}
+		if err := setRefID(&req.Status, statusID); err != nil {
+			return nil, fmt.Errorf("interface %s on %s: set status reference: %w", item.Spec.Name, item.DeviceName, err)
+		}
+		if err := setRefSlice(&req.Tags, e.Cache.resolveTagRefs(item.Spec.Tags)); err != nil {
+			return nil, fmt.Errorf("interface %s on %s: set tag references: %w", item.Spec.Name, item.DeviceName, err)
+		}
 
 		if item.Spec.Mac != "" {
 			mac := item.Spec.Mac
@@ -245,11 +241,15 @@ func (e *Exporter) sendInterfaceBatch(
 			req.Description = &desc
 		}
 
-		role, err := e.roleRef(item.Spec.Role)
+		roleID, err := e.roleRef(item.Spec.Role)
 		if err != nil {
 			return nil, fmt.Errorf("interface %s on %s: %w", item.Spec.Name, item.DeviceName, err)
 		}
-		req.Role = role
+		if roleID != uuid.Nil {
+			if err := setRefID(&req.Role, roleID); err != nil {
+				return nil, fmt.Errorf("interface %s on %s: set role reference: %w", item.Spec.Name, item.DeviceName, err)
+			}
+		}
 
 		reqs = append(reqs, req)
 	}

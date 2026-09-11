@@ -235,6 +235,10 @@ ftest: bin ## Run functional tests (shellspec; no external services)
 	$(OK) "functional tests passed"
 
 .PHONY: itest
+# Integration tests run against live simulators, so opt into external-service
+# tests here (same as `make test`); reachability guards still skip when a
+# simulator is down.
+itest: export RUN_EXTERNAL_TESTS := 1
 itest: bin venv ## Run integration tests (needs simulators: make sim-up)
 	$(INFO) "running integration tests"
 	. venv/bin/activate && PATH="$(TOOLS_BIN):$$PATH" ./spec/support/bin/cani_integrate.sh integration
@@ -264,10 +268,19 @@ tidy: ## Tidy and vendor modules
 	go mod vendor
 	$(OK) "modules tidied"
 
+OAPI_CODEGEN_VERSION ?= v2.8.0
+# Upstream oapi-codegen/runtime API level the vendored internal/openapi/runtime
+# targets. The vendored copy is a deliberate dependency-free FORK (e.g. jsonmerge
+# reimplemented to avoid github.com/apapsch/go-jsonmerge), not a verbatim mirror,
+# so it cannot be blindly re-synced. When bumping OAPI_CODEGEN_VERSION, the
+# `go build` in generate_nautobot_client reports any newly-called runtime symbols
+# as compile errors, which must then be hand-ported into internal/openapi/runtime.
+OAPI_RUNTIME_VERSION ?= v1.6.0
+
 .PHONY: tools
 tools: ## Install code-generation tools
 	$(INFO) "installing tools"
-	go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.5.1
+	go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@$(OAPI_CODEGEN_VERSION)
 	$(OK) "tools installed"
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -280,15 +293,75 @@ schema: ## Regenerate the inventory JSON Schema artifact
 	go run ./tools/genschema
 	$(OK) "pkg/devicetypes/schema/inventory.schema.json"
 
+# Local Nautobot simulator (see `make nautobot-up`). NAUTOBOT_TOKEN defaults to
+# the simulator superuser token (NAUTOBOT_SUPERUSER_API_TOKEN) read from
+# testdata/fixtures/nautobot/env/creds.env so it is not duplicated here.
+NAUTOBOT_CREDS_ENV ?= testdata/fixtures/nautobot/env/creds.env
+NAUTOBOT_URL   ?= http://localhost:8081
+NAUTOBOT_TOKEN ?= $(shell sed -n 's/^NAUTOBOT_SUPERUSER_API_TOKEN=//p' $(NAUTOBOT_CREDS_ENV))
+
+# generate_nautobot_client runs oapi-codegen against an OpenAPI file and
+# repoints the generated runtime imports in its output at the internal packages
+# (dropping the external github.com/oapi-codegen/runtime module dependency).
+# NOTE: the vendored internal/openapi/runtime is a fork (see OAPI_RUNTIME_VERSION);
+# a generator bump adding new runtime call sites is caught by the `go build`
+# in nautobot_client, which fails until missing symbols are hand-ported.
+define generate_nautobot_client
+go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@$(OAPI_CODEGEN_VERSION) -package nautobot -generate client,models,std-http -o $(2) $(1) && \
+perl -i -pe 's{"github.com/oapi-codegen/runtime/types"}{"github.com/Cray-HPE/cani/internal/openapi/types"}g; s{"github.com/oapi-codegen/runtime"}{"github.com/Cray-HPE/cani/internal/openapi/runtime"}g; s{"go.yaml.in/yaml/v3"}{"gopkg.in/yaml.v3"}g; s{\s=\snull$$}{ = -1}g' $(2)
+endef
+
+.PHONY: check_nautobot_codegen_source
+check_nautobot_codegen_source: ## Verify the local simulator exactly matches the pinned client source
+	$(INFO) "verifying Nautobot client source is version $(NAUTOBOT_VERSION)"
+	@actual_version=$$(curl -sSf -H "Authorization: Token $(NAUTOBOT_TOKEN)" $(NAUTOBOT_URL)/api/status/ | sed -n 's/.*"nautobot-version":"\([^"]*\)".*/\1/p'); \
+	if [ -z "$$actual_version" ]; then \
+		printf 'Nautobot at %s reported no version; expected %s\n' "$(NAUTOBOT_URL)" "$(NAUTOBOT_VERSION)" >&2; \
+		exit 1; \
+	fi; \
+	if [ "$$actual_version" != "$(NAUTOBOT_VERSION)" ]; then \
+		printf 'Nautobot at %s reports %s; reproducible client generation requires exactly %s.\n' "$(NAUTOBOT_URL)" "$$actual_version" "$(NAUTOBOT_VERSION)" >&2; \
+		exit 1; \
+	fi
+
+.PHONY: check_nautobot_compatibility
+check_nautobot_compatibility: ## Verify a Nautobot instance is in the supported major.minor line
+	$(INFO) "verifying Nautobot runtime compatibility with $(NAUTOBOT_VERSION)"
+	@actual_version=$$(curl -sSf -H "Authorization: Token $(NAUTOBOT_TOKEN)" $(NAUTOBOT_URL)/api/status/ | sed -n 's/.*"nautobot-version":"\([^"]*\)".*/\1/p'); \
+	if [ -z "$$actual_version" ]; then \
+		printf 'Nautobot at %s reported no version\n' "$(NAUTOBOT_URL)" >&2; \
+		exit 1; \
+	fi; \
+	run_mm=$$(printf '%s' "$$actual_version" | cut -d. -f1,2); \
+	pin_mm=$$(printf '%s' "$(NAUTOBOT_VERSION)" | cut -d. -f1,2); \
+	if [ "$$run_mm" != "$$pin_mm" ]; then \
+		printf 'Nautobot at %s reports %s; client supports the %s.x line\n' "$(NAUTOBOT_URL)" "$$actual_version" "$$pin_mm" >&2; \
+		exit 1; \
+	fi; \
+	printf '$(CLR_GREEN) ✔  Nautobot %s is compatible with the %s.x client$(CLR_RESET)\n' "$$actual_version" "$$pin_mm"
+
 .PHONY: nautobot_client
-nautobot_client: ## Regenerate the Nautobot API client
-	$(INFO) "generating Nautobot client"
-	curl -sS https://raw.githubusercontent.com/nautobot/go-nautobot/refs/heads/main/api/openapi.yaml > pkg/nautobot/openapi.yml
-	oapi-codegen -package nautobot -generate client,models,std-http -o pkg/nautobot/nautobot_api.go ./pkg/nautobot/openapi.yml
-	# Repoint the generated runtime imports to the vendored-in internal packages
-	# (drops the external github.com/oapi-codegen/runtime module dependency).
-	perl -i -pe 's{"github.com/oapi-codegen/runtime/types"}{"github.com/Cray-HPE/cani/internal/openapi/types"}g; s{"github.com/oapi-codegen/runtime"}{"github.com/Cray-HPE/cani/internal/openapi/runtime"}g' pkg/nautobot/nautobot_api.go
-	$(OK) "Nautobot client generated"
+nautobot_client: check_nautobot_codegen_source ## Regenerate the Nautobot API client from the pinned local simulator
+	$(INFO) "generating Nautobot client from $(NAUTOBOT_URL)"
+	curl -sSf -H "Authorization: Token $(NAUTOBOT_TOKEN)" $(NAUTOBOT_URL)/api/swagger.yaml > pkg/nautobot/openapi.yml
+	$(call generate_nautobot_client,pkg/nautobot/openapi.yml,pkg/nautobot/nautobot_api.go)
+	$(INFO) "verifying generated client compiles against the vendored runtime fork"
+	go build ./pkg/nautobot/... ./internal/openapi/...
+	$(OK) "Nautobot client generated from $(NAUTOBOT_URL)"
+
+.PHONY: nautobot_client_check
+nautobot_client_check: check_nautobot_codegen_source ## Verify the committed Nautobot client matches generated output
+	$(INFO) "checking generated Nautobot client for drift"
+	@tmp_dir=$$(mktemp -d); \
+	trap 'rm -rf "$$tmp_dir"' EXIT; \
+	curl -sSf -H "Authorization: Token $(NAUTOBOT_TOKEN)" $(NAUTOBOT_URL)/api/swagger.yaml > "$$tmp_dir/openapi.yml"; \
+	$(call generate_nautobot_client,$$tmp_dir/openapi.yml,$$tmp_dir/nautobot_api.go); \
+	if cmp -s pkg/nautobot/nautobot_api.go "$$tmp_dir/nautobot_api.go"; then \
+		printf '$(CLR_GREEN) ✔  Nautobot client check passed$(CLR_RESET)\n'; \
+	else \
+		printf 'pkg/nautobot/nautobot_api.go is stale; run make nautobot_client\n' >&2; \
+		exit 1; \
+	fi
 
 .PHONY: generate-swagger-sls-client
 generate-swagger-sls-client: bin/swagger-codegen-cli.jar ## Generate SLS client
@@ -377,7 +450,7 @@ spec-clean: ## Remove the local shellspec install
 #  Nautobot
 # ──────────────────────────────────────────────────────────────────────────────
 
-NAUTOBOT_VERSION ?= 3.0
+NAUTOBOT_VERSION ?= 3.2.4
 PYTHON_VER       ?= 3.12
 NAUTOBOT_COMPOSE := \
 	-f testdata/fixtures/nautobot/docker-compose.postgres.yml \
@@ -390,6 +463,13 @@ nautobot-up: ## Start Nautobot services
 	NAUTOBOT_VERSION=$(NAUTOBOT_VERSION) PYTHON_VER=$(PYTHON_VER) \
 		docker compose $(NAUTOBOT_COMPOSE) up -d
 	$(OK) "Nautobot running on http://localhost:8081"
+
+.PHONY: nautobot-ci-up
+nautobot-ci-up: ## Start the minimal Nautobot stack and wait for API readiness
+	$(INFO) "starting pinned Nautobot client source (version: $(NAUTOBOT_VERSION))"
+	NAUTOBOT_VERSION=$(NAUTOBOT_VERSION) PYTHON_VER=$(PYTHON_VER) \
+		docker compose $(NAUTOBOT_COMPOSE) up -d --wait --wait-timeout 600 db redis nautobot
+	$(OK) "Nautobot API ready on http://localhost:8081"
 
 .PHONY: nautobot-down
 nautobot-down: ## Stop Nautobot services and remove volumes

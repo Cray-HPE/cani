@@ -129,18 +129,22 @@ func findFruByNameOrUUID(arg string, inv *devicetypes.Inventory) (*devicetypes.C
 	return nil, fmt.Errorf("fru %q not found", arg)
 }
 
-// findInterfaceByNameOrUUID looks up an interface by UUID string or exact name (case-insensitive).
-func findInterfaceByNameOrUUID(arg string, inv *devicetypes.Inventory) (*devicetypes.CaniInterface, error) {
+// findInterfacesByNameOrUUID looks up interfaces by UUID string or exact name (case-insensitive).
+func findInterfacesByNameOrUUID(arg string, inv *devicetypes.Inventory) ([]*devicetypes.CaniInterface, error) {
 	if id, err := uuid.Parse(arg); err == nil {
 		if iface, ok := inv.Interfaces[id]; ok {
-			return iface, nil
+			return []*devicetypes.CaniInterface{iface}, nil
 		}
 		return nil, fmt.Errorf("interface with UUID %q not found", arg)
 	}
+	var matches []*devicetypes.CaniInterface
 	for _, iface := range inv.Interfaces {
 		if strings.EqualFold(iface.Name, arg) {
-			return iface, nil
+			matches = append(matches, iface)
 		}
 	}
-	return nil, fmt.Errorf("interface %q not found", arg)
+	if len(matches) == 0 {
+		return nil, fmt.Errorf("interface %q not found", arg)
+	}
+	return matches, nil
 }

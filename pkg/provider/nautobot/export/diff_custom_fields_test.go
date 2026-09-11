@@ -39,7 +39,7 @@ import (
 func TestCompareCustomFields_DetectsChangedValue(t *testing.T) {
 	local := map[string]any{"tier": "gold"}
 	remote := map[string]interface{}{"tier": "silver"}
-	diffs := compareCustomFields(local, &remote)
+	diffs := compareCustomFields(local, nbCF(remote))
 	if len(diffs) != 1 {
 		t.Fatalf("expected 1 diff, got %d", len(diffs))
 	}
@@ -54,7 +54,7 @@ func TestCompareCustomFields_DetectsChangedValue(t *testing.T) {
 func TestCompareCustomFields_DetectsNewKey(t *testing.T) {
 	local := map[string]any{"env": "prod"}
 	remote := map[string]interface{}{}
-	diffs := compareCustomFields(local, &remote)
+	diffs := compareCustomFields(local, nbCF(remote))
 	if len(diffs) != 1 {
 		t.Fatalf("expected 1 diff, got %d", len(diffs))
 	}
@@ -66,7 +66,7 @@ func TestCompareCustomFields_DetectsNewKey(t *testing.T) {
 func TestCompareCustomFields_NoDiffWhenEqual(t *testing.T) {
 	local := map[string]any{"tier": "gold", "env": "prod"}
 	remote := map[string]interface{}{"tier": "gold", "env": "prod"}
-	diffs := compareCustomFields(local, &remote)
+	diffs := compareCustomFields(local, nbCF(remote))
 	if len(diffs) != 0 {
 		t.Errorf("expected 0 diffs, got %d: %v", len(diffs), diffs)
 	}
@@ -82,7 +82,7 @@ func TestCompareCustomFields_NilRemote(t *testing.T) {
 
 func TestCompareCustomFields_EmptyLocal(t *testing.T) {
 	remote := map[string]interface{}{"tier": "gold"}
-	diffs := compareCustomFields(nil, &remote)
+	diffs := compareCustomFields(nil, nbCF(remote))
 	if diffs != nil {
 		t.Errorf("expected nil for empty local, got %v", diffs)
 	}
@@ -122,10 +122,7 @@ func TestCompareDeviceFields_IncludesCustomFieldDiffs(t *testing.T) {
 
 	remoteCF := map[string]interface{}{"rack_elevation": "bottom"}
 	remote := &nautobotapi.Device{
-		DeviceType:   nautobotapi.BulkWritableCableRequestStatus{},
-		Location:     nautobotapi.BulkWritableCableRequestStatus{},
-		Status:       nautobotapi.BulkWritableCableRequestStatus{},
-		CustomFields: &remoteCF,
+		CustomFields: nbCF(remoteCF),
 	}
 
 	// Use a real mapper with empty cache so resolvers return nil (not panic)
@@ -160,10 +157,7 @@ func TestCompareDeviceFields_NoDiffWhenCustomFieldsMatch(t *testing.T) {
 
 	remoteCF := map[string]interface{}{"tier": "1"}
 	remote := &nautobotapi.Device{
-		DeviceType:   nautobotapi.BulkWritableCableRequestStatus{},
-		Location:     nautobotapi.BulkWritableCableRequestStatus{},
-		Status:       nautobotapi.BulkWritableCableRequestStatus{},
-		CustomFields: &remoteCF,
+		CustomFields: nbCF(remoteCF),
 	}
 
 	var calls int

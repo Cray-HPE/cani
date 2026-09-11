@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
-	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/google/uuid"
 )
 
@@ -56,15 +55,10 @@ func newExporterWithServer(t *testing.T, handler http.HandlerFunc) (*Exporter, f
 	return e, srv.Close
 }
 
-// activeStatus builds an interface status reference with a fresh ID.
-func activeStatus(t *testing.T) (nautobotapi.BulkWritableCableRequestStatus, uuid.UUID) {
+// activeStatus returns a fresh interface status UUID.
+func activeStatus(t *testing.T) uuid.UUID {
 	t.Helper()
-	statusID := uuid.New()
-	var union nautobotapi.BulkWritableCableRequestStatusId
-	if err := union.FromBulkWritableCableRequestStatusId0(statusID); err != nil {
-		t.Fatalf("build status union: %v", err)
-	}
-	return nautobotapi.BulkWritableCableRequestStatus{Id: &union}, statusID
+	return uuid.New()
 }
 
 // interfaceServer returns a handler that records the interface-create POST into
@@ -172,13 +166,13 @@ func TestSendInterfaceBatch_PayloadAndCache(t *testing.T) {
 	defer cleanup()
 
 	devID := uuid.New()
-	status, statusID := activeStatus(t)
+	statusID := activeStatus(t)
 	batch := []bulkInterfaceItem{
 		{DeviceID: devID, DeviceName: "node1", Spec: interfaceSpec{Name: "iLO", Type: "1000base-t"}},
 		{DeviceID: devID, DeviceName: "node1", Spec: interfaceSpec{Name: "eth0", Type: "1000base-t"}},
 	}
 
-	result, err := e.sendInterfaceBatch(context.Background(), batch, status)
+	result, err := e.sendInterfaceBatch(context.Background(), batch, statusID)
 	if err != nil {
 		t.Fatalf("sendInterfaceBatch: %v", err)
 	}
@@ -223,7 +217,7 @@ func TestSendInterfaceBatch_RejectsUnresolvedRole(t *testing.T) {
 	e, cleanup := newExporterWithServer(t, handler)
 	defer cleanup()
 
-	status, _ := activeStatus(t)
+	status := activeStatus(t)
 	batch := []bulkInterfaceItem{{
 		DeviceID:   uuid.New(),
 		DeviceName: "switch-01",
@@ -280,8 +274,8 @@ func TestInterfaceExport_PreservesMgmtOnly(t *testing.T) {
 	defer cleanup()
 	e.Cache.roles["management"] = &CachedItem{ID: uuid.New(), Name: "management"}
 
-	status, _ := activeStatus(t)
-	if _, err := e.sendInterfaceBatch(context.Background(), batch, status); err != nil {
+	statusID := activeStatus(t)
+	if _, err := e.sendInterfaceBatch(context.Background(), batch, statusID); err != nil {
 		t.Fatalf("sendInterfaceBatch: %v", err)
 	}
 
@@ -325,8 +319,8 @@ func TestInterfaceExport_PreservesTags(t *testing.T) {
 	tagID := uuid.New()
 	seedTag(e, "multi-chassis", tagID)
 
-	status, _ := activeStatus(t)
-	if _, err := e.sendInterfaceBatch(context.Background(), batch, status); err != nil {
+	statusID := activeStatus(t)
+	if _, err := e.sendInterfaceBatch(context.Background(), batch, statusID); err != nil {
 		t.Fatalf("sendInterfaceBatch: %v", err)
 	}
 

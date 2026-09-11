@@ -1,53 +1,162 @@
 package transform
 
 import (
+	"encoding/json"
+	"fmt"
+	"reflect"
+	"sync"
+
 	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/google/uuid"
 )
 
-// refID extracts a UUID from a BulkWritableCableRequestStatus reference.
-func refID(ref *nautobotapi.BulkWritableCableRequestStatus) uuid.UUID {
-	if ref == nil || ref.Id == nil {
-		return uuid.Nil
-	}
-	u, err := ref.Id.AsBulkWritableCableRequestStatusId0()
+// RefUUID extracts a UUID from any generated per-field reference union type
+// (e.g. Device_Status_Id, Cable_Status_Id). Nautobot 3.2 emits a distinct
+// oneOf(UUID|int) union per reference field; every such type implements
+// json.Marshaler with the UUID as member 0. Marshaling then parsing keeps the
+// read path type-agnostic. Returns uuid.Nil when the union is nil or holds an
+// integer id; malformed union output is reported once per generated type.
+func RefUUID(m json.Marshaler) uuid.UUID {
+	id, err := RefUUIDChecked(m)
 	if err != nil {
-		return uuid.Nil
+		warnReferenceShape(m, err)
 	}
-	return uuid.UUID(u)
+	return id
 }
 
-// refIDVal extracts a UUID from a non-pointer BulkWritableCableRequestStatus.
-func refIDVal(ref nautobotapi.BulkWritableCableRequestStatus) uuid.UUID {
-	return refID(&ref)
-}
-
-// tenantRefID extracts a UUID from a BulkWritableCircuitRequestTenant reference.
-func tenantRefID(ref *nautobotapi.BulkWritableCircuitRequestTenant) uuid.UUID {
-	if ref == nil || ref.Id == nil {
-		return uuid.Nil
+// RefUUIDChecked extracts a UUID while distinguishing normal absent/integer
+// variants from malformed generated union output.
+func RefUUIDChecked(m json.Marshaler) (uuid.UUID, error) {
+	if m == nil {
+		return uuid.Nil, nil
 	}
-	u, err := ref.Id.AsBulkWritableCableRequestStatusId0()
+	// Guard against a typed-nil pointer (e.g. a nil *Device_Status_Id) whose
+	// value-receiver MarshalJSON would panic on dereference.
+	if rv := reflect.ValueOf(m); rv.Kind() == reflect.Ptr && rv.IsNil() {
+		return uuid.Nil, nil
+	}
+	b, err := m.MarshalJSON()
 	if err != nil {
-		return uuid.Nil
+		return uuid.Nil, fmt.Errorf("marshal reference ID %T: %w", m, err)
 	}
-	return uuid.UUID(u)
-}
-
-// resolveTenantRefName looks up the name for a tenant-style reference by UUID.
-// It falls back to the reference URL when the target object was not fetched.
-func resolveTenantRefName(ref *nautobotapi.BulkWritableCircuitRequestTenant, nameMap map[uuid.UUID]string) string {
-	id := tenantRefID(ref)
-	if id != uuid.Nil {
-		if name, ok := nameMap[id]; ok {
-			return name
+	if len(b) == 0 {
+		return uuid.Nil, fmt.Errorf("marshal reference ID %T: empty JSON", m)
+	}
+	var value any
+	if err := json.Unmarshal(b, &value); err != nil {
+		return uuid.Nil, fmt.Errorf("decode reference ID %T: %w", m, err)
+	}
+	s, ok := value.(string)
+	if !ok {
+		if value == nil {
+			return uuid.Nil, nil
 		}
+		if _, ok := value.(float64); ok {
+			return uuid.Nil, nil
+		}
+		return uuid.Nil, fmt.Errorf("decode reference ID %T: unexpected JSON type %T", m, value)
 	}
+	id, err := uuid.Parse(s)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("decode reference ID %T: %w", m, err)
+	}
+	return id, nil
+}
+
+// SetRefUUID sets any generated per-field reference union type to a UUID by
+// unmarshaling the JSON-encoded UUID into the union's member 0. The concrete
+// per-field union type is named once at the call site's declaration.
+func SetRefUUID(u json.Unmarshaler, id uuid.UUID) error {
+	b, err := json.Marshal(id)
+	if err != nil {
+		return err
+	}
+	return u.UnmarshalJSON(b)
+}
+
+// referenceFields extracts the Id (as json.Marshaler) and Url (*string) from a
+// Nautobot 3.2 reference value. References are now per-field inline structs
+// shaped `struct{ Id *<Type>_<Field>_Id; ObjectType *string; Url *string }`,
+// so a single named type can no longer cover them; reflection keeps access
+// type-agnostic. Nil references are normal; non-nil values with a different
+// generated shape return an error.
+func referenceFields(ref any) (json.Marshaler, *string, error) {
 	if ref == nil {
-		return ""
+		return nil, nil, nil
 	}
-	return strVal(ref.Url)
+	v := reflect.ValueOf(ref)
+	for v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			return nil, nil, nil
+		}
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return nil, nil, fmt.Errorf("reference %T must be a struct or pointer to struct", ref)
+	}
+	idField := v.FieldByName("Id")
+	if !idField.IsValid() || !idField.CanInterface() {
+		return nil, nil, fmt.Errorf("reference %T has no readable Id field", ref)
+	}
+	m, ok := idField.Interface().(json.Marshaler)
+	if !ok {
+		return nil, nil, fmt.Errorf("reference %T Id field %s does not implement json.Marshaler", ref, idField.Type())
+	}
+	urlField := v.FieldByName("Url")
+	if !urlField.IsValid() || !urlField.CanInterface() {
+		return nil, nil, fmt.Errorf("reference %T has no readable Url field", ref)
+	}
+	url, ok := urlField.Interface().(*string)
+	if !ok {
+		return nil, nil, fmt.Errorf("reference %T Url field %s is not *string", ref, urlField.Type())
+	}
+	return m, url, nil
+}
+
+// ReferenceUUID validates a generated reference object and extracts its UUID.
+func ReferenceUUID(ref any) (uuid.UUID, error) {
+	m, _, err := referenceFields(ref)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return RefUUIDChecked(m)
+}
+
+var referenceShapeWarnings sync.Map
+
+func warnReferenceShape(ref any, err error) {
+	key := fmt.Sprintf("%T", ref)
+	if _, loaded := referenceShapeWarnings.LoadOrStore(key, struct{}{}); loaded {
+		return
+	}
+	clog.Warn("generated reference shape mismatch: %v", err)
+}
+
+// refID extracts the UUID from a Nautobot reference value's Id union. Invalid
+// generated shapes are reported once and retain the legacy uuid.Nil fallback.
+func refID(ref any) uuid.UUID {
+	id, err := ReferenceUUID(ref)
+	if err != nil {
+		warnReferenceShape(ref, err)
+	}
+	return id
+}
+
+// refIDVal is retained for call-site compatibility; identical to refID.
+func refIDVal(ref any) uuid.UUID {
+	return refID(ref)
+}
+
+// tenantRefID is retained for call-site compatibility; identical to refID.
+func tenantRefID(ref any) uuid.UUID {
+	return refID(ref)
+}
+
+// resolveTenantRefName is retained for call-site compatibility; identical to
+// resolveRefName.
+func resolveTenantRefName(ref any, nameMap map[uuid.UUID]string) string {
+	return resolveRefName(ref, nameMap)
 }
 
 // directUUID converts an openapi_types.UUID pointer to uuid.UUID.
@@ -74,26 +183,38 @@ func intVal(p *int) int {
 	return *p
 }
 
-// firstLocation resolves the first Nautobot location reference in a plural
-// locations slice to a CANI location UUID. Returns uuid.Nil when the slice is
-// empty or the referenced location was not imported.
-func firstLocation(locs *[]nautobotapi.BulkWritableCableRequestStatus, locationMap map[uuid.UUID]uuid.UUID) uuid.UUID {
-	if locs == nil || len(*locs) == 0 {
-		return uuid.Nil
+// refDisplay returns the reference URL as a display fallback.
+func refDisplay(ref any) string {
+	_, url, err := referenceFields(ref)
+	if err != nil {
+		warnReferenceShape(ref, err)
 	}
-	nbID := refIDVal((*locs)[0])
-	if nbID == uuid.Nil {
-		return uuid.Nil
-	}
-	return locationMap[nbID]
+	return strVal(url)
 }
 
-// refDisplay returns the Display field from a BulkWritableCableRequestStatus.
-func refDisplay(ref *nautobotapi.BulkWritableCableRequestStatus) string {
-	if ref == nil {
+// emailVal safely dereferences a *openapi_types.Email to a string.
+func emailVal(e *openapi_types.Email) string {
+	if e == nil {
 		return ""
 	}
-	return strVal(ref.Url) // fallback - display not always available
+	return string(*e)
+}
+
+// convCustomFields converts the Nautobot 3.2 custom-fields map (whose values
+// are pointers) into a flat map[string]any for CANI types.
+func convCustomFields(cf *map[string]*interface{}) map[string]any {
+	if cf == nil {
+		return nil
+	}
+	out := make(map[string]any, len(*cf))
+	for k, v := range *cf {
+		if v != nil {
+			out[k] = *v
+		} else {
+			out[k] = nil
+		}
+	}
+	return out
 }
 
 // BuildStatusNameMap creates a lookup from status UUID to name.
@@ -118,15 +239,22 @@ func BuildRoleNameMap(roles []nautobotapi.Role) map[uuid.UUID]string {
 	return m
 }
 
-// resolveRefName looks up the name for a BulkWritableCableRequestStatus
-// reference using the provided UUID-to-name map. Falls back to the URL
-// if the UUID is not found in the map.
-func resolveRefName(ref nautobotapi.BulkWritableCableRequestStatus, nameMap map[uuid.UUID]string) string {
-	id := refIDVal(ref)
+// resolveRefName looks up the name for a Nautobot reference using the provided
+// UUID-to-name map, falling back to the reference URL when the UUID is absent.
+func resolveRefName(ref any, nameMap map[uuid.UUID]string) string {
+	m, url, err := referenceFields(ref)
+	if err != nil {
+		warnReferenceShape(ref, err)
+		return ""
+	}
+	id, err := RefUUIDChecked(m)
+	if err != nil {
+		warnReferenceShape(ref, err)
+	}
 	if id != uuid.Nil {
 		if name, ok := nameMap[id]; ok {
 			return name
 		}
 	}
-	return strVal(ref.Url)
+	return strVal(url)
 }

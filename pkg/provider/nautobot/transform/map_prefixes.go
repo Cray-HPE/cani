@@ -33,6 +33,7 @@ import (
 
 // MapPrefixes converts Nautobot Prefix objects to CANI prefixes.
 // It requires:
+//   - assignedLocations: Nautobot prefix UUID → Nautobot location UUID
 //   - locationMap: Nautobot location UUID → CANI location UUID
 //   - vlanMap: Nautobot VLAN UUID → CANI VLAN UUID
 //   - statusNameMap: Nautobot status UUID → status name
@@ -42,6 +43,7 @@ import (
 // hierarchy from the CIDR values after import.
 func MapPrefixes(
 	raw []nautobotapi.Prefix,
+	assignedLocations map[uuid.UUID]uuid.UUID,
 	locationMap map[uuid.UUID]uuid.UUID,
 	vlanMap map[uuid.UUID]uuid.UUID,
 	statusNameMap map[uuid.UUID]string,
@@ -62,7 +64,7 @@ func MapPrefixes(
 			PrefixLen:   intVal(prefix.PrefixLength),
 			IPVersion:   intVal(prefix.IpVersion),
 			Description: strVal(prefix.Description),
-			Location:    firstLocation(prefix.Locations, locationMap),
+			Location:    resolveAssignedLocation(nbID, assignedLocations, locationMap),
 			ObjectMeta: devicetypes.ObjectMeta{
 				Status:      resolveRefName(prefix.Status, statusNameMap),
 				ExternalIDs: map[string]uuid.UUID{"nautobot": nbID},
@@ -80,7 +82,7 @@ func MapPrefixes(
 			caniPrefix.Role = roleName
 		}
 		if prefix.CustomFields != nil {
-			caniPrefix.CustomFields = *prefix.CustomFields
+			caniPrefix.CustomFields = convCustomFields(prefix.CustomFields)
 		}
 
 		result[caniID] = caniPrefix

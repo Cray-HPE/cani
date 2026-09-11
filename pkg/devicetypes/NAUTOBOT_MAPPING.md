@@ -1,25 +1,38 @@
 # CANI Inventory ↔ Nautobot 3.x Mapping Guide
 
-This document is the authoritative developer reference for how CANI's `Inventory` struct and its six `Cani*Type` collections map to Nautobot 3.x API objects. It covers the current export implementation, relationship model, and improvement recommendations.
+This document is the authoritative developer reference for how CANI's `Inventory` struct and its DCIM, interface, IPAM, and metadata collections map to Nautobot 3.x API objects. It covers the current export implementation, relationship model, and improvement recommendations.
 
 ---
 
 ## 1. Overview
 
-The `Inventory` struct (`pkg/devicetypes/inventory.go`) holds six UUID-keyed maps:
+The `Inventory` struct (`pkg/devicetypes/inventory.go`) holds datastore identity, provider context, eleven UUID-keyed object maps, and metadata definitions:
 
 ```go
 type Inventory struct {
-    Locations map[uuid.UUID]*CaniLocationType
-    Racks     map[uuid.UUID]*CaniRackType
-    Devices   map[uuid.UUID]*CaniDeviceType
-    Modules   map[uuid.UUID]*CaniModuleType
-    Cables    map[uuid.UUID]*CaniCableType
-    Frus      map[uuid.UUID]*CaniFruType
+     SchemaVersion string
+     Provider      string
+
+     Locations  map[uuid.UUID]*CaniLocationType
+     Racks      map[uuid.UUID]*CaniRackType
+     Devices    map[uuid.UUID]*CaniDeviceType
+     Modules    map[uuid.UUID]*CaniModuleType
+     Cables     map[uuid.UUID]*CaniCableType
+     Frus       map[uuid.UUID]*CaniFruType
+     Interfaces map[uuid.UUID]*CaniInterface
+
+     Prefixes    map[uuid.UUID]*CaniPrefix
+     IPAddresses map[uuid.UUID]*CaniIPAddress
+     VLANs       map[uuid.UUID]*CaniVLAN
+     VRFs        map[uuid.UUID]*CaniVRF
+
+     Metadata *InventoryMetadata
 }
 ```
 
-Each `Cani*Type` implements the `CaniType` interface (`Validate()`, `GetID()`, `GetSlug()`, `GetStatus()`).
+The concrete struct also maintains an unexported, non-serialized `pkIndex` cache for provider-key device lookups.
+
+Each DCIM and IPAM `Cani*Type` implements the `CaniType` interface (`Validate()`, `GetID()`, `GetSlug()`, `GetStatus()`). Provider transforms are merged atomically by `Inventory.MergeTransformResult()`: the inventory and transform output are cloned, natural-key matches retain canonical inventory UUIDs, all persisted foreign keys are remapped, IPAM parents are derived, and the live inventory is replaced only after relationship validation succeeds.
 
 **Current export coverage:**
 
@@ -31,8 +44,8 @@ Each `Cani*Type` implements the `CaniType` interface (`Validate()`, `GetID()`, `
 | `Modules` | `Module` + `ModuleType` + `ModuleBay` | ~60% | `loadModules()` in `load_modules.go` |
 | `Cables` | `Cable` | ~75% | `createCaniCableType()` in `load.go` |
 | `Frus` | `InventoryItem` | ~60% | `loadFrus()` in `load_frus.go` |
-| `VLANs` | `VLAN` | Import + Export | `loadVLANs()` in `load_vlans.go` |
-| `Prefixes` | `Prefix` | Import + Export | `loadPrefixes()` in `load_prefixes.go` |
+| `VLANs` | `VLAN` + `VLANLocationAssignment` | Import + Export | `loadVLANs()` in `load_vlans.go` |
+| `Prefixes` | `Prefix` + `PrefixLocationAssignment` | Import + Export | `loadPrefixes()` in `load_prefixes.go` |
 | `IPAddresses` | `IPAddress` | Import + Export | `loadIPAddresses()` in `load.go` |
 | `VRFs` | `VRF` | Import + Export | `loadVRFs()` in `load_vrfs.go` |
 
@@ -52,17 +65,21 @@ Status legend:
 
 Source: `pkg/devicetypes/cani_location_types.go`
 
-Locations are **exported as first-class objects** in Phase 0. `loadLocations()` in `load_locations.go` performs a topological sort (BFS from roots) to ensure parents are created before children. The `LocationType` field on each `CaniLocationType` is resolved as a Nautobot `LocationType` FK (defaults to `"Site"` if empty). Created locations are cached for downstream rack/device FK resolution.
+Locations are **exported as first-class objects** in Phase 0. `loadLocations()` in `export/load_locations.go` performs a topological sort (BFS from roots) to ensure parents are created before children. The `LocationType` field on each `CaniLocationType` is resolved as a Nautobot `LocationType` FK. Although normal model validation requires this field, export defaults an empty value to `"Site"` for backward compatibility with legacy or externally constructed inventories. Created locations are cached for downstream rack/device FK resolution.
 
 | Cani Field | Go Type | Nautobot Field | Status | Notes |
 |---|---|---|---|---|
 | `ID` | `uuid.UUID` | — | Cani-Internal | Primary key |
 | `Name` | `string` | `Location.Name` | **Mapped** | |
+| `Slug` | `string` | — | Cani-Internal | Library/lookup key |
 | `LocationType` | `string` | `Location.LocationType` (FK) | **Mapped** | Resolved by name; defaults to `"Site"` if empty |
 | `Parent` | `uuid.UUID` | `Location.Parent` (FK) | **Mapped** | Topological sort ensures parent exists first |
 | `Children` | `[]uuid.UUID` | — | Cani-Internal | Rebuilt from `Parent` at load time |
 | `Racks` | `[]uuid.UUID` | — | Cani-Internal | Rebuilt from `CaniRackType.Location` |
+| `Nestable` | `bool` | — | Cani-Internal | Location-type definition hint; export resolves the registered definition by `LocationType` |
+| `ContentTypes` | `[]string` | — | Cani-Internal | Controls placement resolution for racks, devices, and modules |
 | `Status` | `string` | `Location.Status` (FK) | **Mapped** | Falls back to provider default |
+| `Role` | `string` | — | Cani-Internal | Nautobot 3.x Location has no role field |
 | `Facility` | `string` | `Location.Facility` | **Mapped** | Mapped when non-empty |
 | `Description` | `string` | `Location.Description` | **Mapped** | Mapped when non-empty |
 | `PhysicalAddress` | `string` | `Location.PhysicalAddress` | **Mapped** | Mapped when non-empty |
@@ -77,14 +94,17 @@ Locations are **exported as first-class objects** in Phase 0. `loadLocations()` 
 | `Comments` | `string` | `Location.Comments` | **Mapped** | Mapped when non-empty |
 | `Tenant` | `string` | `Location.Tenant` (FK) | Not Mapped | |
 | `Tags` | `[]string` | `Location.Tags` | Not Mapped | |
-| `CustomFields` | `map[string]any` | `Location.CustomFields` | **Mapped** | Mapped when non-empty |
+| `CustomFields` | `map[string]any` | `Location.CustomFields` | **Mapped** | Merged with flattened `ProviderMetadata` |
+| `ProviderMetadata` | `map[string]any` | `Location.CustomFields` | **Mapped** | Flattened and merged into custom fields |
+| `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Tracks source object UUIDs |
+| `Source` | `string` | — | Cani-Internal | Tracks library/import origin |
 
 ---
 
 ### 2.2 `CaniRackType` → Nautobot `Rack`
 
 Source: `pkg/devicetypes/cani_rack_types.go`
-Mapper: `createRackFromCaniRack()` in `pkg/provider/nautobot/load.go`
+Mapper: `createRackFromCaniRack()` in `pkg/provider/nautobot/export/load.go`
 
 Nautobot does **not** have a separate `RackType` model — it uses an enum on the `Rack` object. CANI's rack YAML library provides template fields (`Manufacturer`, `Model`, `PartNumber`, `DeviceBays`, `ModuleBays`) that pre-populate instance fields but do not create a separate Nautobot object.
 
@@ -97,31 +117,35 @@ Nautobot does **not** have a separate `RackType` model — it uses an enum on th
 | `Manufacturer` | `string` | — | Cani-Internal | Template field |
 | `Model` | `string` | — | Cani-Internal | Template field |
 | `Description` | `string` | — | Cani-Internal | Template field; no Nautobot rack description |
-| `HardwareType` | `string` | — | Cani-Internal | Classification |
+| `Type` | `Type` | — | Cani-Internal | Classification used by export routing |
 | `UHeight` | `int` | `Rack.UHeight` | **Mapped** | Defaults to 48 if 0 |
 | `OuterWidth` | `int` | `Rack.OuterWidth` | **Mapped** | Mapped when > 0 |
 | `OuterDepth` | `int` | `Rack.OuterDepth` | **Mapped** | Mapped when > 0 |
-| `OuterUnit` | `string` | `Rack.OuterUnit` | Not Mapped | mm or in |
-| `Width` | `string` | `Rack.Width` | Not Mapped | Nautobot WidthEnum (10/19/21/23 in) |
+| `OuterUnit` | `string` | `Rack.OuterUnit` | **Mapped** | `mm` or `in`; defaults to `mm` when dimensions are set |
+| `Width` | `string` | `Rack.Width` | **Mapped** | Parsed as Nautobot WidthEnum (10/19/21/23 in) |
 | `Weight` | `float64` | — | Cani-Internal | No Nautobot equivalent |
 | `WeightUnit` | `string` | — | Cani-Internal | No Nautobot equivalent |
 | `DeviceBays` | `[]DeviceBaySpec` | — | Cani-Internal | Template: defines available bays |
 | `ModuleBays` | `[]ModuleBaySpec` | — | Cani-Internal | Template: defines available bays |
-| `Location` | `uuid.UUID` | `Rack.Location` (FK) | Partial | Resolved by default location name, not from `CaniLocationType` |
+| `TopZoneHeight` | `int` | — | Cani-Internal | CANI rack-layout metadata |
+| `BottomZoneHeight` | `int` | — | Cani-Internal | CANI rack-layout metadata |
+| `Location` | `uuid.UUID` | `Rack.Location` (FK) | **Mapped** | Resolves the inventory location; descends to a child type that supports racks, then falls back to provider default |
 | `Status` | `string` | `Rack.Status` (FK) | **Mapped** | Falls back to provider default |
 | `Role` | `string` | `Rack.Role` (FK) | Not Mapped | |
-| `RackType` | `string` | `Rack.Type` | Not Mapped | Nautobot enum: `2-post-frame`, `4-post-cabinet`, etc. |
-| `Serial` | `string` | `Rack.Serial` | Not Mapped | |
-| `AssetTag` | `string` | `Rack.AssetTag` | Not Mapped | |
-| `FacilityId` | `string` | `Rack.FacilityId` | Not Mapped | |
-| `DescUnits` | `bool` | `Rack.DescUnits` | Not Mapped | Descending unit numbering |
+| `RackType` | `string` | `Rack.Type` | **Mapped** | Nautobot enum: `2-post-frame`, `4-post-cabinet`, etc. |
+| `Serial` | `string` | `Rack.Serial` | **Mapped** | Mapped when non-empty |
+| `AssetTag` | `string` | `Rack.AssetTag` | **Mapped** | Mapped when non-empty |
+| `FacilityId` | `string` | `Rack.FacilityId` | **Mapped** | Mapped when non-empty |
+| `DescUnits` | `bool` | `Rack.DescUnits` | **Mapped** | Sent when true |
 | `Comments` | `string` | `Rack.Comments` | **Mapped** | Mapped when non-empty |
 | `Devices` | `[]uuid.UUID` | — | Cani-Internal | Rebuilt from `CaniDeviceType.Rack` |
 | `OccupiedSlots` | `map[int]map[string]uuid.UUID` | — | Cani-Internal | Rebuilt from device RackPosition + Face |
 | `Tenant` | `string` | `Rack.Tenant` (FK) | Not Mapped | |
-| `Tags` | `[]string` | `Rack.Tags` | Not Mapped | |
+| `Tags` | `[]string` | `Rack.Tags` | Partial | Resolved and sent on create; not reconciled by merge PATCH |
 | `CustomFields` | `map[string]any` | `Rack.CustomFields` | Not Mapped | |
-| `ProviderMetadata` | `map[string]any` | — | Partial | `u_height` extracted; rest not mapped |
+| `ProviderMetadata` | `map[string]any` | — | Not Mapped | Provider-specific metadata is not exported for racks |
+| `ProviderDefaults` | `map[string]any` | — | Cani-Internal | Provider-specific hardware-library defaults |
+| `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Tracks source Nautobot UUIDs |
 | `Source` | `string` | — | Cani-Internal | |
 
 ---
@@ -129,8 +153,8 @@ Nautobot does **not** have a separate `RackType` model — it uses an enum on th
 ### 2.3 `CaniDeviceType` → Nautobot `Device` + `DeviceType`
 
 Source: `pkg/devicetypes/cani_device_types.go`
-Mapper: `MapToWritableDeviceRequest()`, `MapToPatchRequest()` in `pkg/provider/nautobot/mapper.go`
-DeviceType auto-creation: `CreateDeviceTypeFromLocal()` in `pkg/provider/nautobot/lookup.go`
+Mapper: `MapToWritableDeviceRequest()`, `MapToPatchRequest()` in `pkg/provider/nautobot/export/mapper.go`
+DeviceType auto-creation: `CreateDeviceTypeFromLocal()` in `pkg/provider/nautobot/export/lookup.go`
 
 This type conflates **template fields** (from the YAML library, used to auto-create a Nautobot `DeviceType`) and **instance fields** (from the user's inventory, used to create a Nautobot `Device`). See §3 for the template/instance split.
 
@@ -147,9 +171,9 @@ This type conflates **template fields** (from the YAML library, used to auto-cre
 | `Role` | `string` | `Device.Role` (FK) | **Mapped** | Explicit `Role` field checked first, then `ProviderMetadata["role"]` fallback |
 | `Parent` | `uuid.UUID` | `Device.Rack` (FK) or `Device.ParentBay` | **Mapped** | Overloaded: mapper checks Racks first, then Devices |
 | `RackPosition` | `int` | `Device.Position` | **Mapped** | Only when parent resolves to a rack |
-| `Face` | `string` | `Device.Face` | **Mapped** | Resolved via `resolveFace()`: `"front"`, `"rear"`, or nil if empty |
+| `Face` | `string` | `Device.Face` | **Mapped** | Written by `setDeviceFace()`: `"front"`, `"rear"`, or nil if empty |
 | `Rack` | `uuid.UUID` | `Device.Rack` (FK) | Cani-Internal | Explicit FK; rebuilt from `Parent` at load time |
-| `Location` | `uuid.UUID` | `Device.Location` (FK) | Partial | Resolved from `ProviderMetadata["location"]` or default |
+| `Location` | `uuid.UUID` | `Device.Location` (FK) | **Mapped** | Provider metadata override, then parent rack location, then provider default |
 | `ParentDevice` | `uuid.UUID` | `Device.ParentBay` | Cani-Internal | Explicit FK; rebuilt from `Parent` at load time |
 | `AssignedVLANs` | `[]uuid.UUID` | Relationship association | **Mapped** | Device↔VLAN; exported in Phase 10 by `loadRelationships()` in `load_relationships.go`. Set by `update device --assign-vlan` |
 | `BMCParent` | `uuid.UUID` | Relationship association | **Mapped** | Marks this device as the BMC of the target device; exported in Phase 10. Set by `update device --bmc-of` |
@@ -158,15 +182,14 @@ This type conflates **template fields** (from the YAML library, used to auto-cre
 | `Comments` | `string` | `Device.Comments` | **Mapped** | Mapped when non-empty |
 | `Description` | `string` | — | Cani-Internal | No Nautobot device description |
 | `Vendor` | `string` | — | Cani-Internal | Cani-specific (vendor ≠ manufacturer) |
-| `Type` | `Type` | — | Cani-Internal | Classification enum |
-| `HardwareType` | `string` | — | Cani-Internal | Used by `ClassifyForNautobot()` |
+| `Type` | `Type` | — | Cani-Internal | Used by `ClassifyForNautobot()` |
 | `Children` | `[]uuid.UUID` | — | Cani-Internal | Rebuilt from `Parent` at load time |
 | `Weight` / `WeightUnit` | `float64` / `string` | — | Cani-Internal | No Nautobot device weight |
 | `Identifications` | `[]Identification` | — | Cani-Internal | Alternate manufacturer/model IDs |
 | `Platform` | `string` | `Device.Platform` (FK) | Not Mapped | |
 | `Tenant` | `string` | `Device.Tenant` (FK) | Not Mapped | |
-| `Tags` | `[]string` | `Device.Tags` | Not Mapped | |
-| `CustomFields` | `map[string]any` | `Device.CustomFields` | Partial | `ProviderMetadata` exported as CustomFields |
+| `Tags` | `[]string` | `Device.Tags` | Partial | Resolved and sent on create; not reconciled by merge PATCH |
+| `CustomFields` | `map[string]any` | `Device.CustomFields` | Not Mapped | Explicit custom fields are not currently included by the device mapper |
 | `ProviderMetadata` | `map[string]any` | `Device.CustomFields` | **Mapped** | Full map sent; `location` and `role` keys also used for FK resolution |
 | `Source` | `string` | — | Cani-Internal | |
 
@@ -174,13 +197,13 @@ This type conflates **template fields** (from the YAML library, used to auto-cre
 
 When `create_device_types` is enabled, `CreateDeviceTypeFromLocal()` looks up the CANI embedded library by slug and creates a Nautobot `DeviceType` + `Manufacturer`:
 
-| Cani Field | Nautobot DeviceType Field | Status |
-|---|---|---|
-| `Model` | `DeviceType.Model` | **Mapped** |
-| `Manufacturer` | `DeviceType.Manufacturer` (FK, auto-created) | **Mapped** |
-| `PartNumber` | `DeviceType.PartNumber` | **Mapped** |
-| `UHeight` | `DeviceType.UHeight` | **Mapped** |
-| `IsFullDepth` | `DeviceType.IsFullDepth` | **Mapped** |
+| Cani Field | Nautobot DeviceType Field | Status | Notes |
+|---|---|---|---|
+| `Model` | `DeviceType.Model` | **Mapped** | |
+| `Manufacturer` | `DeviceType.Manufacturer` (FK, auto-created) | **Mapped** | |
+| `PartNumber` | `DeviceType.PartNumber` | **Mapped** | |
+| `UHeight` | `DeviceType.UHeight` | **Mapped** | |
+| `IsFullDepth` | `DeviceType.IsFullDepth` | **Mapped** | |
 | `SubdeviceRole` | `DeviceType.SubdeviceRole` | **Mapped** | `"parent"` or `"child"` for chassis/blade relationships |
 | `Interfaces` | Creates `InterfaceTemplate` objects | Not Mapped | Templates not created; interfaces created on device instance |
 | `ConsolePorts` | Creates `ConsolePortTemplate` objects | Not Mapped | |
@@ -193,7 +216,7 @@ When `create_device_types` is enabled, `CreateDeviceTypeFromLocal()` looks up th
 ### 2.4 `CaniModuleType` → Nautobot `Module` + `ModuleType`
 
 Source: `pkg/devicetypes/cani_module_types.go`
-Exported in Phase 4 by `loadModules()` in `load_modules.go`. For each module, the pipeline: (1) gets or creates a `ModuleType` from YAML library data, (2) gets or creates a `ModuleBay` on the parent device, (3) creates the `Module` with the resolved FKs.
+Exported in Phase 4 by `loadModules()` in `export/load_modules.go`. For each module, the pipeline: (1) gets or creates a `ModuleType` from YAML library data, (2) gets or creates a `ModuleBay` on the parent device, (3) creates the `Module` with the resolved FKs, and (4) creates module-defined interfaces on the parent device.
 
 | Cani Field | Go Type | Nautobot Field | Status | Notes |
 |---|---|---|---|---|
@@ -204,10 +227,10 @@ Exported in Phase 4 by `loadModules()` in `load_modules.go`. For each module, th
 | `Manufacturer` | `string` | `ModuleType.Manufacturer` (FK) | **Mapped** | Template → `ModuleType`, FK resolved by name |
 | `Model` | `string` | `ModuleType.Model` | **Mapped** | Template → `ModuleType` |
 | `Description` | `string` | — | Cani-Internal | No Nautobot Module description |
-| `HardwareType` | `string` | — | Cani-Internal | Cani classification |
+| `Type` | `Type` | — | Cani-Internal | CANI classification |
 | `Weight` / `WeightUnit` | `float64` / `string` | — | Cani-Internal | No Nautobot equivalent |
 | `Comments` | `string` | `ModuleType.Comments` | **Mapped** | Template → `ModuleType.Comments` |
-| `Interfaces` | `[]InterfaceSpec` | Creates `Interface` objects (with Module FK) | Not Mapped | Template; interface creation not yet wired |
+| `Interfaces` | `[]InterfaceSpec` | Creates `Interface` objects on parent device | **Mapped** | Created after the module; duplicate names are skipped |
 | `ParentDevice` | `uuid.UUID` | `Module.Device` (via parent device's module bay) | **Mapped** | Resolved to Nautobot device ID via cache |
 | `ModuleBayName` | `string` | `Module.ParentModuleBay` (FK) | **Mapped** | Gets or creates ModuleBay on parent device |
 | `Serial` | `string` | `Module.Serial` | **Mapped** | Mapped when non-empty |
@@ -218,6 +241,7 @@ Exported in Phase 4 by `loadModules()` in `load_modules.go`. For each module, th
 | `Tenant` | `string` | `Module.Tenant` (FK) | Not Mapped | |
 | `Tags` | `[]string` | `Module.Tags` | Not Mapped | |
 | `CustomFields` | `map[string]any` | `Module.CustomFields` | Not Mapped | |
+| `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Import records the source Nautobot UUID for stable re-import identity |
 | `Source` | `string` | — | Cani-Internal | |
 
 ---
@@ -225,7 +249,7 @@ Exported in Phase 4 by `loadModules()` in `load_modules.go`. For each module, th
 ### 2.5 `CaniCableType` → Nautobot `Cable`
 
 Source: `pkg/devicetypes/cani_cable_types.go`
-Mapper: `createCaniCableType()` in `pkg/provider/nautobot/load.go`
+Mapper: `createCaniCableType()` in `pkg/provider/nautobot/export/load.go`
 
 Cables use a library mechanism identical to devices: a slug/part-number resolves to a YAML definition that pre-fills specs (category, connector, length, color). No separate Nautobot cable "type" object is created.
 
@@ -238,7 +262,7 @@ Cables use a library mechanism identical to devices: a slug/part-number resolves
 | `Manufacturer` | `string` | — | Cani-Internal | Library/template field |
 | `Model` | `string` | — | Cani-Internal | Library/template field |
 | `Description` | `string` | — | Cani-Internal | Library/template field |
-| `HardwareType` | `string` | — | Cani-Internal | Classification |
+| `Type` | `Type` | — | Cani-Internal | Classification |
 | `CableCategory` | `string` | — | **Mapped** (indirectly) | Used by `resolveCableType()` to derive `Cable.Type` when `CableType` is empty |
 | `ConnectorType` | `string` | — | **Mapped** (indirectly) | Used by `resolveCableType()` as third-priority heuristic for `Cable.Type` |
 | `CableType` | `string` | `Cable.Type` | **Mapped** | Primary source for `Cable.Type` via `resolveCableType()` |
@@ -257,6 +281,7 @@ Cables use a library mechanism identical to devices: a slug/part-number resolves
 | `TerminationBPort` | `string` | — | Cani-Internal | Same |
 | `Tags` | `[]string` | `Cable.Tags` | Not Mapped | |
 | `CustomFields` | `map[string]any` | `Cable.CustomFields` | Not Mapped | |
+| `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Import records the source Nautobot UUID; merge falls back to label or unordered endpoints |
 | `Source` | `string` | — | Cani-Internal | |
 
 **Cable type derivation** (`resolveCableType()` in `load.go`):
@@ -273,7 +298,7 @@ Cables use a library mechanism identical to devices: a slug/part-number resolves
 ### 2.6 `CaniFruType` → Nautobot `InventoryItem`
 
 Source: `pkg/devicetypes/cani_fru_types.go`
-Exported in Phase 5 by `loadFrus()` in `load_frus.go`. Uses a topological sort (BFS from roots) to ensure parent FRUs are created before nested children. Each FRU maps to a single Nautobot `InventoryItem`.
+Exported in Phase 5 by `loadFrus()` in `export/load_frus.go`. Uses a topological sort (BFS from roots) to ensure parent FRUs are created before nested children. Each FRU maps to a single Nautobot `InventoryItem`.
 
 | Cani Field | Go Type | Nautobot Field | Status | Notes |
 |---|---|---|---|---|
@@ -284,7 +309,7 @@ Exported in Phase 5 by `loadFrus()` in `load_frus.go`. Uses a topological sort (
 | `Manufacturer` | `string` | `InventoryItem.Manufacturer` (FK) | **Mapped** | FK resolved by name |
 | `Model` | `string` | — | Cani-Internal | Library/template field |
 | `Description` | `string` | `InventoryItem.Description` | **Mapped** | Mapped when non-empty |
-| `HardwareType` | `string` | — | Cani-Internal | Cani classification |
+| `Type` | `Type` | — | Cani-Internal | CANI classification |
 | `Weight` / `WeightUnit` | `float64` / `string` | — | Cani-Internal | No Nautobot equivalent |
 | `Label` | `string` | `InventoryItem.Label` | **Mapped** | Mapped when non-empty |
 | `Serial` | `string` | `InventoryItem.Serial` | **Mapped** | Mapped when non-empty |
@@ -294,8 +319,9 @@ Exported in Phase 5 by `loadFrus()` in `load_frus.go`. Uses a topological sort (
 | `Device` | `uuid.UUID` | `InventoryItem.Device` (FK) | **Mapped** | Resolved to Nautobot device ID via cache |
 | `Parent` | `uuid.UUID` | `InventoryItem.Parent` (FK) | **Mapped** | Resolved to parent InventoryItem ID (topological sort ensures order) |
 | `Discovered` | `bool` | `InventoryItem.Discovered` | **Mapped** | |
-| `Tags` | `[]string` | `InventoryItem.Tags` | Not Mapped | |
-| `CustomFields` | `map[string]any` | `InventoryItem.CustomFields` | Not Mapped | |
+| `Tags` | `[]string` | `InventoryItem.Tags` | **Mapped** | Resolved by name on create |
+| `CustomFields` | `map[string]any` | `InventoryItem.CustomFields` | **Mapped** | Mapped when non-empty |
+| `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Import records the source Nautobot UUID for stable nested-FRU re-imports |
 | `Source` | `string` | — | Cani-Internal | |
 
 ---
@@ -306,7 +332,11 @@ IPAM types (`VLANs`, `Prefixes`, `IPAddresses`, `VRFs`) and the interface
 switchport fields are UUID-keyed like the DCIM types and follow the same tag
 convention (camelCase JSON, snake_case YAML). They round-trip through the same
 ETL: fetched on import (`FetchVLANs`/`FetchPrefixes`/`FetchIPAddresses`/`FetchVRFs`),
-mapped in `transform/map_*.go`, and exported in Phases 6c–10 (see §5).
+mapped in `transform/map_*.go`, and exported in Phases 6c–10 (see §5). Nautobot
+3.2 exposes VLAN and prefix location scope through separate
+`VLANLocationAssignment` and `PrefixLocationAssignment` resources. Import fetches
+those resources and projects the first valid assignment onto CANI's single
+`Location` FK.
 
 ### 2a.1 Interface enrichment fields (`CaniInterface` / `InterfaceSpec`)
 
@@ -324,7 +354,7 @@ template (name/type/mgmt-only) and are **not** device-type template fields.
 | `TaggedVLANs` | `[]int` | `Interface.tagged_vlans` (FK) | **Mapped** | Trunk VLAN IDs, resolved to VLAN FKs |
 | `VRF` | `string` | `Interface.vrf` (FK) | **Mapped** | VRF name, resolved to the VRF FK created in Phase 6c |
 | `Description` | `string` | `Interface.description` | **Mapped** | Free-text interface description; sent unconditionally on `updateInterface`, so an emptied local value clears it in Nautobot (inventory is authoritative on reconcile) |
-| `Role` | `string` | `Interface.role` (FK) | **Mapped** | e.g. `management`, `hsn`; validated against registered roles. The `role` FK has no `omitempty`, so an empty local role serializes as `role: null` and clears it on reconcile (inventory is authoritative); enrichment re-sends the role to avoid clobbering it |
+| `Role` | `string` | `Interface.role` (FK) | **Mapped** | e.g. `management`, `hsn`; validated against registered roles. Nautobot 3.2 marks the FK `omitempty`, so `interfacePatch` injects explicit `role: null` when the local role is empty; enrichment otherwise re-sends the role to avoid clobbering it |
 | `Tags` | `[]string` | `Interface.tags` | **Mapped** | Exported via the shared tag resolver |
 | `MacAddress` | `string` | `Interface.mac_address` | **Mapped** | Normalized on `update interface` |
 
@@ -356,8 +386,9 @@ Imported by `FetchVRFs()` + `MapVRFs()`; exported in Phase 6c by `loadVRFs()` in
 ### 2a.3 `CaniVLAN` → Nautobot `VLAN`
 
 Source: `pkg/devicetypes/ipam_vlan.go`
-Imported by `FetchVLANs()` + `MapVLANs()`; exported in Phase 7 by `loadVLANs()` in
-`load_vlans.go` (find-or-create scoped to location).
+Imported by `FetchVLANs()` + `FetchVLANLocationAssignments()` + `MapVLANs()`;
+exported in Phase 7 by `loadVLANs()` in `load_vlans.go` (find-or-create scoped to
+location).
 
 | Cani Field | Go Type | Nautobot Field | Status | Notes |
 |---|---|---|---|---|
@@ -365,7 +396,7 @@ Imported by `FetchVLANs()` + `MapVLANs()`; exported in Phase 7 by `loadVLANs()` 
 | `VID` | `int` | `VLAN.vid` | **Mapped** | Natural key (with location) for find-or-create |
 | `Name` | `string` | `VLAN.name` | **Mapped** | |
 | `Description` | `string` | `VLAN.description` | **Mapped** | Mapped when non-empty |
-| `Location` | `uuid.UUID` | `VLAN.location` (FK) | **Mapped** | Resolved to Nautobot location; retries without location on rejection |
+| `Location` | `uuid.UUID` | `VLANLocationAssignment.location` | **Mapped** | Import resolves the first valid assignment; export sends `VLANRequest.location`, which creates the assignment, and retries unscoped on rejection |
 | `Status` | `string` | `VLAN.status` (FK) | **Mapped** | Resolved by name; falls back to provider default then `"Active"` |
 | `Role` | `string` | `VLAN.role` (FK) | **Mapped** | Resolved by name when non-empty |
 | `Tags` | `[]string` | `VLAN.tags` | Not Mapped | |
@@ -373,7 +404,63 @@ Imported by `FetchVLANs()` + `MapVLANs()`; exported in Phase 7 by `loadVLANs()` 
 | `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Tracks the source Nautobot UUID |
 | `ProviderMetadata` | `map[string]any` | `VLAN.custom_fields` | **Mapped** | Flattened and merged into custom_fields payload |
 
-### 2a.4 `InventoryMetadata` / `CustomFieldDefinition` → Nautobot Custom Fields
+### 2a.4 `CaniPrefix` → Nautobot `Prefix`
+
+Source: `pkg/devicetypes/ipam_prefix.go`
+Imported by `FetchPrefixes()` + `FetchPrefixLocationAssignments()` +
+`MapPrefixes()`; exported in Phase 8 by `loadPrefixes()` in `load_prefixes.go`.
+
+| Cani Field | Go Type | Nautobot Field | Status | Notes |
+|---|---|---|---|---|
+| `ID` | `uuid.UUID` | — | Cani-Internal | Primary key |
+| `Prefix` | `string` | `Prefix.prefix` | **Mapped** | CIDR is the find-or-create key within the global namespace |
+| `Network` | `string` | `Prefix.network` | Cani-Internal | Derived from the CIDR; not sent on export |
+| `Broadcast` | `string` | `Prefix.broadcast` | Cani-Internal | Derived from the CIDR; not sent on export |
+| `PrefixLen` | `int` | `Prefix.prefix_length` | **Mapped** | Imported directly; Nautobot derives it from `prefix` on export |
+| `IPVersion` | `int` | `Prefix.ip_version` | **Mapped** | Imported directly; Nautobot derives it from `prefix` on export |
+| `Type` | `PrefixType` | `Prefix.type` | **Mapped** | `container`, `network`, or `pool` |
+| `Description` | `string` | `Prefix.description` | **Mapped** | Mapped when non-empty |
+| `Location` | `uuid.UUID` | `PrefixLocationAssignment.location` | **Mapped** | Import resolves the first valid assignment; export sends `WritablePrefixRequest.location`, which creates the assignment, and retries unscoped on rejection |
+| `VLAN` | `uuid.UUID` | `Prefix.vlan` (FK) | **Mapped** | Resolved through the imported/exported VLAN UUID map |
+| `VRF` | `string` | — | Not Mapped | CANI stores a VRF name, but prefix import/export does not currently wire it |
+| `Parent` | `uuid.UUID` | `Prefix.parent` (FK) | **Mapped** | Recomputed from CIDRs after import; exported parent-first |
+| `Status` | `string` | `Prefix.status` (FK) | **Mapped** | Resolved by name; falls back to provider default then `"Active"` |
+| `Role` | `string` | `Prefix.role` (FK) | **Mapped** | Resolved by name when non-empty |
+| `Tenant` | `string` | `Prefix.tenant` (FK) | Not Mapped | |
+| `Tags` | `[]string` | `Prefix.tags` | Not Mapped | |
+| `CustomFields` | `map[string]any` | `Prefix.custom_fields` | Partial | Imported; not sent on export |
+| `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Tracks the source Nautobot UUID |
+| `ProviderMetadata` | `map[string]any` | — | Cani-Internal | Provider escape hatch; not exported for prefixes |
+
+### 2a.5 `CaniIPAddress` → Nautobot `IPAddress`
+
+Source: `pkg/devicetypes/ipam_address.go`
+Imported by `FetchIPAddresses()` + `MapIPAddresses()`; exported in Phase 9 by
+`loadIPAddresses()` in `load_ipaddresses.go`. After prefix merge, import derives
+the most-specific retained prefix for each address and remaps the parent to its
+canonical inventory UUID.
+
+| Cani Field | Go Type | Nautobot Field | Status | Notes |
+|---|---|---|---|---|
+| `ID` | `uuid.UUID` | — | Cani-Internal | Primary key |
+| `Host` | `string` | `IPAddress.host` | **Mapped** | Derived from `Address` on import |
+| `MaskLength` | `int` | `IPAddress.mask_length` | **Mapped** | Imported; derived from `Address` for local additions |
+| `Address` | `string` | `IPAddress.address` | **Mapped** | Natural key for merge and lookup |
+| `IPVersion` | `int` | `IPAddress.ip_version` | **Mapped** | Imported; derived from `Address` for local additions |
+| `Type` | `IPAddressType` | `IPAddress.type` | **Mapped** | `host`, `dhcp`, or `slaac` |
+| `IPRole` | `IPAddressRole` | `IPAddress.role` | **Mapped** | Resolved by name |
+| `DNSName` | `string` | `IPAddress.dns_name` | **Mapped** | |
+| `Description` | `string` | `IPAddress.description` | **Mapped** | |
+| `Parent` | `uuid.UUID` | `IPAddress.parent` (FK) | **Mapped** | Derived as the most-specific retained prefix after import; resolved on export |
+| `Interfaces` | `[]uuid.UUID` | IP address-to-interface assignment | Partial | Exported; import does not currently fetch assignment resources |
+| `NATInside` | `uuid.UUID` | `IPAddress.nat_inside` | Not Mapped | Remapped when supplied by another provider, but Nautobot import/export does not populate it |
+| `Status` | `string` | `IPAddress.status` (FK) | **Mapped** | Resolved by name |
+| `Tags` | `[]string` | `IPAddress.tags` | Not Mapped | |
+| `CustomFields` | `map[string]any` | `IPAddress.custom_fields` | Partial | Imported; not sent on export |
+| `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Tracks the source Nautobot UUID |
+| `ProviderMetadata` | `map[string]any` | — | Cani-Internal | Provider escape hatch |
+
+### 2a.6 `InventoryMetadata` / `CustomFieldDefinition` → Nautobot Custom Fields
 
 Source: `pkg/devicetypes/inventory_metadata.go`
 Exported in Phase 0a by `EnsureCustomFields()` in `lookup_custom_fields.go`.
@@ -462,7 +549,7 @@ The `rebuildDeviceRelationships()` function in `inventory_relationships.go` perf
 
 ### 4.3 Relationship Verification
 
-`VerifyParentChildRelationships()` runs five phases:
+`VerifyParentChildRelationships()` runs eight phases:
 
 1. **`rebuildLocationRelationships()`** — Clears and rebuilds `Location.Children` from `Parent`
 2. **`rebuildRackRelationships()`** — Clears and rebuilds `Location.Racks` from `Rack.Location`
@@ -492,7 +579,7 @@ CaniLocationType (site/building/floor/room)
 
 ## 5. Export Pipeline
 
-The seven-phase ETL pipeline is orchestrated by `Load()` in `pkg/provider/nautobot/load.go`:
+The multi-phase export pipeline is orchestrated by `Load()` in `pkg/provider/nautobot/export/load.go`:
 
 ### Phase 0a: Custom Fields
 
@@ -506,7 +593,7 @@ Must run before Phase 0b so locations/devices/VLANs carrying custom-field values
 ### Phase 0b: Locations
 
 Implemented in `loadLocations()` in `load_locations.go`. Iterates `inventory.Locations` in topological order (BFS from roots, parents before children). For each location:
-- Resolves `LocationType` by name (defaults to `"Site"` if empty), auto-creates if `create_locations` enabled
+- Resolves `LocationType` by name (defaults to `"Site"` if empty), auto-creates if `create_location_types` is enabled
 - Resolves `Parent` FK from previously created locations
 - Resolves `Status` (`location.Status` → provider default → `"Active"`)
 - Maps all optional fields: `Facility`, `Description`, `PhysicalAddress`, `ShippingAddress`, `ContactName`, `ContactPhone`, `ContactEmail`, `TimeZone`, `Latitude`, `Longitude`, `Asn`, `Comments`, `CustomFields`
@@ -515,24 +602,24 @@ Implemented in `loadLocations()` in `load_locations.go`. Iterates `inventory.Loc
 ### Phase 1: Racks
 
 Iterates `inventory.Racks`. For each rack:
-- Resolves location by name (default or `"Default"` auto-created)
+- Resolves `rack.Location` through the inventory hierarchy, descending to the deepest child location that supports racks; falls back to the provider default or `"Default"`
 - Resolves status (`rack.Status` → default → `"Active"`)
-- Creates via `DcimRacksCreate` with `Name`, `Location`, `Status`, `UHeight`, `OuterWidth`, `OuterDepth`, `Comments`
+- Creates via `DcimRacksCreate` with `Name`, `Location`, `Status`, dimensions/unit, width, rack type, facility ID, serial, asset tag, descending-units flag, comments, and tags
 - Also checks `inventory.Devices` for legacy rack-type devices (fallback)
 
 ### Phase 2: Devices
 
-Iterates `inventory.Devices` where `ClassifyForNautobot(device.HardwareType) == CategoryDevice`. For each:
+Iterates `inventory.Devices` where `ClassifyForNautobot(string(device.Type)) == CategoryDevice`. For each:
 - Checks if device already exists by name
 - If exists and `--merge`: updates via `DcimDevicesPartialUpdate`
 - If exists and no `--merge`: skips with conflict info
 - If new: creates via `DcimDevicesCreate` using `MapToWritableDeviceRequest()`
-- Maps `Comments` and `Face` (via `resolveFace()`) in both create and patch paths
+- Maps `Comments` and `Face` (via `setDeviceFace()`) in both create and patch paths; tags are sent on create
 
 ### Phase 3: Interfaces
 
 For each device created/found in Phase 2:
-- Gets interface specs from `device.Interfaces` (from YAML library) or falls back to hardcoded defaults based on `HardwareType`
+- Gets interface specs from `device.Interfaces` (from YAML library) or falls back to hardcoded defaults based on `device.Type`
 - Creates each interface via `DcimInterfacesCreate` with device FK, name, type, status
 - Caches created interface IDs for cable creation
 
@@ -571,7 +658,7 @@ Implemented in `loadVRFs()` in `load_vrfs.go`. Iterates `inventory.VRFs`. Find-o
 
 ### Phase 7: VLANs
 
-Implemented in `loadVLANs()` in `load_vlans.go`. Iterates `inventory.VLANs`. Find-or-create scoped to the VLAN's location; caches created VLAN IDs for interface enrichment and prefix FK resolution. Merges `CustomFields` and flattened `ProviderMetadata` into the `custom_fields` payload on create.
+Implemented in `loadVLANs()` in `load_vlans.go`. Iterates `inventory.VLANs`. Find-or-create scoped to the VLAN's location; the create request's `location` field materializes a Nautobot 3.2 `VLANLocationAssignment`. Caches created VLAN IDs for interface enrichment and prefix FK resolution. Merges `CustomFields` and flattened `ProviderMetadata` into the `custom_fields` payload on create.
 
 ### Phase 7b: Interface enrichment
 
@@ -579,7 +666,7 @@ Implemented in `enrichInterfaces()` in `load_interface_enrich.go`. PATCHes exist
 
 ### Phase 8: Prefixes
 
-Implemented in `loadPrefixes()` in `load_prefixes.go`. Iterates `inventory.Prefixes`. Find-or-create scoped to location; resolves the optional VLAN FK from Phase 7.
+Implemented in `loadPrefixes()` in `load_prefixes.go`. Iterates `inventory.Prefixes`. Find-or-create scoped to location; the create request's `location` field materializes a Nautobot 3.2 `PrefixLocationAssignment`. Resolves the optional VLAN FK from Phase 7.
 
 ### Phase 9: IP Addresses
 
@@ -624,7 +711,7 @@ Implemented in `loadPrimaryIPs()` in `load_primary_ips.go`. PATCHes devices that
    - `CaniRackType.Comments` → `Rack.Comments` (in `createRackFromCaniRack()`)
    - `CaniCableType.Color` → `Cable.Color` (in `createCaniCableType()`)
    - `CaniDeviceType.Comments` → `Device.Comments` (in `MapToWritableDeviceRequest()`, `MapToNautobotDevice()`, `MapToPatchRequest()`)
-   - `CaniDeviceType.Face` → `Device.Face` via `resolveFace()` (in `MapToWritableDeviceRequest()`, `MapToPatchRequest()`)
+   - `CaniDeviceType.Face` → `Device.Face` via `setDeviceFace()` (in `MapToWritableDeviceRequest()`, `MapToPatchRequest()`)
    - `CaniFruType.Description` → `InventoryItem.Description` (in `createFruFromCani()`)
    - `CaniFruType.Label` → `InventoryItem.Label` (in `createFruFromCani()`)
 
@@ -636,7 +723,7 @@ Implemented in `loadPrimaryIPs()` in `load_primary_ips.go`. PATCHes devices that
 
 7. **~~Improve cable type mapping~~** — ✅ Implemented via `resolveCableType()` in `load.go`. Four-tier resolution: (1) explicit `CableType` field → direct enum lookup, (2) `CableCategory` → enum lookup, (3) `ConnectorType` → heuristic mapping, (4) legacy slug-based fallback. Full `CableTypeChoices` coverage via `cableTypeMap` and `connectorToCableType` tables.
 
-8. **~~Use actual `Face` value~~** — ✅ Implemented via `resolveFace()` in `mapper.go`. Maps `"front"` → `FaceEnumFront`, `"rear"` → `FaceEnumRear`, empty → nil (Nautobot default).
+8. **~~Use actual `Face` value~~** — ✅ Implemented via `setDeviceFace()` in `export/ref_write.go`. Maps `"front"` → `FaceEnumFront`, `"rear"` → `FaceEnumRear`, empty → nil (Nautobot default).
 
 ### Lower Priority
 
@@ -665,10 +752,10 @@ Implemented in `loadPrimaryIPs()` in `load_primary_ips.go`. PATCHes devices that
 | Type enums & classification | `pkg/devicetypes/registry.go` |
 | Relationship rebuild logic | `pkg/devicetypes/inventory_relationships.go` |
 | Lookup functions | `pkg/devicetypes/all.go` |
-| Nautobot mapper | `pkg/provider/nautobot/mapper.go` |
-| Nautobot export pipeline | `pkg/provider/nautobot/load.go` |
-| Nautobot location export | `pkg/provider/nautobot/load_locations.go` |
-| Nautobot module export | `pkg/provider/nautobot/load_modules.go` |
-| Nautobot FRU export | `pkg/provider/nautobot/load_frus.go` |
-| Nautobot lookup cache | `pkg/provider/nautobot/lookup.go` |
+| Nautobot mapper | `pkg/provider/nautobot/export/mapper.go` |
+| Nautobot export pipeline | `pkg/provider/nautobot/export/load.go` |
+| Nautobot location export | `pkg/provider/nautobot/export/load_locations.go` |
+| Nautobot module export | `pkg/provider/nautobot/export/load_modules.go` |
+| Nautobot FRU export | `pkg/provider/nautobot/export/load_frus.go` |
+| Nautobot lookup cache | `pkg/provider/nautobot/export/lookup.go` |
 | Generated Nautobot API client | `pkg/nautobot/nautobot_api.go` |

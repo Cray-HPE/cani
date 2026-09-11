@@ -8,11 +8,17 @@ services:
       - "./config/nautobot_config.py:/opt/nautobot/nautobot_config.py"
       - "./jobs:/opt/nautobot/jobs"
     healthcheck:
-      interval: "30s"
-      timeout: "10s"
+      interval: "10s"
+      timeout: "5s"
       start_period: "60s"
-      retries: 3
-      test: ["CMD", "true"]  # Due to layering, disable: true won't work. Instead, change the test
+      retries: 60
+      test:
+        - "CMD-SHELL"
+        - >-
+          python -c 'import os, urllib.request;
+          request = urllib.request.Request("http://localhost:8081/api/status/",
+          headers={"Authorization": "Token " + os.environ["NAUTOBOT_SUPERUSER_API_TOKEN"]});
+          urllib.request.urlopen(request, timeout=5).read()'
   celery_worker:
     volumes:
       - "./config/nautobot_config.py:/opt/nautobot/nautobot_config.py"

@@ -60,7 +60,7 @@ func TestMapLocations(t *testing.T) {
 
 	t.Run("location with nil ID is skipped", func(t *testing.T) {
 		raw := []nautobotapi.Location{
-			{Name: "orphan", Id: nil, Status: makeStatusRefFromUUID(uuid.New()), LocationType: makeStatusRefFromUUID(uuid.New())},
+			{Name: "orphan", Id: nil},
 		}
 		locs, nbMap := MapLocations(raw, nil)
 		if len(locs) != 0 {
@@ -81,14 +81,14 @@ func TestMapLocations(t *testing.T) {
 
 		raw := []nautobotapi.Location{
 			{
-				Id:           &oaID,
-				Name:         "Site-A",
-				Description:  &desc,
-				Facility:     &facility,
-				Status:       makeStatusRefFromUUID(statusID),
-				LocationType: makeStatusRefFromUUID(uuid.New()),
+				Id:          &oaID,
+				Name:        "Site-A",
+				Description: &desc,
+				Facility:    &facility,
 			},
 		}
+		setNBRef(&raw[0].Status, statusID)
+		setNBRef(&raw[0].LocationType, uuid.New())
 
 		locs, nbMap := MapLocations(raw, statusNameMap)
 		if len(locs) != 1 {
@@ -125,23 +125,22 @@ func TestMapLocations(t *testing.T) {
 		childNBID := uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
 		parentOA := openapi_types.UUID(parentNBID)
 		childOA := openapi_types.UUID(childNBID)
-		parentRef := makeObjectRefFromUUID(parentNBID)
 
 		raw := []nautobotapi.Location{
 			{
-				Id:           &parentOA,
-				Name:         "Region",
-				Status:       makeStatusRefFromUUID(uuid.New()),
-				LocationType: makeStatusRefFromUUID(uuid.New()),
+				Id:   &parentOA,
+				Name: "Region",
 			},
 			{
-				Id:           &childOA,
-				Name:         "Site",
-				Parent:       &parentRef,
-				Status:       makeStatusRefFromUUID(uuid.New()),
-				LocationType: makeStatusRefFromUUID(uuid.New()),
+				Id:   &childOA,
+				Name: "Site",
 			},
 		}
+		setNBRef(&raw[0].Status, uuid.New())
+		setNBRef(&raw[0].LocationType, uuid.New())
+		setNBRef(&raw[1].Parent, parentNBID)
+		setNBRef(&raw[1].Status, uuid.New())
+		setNBRef(&raw[1].LocationType, uuid.New())
 
 		locs, nbMap := MapLocations(raw, nil)
 		if len(locs) != 2 {
@@ -161,17 +160,16 @@ func TestMapLocations(t *testing.T) {
 		childNBID := uuid.MustParse("cccccccc-cccc-cccc-cccc-cccccccccccc")
 		unknownParent := uuid.MustParse("dddddddd-dddd-dddd-dddd-dddddddddddd")
 		childOA := openapi_types.UUID(childNBID)
-		parentRef := makeObjectRefFromUUID(unknownParent)
 
 		raw := []nautobotapi.Location{
 			{
-				Id:           &childOA,
-				Name:         "Orphan-Site",
-				Parent:       &parentRef,
-				Status:       makeStatusRefFromUUID(uuid.New()),
-				LocationType: makeStatusRefFromUUID(uuid.New()),
+				Id:   &childOA,
+				Name: "Orphan-Site",
 			},
 		}
+		setNBRef(&raw[0].Parent, unknownParent)
+		setNBRef(&raw[0].Status, uuid.New())
+		setNBRef(&raw[0].LocationType, uuid.New())
 
 		locs, nbMap := MapLocations(raw, nil)
 		childCaniID := nbMap[childNBID]
@@ -191,11 +189,11 @@ func TestMapLocations(t *testing.T) {
 			{
 				Id:           &oaID,
 				Name:         "CF-Site",
-				CustomFields: &cf,
-				Status:       makeStatusRefFromUUID(uuid.New()),
-				LocationType: makeStatusRefFromUUID(uuid.New()),
+				CustomFields: nbCF(cf),
 			},
 		}
+		setNBRef(&raw[0].Status, uuid.New())
+		setNBRef(&raw[0].LocationType, uuid.New())
 
 		locs, nbMap := MapLocations(raw, nil)
 		caniID := nbMap[nbID]

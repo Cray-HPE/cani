@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024, 2026 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -112,10 +112,15 @@ func (e *Exporter) createModuleFromCani(
 	}
 
 	// Build the Module request.
-	req := nautobotapi.ModuleRequest{
-		ModuleType:      makeStatusRef(moduleTypeItem.ID),
-		ParentModuleBay: makeObjectRef(moduleBayItem.ID),
-		Status:          makeStatusRef(status.ID),
+	req := nautobotapi.ModuleRequest{}
+	if err := setRefID(&req.ModuleType, moduleTypeItem.ID); err != nil {
+		return fmt.Errorf("set module type reference: %w", err)
+	}
+	if err := setRefID(&req.ParentModuleBay, moduleBayItem.ID); err != nil {
+		return fmt.Errorf("set parent module bay reference: %w", err)
+	}
+	if err := setRefID(&req.Status, status.ID); err != nil {
+		return fmt.Errorf("set module status reference: %w", err)
 	}
 
 	// Optional fields.
@@ -128,7 +133,9 @@ func (e *Exporter) createModuleFromCani(
 	if module.Role != "" {
 		role, err := e.Cache.GetRole(module.Role)
 		if err == nil && role != nil {
-			req.Role = makeObjectRef(role.ID)
+			if err := setRefID(&req.Role, role.ID); err != nil {
+				return fmt.Errorf("set module role reference: %w", err)
+			}
 		}
 	}
 	if module.Location != uuid.Nil {
@@ -136,7 +143,9 @@ func (e *Exporter) createModuleFromCani(
 		if loc, ok := inventory.Locations[module.Location]; ok && loc != nil {
 			locItem, err := e.Cache.GetLocation(loc.Name)
 			if err == nil && locItem != nil {
-				req.Location = makeObjectRef(locItem.ID)
+				if err := setRefID(&req.Location, locItem.ID); err != nil {
+					return fmt.Errorf("set module location reference: %w", err)
+				}
 			}
 		}
 	}
@@ -185,196 +194,4 @@ func (e *Exporter) createModuleFromCani(
 	}
 
 	return nil
-}
-
-// getOrCreateModuleType looks up a ModuleType by model name in Nautobot,
-// creating it if not found and create_device_types is enabled.
-func (e *Exporter) getOrCreateModuleType(
-	ctx context.Context,
-	module *devicetypes.CaniModuleType,
-) (*CachedItem, error) {
-	model := module.Model
-	if model == "" {
-		model = module.Slug
-	}
-	if model == "" {
-		model = module.Name
-	}
-
-	// Search for existing ModuleType by model.
-	modelFilter := []string{model}
-	resp, err := e.Client.DcimModuleTypesListWithResponse(ctx,
-		&nautobotapi.DcimModuleTypesListParams{Model: &modelFilter})
-	if err != nil {
-		return nil, fmt.Errorf("module type lookup: %w", err)
-	}
-	if resp.StatusCode() == http.StatusOK && resp.JSON200 != nil &&
-		resp.JSON200.Results != nil && len(resp.JSON200.Results) > 0 {
-		mt := resp.JSON200.Results[0]
-		return &CachedItem{
-			ID:      toUUID(mt.Id),
-			Name:    mt.Model,
-			Display: derefString(mt.Display),
-		}, nil
-	}
-
-	// Not found — create if allowed.
-	if !e.Options.CreateModuleTypes {
-		return nil, fmt.Errorf("module type %q not in Nautobot (enable create_module_types)", model)
-	}
-
-	manufacturer, err := e.Cache.GetOrCreateManufacturer(module.Manufacturer)
-	if err != nil {
-		return nil, fmt.Errorf("manufacturer resolution: %w", err)
-	}
-
-	mfrRef := makeStatusRef(manufacturer.ID)
-	createReq := nautobotapi.ModuleTypeRequest{
-		Model:        model,
-		Manufacturer: mfrRef,
-	}
-	if module.PartNumber != "" {
-		createReq.PartNumber = &module.PartNumber
-	}
-	if module.Comments != "" {
-		createReq.Comments = &module.Comments
-	}
-
-	clog.Detail("[nautobot] Creating module type: %s (manufacturer: %s)", model, module.Manufacturer)
-	createResp, err := e.Client.DcimModuleTypesCreateWithResponse(ctx,
-		&nautobotapi.DcimModuleTypesCreateParams{}, createReq)
-	if err != nil {
-		return nil, fmt.Errorf("module type create: %w", err)
-	}
-	if createResp.StatusCode() != http.StatusCreated {
-		return nil, fmt.Errorf("module type create: status %d: %s",
-			createResp.StatusCode(), string(createResp.Body))
-	}
-	if createResp.JSON201 != nil {
-		return &CachedItem{
-			ID:      toUUID(createResp.JSON201.Id),
-			Name:    createResp.JSON201.Model,
-			Display: derefString(createResp.JSON201.Display),
-		}, nil
-	}
-	return nil, fmt.Errorf("module type create: no response body")
-}
-
-// getOrCreateModuleBay looks up a ModuleBay by name on a device, creating it
-// if not found.
-func (e *Exporter) getOrCreateModuleBay(
-	ctx context.Context,
-	deviceNautobotID uuid.UUID,
-	bayName string,
-) (*CachedItem, error) {
-	// Search for existing ModuleBay.
-	nameFilter := []string{bayName}
-	deviceFilter := []string{deviceNautobotID.String()}
-	resp, err := e.Client.DcimModuleBaysListWithResponse(ctx,
-		&nautobotapi.DcimModuleBaysListParams{
-			Name:         &nameFilter,
-			ParentDevice: &deviceFilter,
-		})
-	if err != nil {
-		return nil, fmt.Errorf("module bay lookup: %w", err)
-	}
-	if resp.StatusCode() == http.StatusOK && resp.JSON200 != nil &&
-		resp.JSON200.Results != nil && len(resp.JSON200.Results) > 0 {
-		mb := resp.JSON200.Results[0]
-		return &CachedItem{
-			ID:      toUUID(mb.Id),
-			Name:    mb.Name,
-			Display: derefString(mb.Display),
-		}, nil
-	}
-
-	// Create the module bay.
-	createReq := nautobotapi.ModuleBayRequest{
-		Name:         bayName,
-		ParentDevice: makeObjectRef(deviceNautobotID),
-	}
-
-	// clog.Detail("[nautobot] Creating module bay: %s on device %s", bayName, deviceNautobotID)
-	createResp, err := e.Client.DcimModuleBaysCreateWithResponse(ctx,
-		&nautobotapi.DcimModuleBaysCreateParams{}, createReq)
-	if err != nil {
-		return nil, fmt.Errorf("module bay create: %w", err)
-	}
-	if createResp.StatusCode() != http.StatusCreated {
-		return nil, fmt.Errorf("module bay create: status %d: %s",
-			createResp.StatusCode(), string(createResp.Body))
-	}
-	if createResp.JSON201 != nil {
-		return &CachedItem{
-			ID:      toUUID(createResp.JSON201.Id),
-			Name:    createResp.JSON201.Name,
-			Display: derefString(createResp.JSON201.Display),
-		}, nil
-	}
-	return nil, fmt.Errorf("module bay create: no response body")
-}
-
-// createModuleInterfaces creates interfaces defined on a module on the parent device.
-// Module interfaces (e.g., HSN 0 from a ConnectX-6 NIC) are created as device
-// interfaces in Nautobot, associated with the parent device.
-func (e *Exporter) createModuleInterfaces(
-	ctx context.Context,
-	module *devicetypes.CaniModuleType,
-	parentNautobotID uuid.UUID,
-	result *LoadResult,
-) error {
-	for _, iface := range module.Interfaces {
-		ifaceType := mapInterfaceType(string(iface.Type))
-
-		// Skip interfaces with types not supported by Nautobot
-		// (e.g., nvlink, pcie-gen5-x16 are internal GPU interconnects).
-		if !isValidNautobotInterfaceType(ifaceType) {
-			continue
-		}
-
-		// Skip if the interface already exists on this device (another module
-		// may have created it with the same name).
-		existing, _ := e.Cache.GetInterfaceByDeviceAndName(parentNautobotID, iface.Name)
-		if existing != nil {
-			continue
-		}
-
-		role := iface.Role
-		if role == "" {
-			mgmtOnly := iface.MgmtOnly != nil && *iface.MgmtOnly
-			role = devicetypes.InferInterfaceRole(iface.Name, iface.Type, mgmtOnly)
-		}
-		spec := interfaceSpec{
-			Name: iface.Name,
-			Type: ifaceType,
-			Role: role,
-		}
-		if err := e.createInterface(ctx, parentNautobotID, spec, result); err != nil {
-			return fmt.Errorf("interface %s: %w", iface.Name, err)
-		}
-	}
-	return nil
-}
-
-// isValidNautobotInterfaceType returns true if the interface type is a valid
-// Nautobot InterfaceTypeChoices value.
-func isValidNautobotInterfaceType(ifaceType string) bool {
-	switch ifaceType {
-	case "100base-tx", "1000base-t", "10gbase-x-sfpp", "25gbase-x-sfp28",
-		"40gbase-x-qsfpp", "100gbase-x-qsfp28", "200gbase-x-qsfp56",
-		"400gbase-x-osfp", "400gbase-x-qsfpdd",
-		"infiniband-hdr", "infiniband-ndr",
-		"virtual", "lag", "other":
-		return true
-	default:
-		return false
-	}
-}
-
-// derefString safely dereferences a *string, returning "" if nil.
-func derefString(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
 }

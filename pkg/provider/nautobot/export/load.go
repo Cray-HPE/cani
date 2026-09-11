@@ -569,7 +569,9 @@ func (e *Exporter) createDevice(ctx context.Context, device *devicetypes.CaniDev
 	if err != nil {
 		return err
 	}
-	req.Tags = e.Cache.resolveTagRefs(device.Tags)
+	if err := setRefSlice(&req.Tags, e.Cache.resolveTagRefs(device.Tags)); err != nil {
+		return fmt.Errorf("set device tag references: %w", err)
+	}
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create device: %s", device.Name)
@@ -628,7 +630,9 @@ func (e *Exporter) createRack(ctx context.Context, device *devicetypes.CaniDevic
 	if err != nil {
 		return err
 	}
-	req.Tags = e.Cache.resolveTagRefs(device.Tags)
+	if err := setRefSlice(&req.Tags, e.Cache.resolveTagRefs(device.Tags)); err != nil {
+		return fmt.Errorf("set rack tag references: %w", err)
+	}
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create rack: %s", device.Name)
@@ -704,21 +708,24 @@ func (e *Exporter) createRackFromCaniRack(ctx context.Context, rack *devicetypes
 	}
 
 	// Build the request
-	locationRef := makeStatusRef(location.ID)
-	statusRef := makeStatusRef(status.ID)
-
 	uHeight := rack.UHeight
 	if uHeight == 0 {
 		uHeight = 48 // default to 48U
 	}
 
 	req := nautobotapi.WritableRackRequest{
-		Name:     rack.Name,
-		Location: locationRef,
-		Status:   statusRef,
-		UHeight:  &uHeight,
+		Name:    rack.Name,
+		UHeight: &uHeight,
 	}
-	req.Tags = e.Cache.resolveTagRefs(rack.Tags)
+	if err := setRefID(&req.Location, location.ID); err != nil {
+		return uuid.Nil, fmt.Errorf("set rack location reference: %w", err)
+	}
+	if err := setRefID(&req.Status, status.ID); err != nil {
+		return uuid.Nil, fmt.Errorf("set rack status reference: %w", err)
+	}
+	if err := setRefSlice(&req.Tags, e.Cache.resolveTagRefs(rack.Tags)); err != nil {
+		return uuid.Nil, fmt.Errorf("set rack tag references: %w", err)
+	}
 
 	// Map OuterWidth, OuterDepth, and OuterUnit if present.
 	if rack.OuterWidth > 0 {
@@ -730,7 +737,7 @@ func (e *Exporter) createRackFromCaniRack(ctx context.Context, rack *devicetypes
 		req.OuterDepth = &od
 	}
 	if rack.OuterWidth > 0 || rack.OuterDepth > 0 {
-		unit := &nautobotapi.PatchedWritableRackRequestOuterUnit{}
+		unit := &nautobotapi.WritableRackRequest_OuterUnit{}
 		switch rack.OuterUnit {
 		case "mm":
 			_ = unit.FromOuterUnitEnum(nautobotapi.OuterUnitEnumMm)
@@ -755,7 +762,7 @@ func (e *Exporter) createRackFromCaniRack(ctx context.Context, rack *devicetypes
 
 	// Map RackType (enum: 2-post-frame, 4-post-cabinet, etc.)
 	if rack.RackType != "" {
-		rt := &nautobotapi.PatchedWritableRackRequestType{}
+		rt := &nautobotapi.WritableRackRequest_Type{}
 		if err := rt.FromRackTypeChoices(nautobotapi.RackTypeChoices(rack.RackType)); err == nil {
 			req.Type = rt
 		}
@@ -840,7 +847,9 @@ func (e *Exporter) createDeviceWithID(ctx context.Context, device *devicetypes.C
 	if err != nil {
 		return uuid.Nil, err
 	}
-	req.Tags = e.Cache.resolveTagRefs(device.Tags)
+	if err := setRefSlice(&req.Tags, e.Cache.resolveTagRefs(device.Tags)); err != nil {
+		return uuid.Nil, fmt.Errorf("set device tag references: %w", err)
+	}
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create device: %s", device.Name)
@@ -1154,7 +1163,7 @@ func (e *Exporter) createCaniCableType(ctx context.Context, cableID uuid.UUID, c
 	if strings.EqualFold(cable.Status, "planned") {
 		statusName = string(devicetypes.StatusPlanned)
 	}
-	status, err := e.statusRef(statusName)
+	statusID, err := e.statusRef(statusName)
 	if err != nil {
 		return err
 	}
@@ -1180,15 +1189,19 @@ func (e *Exporter) createCaniCableType(ctx context.Context, cableID uuid.UUID, c
 		lengthInt = &l
 	}
 
+	termAID := (openapi_types.UUID)(ifaceA.ID)
+	termBID := (openapi_types.UUID)(ifaceB.ID)
 	req := nautobotapi.WritableCableRequest{
-		TerminationAId:   (openapi_types.UUID)(ifaceA.ID),
-		TerminationAType: terminationAType,
-		TerminationBId:   (openapi_types.UUID)(ifaceB.ID),
-		TerminationBType: terminationBType,
-		Status:           status,
+		TerminationAId:   &termAID,
+		TerminationAType: &terminationAType,
+		TerminationBId:   &termBID,
+		TerminationBType: &terminationBType,
 		Label:            &cable.Label,
 		Type:             cableType,
 		Length:           lengthInt,
+	}
+	if err := setRefID(&req.Status, statusID); err != nil {
+		return fmt.Errorf("set cable status reference: %w", err)
 	}
 
 	// Map cable Color if present (RGB hex, e.g. "00ff00").
@@ -1200,28 +1213,20 @@ func (e *Exporter) createCaniCableType(ctx context.Context, cableID uuid.UUID, c
 
 	// Set length unit if provided
 	if cable.LengthUnit != "" {
-		var unit *nautobotapi.PatchedWritableCableRequestLengthUnit
+		var unit *nautobotapi.LengthUnitEnum
 		switch cable.LengthUnit {
 		case "m":
-			u := &nautobotapi.PatchedWritableCableRequestLengthUnit{}
-			if err := u.FromLengthUnitEnum(nautobotapi.LengthUnitEnumM); err == nil {
-				unit = u
-			}
+			u := nautobotapi.LengthUnitEnumM
+			unit = &u
 		case "cm":
-			u := &nautobotapi.PatchedWritableCableRequestLengthUnit{}
-			if err := u.FromLengthUnitEnum(nautobotapi.LengthUnitEnumCm); err == nil {
-				unit = u
-			}
+			u := nautobotapi.LengthUnitEnumCm
+			unit = &u
 		case "ft":
-			u := &nautobotapi.PatchedWritableCableRequestLengthUnit{}
-			if err := u.FromLengthUnitEnum(nautobotapi.LengthUnitEnumFt); err == nil {
-				unit = u
-			}
+			u := nautobotapi.LengthUnitEnumFt
+			unit = &u
 		case "in":
-			u := &nautobotapi.PatchedWritableCableRequestLengthUnit{}
-			if err := u.FromLengthUnitEnum(nautobotapi.LengthUnitEnumIn); err == nil {
-				unit = u
-			}
+			u := nautobotapi.LengthUnitEnumIn
+			unit = &u
 		}
 		req.LengthUnit = unit
 	}
@@ -1455,34 +1460,25 @@ var connectorToCableType = map[string]nautobotapi.CableTypeChoices{
 // resolveCableType determines the Nautobot CableTypeChoices for a cable.
 // Priority: explicit CableType field → CableCategory lookup → ConnectorType
 // heuristic → slug-based fallback.
-func resolveCableType(cable *devicetypes.CaniCableType) *nautobotapi.PatchedWritableCableRequestType {
+func resolveCableType(cable *devicetypes.CaniCableType) *nautobotapi.CableTypeChoices {
 	// 1. Explicit CableType field (already a Nautobot enum string)
 	if cable.CableType != "" {
 		if choice, ok := cableTypeMap[cable.CableType]; ok {
-			t := &nautobotapi.PatchedWritableCableRequestType{}
-			if err := t.FromCableTypeChoices(choice); err == nil {
-				return t
-			}
+			return &choice
 		}
 	}
 
 	// 2. CableCategory lookup (e.g. "cat6a", "mmf-om4", "dac-passive")
 	if cable.CableCategory != "" {
 		if choice, ok := cableTypeMap[strings.ToLower(cable.CableCategory)]; ok {
-			t := &nautobotapi.PatchedWritableCableRequestType{}
-			if err := t.FromCableTypeChoices(choice); err == nil {
-				return t
-			}
+			return &choice
 		}
 	}
 
 	// 3. ConnectorType heuristic (e.g. "rj45" → cat6, "lc" → smf-os2)
 	if cable.ConnectorType != "" {
 		if choice, ok := connectorToCableType[strings.ToLower(cable.ConnectorType)]; ok {
-			t := &nautobotapi.PatchedWritableCableRequestType{}
-			if err := t.FromCableTypeChoices(choice); err == nil {
-				return t
-			}
+			return &choice
 		}
 	}
 
@@ -1490,25 +1486,17 @@ func resolveCableType(cable *devicetypes.CaniCableType) *nautobotapi.PatchedWrit
 	slug := strings.ToLower(cable.Slug)
 	switch {
 	case strings.Contains(slug, "cat"):
-		t := &nautobotapi.PatchedWritableCableRequestType{}
-		if err := t.FromCableTypeChoices(nautobotapi.CableTypeChoicesCat5e); err == nil {
-			return t
-		}
+		c := nautobotapi.CableTypeChoicesCat5e
+		return &c
 	case strings.Contains(slug, "dac"):
-		t := &nautobotapi.PatchedWritableCableRequestType{}
-		if err := t.FromCableTypeChoices(nautobotapi.CableTypeChoicesDacPassive); err == nil {
-			return t
-		}
+		c := nautobotapi.CableTypeChoicesDacPassive
+		return &c
 	case strings.Contains(slug, "aoc"):
-		t := &nautobotapi.PatchedWritableCableRequestType{}
-		if err := t.FromCableTypeChoices(nautobotapi.CableTypeChoicesAoc); err == nil {
-			return t
-		}
+		c := nautobotapi.CableTypeChoicesAoc
+		return &c
 	case strings.Contains(slug, "fiber") || strings.Contains(slug, "mmf"):
-		t := &nautobotapi.PatchedWritableCableRequestType{}
-		if err := t.FromCableTypeChoices(nautobotapi.CableTypeChoicesMmfOm4); err == nil {
-			return t
-		}
+		c := nautobotapi.CableTypeChoicesMmfOm4
+		return &c
 	}
 
 	return nil

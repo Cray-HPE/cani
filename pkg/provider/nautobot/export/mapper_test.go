@@ -26,11 +26,20 @@
 package export
 
 import (
+	"strings"
 	"testing"
 
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
+	"github.com/Cray-HPE/cani/pkg/provider/nautobot/transform"
 	"github.com/google/uuid"
 )
+
+func mustSetRefID(t testing.TB, field any, id uuid.UUID) {
+	t.Helper()
+	if err := setRefID(field, id); err != nil {
+		t.Fatalf("setRefID() error = %v", err)
+	}
+}
 
 // TestMakeStatusRef verifies a status UUID round-trips into the Nautobot status
 // reference union type used by write requests.
@@ -60,20 +69,80 @@ func TestMakeStatusRef(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ref := makeStatusRef(tt.id)
-			if ref.Id == nil {
-				t.Fatal("expected ref.Id to be non-nil")
+			var req nautobotapi.WritableDeviceRequest
+			if err := setRefID(&req.Status, tt.id); err != nil {
+				t.Fatalf("setRefID() error = %v", err)
 			}
-			got, err := ref.Id.AsBulkWritableCableRequestStatusId0()
-			if err != nil {
-				t.Fatalf("unexpected error extracting UUID: %v", err)
+			if req.Status.Id == nil {
+				t.Fatal("expected req.Status.Id to be non-nil")
 			}
-			if uuid.UUID(got) != tt.id {
-				t.Errorf("makeStatusRef() round-trip = %s, want %s", uuid.UUID(got), tt.id)
+			if got := transform.RefUUID(req.Status.Id); got != tt.id {
+				t.Errorf("setRefID() round-trip = %s, want %s", got, tt.id)
 			}
 		})
 	}
 }
+
+func TestSetRefIDRejectsMalformedFields(t *testing.T) {
+	tests := []struct {
+		name  string
+		field any
+	}{
+		{name: "nil", field: nil},
+		{name: "non-pointer", field: struct{}{}},
+		{name: "non-struct", field: new(string)},
+		{name: "missing Id", field: &struct{ Name string }{}},
+		{name: "non-pointer Id", field: &struct{ Id string }{}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := setRefID(tt.field, uuid.New()); err == nil {
+				t.Fatal("setRefID() error = nil, want malformed-field error")
+			}
+		})
+	}
+}
+
+func TestSetRefSliceRejectsMalformedFields(t *testing.T) {
+	tests := []struct {
+		name  string
+		field any
+	}{
+		{name: "nil", field: nil},
+		{name: "non-pointer", field: []string{}},
+		{name: "non-slice", field: new(string)},
+		{name: "malformed element", field: &[]struct{ Id string }{}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := setRefSlice(tt.field, []uuid.UUID{uuid.New()}); err == nil {
+				t.Fatal("setRefSlice() error = nil, want malformed-field error")
+			}
+		})
+	}
+}
+
+func TestSetDeviceRequestRefsAddsFieldContext(t *testing.T) {
+	malformed := struct{ Id string }{}
+	valid := struct{ Id *testReferenceID }{}
+
+	err := setDeviceRequestRefs(
+		&malformed, &valid, &valid, &valid,
+		uuid.New(), uuid.New(), uuid.New(), uuid.New(),
+	)
+	if err == nil {
+		t.Fatal("setDeviceRequestRefs() error = nil, want malformed device type error")
+	}
+	if !strings.Contains(err.Error(), "device type reference") {
+		t.Fatalf("setDeviceRequestRefs() error = %q, want device type context", err)
+	}
+}
+
+type testReferenceID struct{}
+
+func (*testReferenceID) UnmarshalJSON([]byte) error { return nil }
 
 // TestResolveFace verifies rack-face resolution maps "rear" to rear and defaults
 // everything else (including empty and unknown values) to front.
@@ -109,16 +178,17 @@ func TestResolveFace(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := resolveFace(tt.face)
-			if got == nil {
-				t.Fatal("expected non-nil RackFace")
+			var req nautobotapi.WritableDeviceRequest
+			setDeviceFace(&req.Face, tt.face)
+			if req.Face == nil {
+				t.Fatal("expected non-nil device face")
 			}
-			val, err := got.AsFaceEnum()
+			val, err := req.Face.AsFaceEnum()
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			if val != tt.expected {
-				t.Errorf("resolveFace(%q) = %v, want %v", tt.face, val, tt.expected)
+				t.Errorf("setDeviceFace(%q) = %v, want %v", tt.face, val, tt.expected)
 			}
 		})
 	}

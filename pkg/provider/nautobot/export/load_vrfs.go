@@ -30,7 +30,6 @@ import (
 	"fmt"
 	"net/http"
 
-	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/google/uuid"
@@ -140,17 +139,22 @@ func (e *Exporter) createVRF(ctx context.Context, vrf *devicetypes.CaniVRF) (uui
 		nsName = "Global"
 	}
 	if ns, err := e.Cache.GetOrCreateNamespace(nsName); err == nil && ns != nil {
-		ref := makeIDRef(ns.ID)
-		req.Namespace = &ref
+		if err := setRefID(&req.Namespace, ns.ID); err != nil {
+			return uuid.Nil, fmt.Errorf("set VRF namespace reference: %w", err)
+		}
 	}
 
 	if vrf.Status != "" {
 		if statusItem, err := e.Cache.GetStatus(vrf.Status); err == nil && statusItem != nil {
-			req.Status = makeObjectRef(statusItem.ID)
+			if err := setRefID(&req.Status, statusItem.ID); err != nil {
+				return uuid.Nil, fmt.Errorf("set VRF status reference: %w", err)
+			}
 		}
 	}
 
-	req.Tags = e.Cache.resolveTagRefs(vrf.Tags)
+	if err := setRefSlice(&req.Tags, e.Cache.resolveTagRefs(vrf.Tags)); err != nil {
+		return uuid.Nil, fmt.Errorf("set VRF tag references: %w", err)
+	}
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create VRF: %s", vrf.Name)
@@ -184,10 +188,10 @@ func (e *Exporter) ensureVRFDeviceAssignment(ctx context.Context, deviceID uuid.
 		return nil
 	}
 
-	vrfID := openapi_types.UUID(vrf.ID)
+	vrfFilter := []string{vrf.ID.String()}
 	deviceFilter := []string{deviceID.String()}
 	listResp, err := e.Client.IpamVrfDeviceAssignmentsListWithResponse(ctx,
-		&nautobotapi.IpamVrfDeviceAssignmentsListParams{Vrf: &vrfID, Device: &deviceFilter})
+		&nautobotapi.IpamVrfDeviceAssignmentsListParams{Vrf: &vrfFilter, Device: &deviceFilter})
 	if err != nil {
 		return fmt.Errorf("API error: %w", err)
 	}
@@ -195,9 +199,12 @@ func (e *Exporter) ensureVRFDeviceAssignment(ctx context.Context, deviceID uuid.
 		return nil
 	}
 
-	req := nautobotapi.VRFDeviceAssignmentRequest{
-		Device: makeObjectRef(deviceID),
-		Vrf:    makeStatusRef(vrf.ID),
+	req := nautobotapi.VRFDeviceAssignmentRequest{}
+	if err := setRefID(&req.Device, deviceID); err != nil {
+		return fmt.Errorf("set VRF assignment device reference: %w", err)
+	}
+	if err := setRefID(&req.Vrf, vrf.ID); err != nil {
+		return fmt.Errorf("set VRF assignment VRF reference: %w", err)
 	}
 	createResp, err := e.Client.IpamVrfDeviceAssignmentsCreateWithResponse(ctx,
 		&nautobotapi.IpamVrfDeviceAssignmentsCreateParams{}, req)

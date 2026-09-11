@@ -14,7 +14,9 @@ var ErrValidationEmail = errors.New("email: failed to pass regex validation")
 type Email string
 
 func (e Email) MarshalJSON() ([]byte, error) {
-	if !emailRegex.MatchString(string(e)) {
+	// An empty value represents an unset email, which APIs like Nautobot send
+	// and accept as a blank string. Only validate non-empty values.
+	if e != "" && !emailRegex.MatchString(string(e)) {
 		return nil, ErrValidationEmail
 	}
 
@@ -32,7 +34,9 @@ func (e *Email) UnmarshalJSON(data []byte) error {
 	}
 
 	*e = Email(s)
-	if !emailRegex.MatchString(s) {
+	// An empty value represents an unset email, which APIs like Nautobot return
+	// as a blank string. Only validate non-empty values.
+	if s != "" && !emailRegex.MatchString(s) {
 		return ErrValidationEmail
 	}
 

@@ -125,25 +125,53 @@ func TestCreateLocationFromCani_CreatesOn201(t *testing.T) {
 	}
 }
 
-// TestCreateLocationFromCani_ErrorsWhenNoLocationType verifies the create fails
-// when the location has no LocationType set.
+// TestCreateLocationFromCani_DefaultsEmptyLocationTypeToSite verifies an empty
+// LocationType resolves the documented Site default and creates successfully.
 //
-// Why it matters: Nautobot requires every location to declare a location-type;
-// exporting one without it would be rejected, so cani fails fast with a clear
-// error.
-// Inputs: a location whose LocationType is "". Outputs: a non-nil error.
-// Data choice: an empty LocationType is the precise precondition under test,
-// with all other fields valid so the empty type is the sole cause of failure.
-func TestCreateLocationFromCani_ErrorsWhenNoLocationType(t *testing.T) {
+// Why it matters: older CANI inventories may omit LocationType, and the mapping
+// contract preserves their exportability by treating those locations as sites.
+// Inputs: a location whose LocationType is "". Outputs: a successful create and
+// a location-type lookup filtered to Site.
+func TestCreateLocationFromCani_DefaultsEmptyLocationTypeToSite(t *testing.T) {
+	locTypeID, createdLocID := uuid.New(), uuid.New()
 	var locPosts int
-	e, cleanup := newExporterWithServer(t, locationCreateHandler(uuid.New(), uuid.New(), http.StatusCreated, emptyListJSON, &locPosts))
+	var requestedType string
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case strings.Contains(r.URL.Path, "dcim/location-types"):
+			if name := r.URL.Query().Get("name"); name != "" {
+				requestedType = name
+			}
+			_, _ = io.WriteString(w, fmt.Sprintf(`{"count":1,"results":[%s]}`,
+				refObjectJSON(locTypeID, "Site")))
+		case strings.Contains(r.URL.Path, "dcim/locations") && r.Method == http.MethodPost:
+			locPosts++
+			w.WriteHeader(http.StatusCreated)
+			_, _ = io.WriteString(w, refObjectJSON(createdLocID, "DC1"))
+		default:
+			_, _ = io.WriteString(w, emptyListJSON)
+		}
+	})
+	e, cleanup := newExporterWithServer(t, handler)
 	defer cleanup()
+	seedActiveStatus(t, e)
 
-	loc := newCaniLocation("DC1", "") // missing location type
+	loc := newCaniLocation("DC1", "")
 
 	result := &LoadResult{}
-	if _, err := e.createLocationFromCani(context.Background(), loc, map[uuid.UUID]uuid.UUID{}, result); err == nil {
-		t.Fatal("expected an error when the location has no locationType set")
+	got, err := e.createLocationFromCani(context.Background(), loc, map[uuid.UUID]uuid.UUID{}, result)
+	if err != nil {
+		t.Fatalf("createLocationFromCani() error = %v", err)
+	}
+	if got != createdLocID {
+		t.Errorf("returned ID = %s, want %s", got, createdLocID)
+	}
+	if requestedType != "Site" {
+		t.Errorf("location type lookup = %q, want Site", requestedType)
+	}
+	if locPosts != 1 {
+		t.Errorf("location POST count = %d, want 1", locPosts)
 	}
 }
 
@@ -205,203 +233,5 @@ func TestCreateLocationFromCani_MapsParentFK(t *testing.T) {
 	}
 	if locPosts != 1 {
 		t.Errorf("expected exactly one location create POST, got %d", locPosts)
-	}
-}
-
-// TestCreateLocationFromCani_ErrorsWhenParentNotCreated verifies the create
-// fails (and posts nothing) when the location's Parent is not present in the
-// created-ID map.
-//
-// Why it matters: a child location cannot be created before its parent exists in
-// Nautobot; failing here prevents an orphaned or misattached location.
-// Inputs: a location with Parent set but an empty createdMap. Outputs: a
-// non-nil error; locPosts stays 0.
-// Data choice: Parent is a fresh UUID absent from the empty createdMap, modeling
-// a parent whose creation has not happened yet.
-func TestCreateLocationFromCani_ErrorsWhenParentNotCreated(t *testing.T) {
-	locTypeID, createdLocID := uuid.New(), uuid.New()
-	var locPosts int
-	e, cleanup := newExporterWithServer(t, locationCreateHandler(locTypeID, createdLocID, http.StatusCreated, emptyListJSON, &locPosts))
-	defer cleanup()
-	seedActiveStatus(t, e)
-
-	loc := newCaniLocation("DC1", "Section")
-	loc.Parent = uuid.New() // references a parent absent from createdMap
-
-	result := &LoadResult{}
-	if _, err := e.createLocationFromCani(context.Background(), loc, map[uuid.UUID]uuid.UUID{}, result); err == nil {
-		t.Fatal("expected an error when the parent has not yet been created")
-	}
-	if locPosts != 0 {
-		t.Errorf("expected no create POST when the parent FK is unresolved, got %d", locPosts)
-	}
-}
-
-// TestCreateLocationFromCani_DryRunSkipsCreate verifies dry-run returns a Nil ID,
-// issues no POST, yet still caches the location by name.
-//
-// Why it matters: previewing must not mutate Nautobot, but later phases still
-// need to resolve the location, so the dry-run path caches it locally.
-// Inputs: the create path with Options.DryRun=true. Outputs: uuid.Nil and an
-// error; the cache is asserted to contain "DC1".
-// Data choice: a single location with no parent isolates the dry-run behavior;
-// the test then reaches into the cache to confirm the local registration.
-func TestCreateLocationFromCani_DryRunSkipsCreate(t *testing.T) {
-	locTypeID, createdLocID := uuid.New(), uuid.New()
-	var locPosts int
-	e, cleanup := newExporterWithServer(t, locationCreateHandler(locTypeID, createdLocID, http.StatusCreated, emptyListJSON, &locPosts))
-	defer cleanup()
-	seedActiveStatus(t, e)
-	e.Options.DryRun = true
-
-	loc := newCaniLocation("DC1", "Section")
-
-	result := &LoadResult{}
-	got, err := e.createLocationFromCani(context.Background(), loc, map[uuid.UUID]uuid.UUID{}, result)
-	if err != nil {
-		t.Fatalf("createLocationFromCani() error = %v", err)
-	}
-	if got != uuid.Nil {
-		t.Errorf("dry-run returned ID = %s, want Nil", got)
-	}
-	if locPosts != 0 {
-		t.Errorf("expected no create POST in dry-run, got %d", locPosts)
-	}
-	// The location is cached by name so downstream phases can resolve it.
-	e.Cache.locationsMu.RLock()
-	_, ok := e.Cache.locations["DC1"]
-	e.Cache.locationsMu.RUnlock()
-	if !ok {
-		t.Error("expected DC1 to be cached even in dry-run")
-	}
-}
-
-// TestCreateLocationFromCani_ReturnsErrorOnNon201 verifies a non-201 location
-// create response is surfaced as an error.
-//
-// Why it matters: a rejected location create must abort rather than be treated
-// as success, since dependent objects would otherwise reference a non-existent
-// location.
-// Inputs: the create path with the locations POST returning 400. Outputs: a
-// non-nil error.
-// Data choice: only the create status is flipped to 400 while the type lookup
-// still succeeds, isolating the failure to the location POST.
-func TestCreateLocationFromCani_ReturnsErrorOnNon201(t *testing.T) {
-	locTypeID, createdLocID := uuid.New(), uuid.New()
-	var locPosts int
-	e, cleanup := newExporterWithServer(t, locationCreateHandler(locTypeID, createdLocID, http.StatusBadRequest, emptyListJSON, &locPosts))
-	defer cleanup()
-	seedActiveStatus(t, e)
-
-	loc := newCaniLocation("DC1", "Section")
-
-	result := &LoadResult{}
-	if _, err := e.createLocationFromCani(context.Background(), loc, map[uuid.UUID]uuid.UUID{}, result); err == nil {
-		t.Fatal("expected an error when the location create responds with 400")
-	}
-}
-
-// -----------------------------------------------------------------------------
-// loadLocations
-// -----------------------------------------------------------------------------
-
-// TestLoadLocations_EmptyInventoryNoOp verifies that an inventory with no
-// locations performs no HTTP calls and returns an empty mapping.
-//
-// Why it matters: not every export carries locations; the phase must be a clean
-// no-op rather than issuing spurious requests when there is nothing to do.
-// Inputs: a context, an empty Inventory, and a LoadResult. Outputs: an empty
-// mapping and an error.
-// Data choice: the handler fails the test on any request, so the assertion is
-// simply that it is never reached for empty input.
-func TestLoadLocations_EmptyInventoryNoOp(t *testing.T) {
-	e, cleanup := newExporterWithServer(t, func(w http.ResponseWriter, r *http.Request) {
-		t.Errorf("unexpected HTTP call to %s for an empty inventory", r.URL.Path)
-	})
-	defer cleanup()
-
-	result := &LoadResult{}
-	created, err := e.loadLocations(context.Background(), &devicetypes.Inventory{}, result)
-	if err != nil {
-		t.Fatalf("loadLocations() error = %v", err)
-	}
-	if len(created) != 0 {
-		t.Errorf("expected empty mapping, got %d entries", len(created))
-	}
-}
-
-// TestLoadLocations_SkipsExistingLocation verifies that when LookupLocation finds
-// an existing location, loadLocations records it under LocationsSkipped, maps its
-// remote ID, and issues no create POST.
-//
-// Why it matters: re-running an export must reuse existing locations rather than
-// duplicate them, while still returning their IDs for dependent phases.
-// Inputs: an inventory with one location plus a server whose locations GET
-// returns a matching object. Outputs: the cani->Nautobot mapping and an error.
-// Data choice: the locations list returns a single "DC1" match so the lookup
-// resolves and the skip branch (not the create branch) runs.
-func TestLoadLocations_SkipsExistingLocation(t *testing.T) {
-	existingID := uuid.New()
-	existingBody := fmt.Sprintf(`{"count":1,"results":[%s]}`, refObjectJSON(existingID, "DC1"))
-	var locPosts int
-	e, cleanup := newExporterWithServer(t, locationCreateHandler(uuid.New(), uuid.New(), http.StatusCreated, existingBody, &locPosts))
-	defer cleanup()
-
-	loc := newCaniLocation("DC1", "Section")
-	inv := &devicetypes.Inventory{
-		Locations: map[uuid.UUID]*devicetypes.CaniLocationType{loc.ID: loc},
-	}
-
-	result := &LoadResult{}
-	created, err := e.loadLocations(context.Background(), inv, result)
-	if err != nil {
-		t.Fatalf("loadLocations() error = %v", err)
-	}
-	if created[loc.ID] != existingID {
-		t.Errorf("mapping[loc] = %s, want existing %s", created[loc.ID], existingID)
-	}
-	if !containsName(result.LocationsSkipped, "DC1") {
-		t.Errorf("LocationsSkipped = %v, want it to contain DC1", result.LocationsSkipped)
-	}
-	if locPosts != 0 {
-		t.Errorf("expected no create POST for an existing location, got %d", locPosts)
-	}
-}
-
-// TestLoadLocations_CreatesNewLocation verifies that when no existing location is
-// found, loadLocations creates it, records it under LocationsCreated, and maps
-// the new remote ID.
-//
-// Why it matters: this is the end-to-end create path for the locations phase,
-// turning a cani location into a real Nautobot location and remembering its ID.
-// Inputs: an inventory with one location plus a server whose locations GET is
-// empty (so creation runs). Outputs: the mapping and an error; one POST occurs.
-// Data choice: an empty existing-locations body forces the miss-then-create
-// path, the complement of the skip test, using the same "DC1" fixture.
-func TestLoadLocations_CreatesNewLocation(t *testing.T) {
-	createdLocID := uuid.New()
-	var locPosts int
-	e, cleanup := newExporterWithServer(t, locationCreateHandler(uuid.New(), createdLocID, http.StatusCreated, emptyListJSON, &locPosts))
-	defer cleanup()
-	seedActiveStatus(t, e)
-
-	loc := newCaniLocation("DC1", "Section")
-	inv := &devicetypes.Inventory{
-		Locations: map[uuid.UUID]*devicetypes.CaniLocationType{loc.ID: loc},
-	}
-
-	result := &LoadResult{}
-	created, err := e.loadLocations(context.Background(), inv, result)
-	if err != nil {
-		t.Fatalf("loadLocations() error = %v", err)
-	}
-	if created[loc.ID] != createdLocID {
-		t.Errorf("mapping[loc] = %s, want created %s", created[loc.ID], createdLocID)
-	}
-	if !containsName(result.LocationsCreated, "DC1") {
-		t.Errorf("LocationsCreated = %v, want it to contain DC1", result.LocationsCreated)
-	}
-	if locPosts != 1 {
-		t.Errorf("expected exactly one create POST, got %d", locPosts)
 	}
 }

@@ -33,6 +33,7 @@ import (
 
 // MapVLANs converts Nautobot VLAN objects to CANI VLANs.
 // It requires:
+//   - assignedLocations: Nautobot VLAN UUID → Nautobot location UUID
 //   - locationMap: Nautobot location UUID → CANI location UUID
 //   - statusNameMap: Nautobot status UUID → status name
 //   - roleNameMap: Nautobot role UUID → role name
@@ -41,6 +42,7 @@ import (
 // UUID → CANI VLAN UUID, which prefixes use to resolve their VLAN association.
 func MapVLANs(
 	raw []nautobotapi.VLAN,
+	assignedLocations map[uuid.UUID]uuid.UUID,
 	locationMap map[uuid.UUID]uuid.UUID,
 	statusNameMap map[uuid.UUID]string,
 	roleNameMap map[uuid.UUID]string,
@@ -61,7 +63,7 @@ func MapVLANs(
 			VID:         vlan.Vid,
 			Name:        vlan.Name,
 			Description: strVal(vlan.Description),
-			Location:    firstLocation(vlan.Locations, locationMap),
+			Location:    resolveAssignedLocation(nbID, assignedLocations, locationMap),
 			ObjectMeta: devicetypes.ObjectMeta{
 				Status:      resolveRefName(vlan.Status, statusNameMap),
 				ExternalIDs: map[string]uuid.UUID{"nautobot": nbID},
@@ -71,7 +73,7 @@ func MapVLANs(
 			caniVLAN.Role = roleName
 		}
 		if vlan.CustomFields != nil {
-			caniVLAN.CustomFields = *vlan.CustomFields
+			caniVLAN.CustomFields = convCustomFields(vlan.CustomFields)
 		}
 
 		result[caniID] = caniVLAN

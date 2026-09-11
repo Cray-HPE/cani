@@ -108,11 +108,8 @@ func mergedCustomFields(explicit map[string]any, flat map[string]any) map[string
 }
 
 // customFieldsDrifted returns true if any local custom field value differs from remote.
-func customFieldsDrifted(local map[string]interface{}, remote *map[string]interface{}) bool {
-	remoteMap := map[string]interface{}{}
-	if remote != nil {
-		remoteMap = *remote
-	}
+func customFieldsDrifted(local map[string]interface{}, remote *map[string]*interface{}) bool {
+	remoteMap := derefCustomFields(remote)
 	for k, v := range local {
 		localStr := fmt.Sprintf("%v", v)
 		remoteVal, exists := remoteMap[k]

@@ -27,10 +27,9 @@ package devicetypes
 
 import "github.com/google/uuid"
 
-// CaniType is the shared interface implemented by all inventory types.
-// It provides a uniform API for validation, identification, and status
-// across CaniDeviceType, CaniRackType, CaniLocationType, CaniModuleType,
-// CaniCableType, and CaniFruType.
+// CaniType is the shared interface implemented by all inventory object types.
+// It provides a uniform API for validation, identification, natural-key lookup,
+// and status across DCIM and IPAM objects.
 type CaniType interface {
 	// Validate checks the instance for internal consistency.
 	Validate() error
@@ -53,4 +52,8 @@ var (
 	_ CaniType = (*CaniModuleType)(nil)
 	_ CaniType = (*CaniCableType)(nil)
 	_ CaniType = (*CaniFruType)(nil)
+	_ CaniType = (*CaniVLAN)(nil)
+	_ CaniType = (*CaniPrefix)(nil)
+	_ CaniType = (*CaniIPAddress)(nil)
+	_ CaniType = (*CaniVRF)(nil)
 )

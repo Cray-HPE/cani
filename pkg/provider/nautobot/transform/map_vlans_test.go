@@ -36,18 +36,18 @@ import (
 )
 
 // TestMapVLANs verifies MapVLANs converts VLANs, resolves each VLAN's status and
-// role name, rewrites its first location to a CANI UUID, passes custom fields
+// role name, rewrites its assigned location to a CANI UUID, passes custom fields
 // through, records the Nautobot->CANI ID mapping, and skips VLANs with a nil Id.
 //
 // Why it matters: VLANs are transformed before prefixes so that a prefix can
 // resolve its VLAN association through the returned ID map; a VLAN whose location
 // is not rewritten (or whose nil Id is not skipped) would corrupt the imported
 // L2 topology or point at a location that was never imported.
-// Inputs: a location lookup map plus VLANs that are nil-Id, fully populated
-// (known location, status, role, custom fields), and one carrying an unknown
-// location. Outputs: the CANI VLAN map and Nautobot->CANI UUID map with VID,
-// name, description, status, role, location, and custom fields.
-// Data choice: VID 100 ("prod") with a populated location map proves the known
+// Inputs: assignment and location lookup maps plus VLANs that are nil-Id, fully
+// populated (known location, status, role, custom fields), and one assigned to
+// an unknown location. Outputs: the CANI VLAN map and Nautobot->CANI UUID map
+// with VID, name, description, status, role, location, and custom fields. Data
+// choice: VID 100 ("prod") with a populated assignment map proves the known
 // location resolves; a deliberately absent location UUID proves the miss leaves
 // Location at uuid.Nil.
 func TestMapVLANs(t *testing.T) {
@@ -56,15 +56,15 @@ func TestMapVLANs(t *testing.T) {
 	locationMap := map[uuid.UUID]uuid.UUID{locNBID: locCaniID}
 
 	t.Run("empty input returns empty maps", func(t *testing.T) {
-		vlans, nbMap := MapVLANs(nil, locationMap, nil, nil)
+		vlans, nbMap := MapVLANs(nil, nil, locationMap, nil, nil)
 		if len(vlans) != 0 || len(nbMap) != 0 {
 			t.Fatalf("expected empty maps, got %d vlans, %d mappings", len(vlans), len(nbMap))
 		}
 	})
 
 	t.Run("vlan with nil ID is skipped", func(t *testing.T) {
-		raw := []nautobotapi.VLAN{{Name: "orphan", Vid: 10, Id: nil, Status: makeStatusRefFromUUID(uuid.New())}}
-		vlans, _ := MapVLANs(raw, locationMap, nil, nil)
+		raw := []nautobotapi.VLAN{{Name: "orphan", Vid: 10, Id: nil}}
+		vlans, _ := MapVLANs(raw, nil, locationMap, nil, nil)
 		if len(vlans) != 0 {
 			t.Errorf("expected 0 vlans, got %d", len(vlans))
 		}
@@ -77,7 +77,6 @@ func TestMapVLANs(t *testing.T) {
 		roleID := uuid.MustParse("77777777-7777-7777-7777-777777777777")
 		statusNameMap := map[uuid.UUID]string{statusID: "Active"}
 		roleNameMap := map[uuid.UUID]string{roleID: "server"}
-		role := makeObjectRefFromUUID(roleID)
 
 		raw := []nautobotapi.VLAN{
 			{
@@ -85,14 +84,14 @@ func TestMapVLANs(t *testing.T) {
 				Vid:          100,
 				Name:         "prod",
 				Description:  strPtr("production vlan"),
-				Status:       makeStatusRefFromUUID(statusID),
-				Role:         &role,
-				Locations:    &[]nautobotapi.BulkWritableCableRequestStatus{makeStatusRefFromUUID(locNBID)},
-				CustomFields: &map[string]interface{}{"zone": "a"},
+				CustomFields: nbCF(map[string]interface{}{"zone": "a"}),
 			},
 		}
+		setNBRef(&raw[0].Status, statusID)
+		setNBRef(&raw[0].Role, roleID)
 
-		vlans, nbMap := MapVLANs(raw, locationMap, statusNameMap, roleNameMap)
+		assignedLocations := map[uuid.UUID]uuid.UUID{nbID: locNBID}
+		vlans, nbMap := MapVLANs(raw, assignedLocations, locationMap, statusNameMap, roleNameMap)
 		got := vlans[nbMap[nbID]]
 		if got == nil {
 			t.Fatal("vlan not found by CANI ID")
@@ -121,14 +120,14 @@ func TestMapVLANs(t *testing.T) {
 		unknownLoc := uuid.MustParse("ffffffff-ffff-ffff-ffff-ffffffffffff")
 		raw := []nautobotapi.VLAN{
 			{
-				Id:        &oaID,
-				Vid:       200,
-				Name:      "floating",
-				Status:    makeStatusRefFromUUID(uuid.New()),
-				Locations: &[]nautobotapi.BulkWritableCableRequestStatus{makeStatusRefFromUUID(unknownLoc)},
+				Id:   &oaID,
+				Vid:  200,
+				Name: "floating",
 			},
 		}
-		vlans, _ := MapVLANs(raw, locationMap, nil, nil)
+		setNBRef(&raw[0].Status, uuid.New())
+		assignedLocations := map[uuid.UUID]uuid.UUID{nbID: unknownLoc}
+		vlans, _ := MapVLANs(raw, assignedLocations, locationMap, nil, nil)
 		if got := onlyValue(t, vlans); got.Location != uuid.Nil {
 			t.Errorf("Location = %s, want Nil", got.Location)
 		}

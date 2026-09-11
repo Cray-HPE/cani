@@ -98,7 +98,7 @@ func buildVLANPatch(vlan *devicetypes.CaniVLAN, remote *nautobotapi.VLAN) (*naut
 	// Compare custom fields (explicit + flattened provider metadata)
 	localCF := mergedCustomFields(vlan.CustomFields, vlan.FlattenProviderMetadata())
 	if len(localCF) > 0 && customFieldsDrifted(localCF, remote.CustomFields) {
-		req.CustomFields = &localCF
+		req.CustomFields = toNautobotCustomFields(localCF)
 		drifted = true
 	}
 

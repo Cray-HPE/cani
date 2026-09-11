@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024, 2026 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -26,108 +26,35 @@
 package imprt
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/Cray-HPE/cani/internal/config"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
-	"github.com/Cray-HPE/cani/pkg/visual"
 	"github.com/google/uuid"
 )
 
-// mergeMetadata adds roles, statuses, and tags from the transform result
-// into the inventory metadata catalog. Duplicates are silently ignored.
-func mergeMetadata(ctx *etlContext, meta *devicetypes.InventoryMetadata) {
-	if meta == nil {
+func prepareUnclassifiedDevices(devices map[uuid.UUID]*devicetypes.CaniDeviceType) {
+	if config.Cfg == nil || !config.Cfg.Strict || len(devices) == 0 {
 		return
 	}
-	for _, role := range meta.Roles {
-		_ = ctx.inventory.AddMetadata("roles", role)
-	}
-	for _, status := range meta.Statuses {
-		_ = ctx.inventory.AddMetadata("statuses", status)
-	}
-	for _, tag := range meta.Tags {
-		_ = ctx.inventory.AddMetadata("tags", tag)
-	}
-}
-
-// remapDeviceParents rewrites device Parent fields using the UUID remap
-// maps returned by MergeLocations and MergeRacks. This ensures devices
-// point to existing inventory UUIDs rather than ephemeral transform UUIDs.
-func remapDeviceParents(
-	devices map[uuid.UUID]*devicetypes.CaniDeviceType,
-	locationRemap, rackRemap map[uuid.UUID]uuid.UUID,
-) {
-	for _, dev := range devices {
-		if dev == nil || dev.Parent == uuid.Nil {
-			continue
-		}
-		if mapped, ok := rackRemap[dev.Parent]; ok {
-			dev.Parent = mapped
-		} else if mapped, ok := locationRemap[dev.Parent]; ok {
-			dev.Parent = mapped
-		}
-	}
-}
-
-// mergeLocations adds transformed locations to the inventory.
-func mergeLocations(ctx *etlContext, locations map[uuid.UUID]*devicetypes.CaniLocationType) map[uuid.UUID]uuid.UUID {
-	if len(locations) == 0 {
-		return nil
-	}
-	if ctx.debug {
-		visual.PrintCaniOperation(fmt.Sprintf("Merging %d locations into inventory", len(locations)), ctx.opts)
-	}
-	return ctx.inventory.MergeLocations(locations)
-}
-
-// mergeRacks adds transformed racks to the inventory.
-func mergeRacks(ctx *etlContext, racks map[uuid.UUID]*devicetypes.CaniRackType) map[uuid.UUID]uuid.UUID {
-	if len(racks) == 0 {
-		return nil
-	}
-	if ctx.debug {
-		visual.PrintCaniOperation(fmt.Sprintf("Merging %d racks into inventory", len(racks)), ctx.opts)
-	}
-	return ctx.inventory.MergeRacks(racks)
-}
-
-// mergeDevices adds transformed devices to the inventory.
-// In strict mode, unclassified devices (no slug/model) are rejected.
-// In step mode, the user is prompted to interactively classify them.
-func mergeDevices(ctx *etlContext, devices map[uuid.UUID]*devicetypes.CaniDeviceType) {
-	if len(devices) == 0 {
-		return
-	}
-	if ctx.debug {
-		visual.PrintCaniOperation(fmt.Sprintf("Merging %d transformed devices into inventory", len(devices)), ctx.opts)
-	}
-
-	skipped := ctx.inventory.MergeDevicesStrict(devices, config.Cfg.Strict)
-	if len(skipped) == 0 {
-		return
-	}
-
+	skipped := devicetypes.FindUnclassifiedDevices(&devicetypes.Inventory{Devices: devices})
 	if stepFlag {
-		classifySkippedDevices(ctx, devices, skipped)
+		classifySkippedDevices(devices, skipped)
 		return
 	}
-
-	warnUnclassifiedDevices(ctx, devices, skipped)
+	warnUnclassifiedDevices(skipped)
 }
 
 // classifySkippedDevices prompts the user to classify each unclassified device
-// (step mode) and always merges it so modules/FRUs can reference it as a parent.
+// in step mode before the model-owned merge transaction begins.
 func classifySkippedDevices(
-	ctx *etlContext,
 	devices map[uuid.UUID]*devicetypes.CaniDeviceType,
 	skipped []devicetypes.UnclassifiedDevice,
 ) {
 	classifyOpts := devicetypes.ClassifyOptions{NoColor: noColorFlag}
 	classified := 0
 	for _, ud := range skipped {
-		if classifyOneDevice(ctx, devices, ud, classifyOpts) {
+		if classifyOneDevice(devices, ud, classifyOpts) {
 			classified++
 		}
 	}
@@ -136,10 +63,8 @@ func classifySkippedDevices(
 	}
 }
 
-// classifyOneDevice prompts for a single device's type, applies it, and merges
-// the device. It returns true when a type was successfully applied.
+// classifyOneDevice prompts for a single device's type and applies it.
 func classifyOneDevice(
-	ctx *etlContext,
 	devices map[uuid.UUID]*devicetypes.CaniDeviceType,
 	ud devicetypes.UnclassifiedDevice,
 	opts devicetypes.ClassifyOptions,
@@ -153,10 +78,7 @@ func classifyOneDevice(
 	if device == nil {
 		return false
 	}
-	classified := applyClassification(device, ud, slug)
-	// Always merge the device so modules/FRUs can reference it as a parent.
-	ctx.inventory.MergeDevices(map[uuid.UUID]*devicetypes.CaniDeviceType{ud.ID: device})
-	return classified
+	return applyClassification(device, ud, slug)
 }
 
 // applyClassification applies the chosen slug to a device, logging the outcome.
@@ -175,13 +97,9 @@ func applyClassification(device *devicetypes.CaniDeviceType, ud devicetypes.Uncl
 
 // warnUnclassifiedDevices warns about rejected devices (non-interactive mode)
 // and still merges them so modules/FRUs can reference them as parents.
-func warnUnclassifiedDevices(
-	ctx *etlContext,
-	devices map[uuid.UUID]*devicetypes.CaniDeviceType,
-	skipped []devicetypes.UnclassifiedDevice,
-) {
+func warnUnclassifiedDevices(skipped []devicetypes.UnclassifiedDevice) {
 	log.Printf("")
-	log.Printf("  ⚠ %d devices rejected (no device type slug or model):", len(skipped))
+	log.Printf("  ⚠ %d devices are unclassified (no device type slug or model):", len(skipped))
 	for _, ud := range skipped {
 		log.Printf("    - %s", ud.Name)
 	}
@@ -191,89 +109,4 @@ func warnUnclassifiedDevices(
 	log.Printf("  Or re-import with --step to classify inline.")
 	log.Printf("  To allow unclassified devices, use --strict=false")
 	log.Printf("")
-
-	for _, ud := range skipped {
-		device := devices[ud.ID]
-		if device == nil {
-			continue
-		}
-		ctx.inventory.MergeDevices(map[uuid.UUID]*devicetypes.CaniDeviceType{ud.ID: device})
-	}
-}
-
-// mergeModules adds transformed modules to the inventory.
-func mergeModules(ctx *etlContext, modules map[uuid.UUID]*devicetypes.CaniModuleType) {
-	if len(modules) == 0 {
-		return
-	}
-	if ctx.debug {
-		visual.PrintCaniOperation(fmt.Sprintf("Merging %d modules into inventory", len(modules)), ctx.opts)
-	}
-	ctx.inventory.MergeModules(modules)
-}
-
-// mergeCables adds transformed cables to the inventory.
-func mergeCables(ctx *etlContext, cables map[uuid.UUID]*devicetypes.CaniCableType) {
-	if len(cables) == 0 {
-		return
-	}
-	if ctx.debug {
-		visual.PrintCaniOperation(fmt.Sprintf("Merging %d cables into inventory", len(cables)), ctx.opts)
-	}
-	ctx.inventory.MergeCables(cables)
-}
-
-// mergeFrus adds transformed FRUs to the inventory.
-func mergeFrus(ctx *etlContext, frus map[uuid.UUID]*devicetypes.CaniFruType) {
-	if len(frus) == 0 {
-		return
-	}
-	if ctx.debug {
-		visual.PrintCaniOperation(fmt.Sprintf("Merging %d FRUs into inventory", len(frus)), ctx.opts)
-	}
-	ctx.inventory.MergeFrus(frus)
-}
-
-// mergeVLANs adds transformed VLANs to the inventory.
-func mergeVLANs(ctx *etlContext, vlans map[uuid.UUID]*devicetypes.CaniVLAN) {
-	if len(vlans) == 0 {
-		return
-	}
-	if ctx.debug {
-		visual.PrintCaniOperation(fmt.Sprintf("Merging %d VLANs into inventory", len(vlans)), ctx.opts)
-	}
-	ctx.inventory.MergeVLANs(vlans)
-}
-
-// mergePrefixes adds transformed prefixes to the inventory.
-func mergePrefixes(ctx *etlContext, prefixes map[uuid.UUID]*devicetypes.CaniPrefix) {
-	if len(prefixes) == 0 {
-		return
-	}
-	if ctx.debug {
-		visual.PrintCaniOperation(fmt.Sprintf("Merging %d prefixes into inventory", len(prefixes)), ctx.opts)
-	}
-	ctx.inventory.MergePrefixes(prefixes)
-}
-
-// mergeIPAddresses adds transformed IP addresses to the inventory.
-func mergeIPAddresses(ctx *etlContext, ips map[uuid.UUID]*devicetypes.CaniIPAddress) {
-	if len(ips) == 0 {
-		return
-	}
-	if ctx.debug {
-		visual.PrintCaniOperation(fmt.Sprintf("Merging %d IP addresses into inventory", len(ips)), ctx.opts)
-	}
-	ctx.inventory.MergeIPAddresses(ips)
-}
-
-// mergeVRFs adds transformed VRFs to the inventory.
-func mergeVRFs(ctx *etlContext, vrfs map[uuid.UUID]*devicetypes.CaniVRF) {
-	if len(vrfs) == 0 {
-		return
-	}
-	if ctx.debug {
-		visual.PrintCaniOperation(fmt.Sprintf("Merging %d VRFs into inventory", len(vrfs)), ctx.opts)
-	}
-	ctx.inventory.MergeVRFs(vrfs)
 }
