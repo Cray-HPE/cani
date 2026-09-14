@@ -186,7 +186,7 @@ func applySetToRack(cmd *cli.Command, rack *devicetypes.CaniRackType) error {
 		case "tag":
 			rack.Tags = append(rack.Tags, v)
 		case flagLocation:
-			return fmt.Errorf("use --location flag instead of --set location=...")
+			return fmt.Errorf("use the --location flag instead of setting location via --set")
 		default:
 			return fmt.Errorf("unknown rack field: %s", k)
 		}

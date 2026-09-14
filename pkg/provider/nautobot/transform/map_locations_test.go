@@ -115,8 +115,8 @@ func TestMapLocations(t *testing.T) {
 		if loc.Status != "Active" {
 			t.Errorf("Status = %q, want %q", loc.Status, "Active")
 		}
-		if loc.ObjectMeta.ExternalIDs["nautobot"] != nbID {
-			t.Errorf("ExternalIDs[nautobot] = %s, want %s", loc.ObjectMeta.ExternalIDs["nautobot"], nbID)
+		if loc.ExternalIDs["nautobot"] != nbID {
+			t.Errorf("ExternalIDs[nautobot] = %s, want %s", loc.ExternalIDs["nautobot"], nbID)
 		}
 	})
 

@@ -153,7 +153,7 @@ func applySetToDevice(cmd *cli.Command, device *devicetypes.CaniDeviceType) erro
 		case "tag":
 			device.Tags = append(device.Tags, v)
 		case "parent":
-			return fmt.Errorf("use --parent flag instead of --set parent=...")
+			return fmt.Errorf("use the --parent flag instead of setting parent via --set")
 		default:
 			return fmt.Errorf("unknown device field: %s", k)
 		}

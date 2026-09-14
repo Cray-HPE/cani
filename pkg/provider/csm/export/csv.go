@@ -84,9 +84,9 @@ func ExportCSV(w io.Writer, inv devicetypes.Inventory, headers []string, types [
 	})
 
 	cw := csv.NewWriter(w)
-	cw.Write(normalizedHeaders)
+	_ = cw.Write(normalizedHeaders)
 	for _, e := range entries {
-		cw.Write(e.row)
+		_ = cw.Write(e.row)
 	}
 	cw.Flush()
 	return cw.Error()
@@ -174,24 +174,6 @@ func racksCoveredByDevices(inv devicetypes.Inventory) map[uuid.UUID]bool {
 		}
 	}
 	return covered
-}
-
-// sortedDeviceKeys returns device UUIDs sorted by Type then ID for
-// deterministic CSV output.
-func sortedDeviceKeys(inv devicetypes.Inventory) []uuid.UUID {
-	keys := make([]uuid.UUID, 0, len(inv.Devices))
-	for k := range inv.Devices {
-		keys = append(keys, k)
-	}
-	sort.Slice(keys, func(i, j int) bool {
-		di := inv.Devices[keys[i]]
-		dj := inv.Devices[keys[j]]
-		if di.Type != dj.Type {
-			return di.Type < dj.Type
-		}
-		return keys[i].String() < keys[j].String()
-	})
-	return keys
 }
 
 // getFields extracts field values from a device for the given headers.

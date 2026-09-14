@@ -198,8 +198,8 @@ func TestTransform(t *testing.T) {
 			if dev.Location != locID {
 				t.Errorf("Device.Location = %s, want location CANI ID %s", dev.Location, locID)
 			}
-			if dev.ObjectMeta.Status != "Active" {
-				t.Errorf("Device.Status = %q, want %q", dev.ObjectMeta.Status, "Active")
+			if dev.Status != "Active" {
+				t.Errorf("Device.Status = %q, want %q", dev.Status, "Active")
 			}
 			if dev.Role != "Compute" {
 				t.Errorf("Device.Role = %q, want %q", dev.Role, "Compute")

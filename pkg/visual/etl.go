@@ -427,7 +427,7 @@ func PrintImportSummary(summary ImportSummary, opts ETLOptions, stepMode bool) {
 	if stepMode {
 		printPressEnter(w, gray, false)
 		reader := bufio.NewReader(os.Stdin)
-		reader.ReadString('\n')
+		_, _ = reader.ReadString('\n')
 	}
 }
 

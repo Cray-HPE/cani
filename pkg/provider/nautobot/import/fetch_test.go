@@ -597,5 +597,5 @@ func TestFetchLocations_SendsLimitAndOffset(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	FetchLocations(context.Background(), newTestClient(t, srv.URL))
+	_, _ = FetchLocations(context.Background(), newTestClient(t, srv.URL))
 }

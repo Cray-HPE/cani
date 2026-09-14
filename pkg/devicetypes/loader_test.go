@@ -384,7 +384,7 @@ func TestLoadAllFailsOnBadDir(t *testing.T) {
 	if err := os.Chmod(devDir, 0o000); err != nil {
 		t.Fatalf("setup chmod: %v", err)
 	}
-	t.Cleanup(func() { os.Chmod(devDir, 0o755) })
+	t.Cleanup(func() { _ = os.Chmod(devDir, 0o755) })
 
 	err := LoadAll([]string{tmp}, nil, false, false)
 	if err == nil {

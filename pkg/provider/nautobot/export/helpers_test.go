@@ -27,16 +27,7 @@ package export
 
 import (
 	"reflect"
-
-	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
-	"github.com/google/uuid"
 )
-
-// oaPtr returns a pointer to an openapi_types.UUID copy of id.
-func oaPtr(id uuid.UUID) *openapi_types.UUID {
-	u := openapi_types.UUID(id)
-	return &u
-}
 
 // nbCF wraps a flat custom-fields map in the Nautobot 3.2 pointer-value shape.
 func nbCF(cf map[string]interface{}) *map[string]*interface{} {
@@ -49,11 +40,11 @@ func nbCF(cf map[string]interface{}) *map[string]*interface{} {
 // field, which may itself be a pointer that gets allocated.
 func setNBValue(field any, value string) {
 	rv := reflect.ValueOf(field)
-	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+	if rv.Kind() != reflect.Pointer || rv.IsNil() {
 		return
 	}
 	slot := rv.Elem()
-	if slot.Kind() == reflect.Ptr {
+	if slot.Kind() == reflect.Pointer {
 		if slot.IsNil() {
 			if !slot.CanSet() {
 				return
@@ -63,7 +54,7 @@ func setNBValue(field any, value string) {
 		slot = slot.Elem()
 	}
 	vf := slot.FieldByName("Value")
-	if !vf.IsValid() || !vf.CanSet() || vf.Kind() != reflect.Ptr {
+	if !vf.IsValid() || !vf.CanSet() || vf.Kind() != reflect.Pointer {
 		return
 	}
 	ev := reflect.New(vf.Type().Elem())

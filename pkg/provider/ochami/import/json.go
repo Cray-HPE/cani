@@ -52,11 +52,13 @@ func ParseJson(filepath string) ([]JSONDeviceRecord, error) {
 
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to read file: %w", err)
+		return nil, fmt.Errorf("unable to read file: %w", err)
 	}
 
 	var discoverySnapshot DiscoverySnapshot
-	json.Unmarshal([]byte(fileBytes), &discoverySnapshot)
+	if err := json.Unmarshal([]byte(fileBytes), &discoverySnapshot); err != nil {
+		return nil, fmt.Errorf("unable to parse discovery snapshot: %w", err)
+	}
 
 	return discoverySnapshot.Spec.RawData, nil
 }

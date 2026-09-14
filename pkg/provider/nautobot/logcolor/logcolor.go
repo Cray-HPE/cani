@@ -117,11 +117,11 @@ func (l *Logger) Changed(format string, args ...any) {
 
 // Diff logs a would-change detail line with red (old) → green (new).
 func (l *Logger) Diff(field, oldVal, newVal string) {
-	l.std.Println(fmt.Sprintf("      %s: %s --> %s",
+	l.std.Printf("      %s: %s --> %s\n",
 		field,
 		l.wrap(red, oldVal),
 		l.wrap(green, newVal),
-	))
+	)
 }
 
 // Warn logs a warning in yellow.
@@ -166,5 +166,5 @@ func (l *Logger) SummaryError(format string, args ...any) {
 
 // Plain logs uncolored text (pass-through), useful for blank lines.
 func (l *Logger) Plain(format string, args ...any) {
-	l.std.Println(fmt.Sprintf(format, args...))
+	l.std.Printf(format+"\n", args...)
 }

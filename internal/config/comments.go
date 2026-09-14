@@ -43,7 +43,7 @@ type FieldComment struct {
 // line_comment, foot_comment) and returns a map keyed by YAML field name.
 func extractComments(structType interface{}) map[string]FieldComment {
 	v := reflect.ValueOf(structType)
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 	t := v.Type()

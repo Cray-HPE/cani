@@ -282,8 +282,8 @@ func TestMapDevices(t *testing.T) {
 		if dev.Face != "front" {
 			t.Errorf("Face = %q, want %q", dev.Face, "front")
 		}
-		if dev.ObjectMeta.Status != "Active" {
-			t.Errorf("Status = %q, want %q", dev.ObjectMeta.Status, "Active")
+		if dev.Status != "Active" {
+			t.Errorf("Status = %q, want %q", dev.Status, "Active")
 		}
 		if dev.Role != "Compute" {
 			t.Errorf("Role = %q, want %q", dev.Role, "Compute")

@@ -34,9 +34,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// detailAnnotationWidth is the max chars available for right-side annotations.
-const detailAnnotationWidth = 120
-
 // RenderMinimapDetailAll renders each rack one at a time with detail annotations.
 func RenderMinimapDetailAll(inv *devicetypes.Inventory, opts CompactRenderOptions) error {
 	if inv == nil {

@@ -1,0 +1,18 @@
+version: "2"
+
+linters:
+  settings:
+    errcheck:
+      # Silence unchecked errors from HTTP-handler writes, flag setters, and
+      # encoders (mostly test setup) without disabling errcheck in tests.
+      exclude-functions:
+        - (net/http.ResponseWriter).Write
+        - (*github.com/Cray-HPE/cani/internal/cli.FlagSet).Set
+        - (*encoding/json.Encoder).Encode
+  exclusions:
+    presets:
+      # Re-enable golangci-lint's standard errcheck exclusions (the classic
+      # EXC0001 set): unchecked errors from *.Close, *.Flush, os.Remove(All),
+      # fmt.Print*/Fprint*, and os.(Un)Setenv are ignored. Meaningful error
+      # checks remain enforced.
+      - std-error-handling

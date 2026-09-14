@@ -44,20 +44,6 @@ const (
 	groupNet                    // network fabric: Ethernet switches, SFP+, QSFP28
 )
 
-// groupLabel returns a display name for the group.
-func groupLabel(g cableGroup) string {
-	switch g {
-	case groupMgmt:
-		return "MGMT"
-	case groupHSN:
-		return "HSN"
-	case groupNet:
-		return "NET"
-	default:
-		return "OTHER"
-	}
-}
-
 // groupColorKey returns the ANSI color key for a cable group.
 func groupColorKey(g cableGroup) string {
 	switch g {

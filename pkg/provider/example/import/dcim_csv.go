@@ -332,7 +332,7 @@ func parseDcimRow(row []string, idx dcimColumnIndex, lineNum int) (DcimRecord, e
 			return DcimRecord{}, fmt.Errorf("invalid Qty %q: %w", qtyStr, err)
 		}
 		if qty < 1 {
-			return DcimRecord{}, fmt.Errorf("Qty must be >= 1, got %d", qty)
+			return DcimRecord{}, fmt.Errorf("qty must be >= 1, got %d", qty)
 		}
 	}
 

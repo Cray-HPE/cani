@@ -372,33 +372,6 @@ func getDeviceUHeight(device *devicetypes.CaniDeviceType) int {
 	return device.GetUHeight()
 }
 
-// getIntProperty safely extracts an int from a map[string]any
-func getIntProperty(props map[string]any, key string, defaultVal int) int {
-	if props == nil {
-		return defaultVal
-	}
-
-	val, ok := props[key]
-	if !ok {
-		return defaultVal
-	}
-
-	switch v := val.(type) {
-	case int:
-		return v
-	case int64:
-		return int(v)
-	case float64:
-		return int(v)
-	case string:
-		if i, err := strconv.Atoi(v); err == nil {
-			return i
-		}
-	}
-
-	return defaultVal
-}
-
 // truncateString truncates a string to a maximum length with ellipsis
 func truncateString(s string, maxLen int) string {
 	if len(s) <= maxLen {

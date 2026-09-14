@@ -109,11 +109,11 @@ func setRefSlice(field any, ids []uuid.UUID) error {
 
 func writableTarget(field any, label string) (reflect.Value, error) {
 	value := reflect.ValueOf(field)
-	if value.Kind() != reflect.Ptr || value.IsNil() {
+	if value.Kind() != reflect.Pointer || value.IsNil() {
 		return reflect.Value{}, fmt.Errorf("%s must be a non-nil pointer, got %T", label, field)
 	}
 	target := value.Elem()
-	if target.Kind() != reflect.Ptr {
+	if target.Kind() != reflect.Pointer {
 		return target, nil
 	}
 	if target.IsNil() {
@@ -127,7 +127,7 @@ func writableTarget(field any, label string) (reflect.Value, error) {
 
 func writablePointerField(target reflect.Value, name string) (reflect.Value, error) {
 	field := target.FieldByName(name)
-	if !field.IsValid() || !field.CanSet() || field.Kind() != reflect.Ptr {
+	if !field.IsValid() || !field.CanSet() || field.Kind() != reflect.Pointer {
 		return reflect.Value{}, fmt.Errorf("no settable pointer %s field", name)
 	}
 	return field, nil

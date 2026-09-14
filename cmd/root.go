@@ -177,7 +177,7 @@ func RootCommand() *cli.Command {
 // runRoot is the main entrypoint for the cani command
 func runRoot(cmd *cli.Command, args []string) error {
 	if len(args) == 0 {
-		cmd.Help()
+		_ = cmd.Help()
 	}
 
 	return nil

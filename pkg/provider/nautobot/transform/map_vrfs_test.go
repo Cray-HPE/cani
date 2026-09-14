@@ -80,11 +80,11 @@ func TestMapVRFs(t *testing.T) {
 			if v.Description != "test vrf" {
 				t.Errorf("Description = %q, want 'test vrf'", v.Description)
 			}
-			if v.ObjectMeta.Status != "Active" {
-				t.Errorf("Status = %q, want Active", v.ObjectMeta.Status)
+			if v.Status != "Active" {
+				t.Errorf("Status = %q, want Active", v.Status)
 			}
-			if v.ObjectMeta.ExternalIDs["nautobot"] != nbID {
-				t.Errorf("ExternalIDs[nautobot] = %v, want %v", v.ObjectMeta.ExternalIDs["nautobot"], nbID)
+			if v.ExternalIDs["nautobot"] != nbID {
+				t.Errorf("ExternalIDs[nautobot] = %v, want %v", v.ExternalIDs["nautobot"], nbID)
 			}
 		}
 	})

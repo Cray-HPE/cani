@@ -43,7 +43,7 @@ func NewCommand() *cli.Command {
 		Long:  `Export the CANI inventory to an external provider using a provider.`,
 		Args:  cli.ExactArgs(1),
 		RunE: func(cmd *cli.Command, args []string) error {
-			cmd.Help()
+			_ = cmd.Help()
 			return nil
 		},
 	}

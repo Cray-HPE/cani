@@ -36,7 +36,7 @@ func StructToMapAll(v interface{}) map[string]any {
 	result := make(map[string]any)
 
 	rv := reflect.ValueOf(v)
-	if rv.Kind() == reflect.Ptr {
+	if rv.Kind() == reflect.Pointer {
 		rv = rv.Elem()
 	}
 
@@ -71,7 +71,7 @@ func StructToMapAll(v interface{}) map[string]any {
 		case reflect.Struct:
 			// Recursively convert nested structs
 			result[tagName] = StructToMapAll(fieldValue.Interface())
-		case reflect.Ptr:
+		case reflect.Pointer:
 			if !fieldValue.IsNil() {
 				if fieldValue.Elem().Kind() == reflect.Struct {
 					result[tagName] = StructToMapAll(fieldValue.Interface())

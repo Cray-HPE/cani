@@ -96,7 +96,7 @@ Describe 'INTEGRATION: example import parity'
   It 'treats a BOM CSV with only invalid rows as a successful empty import'
     When call example_all_invalid_bom_summary
     The status should equal 0
-    The output should include 'WARN: line 2: Quantity must be >= 1, got 0, skipping'
+    The output should include 'WARN: line 2: quantity must be >= 1, got 0, skipping'
     The output should include 'No valid records found in CSV'
     The output should include 'Import completed successfully using provider example'
     The output should include 'counts=locations:0,racks:0,devices:0,cables:0'

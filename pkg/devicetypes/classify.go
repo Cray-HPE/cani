@@ -138,9 +138,7 @@ func hardwareTypeFallback(hwType string, max int) []string {
 	norm := normalizeHardwareType(hwType)
 	types := []Type{Type(norm)}
 	// Add related type aliases so "compute" also matches "blade" and "node".
-	for _, alias := range relatedHardwareTypes(norm) {
-		types = append(types, alias)
-	}
+	types = append(types, relatedHardwareTypes(norm)...)
 
 	matches := ListCaniDeviceTypes(types...)
 	slugs := make([]string, 0, len(matches))

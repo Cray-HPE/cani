@@ -36,7 +36,7 @@ func NewCommand() *cli.Command {
 		Short: "Remove items from the inventory",
 		Long:  `Remove items from the inventory.`,
 		RunE: func(cmd *cli.Command, args []string) error {
-			cmd.Help()
+			_ = cmd.Help()
 			return nil
 		},
 	}
