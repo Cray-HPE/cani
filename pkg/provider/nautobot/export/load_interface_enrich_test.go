@@ -85,7 +85,7 @@ func TestBuildVIDMap(t *testing.T) {
 	}
 	created := map[uuid.UUID]uuid.UUID{caniVLANID: nautobotVLANID}
 
-	m := buildVIDMap(inv, created)
+	m := buildVIDMap(inv, created, uuid.Nil)
 	if m[2000] != nautobotVLANID {
 		t.Errorf("buildVIDMap[2000] = %s, want %s", m[2000], nautobotVLANID)
 	}

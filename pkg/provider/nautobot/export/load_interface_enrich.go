@@ -49,8 +49,6 @@ func (e *Exporter) enrichInterfaces(
 	createdVLANIDs map[uuid.UUID]uuid.UUID,
 	result *LoadResult,
 ) error {
-	vidToVLAN := buildVIDMap(inventory, createdVLANIDs)
-
 	for deviceName, deviceID := range createdDeviceIDs {
 		device := findDeviceByName(inventory, deviceName)
 		if device == nil {
@@ -60,6 +58,7 @@ func (e *Exporter) enrichInterfaces(
 		if !anyInterfaceNeedsEnrichment(specs) {
 			continue
 		}
+		vidToVLAN := buildVIDMap(inventory, createdVLANIDs, device.Location)
 		if err := e.Cache.PrefetchInterfacesForDevice(deviceID); err != nil {
 			clog.Warn("failed to prefetch interfaces for %s: %v", deviceName, err)
 		}
@@ -75,19 +74,36 @@ func (e *Exporter) enrichInterfaces(
 	return nil
 }
 
-// buildVIDMap maps each VLAN ID to its Nautobot UUID using the cani-to-Nautobot
-// map returned by the VLAN phase.
-func buildVIDMap(inventory *devicetypes.Inventory, createdVLANIDs map[uuid.UUID]uuid.UUID) map[int]uuid.UUID {
-	vidToVLAN := make(map[int]uuid.UUID, len(inventory.VLANs))
-	for _, vlan := range inventory.VLANs {
-		if vlan == nil {
-			continue
-		}
-		if nid, ok := createdVLANIDs[vlan.ID]; ok {
-			vidToVLAN[vlan.VID] = nid
+// buildVIDMap resolves VIDs in the device's location, falling back to unscoped
+// VLANs only when no local candidate exists. Ambiguous or unexported candidates
+// are omitted so the reference helpers report them as unresolved.
+func buildVIDMap(inventory *devicetypes.Inventory, createdVLANIDs map[uuid.UUID]uuid.UUID, locationID uuid.UUID) map[int]uuid.UUID {
+	candidates := vlanIDsAtLocation(inventory, uuid.Nil)
+	for vid, vlanID := range vlanIDsAtLocation(inventory, locationID) {
+		candidates[vid] = vlanID
+	}
+	vidToVLAN := make(map[int]uuid.UUID, len(candidates))
+	for vid, vlanID := range candidates {
+		if nautobotID := createdVLANIDs[vlanID]; vlanID != uuid.Nil && nautobotID != uuid.Nil {
+			vidToVLAN[vid] = nautobotID
 		}
 	}
 	return vidToVLAN
+}
+
+func vlanIDsAtLocation(inventory *devicetypes.Inventory, locationID uuid.UUID) map[int]uuid.UUID {
+	candidates := make(map[int]uuid.UUID)
+	for vlanID, vlan := range inventory.VLANs {
+		if vlan == nil || vlan.Location != locationID {
+			continue
+		}
+		if _, exists := candidates[vlan.VID]; exists {
+			candidates[vlan.VID] = uuid.Nil
+		} else {
+			candidates[vlan.VID] = vlanID
+		}
+	}
+	return candidates
 }
 
 // findDeviceByName returns the device with the given name, or nil.
