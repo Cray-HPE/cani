@@ -27,6 +27,7 @@ package devicetypes
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/google/uuid"
 )
@@ -90,32 +91,43 @@ type TransformResult struct {
 
 // EnsureUniqueDeviceNames detects duplicate names within the transform
 // result and appends an incrementing number to make each name unique.
-// This runs before the result is merged into the inventory so that the
-// provider never introduces collisions.
+// Existing names are reserved, and suffixes are assigned in UUID order
+// before the result is merged into the inventory.
 func (tr *TransformResult) EnsureUniqueDeviceNames() {
 	if len(tr.Devices) == 0 {
 		return
 	}
 
-	// Count how many times each name appears.
 	nameCount := make(map[string]int)
-	for _, d := range tr.Devices {
-		if d != nil && d.Name != "" {
-			nameCount[d.Name]++
+	deviceIDs := make([]uuid.UUID, 0, len(tr.Devices))
+	for deviceID, device := range tr.Devices {
+		if device == nil || device.Name == "" {
+			continue
+		}
+		nameCount[device.Name]++
+		deviceIDs = append(deviceIDs, deviceID)
+	}
+	sort.Slice(deviceIDs, func(leftIndex, rightIndex int) bool {
+		return deviceIDs[leftIndex].String() < deviceIDs[rightIndex].String()
+	})
+
+	nameSeq := make(map[string]int)
+	for _, deviceID := range deviceIDs {
+		device := tr.Devices[deviceID]
+		if nameCount[device.Name] > 1 {
+			device.Name = nextUniqueTransformDeviceName(device.Name, nameCount, nameSeq)
 		}
 	}
+}
 
-	// For every duplicated name, assign an incrementing suffix.
-	nameSeq := make(map[string]int) // next sequence number per base name
-	for _, d := range tr.Devices {
-		if d == nil || d.Name == "" {
-			continue
+func nextUniqueTransformDeviceName(baseName string, nameCount, nameSeq map[string]int) string {
+	for {
+		nameSeq[baseName]++
+		name := fmt.Sprintf("%s-%d", baseName, nameSeq[baseName])
+		if nameCount[name] == 0 {
+			nameCount[name] = 1
+			return name
 		}
-		if nameCount[d.Name] <= 1 {
-			continue
-		}
-		nameSeq[d.Name]++
-		d.Name = fmt.Sprintf("%s-%d", d.Name, nameSeq[d.Name])
 	}
 }
 

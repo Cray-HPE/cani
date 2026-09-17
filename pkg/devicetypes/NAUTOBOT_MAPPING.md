@@ -350,8 +350,8 @@ template (name/type/mgmt-only) and are **not** device-type template fields.
 |---|---|---|---|---|
 | `Lag` | `string` | `Interface.lag` (FK) | **Mapped** | Parent LAG interface name, resolved to the LAG interface FK |
 | `Mode` | `string` | `Interface.mode` | **Mapped** | `access`, `tagged`, or `tagged-all` |
-| `UntaggedVLAN` | `int` | `Interface.untagged_vlan` (FK) | **Mapped** | Native VLAN ID, resolved to the VLAN FK created in Phase 7 |
-| `TaggedVLANs` | `[]int` | `Interface.tagged_vlans` (FK) | **Mapped** | Trunk VLAN IDs, resolved to VLAN FKs |
+| `UntaggedVLAN` | `int` | `Interface.untagged_vlan` (FK) | **Mapped** | Native VLAN ID, resolved within the device's location to the VLAN FK created in Phase 7 |
+| `TaggedVLANs` | `[]int` | `Interface.tagged_vlans` (FK) | **Mapped** | Trunk VLAN IDs, resolved within the device's location to VLAN FKs |
 | `VRF` | `string` | `Interface.vrf` (FK) | **Mapped** | VRF name, resolved to the VRF FK created in Phase 6c |
 | `Description` | `string` | `Interface.description` | **Mapped** | Free-text interface description; sent unconditionally on `updateInterface`, so an emptied local value clears it in Nautobot (inventory is authoritative on reconcile) |
 | `Role` | `string` | `Interface.role` (FK) | **Mapped** | e.g. `management`, `hsn`; validated against registered roles. Nautobot 3.2 marks the FK `omitempty`, so `interfacePatch` injects explicit `role: null` when the local role is empty; enrichment otherwise re-sends the role to avoid clobbering it |
@@ -362,6 +362,12 @@ Unresolved references (LAG name, VRF name, VLAN VID) that cannot be resolved to
 a Nautobot object at export time are logged as warnings and skipped. The
 inventory stores these as opaque names/IDs so that forward references and
 external-only references remain valid; validation is deferred to export.
+
+VLAN resolution prefers an exact device-location match and falls back to an
+unscoped VLAN only when no local candidate exists. VLANs in other locations are
+never selected. Duplicate candidates in the selected scope, or a local candidate
+that was not exported, remain unresolved rather than falling back to another VLAN.
+A device without a location can resolve only unscoped VLANs.
 
 ### 2a.2 `CaniVRF` → Nautobot `VRF`
 
