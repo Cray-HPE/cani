@@ -99,8 +99,8 @@ func (inv *Inventory) AddDevices(batch map[uuid.UUID]*CaniDeviceType) error {
 //	Device   → Child Devices    (Device.Parent   ↔ Device.Children)
 //
 // It also rebuilds the derived Device.Rack/Location/ParentDevice FK fields,
-// validates (without mutating) module, FRU, and cable references, and detects
-// circular parent chains.
+// rebuilds interface IP assignments, validates module, FRU, cable and IPAM
+// references, and detects circular parent chains.
 //
 // The reverse lists are cleared and rebuilt from scratch so that only setting a
 // Parent field is required; all other references are derived. Unlike
@@ -114,9 +114,11 @@ func (inv *Inventory) RebuildDerivedState() *RelationshipResult {
 	result.merge(inv.rebuildDeviceRelationships())
 	result.merge(inv.validateModuleRelationships())
 	result.merge(inv.rebuildInterfaceRelationships())
+	inv.rebuildInterfaceIPAddresses()
 	result.merge(inv.rebuildFruRelationships())
 	result.merge(inv.rebuildCableRelationships())
 	result.merge(inv.validateCableRelationships())
+	result.merge(inv.validateIPAMRelationships())
 	result.merge(inv.detectCircularLocationRefs())
 	result.merge(inv.detectCircularDeviceRefs())
 
@@ -156,7 +158,7 @@ func (inv *Inventory) removeCablesForDevice(id uuid.UUID) {
 			continue
 		}
 		if cable.TerminationADevice == id || cable.TerminationBDevice == id {
-			delete(inv.Cables, cableID)
+			_ = inv.RemoveCable(cableID)
 		}
 	}
 }
@@ -165,8 +167,7 @@ func (inv *Inventory) removeCablesForDevice(id uuid.UUID) {
 func (inv *Inventory) removeModulesForDevice(id uuid.UUID) {
 	for modID, mod := range inv.Modules {
 		if mod != nil && mod.ParentDevice == id {
-			inv.removeCablesForDevice(modID)
-			delete(inv.Modules, modID)
+			inv.removeModule(modID)
 		}
 	}
 }
@@ -176,22 +177,14 @@ func (inv *Inventory) removeModulesForDevice(id uuid.UUID) {
 //   - removes rack slot occupancy
 //   - deletes cables referencing the device
 //   - deletes child modules belonging to the device
+//   - deletes owned FRUs/interfaces and detaches shared IP/VRF assignments
 func (inv *Inventory) RemoveDevice(id uuid.UUID) error {
-	device, exists := inv.Devices[id]
-	if !exists {
+	if inv.Devices[id] == nil {
 		return fmt.Errorf("device %s not found", id)
 	}
 
-	inv.unlinkDeviceFromParent(device, id)
-	inv.removeCablesForDevice(id)
-	inv.removeModulesForDevice(id)
-
-	for _, childID := range device.Children {
-		_ = inv.RemoveDevice(childID) // best-effort
-	}
-
-	delete(inv.Devices, id)
-	return nil
+	inv.removeDeviceTree(id)
+	return inv.RebuildDerivedState().Err()
 }
 
 // --- helpers ---

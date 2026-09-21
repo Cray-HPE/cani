@@ -130,6 +130,7 @@ func restoreInterfaceMetadata(source, clone []InterfaceSpec) {
 	for index := range source {
 		if index < len(clone) {
 			clone[index].ProviderMetadata = cloneAnyMap(source[index].ProviderMetadata)
+			clone[index].CustomFields = cloneAnyMap(source[index].CustomFields)
 		}
 	}
 }

@@ -357,11 +357,34 @@ template (name/type/mgmt-only) and are **not** device-type template fields.
 | `Role` | `string` | `Interface.role` (FK) | **Mapped** | e.g. `management`, `hsn`; validated against registered roles. Nautobot 3.2 marks the FK `omitempty`, so `interfacePatch` injects explicit `role: null` when the local role is empty; enrichment otherwise re-sends the role to avoid clobbering it |
 | `Tags` | `[]string` | `Interface.tags` | **Mapped** | Exported via the shared tag resolver |
 | `MacAddress` | `string` | `Interface.mac_address` | **Mapped** | Normalized on `update interface` |
+| `MgmtOnly` | `bool` / `*bool` | `Interface.mgmt_only` | **Mapped** | Preserved when an instance is added to the embedded interface specs and rebuilt on load |
+| `Tenant` | `string` | `Interface.tenant` (FK) | Not Mapped | Preserved in inventory specs and rebuilt instances; not sent by the interface exporter |
+| `CustomFields` | `map[string]any` | `Interface.custom_fields` | Not Mapped | Preserved in inventory specs and rebuilt instances; not sent by the interface exporter |
+| `ExternalIDs` | `map[string]uuid.UUID` | - | Cani-Internal | Source identities survive interface conversion and datastore round trips |
+| `ContentType` | `string` | - | Cani-Internal | Persisted content-type hint for the interface instance |
+| `IPAddresses` | `[]uuid.UUID` | - | Cani-Internal | Non-serialized reverse index rebuilt from `CaniIPAddress.Interfaces` |
+
+Device and module interface specs are the persisted source of truth for authored
+interface fields. `Inventory.Interfaces` is reconstructed from those specs on
+load; IP assignment reverse lists are reconstructed from the addresses' forward
+interface UUIDs rather than cached interface data.
 
 Unresolved references (LAG name, VRF name, VLAN VID) that cannot be resolved to
 a Nautobot object at export time are logged as warnings and skipped. The
 inventory stores these as opaque names/IDs so that forward references and
 external-only references remain valid; validation is deferred to export.
+
+UUID foreign keys are validated locally by both `Inventory.Validate()` and
+`RebuildDerivedState()`: VLAN and prefix locations, prefix VLANs and parents,
+IP parents, NAT-inside addresses, interface assignments, VRF device assignments,
+and device primary-IP and assigned-VLAN references must resolve to existing
+objects. Prefix parent cycles are rejected. The complete-result merge runs these
+checks after canonical UUID remapping and commits nothing when validation fails.
+
+Device deletion follows forward parent FKs, removes owned modules, FRUs,
+interfaces and cables, and detaches IP and VRF assignments. Module deletion uses
+the same ownership cleanup. Shared IP addresses and VRFs remain in inventory,
+and unrelated hardware is retained; derived relationships are rebuilt afterward.
 
 VLAN resolution prefers an exact device-location match and falls back to an
 unscoped VLAN only when no local candidate exists. VLANs in other locations are
@@ -472,6 +495,11 @@ Source: `pkg/devicetypes/inventory_metadata.go`
 Exported in Phase 0a by `EnsureCustomFields()` in `lookup_custom_fields.go`.
 Runs before any object phases so custom-field definitions exist before objects
 that carry values for them are created.
+
+Transform metadata merges include complete custom-field definitions, keyed by
+`Key`. Existing local definitions win on reimport, matching the metadata catalog's
+add-only merge policy. New definitions use the same validation as `AddCustomField`;
+validation errors reject the complete transform without partially applying it.
 
 | Cani Field | Go Type | Nautobot Object | Status | Notes |
 |---|---|---|---|---|

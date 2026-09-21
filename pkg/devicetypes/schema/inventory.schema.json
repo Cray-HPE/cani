@@ -472,13 +472,6 @@
         "interfaceType": {
           "type": "string"
         },
-        "ipAddresses": {
-          "items": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "type": "array"
-        },
         "label": {
           "type": "string"
         },
@@ -1132,8 +1125,22 @@
           "format": "uuid",
           "type": "string"
         },
+        "contentType": {
+          "type": "string"
+        },
+        "customFields": {
+          "additionalProperties": {},
+          "type": "object"
+        },
         "description": {
           "type": "string"
+        },
+        "externalIDs": {
+          "additionalProperties": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "object"
         },
         "id": {
           "format": "uuid",
@@ -1178,6 +1185,9 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "tenant": {
+          "type": "string"
         },
         "type": {
           "type": "string"

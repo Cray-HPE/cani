@@ -726,37 +726,6 @@ func (inv *Inventory) indexInterfaceSpecs(interfaces []InterfaceSpec, deviceID u
 	}
 }
 
-func interfaceInstanceFromSpec(iface *InterfaceSpec, deviceID uuid.UUID) *CaniInterface {
-	mgmtOnly := iface.MgmtOnly != nil && *iface.MgmtOnly
-	role := ResolveInterfaceRole(iface.Role, iface.Name, iface.Type, mgmtOnly)
-	status := iface.Status
-	if status == "" {
-		status = string(StatusActive)
-	}
-	return &CaniInterface{
-		ID:            iface.ID,
-		Name:          iface.Name,
-		InterfaceType: iface.Type,
-		DeviceID:      deviceID,
-		ObjectMeta: ObjectMeta{
-			Status:           status,
-			Role:             role,
-			Tags:             append([]string(nil), iface.Tags...),
-			ProviderMetadata: iface.ProviderMetadata,
-		},
-		MgmtOnly:       mgmtOnly,
-		Label:          iface.Label,
-		MacAddress:     iface.MacAddress,
-		Lag:            iface.Lag,
-		Mode:           iface.Mode,
-		UntaggedVLAN:   iface.UntaggedVLAN,
-		TaggedVLANs:    append([]int(nil), iface.TaggedVLANs...),
-		VRF:            iface.VRF,
-		Description:    iface.Description,
-		ConnectedCable: iface.ConnectedCable,
-	}
-}
-
 // detectCircularLocationRefs walks location parent chains to find cycles.
 func (inv *Inventory) detectCircularLocationRefs() *RelationshipResult {
 	res := &RelationshipResult{}

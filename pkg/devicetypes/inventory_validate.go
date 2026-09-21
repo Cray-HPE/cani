@@ -139,6 +139,9 @@ func (inv *Inventory) Validate() error {
 	errs = append(errs, inv.validateModuleRefs()...)
 	errs = append(errs, inv.validateCableRefs()...)
 	errs = append(errs, inv.validateFruRefs()...)
+	if err := inv.validateIPAMRelationships().Err(); err != nil {
+		errs = append(errs, err.Error())
+	}
 	if len(errs) > 0 {
 		return fmt.Errorf("inventory validation failed:\n  %s", strings.Join(errs, "\n  "))
 	}

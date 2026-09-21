@@ -5,23 +5,27 @@ import "github.com/google/uuid"
 // InterfaceSpec defines an interface template in a device/module type.
 // When used in inventory, ID and ConnectedCable are populated.
 type InterfaceSpec struct {
-	ID               uuid.UUID          `yaml:"id,omitempty" json:"id,omitempty"`
-	Name             string             `yaml:"name" json:"name"`
-	Type             InterfacesElemType `yaml:"type" json:"type"`
-	Label            string             `yaml:"label,omitempty" json:"label,omitempty"`
-	Role             string             `yaml:"role,omitempty" json:"role,omitempty"`
-	MacAddress       string             `yaml:"mac_address,omitempty" json:"macAddress,omitempty"`
-	MgmtOnly         *bool              `yaml:"mgmt_only,omitempty" json:"mgmt_only,omitempty"`
-	Tags             []string           `yaml:"tags,omitempty" json:"tags,omitempty"`
-	Lag              string             `yaml:"lag,omitempty" json:"lag,omitempty"`
-	Mode             string             `yaml:"mode,omitempty" json:"mode,omitempty"`
-	UntaggedVLAN     int                `yaml:"untagged_vlan,omitempty" json:"untaggedVlan,omitempty"`
-	TaggedVLANs      []int              `yaml:"tagged_vlans,omitempty" json:"taggedVlans,omitempty"`
-	VRF              string             `yaml:"vrf,omitempty" json:"vrf,omitempty"`
-	Description      string             `yaml:"description,omitempty" json:"description,omitempty"`
-	ConnectedCable   *uuid.UUID         `yaml:"connected_cable,omitempty" json:"connectedCable,omitempty"`
-	Status           string             `yaml:"status,omitempty" json:"status,omitempty"`
-	ProviderMetadata map[string]any     `yaml:"providerMetadata,omitempty" json:"providerMetadata,omitempty"`
+	ID               uuid.UUID            `yaml:"id,omitempty" json:"id,omitempty"`
+	Name             string               `yaml:"name" json:"name"`
+	Type             InterfacesElemType   `yaml:"type" json:"type"`
+	Label            string               `yaml:"label,omitempty" json:"label,omitempty"`
+	Role             string               `yaml:"role,omitempty" json:"role,omitempty"`
+	MacAddress       string               `yaml:"mac_address,omitempty" json:"macAddress,omitempty"`
+	MgmtOnly         *bool                `yaml:"mgmt_only,omitempty" json:"mgmt_only,omitempty"`
+	Tags             []string             `yaml:"tags,omitempty" json:"tags,omitempty"`
+	Lag              string               `yaml:"lag,omitempty" json:"lag,omitempty"`
+	Mode             string               `yaml:"mode,omitempty" json:"mode,omitempty"`
+	UntaggedVLAN     int                  `yaml:"untagged_vlan,omitempty" json:"untaggedVlan,omitempty"`
+	TaggedVLANs      []int                `yaml:"tagged_vlans,omitempty" json:"taggedVlans,omitempty"`
+	VRF              string               `yaml:"vrf,omitempty" json:"vrf,omitempty"`
+	Description      string               `yaml:"description,omitempty" json:"description,omitempty"`
+	ConnectedCable   *uuid.UUID           `yaml:"connected_cable,omitempty" json:"connectedCable,omitempty"`
+	Status           string               `yaml:"status,omitempty" json:"status,omitempty"`
+	Tenant           string               `yaml:"tenant,omitempty" json:"tenant,omitempty"`
+	CustomFields     map[string]any       `yaml:"custom_fields,omitempty" json:"customFields,omitempty"`
+	ExternalIDs      map[string]uuid.UUID `yaml:"external_ids,omitempty" json:"externalIDs,omitempty"`
+	ContentType      string               `yaml:"content_type,omitempty" json:"contentType,omitempty"`
+	ProviderMetadata map[string]any       `yaml:"providerMetadata,omitempty" json:"providerMetadata,omitempty"`
 }
 
 // CaniInterface represents an instantiated interface on a specific device.
@@ -45,7 +49,42 @@ type CaniInterface struct {
 	Description    string      `json:"description,omitempty" yaml:"description,omitempty"`
 	ConnectedCable *uuid.UUID  `json:"connectedCable,omitempty" yaml:"connected_cable,omitempty"`
 	ContentType    string      `json:"contentType,omitempty" yaml:"content_type,omitempty"` // For cable terminations (e.g., "dcim.interface")
-	IPAddresses    []uuid.UUID `json:"ipAddresses,omitempty" yaml:"ip_addresses,omitempty"` // Assigned IP address IDs
+	IPAddresses    []uuid.UUID `json:"-" yaml:"-"`                                          // Rebuilt from CaniIPAddress.Interfaces.
+}
+
+func interfaceInstanceFromSpec(iface *InterfaceSpec, deviceID uuid.UUID) *CaniInterface {
+	mgmtOnly := iface.MgmtOnly != nil && *iface.MgmtOnly
+	role := ResolveInterfaceRole(iface.Role, iface.Name, iface.Type, mgmtOnly)
+	status := iface.Status
+	if status == "" {
+		status = string(StatusActive)
+	}
+	return &CaniInterface{
+		ID:            iface.ID,
+		Name:          iface.Name,
+		InterfaceType: iface.Type,
+		DeviceID:      deviceID,
+		ObjectMeta: ObjectMeta{
+			Status:           status,
+			Role:             role,
+			Tags:             append([]string(nil), iface.Tags...),
+			Tenant:           iface.Tenant,
+			CustomFields:     iface.CustomFields,
+			ExternalIDs:      iface.ExternalIDs,
+			ProviderMetadata: iface.ProviderMetadata,
+		},
+		MgmtOnly:       mgmtOnly,
+		Label:          iface.Label,
+		MacAddress:     iface.MacAddress,
+		Lag:            iface.Lag,
+		Mode:           iface.Mode,
+		UntaggedVLAN:   iface.UntaggedVLAN,
+		TaggedVLANs:    append([]int(nil), iface.TaggedVLANs...),
+		VRF:            iface.VRF,
+		Description:    iface.Description,
+		ConnectedCable: iface.ConnectedCable,
+		ContentType:    iface.ContentType,
+	}
 }
 
 // ConsolePortSpec defines a console port in a device type.

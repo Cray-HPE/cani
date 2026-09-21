@@ -88,3 +88,33 @@ func TestMergeTransformResultPreservesDynamicMetadataTypes(t *testing.T) {
 		t.Fatalf("ordinal type = %T, want int", metadata["ordinal"])
 	}
 }
+
+// TestMergeTransformResultPreservesInterfaceCustomFields verifies interface
+// custom fields retain their types without aliasing the provider input.
+//
+// Why it matters: JSON-based transaction cloning must not degrade field data.
+// Inputs: an incoming device interface with an integer custom field.
+// Outputs: the stored spec and rebuilt interface retain an independent integer.
+// Data choice: integers otherwise become float64 during a JSON round trip.
+func TestMergeTransformResultPreservesInterfaceCustomFields(t *testing.T) {
+	inventory := NewInventory()
+	deviceID, interfaceID := uuid.New(), uuid.New()
+	fields := map[string]any{"ordinal": 7}
+	result := &TransformResult{Devices: map[uuid.UUID]*CaniDeviceType{
+		deviceID: {ID: deviceID, Name: "switch", Interfaces: []InterfaceSpec{
+			{ID: interfaceID, Name: "port1", CustomFields: fields},
+		}},
+	}}
+
+	if _, err := inventory.MergeTransformResult(result); err != nil {
+		t.Fatalf("MergeTransformResult() error = %v", err)
+	}
+	fields["ordinal"] = "changed"
+
+	if got := inventory.Interfaces[interfaceID].CustomFields["ordinal"]; got != 7 {
+		t.Errorf("instance custom field = %#v (%T), want int 7", got, got)
+	}
+	if got := inventory.Devices[deviceID].Interfaces[0].CustomFields["ordinal"]; got != 7 {
+		t.Errorf("spec custom field = %#v (%T), want int 7", got, got)
+	}
+}
