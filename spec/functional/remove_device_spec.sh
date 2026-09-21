@@ -25,6 +25,19 @@
 
 # ── remove device ───────────────────────────────────────────────────
 
+#shellcheck disable=SC2317
+setup_device_network_removal_env() {
+  setup_crud_env
+  bin/cani alpha add vrf shared-removal --device test-device --device test-device-2 --config "$CANI_CONF" >/dev/null 2>&1 || return
+  bin/cani alpha add ip 10.0.0.1/24 --interface test-device:Management --interface test-device-2:Management --config "$CANI_CONF" >/dev/null 2>&1
+}
+
+#shellcheck disable=SC2317
+remove_device_then_export() {
+  bin/cani alpha remove device test-device --force --config "$CANI_CONF" || return
+  bin/cani alpha export example --dry-run --config "$CANI_CONF" >/dev/null
+}
+
 Describe 'cani alpha remove device'
   Before 'setup_crud_env'
 
@@ -41,6 +54,20 @@ Describe 'cani alpha remove device'
       When call bin/cani alpha remove device nonexistent-name --force --config "$CANI_CONF"
       The status should equal 1
       The stderr should include 'no item found matching'
+    End
+  End
+
+  Describe 'network references'
+    Before 'setup_device_network_removal_env'
+
+    It 'detaches shared IP and VRF assignments and leaves an exportable datastore'
+      When call remove_device_then_export
+      The status should equal 0
+      The stderr should include 'Removed device'
+      The contents of file "$CANI_DS" should not include '16e4c62b-237e-4977-8426-aaec65db017b'
+      The contents of file "$CANI_DS" should include 'b7a1c3d4-5e6f-7890-abcd-ef1234567890'
+      The contents of file "$CANI_DS" should include '10.0.0.1/24'
+      The contents of file "$CANI_DS" should include 'shared-removal'
     End
   End
 

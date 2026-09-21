@@ -56,7 +56,9 @@ func (inv *Inventory) MergeTransformResult(result *TransformResult) (*TransformM
 	}
 
 	incoming.EnsureUniqueDeviceNames()
-	mergeTransformMetadata(working, incoming.Metadata)
+	if err := mergeTransformMetadata(working, incoming.Metadata); err != nil {
+		return nil, fmt.Errorf("merge metadata: %w", err)
+	}
 	remaps := ReferenceRemaps{Locations: working.MergeLocations(incoming.Locations)}
 	incoming.RemapReferences(working, remaps)
 	remaps.Racks = working.MergeRacks(incoming.Racks)
@@ -115,9 +117,9 @@ func cloneTransformResult(result *TransformResult) (*TransformResult, error) {
 	return clone, nil
 }
 
-func mergeTransformMetadata(inventory *Inventory, metadata *InventoryMetadata) {
+func mergeTransformMetadata(inventory *Inventory, metadata *InventoryMetadata) error {
 	if metadata == nil {
-		return
+		return nil
 	}
 	for _, role := range metadata.Roles {
 		_ = inventory.AddMetadata("roles", role)
@@ -128,4 +130,22 @@ func mergeTransformMetadata(inventory *Inventory, metadata *InventoryMetadata) {
 	for _, tag := range metadata.Tags {
 		_ = inventory.AddMetadata("tags", tag)
 	}
+	return mergeTransformCustomFields(inventory, metadata.CustomFields)
+}
+
+func mergeTransformCustomFields(inventory *Inventory, definitions []CustomFieldDefinition) error {
+	existing := make(map[string]bool)
+	for _, definition := range inventory.ListCustomFields() {
+		existing[definition.Key] = true
+	}
+	for _, definition := range definitions {
+		if existing[definition.Key] {
+			continue
+		}
+		if err := inventory.AddCustomField(definition); err != nil {
+			return err
+		}
+		existing[definition.Key] = true
+	}
+	return nil
 }

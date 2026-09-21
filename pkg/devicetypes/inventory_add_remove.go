@@ -144,12 +144,11 @@ func (inv *Inventory) RemoveRack(id uuid.UUID) error {
 
 // RemoveModule deletes a module from the inventory.
 func (inv *Inventory) RemoveModule(id uuid.UUID) error {
-	if _, exists := inv.Modules[id]; !exists {
+	if inv.Modules[id] == nil {
 		return fmt.Errorf("module %s not found", id)
 	}
-	inv.removeCablesForDevice(id)
-	delete(inv.Modules, id)
-	return nil
+	inv.removeModule(id)
+	return inv.RebuildDerivedState().Err()
 }
 
 // RemoveCable deletes a cable from the inventory.
@@ -158,6 +157,7 @@ func (inv *Inventory) RemoveCable(id uuid.UUID) error {
 		return fmt.Errorf("cable %s not found", id)
 	}
 	delete(inv.Cables, id)
+	inv.unlinkCableReferences(id)
 	return nil
 }
 
@@ -184,6 +184,7 @@ func (inv *Inventory) AddInterface(iface *CaniInterface) error {
 		}
 	}
 
+	mgmtOnly := iface.MgmtOnly
 	spec := InterfaceSpec{
 		ID:               iface.ID,
 		Name:             iface.Name,
@@ -191,6 +192,7 @@ func (inv *Inventory) AddInterface(iface *CaniInterface) error {
 		Label:            iface.Label,
 		Role:             iface.Role,
 		MacAddress:       iface.MacAddress,
+		MgmtOnly:         &mgmtOnly,
 		Tags:             iface.Tags,
 		Lag:              iface.Lag,
 		Mode:             iface.Mode,
@@ -199,6 +201,11 @@ func (inv *Inventory) AddInterface(iface *CaniInterface) error {
 		VRF:              iface.VRF,
 		Description:      iface.Description,
 		Status:           iface.Status,
+		Tenant:           iface.Tenant,
+		CustomFields:     iface.CustomFields,
+		ExternalIDs:      iface.ExternalIDs,
+		ContentType:      iface.ContentType,
+		ConnectedCable:   iface.ConnectedCable,
 		ProviderMetadata: iface.ProviderMetadata,
 	}
 	if devOK {
