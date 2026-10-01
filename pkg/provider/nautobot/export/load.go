@@ -984,40 +984,6 @@ func containsInfiniband(device *devicetypes.CaniDeviceType) bool {
 	return false
 }
 
-// mapInterfaceType maps device type library interface types to Nautobot API types
-func mapInterfaceType(ifaceType string) string {
-	// Handle common mappings between devicetypes library and Nautobot API
-	lower := strings.ToLower(ifaceType)
-	switch {
-	case strings.Contains(lower, ifaceType1000BaseT), strings.Contains(lower, "1gbase-t"):
-		return ifaceType1000BaseT
-	case strings.Contains(lower, ifaceType10GBaseXSFPP), strings.Contains(lower, "10gbase-x"):
-		return ifaceType10GBaseXSFPP
-	case strings.Contains(lower, ifaceType25GBaseXSFP28):
-		return ifaceType25GBaseXSFP28
-	case strings.Contains(lower, ifaceType40GBaseXQSFPP):
-		return ifaceType40GBaseXQSFPP
-	case strings.Contains(lower, ifaceType100GBaseXQSFP28):
-		return ifaceType100GBaseXQSFP28
-	case strings.Contains(lower, ifaceType200GBaseXQSFP56):
-		return ifaceType200GBaseXQSFP56
-	case strings.Contains(lower, ifaceType400GBaseXOSFP), strings.Contains(lower, "400gbase-x-qsfpdd"):
-		return ifaceType400GBaseXOSFP
-	case strings.Contains(lower, ifaceTypeInfinibandNDR):
-		return ifaceTypeInfinibandNDR
-	case strings.Contains(lower, ifaceTypeInfinibandHDR):
-		return ifaceTypeInfinibandHDR
-	case strings.Contains(lower, ifaceType100BaseTX):
-		return ifaceType100BaseTX
-	default:
-		// Return as-is if no mapping needed
-		if ifaceType != "" {
-			return ifaceType
-		}
-		return ifaceType1000BaseT // Default fallback
-	}
-}
-
 // getSpeedForType returns the speed in Kbps for a given interface type
 func getSpeedForType(ifaceType string) int {
 	switch ifaceType {

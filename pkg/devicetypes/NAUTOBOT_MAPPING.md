@@ -230,7 +230,7 @@ Exported in Phase 4 by `loadModules()` in `export/load_modules.go`. For each mod
 | `Type` | `Type` | — | Cani-Internal | CANI classification |
 | `Weight` / `WeightUnit` | `float64` / `string` | — | Cani-Internal | No Nautobot equivalent |
 | `Comments` | `string` | `ModuleType.Comments` | **Mapped** | Template → `ModuleType.Comments` |
-| `Interfaces` | `[]InterfaceSpec` | Creates `Interface` objects on parent device | **Mapped** | Created after the module; duplicate names are skipped |
+| `Interfaces` | `[]InterfaceSpec` | Creates `Interface` objects on parent device | **Mapped** | Created after the module; duplicate names and types outside Nautobot's `InterfaceTypeChoices` enum are skipped (see §2a.1 `Type`) |
 | `ParentDevice` | `uuid.UUID` | `Module.Device` (via parent device's module bay) | **Mapped** | Resolved to Nautobot device ID via cache |
 | `ModuleBayName` | `string` | `Module.ParentModuleBay` (FK) | **Mapped** | Gets or creates ModuleBay on parent device |
 | `Serial` | `string` | `Module.Serial` | **Mapped** | Mapped when non-empty |
@@ -357,6 +357,7 @@ template (name/type/mgmt-only) and are **not** device-type template fields.
 | `Role` | `string` | `Interface.role` (FK) | **Mapped** | e.g. `management`, `hsn`; validated against registered roles. Nautobot 3.2 marks the FK `omitempty`, so `interfacePatch` injects explicit `role: null` when the local role is empty; enrichment otherwise re-sends the role to avoid clobbering it |
 | `Tags` | `[]string` | `Interface.tags` | **Mapped** | Exported via the shared tag resolver |
 | `MacAddress` | `string` | `Interface.mac_address` | **Mapped** | Normalized on `update interface` |
+| `Type` | `InterfacesElemType` | `Interface.type` | **Mapped** | Template field from the library `interfaces[].type`. Values in Nautobot's `InterfaceTypeChoices` enum pass through unchanged (case-folded) and the library alias `1gbase-t` becomes `1000base-t` (`export/interface_types.go`; `TestNautobotInterfaceTypesMatchGeneratedEnum` keeps the set equal to the generated client). Module interfaces with any other type are skipped; device interfaces are sent unchanged and rejected by Nautobot at create |
 | `MgmtOnly` | `bool` / `*bool` | `Interface.mgmt_only` | **Mapped** | Preserved when an instance is added to the embedded interface specs and rebuilt on load |
 | `Tenant` | `string` | `Interface.tenant` (FK) | Not Mapped | Preserved in inventory specs and rebuilt instances; not sent by the interface exporter |
 | `CustomFields` | `map[string]any` | `Interface.custom_fields` | Not Mapped | Preserved in inventory specs and rebuilt instances; not sent by the interface exporter |
