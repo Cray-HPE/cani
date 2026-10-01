@@ -37,7 +37,6 @@ import (
 	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
-	"github.com/google/uuid"
 )
 
 const (
@@ -149,15 +148,14 @@ func applyModuleStatusSerial(mod *devicetypes.CaniModuleType, statusArg, serialA
 // commitPlannedModules creates and saves a module for each placement entry.
 func commitPlannedModules(inventory *devicetypes.Inventory, base *devicetypes.CaniModuleType, entries []placement.ModulePlacementEntry, names []string, statusArg, serialArg string) error {
 	for i, e := range entries {
-		mod := *base
-		mod.ID = uuid.New()
+		mod := base.NewInstance()
 		mod.ParentDevice = e.DeviceID
 		mod.ModuleBayName = e.BayName
 		if i < len(names) {
 			mod.Name = names[i]
 		}
-		applyModuleStatusSerial(&mod, statusArg, serialArg)
-		if err := inventory.AddModule(&mod); err != nil {
+		applyModuleStatusSerial(mod, statusArg, serialArg)
+		if err := inventory.AddModule(mod); err != nil {
 			return fmt.Errorf(errAddModule, err)
 		}
 		log.Printf("Added module %s (%s) in %s bay %s", mod.ID, mod.Name, e.DeviceName, e.BayName)

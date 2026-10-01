@@ -79,11 +79,10 @@ func NewDeviceFromSlug(slug string) (*CaniDeviceType, error) {
 	if !ok {
 		return nil, fmt.Errorf("device type slug %q not found in library", slug)
 	}
-	device := dt // shallow copy
-	device.ID = uuid.New()
+	device := dt.NewInstance()
 	device.Name = generateCaniName()
 	device.Status = string(StatusStaged)
-	return &device, nil
+	return device, nil
 }
 
 // NewDeviceFromPartNumber creates a CaniDeviceType from a part number.
@@ -92,11 +91,10 @@ func NewDeviceFromPartNumber(partNumber string) (*CaniDeviceType, error) {
 	if !ok {
 		return nil, fmt.Errorf("device type part number %q not found in library", partNumber)
 	}
-	device := dt
-	device.ID = uuid.New()
+	device := dt.NewInstance()
 	device.Name = generateCaniName()
 	device.Status = string(StatusStaged)
-	return &device, nil
+	return device, nil
 }
 
 // NewRackFromSlug creates a CaniRackType inventory instance from a registry slug.
@@ -131,11 +129,10 @@ func NewModuleFromSlug(slug string) (*CaniModuleType, error) {
 	if !ok {
 		return nil, fmt.Errorf("module type slug %q not found in library", slug)
 	}
-	mod := mt
-	mod.ID = uuid.New()
+	mod := mt.NewInstance()
 	mod.Name = mt.Model
 	mod.Status = string(StatusActive)
-	return &mod, nil
+	return mod, nil
 }
 
 // NewModuleFromPartNumber creates a CaniModuleType from a part number.
@@ -144,11 +141,10 @@ func NewModuleFromPartNumber(partNumber string) (*CaniModuleType, error) {
 	if !ok {
 		return nil, fmt.Errorf("module type part number %q not found in library", partNumber)
 	}
-	mod := mt
-	mod.ID = uuid.New()
+	mod := mt.NewInstance()
 	mod.Name = mt.Model
 	mod.Status = string(StatusActive)
-	return &mod, nil
+	return mod, nil
 }
 
 // NewCableFromSlug creates a CaniCableType instance from a registry slug.
