@@ -35,7 +35,6 @@ import (
 	"github.com/Cray-HPE/cani/internal/util/placement"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
-	"github.com/google/uuid"
 )
 
 // addModuleMultiDevice plans and commits modules across all matching devices.
@@ -71,8 +70,7 @@ func addModuleSingleDevice(inventory *devicetypes.Inventory, base *devicetypes.C
 	}
 
 	for i := range opts.qty {
-		mod := *base
-		mod.ID = uuid.New()
+		mod := base.NewInstance()
 		mod.ModuleBayName = opts.bayName
 		if len(devices) == 1 {
 			mod.ParentDevice = devices[0].ID
@@ -80,8 +78,8 @@ func addModuleSingleDevice(inventory *devicetypes.Inventory, base *devicetypes.C
 		if names != nil {
 			mod.Name = names[i]
 		}
-		applyModuleStatusSerial(&mod, opts.statusArg, opts.serialArg)
-		if err := inventory.AddModule(&mod); err != nil {
+		applyModuleStatusSerial(mod, opts.statusArg, opts.serialArg)
+		if err := inventory.AddModule(mod); err != nil {
 			return fmt.Errorf(errAddModule, err)
 		}
 		log.Printf("Added module %s (%s)", mod.ID, mod.Name)

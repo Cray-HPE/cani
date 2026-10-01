@@ -157,8 +157,7 @@ func addDeviceStrategy(cmd *cli.Command, result *lookupResult, qty int, nameArg 
 
 	devicesToAdd := make(map[uuid.UUID]*devicetypes.CaniDeviceType, qty)
 	for i, e := range entries {
-		device := *result.Device
-		device.ID = uuid.New()
+		device := result.Device.NewInstance()
 		device.Parent = e.RackID
 		device.RackPosition = e.StartU
 		device.Face = e.Face
@@ -171,12 +170,12 @@ func addDeviceStrategy(cmd *cli.Command, result *lookupResult, qty int, nameArg 
 		if serialArg != "" {
 			device.Serial = serialArg
 		}
-		applyTagsToDevice(&device, tags)
-		applyProviderMetadataToDevice(&device, provMeta)
-		devicesToAdd[device.ID] = &device
+		applyTagsToDevice(device, tags)
+		applyProviderMetadataToDevice(device, provMeta)
+		devicesToAdd[device.ID] = device
 
 		// Expand child devices from device-bay defaults.
-		for cid, child := range devicetypes.ExpandChildren(&device) {
+		for cid, child := range devicetypes.ExpandChildren(device) {
 			devicesToAdd[cid] = child
 		}
 
@@ -246,8 +245,7 @@ func addDeviceLiteral(cmd *cli.Command, result *lookupResult, qty int, nameArg, 
 
 	devicesToAdd := make(map[uuid.UUID]*devicetypes.CaniDeviceType)
 	for i := range qty {
-		device := *result.Device // shallow copy
-		device.ID = uuid.New()
+		device := result.Device.NewInstance()
 
 		if rackArg != "" {
 			rackID, rerr := resolve.Rack(inventory, rackArg)
@@ -291,8 +289,8 @@ func addDeviceLiteral(cmd *cli.Command, result *lookupResult, qty int, nameArg, 
 		if serialArg != "" {
 			device.Serial = serialArg
 		}
-		applyTagsToDevice(&device, tags)
-		applyProviderMetadataToDevice(&device, provMeta)
+		applyTagsToDevice(device, tags)
+		applyProviderMetadataToDevice(device, provMeta)
 
 		// Place in rack OccupiedSlots so the rack view is accurate.
 		if rack := inventory.Racks[device.Parent]; rack != nil && device.RackPosition > 0 {
@@ -308,10 +306,10 @@ func addDeviceLiteral(cmd *cli.Command, result *lookupResult, qty int, nameArg, 
 			}
 		}
 
-		devicesToAdd[device.ID] = &device
+		devicesToAdd[device.ID] = device
 
 		// Expand child devices from device-bay defaults.
-		for cid, child := range devicetypes.ExpandChildren(&device) {
+		for cid, child := range devicetypes.ExpandChildren(device) {
 			devicesToAdd[cid] = child
 		}
 	}
