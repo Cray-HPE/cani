@@ -5336,18 +5336,18 @@ func TestMapInterfaceTypeInfinibandHDR(t *testing.T) {
 	}
 }
 
-// TestMapInterfaceType400gQSFPDD verifies mapInterfaceType folds the QSFP-DD form
-// factor "400gbase-x-qsfpdd" into Nautobot's "400gbase-x-osfp".
+// TestMapInterfaceType400gQSFPDD verifies mapInterfaceType passes the QSFP-DD
+// form factor "400gbase-x-qsfpdd" through unchanged.
 //
-// Why it matters: cani may emit either 400G form factor, but the exporter
-// normalizes both onto the single 400G slug it sends to Nautobot on create.
-// Inputs: "400gbase-x-qsfpdd". Outputs: "400gbase-x-osfp".
-// Data choice: QSFP-DD is the alternate 400G connector, chosen to prove the
-// normalization branch rather than a pass-through.
+// Why it matters: Nautobot accepts both 400G form factors, and folding QSFP-DD
+// onto OSFP lost the connector type on export and on the following re-import.
+// Inputs: "400gbase-x-qsfpdd". Outputs: "400gbase-x-qsfpdd".
+// Data choice: QSFP-DD is the alternate 400G connector that the old mapper
+// rewrote, so it proves the pass-through rather than an identity case.
 func TestMapInterfaceType400gQSFPDD(t *testing.T) {
 	got := mapInterfaceType("400gbase-x-qsfpdd")
-	if got != "400gbase-x-osfp" {
-		t.Errorf("got %q, want '400gbase-x-osfp'", got)
+	if got != "400gbase-x-qsfpdd" {
+		t.Errorf("got %q, want '400gbase-x-qsfpdd'", got)
 	}
 }
 
@@ -5730,12 +5730,12 @@ func TestIsValidNautobotInterfaceTypeValid(t *testing.T) {
 //
 // Why it matters: rejecting unknown types prevents the exporter from sending
 // values Nautobot would refuse on create.
-// Inputs: "not-a-type", "ethernet", "10gbase-t", and "". Outputs: false for each.
-// Data choice: the cases include a bogus string, a too-generic name, a
-// plausible-but-unsupported copper slug, and the empty string to cover near
-// misses and the zero value.
+// Inputs: "not-a-type", "ethernet", "1gbase-t", and "". Outputs: false for each.
+// Data choice: the cases include a bogus string, a too-generic name, a library
+// alias that only mapInterfaceType understands, and the empty string to cover
+// near misses and the zero value.
 func TestIsValidNautobotInterfaceTypeInvalid(t *testing.T) {
-	invalidTypes := []string{"not-a-type", "ethernet", "10gbase-t", ""}
+	invalidTypes := []string{"not-a-type", "ethernet", "1gbase-t", ""}
 	for _, vt := range invalidTypes {
 		if isValidNautobotInterfaceType(vt) {
 			t.Errorf("expected false for %q", vt)

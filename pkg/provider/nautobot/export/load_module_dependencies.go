@@ -170,18 +170,6 @@ func (e *Exporter) createModuleInterfaces(
 	return nil
 }
 
-func isValidNautobotInterfaceType(ifaceType string) bool {
-	switch ifaceType {
-	case "100base-tx", "1000base-t", "10gbase-x-sfpp", "25gbase-x-sfp28",
-		"40gbase-x-qsfpp", "100gbase-x-qsfp28", "200gbase-x-qsfp56",
-		"400gbase-x-osfp", "400gbase-x-qsfpdd", "infiniband-hdr",
-		"infiniband-ndr", "virtual", "lag", "other":
-		return true
-	default:
-		return false
-	}
-}
-
 func derefString(value *string) string {
 	if value == nil {
 		return ""
