@@ -570,8 +570,10 @@ func (inv *Inventory) FindInterfaceIDByPort(deviceID uuid.UUID, portName string)
 			return device.Interfaces[i].ID
 		}
 	}
-	// Fall back to module interfaces.
-	for _, mod := range inv.Modules {
+	// Fall back to module interfaces, visiting modules in a stable order so
+	// same-named ports on sibling modules resolve the same way every time.
+	for _, moduleID := range sortedIDs(inv.Modules) {
+		mod := inv.Modules[moduleID]
 		if mod == nil || mod.ParentDevice != deviceID {
 			continue
 		}
@@ -681,7 +683,8 @@ func (inv *Inventory) validateCableEnd(
 
 // rebuildInterfaceRelationships clears and rebuilds Inventory.Interfaces
 // from each device's and module's embedded Interfaces slices,
-// reporting only newly indexed interfaces.
+// reporting only newly indexed interfaces. Owners are visited in a stable
+// order so a contested interface ID always stays with the same owner.
 func (inv *Inventory) rebuildInterfaceRelationships() *RelationshipResult {
 	res := &RelationshipResult{}
 
@@ -693,37 +696,25 @@ func (inv *Inventory) rebuildInterfaceRelationships() *RelationshipResult {
 
 	inv.Interfaces = make(map[uuid.UUID]*CaniInterface)
 
-	for deviceID, device := range inv.Devices {
+	for _, deviceID := range sortedIDs(inv.Devices) {
+		device := inv.Devices[deviceID]
 		if device == nil {
 			continue
 		}
-		inv.indexInterfaceSpecs(device.Interfaces, deviceID, "device", device.Name, oldIfaces, res)
+		owner := interfaceOwner{deviceID: deviceID, ownerID: deviceID, kind: "device", name: device.Name}
+		inv.indexInterfaceSpecs(device.Interfaces, owner, oldIfaces, res)
 	}
 
-	for _, mod := range inv.Modules {
+	for _, moduleID := range sortedIDs(inv.Modules) {
+		mod := inv.Modules[moduleID]
 		if mod == nil {
 			continue
 		}
-		inv.indexInterfaceSpecs(mod.Interfaces, mod.ParentDevice, "module", mod.Name, oldIfaces, res)
+		owner := interfaceOwner{deviceID: mod.ParentDevice, ownerID: moduleID, kind: "module", name: mod.Name}
+		inv.indexInterfaceSpecs(mod.Interfaces, owner, oldIfaces, res)
 	}
 
 	return res
-}
-
-func (inv *Inventory) indexInterfaceSpecs(interfaces []InterfaceSpec, deviceID uuid.UUID,
-	ownerKind, ownerName string, oldIfaces map[uuid.UUID]bool, result *RelationshipResult) {
-	for i := range interfaces {
-		iface := &interfaces[i]
-		if iface.ID == uuid.Nil {
-			iface.ID = uuid.New()
-		}
-		inv.Interfaces[iface.ID] = interfaceInstanceFromSpec(iface, deviceID)
-		if !oldIfaces[iface.ID] {
-			result.Fixed = append(result.Fixed,
-				fmt.Sprintf("interface %q (%s) indexed from %s %q",
-					iface.Name, iface.ID, ownerKind, ownerName))
-		}
-	}
 }
 
 // detectCircularLocationRefs walks location parent chains to find cycles.
