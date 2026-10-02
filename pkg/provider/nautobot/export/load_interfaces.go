@@ -113,7 +113,7 @@ func (e *Exporter) collectNewInterfaces(
 			clog.Warn("Warning: failed to prefetch interfaces for %s: %v", deviceName, err)
 		}
 
-		specs := getDeviceInterfaceSpecs(device)
+		specs := supportedInterfaceSpecs(getDeviceInterfaceSpecs(device), deviceName, result)
 		for _, spec := range specs {
 			existing, err := e.Cache.GetInterfaceByDeviceAndName(nautobotID, spec.Name)
 			if err != nil {
