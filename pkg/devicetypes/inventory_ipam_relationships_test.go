@@ -94,6 +94,90 @@ func TestMergeTransformRejectsDanglingIPAMAtomically(t *testing.T) {
 	}
 }
 
+// TestMergeTransformRejectsConflictingIPAMIdentityAtomically verifies the
+// complete-result transaction rolls back when an incoming prefix shares a
+// natural key with an existing prefix but carries a different source UUID.
+//
+// Why it matters: the conflict surfaces in the IPAM merge stage, after
+// locations, racks, devices and VLANs have already merged into the working
+// copy; the receiver must still be untouched.
+// Inputs: the reference fixture (Global 10.0.0.0/24 with a nautobot external
+// ID) and a transform result with the same key under another nautobot UUID.
+// Outputs: an error naming the source-identity conflict and byte-identical
+// inventory and input.
+// Data choice: giving the existing prefix an external ID is what turns a plain
+// natural-key match into a conflict.
+func TestMergeTransformRejectsConflictingIPAMIdentityAtomically(t *testing.T) {
+	fixture := newIPAMReferenceFixture(t)
+	fixture.prefix.ExternalIDs = map[string]uuid.UUID{"nautobot": uuid.New()}
+	incomingID := uuid.New()
+	result := &TransformResult{Prefixes: map[uuid.UUID]*CaniPrefix{
+		incomingID: {ID: incomingID, Prefix: "10.0.0.0/24", ObjectMeta: ObjectMeta{ExternalIDs: map[string]uuid.UUID{"nautobot": uuid.New()}}},
+	}}
+	before := inventoryJSONForReferenceTest(t, fixture.inventory)
+	inputBefore := inventoryJSONForReferenceTest(t, result)
+
+	_, err := fixture.inventory.MergeTransformResult(result)
+
+	assertIPAMReferenceError(t, "MergeTransformResult", err, "different source identity")
+	if got := inventoryJSONForReferenceTest(t, fixture.inventory); got != before {
+		t.Error("rejected merge changed the live inventory")
+	}
+	if got := inventoryJSONForReferenceTest(t, result); got != inputBefore {
+		t.Error("rejected merge mutated its transform input")
+	}
+}
+
+// TestMergeTransformKeepsNamespacesSeparate verifies a transform result that
+// repeats the fixture's prefix and host text in another namespace is merged
+// as new objects whose relationships stay inside that namespace.
+//
+// Why it matters: this is the acceptance case for combining inventories from
+// independent networks — equal object text must not merge, and the new
+// address must parent to the new prefix, not the Global one.
+// Inputs: the reference fixture plus a tenant-a 10.0.0.0/24 with a tenant-a
+// VRF membership and a 10.0.0.1/24 address intended for tenant-a. Outputs:
+// two prefixes, two addresses, two VRFs; the new address parented to the
+// tenant-a prefix; the membership remapped to the merged tenant-a VRF.
+// Data choice: the VRF carries the same name as the fixture's Global VRF so a
+// name-only merge would wrongly collapse it.
+func TestMergeTransformKeepsNamespacesSeparate(t *testing.T) {
+	fixture := newIPAMReferenceFixture(t)
+	vrfID, prefixID, addressID := uuid.New(), uuid.New(), uuid.New()
+	result := &TransformResult{
+		VRFs:     map[uuid.UUID]*CaniVRF{vrfID: {ID: vrfID, Name: "local", Namespace: "tenant-a"}},
+		Prefixes: map[uuid.UUID]*CaniPrefix{prefixID: {ID: prefixID, Prefix: "10.0.0.0/24", Namespace: "tenant-a", VRFs: []uuid.UUID{vrfID}}},
+		IPAddresses: map[uuid.UUID]*CaniIPAddress{
+			addressID: {ID: addressID, Host: "10.0.0.1", Address: "10.0.0.1/24", Namespace: "tenant-a"},
+		},
+	}
+
+	summary, err := fixture.inventory.MergeTransformResult(result)
+	if err != nil {
+		t.Fatalf("MergeTransformResult returned error: %v", err)
+	}
+
+	inv := fixture.inventory
+	if len(inv.Prefixes) != 2 || len(inv.IPAddresses) != 2 || len(inv.VRFs) != 2 {
+		t.Fatalf("counts = prefixes %d, addresses %d, vrfs %d; want 2 each", len(inv.Prefixes), len(inv.IPAddresses), len(inv.VRFs))
+	}
+	mergedPrefix := inv.Prefixes[summary.Remaps.Prefixes[prefixID]]
+	mergedAddress := inv.IPAddresses[summary.Remaps.IPAddresses[addressID]]
+	mergedVRF := summary.Remaps.VRFs[vrfID]
+	if mergedPrefix == nil || mergedAddress == nil || inv.VRFs[mergedVRF] == nil {
+		t.Fatal("merged tenant-a objects are missing from the inventory")
+	}
+	if mergedAddress.Parent != mergedPrefix.ID {
+		t.Errorf("tenant-a address parent = %v, want the tenant-a prefix %v, not the Global one", mergedAddress.Parent, mergedPrefix.ID)
+	}
+	if len(mergedPrefix.VRFs) != 1 || mergedPrefix.VRFs[0] != mergedVRF {
+		t.Errorf("tenant-a prefix VRFs = %v, want [%v]", mergedPrefix.VRFs, mergedVRF)
+	}
+	if fixture.address.Parent != fixture.prefix.ID {
+		t.Errorf("Global address parent changed to %v", fixture.address.Parent)
+	}
+}
+
 type ipamReferenceFixture struct {
 	inventory *Inventory
 	device    *CaniDeviceType

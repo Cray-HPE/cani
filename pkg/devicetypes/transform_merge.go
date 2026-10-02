@@ -73,14 +73,9 @@ func (inv *Inventory) MergeTransformResult(result *TransformResult) (*TransformM
 	incoming.RemapReferences(working, remaps)
 	remaps.VLANs = working.MergeVLANs(incoming.VLANs)
 	incoming.RemapReferences(working, remaps)
-	incoming.DerivePrefixParents(working.Prefixes)
-	remaps.Prefixes = working.MergePrefixes(incoming.Prefixes)
-	incoming.RemapReferences(working, remaps)
-	incoming.DeriveIPAddressParents(working.Prefixes)
-	remaps.IPAddresses = working.MergeIPAddresses(incoming.IPAddresses)
-	incoming.RemapReferences(working, remaps)
-	remaps.VRFs = working.MergeVRFs(incoming.VRFs)
-	incoming.RemapReferences(working, remaps)
+	if err := mergeTransformIPAM(working, incoming, &remaps); err != nil {
+		return nil, err
+	}
 
 	if relationshipResult := working.RebuildDerivedState(); relationshipResult.Err() != nil {
 		return nil, fmt.Errorf("relationship validation failed after merge: %w", relationshipResult.Err())
@@ -88,6 +83,30 @@ func (inv *Inventory) MergeTransformResult(result *TransformResult) (*TransformM
 	working.RebuildProviderKeyIndex()
 	*inv = *working
 	return &TransformMergeSummary{Remaps: remaps}, nil
+}
+
+// mergeTransformIPAM merges VRFs, prefixes, and addresses in dependency
+// order: VRFs first so prefix memberships can be remapped before prefixes
+// merge, and parents derived before each merge so natural keys can use the
+// namespace of a parent already in the working inventory. An identity
+// conflict aborts the whole merge before the receiver is touched.
+func mergeTransformIPAM(working *Inventory, incoming *TransformResult, remaps *ReferenceRemaps) error {
+	var err error
+	if remaps.VRFs, err = working.MergeVRFs(incoming.VRFs); err != nil {
+		return fmt.Errorf("merge VRFs: %w", err)
+	}
+	incoming.RemapReferences(working, *remaps)
+	incoming.DerivePrefixParents(working.Prefixes)
+	if remaps.Prefixes, err = working.MergePrefixes(incoming.Prefixes); err != nil {
+		return fmt.Errorf("merge prefixes: %w", err)
+	}
+	incoming.RemapReferences(working, *remaps)
+	incoming.DeriveIPAddressParents(working.Prefixes)
+	if remaps.IPAddresses, err = working.MergeIPAddresses(incoming.IPAddresses); err != nil {
+		return fmt.Errorf("merge IP addresses: %w", err)
+	}
+	incoming.RemapReferences(working, *remaps)
+	return nil
 }
 
 func cloneInventory(inventory *Inventory) (*Inventory, error) {
