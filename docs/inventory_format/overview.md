@@ -28,12 +28,16 @@ type Inventory struct {
 }
 ```
 
-The current schema generation is `v1alpha8`. It adds optional device parent-bay
+The current schema generation is `v1alpha9`. It records the owning module of a
+module interface (`moduleId`) and admits spare modules, which are stored at a
+location with no parent device. `v1alpha8` added optional device parent-bay
 placement and unresolved module-interface name/label templates. Older
 inventories are migrated through each generation on load, with the original
-file backed up to `.canisave`. The `v1alpha7` to `v1alpha8` step only advances the
-version: it preserves existing values without inferring bay assignments or
-missing templates.
+file backed up to `.canisave`. The `v1alpha7` to `v1alpha8` and `v1alpha8` to
+`v1alpha9` steps only advance the version: they preserve existing values without
+inferring bay assignments or missing templates, and module ownership is rebuilt
+from the module specs on every load. Earlier cani releases refuse a `v1alpha9`
+inventory rather than load and rewrite one that may contain spares.
 
 ## Hardware Types
 
@@ -55,7 +59,8 @@ Items reference each other by UUID:
 - A **Location** has `Children` (child locations) and `Racks`.
 - A **Rack** has a `Location` FK and a `Devices` list.
 - A **Device** has `Parent`, `Children`, `Rack`, `Location`, and `Frus` references.
-- A **Module** has a `ParentDevice` FK.
+- A **Module** has a `ParentDevice` FK, or, as a spare, a `Location` FK and no
+  parent device.
 - A **Cable** has `TerminationA` and `TerminationB` endpoint UUIDs.
 - A **FRU** has a `Device` or `Parent` FK.
 

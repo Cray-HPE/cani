@@ -76,6 +76,9 @@ func mergeModuleProperties(existing, incoming *CaniModuleType) {
 	if incoming.Serial != "" {
 		existing.Serial = incoming.Serial
 	}
+	if incoming.AssetTag != "" {
+		existing.AssetTag = incoming.AssetTag
+	}
 	if incoming.Manufacturer != "" {
 		existing.Manufacturer = incoming.Manufacturer
 	}
@@ -85,7 +88,28 @@ func mergeModuleProperties(existing, incoming *CaniModuleType) {
 	if incoming.Type != "" {
 		existing.Type = incoming.Type
 	}
+	mergeModulePlacement(existing, incoming)
 	mergeObjectMeta(&existing.ObjectMeta, incoming.ObjectMeta)
+}
+
+// mergeModulePlacement takes the incoming module's placement as one unit, so
+// a module the provider reports in another bay or device, newly installed, or
+// stored as a spare is placed where the provider reports it; field-by-field
+// merging could leave a module both installed and stored. An incoming module
+// with no placement leaves the existing one untouched, and an incoming module
+// on the same parent with no bay name keeps the existing bay, because a
+// provider that does not know the library's bay names cannot clear one.
+func mergeModulePlacement(existing, incoming *CaniModuleType) {
+	switch {
+	case incoming.ParentDevice != uuid.Nil:
+		if incoming.ParentDevice != existing.ParentDevice || incoming.ModuleBayName != "" {
+			existing.ModuleBayName = incoming.ModuleBayName
+		}
+		existing.ParentDevice = incoming.ParentDevice
+		existing.Location = incoming.Location
+	case incoming.Location != uuid.Nil:
+		existing.ParentDevice, existing.ModuleBayName, existing.Location = uuid.Nil, "", incoming.Location
+	}
 }
 
 // MergeFrus merges FRUs by UUID, source identity, or name and owner.

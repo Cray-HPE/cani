@@ -120,9 +120,21 @@ func (c *CaniDeviceType) MergeProperties(other *CaniDeviceType) bool {
 		mergeSet(&c.Parent, other.Parent),
 		mergeSet(&c.ParentBay, other.ParentBay),
 		mergeSet(&c.Location, other.Location),
+		c.mergeModuleBays(other.ModuleBays),
 		c.mergeMetadata(other.ProviderMetadata),
 	}
 	return slices.Contains(changes, true)
+}
+
+// mergeModuleBays takes the bays the source system declares for the device,
+// so a module's bay is resolved against those names on re-import; an
+// incoming record that declares none keeps the existing bays.
+func (c *CaniDeviceType) mergeModuleBays(incoming []ModuleBaySpec) bool {
+	if len(incoming) == 0 || slices.Equal(c.ModuleBays, incoming) {
+		return false
+	}
+	c.ModuleBays = slices.Clone(incoming)
+	return true
 }
 
 // mergeStrings carries every set string field of other; Type joins the table

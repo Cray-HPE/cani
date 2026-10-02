@@ -76,7 +76,7 @@ func TestMigrateV1Alpha7PreservesInventory(t *testing.T) {
 }
 
 func TestJSONStoreMigratesV1Alpha7WithoutDataLoss(t *testing.T) {
-	assertV1Alpha7StoreUpgrade(t, v1Alpha7BayInventory(t))
+	assertStoreUpgrade(t, v1Alpha7BayInventory(t), devicetypes.SchemaVersionV1Alpha7)
 }
 
 func TestJSONStoreMigratesV1Alpha7WithoutInferringNewFields(t *testing.T) {
@@ -90,7 +90,7 @@ func TestJSONStoreMigratesV1Alpha7WithoutInferringNewFields(t *testing.T) {
 			module.Interfaces[i].LabelTemplate = nil
 		}
 	}
-	assertV1Alpha7StoreUpgrade(t, inventory)
+	assertStoreUpgrade(t, inventory, devicetypes.SchemaVersionV1Alpha7)
 }
 
 func TestJSONStoreRejectsV1Alpha7Writes(t *testing.T) {
@@ -106,7 +106,7 @@ func TestJSONStoreRejectsV1Alpha7Writes(t *testing.T) {
 	}
 }
 
-func assertV1Alpha7StoreUpgrade(t *testing.T, inventory *devicetypes.Inventory) {
+func assertStoreUpgrade(t *testing.T, inventory *devicetypes.Inventory, from string) {
 	t.Helper()
 	original := schemaMigrationJSON(t, inventory)
 	path := filepath.Join(t.TempDir(), "inventory.json")
@@ -122,12 +122,12 @@ func assertV1Alpha7StoreUpgrade(t *testing.T, inventory *devicetypes.Inventory) 
 
 	saved := readSchemaMigrationFile(t, path)
 	assertOnlySchemaVersionChanged(t, original, saved,
-		devicetypes.SchemaVersionV1Alpha7, devicetypes.CurrentSchemaVersion)
+		from, devicetypes.CurrentSchemaVersion)
 	if !bytes.Equal(schemaMigrationJSON(t, loaded), saved) {
 		t.Fatal("loaded inventory differs from the persisted migration")
 	}
 	if !bytes.Equal(readSchemaMigrationFile(t, path+".canisave"), original) {
-		t.Fatal("migration backup does not preserve the original v1alpha7 data")
+		t.Fatalf("migration backup does not preserve the original %s data", from)
 	}
 
 	if _, err := store.Load(); err != nil {
