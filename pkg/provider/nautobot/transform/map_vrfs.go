@@ -60,7 +60,7 @@ func MapVRFs(
 			Description: strVal(vrf.Description),
 			ObjectMeta: devicetypes.ObjectMeta{
 				Status:      resolveTenantRefName(vrf.Status, statusNameMap),
-				ExternalIDs: map[string]uuid.UUID{"nautobot": nbID},
+				ExternalIDs: map[string]uuid.UUID{externalIDKeyNautobot: nbID},
 			},
 		}
 		if vrf.CustomFields != nil {

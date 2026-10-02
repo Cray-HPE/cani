@@ -133,6 +133,10 @@ func warnReferenceShape(ref any, err error) {
 	clog.Warn("generated reference shape mismatch: %v", err)
 }
 
+// externalIDKeyNautobot is the ExternalIDs key under which every mapped
+// object carries its Nautobot UUID; it equals the provider slug.
+const externalIDKeyNautobot = "nautobot"
+
 // refID extracts the UUID from a Nautobot reference value's Id union. Invalid
 // generated shapes are reported once and retain the legacy uuid.Nil fallback.
 func refID(ref any) uuid.UUID {

@@ -106,6 +106,8 @@ func runTransformPhase(ctx *etlContext) error {
 	}
 
 	displayTransformSummary(ctx, result)
+	printTransformWarnings(result.Warnings)
+	ctx.notImported = len(result.Warnings)
 	if err := mergeTransformResult(ctx, result); err != nil {
 		return fmt.Errorf("transform phase: %w", err)
 	}
@@ -114,6 +116,18 @@ func runTransformPhase(ctx *etlContext) error {
 		visual.PrintPhaseComplete(phaseNameTransform, ctx.opts)
 	}
 	return nil
+}
+
+// printTransformWarnings logs the source records the provider left out of
+// its result, so a partial import is visible before the completion message.
+func printTransformWarnings(warnings []string) {
+	if len(warnings) == 0 {
+		return
+	}
+	log.Printf("=== %d source record(s) not imported ===", len(warnings))
+	for _, warning := range warnings {
+		log.Printf("  %s", warning)
+	}
 }
 
 // displayTransformSummary shows the transform results based on current mode.

@@ -128,6 +128,10 @@ func allEndpointsServer(t *testing.T) *httptest.Server {
 			w.Write(withResults([]map[string]interface{}{
 				{"name": "Server", "content_types": []string{"dcim.device"}},
 			}))
+		case "/ipam/vrf-prefix-assignments/":
+			w.Write(withResults([]map[string]interface{}{{"id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"}}))
+		case "/ipam/namespaces/":
+			w.Write(withResults([]map[string]interface{}{{"name": "tenant-a"}}))
 		default:
 			w.Write(empty())
 		}
@@ -189,6 +193,12 @@ func TestImport_Success(t *testing.T) {
 	}
 	if len(fp.data.Roles) != 1 {
 		t.Errorf("expected 1 role, got %d", len(fp.data.Roles))
+	}
+	if len(fp.data.VRFPrefixAssignments) != 1 {
+		t.Errorf("expected 1 VRF-prefix assignment, got %d", len(fp.data.VRFPrefixAssignments))
+	}
+	if len(fp.data.Namespaces) != 1 {
+		t.Errorf("expected 1 namespace, got %d", len(fp.data.Namespaces))
 	}
 }
 

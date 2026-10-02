@@ -39,8 +39,8 @@ import (
 //   - statusNameMap: Nautobot status UUID → status name
 //   - roleNameMap: Nautobot role UUID → role name
 //
-// Parent prefixes are intentionally left unset: CANI recomputes the prefix
-// hierarchy from the CIDR values after import.
+// Namespace, parent and VRF memberships are left for ScopePrefixes, which
+// sets them from the Nautobot references once every prefix and VRF is mapped.
 func MapPrefixes(
 	raw []nautobotapi.Prefix,
 	assignedLocations map[uuid.UUID]uuid.UUID,
@@ -67,7 +67,7 @@ func MapPrefixes(
 			Location:    resolveAssignedLocation(nbID, assignedLocations, locationMap),
 			ObjectMeta: devicetypes.ObjectMeta{
 				Status:      resolveRefName(prefix.Status, statusNameMap),
-				ExternalIDs: map[string]uuid.UUID{"nautobot": nbID},
+				ExternalIDs: map[string]uuid.UUID{externalIDKeyNautobot: nbID},
 			},
 		}
 		if prefix.Type != nil && prefix.Type.Value != nil {

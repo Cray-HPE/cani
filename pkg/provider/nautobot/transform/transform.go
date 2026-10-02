@@ -55,6 +55,8 @@ type RawData struct {
 	IPAddresses               []nautobotapi.IPAddress
 	VRFs                      []nautobotapi.VRF
 	VRFDeviceAssignments      []nautobotapi.VRFDeviceAssignment
+	VRFPrefixAssignments      []nautobotapi.VRFPrefixAssignment
+	Namespaces                []nautobotapi.Namespace
 }
 
 // Transform converts raw Nautobot API data into a TransformResult.
@@ -121,6 +123,15 @@ func transformRaw(raw *RawData) (*devicetypes.TransformResult, error) {
 	vrfs := MapVRFs(raw.VRFs, raw.VRFDeviceAssignments, deviceMap, statusNameMap)
 	clog.Detail("  Transformed %d VRFs", len(vrfs))
 
+	// 12. Namespace scope and the cross-object IPAM links that depend on it:
+	// VRF and prefix namespaces, prefix parents and VRF memberships, and the
+	// address parent (which fixes the address's namespace). Records whose
+	// scope cannot be resolved are left out and reported to the caller.
+	namespaceNameMap := BuildNamespaceNameMap(raw.Namespaces)
+	warnings := ScopeVRFs(vrfs, raw.VRFs, namespaceNameMap)
+	warnings = append(warnings, ScopePrefixes(prefixes, raw.Prefixes, namespaceNameMap, vrfs, BuildVRFPrefixMembershipMap(raw.VRFPrefixAssignments))...)
+	warnings = append(warnings, ScopeIPAddresses(ipAddresses, raw.IPAddresses, prefixes)...)
+
 	return &devicetypes.TransformResult{
 		Locations:   locations,
 		Racks:       racks,
@@ -132,6 +143,7 @@ func transformRaw(raw *RawData) (*devicetypes.TransformResult, error) {
 		Prefixes:    prefixes,
 		IPAddresses: ipAddresses,
 		VRFs:        vrfs,
+		Warnings:    warnings,
 	}, nil
 }
 

@@ -66,6 +66,8 @@ func (p *Nautobot) Transform(ctx context.Context, existing devicetypes.Inventory
 			IPAddresses:               p.rawIPAddresses,
 			VRFs:                      p.rawVRFs,
 			VRFDeviceAssignments:      p.rawVRFDeviceAssignments,
+			VRFPrefixAssignments:      p.rawVRFPrefixAssignments,
+			Namespaces:                p.rawNamespaces,
 		}
 	}
 	return transform.Transform(existing, raw)

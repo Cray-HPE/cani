@@ -55,7 +55,7 @@ func MapCables(
 			Label: strVal(cable.Label),
 			ObjectMeta: devicetypes.ObjectMeta{
 				Status:      resolveRefName(cable.Status, statusNameMap),
-				ExternalIDs: map[string]uuid.UUID{"nautobot": nbID},
+				ExternalIDs: map[string]uuid.UUID{externalIDKeyNautobot: nbID},
 			},
 			Color: strVal(cable.Color),
 		}

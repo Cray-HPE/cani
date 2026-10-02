@@ -69,6 +69,8 @@ type etlContext struct {
 	inventory *devicetypes.Inventory
 	opts      visual.ETLOptions
 	debug     bool
+	// notImported counts the source records the transform left out.
+	notImported int
 }
 
 // newETLContext creates and initializes the ETL context.
@@ -206,8 +208,17 @@ func runImportETL(cmd *cli.Command, args []string, p provider.Provider) error {
 		}
 	}
 
-	log.Printf("Import completed successfully using provider %s", p.Slug())
+	log.Printf("Import completed successfully using provider %s%s", p.Slug(), notImportedSuffix(ctx.notImported))
 	return nil
+}
+
+// notImportedSuffix qualifies the completion message when the transform left
+// source records out, so the warnings above are not mistaken for noise.
+func notImportedSuffix(count int) string {
+	if count == 0 {
+		return ""
+	}
+	return fmt.Sprintf(" (%d source record(s) not imported, see warnings above)", count)
 }
 
 // initializeDatastore sets up the datastore and loads existing inventory into ctx.

@@ -27,7 +27,7 @@ func MapLocations(raw []nautobotapi.Location, statusNameMap map[uuid.UUID]string
 			ID:              caniID,
 			Name:            loc.Name,
 			LocationType:    resolveRefName(loc.LocationType, locationTypeKeys),
-			ObjectMeta:      devicetypes.ObjectMeta{Status: resolveRefName(loc.Status, statusNameMap), ExternalIDs: map[string]uuid.UUID{"nautobot": nbID}},
+			ObjectMeta:      devicetypes.ObjectMeta{Status: resolveRefName(loc.Status, statusNameMap), ExternalIDs: map[string]uuid.UUID{externalIDKeyNautobot: nbID}},
 			Description:     strVal(loc.Description),
 			Facility:        strVal(loc.Facility),
 			PhysicalAddress: strVal(loc.PhysicalAddress),

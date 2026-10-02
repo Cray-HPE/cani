@@ -38,9 +38,10 @@ import (
 //   - statusNameMap: Nautobot status UUID → status name
 //   - roleNameMap: Nautobot role UUID → role name
 //
-// Interface assignments, NAT relationships, and the parent prefix are
-// intentionally left unset: interfaces are re-linked separately and the
-// parent prefix is recomputed from the address after import.
+// Interface assignments and NAT relationships are intentionally left unset:
+// interfaces are re-linked separately. The parent prefix and namespace are
+// left for ScopeIPAddresses, which sets them from the Nautobot parent once
+// every prefix is mapped.
 func MapIPAddresses(
 	raw []nautobotapi.IPAddress,
 	statusNameMap map[uuid.UUID]string,
@@ -65,7 +66,7 @@ func MapIPAddresses(
 			Description: strVal(ip.Description),
 			ObjectMeta: devicetypes.ObjectMeta{
 				Status:      resolveRefName(ip.Status, statusNameMap),
-				ExternalIDs: map[string]uuid.UUID{"nautobot": nbID},
+				ExternalIDs: map[string]uuid.UUID{externalIDKeyNautobot: nbID},
 			},
 		}
 		if ip.Type != nil {

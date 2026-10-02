@@ -88,6 +88,11 @@ type TransformResult struct {
 	IPAddresses map[uuid.UUID]*CaniIPAddress
 	VLANs       map[uuid.UUID]*CaniVLAN
 	VRFs        map[uuid.UUID]*CaniVRF
+
+	// Warnings lists source records the provider could not translate and
+	// left out of the result, one line each, for the caller to report.
+	// The merge does not read it.
+	Warnings []string
 }
 
 // EnsureUniqueDeviceNames detects duplicate names within the transform

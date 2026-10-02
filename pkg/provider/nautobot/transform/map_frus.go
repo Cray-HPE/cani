@@ -55,7 +55,7 @@ func MapFrus(
 			Description: strVal(item.Description),
 			PartNumber:  strVal(item.PartId),
 			ObjectMeta: devicetypes.ObjectMeta{
-				ExternalIDs: map[string]uuid.UUID{"nautobot": nbID},
+				ExternalIDs: map[string]uuid.UUID{externalIDKeyNautobot: nbID},
 			},
 		}
 

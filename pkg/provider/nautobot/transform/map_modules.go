@@ -56,7 +56,7 @@ func MapModules(
 			Serial: strVal(mod.Serial),
 			ObjectMeta: devicetypes.ObjectMeta{
 				Status:      resolveRefName(mod.Status, statusNameMap),
-				ExternalIDs: map[string]uuid.UUID{"nautobot": nbID},
+				ExternalIDs: map[string]uuid.UUID{externalIDKeyNautobot: nbID},
 			},
 		}
 
