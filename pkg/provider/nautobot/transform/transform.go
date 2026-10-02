@@ -94,14 +94,23 @@ func transformRaw(raw *RawData) (*devicetypes.TransformResult, error) {
 	// 4. Devices.
 	devices, deviceMap := MapDevices(raw.Devices, rackMap, locationMap, deviceTypeMap, ifacesByDevice, statusNameMap, roleNameMap)
 	clog.Detail("  Transformed %d devices (%d in device bays)", len(devices), ApplyDeviceBays(raw.DeviceBays, devices, deviceMap))
+	// The bays Nautobot declares become the device's own, so the merge keeps
+	// a bay name the library spells differently instead of clearing it.
+	clog.Detail("  Recorded %d module bays on devices", ApplyModuleBays(raw.ModuleBays, devices, deviceMap))
 
-	// 5. Cables.
-	cables := MapCables(raw.Cables, deviceMap, ifaceMap, statusNameMap)
-	clog.Detail("  Transformed %d cables", len(cables))
-
-	// 6. Modules.
+	// 5. Modules, before cables: a cable on a module-owned port terminates on
+	// the module, so its Nautobot→CANI index must exist first.
 	modules := MapModules(raw.Modules, moduleBayMap, deviceMap, locationMap, statusNameMap, roleNameMap)
 	clog.Detail("  Transformed %d modules", len(modules))
+	moduleMap := nautobotIDIndex(modules, func(m *devicetypes.CaniModuleType) map[string]uuid.UUID { return m.ExternalIDs })
+
+	// 5b. Module-owned interfaces onto their modules. The device grouping
+	// skips them even when Nautobot 3.2 also names their root device.
+	moduleWarnings := AttachModuleInterfaces(modules, raw.Interfaces)
+
+	// 6. Cables.
+	cables := MapCables(raw.Cables, deviceMap, ifaceMap, moduleMap, statusNameMap)
+	clog.Detail("  Transformed %d cables", len(cables))
 
 	// 7. FRUs (inventory items).
 	frus := MapFrus(raw.InventoryItems, deviceMap)
@@ -133,6 +142,7 @@ func transformRaw(raw *RawData) (*devicetypes.TransformResult, error) {
 	warnings := ScopeVRFs(vrfs, raw.VRFs, namespaceNameMap)
 	warnings = append(warnings, ScopePrefixes(prefixes, raw.Prefixes, namespaceNameMap, vrfs, BuildVRFPrefixMembershipMap(raw.VRFPrefixAssignments))...)
 	warnings = append(warnings, ScopeIPAddresses(ipAddresses, raw.IPAddresses, prefixes)...)
+	warnings = append(warnings, moduleWarnings...)
 
 	result := &devicetypes.TransformResult{
 		Locations:   locations,
