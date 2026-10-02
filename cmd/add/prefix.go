@@ -46,7 +46,8 @@ Examples:
   cani alpha add prefix 10.0.0.0/16 --type container --role infrastructure
   cani alpha add prefix 10.0.1.0/24 --type network --role management --vlan "Management"
   cani alpha add prefix 10.0.1.128/25 --type pool --role dhcp-pool
-  cani alpha add prefix 10.0.2.0/24 --vrf blue`,
+  cani alpha add prefix 10.0.2.0/24 --vrf blue
+  cani alpha add prefix 10.0.0.0/24 --namespace tenant-a --vrf blue`,
 		Args: cli.ExactArgs(1),
 		RunE: addPrefix,
 	}
@@ -55,6 +56,7 @@ Examples:
 	cmd.Flags().String("role", "", "Prefix role (e.g. management, bmc, infrastructure)")
 	cmd.Flags().String("vlan", "", "Associated VLAN name or UUID")
 	cmd.Flags().StringArray("vrf", nil, "VRF the prefix belongs to: name, namespace/name, or UUID (repeatable)")
+	cmd.Flags().String(flagNamespace, devicetypes.DefaultNamespace, "IPAM namespace that scopes the prefix")
 	cmd.Flags().String(flagLocation, "", "Location UUID or name")
 	cmd.Flags().String(flagDescription, "", "Prefix description")
 
@@ -73,20 +75,37 @@ func addPrefix(cmd *cli.Command, args []string) error {
 		return fmt.Errorf("failed to load inventory: %w", err)
 	}
 
+	namespace, _ := cmd.Flags().GetString(flagNamespace)
 	prefix := &devicetypes.CaniPrefix{
-		ID:     uuid.New(),
-		Prefix: cidr,
+		ID:        uuid.New(),
+		Prefix:    cidr,
+		Namespace: devicetypes.NamespaceOrDefault(namespace),
+	}
+	applyPrefixFlags(cmd, inventory, prefix)
+	if err := resolvePrefixVRFs(cmd, inventory, prefix); err != nil {
+		return err
 	}
 
+	if err := inventory.AddPrefix(prefix); err != nil {
+		return fmt.Errorf("failed to add prefix: %w", err)
+	}
+
+	if err := datastores.Datastore.Save(inventory); err != nil {
+		return fmt.Errorf("failed to save inventory: %w", err)
+	}
+
+	log.Printf("Added prefix %s in namespace %s (%s)", prefix.Prefix, prefix.Namespace, prefix.ID)
+	return nil
+}
+
+// applyPrefixFlags copies optional prefix fields from CLI flags when set.
+func applyPrefixFlags(cmd *cli.Command, inventory *devicetypes.Inventory, prefix *devicetypes.CaniPrefix) {
 	if cmd.Flags().Changed("type") {
 		t, _ := cmd.Flags().GetString("type")
 		prefix.Type = devicetypes.PrefixType(t)
 	}
 	if cmd.Flags().Changed(flagDescription) {
 		prefix.Description, _ = cmd.Flags().GetString(flagDescription)
-	}
-	if err := resolvePrefixVRFs(cmd, inventory, prefix); err != nil {
-		return err
 	}
 	if cmd.Flags().Changed(flagLocation) {
 		locationArg, _ := cmd.Flags().GetString(flagLocation)
@@ -102,21 +121,9 @@ func addPrefix(cmd *cli.Command, args []string) error {
 	if cmd.Flags().Changed("role") {
 		prefix.Role, _ = cmd.Flags().GetString("role")
 	}
-	tags, _ := cmd.Flags().GetStringArray("tag")
-	if len(tags) > 0 {
+	if tags, _ := cmd.Flags().GetStringArray("tag"); len(tags) > 0 {
 		prefix.Tags = tags
 	}
-
-	if err := inventory.AddPrefix(prefix); err != nil {
-		return fmt.Errorf("failed to add prefix: %w", err)
-	}
-
-	if err := datastores.Datastore.Save(inventory); err != nil {
-		return fmt.Errorf("failed to save inventory: %w", err)
-	}
-
-	log.Printf("Added prefix %s (%s)", prefix.Prefix, prefix.ID)
-	return nil
 }
 
 // resolvePrefixVRFs turns each --vrf reference into a canonical VRF membership.
@@ -125,9 +132,8 @@ func addPrefix(cmd *cli.Command, args []string) error {
 // never carries an unresolved VRF string.
 func resolvePrefixVRFs(cmd *cli.Command, inventory *devicetypes.Inventory, prefix *devicetypes.CaniPrefix) error {
 	refs, _ := cmd.Flags().GetStringArray("vrf")
-	namespace := prefix.EffectiveNamespace()
 	for _, ref := range refs {
-		vrf, err := inventory.ResolveVRFReference(namespace, ref)
+		vrf, err := inventory.ResolveVRFReference(prefix.EffectiveNamespace(), ref)
 		if err != nil {
 			return fmt.Errorf("resolving --vrf %q: %w", ref, err)
 		}

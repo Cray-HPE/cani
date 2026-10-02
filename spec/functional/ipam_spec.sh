@@ -92,7 +92,7 @@ Describe 'cani alpha add prefix'
     End
 
     Describe 'flags'
-      Parameters:value --type --role --vlan --vrf --location --description
+      Parameters:value --type --role --vlan --vrf --namespace --location --description
       It "has $1 flag"
         When call bin/cani alpha add prefix --help
         The stdout should include "$1"
@@ -123,7 +123,7 @@ Describe 'cani alpha add ip'
     End
 
     Describe 'flags'
-      Parameters:value --interface --type --role --dns-name --description
+      Parameters:value --interface --type --role --dns-name --namespace --description
       It "has $1 flag"
         When call bin/cani alpha add ip --help
         The stdout should include "$1"
@@ -164,9 +164,10 @@ Describe 'cani alpha show prefix'
   End
 
   Describe 'flags'
-    It 'has --tree flag'
+    Parameters:value --tree --namespace
+    It "has $1 flag"
       When call bin/cani alpha show prefix --help
-      The stdout should include '--tree'
+      The stdout should include "$1"
     End
   End
 End
@@ -182,9 +183,21 @@ Describe 'cani alpha show ip'
   End
 
   Describe 'flags'
-    It 'has --prefix flag'
+    Parameters:value --prefix --namespace
+    It "has $1 flag"
       When call bin/cani alpha show ip --help
-      The stdout should include '--prefix'
+      The stdout should include "$1"
+    End
+  End
+End
+
+Describe 'cani alpha show vrf'
+
+  Describe 'flags'
+    It 'has --namespace flag'
+      When call bin/cani alpha show vrf --help
+      The status should equal 0
+      The stdout should include '--namespace'
     End
   End
 End

@@ -27,6 +27,7 @@ package devicetypes
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/google/uuid"
@@ -83,18 +84,26 @@ func (v *CaniVRF) GetStatus() string {
 	return v.Status
 }
 
-// FindVRFByNameOrID looks up a VRF by UUID string or exact name (case-insensitive).
-func (inv *Inventory) FindVRFByNameOrID(arg string) (*CaniVRF, error) {
-	if id, err := uuid.Parse(arg); err == nil {
-		if vrf, ok := inv.VRFs[id]; ok {
-			return vrf, nil
-		}
-		return nil, fmt.Errorf("VRF with UUID %q not found", arg)
+// AddVRFDevice assigns the device to the VRF, as AddVRF requires of a new
+// VRF's devices, and reports whether the assignment was new.
+func (inv *Inventory) AddVRFDevice(vrf *CaniVRF, deviceID uuid.UUID) (bool, error) {
+	if inv.Devices[deviceID] == nil {
+		return false, fmt.Errorf("vrf %s: device %s not found", vrf.Name, deviceID)
 	}
-	for _, vrf := range inv.VRFs {
-		if strings.EqualFold(vrf.Name, arg) {
-			return vrf, nil
-		}
+	if slices.Contains(vrf.Devices, deviceID) {
+		return false, nil
 	}
-	return nil, fmt.Errorf("VRF %q not found", arg)
+	vrf.Devices = append(vrf.Devices, deviceID)
+	return true, nil
+}
+
+// RemoveDevice drops the device's assignment and reports whether it was
+// assigned. The device need not exist, so an assignment left behind by a
+// device that is gone can be dropped too.
+func (v *CaniVRF) RemoveDevice(deviceID uuid.UUID) bool {
+	if !slices.Contains(v.Devices, deviceID) {
+		return false
+	}
+	v.Devices = removeUUID(v.Devices, deviceID)
+	return true
 }

@@ -52,7 +52,7 @@ Examples:
 	}
 
 	cmd.Flags().String("rd", "", "Route distinguisher (RFC 4364, e.g. 65000:100)")
-	cmd.Flags().String("namespace", "", "IPAM namespace (defaults to Global)")
+	cmd.Flags().String(flagNamespace, devicetypes.DefaultNamespace, "IPAM namespace that scopes the VRF")
 	cmd.Flags().String(flagDescription, "", "VRF description")
 	cmd.Flags().StringArray("device", nil, "Device name or UUID to assign this VRF to (repeatable)")
 
@@ -97,11 +97,10 @@ func addVRF(cmd *cli.Command, args []string) error {
 }
 
 func applyVRFFlags(cmd *cli.Command, vrf *devicetypes.CaniVRF) {
+	namespace, _ := cmd.Flags().GetString(flagNamespace)
+	vrf.Namespace = devicetypes.NamespaceOrDefault(namespace)
 	if cmd.Flags().Changed("rd") {
 		vrf.RD, _ = cmd.Flags().GetString("rd")
-	}
-	if cmd.Flags().Changed("namespace") {
-		vrf.Namespace, _ = cmd.Flags().GetString("namespace")
 	}
 	if cmd.Flags().Changed(flagDescription) {
 		vrf.Description, _ = cmd.Flags().GetString(flagDescription)

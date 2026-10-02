@@ -33,4 +33,7 @@ const (
 	flagContentTypes = "content-types"
 	flagUHeight      = "u-height"
 	flagPosition     = "position"
+	flagNamespace    = "namespace"
+	flagAddDevice    = "add-device"
+	flagRemoveDevice = "remove-device"
 )

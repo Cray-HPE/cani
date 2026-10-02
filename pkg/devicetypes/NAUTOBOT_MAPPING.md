@@ -458,8 +458,13 @@ batch leaves alone; the records it carries keep the parent, the provider set, or
 the merge derived. `AddPrefixVRF` adds a VRF to a prefix once and refuses one
 from another namespace; an explicit membership supersedes a legacy VRF name,
 which `AddPrefix` and `AddPrefixVRF` clear. `CaniPrefix.RemoveVRF` drops one
-membership and `CaniPrefix.ClearLegacyVRF` drops the legacy name. Each reports
-whether anything changed, so a caller can tell a no-op from a change.
+membership and `CaniPrefix.ClearLegacyVRF` drops the legacy name.
+`AddVRFDevice` and `CaniVRF.RemoveDevice` edit a VRF's device assignments the
+same way, the former requiring the device to exist as `AddVRF` does. Each
+reports whether anything changed, so a caller can tell a no-op from a change.
+`ResolveVRFReference` takes a VRF as `name`, `namespace/name` or a UUID, so
+same-named VRFs in different namespaces are told apart without a UUID, and
+lists the candidate UUIDs when a name is ambiguous within its namespace.
 
 The v1alpha6 → v1alpha7 migration stamps omitted scope as `Global`, folds a
 uniquely resolvable legacy prefix VRF name into `VRFs`, and keeps object UUIDs.
