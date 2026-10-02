@@ -36,9 +36,9 @@ import (
 )
 
 // loadVRFs exports CaniVRF records to Nautobot, creating each VRF that does not
-// already exist and caching the result by name so interface enrichment can
-// resolve VRF assignments. It runs before the VLAN and interface-enrichment
-// phases.
+// already exist in its namespace and caching the result by namespace and name
+// so interface enrichment and prefix assignments can resolve it. It runs
+// before the VLAN and interface-enrichment phases.
 func (e *Exporter) loadVRFs(ctx context.Context, inventory *devicetypes.Inventory, result *LoadResult) error {
 	if len(inventory.VRFs) == 0 {
 		return nil
@@ -50,29 +50,32 @@ func (e *Exporter) loadVRFs(ctx context.Context, inventory *devicetypes.Inventor
 		if vrf == nil || vrf.Name == "" {
 			continue
 		}
+		namespace := vrf.EffectiveNamespace()
 
-		existingID, err := e.findVRF(ctx, vrf.Name)
+		existingID, err := e.findVRF(ctx, namespace, vrf.Name)
 		if err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("vrf %s: lookup error: %v", vrf.Name, err))
+			result.Errors = append(result.Errors, fmt.Sprintf("vrf %s/%s: lookup error: %v", namespace, vrf.Name, err))
 			continue
 		}
+		item := &CachedItem{ID: existingID, Name: vrf.Name}
 		if existingID != uuid.Nil {
-			e.Cache.CacheVRF(vrf.Name, &CachedItem{ID: existingID, Name: vrf.Name})
-			setExternalID(&vrf.ExternalIDs, "nautobot", existingID)
 			result.VRFsSkipped++
 		} else {
 			nautobotID, err := e.createVRF(ctx, vrf)
 			if err != nil {
-				result.Errors = append(result.Errors, fmt.Sprintf("vrf %s: create error: %v", vrf.Name, err))
+				result.Errors = append(result.Errors, fmt.Sprintf("vrf %s/%s: create error: %v", namespace, vrf.Name, err))
 				continue
 			}
-			e.Cache.CacheVRF(vrf.Name, &CachedItem{ID: nautobotID, Name: vrf.Name})
-			setExternalID(&vrf.ExternalIDs, "nautobot", nautobotID)
+			// A VRF a dry run would create is cached as Planned so assignment
+			// checks know it cannot hold anything remotely yet.
+			item.ID, item.Planned = nautobotID, e.Options.DryRun
 			result.VRFsCreated++
 		}
+		e.Cache.CacheVRF(namespace, vrf.Name, item)
+		setExternalID(&vrf.ExternalIDs, "nautobot", item.ID)
 
 		// Create VRF-device assignments for explicitly listed devices.
-		e.loadVRFDeviceAssignments(ctx, vrf, inventory, result)
+		e.loadVRFDeviceAssignments(ctx, vrf, item, inventory, result)
 	}
 
 	clog.Info("  VRFs created: %d", result.VRFsCreated)
@@ -81,7 +84,7 @@ func (e *Exporter) loadVRFs(ctx context.Context, inventory *devicetypes.Inventor
 
 // loadVRFDeviceAssignments links a VRF to each device the operator listed.
 func (e *Exporter) loadVRFDeviceAssignments(
-	ctx context.Context, vrf *devicetypes.CaniVRF,
+	ctx context.Context, vrf *devicetypes.CaniVRF, remote *CachedItem,
 	inventory *devicetypes.Inventory, result *LoadResult,
 ) {
 	for _, devID := range vrf.Devices {
@@ -97,7 +100,7 @@ func (e *Exporter) loadVRFDeviceAssignments(
 			result.VRFDeviceAssignmentsSkipped++
 			continue
 		}
-		if err := e.ensureVRFDeviceAssignment(ctx, nautobotDevID, vrf.Name); err != nil {
+		if err := e.assignVRFToDevice(ctx, nautobotDevID, remote); err != nil {
 			result.Errors = append(result.Errors,
 				fmt.Sprintf("vrf %s: device assignment %s: %v", vrf.Name, dev.Name, err))
 			continue
@@ -106,25 +109,32 @@ func (e *Exporter) loadVRFDeviceAssignments(
 	}
 }
 
-// findVRF returns the Nautobot ID of an existing VRF with the given name, or
-// uuid.Nil when none exists.
-func (e *Exporter) findVRF(ctx context.Context, name string) (uuid.UUID, error) {
+// findVRF returns the Nautobot ID of the VRF with the given name in the
+// namespace, or uuid.Nil when none exists. Several matches are an error
+// rather than a first-result guess.
+func (e *Exporter) findVRF(ctx context.Context, namespace, name string) (uuid.UUID, error) {
 	nameFilter := []string{name}
-	resp, err := e.Client.IpamVrfsListWithResponse(ctx, &nautobotapi.IpamVrfsListParams{Name: &nameFilter})
+	namespaceFilter := []string{namespace}
+	resp, err := e.Client.IpamVrfsListWithResponse(ctx, &nautobotapi.IpamVrfsListParams{
+		Name: &nameFilter, Namespace: &namespaceFilter,
+	})
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("API error: %w", err)
 	}
 	if resp.StatusCode() != http.StatusOK {
 		return uuid.Nil, fmt.Errorf("unexpected status %d: %s", resp.StatusCode(), string(resp.Body))
 	}
-	if resp.JSON200 != nil && len(resp.JSON200.Results) > 0 {
-		return toUUID(resp.JSON200.Results[0].Id), nil
+	if resp.JSON200 == nil || len(resp.JSON200.Results) == 0 {
+		return uuid.Nil, nil
 	}
-	return uuid.Nil, nil
+	if resp.JSON200.Count > 1 || len(resp.JSON200.Results) > 1 {
+		return uuid.Nil, fmt.Errorf("%d VRFs named %q in namespace %q", resp.JSON200.Count, name, namespace)
+	}
+	return toUUID(resp.JSON200.Results[0].Id), nil
 }
 
 // createVRF creates a single VRF in Nautobot from a CaniVRF, resolving its
-// namespace (defaulting to "Global"), status, and tags.
+// namespace (defaulting to Global), status, and tags.
 func (e *Exporter) createVRF(ctx context.Context, vrf *devicetypes.CaniVRF) (uuid.UUID, error) {
 	req := nautobotapi.VRFRequest{Name: vrf.Name}
 	if vrf.RD != "" {
@@ -134,14 +144,12 @@ func (e *Exporter) createVRF(ctx context.Context, vrf *devicetypes.CaniVRF) (uui
 		req.Description = &vrf.Description
 	}
 
-	nsName := vrf.Namespace
-	if nsName == "" {
-		nsName = "Global"
+	ns, err := e.Cache.GetOrCreateNamespace(vrf.EffectiveNamespace())
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("resolve namespace %q: %w", vrf.EffectiveNamespace(), err)
 	}
-	if ns, err := e.Cache.GetOrCreateNamespace(nsName); err == nil && ns != nil {
-		if err := setRefID(&req.Namespace, ns.ID); err != nil {
-			return uuid.Nil, fmt.Errorf("set VRF namespace reference: %w", err)
-		}
+	if err := setRefID(&req.Namespace, ns.ID); err != nil {
+		return uuid.Nil, fmt.Errorf("set VRF namespace reference: %w", err)
 	}
 
 	if vrf.Status != "" {
@@ -173,17 +181,23 @@ func (e *Exporter) createVRF(ctx context.Context, vrf *devicetypes.CaniVRF) (uui
 	return toUUID(resp.JSON201.Id), nil
 }
 
-// ensureVRFDeviceAssignment links a VRF to a device so that an interface on that
-// device may reference it. Nautobot rejects an interface VRF assignment with
+// ensureVRFDeviceAssignment links the VRF an interface references to the
+// interface's device. Nautobot rejects an interface VRF assignment with
 // "VRF must be assigned to same Device" unless the VRF-device assignment already
-// exists. This is a find-or-create keyed on (vrf, device); an existing
-// assignment is left untouched. A missing/unknown VRF is a no-op so the caller
-// can fall back to omitting the VRF.
-func (e *Exporter) ensureVRFDeviceAssignment(ctx context.Context, deviceID uuid.UUID, vrfName string) error {
-	vrf, ok := e.Cache.LookupCachedVRF(vrfName)
-	if !ok || vrf == nil {
-		return nil
+// exists. vrfRef is "name" or "namespace/name"; an unknown VRF is a no-op so
+// the caller can fall back to omitting the VRF, while an ambiguous bare name
+// is an error.
+func (e *Exporter) ensureVRFDeviceAssignment(ctx context.Context, deviceID uuid.UUID, vrfRef string) error {
+	vrf, err := e.Cache.LookupCachedVRF(vrfRef)
+	if err != nil || vrf == nil {
+		return err
 	}
+	return e.assignVRFToDevice(ctx, deviceID, vrf)
+}
+
+// assignVRFToDevice is a find-or-create keyed on (vrf, device); an existing
+// assignment is left untouched and a dry run makes no lookup.
+func (e *Exporter) assignVRFToDevice(ctx context.Context, deviceID uuid.UUID, vrf *CachedItem) error {
 	if e.Options.DryRun {
 		return nil
 	}

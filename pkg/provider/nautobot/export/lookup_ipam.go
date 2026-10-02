@@ -31,61 +31,55 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"sync"
+	"strings"
 
+	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/google/uuid"
 )
 
-// ipamCache extends LookupCache with IPAM-specific caches.
-// Fields and methods are attached via composition on LookupCache.
-var (
-	namespaces   = make(map[string]*CachedItem)
-	namespacesMu sync.RWMutex
-
-	vlans   = make(map[string]*CachedItem) // keyed by "vid:locationID"
-	vlansMu sync.RWMutex
-
-	prefixes   = make(map[string]*CachedItem) // keyed by CIDR string
-	prefixesMu sync.RWMutex
-
-	ipAddresses   = make(map[string]*CachedItem) // keyed by address string
-	ipAddressesMu sync.RWMutex
-
-	vrfs   = make(map[string]*CachedItem) // keyed by VRF name
-	vrfsMu sync.RWMutex
-)
-
-// CacheVRF stores a VRF in the shared cache keyed by name.
-func (c *LookupCache) CacheVRF(name string, item *CachedItem) {
-	vrfsMu.Lock()
-	vrfs[name] = item
-	vrfsMu.Unlock()
+// ipamKey identifies a namespace-scoped IPAM object in the caches. A struct
+// key keeps ("Global/blue", "green") apart from ("Global", "blue/green"), which
+// one joined string could not.
+type ipamKey struct {
+	namespace string
+	value     string
 }
 
-// LookupCachedVRF returns a previously cached VRF by name.
-func (c *LookupCache) LookupCachedVRF(name string) (*CachedItem, bool) {
-	vrfsMu.RLock()
-	defer vrfsMu.RUnlock()
-	item, ok := vrfs[name]
-	return item, ok
+// String renders the key as "namespace/value" for messages.
+func (k ipamKey) String() string {
+	return k.namespace + "/" + k.value
+}
+
+// scopedKey builds the cache key for a namespace-scoped IPAM object.
+func scopedKey(namespace, value string) ipamKey {
+	return ipamKey{namespace: devicetypes.NamespaceOrDefault(namespace), value: value}
+}
+
+// hostOf strips the mask from an address so lookups match the host regardless
+// of mask length, which is how Nautobot scopes address uniqueness.
+func hostOf(address string) string {
+	if idx := strings.IndexByte(address, '/'); idx >= 0 {
+		return address[:idx]
+	}
+	return address
 }
 
 // GetOrCreateNamespace looks up a Nautobot Namespace by name. If it doesn't
 // exist and auto-creation is not disabled, it creates a new one.
 func (c *LookupCache) GetOrCreateNamespace(name string) (*CachedItem, error) {
-	namespacesMu.RLock()
-	if item, ok := namespaces[name]; ok {
-		namespacesMu.RUnlock()
+	c.namespacesMu.RLock()
+	if item, ok := c.namespaces[name]; ok {
+		c.namespacesMu.RUnlock()
 		return item, nil
 	}
-	namespacesMu.RUnlock()
+	c.namespacesMu.RUnlock()
 
-	namespacesMu.Lock()
-	defer namespacesMu.Unlock()
+	c.namespacesMu.Lock()
+	defer c.namespacesMu.Unlock()
 
 	// Double-check
-	if item, ok := namespaces[name]; ok {
+	if item, ok := c.namespaces[name]; ok {
 		return item, nil
 	}
 
@@ -107,7 +101,7 @@ func (c *LookupCache) GetOrCreateNamespace(name string) (*CachedItem, error) {
 			Name:    ns.Name,
 			Display: *ns.Display,
 		}
-		namespaces[name] = item
+		c.namespaces[name] = item
 		return item, nil
 	}
 
@@ -127,7 +121,7 @@ func (c *LookupCache) GetOrCreateNamespace(name string) (*CachedItem, error) {
 			Name:    createResp.JSON201.Name,
 			Display: *createResp.JSON201.Display,
 		}
-		namespaces[name] = item
+		c.namespaces[name] = item
 		return item, nil
 	}
 
@@ -137,12 +131,12 @@ func (c *LookupCache) GetOrCreateNamespace(name string) (*CachedItem, error) {
 // LookupVLAN looks up an existing VLAN by VID and location. Returns nil, nil if not found.
 func (c *LookupCache) LookupVLAN(vid int, locationName string) (*CachedItem, error) {
 	key := strconv.Itoa(vid) + ":" + locationName
-	vlansMu.RLock()
-	if item, ok := vlans[key]; ok {
-		vlansMu.RUnlock()
+	c.vlansMu.RLock()
+	if item, ok := c.vlans[key]; ok {
+		c.vlansMu.RUnlock()
 		return item, nil
 	}
-	vlansMu.RUnlock()
+	c.vlansMu.RUnlock()
 
 	vidFilter := []int{vid}
 	resp, err := c.client.IpamVlansListWithResponse(c.ctx, &nautobotapi.IpamVlansListParams{
@@ -162,9 +156,9 @@ func (c *LookupCache) LookupVLAN(vid int, locationName string) (*CachedItem, err
 			Name:    vlan.Name,
 			Display: *vlan.Display,
 		}
-		vlansMu.Lock()
-		vlans[key] = item
-		vlansMu.Unlock()
+		c.vlansMu.Lock()
+		c.vlans[key] = item
+		c.vlansMu.Unlock()
 		return item, nil
 	}
 
@@ -174,39 +168,43 @@ func (c *LookupCache) LookupVLAN(vid int, locationName string) (*CachedItem, err
 // CacheVLAN stores a VLAN in the lookup cache after creation.
 func (c *LookupCache) CacheVLAN(vid int, locationName string, item *CachedItem) {
 	key := strconv.Itoa(vid) + ":" + locationName
-	vlansMu.Lock()
-	vlans[key] = item
-	vlansMu.Unlock()
+	c.vlansMu.Lock()
+	c.vlans[key] = item
+	c.vlansMu.Unlock()
 }
 
-// LookupPrefix looks up an existing prefix by CIDR string. Returns nil, nil if not found.
+// LookupPrefix looks up an existing prefix by namespace and CIDR. Returns
+// nil, nil if not found and an error if the namespace holds several matches.
 // Uses raw API call because the generated response parser has []byte fields
 // (network, broadcast) that Go's JSON decoder tries to base64-decode, but
 // Nautobot returns plain IP strings.
-func (c *LookupCache) LookupPrefix(cidr string) (*CachedItem, error) {
-	prefixesMu.RLock()
-	if item, ok := prefixes[cidr]; ok {
-		prefixesMu.RUnlock()
+func (c *LookupCache) LookupPrefix(namespace, cidr string) (*CachedItem, error) {
+	key := scopedKey(namespace, cidr)
+	c.prefixesMu.RLock()
+	if item, ok := c.prefixes[key]; ok {
+		c.prefixesMu.RUnlock()
 		return item, nil
 	}
-	prefixesMu.RUnlock()
+	c.prefixesMu.RUnlock()
 
 	prefixFilter := []string{cidr}
+	namespaceFilter := []string{devicetypes.NamespaceOrDefault(namespace)}
 	httpResp, err := c.client.IpamPrefixesList(c.ctx, &nautobotapi.IpamPrefixesListParams{
-		Prefix: &prefixFilter,
+		Prefix:    &prefixFilter,
+		Namespace: &namespaceFilter,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to lookup prefix %s: %w", cidr, err)
+		return nil, fmt.Errorf("failed to lookup prefix %s: %w", key, err)
 	}
 	defer httpResp.Body.Close()
 
 	if httpResp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to lookup prefix %s: status %d", cidr, httpResp.StatusCode)
+		return nil, fmt.Errorf("failed to lookup prefix %s: status %d", key, httpResp.StatusCode)
 	}
 
 	body, err := io.ReadAll(httpResp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read prefix lookup response for %s: %w", cidr, err)
+		return nil, fmt.Errorf("failed to read prefix lookup response for %s: %w", key, err)
 	}
 
 	var result struct {
@@ -217,64 +215,68 @@ func (c *LookupCache) LookupPrefix(cidr string) (*CachedItem, error) {
 		} `json:"results"`
 	}
 	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("failed to parse prefix lookup response for %s: %w", cidr, err)
+		return nil, fmt.Errorf("failed to parse prefix lookup response for %s: %w", key, err)
 	}
 
-	if len(result.Results) > 0 {
+	switch len(result.Results) {
+	case 0:
+		return nil, nil
+	case 1:
 		p := result.Results[0]
 		parsedID, err := uuid.Parse(p.ID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse prefix UUID for %s: %w", cidr, err)
+			return nil, fmt.Errorf("failed to parse prefix UUID for %s: %w", key, err)
 		}
-		item := &CachedItem{
-			ID:      parsedID,
-			Name:    p.Prefix,
-			Display: p.Display,
-		}
-		prefixesMu.Lock()
-		prefixes[cidr] = item
-		prefixesMu.Unlock()
+		item := &CachedItem{ID: parsedID, Name: p.Prefix, Display: p.Display}
+		c.CachePrefix(namespace, cidr, item)
 		return item, nil
+	default:
+		return nil, fmt.Errorf("prefix %s is ambiguous: %d matches in Nautobot", key, len(result.Results))
 	}
-
-	return nil, nil
 }
 
 // CachePrefix stores a prefix in the lookup cache after creation.
-func (c *LookupCache) CachePrefix(cidr string, item *CachedItem) {
-	prefixesMu.Lock()
-	prefixes[cidr] = item
-	prefixesMu.Unlock()
+func (c *LookupCache) CachePrefix(namespace, cidr string, item *CachedItem) {
+	c.prefixesMu.Lock()
+	c.prefixes[scopedKey(namespace, cidr)] = item
+	c.prefixesMu.Unlock()
 }
 
-// LookupIPAddress looks up an existing IP address by address string. Returns nil, nil if not found.
+// LookupIPAddress looks up an existing IP address by namespace and host.
+// The mask is ignored because Nautobot keys address uniqueness on the host
+// within a namespace; Nautobot's unmasked address filter matches any mask.
+// Returns nil, nil if not found and an error if several hosts match.
 // Uses raw API call because the generated response parser has a []byte field
 // (host) that Go's JSON decoder tries to base64-decode, but Nautobot returns
 // plain IP strings.
-func (c *LookupCache) LookupIPAddress(address string) (*CachedItem, error) {
-	ipAddressesMu.RLock()
-	if item, ok := ipAddresses[address]; ok {
-		ipAddressesMu.RUnlock()
+func (c *LookupCache) LookupIPAddress(namespace, address string) (*CachedItem, error) {
+	host := hostOf(address)
+	key := scopedKey(namespace, host)
+	c.ipAddressesMu.RLock()
+	if item, ok := c.ipAddresses[key]; ok {
+		c.ipAddressesMu.RUnlock()
 		return item, nil
 	}
-	ipAddressesMu.RUnlock()
+	c.ipAddressesMu.RUnlock()
 
-	addrFilter := []string{address}
+	addrFilter := []string{host}
+	namespaceFilter := []string{devicetypes.NamespaceOrDefault(namespace)}
 	httpResp, err := c.client.IpamIpAddressesList(c.ctx, &nautobotapi.IpamIpAddressesListParams{
-		Address: &addrFilter,
+		Address:   &addrFilter,
+		Namespace: &namespaceFilter,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to lookup IP address %s: %w", address, err)
+		return nil, fmt.Errorf("failed to lookup IP address %s: %w", key, err)
 	}
 	defer httpResp.Body.Close()
 
 	if httpResp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to lookup IP address %s: status %d", address, httpResp.StatusCode)
+		return nil, fmt.Errorf("failed to lookup IP address %s: status %d", key, httpResp.StatusCode)
 	}
 
 	body, err := io.ReadAll(httpResp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read IP address lookup response for %s: %w", address, err)
+		return nil, fmt.Errorf("failed to read IP address lookup response for %s: %w", key, err)
 	}
 
 	var result struct {
@@ -285,32 +287,29 @@ func (c *LookupCache) LookupIPAddress(address string) (*CachedItem, error) {
 		} `json:"results"`
 	}
 	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("failed to parse IP address lookup response for %s: %w", address, err)
+		return nil, fmt.Errorf("failed to parse IP address lookup response for %s: %w", key, err)
 	}
 
-	if len(result.Results) > 0 {
+	switch len(result.Results) {
+	case 0:
+		return nil, nil
+	case 1:
 		ip := result.Results[0]
 		parsedID, err := uuid.Parse(ip.ID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse IP address UUID for %s: %w", address, err)
+			return nil, fmt.Errorf("failed to parse IP address UUID for %s: %w", key, err)
 		}
-		item := &CachedItem{
-			ID:      parsedID,
-			Name:    ip.Address,
-			Display: ip.Display,
-		}
-		ipAddressesMu.Lock()
-		ipAddresses[address] = item
-		ipAddressesMu.Unlock()
+		item := &CachedItem{ID: parsedID, Name: ip.Address, Display: ip.Display}
+		c.CacheIPAddress(namespace, address, item)
 		return item, nil
+	default:
+		return nil, fmt.Errorf("IP address %s is ambiguous: %d matches in Nautobot", key, len(result.Results))
 	}
-
-	return nil, nil
 }
 
 // CacheIPAddress stores an IP address in the lookup cache after creation.
-func (c *LookupCache) CacheIPAddress(address string, item *CachedItem) {
-	ipAddressesMu.Lock()
-	ipAddresses[address] = item
-	ipAddressesMu.Unlock()
+func (c *LookupCache) CacheIPAddress(namespace, address string, item *CachedItem) {
+	c.ipAddressesMu.Lock()
+	c.ipAddresses[scopedKey(namespace, hostOf(address))] = item
+	c.ipAddressesMu.Unlock()
 }

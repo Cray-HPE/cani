@@ -669,17 +669,16 @@ func TestDisambiguateDeviceNamesNoDuplicates(t *testing.T) {
 // correct during export.
 // Inputs: VID 100, location "site-a", and a CachedItem.
 // Outputs: the item retrievable at key "100:site-a".
-// Data choice: the test reads the global vlans map directly to confirm the
-// exact composite key format. Note: this mutates package-global state.
+// Data choice: the test reads the cache's vlans map directly to confirm the
+// exact composite key format.
 func TestCacheVLAN(t *testing.T) {
-	resetIPAMCaches()
 	cache := NewLookupCache(nil)
 	item := &CachedItem{ID: uuid.New(), Name: "VLAN100"}
 	cache.CacheVLAN(100, "site-a", item)
 
-	vlansMu.RLock()
-	got, ok := vlans["100:site-a"]
-	vlansMu.RUnlock()
+	cache.vlansMu.RLock()
+	got, ok := cache.vlans["100:site-a"]
+	cache.vlansMu.RUnlock()
 	if !ok || got.ID != item.ID {
 		t.Error("CacheVLAN did not cache correctly")
 	}
@@ -688,44 +687,43 @@ func TestCacheVLAN(t *testing.T) {
 // TestCachePrefix verifies CachePrefix stores an item under its CIDR key in the
 // package-level prefix cache.
 //
-// Why it matters: prefixes are looked up by CIDR while linking IP addresses and
-// child prefixes; a wrong key causes redundant API lookups or mis-parenting.
-// Inputs: CIDR "10.0.0.0/24" and a CachedItem.
-// Outputs: the item retrievable at key "10.0.0.0/24".
-// Data choice: reading the global prefixes map confirms CIDR is used verbatim
-// as the key. Note: this mutates package-global state.
+// Why it matters: prefixes are looked up by namespace and CIDR while linking IP
+// addresses and child prefixes; a wrong key causes redundant API lookups or
+// mis-parenting across namespaces.
+// Inputs: namespace "Global", CIDR "10.0.0.0/24" and a CachedItem.
+// Outputs: the item retrievable at key "Global/10.0.0.0/24".
+// Data choice: reading the cache's prefixes map confirms the scoped key format.
 func TestCachePrefix(t *testing.T) {
-	resetIPAMCaches()
 	cache := NewLookupCache(nil)
 	item := &CachedItem{ID: uuid.New(), Name: "10.0.0.0/24"}
-	cache.CachePrefix("10.0.0.0/24", item)
+	cache.CachePrefix("Global", "10.0.0.0/24", item)
 
-	prefixesMu.RLock()
-	got, ok := prefixes["10.0.0.0/24"]
-	prefixesMu.RUnlock()
+	cache.prefixesMu.RLock()
+	got, ok := cache.prefixes[scopedKey("Global", "10.0.0.0/24")]
+	cache.prefixesMu.RUnlock()
 	if !ok || got.ID != item.ID {
 		t.Error("CachePrefix did not cache correctly")
 	}
 }
 
-// TestCacheIPAddress verifies CacheIPAddress stores an item under its address
-// key in the package-level IP cache.
+// TestCacheIPAddress verifies CacheIPAddress stores an item under its
+// namespace-and-host key in the package-level IP cache.
 //
-// Why it matters: IP addresses are deduplicated by address string during
-// export; an incorrect key would re-create existing addresses in Nautobot.
-// Inputs: address "10.0.0.1/32" and a CachedItem.
-// Outputs: the item retrievable at key "10.0.0.1/32".
-// Data choice: reading the global ipAddresses map confirms the verbatim address
-// key. Note: this mutates package-global state.
+// Why it matters: IP addresses are deduplicated by host within a namespace
+// during export; keying on the masked text would re-create an address whose
+// mask changed, and keying without the namespace would collide across tenants.
+// Inputs: a blank namespace, address "10.0.0.1/32" and a CachedItem.
+// Outputs: the item retrievable at key "Global/10.0.0.1".
+// Data choice: the blank namespace proves the Global default and the /32 proves
+// the mask is stripped.
 func TestCacheIPAddress(t *testing.T) {
-	resetIPAMCaches()
 	cache := NewLookupCache(nil)
 	item := &CachedItem{ID: uuid.New(), Name: "10.0.0.1/32"}
-	cache.CacheIPAddress("10.0.0.1/32", item)
+	cache.CacheIPAddress("", "10.0.0.1/32", item)
 
-	ipAddressesMu.RLock()
-	got, ok := ipAddresses["10.0.0.1/32"]
-	ipAddressesMu.RUnlock()
+	cache.ipAddressesMu.RLock()
+	got, ok := cache.ipAddresses[scopedKey("", "10.0.0.1")]
+	cache.ipAddressesMu.RUnlock()
 	if !ok || got.ID != item.ID {
 		t.Error("CacheIPAddress did not cache correctly")
 	}
@@ -5758,7 +5756,6 @@ func TestIsValidNautobotInterfaceTypeInvalid(t *testing.T) {
 // Data choice: the nil client guarantees any miss would attempt an API call, so
 // a clean return proves the cache path was taken.
 func TestLookupVLANCacheHit(t *testing.T) {
-	resetIPAMCaches()
 	cache := NewLookupCache(nil)
 	vlanID := uuid.New()
 	cache.CacheVLAN(100, "DC1", &CachedItem{ID: vlanID, Name: "VLAN-100"})
@@ -5788,7 +5785,6 @@ func TestLookupVLANCacheHit(t *testing.T) {
 // Data choice: changing only the VID proves the composite cache key separates
 // neighboring VLANs in the same location.
 func TestLookupVLANCacheMissDifferentKey(t *testing.T) {
-	resetIPAMCaches()
 	var calls int
 	e, cleanup := newExporterWithServer(t, jsonHandler(&calls, http.StatusOK, emptyListJSON))
 	defer cleanup()
@@ -5820,12 +5816,11 @@ func TestLookupVLANCacheMissDifferentKey(t *testing.T) {
 // Data choice: a /24 CIDR with a nil client ensures a miss would hit the API, so
 // the clean hit confirms the cache short-circuit.
 func TestLookupPrefixCacheHit(t *testing.T) {
-	resetIPAMCaches()
 	cache := NewLookupCache(nil)
 	prefixID := uuid.New()
-	cache.CachePrefix("10.0.0.0/24", &CachedItem{ID: prefixID, Name: "10.0.0.0/24"})
+	cache.CachePrefix("Global", "10.0.0.0/24", &CachedItem{ID: prefixID, Name: "10.0.0.0/24"})
 
-	item, err := cache.LookupPrefix("10.0.0.0/24")
+	item, err := cache.LookupPrefix("Global", "10.0.0.0/24")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -5850,12 +5845,11 @@ func TestLookupPrefixCacheHit(t *testing.T) {
 // Data choice: a /32 host address with a nil client makes any miss call the API,
 // so the clean hit proves the cache path was used.
 func TestLookupIPAddressCacheHit(t *testing.T) {
-	resetIPAMCaches()
 	cache := NewLookupCache(nil)
 	ipID := uuid.New()
-	cache.CacheIPAddress("192.168.1.1/32", &CachedItem{ID: ipID, Name: "192.168.1.1/32"})
+	cache.CacheIPAddress("Global", "192.168.1.1/32", &CachedItem{ID: ipID, Name: "192.168.1.1/32"})
 
-	item, err := cache.LookupIPAddress("192.168.1.1/32")
+	item, err := cache.LookupIPAddress("Global", "192.168.1.1/32")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

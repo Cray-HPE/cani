@@ -90,7 +90,6 @@ func (s *emptyNautobot) writes() []string {
 func TestLoadDryRunIssuesNoWrites(t *testing.T) {
 	// Arrange.
 	ensureTypesLoaded(t)
-	resetIPAMCaches()
 	server := &emptyNautobot{}
 	e, cleanup := newExporterWithServer(t, server.handler)
 	defer cleanup()

@@ -47,9 +47,6 @@ type scopedIPAMRequest struct {
 }
 
 func TestScopedIPAMImportExportRoundTrip(t *testing.T) {
-	resetIPAMCaches()
-	t.Cleanup(resetIPAMCaches)
-
 	sourceLocationID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	sourceVLANID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
 	sourcePrefixID := uuid.MustParse("33333333-3333-3333-3333-333333333333")
@@ -177,7 +174,7 @@ func TestScopedIPAMImportExportRoundTrip(t *testing.T) {
 	exporter, cleanup := newExporterWithServer(t, destinationHandler)
 	defer cleanup()
 	seedActiveStatus(t, exporter)
-	seedGlobalNamespace(uuid.New())
+	seedGlobalNamespace(exporter, uuid.New())
 
 	locationMap := map[uuid.UUID]uuid.UUID{caniLocationID: destinationLocationID}
 	loadResult := &LoadResult{}

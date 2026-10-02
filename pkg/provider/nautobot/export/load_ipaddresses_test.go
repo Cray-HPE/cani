@@ -68,14 +68,15 @@ type sentAssign struct {
 //
 // Why it matters: an IP is only useful in Nautobot when parented to a prefix
 // and bound to its owning interface; this asserts the exact wire payload.
-// Inputs: one device, one interface, one CaniIPAddress (10.0.1.5/24, Host).
+// Inputs: one device, one interface, one Global parent prefix, one
+// CaniIPAddress (10.0.1.5/24, Host) parented to it.
 // Outputs: one IP POST, one assignment POST, IPAddressesCreated == 1, external
 // ID stamped back onto the inventory record.
 // Data choice: the interface is pre-cached and prefixMap pre-seeded so the
-// assertions isolate payload shape rather than lookup behaviour.
+// assertions isolate payload shape rather than lookup behaviour; the parent
+// prefix is in the inventory because the address's namespace derives from it.
 func TestLoadIPAddresses_CreatesAddressAndAssignsToInterface(t *testing.T) {
 	// Arrange.
-	resetIPAMCaches()
 
 	ipNID := uuid.New() // remote ID assigned to the created IP address
 	parentPrefixNID := uuid.New()
@@ -121,7 +122,7 @@ func TestLoadIPAddresses_CreatesAddressAndAssignsToInterface(t *testing.T) {
 
 	statusID := seedActiveStatus(t, e)
 	nsID := uuid.New()
-	seedGlobalNamespace(nsID)
+	seedGlobalNamespace(e, nsID)
 	// Pre-cache the resolved interface so assignment skips its own lookup.
 	e.Cache.CacheInterface(deviceNID, "mgmt0", &CachedItem{ID: ifaceNID, Name: "mgmt0"})
 
@@ -136,6 +137,9 @@ func TestLoadIPAddresses_CreatesAddressAndAssignsToInterface(t *testing.T) {
 		},
 		Interfaces: map[uuid.UUID]*devicetypes.CaniInterface{
 			ifaceID: {ID: ifaceID, Name: "mgmt0", DeviceID: deviceID},
+		},
+		Prefixes: map[uuid.UUID]*devicetypes.CaniPrefix{
+			parentPrefixID: {ID: parentPrefixID, Prefix: "10.0.1.0/24"},
 		},
 		IPAddresses: map[uuid.UUID]*devicetypes.CaniIPAddress{
 			ipID: {
@@ -222,7 +226,6 @@ func TestLoadIPAddresses_CreatesAddressAndAssignsToInterface(t *testing.T) {
 // clause must catch.
 func TestLoadIPAddresses_SkipsNilAndEmptyAddresses(t *testing.T) {
 	// Arrange.
-	resetIPAMCaches()
 
 	var posts int
 	handler := func(w http.ResponseWriter, r *http.Request) {
@@ -236,7 +239,7 @@ func TestLoadIPAddresses_SkipsNilAndEmptyAddresses(t *testing.T) {
 	e, cleanup := newExporterWithServer(t, handler)
 	defer cleanup()
 	seedActiveStatus(t, e)
-	seedGlobalNamespace(uuid.New())
+	seedGlobalNamespace(e, uuid.New())
 
 	nilID := uuid.New()
 	emptyID := uuid.New()
@@ -282,7 +285,6 @@ func TestLoadIPAddresses_SkipsNilAndEmptyAddresses(t *testing.T) {
 // the skip branch.
 func TestAssignIPToInterfaces_SkipsUnknownInterface(t *testing.T) {
 	// Arrange: the handler fails the test if any assignment POST arrives.
-	resetIPAMCaches()
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			t.Errorf("unexpected POST to %s for an unresolved interface", r.URL.Path)

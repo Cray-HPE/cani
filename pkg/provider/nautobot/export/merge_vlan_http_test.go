@@ -150,7 +150,6 @@ func loadVLANsHandler(vlanID uuid.UUID, existingJSON, retrieveJSON string, patch
 }
 
 func TestLoadVLANs_MergeUpdatesWhenDrifted(t *testing.T) {
-	resetIPAMCaches()
 	vlanID := uuid.New()
 	existingJSON := fmt.Sprintf(`{"count":1,"results":[{"id":%q,"name":"old-mgmt","vid":100,"display":"old-mgmt"}]}`, vlanID)
 	retrieveJSON := fmt.Sprintf(`{"id":%q,"name":"old-mgmt","vid":100,"status":{"id":"%s"}}`, vlanID, uuid.New())
@@ -188,7 +187,6 @@ func TestLoadVLANs_MergeUpdatesWhenDrifted(t *testing.T) {
 }
 
 func TestLoadVLANs_MergeSkipsWhenIdentical(t *testing.T) {
-	resetIPAMCaches()
 	vlanID := uuid.New()
 	existingJSON := fmt.Sprintf(`{"count":1,"results":[{"id":%q,"name":"mgmt","vid":100,"display":"mgmt"}]}`, vlanID)
 	retrieveJSON := fmt.Sprintf(`{"id":%q,"name":"mgmt","vid":100,"status":{"id":"%s"}}`, vlanID, uuid.New())
@@ -226,7 +224,6 @@ func TestLoadVLANs_MergeSkipsWhenIdentical(t *testing.T) {
 }
 
 func TestLoadVLANs_MergeDryRunIssuesNoMutations(t *testing.T) {
-	resetIPAMCaches()
 	vlanID := uuid.New()
 	existingJSON := fmt.Sprintf(`{"count":1,"results":[{"id":%q,"name":"old-mgmt","vid":100,"display":"old-mgmt"}]}`, vlanID)
 	retrieveJSON := fmt.Sprintf(`{"id":%q,"name":"old-mgmt","vid":100,"status":{"id":"%s"}}`, vlanID, uuid.New())

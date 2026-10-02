@@ -57,41 +57,6 @@ type wireIDRef struct {
 	ID string `json:"id"`
 }
 
-// resetIPAMCaches clears the package-level IPAM lookup caches. They are global
-// (shared across LookupCache instances), so each HTTP test starts from a known
-// empty state to remain independent and order-insensitive.
-func resetIPAMCaches() {
-	namespacesMu.Lock()
-	for k := range namespaces {
-		delete(namespaces, k)
-	}
-	namespacesMu.Unlock()
-
-	vlansMu.Lock()
-	for k := range vlans {
-		delete(vlans, k)
-	}
-	vlansMu.Unlock()
-
-	prefixesMu.Lock()
-	for k := range prefixes {
-		delete(prefixes, k)
-	}
-	prefixesMu.Unlock()
-
-	ipAddressesMu.Lock()
-	for k := range ipAddresses {
-		delete(ipAddresses, k)
-	}
-	ipAddressesMu.Unlock()
-
-	vrfsMu.Lock()
-	for k := range vrfs {
-		delete(vrfs, k)
-	}
-	vrfsMu.Unlock()
-}
-
 // seedActiveStatus pre-populates the "Active" status in the cache so the
 // create paths resolve it without an extra HTTP round-trip. Returns the
 // Nautobot status ID the exporter is expected to reference.
@@ -104,10 +69,8 @@ func seedActiveStatus(t *testing.T, e *Exporter) uuid.UUID {
 
 // seedGlobalNamespace pre-populates the "Global" namespace so prefix/IP loads
 // skip the namespace resolve round-trip.
-func seedGlobalNamespace(id uuid.UUID) {
-	namespacesMu.Lock()
-	namespaces["Global"] = &CachedItem{ID: id, Name: "Global"}
-	namespacesMu.Unlock()
+func seedGlobalNamespace(e *Exporter, id uuid.UUID) {
+	e.Cache.namespaces["Global"] = &CachedItem{ID: id, Name: "Global"}
 }
 
 // emptyListJSON is the canonical "no results" body for any best-effort lookup
@@ -143,7 +106,6 @@ type sentPrefix struct {
 // ordering and parent-ID threading.
 func TestLoadPrefixes_SendsCorrectPayloadAndResolvesParent(t *testing.T) {
 	// Arrange.
-	resetIPAMCaches()
 
 	parentNID := uuid.New() // Nautobot ID returned for the /16 container
 	childNID := uuid.New()  // Nautobot ID returned for the /24 network
@@ -173,7 +135,7 @@ func TestLoadPrefixes_SendsCorrectPayloadAndResolvesParent(t *testing.T) {
 
 	statusID := seedActiveStatus(t, e)
 	nsID := uuid.New()
-	seedGlobalNamespace(nsID)
+	seedGlobalNamespace(e, nsID)
 
 	parentID := uuid.New()
 	childID := uuid.New()
@@ -289,7 +251,6 @@ func TestLoadPrefixes_SendsCorrectPayloadAndResolvesParent(t *testing.T) {
 // a prior run having created the prefix.
 func TestLoadPrefixes_SkipsExistingPrefix(t *testing.T) {
 	// Arrange.
-	resetIPAMCaches()
 
 	existingNID := uuid.New()
 	var createCalls int
@@ -315,7 +276,7 @@ func TestLoadPrefixes_SkipsExistingPrefix(t *testing.T) {
 	e, cleanup := newExporterWithServer(t, handler)
 	defer cleanup()
 	seedActiveStatus(t, e)
-	seedGlobalNamespace(uuid.New())
+	seedGlobalNamespace(e, uuid.New())
 
 	prefixID := uuid.New()
 	inv := &devicetypes.Inventory{
@@ -368,7 +329,6 @@ func TestLoadPrefixes_SkipsExistingPrefix(t *testing.T) {
 func TestCreatePrefix_ReturnsErrorWhenStatusUnresolvable(t *testing.T) {
 	// Arrange: server reports no matching status, and createStatuses is off, so
 	// GetStatus fails.
-	resetIPAMCaches()
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -422,7 +382,6 @@ func TestCreatePrefix_ReturnsErrorWhenStatusUnresolvable(t *testing.T) {
 // dropping the location.
 // Data choice: 500 mirrors the observed server-side crash for prefix locations.
 func TestCreatePrefix_RetriesWithoutLocationOn500(t *testing.T) {
-	resetIPAMCaches()
 	prefixNID := uuid.New()
 	locID := uuid.New()
 	var bodies [][]byte

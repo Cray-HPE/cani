@@ -46,7 +46,6 @@ import (
 // Data choice: VID 100 in "DC1" with a single matching result is the canonical
 // hit; the doubled call asserts the cache short-circuit via calls==1.
 func TestLookupVLAN_FetchesAndCachesFromAPI(t *testing.T) {
-	resetIPAMCaches()
 	vlanNID := uuid.New()
 	var calls int
 	body := `{"count":1,"results":[{"id":"` + vlanNID.String() + `","vid":100,"name":"vlan100","display":"vlan100"}]}`
@@ -78,7 +77,6 @@ func TestLookupVLAN_FetchesAndCachesFromAPI(t *testing.T) {
 // Inputs: a VID/location with no match. Outputs: nil item and nil error.
 // Data choice: VID 999 against an empty result list models a clean miss.
 func TestLookupVLAN_ReturnsNilWhenNotFound(t *testing.T) {
-	resetIPAMCaches()
 	var calls int
 	e, cleanup := newExporterWithServer(t, jsonHandler(&calls, http.StatusOK, emptyListJSON))
 	defer cleanup()
@@ -102,7 +100,6 @@ func TestLookupVLAN_ReturnsNilWhenNotFound(t *testing.T) {
 // Data choice: a 500 with a {"detail":"boom"} body represents a transient
 // Nautobot failure distinct from an empty (not-found) result.
 func TestLookupVLAN_ReturnsErrorOnNon200(t *testing.T) {
-	resetIPAMCaches()
 	var calls int
 	e, cleanup := newExporterWithServer(t, jsonHandler(&calls, http.StatusInternalServerError, `{"detail":"boom"}`))
 	defer cleanup()
@@ -126,14 +123,13 @@ func TestLookupVLAN_ReturnsErrorOnNon200(t *testing.T) {
 // Data choice: "10.0.0.1/24" with a single result exercises the raw JSON parse
 // of id/address/display and the cache key by address.
 func TestLookupIPAddress_FetchesAndCachesFromAPI(t *testing.T) {
-	resetIPAMCaches()
 	ipNID := uuid.New()
 	var calls int
 	body := `{"results":[{"id":"` + ipNID.String() + `","address":"10.0.0.1/24","display":"10.0.0.1/24"}]}`
 	e, cleanup := newExporterWithServer(t, jsonHandler(&calls, http.StatusOK, body))
 	defer cleanup()
 
-	item, err := e.Cache.LookupIPAddress("10.0.0.1/24")
+	item, err := e.Cache.LookupIPAddress("Global", "10.0.0.1/24")
 	if err != nil {
 		t.Fatalf("LookupIPAddress() error = %v", err)
 	}
@@ -142,7 +138,7 @@ func TestLookupIPAddress_FetchesAndCachesFromAPI(t *testing.T) {
 	}
 
 	// The second lookup is served from the cache.
-	if _, err := e.Cache.LookupIPAddress("10.0.0.1/24"); err != nil {
+	if _, err := e.Cache.LookupIPAddress("Global", "10.0.0.1/24"); err != nil {
 		t.Fatalf("LookupIPAddress() second call error = %v", err)
 	}
 	if calls != 1 {
@@ -158,12 +154,11 @@ func TestLookupIPAddress_FetchesAndCachesFromAPI(t *testing.T) {
 // Inputs: an unmatched address. Outputs: nil item and nil error.
 // Data choice: "10.0.0.9/24" against an empty results list models a clean miss.
 func TestLookupIPAddress_ReturnsNilWhenNotFound(t *testing.T) {
-	resetIPAMCaches()
 	var calls int
 	e, cleanup := newExporterWithServer(t, jsonHandler(&calls, http.StatusOK, `{"results":[]}`))
 	defer cleanup()
 
-	item, err := e.Cache.LookupIPAddress("10.0.0.9/24")
+	item, err := e.Cache.LookupIPAddress("Global", "10.0.0.9/24")
 	if err != nil {
 		t.Fatalf("LookupIPAddress() error = %v", err)
 	}
@@ -180,12 +175,11 @@ func TestLookupIPAddress_ReturnsNilWhenNotFound(t *testing.T) {
 // Inputs: an address with the server returning 500. Outputs: a non-nil error.
 // Data choice: a 500 with a detail body represents a transient Nautobot failure.
 func TestLookupIPAddress_ReturnsErrorOnNon200(t *testing.T) {
-	resetIPAMCaches()
 	var calls int
 	e, cleanup := newExporterWithServer(t, jsonHandler(&calls, http.StatusInternalServerError, `{"detail":"boom"}`))
 	defer cleanup()
 
-	if _, err := e.Cache.LookupIPAddress("10.0.0.1/24"); err == nil {
+	if _, err := e.Cache.LookupIPAddress("Global", "10.0.0.1/24"); err == nil {
 		t.Fatal("expected an error when the IP list responds with 500")
 	}
 }
@@ -200,12 +194,11 @@ func TestLookupIPAddress_ReturnsErrorOnNon200(t *testing.T) {
 // Data choice: a truncated "{not valid json" body deterministically fails the
 // JSON decoder.
 func TestLookupIPAddress_ReturnsErrorOnMalformedJSON(t *testing.T) {
-	resetIPAMCaches()
 	var calls int
 	e, cleanup := newExporterWithServer(t, jsonHandler(&calls, http.StatusOK, `{not valid json`))
 	defer cleanup()
 
-	if _, err := e.Cache.LookupIPAddress("10.0.0.1/24"); err == nil {
+	if _, err := e.Cache.LookupIPAddress("Global", "10.0.0.1/24"); err == nil {
 		t.Fatal("expected an error when the IP list body is malformed JSON")
 	}
 }
@@ -220,13 +213,12 @@ func TestLookupIPAddress_ReturnsErrorOnMalformedJSON(t *testing.T) {
 // Data choice: an obviously invalid "not-a-uuid" id isolates the UUID-parse
 // branch from the JSON-decode branch.
 func TestLookupIPAddress_ReturnsErrorOnBadUUID(t *testing.T) {
-	resetIPAMCaches()
 	var calls int
 	body := `{"results":[{"id":"not-a-uuid","address":"10.0.0.1/24","display":"10.0.0.1/24"}]}`
 	e, cleanup := newExporterWithServer(t, jsonHandler(&calls, http.StatusOK, body))
 	defer cleanup()
 
-	if _, err := e.Cache.LookupIPAddress("10.0.0.1/24"); err == nil {
+	if _, err := e.Cache.LookupIPAddress("Global", "10.0.0.1/24"); err == nil {
 		t.Fatal("expected an error when the returned IP ID is not a valid UUID")
 	}
 }

@@ -76,6 +76,7 @@ type CachedItem struct {
 	Slug    string
 	Display string
 	CableID uuid.UUID // For interfaces: the ID of the attached cable (if any)
+	Planned bool      // Set when a dry run stands in for an object it would create
 }
 
 // toUUID converts an openapi_types.UUID pointer to uuid.UUID
@@ -103,6 +104,16 @@ type LookupCache struct {
 	interfacesPrefetched map[uuid.UUID]bool     // tracks devices whose interfaces have been prefetched
 	tags                 map[string]*CachedItem // keyed by name
 
+	// IPAM caches. Prefixes, addresses and VRFs are keyed by scopedKey, so the
+	// same CIDR, host or name in two namespaces stays distinct.
+	namespaces  map[string]*CachedItem           // keyed by name
+	vlans       map[string]*CachedItem           // keyed by "vid:locationName"
+	prefixes    map[ipamKey]*CachedItem          // keyed by namespace and CIDR
+	ipAddresses map[ipamKey]*CachedItem          // keyed by namespace and host
+	vrfs        map[ipamKey]*CachedItem          // keyed by namespace and name
+	vrfsByName  map[string][]ipamKey             // VRF name -> the keys that carry it
+	vrfPrefixes map[uuid.UUID]map[uuid.UUID]bool // VRF ID -> IDs of the prefixes assigned to it, once listed
+
 	// Mutexes for thread-safe access
 	deviceTypesMu   sync.RWMutex
 	locationsMu     sync.RWMutex
@@ -112,6 +123,11 @@ type LookupCache struct {
 	manufacturersMu sync.RWMutex
 	interfacesMu    sync.RWMutex
 	tagsMu          sync.RWMutex
+	namespacesMu    sync.RWMutex
+	vlansMu         sync.RWMutex
+	prefixesMu      sync.RWMutex
+	ipAddressesMu   sync.RWMutex
+	vrfsMu          sync.RWMutex
 
 	// Track if full list has been fetched
 	deviceTypesLoaded bool
@@ -145,6 +161,13 @@ func NewLookupCache(client *NautobotClient) *LookupCache {
 		interfaces:           make(map[string]*CachedItem),
 		interfacesPrefetched: make(map[uuid.UUID]bool),
 		tags:                 make(map[string]*CachedItem),
+		namespaces:           make(map[string]*CachedItem),
+		vlans:                make(map[string]*CachedItem),
+		prefixes:             make(map[ipamKey]*CachedItem),
+		ipAddresses:          make(map[ipamKey]*CachedItem),
+		vrfs:                 make(map[ipamKey]*CachedItem),
+		vrfsByName:           make(map[string][]ipamKey),
+		vrfPrefixes:          make(map[uuid.UUID]map[uuid.UUID]bool),
 	}
 }
 
@@ -160,10 +183,10 @@ func (c *LookupCache) SetDryRun(dryRun bool) {
 }
 
 // plannedCreate logs a create a dry run skips and returns a placeholder with a
-// nil ID in its place.
+// nil ID in its place, marked Planned.
 func plannedCreate(kind, name string) *CachedItem {
 	clog.DryRun("Would create %s: %s", kind, name)
-	return &CachedItem{Name: name, Display: name}
+	return &CachedItem{Name: name, Display: name, Planned: true}
 }
 
 // plannedContentTypes logs a content-type update a dry run skips and returns

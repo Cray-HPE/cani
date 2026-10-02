@@ -27,10 +27,7 @@ package export
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"sort"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
@@ -40,7 +37,9 @@ import (
 
 // loadPrefixes exports CaniPrefix records to Nautobot.
 // Prefixes are sorted by prefix length (shortest first) to ensure parent
-// prefixes exist before their children.
+// prefixes exist before their children. Each prefix is resolved and created
+// inside its own namespace; a lookup or namespace failure is reported rather
+// than redirected to Global.
 // Returns a map of cani prefix ID → Nautobot prefix ID for downstream use.
 func (e *Exporter) loadPrefixes(
 	ctx context.Context,
@@ -60,52 +59,62 @@ func (e *Exporter) loadPrefixes(
 	// Sort by prefix length ascending (containers/wider first, then narrower)
 	ordered := sortPrefixesByLength(inventory.Prefixes)
 
-	// Resolve namespace once for all prefixes
-	ns, err := e.Cache.GetOrCreateNamespace("Global")
-	if err != nil {
-		return created, fmt.Errorf("failed to resolve namespace: %w", err)
-	}
-
 	for _, prefix := range ordered {
 		if prefix == nil || prefix.Prefix == "" {
 			continue
 		}
-
-		// Check if prefix already exists
-		existing, err := e.Cache.LookupPrefix(prefix.Prefix)
+		remote, err := e.loadPrefix(ctx, prefix, inventory, locationMap, vlanMap, created, result)
 		if err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("prefix %s: lookup error: %v", prefix.Prefix, err))
+			result.Errors = append(result.Errors, fmt.Sprintf("prefix %s/%s: %v", prefix.EffectiveNamespace(), prefix.Prefix, err))
 			continue
 		}
-		if existing != nil {
-			created[prefix.ID] = existing.ID
-			setExternalID(&prefix.ExternalIDs, "nautobot", existing.ID)
-			result.PrefixesSkipped++
-			continue
-		}
-
-		var nautobotLocID uuid.UUID
-		if prefix.Location != uuid.Nil {
-			nautobotLocID = locationMap[prefix.Location]
-		}
-
-		nautobotID, err := e.createPrefix(ctx, prefix, ns.ID, nautobotLocID, vlanMap, created, result)
-		if err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("prefix %s: create error: %v", prefix.Prefix, err))
-			continue
-		}
-
-		created[prefix.ID] = nautobotID
-		setExternalID(&prefix.ExternalIDs, "nautobot", nautobotID)
-		e.Cache.CachePrefix(prefix.Prefix, &CachedItem{
-			ID:   nautobotID,
-			Name: prefix.Prefix,
-		})
-		result.PrefixesCreated++
+		created[prefix.ID] = remote.ID
+		setExternalID(&prefix.ExternalIDs, "nautobot", remote.ID)
+		e.ensureVRFPrefixAssignments(ctx, prefix, remote, inventory, result)
 	}
 
 	clog.Info("  Prefixes created: %d", result.PrefixesCreated)
 	return created, nil
+}
+
+// loadPrefix finds or creates one prefix in its namespace and returns its
+// cache entry. Finding an existing prefix counts as skipped; a prefix a dry
+// run would create is Planned.
+func (e *Exporter) loadPrefix(
+	ctx context.Context,
+	prefix *devicetypes.CaniPrefix,
+	inventory *devicetypes.Inventory,
+	locationMap map[uuid.UUID]uuid.UUID,
+	vlanMap map[uuid.UUID]uuid.UUID,
+	created map[uuid.UUID]uuid.UUID,
+	result *LoadResult,
+) (*CachedItem, error) {
+	namespace := prefix.EffectiveNamespace()
+	ns, err := e.Cache.GetOrCreateNamespace(namespace)
+	if err != nil {
+		return nil, fmt.Errorf("resolve namespace: %w", err)
+	}
+	existing, err := e.Cache.LookupPrefix(namespace, prefix.Prefix)
+	if err != nil {
+		return nil, fmt.Errorf("lookup error: %w", err)
+	}
+	if existing != nil {
+		result.PrefixesSkipped++
+		return existing, nil
+	}
+
+	var nautobotLocID uuid.UUID
+	if prefix.Location != uuid.Nil {
+		nautobotLocID = locationMap[prefix.Location]
+	}
+	nautobotID, err := e.createPrefix(ctx, prefix, ns.ID, nautobotLocID, vlanMap, created, result)
+	if err != nil {
+		return nil, fmt.Errorf("create error: %w", err)
+	}
+	item := &CachedItem{ID: nautobotID, Name: prefix.Prefix, Planned: e.Options.DryRun}
+	e.Cache.CachePrefix(namespace, prefix.Prefix, item)
+	result.PrefixesCreated++
+	return item, nil
 }
 
 // createPrefix creates a single prefix in Nautobot.
@@ -201,66 +210,6 @@ func (e *Exporter) createPrefix(
 
 	clog.Created("  + Prefix: %s (%s)", prefix.Prefix, prefix.Type)
 	return nautobotID, nil
-}
-
-// postPrefixWithFallback POSTs the prefix, retrying once without a location when
-// Nautobot rejects the association (e.g. the location type does not permit
-// prefixes).
-func (e *Exporter) postPrefixWithFallback(
-	ctx context.Context,
-	prefix *devicetypes.CaniPrefix,
-	req *nautobotapi.WritablePrefixRequest,
-) (uuid.UUID, error) {
-	id, code, body, err := e.postPrefix(ctx, req)
-	if err != nil {
-		return uuid.Nil, fmt.Errorf("API error: %w", err)
-	}
-	if code == http.StatusCreated {
-		return id, nil
-	}
-	// An unsupported location type makes Nautobot reject the prefix — cleanly
-	// with 400, or with a 500 when its location validation crashes. Either way,
-	// retry once without the location so the prefix still exports (unscoped).
-	if req.Location != nil && (code == http.StatusBadRequest || code == http.StatusInternalServerError) {
-		clog.Warn("  Prefix %s: location not accepted, retrying without location", prefix.Prefix)
-		req.Location = nil
-		id, code, body, err = e.postPrefix(ctx, req)
-		if err != nil {
-			return uuid.Nil, fmt.Errorf("API error: %w", err)
-		}
-		if code == http.StatusCreated {
-			return id, nil
-		}
-	}
-	return uuid.Nil, fmt.Errorf("unexpected status %d: %s", code, body)
-}
-
-// postPrefix performs a single prefix create using a raw API call (the generated
-// response parser mishandles Nautobot's UUID format). It returns the new ID (on
-// 201), the HTTP status code, and the response body.
-func (e *Exporter) postPrefix(ctx context.Context, req *nautobotapi.WritablePrefixRequest) (uuid.UUID, int, string, error) {
-	httpResp, err := e.Client.IpamPrefixesCreate(ctx, &nautobotapi.IpamPrefixesCreateParams{}, *req)
-	if err != nil {
-		return uuid.Nil, 0, "", err
-	}
-	defer httpResp.Body.Close()
-
-	body, _ := io.ReadAll(httpResp.Body)
-	if httpResp.StatusCode != http.StatusCreated {
-		return uuid.Nil, httpResp.StatusCode, string(body), nil
-	}
-
-	var respObj struct {
-		ID string `json:"id"`
-	}
-	if err := json.Unmarshal(body, &respObj); err != nil {
-		return uuid.Nil, httpResp.StatusCode, string(body), fmt.Errorf("failed to parse response: %w", err)
-	}
-	id, err := uuid.Parse(respObj.ID)
-	if err != nil {
-		return uuid.Nil, httpResp.StatusCode, string(body), fmt.Errorf("failed to parse UUID from response: %w", err)
-	}
-	return id, httpResp.StatusCode, string(body), nil
 }
 
 // sortPrefixesByLength returns prefixes sorted by prefix length ascending

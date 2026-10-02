@@ -64,7 +64,6 @@ type sentVLAN struct {
 // and ExternalIDs were populated from the response.
 func TestLoadVLANs_SendsCorrectPayloadAndReturnsMapping(t *testing.T) {
 	// Arrange.
-	resetIPAMCaches()
 
 	vlanNID := uuid.New() // remote ID assigned to the created VLAN
 
@@ -161,7 +160,6 @@ func TestLoadVLANs_SendsCorrectPayloadAndReturnsMapping(t *testing.T) {
 // it would on a second export run.
 func TestLoadVLANs_SkipsExistingVLAN(t *testing.T) {
 	// Arrange.
-	resetIPAMCaches()
 
 	existingNID := uuid.New()
 	handler := func(w http.ResponseWriter, r *http.Request) {
