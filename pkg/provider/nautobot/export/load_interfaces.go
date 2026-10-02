@@ -231,15 +231,9 @@ func (e *Exporter) sendInterfaceBatch(
 			return nil, fmt.Errorf("interface %s on %s: set tag references: %w", item.Spec.Name, item.DeviceName, err)
 		}
 
-		if item.Spec.Mac != "" {
-			mac := item.Spec.Mac
-			req.MacAddress = &mac
-		}
-
-		if item.Spec.Description != "" {
-			desc := item.Spec.Description
-			req.Description = &desc
-		}
+		req.MacAddress = optionalString(item.Spec.Mac)
+		req.Label = optionalString(item.Spec.Label)
+		req.Description = optionalString(item.Spec.Description)
 
 		roleID, err := e.roleRef(item.Spec.Role)
 		if err != nil {
