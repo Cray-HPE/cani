@@ -77,15 +77,9 @@ func (e *Exporter) createInterface(ctx context.Context, deviceID uuid.UUID, ifac
 		return fmt.Errorf("set interface tag references: %w", err)
 	}
 
-	if iface.Mac != "" {
-		mac := iface.Mac
-		req.MacAddress = &mac
-	}
-
-	if iface.Description != "" {
-		desc := iface.Description
-		req.Description = &desc
-	}
+	req.MacAddress = optionalString(iface.Mac)
+	req.Label = optionalString(iface.Label)
+	req.Description = optionalString(iface.Description)
 
 	roleID, err := e.roleRef(iface.Role)
 	if err != nil {
@@ -149,15 +143,14 @@ func (e *Exporter) updateInterface(ctx context.Context, interfaceID uuid.UUID, d
 		return fmt.Errorf("set interface tag references: %w", err)
 	}
 
-	if iface.Mac != "" {
-		mac := iface.Mac
-		req.MacAddress = &mac
-	}
+	req.MacAddress = optionalString(iface.Mac)
 
-	// Send description unconditionally so an emptied local value clears it in
-	// Nautobot; the inventory is authoritative on reconcile.
+	// Send description and label unconditionally so an emptied local value
+	// clears it in Nautobot; the inventory is authoritative on reconcile.
 	desc := iface.Description
 	req.Description = &desc
+	label := iface.Label
+	req.Label = &label
 
 	roleID, err := e.roleRef(iface.Role)
 	if err != nil {

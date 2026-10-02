@@ -37,11 +37,11 @@
 #      2-port NIC module (ports with MAC/label/description), and an XD670
 #      with one H100 GPU module (nvlink / pcie-gen5-x16 ports).
 #   2. Export to Nautobot and keep the log.
-#   3. Read interfaces back from Nautobot: device and module port types must
-#      match the datastore. Module-port enrichment the exporter does not carry
-#      yet (MAC, label, description, a module port named like a device port)
-#      is recorded as Pending examples, so implementing it turns them into
-#      failures that ask for their promotion.
+#   3. Read interfaces back from Nautobot: device and module port types and
+#      attributes (MAC, label, description) must match the datastore. A module
+#      port named like a device port is not carried yet and is recorded as a
+#      Pending example, so implementing it turns it into a failure that asks
+#      for its promotion.
 #   4. Module ports whose type Nautobot lacks (nvlink, pcie-gen5-x16) are
 #      skipped with a warning, counted in the summary, and never created.
 
@@ -142,6 +142,11 @@ PY
       When call nb_interface_field repro-dl380 'HSN 0' type
       The output should equal '400gbase-x-qsfpdd'
     End
+
+    It 'carries the device port label'
+      When call nb_interface_field repro-dl380 'HSN 0' label
+      The output should equal 'NDR InfiniBand CX7'
+    End
   End
 
   # Module ports are created on the parent device because Nautobot does not
@@ -153,19 +158,16 @@ PY
     End
 
     It 'carries the module port MAC address'
-      Pending 'createModuleInterfaces sends name, type and role only'
       When call nb_interface_field repro-dl380 'Port 1' mac_address
       The output should equal 'AA:BB:CC:DD:EE:01'
     End
 
     It 'carries the module port label'
-      Pending 'createModuleInterfaces sends name, type and role only'
       When call nb_interface_field repro-dl380 'Port 1' label
       The output should equal 'Fabric A'
     End
 
     It 'carries the module port description'
-      Pending 'createModuleInterfaces sends name, type and role only'
       When call nb_interface_field repro-dl380 'Port 1' description
       The output should equal 'module port'
     End

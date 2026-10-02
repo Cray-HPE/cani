@@ -160,16 +160,12 @@ func (e *Exporter) createModuleInterfaces(
 	return nil
 }
 
-// moduleInterfaceSpecs maps a module's library interfaces to export specs.
+// moduleInterfaceSpecs maps a module's library interfaces to export specs with
+// the same attribute set device-level interfaces carry.
 func moduleInterfaceSpecs(module *devicetypes.CaniModuleType) []interfaceSpec {
 	specs := make([]interfaceSpec, 0, len(module.Interfaces))
 	for _, iface := range module.Interfaces {
-		role := iface.Role
-		if role == "" {
-			mgmtOnly := iface.MgmtOnly != nil && *iface.MgmtOnly
-			role = devicetypes.InferInterfaceRole(iface.Name, iface.Type, mgmtOnly)
-		}
-		specs = append(specs, interfaceSpec{Name: iface.Name, Type: mapInterfaceType(string(iface.Type)), Role: role})
+		specs = append(specs, specFromInterface(iface))
 	}
 	return specs
 }

@@ -230,7 +230,7 @@ Exported in Phase 4 by `loadModules()` in `export/load_modules.go`. For each mod
 | `Type` | `Type` | — | Cani-Internal | CANI classification |
 | `Weight` / `WeightUnit` | `float64` / `string` | — | Cani-Internal | No Nautobot equivalent |
 | `Comments` | `string` | `ModuleType.Comments` | **Mapped** | Template → `ModuleType.Comments` |
-| `Interfaces` | `[]InterfaceSpec` | Creates `Interface` objects on parent device | **Mapped** | Created after the module; duplicate names are skipped, and types outside Nautobot's `InterfaceTypeChoices` enum are skipped with a warning (see §2a.1 `Type`) |
+| `Interfaces` | `[]InterfaceSpec` | Creates `Interface` objects on parent device | **Mapped** | Created after the module with the full attribute set (see §2a.1); duplicate names are skipped, and types outside Nautobot's `InterfaceTypeChoices` enum are skipped with a warning (see §2a.1 `Type`) |
 | `ParentDevice` | `uuid.UUID` | `Module.Device` (via parent device's module bay) | **Mapped** | Resolved to Nautobot device ID via cache |
 | `ModuleBayName` | `string` | `Module.ParentModuleBay` (FK) | **Mapped** | Gets or creates ModuleBay on parent device |
 | `Serial` | `string` | `Module.Serial` | **Mapped** | Mapped when non-empty |
@@ -358,6 +358,7 @@ template (name/type/mgmt-only) and are **not** device-type template fields.
 | `Tags` | `[]string` | `Interface.tags` | **Mapped** | Exported via the shared tag resolver |
 | `MacAddress` | `string` | `Interface.mac_address` | **Mapped** | Normalized on `update interface` |
 | `Type` | `InterfacesElemType` | `Interface.type` | **Mapped** | Template field from the library `interfaces[].type`. Values in Nautobot's `InterfaceTypeChoices` enum pass through unchanged (case-folded) and the library alias `1gbase-t` becomes `1000base-t` (`export/interface_types.go`; `TestNautobotInterfaceTypesMatchGeneratedEnum` keeps the set equal to the generated client). Any other value (e.g. `nvlink`, `pcie-gen5-x16`) is skipped before dry-run reporting or create, warned per interface and counted in `LoadResult.IfacesUnsupported`, for device and module interfaces alike |
+| `Label` | `string` | `Interface.label` | **Mapped** | Physical label; sent unconditionally on `updateInterface` so an emptied local value clears it |
 | `MgmtOnly` | `bool` / `*bool` | `Interface.mgmt_only` | **Mapped** | Preserved when an instance is added to the embedded interface specs and rebuilt on load |
 | `Tenant` | `string` | `Interface.tenant` (FK) | Not Mapped | Preserved in inventory specs and rebuilt instances; not sent by the interface exporter |
 | `CustomFields` | `map[string]any` | `Interface.custom_fields` | Not Mapped | Preserved in inventory specs and rebuilt instances; not sent by the interface exporter |
@@ -368,7 +369,10 @@ template (name/type/mgmt-only) and are **not** device-type template fields.
 Device and module interface specs are the persisted source of truth for authored
 interface fields. `Inventory.Interfaces` is reconstructed from those specs on
 load; IP assignment reverse lists are reconstructed from the addresses' forward
-interface UUIDs rather than cached interface data.
+interface UUIDs rather than cached interface data. Device-level and
+module-level specs are converted by the same `specFromInterface()` builder, so
+a module port carries exactly the attribute set a device port does (type, role,
+`mgmt_only`, `mac_address`, `label`, `tags`, `description`, switchport fields).
 
 Unresolved references (LAG name, VRF name, VLAN VID) that cannot be resolved to
 a Nautobot object at export time are logged as warnings and skipped. The

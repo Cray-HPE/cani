@@ -890,6 +890,7 @@ type interfaceSpec struct {
 	Role         string   // Interface role name (e.g. "management", "hsn")
 	MgmtOnly     bool     // Out-of-band management-only interface (Nautobot mgmt_only)
 	Mac          string   // MAC address (Nautobot mac_address)
+	Label        string   // Physical label (Nautobot label)
 	Tags         []string // Tag names to attach (Nautobot tags)
 	Lag          string   // Parent LAG interface name (Nautobot lag)
 	Mode         string   // Switchport mode: access, tagged, tagged-all
@@ -908,28 +909,7 @@ func getDeviceInterfaceSpecs(device *devicetypes.CaniDeviceType) []interfaceSpec
 	// If device has instantiated interfaces from the device type library, use those
 	if len(device.Interfaces) > 0 {
 		for _, iface := range device.Interfaces {
-			ifaceType := mapInterfaceType(string(iface.Type))
-			speed := getSpeedForType(ifaceType)
-			mgmtOnly := iface.MgmtOnly != nil && *iface.MgmtOnly
-			role := iface.Role
-			if role == "" {
-				role = devicetypes.InferInterfaceRole(iface.Name, iface.Type, mgmtOnly)
-			}
-			specs = append(specs, interfaceSpec{
-				Name:         iface.Name,
-				Type:         ifaceType,
-				Speed:        speed,
-				Role:         role,
-				MgmtOnly:     mgmtOnly,
-				Mac:          iface.MacAddress,
-				Tags:         iface.Tags,
-				Lag:          iface.Lag,
-				Mode:         iface.Mode,
-				UntaggedVLAN: iface.UntaggedVLAN,
-				TaggedVLANs:  iface.TaggedVLANs,
-				VRF:          iface.VRF,
-				Description:  iface.Description,
-			})
+			specs = append(specs, specFromInterface(iface))
 		}
 		return specs
 	}
