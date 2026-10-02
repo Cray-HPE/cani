@@ -44,6 +44,9 @@
 #      for its promotion.
 #   4. Module ports whose type Nautobot lacks (nvlink, pcie-gen5-x16) are
 #      skipped with a warning, counted in the summary, and never created.
+#   5. Every interface spec is either present in Nautobot or named in a skip
+#      line, and the summary's created plus skipped counts add up to the
+#      number of specs.
 
 Describe 'INTEGRATION: Nautobot export fidelity'
 
@@ -91,6 +94,73 @@ Describe 'INTEGRATION: Nautobot export fidelity'
     rc=$?
     cat "$EXPORT_LOG"
     return $rc
+  }
+
+  # Compare the sync summary against the datastore: created plus every
+  # skipped-interfaces count must equal the number of interface specs.
+  summary_accounting() {
+    DS="$CANI_DS" LOG="$EXPORT_LOG" python3 - <<'PY'
+import json
+import os
+import re
+
+with open(os.environ["DS"], encoding="utf-8") as datastore:
+    inventory = json.load(datastore)
+with open(os.environ["LOG"], encoding="utf-8") as log_file:
+    log = log_file.read()
+
+specs = sum(len(d.get("interfaces", [])) for d in inventory["devices"].values())
+specs += sum(len(m.get("interfaces", [])) for m in inventory.get("modules", {}).values())
+created = sum(int(n) for n in re.findall(r"Created interfaces: (\d+)", log))
+skipped = sum(int(n) for n in re.findall(r"Skipped interfaces[^:\n]*: (\d+)", log))
+print(f"specs={specs} created={created} skipped={skipped} balanced={specs == created + skipped}")
+PY
+  }
+
+  # Reconcile canidb interface specs against Nautobot for one parent device.
+  # Every spec must be present remotely (counted by name) or be named in a
+  # skip line of the export log. Prints "unaccounted=<n>" plus details.
+  interface_accounting() {
+    DEVICE="$1" DS="$CANI_DS" LOG="$EXPORT_LOG" python3 - <<'PY'
+import collections
+import json
+import os
+import re
+import urllib.parse
+import urllib.request
+
+device_name = os.environ["DEVICE"]
+with open(os.environ["DS"], encoding="utf-8") as datastore:
+    inventory = json.load(datastore)
+with open(os.environ["LOG"], encoding="utf-8") as log_file:
+    log_lines = log_file.read().splitlines()
+
+device = next(d for d in inventory["devices"].values() if d["name"] == device_name)
+expected = collections.Counter(i["name"] for i in device.get("interfaces", []))
+for module in inventory.get("modules", {}).values():
+    if module.get("parentDevice") == device["id"]:
+        expected.update(i["name"] for i in module.get("interfaces", []))
+
+base_url = os.environ["NAUTOBOT_URL"].rstrip("/") + "/"
+headers = {"Authorization": "Token " + os.environ["NAUTOBOT_TOKEN"]}
+query = urllib.parse.urlencode({"device": device_name, "limit": 500})
+request = urllib.request.Request(base_url + "dcim/interfaces/?" + query, headers=headers)
+with urllib.request.urlopen(request) as response:
+    remote = collections.Counter(i["name"] for i in json.load(response)["results"])
+
+skip_pattern = re.compile(r"skip", re.IGNORECASE)
+unaccounted = 0
+for name, count in sorted(expected.items()):
+    deficit = count - remote.get(name, 0)
+    if deficit <= 0:
+        continue
+    logged = sum(1 for line in log_lines if skip_pattern.search(line) and name in line)
+    missing = deficit - logged
+    if missing > 0:
+        unaccounted += missing
+        print(f"missing={name!r} expected={count} remote={remote.get(name, 0)} logged_skips={logged}")
+print(f"unaccounted={unaccounted}")
+PY
   }
 
   # Print one Nautobot interface field for <device> <interface> <field>.
@@ -195,6 +265,36 @@ PY
     It 'does not create the NVLink port'
       When call nb_interface_field repro-xd670 'NVLink 4.0' type
       The output should equal '<missing>'
+    End
+  End
+
+  # Nothing may vanish silently: a spec that is not in Nautobot must be named
+  # in a skip line, the summary must add up, and the run must say so.
+  Describe 'accounting'
+    It 'accounts for module ports whose type Nautobot lacks'
+      When call interface_accounting repro-xd670
+      The output should include 'unaccounted=0'
+    End
+
+    It 'accounts for a module port that shares its name with the parent device'
+      When call interface_accounting repro-dl380
+      The output should include 'unaccounted=0'
+    End
+
+    It 'names the skipped duplicate port in the summary'
+      When call cat "$EXPORT_LOG"
+      The output should include 'Skipped interface HSN 0 on module cx7-a'
+      The output should include 'Skipped interfaces (name already on device): 1'
+    End
+
+    It 'balances created plus skipped interfaces against the datastore'
+      When call summary_accounting
+      The output should include 'balanced=True'
+    End
+
+    It 'warns that some objects were not exported as authored'
+      When call grep -c 'not exported as authored' "$EXPORT_LOG"
+      The output should equal '1'
     End
   End
 

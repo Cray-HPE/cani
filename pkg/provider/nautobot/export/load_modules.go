@@ -167,9 +167,31 @@ func (e *Exporter) createModuleFromCani(
 		clog.DryRun("Would create module: %s (parent: %s, bay: %s)",
 			module.Name, parentDevice.Name, moduleBayName)
 		result.ModulesCreated++
-		return nil
+	} else if err := e.postModule(ctx, req, module, parentDevice, moduleBayName, result); err != nil {
+		return err
 	}
 
+	// Create the module's interfaces on the parent device.
+	// Nautobot doesn't auto-create interfaces from module types created via API,
+	// so we explicitly create them and associate with the parent device.
+	if len(module.Interfaces) > 0 {
+		if err := e.createModuleInterfaces(ctx, module, parentDevice, parentNautobotID, result); err != nil {
+			clog.Warn("Warning: failed to create interfaces for module %s: %v", module.Name, err)
+		}
+	}
+
+	return nil
+}
+
+// postModule sends the module create request and records the outcome.
+func (e *Exporter) postModule(
+	ctx context.Context,
+	req nautobotapi.ModuleRequest,
+	module *devicetypes.CaniModuleType,
+	parentDevice *devicetypes.CaniDeviceType,
+	moduleBayName string,
+	result *LoadResult,
+) error {
 	resp, err := e.Client.DcimModulesCreateWithResponse(ctx,
 		&nautobotapi.DcimModulesCreateParams{}, req)
 	if err != nil {
@@ -183,15 +205,5 @@ func (e *Exporter) createModuleFromCani(
 	clog.Created("Created module: %s (parent: %s, bay: %s)",
 		module.Name, parentDevice.Name, moduleBayName)
 	result.ModulesCreated++
-
-	// Create the module's interfaces on the parent device.
-	// Nautobot doesn't auto-create interfaces from module types created via API,
-	// so we explicitly create them and associate with the parent device.
-	if len(module.Interfaces) > 0 {
-		if err := e.createModuleInterfaces(ctx, module, parentNautobotID, result); err != nil {
-			clog.Warn("Warning: failed to create interfaces for module %s: %v", module.Name, err)
-		}
-	}
-
 	return nil
 }
