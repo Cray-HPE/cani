@@ -147,3 +147,32 @@ func TestMapInterfaceTypeAliasesAndUnknown(t *testing.T) {
 		t.Errorf("empty type = %q, want 1000base-t", got)
 	}
 }
+
+// TestSupportedInterfaceSpecsDropsAndCountsUnsupported verifies
+// supportedInterfaceSpecs keeps specs whose type Nautobot stores, in order,
+// and counts each dropped spec in IfacesUnsupported.
+//
+// Why it matters: both the device and the module export paths run this
+// filter before dry-run reporting and before any create, so it alone decides
+// which ports reach Nautobot and how many omissions the summary reports.
+// Inputs: eth0 (1000base-t), nv0 (nvlink) and hsn0 (400gbase-x-qsfpdd).
+// Outputs: [eth0, hsn0] and IfacesUnsupported == 1.
+// Data choice: the unsupported spec sits between two supported ones to prove
+// the filter preserves order rather than truncating at the first miss.
+func TestSupportedInterfaceSpecsDropsAndCountsUnsupported(t *testing.T) {
+	specs := []interfaceSpec{
+		{Name: "eth0", Type: "1000base-t"},
+		{Name: "nv0", Type: "nvlink"},
+		{Name: "hsn0", Type: "400gbase-x-qsfpdd"},
+	}
+	result := &LoadResult{}
+
+	kept := supportedInterfaceSpecs(specs, "gpu-node", result)
+
+	if len(kept) != 2 || kept[0].Name != "eth0" || kept[1].Name != "hsn0" {
+		t.Errorf("kept = %+v, want eth0 then hsn0", kept)
+	}
+	if result.IfacesUnsupported != 1 {
+		t.Errorf("IfacesUnsupported = %d, want 1", result.IfacesUnsupported)
+	}
+}

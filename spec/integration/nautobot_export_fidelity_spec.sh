@@ -42,6 +42,8 @@
 #      yet (MAC, label, description, a module port named like a device port)
 #      is recorded as Pending examples, so implementing it turns them into
 #      failures that ask for their promotion.
+#   4. Module ports whose type Nautobot lacks (nvlink, pcie-gen5-x16) are
+#      skipped with a warning, counted in the summary, and never created.
 
 Describe 'INTEGRATION: Nautobot export fidelity'
 
@@ -175,6 +177,22 @@ PY
       Pending 'a module port whose name exists on the parent device is skipped'
       When call nb_interface_field repro-dl380 'HSN 0' mac_address
       The output should equal 'AA:BB:CC:DD:EE:02'
+    End
+  End
+
+  # The H100 GPU module defines nvlink and pcie-gen5-x16 ports, which have no
+  # Nautobot interface type; the exporter reports and skips them.
+  Describe 'unsupported interface types'
+    It 'warns about the port types Nautobot cannot store'
+      When call cat "$EXPORT_LOG"
+      The output should include 'Nautobot has no interface type "nvlink"'
+      The output should include 'Nautobot has no interface type "pcie-gen5-x16"'
+      The output should include 'Skipped interfaces (type not in Nautobot): 2'
+    End
+
+    It 'does not create the NVLink port'
+      When call nb_interface_field repro-xd670 'NVLink 4.0' type
+      The output should equal '<missing>'
     End
   End
 

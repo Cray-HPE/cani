@@ -257,16 +257,18 @@ func TestGetOrCreateModuleBay_ErrorsOnCreateNon201(t *testing.T) {
 
 // TestCreateModuleInterfaces_CreatesValidSkipsInvalid verifies that
 // createModuleInterfaces creates only interfaces whose type Nautobot supports,
-// skipping internal interconnects, and bumps IfacesCreated and the POST count
-// by exactly one.
+// counts the skipped interconnect in IfacesUnsupported, and bumps
+// IfacesCreated and the POST count by exactly one.
 //
 // Why it matters: a module's interfaces (e.g. HSN ports from a NIC) become
 // device interfaces in Nautobot; filtering unsupported types (nvlink) avoids
-// create failures while still recording real network ports.
+// create failures while still recording real network ports, and the count
+// keeps the omission visible in the export summary.
 // Inputs: a module with one 100gbase-x-qsfp28 and one nvlink interface, plus a
-// seeded Active status. Outputs: IfacesCreated == 1 and one interface POST.
+// seeded Active status. Outputs: IfacesCreated == 1, IfacesUnsupported == 1
+// and one interface POST.
 // Data choice: pairing a Nautobot-valid type with nvlink, an internal GPU
-// interconnect, directly exercises the isValidNautobotInterfaceType filter.
+// interconnect, directly exercises the supportedInterfaceSpecs filter.
 func TestCreateModuleInterfaces_CreatesValidSkipsInvalid(t *testing.T) {
 	var postCalls int
 	created := fmt.Sprintf(`{"id":%q,"name":"hsn0","display":"hsn0"}`, uuid.NewString())
@@ -289,6 +291,9 @@ func TestCreateModuleInterfaces_CreatesValidSkipsInvalid(t *testing.T) {
 	}
 	if result.IfacesCreated != 1 {
 		t.Errorf("IfacesCreated = %d, want 1 (only the Nautobot-supported interface)", result.IfacesCreated)
+	}
+	if result.IfacesUnsupported != 1 {
+		t.Errorf("IfacesUnsupported = %d, want 1 (the nvlink interface)", result.IfacesUnsupported)
 	}
 	if postCalls != 1 {
 		t.Errorf("expected exactly one interface POST, got %d", postCalls)

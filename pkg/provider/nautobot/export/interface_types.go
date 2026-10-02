@@ -77,8 +77,8 @@ func isValidNautobotInterfaceType(ifaceType string) bool {
 
 // mapInterfaceType returns the Nautobot interface type for a library type.
 // Types Nautobot accepts pass through unchanged; only spellings Nautobot lacks
-// are rewritten, and anything unknown is returned as-is for the caller to
-// validate. An empty type defaults to 1000base-t.
+// are rewritten, and anything unknown is returned as-is for
+// supportedInterfaceSpecs to report. An empty type defaults to 1000base-t.
 func mapInterfaceType(ifaceType string) string {
 	lower := strings.ToLower(strings.TrimSpace(ifaceType))
 	if lower == "" {
@@ -91,4 +91,21 @@ func mapInterfaceType(ifaceType string) string {
 		return mapped
 	}
 	return ifaceType
+}
+
+// supportedInterfaceSpecs drops the specs whose type Nautobot cannot store,
+// warning once per interface and counting them in result.IfacesUnsupported.
+// It runs before dry-run reporting and before any create, so both describe
+// the same set of interfaces.
+func supportedInterfaceSpecs(specs []interfaceSpec, owner string, result *LoadResult) []interfaceSpec {
+	kept := make([]interfaceSpec, 0, len(specs))
+	for _, spec := range specs {
+		if !isValidNautobotInterfaceType(spec.Type) {
+			clog.Warn("Skipping interface %s on %s: Nautobot has no interface type %q", spec.Name, owner, spec.Type)
+			result.IfacesUnsupported++
+			continue
+		}
+		kept = append(kept, spec)
+	}
+	return kept
 }

@@ -148,26 +148,30 @@ func (e *Exporter) createModuleInterfaces(
 	parentNautobotID uuid.UUID,
 	result *LoadResult,
 ) error {
-	for _, iface := range module.Interfaces {
-		ifaceType := mapInterfaceType(string(iface.Type))
-		if !isValidNautobotInterfaceType(ifaceType) {
-			continue
-		}
-		existing, _ := e.Cache.GetInterfaceByDeviceAndName(parentNautobotID, iface.Name)
+	for _, spec := range supportedInterfaceSpecs(moduleInterfaceSpecs(module), module.Name, result) {
+		existing, _ := e.Cache.GetInterfaceByDeviceAndName(parentNautobotID, spec.Name)
 		if existing != nil {
 			continue
 		}
+		if err := e.createInterface(ctx, parentNautobotID, spec, result); err != nil {
+			return fmt.Errorf("interface %s: %w", spec.Name, err)
+		}
+	}
+	return nil
+}
+
+// moduleInterfaceSpecs maps a module's library interfaces to export specs.
+func moduleInterfaceSpecs(module *devicetypes.CaniModuleType) []interfaceSpec {
+	specs := make([]interfaceSpec, 0, len(module.Interfaces))
+	for _, iface := range module.Interfaces {
 		role := iface.Role
 		if role == "" {
 			mgmtOnly := iface.MgmtOnly != nil && *iface.MgmtOnly
 			role = devicetypes.InferInterfaceRole(iface.Name, iface.Type, mgmtOnly)
 		}
-		spec := interfaceSpec{Name: iface.Name, Type: ifaceType, Role: role}
-		if err := e.createInterface(ctx, parentNautobotID, spec, result); err != nil {
-			return fmt.Errorf("interface %s: %w", iface.Name, err)
-		}
+		specs = append(specs, interfaceSpec{Name: iface.Name, Type: mapInterfaceType(string(iface.Type)), Role: role})
 	}
-	return nil
+	return specs
 }
 
 func derefString(value *string) string {
