@@ -165,8 +165,10 @@ Persistent flags inherited by all `add` subcommands:
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--device` | string | `""` | Parent device UUID or name |
-| `--bay` | string | `""` | Module bay name |
+| `--device` | string | `""` | Parent device UUID, name, slug, or `%{FILL}` strategy |
+| `--bay` | string | `""` | Module bay name on the parent device; stored in the spelling the parent declares |
+| `--spare` | bool | false | Store the module at `--location` instead of installing it in a device |
+| `--location` | string | `""` | Location filter for device selection, or the storage location of a `--spare` module |
 
 #### `add cable <slug-or-part-number>`
 
@@ -187,7 +189,7 @@ Each takes `<uuid-or-name>` as a positional arg. Persistent flag:
 |------|-------|------|---------|-------------|
 | `--force` | `-f` | bool | false | Skip confirmation |
 
-- `remove location` — Errors if the location still has child racks.
+- `remove location` — Errors if the location still has racks, child locations, directly placed devices, or spare modules.
 - `remove rack` — Unlinks devices before deleting.
 - `remove device` — Cascades to children (modules, cables).
 - `remove module` — Removes the module.

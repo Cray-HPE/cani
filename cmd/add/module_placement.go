@@ -63,7 +63,16 @@ func addModuleMultiDevice(inventory *devicetypes.Inventory, base *devicetypes.Ca
 }
 
 // addModuleSingleDevice adds qty modules to a single (or no) parent device.
+// A named bay is stored in the spelling the parent declares, so the
+// datastore and the ModuleBay export creates carry one name per bay.
 func addModuleSingleDevice(inventory *devicetypes.Inventory, base *devicetypes.CaniModuleType, devices []*devicetypes.CaniDeviceType, opts moduleAddOpts) error {
+	if len(devices) == 1 {
+		bay, err := inventory.ResolveModuleBayName(devices[0].ID, opts.bayName)
+		if err != nil {
+			return err
+		}
+		opts.bayName = bay
+	}
 	names, err := resolveSingleDeviceNames(opts, devices)
 	if err != nil {
 		return err
@@ -72,6 +81,7 @@ func addModuleSingleDevice(inventory *devicetypes.Inventory, base *devicetypes.C
 	for i := range opts.qty {
 		mod := base.NewInstance()
 		mod.ModuleBayName = opts.bayName
+		mod.Location = opts.spareLocation
 		if len(devices) == 1 {
 			mod.ParentDevice = devices[0].ID
 		}

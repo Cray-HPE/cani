@@ -93,7 +93,16 @@ func updateModule(cmd *cli.Command, args []string) error {
 		return err
 	}
 	if mod.ModuleBayName != bayBefore {
+		if mod.ModuleBayName, err = inventory.ResolveModuleBayName(mod.ParentDevice, mod.ModuleBayName); err != nil {
+			return err
+		}
 		inventory.ResolveModuleNames(mod)
+	}
+
+	// Rebuild relationships so a bay the update made contested is refused
+	// rather than persisted.
+	if result := inventory.VerifyParentChildRelationships(); result.HasErrors() {
+		return fmt.Errorf("relationship errors: %v", result.Errors)
 	}
 
 	if err := datastores.Datastore.Save(inventory); err != nil {

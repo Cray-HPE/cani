@@ -321,16 +321,6 @@ func addDeviceLiteral(cmd *cli.Command, result *lookupResult, qty int, nameArg, 
 	return nil
 }
 
-// resolveLocation finds or ensures a location in the inventory.
-func resolveLocation(inventory *devicetypes.Inventory, locationArg string) uuid.UUID {
-	if locationArg != "" {
-		if loc := inventory.FindLocationByNameOrID(locationArg); loc != nil {
-			return loc.ID
-		}
-	}
-	return inventory.EnsureLocation()
-}
-
 // resolveTemplateNames expands template patterns for each placement entry.
 func resolveTemplateNames(nameArg string, entries []placement.PlacementEntry, face string) []string {
 	if nameArg == "" || !nameexpand.IsTemplate(nameArg) {

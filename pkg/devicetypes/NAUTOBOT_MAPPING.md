@@ -224,7 +224,7 @@ When `create_device_types` is enabled, `CreateDeviceTypeFromLocal()` looks up th
 ### 2.4 `CaniModuleType` → Nautobot `Module` + `ModuleType`
 
 Source: `pkg/devicetypes/cani_module_types.go`
-Exported in Phase 4 by `loadModules()` in `export/load_modules.go`. For each module, the pipeline: (1) gets or creates a `ModuleType` from YAML library data, (2) gets or creates a `ModuleBay` on the parent device, (3) creates the `Module` with the resolved FKs, and (4) creates module-defined interfaces on the parent device.
+Exported in Phase 4 by `loadModules()` in `export/load_modules.go`. For each module, the pipeline: (1) gets or creates a `ModuleType` from YAML library data, (2) resolves the placement (`load_module_placement.go`) — an installed module gets or creates a `ModuleBay` on the parent device and sends only `parent_module_bay`, a spare sends only `location`, a module with neither is reported — (3) finds the existing module through its bay (a different known serial in the bay is a conflict) or, for a spare, through its recorded external ID then serial, otherwise creates it, and (4) creates module-defined interfaces on the module itself.
 
 | Cani Field | Go Type | Nautobot Field | Status | Notes |
 |---|---|---|---|---|
@@ -238,14 +238,14 @@ Exported in Phase 4 by `loadModules()` in `export/load_modules.go`. For each mod
 | `Type` | `Type` | — | Cani-Internal | CANI classification |
 | `Weight` / `WeightUnit` | `float64` / `string` | — | Cani-Internal | No Nautobot equivalent |
 | `Comments` | `string` | `ModuleType.Comments` | **Mapped** | Template → `ModuleType.Comments` |
-| `Interfaces` | `[]InterfaceSpec` | Creates `Interface` objects on parent device | **Mapped** | Created after the module with the full attribute set (see §2a.1). A port the device spec already declares is skipped (device spec takes precedence), logged by name and counted as `Skipped interfaces (name already on device)`; types outside Nautobot's `InterfaceTypeChoices` enum are skipped with a warning and counted (see §2a.1 `Type`). Names and labels containing Nautobot's `{module}` placeholder are resolved by `Inventory.ResolveModuleNames()` (`module_token.go`) to the module bay's position when the module is added or moved, so the resolved names are what get exported |
-| `ParentDevice` | `uuid.UUID` | `Module.Device` (via parent device's module bay) | **Mapped** | Resolved to Nautobot device ID via cache |
-| `ModuleBayName` | `string` | `Module.ParentModuleBay` (FK) | **Mapped** | Gets or creates ModuleBay on parent device |
+| `Interfaces` | `[]InterfaceSpec` | `Interface` objects owned by the module (`Interface.module`) | **Mapped** | Created on the module after it exists with the full attribute set (see §2a.1), looked up by module so same-named ports on sibling modules stay distinct; types outside Nautobot's `InterfaceTypeChoices` enum are skipped with a warning and counted (see §2a.1 `Type`). Import attaches module-owned interfaces to their module (`AttachModuleInterfaces()`); the index records the owner in `CaniInterface.ModuleID`. Names and labels containing Nautobot's `{module}` placeholder are resolved by `Inventory.ResolveModuleNames()` (`module_token.go`) to the module bay's position when the module is added or moved, so the resolved names are what get exported |
+| `ParentDevice` | `uuid.UUID` | `Module.parent_module_bay` → parent device | **Mapped** | Resolved to Nautobot device ID via cache. Empty for a spare. When an import merges a module the datastore already holds, it takes the parent, bay and location as one unit (`mergeModulePlacement()`), so a module moved, installed or stored as a spare in Nautobot is placed where Nautobot reports it; a record with no placement keeps the existing one |
+| `ModuleBayName` | `string` | `Module.ParentModuleBay` (FK) | **Mapped** | Gets or creates ModuleBay on parent device. The module name is the legacy default: on a parent that declares no bays export uses it as the bay, and on a parent that declares bays it is reported as a warning and export refuses the module until a bay is set with `update module --bay`. A re-import that names no bay on the same parent keeps the existing bay. Bay names compare case-insensitively and `add`/`update module --bay` store the spelling the parent declares (`Inventory.ResolveModuleBayName()`), so one bay yields one Nautobot ModuleBay. A provider transform result passes through `Inventory.ReconcileModuleBays()` during the merge: a declared bay is canonicalised, an undeclared one is cleared and reported as unresolved rather than aborting the import, so export never creates a bay the library does not declare. Two authored claims on one bay are a validation error, and `AddModule` refuses the module; a collision involving that legacy default is a warning, so inventories written before bays were named stay writable |
+| `Location` | `uuid.UUID` | `Module.location` (FK) | **Mapped** | Sent only for a spare (no parent). An installed module inherits its parent's location; an authored location that differs from the parent's is a validation error. A spare's location must exist and admit modules; export descends to a descendant whose type holds modules (then the default location) as it does for devices, and `RemoveLocation` refuses a location that stores spares, as Nautobot's `PROTECT` does |
 | `Serial` | `string` | `Module.Serial` | **Mapped** | Mapped when non-empty |
 | `AssetTag` | `string` | `Module.AssetTag` | **Mapped** | Mapped when non-empty |
 | `Status` | `string` | `Module.Status` (FK) | **Mapped** | Falls back to provider default |
 | `Role` | `string` | `Module.Role` (FK) | **Mapped** | Resolved by name when non-empty |
-| `Location` | `uuid.UUID` | `Module.Location` (FK) | **Mapped** | Resolved via cache when non-nil |
 | `Tenant` | `string` | `Module.Tenant` (FK) | Not Mapped | |
 | `Tags` | `[]string` | `Module.Tags` | Not Mapped | |
 | `CustomFields` | `map[string]any` | `Module.CustomFields` | Not Mapped | |
@@ -421,8 +421,9 @@ external-only references remain valid; validation is deferred to export.
 
 Every interface spec the export does not create is named in a skip line and
 counted: an unsupported type under `Skipped interfaces (type not in Nautobot)`
-(see `Type` above) and a module port whose name the device spec already
-declares under `Skipped interfaces (name already on device)`. The summary
+(see `Type` above). A module port is created on its module, so one named like
+a device port (the DL380 Gen11 and CX7 "HSN 0") exists next to the device
+port instead of being skipped. The summary
 closes with an explicit warning whenever any object was skipped, so
 `created + skipped` always accounts for every interface spec even though the
 exit status stays 0. A dry run plans module ports the same way after "Would

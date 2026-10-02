@@ -96,7 +96,7 @@ Describe 'cani alpha add'
     End
 
     Describe 'flags'
-      Parameters:value --rack --position --face --zone --dry-run --location
+      Parameters:value --rack --position --face --zone --bay --dry-run --location
       It "has $1 flag"
         When call bin/cani alpha add device --help
         The stdout should include "$1"
@@ -114,7 +114,7 @@ Describe 'cani alpha add'
     End
 
     Describe 'flags'
-      Parameters:value --device --bay --bay-filter --dry-run --location
+      Parameters:value --device --bay --bay-filter --spare --dry-run --location
       It "has $1 flag"
         When call bin/cani alpha add module --help
         The stdout should include "$1"
