@@ -49,7 +49,6 @@ import (
 // VRF cached under its name with the new ID.
 // Data choice: "LEGACY" with an RD mirrors the real legacy CSM routing VRF.
 func TestLoadVRFs_CreatesWhenMissing(t *testing.T) {
-	resetIPAMCaches()
 	vrfNID := uuid.New()
 	posted := false
 	handler := func(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +69,7 @@ func TestLoadVRFs_CreatesWhenMissing(t *testing.T) {
 	}
 	e, cleanup := newExporterWithServer(t, handler)
 	defer cleanup()
-	seedGlobalNamespace(uuid.New())
+	seedGlobalNamespace(e, uuid.New())
 
 	vrfID := uuid.New()
 	inv := &devicetypes.Inventory{
@@ -88,9 +87,9 @@ func TestLoadVRFs_CreatesWhenMissing(t *testing.T) {
 	if !posted {
 		t.Error("expected a VRF create POST")
 	}
-	item, ok := e.Cache.LookupCachedVRF("LEGACY")
-	if !ok || item.ID != vrfNID {
-		t.Errorf("cached VRF = %v, want id %s", item, vrfNID)
+	item, err := e.Cache.LookupCachedVRF("LEGACY")
+	if err != nil || item == nil || item.ID != vrfNID {
+		t.Errorf("cached VRF = %v (%v), want id %s", item, err, vrfNID)
 	}
 }
 
@@ -103,7 +102,6 @@ func TestLoadVRFs_CreatesWhenMissing(t *testing.T) {
 // any POST. Outputs: VRFsSkipped=1 and the existing VRF cached by name.
 // Data choice: erroring on POST makes the no-recreate guarantee explicit.
 func TestLoadVRFs_SkipsExisting(t *testing.T) {
-	resetIPAMCaches()
 	vrfNID := uuid.New()
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -134,9 +132,9 @@ func TestLoadVRFs_SkipsExisting(t *testing.T) {
 	if result.VRFsSkipped != 1 {
 		t.Errorf("VRFsSkipped = %d, want 1", result.VRFsSkipped)
 	}
-	item, ok := e.Cache.LookupCachedVRF("LEGACY")
-	if !ok || item.ID != vrfNID {
-		t.Errorf("cached VRF = %v, want id %s", item, vrfNID)
+	item, err := e.Cache.LookupCachedVRF("LEGACY")
+	if err != nil || item == nil || item.ID != vrfNID {
+		t.Errorf("cached VRF = %v (%v), want id %s", item, err, vrfNID)
 	}
 }
 
@@ -150,13 +148,12 @@ func TestLoadVRFs_SkipsExisting(t *testing.T) {
 // Outputs: changed=true and a payload containing the VRF UUID.
 // Data choice: a pre-cached VRF isolates the enrichment wiring from VRF creation.
 func TestBuildInterfaceEnrichment_AssignsVRF(t *testing.T) {
-	resetIPAMCaches()
 	var calls int
 	e, cleanup := newExporterWithServer(t, jsonHandler(&calls, http.StatusOK, `{}`))
 	defer cleanup()
 
 	vrfNID := uuid.New()
-	e.Cache.CacheVRF("LEGACY", &CachedItem{ID: vrfNID, Name: "LEGACY"})
+	e.Cache.CacheVRF("Global", "LEGACY", &CachedItem{ID: vrfNID, Name: "LEGACY"})
 
 	deviceID := uuid.New()
 	spec := interfaceSpec{Name: "1/1/25", VRF: "LEGACY"}
@@ -189,7 +186,6 @@ func TestBuildInterfaceEnrichment_AssignsVRF(t *testing.T) {
 // Data choice: an empty list drives the create branch; a POST flag proves the
 // link is created.
 func TestEnsureVRFDeviceAssignment_CreatesWhenMissing(t *testing.T) {
-	resetIPAMCaches()
 	posted := false
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -209,7 +205,7 @@ func TestEnsureVRFDeviceAssignment_CreatesWhenMissing(t *testing.T) {
 	}
 	e, cleanup := newExporterWithServer(t, handler)
 	defer cleanup()
-	e.Cache.CacheVRF("LEGACY", &CachedItem{ID: uuid.New(), Name: "LEGACY"})
+	e.Cache.CacheVRF("Global", "LEGACY", &CachedItem{ID: uuid.New(), Name: "LEGACY"})
 
 	if err := e.ensureVRFDeviceAssignment(context.Background(), uuid.New(), "LEGACY"); err != nil {
 		t.Fatalf("ensureVRFDeviceAssignment() error = %v", err)
@@ -228,7 +224,6 @@ func TestEnsureVRFDeviceAssignment_CreatesWhenMissing(t *testing.T) {
 // which fails the test on any POST. Outputs: no error and no POST.
 // Data choice: erroring on POST makes the no-duplicate guarantee explicit.
 func TestEnsureVRFDeviceAssignment_SkipsWhenPresent(t *testing.T) {
-	resetIPAMCaches()
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if strings.Contains(r.URL.Path, "vrf-device-assignments") {
@@ -244,7 +239,7 @@ func TestEnsureVRFDeviceAssignment_SkipsWhenPresent(t *testing.T) {
 	}
 	e, cleanup := newExporterWithServer(t, handler)
 	defer cleanup()
-	e.Cache.CacheVRF("LEGACY", &CachedItem{ID: uuid.New(), Name: "LEGACY"})
+	e.Cache.CacheVRF("Global", "LEGACY", &CachedItem{ID: uuid.New(), Name: "LEGACY"})
 
 	if err := e.ensureVRFDeviceAssignment(context.Background(), uuid.New(), "LEGACY"); err != nil {
 		t.Fatalf("ensureVRFDeviceAssignment() error = %v", err)

@@ -77,7 +77,6 @@ func vlanCreateServer(createStatus int, vlanNID uuid.UUID, captured *[]byte) htt
 // Data choice: the VLAN sets only VID/Name (no Status, no option default) and
 // "Active" is seeded so the test pins the fallback to the seeded status.
 func TestCreateVLAN_CreatesWithStatusFallback(t *testing.T) {
-	resetIPAMCaches()
 	vlanNID := uuid.New()
 	var captured []byte
 	e, cleanup := newExporterWithServer(t, vlanCreateServer(http.StatusCreated, vlanNID, &captured))
@@ -111,7 +110,6 @@ func TestCreateVLAN_CreatesWithStatusFallback(t *testing.T) {
 // Data choice: the role "compute" is pre-seeded with a known ID so the test can
 // assert the payload carries exactly that ID, proving the lookup-and-attach.
 func TestCreateVLAN_ResolvesRoleIntoPayload(t *testing.T) {
-	resetIPAMCaches()
 	vlanNID := uuid.New()
 	var captured []byte
 	e, cleanup := newExporterWithServer(t, vlanCreateServer(http.StatusCreated, vlanNID, &captured))
@@ -149,7 +147,6 @@ func TestCreateVLAN_ResolvesRoleIntoPayload(t *testing.T) {
 // Data choice: a status of "Active" is set so the code reaches the create
 // decision, isolating dry-run as the sole reason no POST is sent.
 func TestCreateVLAN_DryRunSkipsCreate(t *testing.T) {
-	resetIPAMCaches()
 	var captured []byte
 	e, cleanup := newExporterWithServer(t, vlanCreateServer(http.StatusCreated, uuid.New(), &captured))
 	defer cleanup()
@@ -182,7 +179,6 @@ func TestCreateVLAN_DryRunSkipsCreate(t *testing.T) {
 // Data choice: the handler fails only the statuses endpoint (500) so the failure
 // is attributable specifically to status resolution.
 func TestCreateVLAN_ReturnsErrorWhenStatusLookupFails(t *testing.T) {
-	resetIPAMCaches()
 	// The status lookup returns 500 and "Active" is not seeded, so GetStatus —
 	// and therefore createVLAN — fails before any VLAN POST.
 	handler := func(w http.ResponseWriter, r *http.Request) {
@@ -216,7 +212,6 @@ func TestCreateVLAN_ReturnsErrorWhenStatusLookupFails(t *testing.T) {
 // Data choice: only the create status is flipped to 400 (status still seeded) so
 // the failure is isolated to the VLAN POST.
 func TestCreateVLAN_ReturnsErrorOnNon201(t *testing.T) {
-	resetIPAMCaches()
 	var captured []byte
 	e, cleanup := newExporterWithServer(t, vlanCreateServer(http.StatusBadRequest, uuid.New(), &captured))
 	defer cleanup()

@@ -45,10 +45,10 @@ Each DCIM and IPAM `Cani*Type` implements the `CaniType` interface (`Validate()`
 | `Cables` | `Cable` | ~75% | `createCaniCableType()` in `load.go` |
 | `Frus` | `InventoryItem` | ~60% | `loadFrus()` in `load_frus.go` |
 | `VLANs` | `VLAN` + `VLANLocationAssignment` | Import + Export | `loadVLANs()` in `load_vlans.go` |
-| `Prefixes` | `Prefix` + `PrefixLocationAssignment` | Import + Export | `loadPrefixes()` in `load_prefixes.go` |
-| `IPAddresses` | `IPAddress` | Import + Export | `loadIPAddresses()` in `load.go` |
-| `VRFs` | `VRF` | Import + Export | `loadVRFs()` in `load_vrfs.go` |
-| (scope) | `Namespace` | Model only | `Namespace` fields on prefixes, addresses and VRFs (empty means `Global`); export still resolves `Global` and import does not set them yet |
+| `Prefixes` | `Prefix` + `PrefixLocationAssignment` + `VRFPrefixAssignment` | Import + Export | `loadPrefixes()` in `load_prefixes.go`; memberships in `load_vrf_prefix_assignments.go` |
+| `IPAddresses` | `IPAddress` | Import + Export | `loadIPAddresses()` in `load_ipaddresses.go` |
+| `VRFs` | `VRF` + `VRFDeviceAssignment` | Import + Export | `loadVRFs()` in `load_vrfs.go` |
+| (scope) | `Namespace` | Export | `Namespace` fields on prefixes, addresses and VRFs (empty means `Global`); export resolves each object's namespace by name and creates a missing one (`GetOrCreateNamespace()` in `lookup_ipam.go`); import does not set them yet |
 
 ---
 
@@ -358,7 +358,7 @@ template (name/type/mgmt-only) and are **not** device-type template fields.
 | `Mode` | `string` | `Interface.mode` | **Mapped** | `access`, `tagged`, or `tagged-all` |
 | `UntaggedVLAN` | `int` | `Interface.untagged_vlan` (FK) | **Mapped** | Native VLAN ID, resolved within the device's location to the VLAN FK created in Phase 7 |
 | `TaggedVLANs` | `[]int` | `Interface.tagged_vlans` (FK) | **Mapped** | Trunk VLAN IDs, resolved within the device's location to VLAN FKs |
-| `VRF` | `string` | `Interface.vrf` (FK) | **Mapped** | VRF name, resolved to the VRF FK created in Phase 6c |
+| `VRF` | `string` | `Interface.vrf` (FK) | **Mapped** | VRF reference, `name` or `namespace/name`, resolved to the VRF FK created in Phase 6c; a bare name shared by several exported namespaces is reported and skipped, and a VRF whose own name contains `/` cannot be referenced from an interface |
 | `Description` | `string` | `Interface.description` | **Mapped** | Free-text interface description; sent unconditionally on `updateInterface`, so an emptied local value clears it in Nautobot (inventory is authoritative on reconcile) |
 | `Role` | `string` | `Interface.role` (FK) | **Mapped** | e.g. `management`, `hsn`; validated against registered roles. Nautobot 3.2 marks the FK `omitempty`, so `interfacePatch` injects explicit `role: null` when the local role is empty; enrichment otherwise re-sends the role to avoid clobbering it |
 | `Tags` | `[]string` | `Interface.tags` | **Mapped** | Exported via the shared tag resolver |
@@ -416,6 +416,9 @@ the remedy is to remove the record and import again. Module, FRU and cable
 merges instead insert an object whose source identity conflicts as a new
 record; IPAM cannot, because Nautobot holds one prefix, address or VRF per
 natural key in a namespace, so that record could never be exported.
+Namespace-qualified VRF names are selectors, not identities: an unqualified
+interface VRF name keeps working while it is unique across the exported
+namespaces and must be written `namespace/name` once it is not.
 
 Validation rejects a prefix parent, VRF membership, or address parent in
 another namespace and a parent that does not contain its address; legacy
@@ -481,14 +484,14 @@ A device without a location can resolve only unscoped VLANs.
 
 Source: `pkg/devicetypes/ipam_vrf.go`
 Imported by `FetchVRFs()` + `MapVRFs()`; exported in Phase 6c by `loadVRFs()` in
-`load_vrfs.go` (find-or-create by name).
+`load_vrfs.go` (find-or-create by name within the VRF's namespace).
 
 | Cani Field | Go Type | Nautobot Field | Status | Notes |
 |---|---|---|---|---|
 | `ID` | `uuid.UUID` | — | Cani-Internal | Primary key |
 | `Name` | `string` | `VRF.name` | **Mapped** | Natural key together with `Namespace`, exact case; a bare-name lookup prefers the exact name and falls back to a single case-insensitive match |
 | `RD` | `string` | `VRF.rd` | **Mapped** | Route distinguisher (RFC 4364); mapped when non-empty |
-| `Namespace` | `string` | `VRF.namespace` (FK) | Partial | Scope of the VRF's identity; empty means `Global` and the v1alpha7 migration stamps it. Get-or-create on export; not resolved on import |
+| `Namespace` | `string` | `VRF.namespace` (FK) | Partial | Scope of the VRF's identity; empty means `Global` and the v1alpha7 migration stamps it. Export resolves the namespace by name, creating a missing one, and a namespace lookup failure fails the VRF rather than defaulting it; not resolved on import |
 | `Description` | `string` | `VRF.description` | **Mapped** | Mapped when non-empty |
 | `Devices` | `[]uuid.UUID` | `VRFDeviceAssignment` (M2M) | **Mapped** | Exported via `ensureVRFDeviceAssignment()` in `load_vrfs.go`; imported via `FetchVRFDeviceAssignments()` + `MapVRFs()` |
 | `Status` | `string` | `VRF.status` (FK) | **Mapped** | Resolved by name |
@@ -524,13 +527,15 @@ Source: `pkg/devicetypes/ipam_prefix.go`
 Imported by `FetchPrefixes()` + `FetchPrefixLocationAssignments()` +
 `MapPrefixes()`; exported in Phase 8 by `loadPrefixes()` in `load_prefixes.go`.
 The namespace is the uniqueness boundary: the same CIDR may exist once per
-namespace.
+namespace, and export finds or creates each prefix inside its own namespace.
+Its VRF memberships become `VRFPrefixAssignment` records
+(`load_vrf_prefix_assignments.go`).
 
 | Cani Field | Go Type | Nautobot Field | Status | Notes |
 |---|---|---|---|---|
 | `ID` | `uuid.UUID` | — | Cani-Internal | Primary key |
 | `Prefix` | `string` | `Prefix.prefix` | **Mapped** | CIDR; natural key together with `Namespace`, in canonical network form so `10.0.0.5/24` and `10.0.0.0/24` are one key |
-| `Namespace` | `string` | `Prefix.namespace` (FK) | Partial | Scope since v1alpha7; empty means `Global` and the migration stamps it. Export still files every prefix under `Global` and import does not read it yet |
+| `Namespace` | `string` | `Prefix.namespace` (FK) | Partial | Scope since v1alpha7; empty means `Global` and the migration stamps it. Export finds or creates each prefix inside its namespace, creating a missing namespace; import does not read it yet |
 | `Network` | `string` | `Prefix.network` | Cani-Internal | Derived from the CIDR; not sent on export |
 | `Broadcast` | `string` | `Prefix.broadcast` | Cani-Internal | Derived from the CIDR; not sent on export |
 | `PrefixLen` | `int` | `Prefix.prefix_length` | **Mapped** | Imported directly; Nautobot derives it from `prefix` on export |
@@ -539,8 +544,8 @@ namespace.
 | `Description` | `string` | `Prefix.description` | **Mapped** | Mapped when non-empty |
 | `Location` | `uuid.UUID` | `PrefixLocationAssignment.location` | **Mapped** | Import resolves the first valid assignment; export sends `WritablePrefixRequest.location`, which creates the assignment, and retries unscoped on rejection |
 | `VLAN` | `uuid.UUID` | `Prefix.vlan` (FK) | **Mapped** | Resolved through the imported/exported VLAN UUID map |
-| `VRF` | `string` | — | Legacy | Pre-v1alpha7 single VRF name. The migration folds it into `VRFs` when exactly one VRF of that name exists in the namespace; otherwise it is retained and reported as an unresolved conflict rather than guessed. `add prefix --vrf` no longer writes it |
-| `VRFs` | `[]uuid.UUID` | `VRFPrefixAssignment` (M2M) | Not Mapped | Canonical VRF memberships, validated to exist in the prefix's namespace; written by `add prefix --vrf`. Nautobot import/export do not wire the assignment records yet |
+| `VRF` | `string` | — | Legacy | Pre-v1alpha7 single VRF name. The migration folds it into `VRFs` when exactly one VRF of that name exists in the namespace; otherwise it is retained and reported as an unresolved conflict rather than guessed, by validation and again by export. `add prefix --vrf` no longer writes it |
+| `VRFs` | `[]uuid.UUID` | `VRFPrefixAssignment` (M2M) | Partial | Canonical VRF memberships, validated to exist in the prefix's namespace; written by `add prefix --vrf`. Export creates the assignment records idempotently (find-or-create per VRF/prefix pair, for new and existing prefixes); import does not read them yet |
 | `Parent` | `uuid.UUID` | `Prefix.parent` (FK) | **Mapped** | A parent mapped by the provider is kept; derivation fills only a missing parent, stays inside the namespace and tie-breaks equal lengths on UUID; exported parent-first |
 | `Status` | `string` | `Prefix.status` (FK) | **Mapped** | Resolved by name; falls back to provider default then `"Active"` |
 | `Role` | `string` | `Prefix.role` (FK) | **Mapped** | Resolved by name when non-empty |
@@ -554,7 +559,9 @@ namespace.
 
 Source: `pkg/devicetypes/ipam_address.go`
 Imported by `FetchIPAddresses()` + `MapIPAddresses()`; exported in Phase 9 by
-`loadIPAddresses()` in `load_ipaddresses.go`. After prefix merge, an address
+`loadIPAddresses()` in `load_ipaddresses.go`, which files each address in its
+parent prefix's namespace and reports an address without a containing prefix
+instead of exporting it under `Global`. After prefix merge, an address
 without a provider-mapped parent is given the most-specific retained prefix
 inside its intended namespace, and the parent is remapped to its canonical
 inventory UUID.
@@ -565,7 +572,7 @@ inventory UUID.
 | `Host` | `string` | `IPAddress.host` | **Mapped** | Derived from `Address`; natural key together with the namespace (the mask is an attribute, not identity) |
 | `MaskLength` | `int` | `IPAddress.mask_length` | **Mapped** | Imported; derived from `Address` for local additions |
 | `Address` | `string` | `IPAddress.address` | **Mapped** | Display form; the merge key is the bare host within the namespace |
-| `Namespace` | `string` | `IPAddress.namespace` (write-only on create) | Partial | Intent only: a parented address inherits its parent prefix's namespace, and a parent in another namespace is a validation error; the field records authored or imported scope for drafts. Empty means `Global`. Export still sends `Global` for every address |
+| `Namespace` | `string` | `IPAddress.namespace` (write-only on create) | Partial | Intent only: a parented address inherits its parent prefix's namespace, and a parent in another namespace is a validation error; the field records authored or imported scope for drafts. Empty means `Global`. Export sends the parent prefix's namespace and requires that parent to be in the inventory; import does not set it yet |
 | `IPVersion` | `int` | `IPAddress.ip_version` | **Mapped** | Imported; derived from `Address` for local additions |
 | `Type` | `IPAddressType` | `IPAddress.type` | **Mapped** | `host`, `dhcp`, or `slaac` |
 | `IPRole` | `IPAddressRole` | `IPAddress.role` | **Mapped** | Resolved by name |
@@ -779,7 +786,7 @@ Iterates `inventory.Cables`. For each cable:
 
 ### Phase 6c: VRFs
 
-Implemented in `loadVRFs()` in `load_vrfs.go`. Iterates `inventory.VRFs`. Find-or-create by name; creates the namespace (default `Global`) and resolves status/tags. After creating/skipping the VRF, iterates `vrf.Devices` and calls `ensureVRFDeviceAssignment()` to create `VRFDeviceAssignment` links (find-or-create). VRFs are created **before** interface enrichment so interface `VRF` references resolve.
+Implemented in `loadVRFs()` in `load_vrfs.go`. Iterates `inventory.VRFs`. Find-or-create by name within the VRF's namespace, several matches being an error; resolves the namespace (created when missing) and status/tags. After creating/skipping the VRF, iterates `vrf.Devices` and calls `ensureVRFDeviceAssignment()` to create `VRFDeviceAssignment` links (find-or-create). VRFs are created **before** interface enrichment so interface `VRF` references resolve; the VRF cache is keyed by namespace with a by-name index so a bare reference resolves while it is unique.
 
 ### Phase 7: VLANs
 
@@ -787,15 +794,15 @@ Implemented in `loadVLANs()` in `load_vlans.go`. Iterates `inventory.VLANs`. Fin
 
 ### Phase 7b: Interface enrichment
 
-Implemented in `enrichInterfaces()` in `load_interface_enrich.go`. PATCHes existing Nautobot interfaces with LAG, mode, untagged/tagged VLANs, and VRF (see §2a.1). Runs after VRFs and VLANs exist so the FK references resolve. Unresolved references are logged as warnings and skipped.
+Implemented in `enrichInterfaces()` in `load_interface_enrich.go`. PATCHes existing Nautobot interfaces with LAG, mode, untagged/tagged VLANs, and VRF (see §2a.1). Runs after VRFs and VLANs exist so the FK references resolve. Unresolved references are logged as warnings and skipped; an interface VRF name that exists in several exported namespaces must be qualified as `namespace/name`.
 
 ### Phase 8: Prefixes
 
-Implemented in `loadPrefixes()` in `load_prefixes.go`. Iterates `inventory.Prefixes`. Find-or-create scoped to location; the create request's `location` field materializes a Nautobot 3.2 `PrefixLocationAssignment`. Resolves the optional VLAN FK from Phase 7.
+Implemented in `loadPrefixes()` in `load_prefixes.go`. Iterates `inventory.Prefixes` parent-first. Find-or-create by CIDR within the prefix's namespace, scoped to location; the create request's `location` field materializes a Nautobot 3.2 `PrefixLocationAssignment`. Resolves the optional VLAN FK from Phase 7. `ensureVRFPrefixAssignments()` in `load_vrf_prefix_assignments.go` then links the prefix to each VRF in `VRFs`, find-or-create per pair so a re-export creates no duplicate (a VRF's existing assignments are listed once per export, not once per prefix), and reports a legacy `VRF` name that never resolved into a membership.
 
 ### Phase 9: IP Addresses
 
-Implemented in `loadIPAddresses()`. Iterates `inventory.IPAddresses`. Find-or-create by address; resolves the parent prefix and assigns the address to its interface(s).
+Implemented in `loadIPAddresses()` in `load_ipaddresses.go`. Iterates `inventory.IPAddresses`. Find-or-create by host within the parent prefix's namespace (the mask is an attribute); an address without a containing prefix in the inventory is reported. Resolves the parent prefix and assigns the address to its interface(s).
 
 ### Phase 10: Relationships
 

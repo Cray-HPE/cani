@@ -51,8 +51,6 @@ import (
 // dereferences that field when building the cached item.
 func TestGetOrCreateNamespace_CreatesWhenMissing(t *testing.T) {
 	// Arrange.
-	resetIPAMCaches()
-
 	const nsName = "TestNS-Create"
 	nsNID := uuid.New()
 
@@ -130,8 +128,6 @@ func TestGetOrCreateNamespace_CreatesWhenMissing(t *testing.T) {
 // post-first-resolve state without issuing a real create.
 func TestGetOrCreateNamespace_ReturnsCachedWithoutAPICall(t *testing.T) {
 	// Arrange.
-	resetIPAMCaches()
-
 	const nsName = "TestNS-Cached"
 	cachedNID := uuid.New()
 
@@ -143,10 +139,7 @@ func TestGetOrCreateNamespace_ReturnsCachedWithoutAPICall(t *testing.T) {
 	}
 	e, cleanup := newExporterWithServer(t, handler)
 	defer cleanup()
-
-	namespacesMu.Lock()
-	namespaces[nsName] = &CachedItem{ID: cachedNID, Name: nsName}
-	namespacesMu.Unlock()
+	e.Cache.namespaces[nsName] = &CachedItem{ID: cachedNID, Name: nsName}
 
 	// Act.
 	item, err := e.Cache.GetOrCreateNamespace(nsName)

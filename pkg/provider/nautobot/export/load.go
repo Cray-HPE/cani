@@ -96,6 +96,8 @@ type LoadResult struct {
 	VRFsSkipped                 int            // Number of VRFs skipped (already exist)
 	VRFDeviceAssignmentsCreated int            // Number of VRF-device assignments created
 	VRFDeviceAssignmentsSkipped int            // Number of VRF-device assignments skipped
+	VRFPrefixAssignmentsCreated int            // Number of VRF-prefix assignments created
+	VRFPrefixAssignmentsSkipped int            // Number of VRF-prefix assignments skipped (already exist)
 	PrefixesCreated             int            // Number of prefixes created
 	PrefixesSkipped             int            // Number of prefixes skipped (already exist)
 	IPAddressesCreated          int            // Number of IP addresses created

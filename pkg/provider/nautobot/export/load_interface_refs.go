@@ -54,15 +54,20 @@ func (e *Exporter) roleRef(name string) (uuid.UUID, error) {
 	return item.ID, nil
 }
 
-// vrfRef resolves a VRF name to its Nautobot UUID using the VRF cache populated
-// by the VRF phase, or uuid.Nil when the name is empty or unknown.
-func (e *Exporter) vrfRef(name string) uuid.UUID {
-	if name == "" {
+// vrfRef resolves a VRF reference ("name" or "namespace/name") to its Nautobot
+// UUID using the VRF cache populated by the VRF phase, or uuid.Nil when the
+// reference is empty, unknown, or ambiguous across namespaces.
+func (e *Exporter) vrfRef(ref string) uuid.UUID {
+	if ref == "" {
 		return uuid.Nil
 	}
-	item, ok := e.Cache.LookupCachedVRF(name)
-	if !ok || item == nil {
-		clog.Warn("unresolved VRF reference %q, skipping", name)
+	item, err := e.Cache.LookupCachedVRF(ref)
+	if err != nil {
+		clog.Warn("%v, skipping", err)
+		return uuid.Nil
+	}
+	if item == nil {
+		clog.Warn("unresolved VRF reference %q, skipping", ref)
 		return uuid.Nil
 	}
 	return item.ID

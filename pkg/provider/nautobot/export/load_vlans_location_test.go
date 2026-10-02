@@ -48,7 +48,6 @@ import (
 // Data choice: passing the resolved location ID directly isolates the payload
 // wiring from location-cache resolution.
 func TestCreateVLAN_ScopesToLocation(t *testing.T) {
-	resetIPAMCaches()
 	vlanNID := uuid.New()
 	var captured []byte
 	e, cleanup := newExporterWithServer(t, vlanCreateServer(http.StatusCreated, vlanNID, &captured))
@@ -81,7 +80,6 @@ func TestCreateVLAN_ScopesToLocation(t *testing.T) {
 // Data choice: switching on the literal "location" in the body mirrors the real
 // rejection and lets the test assert the retry dropped the field.
 func TestCreateVLAN_RetriesWithoutLocationOn400(t *testing.T) {
-	resetIPAMCaches()
 	vlanNID := uuid.New()
 	locID := uuid.New()
 	var bodies [][]byte
@@ -140,7 +138,6 @@ func TestCreateVLAN_RetriesWithoutLocationOn400(t *testing.T) {
 // Data choice: 500 mirrors the observed server-side crash for VLAN/prefix
 // locations whose type lacks the ipam content type.
 func TestCreateVLAN_RetriesWithoutLocationOn500(t *testing.T) {
-	resetIPAMCaches()
 	vlanNID := uuid.New()
 	locID := uuid.New()
 	var bodies [][]byte

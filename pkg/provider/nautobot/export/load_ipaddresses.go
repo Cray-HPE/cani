@@ -38,7 +38,9 @@ import (
 )
 
 // loadIPAddresses exports CaniIPAddress records to Nautobot and creates
-// IP-to-interface assignments via the join table API.
+// IP-to-interface assignments via the join table API. An address takes its
+// namespace from its parent prefix, so an address without a containing
+// prefix in the inventory is reported instead of being filed under Global.
 func (e *Exporter) loadIPAddresses(
 	ctx context.Context,
 	inventory *devicetypes.Inventory,
@@ -52,50 +54,58 @@ func (e *Exporter) loadIPAddresses(
 
 	clog.Header("Phase 9: IP Addresses (%d)", len(inventory.IPAddresses))
 
-	// Resolve namespace once
-	ns, err := e.Cache.GetOrCreateNamespace("Global")
-	if err != nil {
-		return fmt.Errorf("failed to resolve namespace: %w", err)
-	}
-
 	for _, addr := range inventory.IPAddresses {
 		if addr == nil || addr.Address == "" {
 			continue
 		}
-
-		// Check if IP address already exists
-		existing, err := e.Cache.LookupIPAddress(addr.Address)
+		parent := inventory.Prefixes[addr.Parent]
+		if parent == nil {
+			result.Errors = append(result.Errors, fmt.Sprintf(
+				"ip %s: no containing prefix in namespace %q; add the prefix before exporting",
+				addr.Address, inventory.IPAddressNamespace(addr)))
+			continue
+		}
+		nautobotID, err := e.loadIPAddress(ctx, addr, parent.EffectiveNamespace(), prefixMap, result)
 		if err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("ip %s: lookup error: %v", addr.Address, err))
+			result.Errors = append(result.Errors, fmt.Sprintf("ip %s/%s: %v", parent.EffectiveNamespace(), addr.Address, err))
 			continue
 		}
-		if existing != nil {
-			setExternalID(&addr.ExternalIDs, "nautobot", existing.ID)
-			result.IPAddressesSkipped++
-			// Still attempt interface assignments for existing IPs
-			e.assignIPToInterfaces(ctx, existing.ID, addr, inventory, deviceMap, result)
-			continue
-		}
-
-		nautobotID, err := e.createIPAddress(ctx, addr, ns.ID, prefixMap, result)
-		if err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("ip %s: create error: %v", addr.Address, err))
-			continue
-		}
-
 		setExternalID(&addr.ExternalIDs, "nautobot", nautobotID)
-		e.Cache.CacheIPAddress(addr.Address, &CachedItem{
-			ID:   nautobotID,
-			Name: addr.Address,
-		})
-		result.IPAddressesCreated++
-
-		// Assign to interfaces
 		e.assignIPToInterfaces(ctx, nautobotID, addr, inventory, deviceMap, result)
 	}
 
 	clog.Info("  IP addresses created: %d", result.IPAddressesCreated)
 	return nil
+}
+
+// loadIPAddress finds or creates one address in the namespace and returns
+// its Nautobot ID. Finding an existing address counts as skipped.
+func (e *Exporter) loadIPAddress(
+	ctx context.Context,
+	addr *devicetypes.CaniIPAddress,
+	namespace string,
+	prefixMap map[uuid.UUID]uuid.UUID,
+	result *LoadResult,
+) (uuid.UUID, error) {
+	ns, err := e.Cache.GetOrCreateNamespace(namespace)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("resolve namespace: %w", err)
+	}
+	existing, err := e.Cache.LookupIPAddress(namespace, addr.Address)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("lookup error: %w", err)
+	}
+	if existing != nil {
+		result.IPAddressesSkipped++
+		return existing.ID, nil
+	}
+	nautobotID, err := e.createIPAddress(ctx, addr, ns.ID, prefixMap, result)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("create error: %w", err)
+	}
+	e.Cache.CacheIPAddress(namespace, addr.Address, &CachedItem{ID: nautobotID, Name: addr.Address})
+	result.IPAddressesCreated++
+	return nautobotID, nil
 }
 
 // createIPAddress creates a single IP address in Nautobot.
@@ -195,88 +205,6 @@ func (e *Exporter) createIPAddress(
 
 	clog.Created("  + IP: %s", addr.Address)
 	return nautobotID, nil
-}
-
-// assignIPToInterfaces creates IPAddressToInterface join records for each
-// interface the IP is assigned to.
-func (e *Exporter) assignIPToInterfaces(
-	ctx context.Context,
-	ipNautobotID uuid.UUID,
-	addr *devicetypes.CaniIPAddress,
-	inventory *devicetypes.Inventory,
-	deviceMap map[string]uuid.UUID,
-	result *LoadResult,
-) {
-	if len(addr.Interfaces) == 0 {
-		return
-	}
-
-	for _, ifaceID := range addr.Interfaces {
-		// Resolve the interface from inventory
-		iface, ok := inventory.Interfaces[ifaceID]
-		if !ok || iface == nil {
-			continue
-		}
-
-		// Find the device's Nautobot ID
-		device, deviceOk := inventory.Devices[iface.DeviceID]
-		if !deviceOk || device == nil {
-			continue
-		}
-		deviceNautobotID, ok := deviceMap[device.Name]
-		if !ok || deviceNautobotID == uuid.Nil {
-			continue
-		}
-
-		// Find the interface in Nautobot
-		nautobotIface, err := e.Cache.GetInterfaceByDeviceAndName(deviceNautobotID, iface.Name)
-		if err != nil || nautobotIface == nil {
-			// Try fuzzy match
-			nautobotIface, err = e.Cache.GetInterfaceByDeviceAndNameFuzzy(deviceNautobotID, iface.Name)
-			if err != nil || nautobotIface == nil {
-				clog.Detail("  IP %s: interface %s on %s not found in Nautobot", addr.Address, iface.Name, device.Name)
-				continue
-			}
-		}
-
-		if e.Options.DryRun {
-			clog.DryRun("Would assign IP %s to interface %s:%s", addr.Address, device.Name, iface.Name)
-			continue
-		}
-
-		// Create the IP-to-interface assignment
-		assignReq := nautobotapi.IPAddressToInterfaceRequest{}
-		if err := setRefID(&assignReq.IpAddress, ipNautobotID); err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("ip %s: set assignment IP reference: %v", addr.Address, err))
-			continue
-		}
-		if err := setRefID(&assignReq.Interface, nautobotIface.ID); err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("ip %s: set assignment interface reference: %v", addr.Address, err))
-			continue
-		}
-
-		httpResp, err := e.Client.IpamIpAddressToInterfaceCreate(
-			ctx,
-			&nautobotapi.IpamIpAddressToInterfaceCreateParams{},
-			assignReq,
-		)
-		if err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("ip %s: interface assignment error: %v", addr.Address, err))
-			continue
-		}
-		respBody, _ := io.ReadAll(httpResp.Body)
-		httpResp.Body.Close()
-		if httpResp.StatusCode != http.StatusCreated && httpResp.StatusCode != http.StatusOK {
-			// 400 with "already exists" is acceptable (idempotency)
-			if httpResp.StatusCode == http.StatusBadRequest {
-				clog.Detail("  IP %s already assigned to %s:%s", addr.Address, device.Name, iface.Name)
-				continue
-			}
-			result.Errors = append(result.Errors,
-				fmt.Sprintf("ip %s: assignment to %s:%s returned %d: %s",
-					addr.Address, device.Name, iface.Name, httpResp.StatusCode, string(respBody)))
-		}
-	}
 }
 
 // mapIPAddressType converts a cani IPAddressType to a Nautobot IPAddressTypeChoices.

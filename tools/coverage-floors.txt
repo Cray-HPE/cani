@@ -23,3 +23,6 @@ github.com/Cray-HPE/cani/internal/config           60.0
 # Portable data model and its persistence.
 github.com/Cray-HPE/cani/pkg/devicetypes           88.0
 github.com/Cray-HPE/cani/pkg/datastores            80.0
+
+# Nautobot export: the namespace-scoped IPAM loaders and their dry-run contract.
+github.com/Cray-HPE/cani/pkg/provider/nautobot/export 80.0
