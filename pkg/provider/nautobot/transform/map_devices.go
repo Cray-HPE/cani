@@ -91,31 +91,8 @@ func MapDevices(
 		}
 
 		// Map interfaces from the pre-grouped interface data.
-		if ifaces, ok := ifacesByDevice[nbID]; ok {
-			for _, iface := range ifaces {
-				mgmt := false
-				if iface.MgmtOnly != nil {
-					mgmt = *iface.MgmtOnly
-				}
-				ifaceID := directUUID(iface.Id)
-				if ifaceID == uuid.Nil {
-					ifaceID = uuid.New()
-				}
-				ifaceType := ""
-				if iface.Type.Value != nil {
-					ifaceType = string(*iface.Type.Value)
-				}
-				spec := devicetypes.InterfaceSpec{
-					ID:          ifaceID,
-					Name:        iface.Name,
-					Type:        devicetypes.InterfacesElemType(ifaceType),
-					Label:       strVal(iface.Label),
-					MacAddress:  strVal(iface.MacAddress),
-					MgmtOnly:    &mgmt,
-					Description: strVal(iface.Description),
-				}
-				caniDev.Interfaces = append(caniDev.Interfaces, spec)
-			}
+		for _, iface := range ifacesByDevice[nbID] {
+			caniDev.Interfaces = append(caniDev.Interfaces, interfaceSpecFromRaw(iface))
 		}
 
 		if roleName := resolveRefName(dev.Role, roleNameMap); roleName != "" {
@@ -132,11 +109,15 @@ func MapDevices(
 	return result, nbToCani
 }
 
-// GroupInterfacesByDevice groups interfaces by their parent device Nautobot UUID.
+// GroupInterfacesByDevice groups device-owned interfaces by their parent
+// device Nautobot UUID. Nautobot 3.2 also sets the device on a port of a
+// module installed in that device, so an interface with a module reference is
+// skipped here and attached to its module by AttachModuleInterfaces instead;
+// each interface therefore has exactly one owner in the inventory.
 func GroupInterfacesByDevice(ifaces []nautobotapi.Interface) map[uuid.UUID][]nautobotapi.Interface {
 	result := make(map[uuid.UUID][]nautobotapi.Interface)
 	for _, iface := range ifaces {
-		if iface.Device == nil {
+		if iface.Device == nil || refID(iface.Module) != uuid.Nil {
 			continue
 		}
 		devID := tenantRefID(iface.Device)
@@ -145,6 +126,33 @@ func GroupInterfacesByDevice(ifaces []nautobotapi.Interface) map[uuid.UUID][]nau
 		}
 	}
 	return result
+}
+
+// interfaceSpecFromRaw converts one Nautobot interface into the spec shape
+// stored on its owning device or module, keeping the Nautobot UUID as the
+// spec ID so cables and IP assignments can reference it.
+func interfaceSpecFromRaw(iface nautobotapi.Interface) devicetypes.InterfaceSpec {
+	mgmt := false
+	if iface.MgmtOnly != nil {
+		mgmt = *iface.MgmtOnly
+	}
+	ifaceID := directUUID(iface.Id)
+	if ifaceID == uuid.Nil {
+		ifaceID = uuid.New()
+	}
+	ifaceType := ""
+	if iface.Type.Value != nil {
+		ifaceType = string(*iface.Type.Value)
+	}
+	return devicetypes.InterfaceSpec{
+		ID:          ifaceID,
+		Name:        iface.Name,
+		Type:        devicetypes.InterfacesElemType(ifaceType),
+		Label:       strVal(iface.Label),
+		MacAddress:  strVal(iface.MacAddress),
+		MgmtOnly:    &mgmt,
+		Description: strVal(iface.Description),
+	}
 }
 
 // BuildDeviceTypeMap creates a lookup from Nautobot device-type UUID → DeviceType.
