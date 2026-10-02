@@ -80,6 +80,7 @@ type LoadResult struct {
 	IfacesCreated               int            // Number of interfaces created
 	IfacesSkipped               int            // Number of interfaces skipped (already exist)
 	IfacesUnsupported           int            // Number of interfaces skipped (type not in Nautobot's InterfaceTypeChoices enum)
+	IfacesSkippedDuplicate      int            // Number of module interfaces skipped because the device spec declares the same name
 	IfacesUnresolvedRefs        int            // Number of interface refs (LAG/VRF/VLAN) skipped as unresolved during enrichment
 	ModulesCreated              int            // Number of modules created
 	ModulesSkipped              int            // Number of modules skipped (already exist)
@@ -1287,6 +1288,7 @@ func (e *Exporter) printLoadSummary(result *LoadResult) {
 	if result.IfacesUnsupported > 0 {
 		clog.Warn("Skipped interfaces (type not in Nautobot): %d", result.IfacesUnsupported)
 	}
+	printInterfaceAccounting(result)
 	if result.IfacesUnresolvedRefs > 0 {
 		clog.Warn("Unresolved interface references skipped during enrichment: %d", result.IfacesUnresolvedRefs)
 	}
@@ -1352,6 +1354,7 @@ func (e *Exporter) printLoadSummary(result *LoadResult) {
 			clog.SummaryError("%s", errMsg)
 		}
 	}
+	printLossyExportWarning(result)
 }
 
 // cableTypeMap maps CableCategory strings to their best-fit Nautobot CableTypeChoices.

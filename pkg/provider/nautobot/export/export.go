@@ -114,6 +114,7 @@ func PrintSummary(result *LoadResult) {
 	if result.IfacesUnsupported > 0 {
 		clog.Warn("Skipped interfaces (type not in Nautobot): %d", result.IfacesUnsupported)
 	}
+	printInterfaceAccounting(result)
 	if result.IfacesUnresolvedRefs > 0 {
 		clog.Warn("Unresolved interface references skipped during enrichment: %d", result.IfacesUnresolvedRefs)
 	}

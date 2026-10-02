@@ -107,7 +107,7 @@ func TestCreateModuleInterfacesSendsPortAttributes(t *testing.T) {
 		MacAddress: "aa:bb:cc:dd:ee:01", MgmtOnly: &mgmt, Description: "module port",
 	}}}
 
-	if err := e.createModuleInterfaces(context.Background(), module, uuid.New(), &LoadResult{}); err != nil {
+	if err := e.createModuleInterfaces(context.Background(), module, &devicetypes.CaniDeviceType{Name: "node"}, uuid.New(), &LoadResult{}); err != nil {
 		t.Fatalf("createModuleInterfaces() error = %v", err)
 	}
 

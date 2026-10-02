@@ -142,15 +142,21 @@ func (e *Exporter) getOrCreateModuleBay(
 	}, nil
 }
 
+// createModuleInterfaces creates the module's ports on the parent device. A
+// port whose type Nautobot lacks is skipped and counted by
+// supportedInterfaceSpecs; a port the parent already has is accounted for
+// rather than silently dropped.
 func (e *Exporter) createModuleInterfaces(
 	ctx context.Context,
 	module *devicetypes.CaniModuleType,
+	parent *devicetypes.CaniDeviceType,
 	parentNautobotID uuid.UUID,
 	result *LoadResult,
 ) error {
 	for _, spec := range supportedInterfaceSpecs(moduleInterfaceSpecs(module), module.Name, result) {
 		existing, _ := e.Cache.GetInterfaceByDeviceAndName(parentNautobotID, spec.Name)
 		if existing != nil {
+			noteExistingModuleInterface(result, module, parent, spec.Name)
 			continue
 		}
 		if err := e.createInterface(ctx, parentNautobotID, spec, result); err != nil {

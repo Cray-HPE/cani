@@ -230,7 +230,7 @@ Exported in Phase 4 by `loadModules()` in `export/load_modules.go`. For each mod
 | `Type` | `Type` | — | Cani-Internal | CANI classification |
 | `Weight` / `WeightUnit` | `float64` / `string` | — | Cani-Internal | No Nautobot equivalent |
 | `Comments` | `string` | `ModuleType.Comments` | **Mapped** | Template → `ModuleType.Comments` |
-| `Interfaces` | `[]InterfaceSpec` | Creates `Interface` objects on parent device | **Mapped** | Created after the module with the full attribute set (see §2a.1); duplicate names are skipped, and types outside Nautobot's `InterfaceTypeChoices` enum are skipped with a warning (see §2a.1 `Type`) |
+| `Interfaces` | `[]InterfaceSpec` | Creates `Interface` objects on parent device | **Mapped** | Created after the module with the full attribute set (see §2a.1). A port the device spec already declares is skipped (device spec takes precedence), logged by name and counted as `Skipped interfaces (name already on device)`; types outside Nautobot's `InterfaceTypeChoices` enum are skipped with a warning and counted (see §2a.1 `Type`) |
 | `ParentDevice` | `uuid.UUID` | `Module.Device` (via parent device's module bay) | **Mapped** | Resolved to Nautobot device ID via cache |
 | `ModuleBayName` | `string` | `Module.ParentModuleBay` (FK) | **Mapped** | Gets or creates ModuleBay on parent device |
 | `Serial` | `string` | `Module.Serial` | **Mapped** | Mapped when non-empty |
@@ -378,6 +378,15 @@ Unresolved references (LAG name, VRF name, VLAN VID) that cannot be resolved to
 a Nautobot object at export time are logged as warnings and skipped. The
 inventory stores these as opaque names/IDs so that forward references and
 external-only references remain valid; validation is deferred to export.
+
+Every interface spec the export does not create is named in a skip line and
+counted: an unsupported type under `Skipped interfaces (type not in Nautobot)`
+(see `Type` above) and a module port whose name the device spec already
+declares under `Skipped interfaces (name already on device)`. The summary
+closes with an explicit warning whenever any object was skipped, so
+`created + skipped` always accounts for every interface spec even though the
+exit status stays 0. A dry run plans module ports the same way after "Would
+create module".
 
 UUID foreign keys are validated locally by both `Inventory.Validate()` and
 `RebuildDerivedState()`: VLAN and prefix locations, prefix VLANs and parents,
