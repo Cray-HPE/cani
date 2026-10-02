@@ -35,6 +35,7 @@ const (
 	flagInterface   = "interface"
 	flagDNSName     = "dns-name"
 	flagNamespace   = "namespace"
+	flagSpare       = "spare"
 	flagBayFilter   = "bay-filter"
 	flagDryRun      = "dry-run"
 )

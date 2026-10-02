@@ -27,6 +27,7 @@ package add
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strconv"
@@ -35,6 +36,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/util/placement"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
+	"github.com/google/uuid"
 )
 
 // addModuleMultiDevice plans and commits modules across all matching devices.
@@ -62,16 +64,32 @@ func addModuleMultiDevice(inventory *devicetypes.Inventory, base *devicetypes.Ca
 	return nil
 }
 
-// addModuleSingleDevice adds qty modules to a single (or no) parent device.
+// addModuleSingleDevice adds qty modules to a single (or no) parent device,
+// or stores them as spares. A named bay is stored in the spelling the parent
+// declares, so the datastore and the ModuleBay export creates carry one name
+// per bay. A dry run prints the placements and saves nothing, as the
+// strategy and multi-device paths do.
 func addModuleSingleDevice(inventory *devicetypes.Inventory, base *devicetypes.CaniModuleType, devices []*devicetypes.CaniDeviceType, opts moduleAddOpts) error {
+	if len(devices) == 1 {
+		bay, err := inventory.ResolveModuleBayName(devices[0].ID, opts.bayName)
+		if err != nil {
+			return err
+		}
+		opts.bayName = bay
+	}
 	names, err := resolveSingleDeviceNames(opts, devices)
 	if err != nil {
 		return err
+	}
+	if opts.dryRun {
+		printSingleDevicePlan(os.Stdout, inventory, base, devices, names, opts)
+		return nil
 	}
 
 	for i := range opts.qty {
 		mod := base.NewInstance()
 		mod.ModuleBayName = opts.bayName
+		mod.Location = opts.spareLocation
 		if len(devices) == 1 {
 			mod.ParentDevice = devices[0].ID
 		}
@@ -90,6 +108,36 @@ func addModuleSingleDevice(inventory *devicetypes.Inventory, base *devicetypes.C
 	}
 	log.Printf("%d module(s) added", opts.qty)
 	return nil
+}
+
+// printSingleDevicePlan prints one line per module addModuleSingleDevice
+// would add: installed in the device and bay, stored at the spare location,
+// or added with no parent. An unnamed module is described by its model, the
+// name an instance gets by default.
+func printSingleDevicePlan(w io.Writer, inventory *devicetypes.Inventory, base *devicetypes.CaniModuleType,
+	devices []*devicetypes.CaniDeviceType, names []string, opts moduleAddOpts) {
+	for i := range opts.qty {
+		label := plannedModuleLabel(base, names, i)
+		switch {
+		case opts.spareLocation != uuid.Nil:
+			fmt.Fprintf(w, "Would store module %s at location %s\n", label, inventory.Locations[opts.spareLocation].Name)
+		case len(devices) == 1 && opts.bayName != "":
+			fmt.Fprintf(w, "Would add module %s to %s bay %s\n", label, devices[0].Name, opts.bayName)
+		case len(devices) == 1:
+			fmt.Fprintf(w, "Would add module %s to %s\n", label, devices[0].Name)
+		default:
+			fmt.Fprintf(w, "Would add module %s with no parent device\n", label)
+		}
+	}
+}
+
+// plannedModuleLabel is the name the i-th planned module gets, or the model
+// an unnamed instance is named after.
+func plannedModuleLabel(base *devicetypes.CaniModuleType, names []string, i int) string {
+	if names != nil {
+		return names[i]
+	}
+	return base.Model
 }
 
 // resolveSingleDeviceNames resolves module names for the single-device flow,

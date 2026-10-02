@@ -159,3 +159,13 @@ func resolveParent(cmd *cli.Command, loc *devicetypes.CaniLocationType, inv *dev
 		}
 	}
 }
+
+// resolveLocation finds or ensures a location in the inventory.
+func resolveLocation(inventory *devicetypes.Inventory, locationArg string) uuid.UUID {
+	if locationArg != "" {
+		if loc := inventory.FindLocationByNameOrID(locationArg); loc != nil {
+			return loc.ID
+		}
+	}
+	return inventory.EnsureLocation()
+}
