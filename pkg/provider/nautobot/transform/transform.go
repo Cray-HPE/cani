@@ -36,6 +36,7 @@ var clog = logcolor.New("[nautobot] ", false)
 
 // RawData holds all raw API responses fetched during Import.
 type RawData struct {
+	LocationTypes             []nautobotapi.LocationType
 	Locations                 []nautobotapi.Location
 	Racks                     []nautobotapi.Rack
 	Devices                   []nautobotapi.Device
@@ -72,7 +73,8 @@ func transformRaw(raw *RawData) (*devicetypes.TransformResult, error) {
 	roleNameMap := BuildRoleNameMap(raw.Roles)
 
 	// 1. Locations – also produces Nautobot→CANI UUID map.
-	locations, locationMap := MapLocations(raw.Locations, statusNameMap)
+	locationTypeKeys := BuildLocationTypeKeyMap(raw.LocationTypes)
+	locations, locationMap := MapLocations(raw.Locations, statusNameMap, locationTypeKeys)
 	clog.Detail("  Transformed %d locations", len(locations))
 
 	// 2. Racks.

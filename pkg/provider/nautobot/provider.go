@@ -44,6 +44,7 @@ type Nautobot struct {
 	cache  *export.LookupCache
 
 	// Raw API responses stored during Import() for use by Transform().
+	rawLocationTypes             []nautobotapi.LocationType
 	rawLocations                 []nautobotapi.Location
 	rawRacks                     []nautobotapi.Rack
 	rawDevices                   []nautobotapi.Device
@@ -85,6 +86,7 @@ func (p *Nautobot) Slug() string {
 
 // ClearRawData resets the raw data storage for a fresh import.
 func (p *Nautobot) ClearRawData() {
+	p.rawLocationTypes = nil
 	p.rawLocations = nil
 	p.rawRacks = nil
 	p.rawDevices = nil
@@ -107,6 +109,7 @@ func (p *Nautobot) ClearRawData() {
 
 // SetRawData stores fetched raw data from the import phase.
 func (p *Nautobot) SetRawData(d imprt.RawData) {
+	p.rawLocationTypes = d.LocationTypes
 	p.rawLocations = d.Locations
 	p.rawRacks = d.Racks
 	p.rawDevices = d.Devices

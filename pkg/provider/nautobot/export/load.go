@@ -669,31 +669,14 @@ func (e *Exporter) createRackFromCaniRack(ctx context.Context, rack *devicetypes
 		}
 	}
 	if locationName == "" {
-		locationName = "Default"
+		return uuid.Nil, fmt.Errorf("rack %s has no location that accepts racks (set one with 'cani update rack --location' or use --default-location)", rack.Name)
 	}
 
+	// Inventory locations were created in Phase 0b, so a miss here means the
+	// name is not in Nautobot; never invent a location to stand in for it.
 	location, err := e.Cache.GetLocation(locationName)
 	if err != nil || location == nil {
-		// Try to create location if allowed
-		if e.Options.CreateLocations {
-			// Use createLocationFromCani with an explicit location type
-			// so that the fallback "Default" location gets a proper type.
-			loc := &devicetypes.CaniLocationType{
-				ID:           uuid.New(),
-				Name:         locationName,
-				LocationType: "section",
-				ContentTypes: []string{"rack", "device", "module"},
-				ObjectMeta:   devicetypes.ObjectMeta{Status: "Active"},
-			}
-			createdMap := make(map[uuid.UUID]uuid.UUID)
-			nautobotLocID, createErr := e.createLocationFromCani(ctx, loc, createdMap, result)
-			if createErr != nil {
-				return uuid.Nil, fmt.Errorf("failed to create location: %w", createErr)
-			}
-			location = &CachedItem{ID: nautobotLocID, Name: locationName}
-		} else {
-			return uuid.Nil, fmt.Errorf("location '%s' not found and create_locations is disabled", locationName)
-		}
+		return uuid.Nil, fmt.Errorf("location %q for rack %s not found in Nautobot", locationName, rack.Name)
 	}
 
 	// Resolve status

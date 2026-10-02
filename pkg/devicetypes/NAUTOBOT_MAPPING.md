@@ -67,12 +67,16 @@ Source: `pkg/devicetypes/cani_location_types.go`
 
 Locations are **exported as first-class objects** in Phase 0. `loadLocations()` in `export/load_locations.go` performs a topological sort (BFS from roots) to ensure parents are created before children. The `LocationType` field on each `CaniLocationType` is resolved as a Nautobot `LocationType` FK. Although normal model validation requires this field, export defaults an empty value to `"Site"` for backward compatibility with legacy or externally constructed inventories. Created locations are cached for downstream rack/device FK resolution.
 
+**Location-type naming rule.** `LocationType` holds the cani key, which is the slug of a registered `LocationTypeDefinition` (`dc`, `level`, `section`). Export creates or looks up the Nautobot `LocationType` by the definition's display name (`dc` → "Data Center"), so Nautobot shows human-readable type names. Import reverses this: `BuildLocationTypeKeyMap()` in `transform/map_location_types.go` maps each Nautobot type back to the registered key by display name or slug (case-insensitive), and slugifies the name (`"Campus Building"` → `campus-building`) for types cani has no definition for. A location therefore round-trips with its original key rather than an API URL.
+
+**Placement resolution.** A definition with an empty `content_types` list (`dc`, `level`) is a container for other locations and holds no racks or devices itself; `resolveContentLocation()` descends to the deepest child whose type lists the content type (`section`). When no such location exists for a rack or device, and no `--default-location` is configured, export fails with an actionable error naming the object. It never invents a location.
+
 | Cani Field | Go Type | Nautobot Field | Status | Notes |
 |---|---|---|---|---|
 | `ID` | `uuid.UUID` | — | Cani-Internal | Primary key |
 | `Name` | `string` | `Location.Name` | **Mapped** | |
 | `Slug` | `string` | — | Cani-Internal | Library/lookup key |
-| `LocationType` | `string` | `Location.LocationType` (FK) | **Mapped** | Resolved by name; defaults to `"Site"` if empty |
+| `LocationType` | `string` | `Location.LocationType` (FK) | **Mapped** | Cani key (definition slug); exported by the definition's display name and mapped back to the key on import. Defaults to `"Site"` if empty |
 | `Parent` | `uuid.UUID` | `Location.Parent` (FK) | **Mapped** | Topological sort ensures parent exists first |
 | `Children` | `[]uuid.UUID` | — | Cani-Internal | Rebuilt from `Parent` at load time |
 | `Racks` | `[]uuid.UUID` | — | Cani-Internal | Rebuilt from `CaniRackType.Location` |
