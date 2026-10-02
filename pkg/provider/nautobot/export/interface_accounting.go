@@ -25,49 +25,10 @@
  */
 package export
 
-import "github.com/Cray-HPE/cani/pkg/devicetypes"
-
-// noteExistingModuleInterface accounts for a module port that already exists
-// on the parent device: a port the device spec itself declares is a
-// duplicate-name skip (the device spec takes precedence), anything else was
-// created by an earlier run.
-func noteExistingModuleInterface(result *LoadResult, module *devicetypes.CaniModuleType,
-	parent *devicetypes.CaniDeviceType, name string) {
-	if deviceDeclaresInterface(parent, name) {
-		clog.Skipped("Skipped interface %s on module %s: device %s already declares this port (device spec takes precedence)",
-			name, module.Name, parent.Name)
-		result.IfacesSkippedDuplicate++
-		return
-	}
-	result.IfacesSkipped++
-}
-
-// deviceDeclaresInterface reports whether the device's own specs name the port.
-func deviceDeclaresInterface(device *devicetypes.CaniDeviceType, name string) bool {
-	if device == nil {
-		return false
-	}
-	for _, iface := range device.Interfaces {
-		if iface.Name == name {
-			return true
-		}
-	}
-	return false
-}
-
 // lossyExportCount totals the objects that did not reach Nautobot as
 // authored without being errors.
 func lossyExportCount(result *LoadResult) int {
-	return result.IfacesSkippedDuplicate + result.IfacesUnsupported +
-		result.IfacesUnresolvedRefs + result.CablesConflicted
-}
-
-// printInterfaceAccounting adds the duplicate-name skip line to the sync
-// summary; the unsupported-type line is printed with the interface counts.
-func printInterfaceAccounting(result *LoadResult) {
-	if result.IfacesSkippedDuplicate > 0 {
-		clog.Skipped("Skipped interfaces (name already on device): %d", result.IfacesSkippedDuplicate)
-	}
+	return result.IfacesUnsupported + result.IfacesUnresolvedRefs + result.CablesConflicted
 }
 
 // printLossyExportWarning closes the summary with an explicit warning when

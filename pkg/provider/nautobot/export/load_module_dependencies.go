@@ -125,7 +125,23 @@ func (e *Exporter) createModuleType(
 	}, nil
 }
 
+// getOrCreateModuleBay returns the named bay on the device, creating it when
+// Nautobot lacks it. A dry run must use findModuleBay alone.
 func (e *Exporter) getOrCreateModuleBay(
+	ctx context.Context,
+	deviceNautobotID uuid.UUID,
+	bayName string,
+) (*CachedItem, error) {
+	bay, err := e.findModuleBay(ctx, deviceNautobotID, bayName)
+	if err != nil || bay != nil {
+		return bay, err
+	}
+	return e.createModuleBay(ctx, deviceNautobotID, bayName)
+}
+
+// findModuleBay looks the named bay up on the device; nil means Nautobot has
+// none, which is not an error.
+func (e *Exporter) findModuleBay(
 	ctx context.Context,
 	deviceNautobotID uuid.UUID,
 	bayName string,
@@ -137,15 +153,23 @@ func (e *Exporter) getOrCreateModuleBay(
 	if err != nil {
 		return nil, fmt.Errorf("module bay lookup: %w", err)
 	}
-	if resp.StatusCode() == http.StatusOK && resp.JSON200 != nil &&
-		resp.JSON200.Results != nil && len(resp.JSON200.Results) > 0 {
-		moduleBay := resp.JSON200.Results[0]
-		return &CachedItem{
-			ID: toUUID(moduleBay.Id), Name: moduleBay.Name,
-			Display: derefString(moduleBay.Display),
-		}, nil
+	if resp.StatusCode() != http.StatusOK || resp.JSON200 == nil ||
+		resp.JSON200.Results == nil || len(resp.JSON200.Results) == 0 {
+		return nil, nil
 	}
+	moduleBay := resp.JSON200.Results[0]
+	return &CachedItem{
+		ID: toUUID(moduleBay.Id), Name: moduleBay.Name,
+		Display: derefString(moduleBay.Display),
+	}, nil
+}
 
+// createModuleBay creates the named bay on the device.
+func (e *Exporter) createModuleBay(
+	ctx context.Context,
+	deviceNautobotID uuid.UUID,
+	bayName string,
+) (*CachedItem, error) {
 	request := nautobotapi.ModuleBayRequest{Name: bayName}
 	if err := setRefID(&request.ParentDevice, deviceNautobotID); err != nil {
 		return nil, fmt.Errorf("set module bay parent device reference: %w", err)
@@ -168,28 +192,45 @@ func (e *Exporter) getOrCreateModuleBay(
 	}, nil
 }
 
-// createModuleInterfaces creates the module's ports on the parent device. A
-// port whose type Nautobot lacks is skipped and counted by
-// supportedInterfaceSpecs; a port the parent already has is accounted for
-// rather than silently dropped.
+// createModuleInterfaces creates the module's ports on the module itself, so
+// two modules with identical port names stay distinct objects in Nautobot.
+// A port the module already has counts as already existing.
 func (e *Exporter) createModuleInterfaces(
 	ctx context.Context,
 	module *devicetypes.CaniModuleType,
-	parent *devicetypes.CaniDeviceType,
-	parentNautobotID uuid.UUID,
+	moduleNautobotID uuid.UUID,
 	result *LoadResult,
 ) error {
+	owner := interfaceOwnerRef{ModuleID: moduleNautobotID}
 	for _, spec := range supportedInterfaceSpecs(moduleInterfaceSpecs(module), module.Name, result) {
-		existing, _ := e.Cache.GetInterfaceByDeviceAndName(parentNautobotID, spec.Name)
-		if existing != nil {
-			noteExistingModuleInterface(result, module, parent, spec.Name)
+		exists, err := e.moduleHasInterface(moduleNautobotID, spec.Name)
+		if err != nil {
+			return fmt.Errorf("interface %s: %w", spec.Name, err)
+		}
+		if exists {
+			result.IfacesSkipped++
 			continue
 		}
-		if err := e.createInterface(ctx, parentNautobotID, spec, result); err != nil {
+		if err := e.createInterfaceOn(ctx, owner, spec, result); err != nil {
 			return fmt.Errorf("interface %s: %w", spec.Name, err)
 		}
 	}
 	return nil
+}
+
+// moduleHasInterface reports whether Nautobot already has the named port on
+// the module. A module without a Nautobot ID (a dry run) has none. A lookup
+// failure is returned rather than read as absence, so a transient API error
+// cannot turn into a duplicate create.
+func (e *Exporter) moduleHasInterface(moduleNautobotID uuid.UUID, name string) (bool, error) {
+	if moduleNautobotID == uuid.Nil {
+		return false, nil
+	}
+	existing, err := e.Cache.GetInterfaceByModuleAndName(moduleNautobotID, name)
+	if err != nil {
+		return false, fmt.Errorf("existence check: %w", err)
+	}
+	return existing != nil, nil
 }
 
 // moduleInterfaceSpecs maps a module's library interfaces to export specs with

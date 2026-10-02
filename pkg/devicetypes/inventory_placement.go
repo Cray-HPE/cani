@@ -53,6 +53,12 @@ func (m *CaniModuleType) IsSpare() bool {
 	return m != nil && m.ParentDevice == uuid.Nil && m.Location != uuid.Nil
 }
 
+// DeclaresModuleBays reports whether the device, or its library type when the
+// instance was saved without bays, declares any module bay.
+func (inv *Inventory) DeclaresModuleBays(deviceID uuid.UUID) bool {
+	return len(moduleBaysOf(inv.Devices[deviceID])) > 0
+}
+
 // errorsAbout returns the errors that name id, or every error when none does,
 // so a caller rejecting one object reports that object's problems first while
 // an inventory that is broken elsewhere still refuses the write.

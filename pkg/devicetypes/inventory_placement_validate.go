@@ -124,8 +124,8 @@ func (inv *Inventory) validateSpare(res *RelationshipResult, mod *CaniModuleType
 
 // validateInstalledModule checks an installed module's bay and that any
 // authored location agrees with the parent's. A module with neither a bay
-// nor a name to stand in for one has no bay to be placed in, so it is
-// reported and claims no bay. An authored location that
+// nor a name to stand in for one has no bay for export to place it in, so it
+// is reported with the remedy and claims no bay. An authored location that
 // differs from the parent's is stale, since the parent's location governs an
 // installed module, and is reported as a warning so an inventory whose
 // device moved stays writable.
@@ -141,11 +141,13 @@ func (inv *Inventory) validateInstalledModule(
 	switch {
 	case bay == "":
 		res.Warnings = append(res.Warnings, fmt.Sprintf(
-			"%s: installed in %q without a module bay or a name to stand in for one", owner, parent.Name))
+			"%s: installed in %q without a module bay or a name to stand in for one; export refuses the module until a bay is set with `update module --bay`",
+			owner, parent.Name))
 		return
 	case mod.ModuleBayName == "" && len(moduleBaysOf(parent)) > 0:
 		res.Warnings = append(res.Warnings, fmt.Sprintf(
-			"%s: installed in %q without a named module bay; the module name %q is used as the bay", owner, parent.Name, bay))
+			"%s: installed in %q without a named module bay; the module name %q is used as the bay, "+
+				"and export refuses the module until a bay is set with `update module --bay`", owner, parent.Name, bay))
 	case !declaresModuleBay(parent, bay):
 		res.Errors = append(res.Errors, fmt.Errorf("%s: module bay %q is not declared on parent %q", owner, bay, parent.Name))
 	}
