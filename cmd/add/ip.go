@@ -46,7 +46,8 @@ func newIPCommand() *cli.Command {
 Examples:
   cani alpha add ip 10.0.1.1/24 --interface "switch1:vlan100" --status active
   cani alpha add ip 10.0.1.10/24 --dns-name "node1-ilo.example.com"
-  cani alpha add ip 10.0.1.254/24 --interface "router1:vlan100" --role vip`,
+  cani alpha add ip 10.0.1.254/24 --interface "router1:vlan100" --role vip
+  cani alpha add ip 10.0.0.5/24 --namespace tenant-a`,
 		Args: cli.ExactArgs(1),
 		RunE: addIP,
 	}
@@ -55,6 +56,7 @@ Examples:
 	cmd.Flags().String("type", "", "Address type: host, dhcp, or slaac")
 	cmd.Flags().String("role", "", "Address role: loopback, secondary, anycast, vip, vrrp, hsrp, glbp")
 	cmd.Flags().String(flagDNSName, "", "Forward DNS name for this address")
+	cmd.Flags().String(flagNamespace, devicetypes.DefaultNamespace, "IPAM namespace whose prefixes may parent the address")
 	cmd.Flags().String(flagDescription, "", "Address description")
 
 	return cmd
@@ -99,6 +101,8 @@ func addIP(cmd *cli.Command, args []string) error {
 
 // applyIPFlags copies optional IP-address fields from CLI flags when set.
 func applyIPFlags(cmd *cli.Command, addr *devicetypes.CaniIPAddress) {
+	namespace, _ := cmd.Flags().GetString(flagNamespace)
+	addr.Namespace = devicetypes.NamespaceOrDefault(namespace)
 	if cmd.Flags().Changed("type") {
 		t, _ := cmd.Flags().GetString("type")
 		addr.Type = devicetypes.IPAddressType(t)

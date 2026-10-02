@@ -32,6 +32,7 @@ const (
 	flagLocation    = "location"
 	flagInterface   = "interface"
 	flagDNSName     = "dns-name"
+	flagNamespace   = "namespace"
 	flagBayFilter   = "bay-filter"
 	flagDryRun      = "dry-run"
 )

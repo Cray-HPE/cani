@@ -186,7 +186,11 @@ func (inv *Inventory) ResolveVRFReference(namespace, ref string) (*CaniVRF, erro
 	case 1:
 		return matches[0], nil
 	default:
-		return nil, fmt.Errorf("VRF %q is ambiguous in namespace %q (%d matches); use the UUID",
-			name, NamespaceOrDefault(namespace), len(matches))
+		ids := make([]uuid.UUID, 0, len(matches))
+		for _, vrf := range matches {
+			ids = append(ids, vrf.ID)
+		}
+		return nil, fmt.Errorf("VRF %q is ambiguous in namespace %q; use one of the UUIDs %v",
+			name, NamespaceOrDefault(namespace), ids)
 	}
 }

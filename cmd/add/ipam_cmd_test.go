@@ -34,6 +34,149 @@ import (
 	"github.com/google/uuid"
 )
 
+// ipamInventory seeds a Global and a tenant-a 10.0.0.0/16 plus a VRF named
+// "blue" in each namespace, the shape every namespace flag test needs.
+func ipamInventory() (*devicetypes.Inventory, map[string]uuid.UUID) {
+	inventory := devicetypes.NewInventory()
+	ids := map[string]uuid.UUID{}
+	for _, namespace := range []string{"Global", "tenant-a"} {
+		prefixID, vrfID := uuid.New(), uuid.New()
+		ids[namespace+"/16"], ids[namespace+"/vrf"] = prefixID, vrfID
+		inventory.Prefixes[prefixID] = &devicetypes.CaniPrefix{ID: prefixID, Prefix: "10.0.0.0/16", PrefixLen: 16, Namespace: namespace}
+		inventory.VRFs[vrfID] = &devicetypes.CaniVRF{ID: vrfID, Name: "blue", Namespace: namespace}
+	}
+	return inventory, ids
+}
+
+// onlyNewPrefix returns the single prefix that was not seeded by ipamInventory.
+func onlyNewPrefix(t *testing.T, inventory *devicetypes.Inventory, ids map[string]uuid.UUID) *devicetypes.CaniPrefix {
+	t.Helper()
+	for id, prefix := range inventory.Prefixes {
+		if id != ids["Global/16"] && id != ids["tenant-a/16"] {
+			return prefix
+		}
+	}
+	t.Fatal("no new prefix was added")
+	return nil
+}
+
+// TestAddPrefixScopesNamespaceParentAndVRF verifies --namespace scopes the
+// new prefix, its parent is chosen inside that namespace, and --vrf resolves
+// to a canonical membership in the same namespace.
+//
+// Why it matters: the command layer is the only place an operator can author
+// scope; defaulting to Global or resolving the VRF name across namespaces
+// would silently file the prefix in the wrong network.
+// Inputs: a /16 and a VRF "blue" in both Global and tenant-a; add
+// 10.0.1.0/24 --namespace tenant-a --vrf blue. Outputs: one save, a prefix in
+// tenant-a parented to the tenant-a /16 with the tenant-a VRF as its only
+// membership and no legacy VRF string.
+// Data choice: identical prefix and VRF text in both namespaces means only
+// the namespace flag can explain which objects were chosen.
+func TestAddPrefixScopesNamespaceParentAndVRF(t *testing.T) {
+	inventory, ids := ipamInventory()
+	harness := cmdtest.New(t, NewCommand(), newPrefixCommand(), inventory)
+
+	err := harness.Run(t, map[string][]string{
+		"namespace": {"tenant-a"},
+		"vrf":       {"blue"},
+	}, "10.0.1.0/24")
+	if err != nil {
+		t.Fatalf("add prefix --namespace tenant-a --vrf blue: unexpected error: %v", err)
+	}
+
+	if harness.Store.Saves != 1 {
+		t.Errorf("Saves = %d, want 1", harness.Store.Saves)
+	}
+	prefix := onlyNewPrefix(t, harness.Inventory(), ids)
+	if prefix.Namespace != "tenant-a" || prefix.Parent != ids["tenant-a/16"] {
+		t.Errorf("prefix = {ns %q, parent %v}, want tenant-a parented to %v", prefix.Namespace, prefix.Parent, ids["tenant-a/16"])
+	}
+	if len(prefix.VRFs) != 1 || prefix.VRFs[0] != ids["tenant-a/vrf"] || prefix.VRF != "" {
+		t.Errorf("prefix VRFs = %v, legacy = %q; want [%v] and no legacy name", prefix.VRFs, prefix.VRF, ids["tenant-a/vrf"])
+	}
+}
+
+// TestAddPrefixDefaultsToGlobal verifies an omitted --namespace means Global,
+// so the parent is chosen among the Global prefixes.
+//
+// Why it matters: legacy invocations must keep their meaning when a second
+// namespace holds the same CIDRs.
+// Inputs: a /16 in Global and in tenant-a; add 10.0.2.0/24 with no flags.
+// Outputs: one save and a prefix in Global parented to the Global /16.
+// Data choice: the tenant-a /16 also contains the prefix, so only the default
+// namespace can explain the parent chosen.
+func TestAddPrefixDefaultsToGlobal(t *testing.T) {
+	inventory, ids := ipamInventory()
+	harness := cmdtest.New(t, NewCommand(), newPrefixCommand(), inventory)
+
+	if err := harness.Run(t, nil, "10.0.2.0/24"); err != nil {
+		t.Fatalf("add prefix without flags: unexpected error: %v", err)
+	}
+
+	if harness.Store.Saves != 1 {
+		t.Errorf("Saves = %d, want 1", harness.Store.Saves)
+	}
+	prefix := onlyNewPrefix(t, harness.Inventory(), ids)
+	if prefix.Namespace != devicetypes.DefaultNamespace || prefix.Parent != ids["Global/16"] {
+		t.Errorf("prefix = {ns %q, parent %v}, want Global parented to %v", prefix.Namespace, prefix.Parent, ids["Global/16"])
+	}
+}
+
+// TestAddIPScopesParentByNamespace verifies --namespace selects the parent
+// prefix inside that namespace and records the intent on the address.
+//
+// Why it matters: the same host text exists in both networks; the address
+// must land under the tenant's prefix, not the Global one.
+// Inputs: a /16 in Global and in tenant-a; add ip 10.0.0.5/24 --namespace
+// tenant-a. Outputs: an address parented to the tenant-a /16 with namespace
+// tenant-a.
+// Data choice: both /16s contain the host, so only the namespace can decide.
+func TestAddIPScopesParentByNamespace(t *testing.T) {
+	inventory, ids := ipamInventory()
+	harness := cmdtest.New(t, NewCommand(), newIPCommand(), inventory)
+
+	if err := harness.Run(t, map[string][]string{"namespace": {"tenant-a"}}, "10.0.0.5/24"); err != nil {
+		t.Fatalf("add ip --namespace tenant-a: unexpected error: %v", err)
+	}
+
+	if len(harness.Inventory().IPAddresses) != 1 {
+		t.Fatalf("addresses = %d, want 1", len(harness.Inventory().IPAddresses))
+	}
+	for _, addr := range harness.Inventory().IPAddresses {
+		if addr.Namespace != "tenant-a" || addr.Parent != ids["tenant-a/16"] {
+			t.Errorf("address = {ns %q, parent %v}, want tenant-a parented to %v", addr.Namespace, addr.Parent, ids["tenant-a/16"])
+		}
+	}
+}
+
+// TestAddVRFStoresGlobalByDefault verifies an omitted --namespace stores Global
+// on the new VRF, as add prefix and add ip do.
+//
+// Why it matters: a blank stored namespace made add vrf the only IPAM writer
+// whose saved scope differed from its effective one.
+// Inputs: add vrf red with no flags, then add vrf red --namespace tenant-a.
+// Outputs: two VRFs named red, one stored as Global and one as tenant-a.
+// Data choice: reusing the name shows the flag, not the name, sets the scope.
+func TestAddVRFStoresGlobalByDefault(t *testing.T) {
+	harness := cmdtest.New(t, NewCommand(), newVRFCommand(), nil)
+
+	if err := harness.Run(t, nil, "red"); err != nil {
+		t.Fatalf("add vrf red: unexpected error: %v", err)
+	}
+	if err := harness.Run(t, map[string][]string{flagNamespace: {"tenant-a"}}, "red"); err != nil {
+		t.Fatalf("add vrf red --namespace tenant-a: unexpected error: %v", err)
+	}
+
+	stored := map[string]int{}
+	for _, vrf := range harness.Inventory().VRFs {
+		stored[vrf.Namespace]++
+	}
+	if len(stored) != 2 || stored[devicetypes.DefaultNamespace] != 1 || stored["tenant-a"] != 1 {
+		t.Errorf("stored VRF namespaces = %v, want one Global and one tenant-a", stored)
+	}
+}
+
 // vrfInventory seeds one Global VRF named blue and returns its ID.
 func vrfInventory() (*devicetypes.Inventory, uuid.UUID) {
 	inventory := devicetypes.NewInventory()

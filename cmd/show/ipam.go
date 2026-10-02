@@ -33,15 +33,32 @@ import (
 	"github.com/Cray-HPE/cani/pkg/visual"
 )
 
+// flagNamespace limits show prefix, ip and vrf to one IPAM namespace; empty
+// means every namespace.
+const flagNamespace = "namespace"
+
+// addNamespaceFlag registers the --namespace filter on an IPAM show command.
+func addNamespaceFlag(cmd *cli.Command) *cli.Command {
+	cmd.Flags().String(flagNamespace, "", "Show only objects in this IPAM namespace")
+	return cmd
+}
+
+// inNamespace reports whether got matches the --namespace filter: no filter
+// admits every namespace.
+func inNamespace(cmd *cli.Command, got string) bool {
+	want, _ := cmd.Flags().GetString(flagNamespace)
+	return want == "" || devicetypes.NamespaceOrDefault(want) == got
+}
+
 // newVRFShowCommand creates the "show vrf" subcommand.
 func newVRFShowCommand() *cli.Command {
-	return &cli.Command{
+	return addNamespaceFlag(&cli.Command{
 		Use:     "vrf",
 		Aliases: []string{"vrfs"},
 		Short:   "List VRFs in the inventory.",
 		Args:    cli.NoArgs,
 		RunE:    showVRFs,
-	}
+	})
 }
 
 func showVRFs(cmd *cli.Command, args []string) error {
@@ -52,7 +69,9 @@ func showVRFs(cmd *cli.Command, args []string) error {
 
 	vrfs := make([]*devicetypes.CaniVRF, 0, len(inv.VRFs))
 	for _, v := range inv.VRFs {
-		vrfs = append(vrfs, v)
+		if inNamespace(cmd, v.EffectiveNamespace()) {
+			vrfs = append(vrfs, v)
+		}
 	}
 	sort.Slice(vrfs, func(i, j int) bool {
 		return vrfs[i].Name < vrfs[j].Name
@@ -113,7 +132,7 @@ func newPrefixShowCommand() *cli.Command {
 		RunE:    showPrefixes,
 	}
 	cmd.Flags().Bool("tree", false, "Display prefixes as a hierarchy tree")
-	return cmd
+	return addNamespaceFlag(cmd)
 }
 
 func showPrefixes(cmd *cli.Command, args []string) error {
@@ -124,7 +143,9 @@ func showPrefixes(cmd *cli.Command, args []string) error {
 
 	prefixes := make([]*devicetypes.CaniPrefix, 0, len(inv.Prefixes))
 	for _, p := range inv.Prefixes {
-		prefixes = append(prefixes, p)
+		if inNamespace(cmd, p.EffectiveNamespace()) {
+			prefixes = append(prefixes, p)
+		}
 	}
 	sort.Slice(prefixes, func(i, j int) bool {
 		return prefixes[i].Prefix < prefixes[j].Prefix
@@ -156,7 +177,7 @@ func newIPShowCommand() *cli.Command {
 		RunE:    showIPAddresses,
 	}
 	cmd.Flags().String("prefix", "", "Filter to IPs within a specific prefix (CIDR)")
-	return cmd
+	return addNamespaceFlag(cmd)
 }
 
 func showIPAddresses(cmd *cli.Command, args []string) error {
@@ -165,18 +186,7 @@ func showIPAddresses(cmd *cli.Command, args []string) error {
 		return err
 	}
 
-	prefixFilter, _ := cmd.Flags().GetString("prefix")
-
-	addrs := make([]*devicetypes.CaniIPAddress, 0, len(inv.IPAddresses))
-	for _, a := range inv.IPAddresses {
-		if prefixFilter != "" {
-			parentPrefix := findPrefixCIDR(a.Parent, inv)
-			if parentPrefix != prefixFilter {
-				continue
-			}
-		}
-		addrs = append(addrs, a)
-	}
+	addrs := selectIPAddresses(cmd, inv)
 	sort.Slice(addrs, func(i, j int) bool {
 		return addrs[i].Address < addrs[j].Address
 	})
@@ -189,6 +199,22 @@ func showIPAddresses(cmd *cli.Command, args []string) error {
 	default:
 		return marshalAndPrint(addrs)
 	}
+}
+
+// selectIPAddresses returns the addresses that pass the --prefix and
+// --namespace filters.
+func selectIPAddresses(cmd *cli.Command, inv *devicetypes.Inventory) []*devicetypes.CaniIPAddress {
+	prefixFilter, _ := cmd.Flags().GetString("prefix")
+	addrs := make([]*devicetypes.CaniIPAddress, 0, len(inv.IPAddresses))
+	for _, a := range inv.IPAddresses {
+		if prefixFilter != "" && findPrefixCIDR(a.Parent, inv) != prefixFilter {
+			continue
+		}
+		if inNamespace(cmd, inv.IPAddressNamespace(a)) {
+			addrs = append(addrs, a)
+		}
+	}
+	return addrs
 }
 
 func findPrefixCIDR(id [16]byte, inv *devicetypes.Inventory) string {

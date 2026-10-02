@@ -33,6 +33,7 @@ import (
 	"testing"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
+	"github.com/google/uuid"
 )
 
 func captureStdout(t *testing.T, run func()) string {
@@ -129,6 +130,74 @@ func TestPrintCableTableResolvesTerminations(t *testing.T) {
 		tableRow([]string{"node-a-to-leaf", "cat6", "Connected", "Node-A:eth0", "Leaf-1:1/1/1"}, widths),
 		"",
 		"Total: 1 cable(s)",
+		"",
+	}, "\n")
+	assertExactOutput(t, output, want)
+}
+
+// TestPrintVRFTableAlignsWithItsHeader verifies each VRF row has one cell per
+// header column: name, namespace, RD, device count and description.
+//
+// Why it matters: the NAMESPACE column was inserted between NAME and RD, and a
+// row that skipped it would push the RD under NAMESPACE and the device count
+// under RD, so a reader would misfile the VRF.
+// Inputs: tenant-a VRF blue with RD 65000:1, no devices and a description.
+// Outputs: the complete table text written to stdout.
+// Data choice: an RD that differs from every other cell shows where it lands.
+func TestPrintVRFTableAlignsWithItsHeader(t *testing.T) {
+	// Arrange.
+	vrf := &devicetypes.CaniVRF{Name: "blue", Namespace: "tenant-a", RD: "65000:1", Description: "Tenant VRF"}
+
+	// Act.
+	output := captureStdout(t, func() {
+		PrintVRFTable([]*devicetypes.CaniVRF{vrf}, devicetypes.NewInventory())
+	})
+
+	// Assert.
+	widths := []int{ColName, ColNamespace, ColRole, ColCount, ColDNS}
+	want := strings.Join([]string{
+		tableRow([]string{"NAME", "NAMESPACE", "RD", "DEVICES", "DESCRIPTION"}, widths),
+		tableRow([]string{strings.Repeat("-", ColName), strings.Repeat("-", ColNamespace), strings.Repeat("-", ColRole), strings.Repeat("-", ColCount), strings.Repeat("-", ColDNS)}, widths),
+		tableRow([]string{"blue", "tenant-a", "65000:1", "0", "Tenant VRF"}, widths),
+		"",
+		"Total: 1 VRF(s)",
+		"",
+	}, "\n")
+	assertExactOutput(t, output, want)
+}
+
+// TestPrintIPAddressTableShowsTheParentNamespace verifies each address row
+// carries the namespace of its parent prefix, matching the prefix and VRF
+// tables.
+//
+// Why it matters: the same host text can exist once per namespace, so an
+// address listing without the namespace cannot tell a tenant's address from
+// the Global one.
+// Inputs: 10.0.0.5/24 whose parent is a tenant-a 10.0.0.0/24.
+// Outputs: the complete table text written to stdout.
+// Data choice: the address itself has no namespace set, so the column can
+// only come from the parent prefix.
+func TestPrintIPAddressTableShowsTheParentNamespace(t *testing.T) {
+	// Arrange.
+	inventory := devicetypes.NewInventory()
+	parent := uuid.New()
+	inventory.Prefixes[parent] = &devicetypes.CaniPrefix{ID: parent, Prefix: "10.0.0.0/24", Namespace: "tenant-a"}
+	address := &devicetypes.CaniIPAddress{Address: "10.0.0.5/24", Parent: parent}
+	address.Status = "active"
+
+	// Act.
+	output := captureStdout(t, func() {
+		PrintIPAddressTable([]*devicetypes.CaniIPAddress{address}, inventory)
+	})
+
+	// Assert.
+	widths := []int{ColAddress, ColNamespace, ColStatus, ColRole, ColDNS, ColPrefix}
+	want := strings.Join([]string{
+		tableRow([]string{"ADDRESS", "NAMESPACE", "STATUS", "ROLE", "DNS NAME", "PREFIX"}, widths),
+		tableRow([]string{strings.Repeat("-", ColAddress), strings.Repeat("-", ColNamespace), strings.Repeat("-", ColStatus), strings.Repeat("-", ColRole), strings.Repeat("-", ColDNS), strings.Repeat("-", ColPrefix)}, widths),
+		tableRow([]string{"10.0.0.5/24", "tenant-a", "active", "", "", "10.0.0.0/24"}, widths),
+		"",
+		"Total: 1 IP address(es)",
 		"",
 	}, "\n")
 	assertExactOutput(t, output, want)

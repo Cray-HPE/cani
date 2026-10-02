@@ -35,10 +35,11 @@ import (
 
 // Column widths for IPAM tables.
 const (
-	ColPrefix  = 20
-	ColVID     = 6
-	ColAddress = 20
-	ColDNS     = 30
+	ColPrefix    = 20
+	ColVID       = 6
+	ColAddress   = 20
+	ColDNS       = 30
+	ColNamespace = 20
 )
 
 // PrintVLANTable renders VLANs as a fixed-width table.
@@ -69,11 +70,13 @@ func PrintVLANTable(vlans []*devicetypes.CaniVLAN, inv *devicetypes.Inventory) {
 // PrintPrefixTable renders prefixes as a fixed-width table.
 func PrintPrefixTable(prefixes []*devicetypes.CaniPrefix, inv *devicetypes.Inventory) {
 	header := Col("PREFIX", ColPrefix) + "  " +
+		Col("NAMESPACE", ColNamespace) + "  " +
 		Col("TYPE", ColType) + "  " +
 		Col("ROLE", ColRole) + "  " +
 		Col("STATUS", ColStatus) + "  " +
 		Col("VLAN", ColCount)
 	sep := Col(strings.Repeat("-", ColPrefix), ColPrefix) + "  " +
+		Col(strings.Repeat("-", ColNamespace), ColNamespace) + "  " +
 		Col(strings.Repeat("-", ColType), ColType) + "  " +
 		Col(strings.Repeat("-", ColRole), ColRole) + "  " +
 		Col(strings.Repeat("-", ColStatus), ColStatus) + "  " +
@@ -85,6 +88,7 @@ func PrintPrefixTable(prefixes []*devicetypes.CaniPrefix, inv *devicetypes.Inven
 		vlanName := resolveVLANName(p.VLAN, inv)
 		fmt.Println(
 			Col(p.Prefix, ColPrefix) + "  " +
+				Col(p.EffectiveNamespace(), ColNamespace) + "  " +
 				Col(string(p.Type), ColType) + "  " +
 				Col(p.Role, ColRole) + "  " +
 				Col(p.Status, ColStatus) + "  " +
@@ -139,11 +143,13 @@ func printPrefixNode(p *devicetypes.CaniPrefix, children map[string][]*devicetyp
 // PrintIPAddressTable renders IP addresses as a fixed-width table.
 func PrintIPAddressTable(addrs []*devicetypes.CaniIPAddress, inv *devicetypes.Inventory) {
 	header := Col("ADDRESS", ColAddress) + "  " +
+		Col("NAMESPACE", ColNamespace) + "  " +
 		Col("STATUS", ColStatus) + "  " +
 		Col("ROLE", ColRole) + "  " +
 		Col("DNS NAME", ColDNS) + "  " +
 		Col("PREFIX", ColPrefix)
 	sep := Col(strings.Repeat("-", ColAddress), ColAddress) + "  " +
+		Col(strings.Repeat("-", ColNamespace), ColNamespace) + "  " +
 		Col(strings.Repeat("-", ColStatus), ColStatus) + "  " +
 		Col(strings.Repeat("-", ColRole), ColRole) + "  " +
 		Col(strings.Repeat("-", ColDNS), ColDNS) + "  " +
@@ -156,6 +162,7 @@ func PrintIPAddressTable(addrs []*devicetypes.CaniIPAddress, inv *devicetypes.In
 		role := string(a.IPRole)
 		fmt.Println(
 			Col(a.Address, ColAddress) + "  " +
+				Col(inv.IPAddressNamespace(a), ColNamespace) + "  " +
 				Col(a.Status, ColStatus) + "  " +
 				Col(role, ColRole) + "  " +
 				Col(a.DNSName, ColDNS) + "  " +
@@ -188,10 +195,12 @@ func resolvePrefixCIDR(id [16]byte, inv *devicetypes.Inventory) string {
 // PrintVRFTable renders VRFs as a fixed-width table.
 func PrintVRFTable(vrfs []*devicetypes.CaniVRF, inv *devicetypes.Inventory) {
 	header := Col("NAME", ColName) + "  " +
+		Col("NAMESPACE", ColNamespace) + "  " +
 		Col("RD", ColRole) + "  " +
 		Col("DEVICES", ColCount) + "  " +
 		Col("DESCRIPTION", ColDNS)
 	sep := Col(strings.Repeat("-", ColName), ColName) + "  " +
+		Col(strings.Repeat("-", ColNamespace), ColNamespace) + "  " +
 		Col(strings.Repeat("-", ColRole), ColRole) + "  " +
 		Col(strings.Repeat("-", ColCount), ColCount) + "  " +
 		Col(strings.Repeat("-", ColDNS), ColDNS)
@@ -201,6 +210,7 @@ func PrintVRFTable(vrfs []*devicetypes.CaniVRF, inv *devicetypes.Inventory) {
 	for _, v := range vrfs {
 		fmt.Println(
 			Col(v.Name, ColName) + "  " +
+				Col(v.EffectiveNamespace(), ColNamespace) + "  " +
 				Col(v.RD, ColRole) + "  " +
 				Col(strconv.Itoa(len(v.Devices)), ColCount) + "  " +
 				Col(v.Description, ColDNS),
