@@ -41,7 +41,7 @@ func MapDevices(
 		caniDev := &devicetypes.CaniDeviceType{
 			ID:         caniID,
 			Name:       strVal(dev.Name),
-			ObjectMeta: devicetypes.ObjectMeta{Status: resolveRefName(dev.Status, statusNameMap), ExternalIDs: map[string]uuid.UUID{"nautobot": nbID}},
+			ObjectMeta: devicetypes.ObjectMeta{Status: resolveRefName(dev.Status, statusNameMap), ExternalIDs: map[string]uuid.UUID{externalIDKeyNautobot: nbID}},
 			Serial:     strVal(dev.Serial),
 			Comments:   strVal(dev.Comments),
 		}

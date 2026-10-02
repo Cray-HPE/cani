@@ -31,7 +31,7 @@ func MapRacks(
 		caniRack := &devicetypes.CaniRackType{
 			ID:         caniID,
 			Name:       rack.Name,
-			ObjectMeta: devicetypes.ObjectMeta{Status: resolveRefName(rack.Status, statusNameMap), ExternalIDs: map[string]uuid.UUID{"nautobot": nbID}},
+			ObjectMeta: devicetypes.ObjectMeta{Status: resolveRefName(rack.Status, statusNameMap), ExternalIDs: map[string]uuid.UUID{externalIDKeyNautobot: nbID}},
 			Serial:     strVal(rack.Serial),
 			FacilityId: strVal(rack.FacilityId),
 			UHeight:    intVal(rack.UHeight),

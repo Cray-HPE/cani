@@ -69,6 +69,42 @@ func FetchVRFDeviceAssignments(ctx context.Context, client *nautobotapi.ClientWi
 	})
 }
 
+// FetchVRFPrefixAssignments retrieves all VRF-prefix assignment records,
+// which carry a prefix's VRF memberships.
+func FetchVRFPrefixAssignments(ctx context.Context, client *nautobotapi.ClientWithResponses) ([]nautobotapi.VRFPrefixAssignment, error) {
+	return paginate(ctx, "vrf-prefix-assignments", func(ctx context.Context, offset int) (pageResult[nautobotapi.VRFPrefixAssignment], error) {
+		resp, err := client.IpamVrfPrefixAssignmentsListWithResponse(ctx, &nautobotapi.IpamVrfPrefixAssignmentsListParams{
+			Limit:  intPtr(pageSize),
+			Offset: &offset,
+		})
+		if err != nil {
+			return pageResult[nautobotapi.VRFPrefixAssignment]{}, err
+		}
+		return stdPage(resp.StatusCode(), resp.JSON200, "vrf-prefix-assignments",
+			func(b *nautobotapi.PaginatedVRFPrefixAssignmentList) ([]nautobotapi.VRFPrefixAssignment, *string) {
+				return b.Results, b.Next
+			})
+	})
+}
+
+// FetchNamespaces retrieves all IPAM namespaces so prefix and VRF namespace
+// references can be resolved to names.
+func FetchNamespaces(ctx context.Context, client *nautobotapi.ClientWithResponses) ([]nautobotapi.Namespace, error) {
+	return paginate(ctx, "namespaces", func(ctx context.Context, offset int) (pageResult[nautobotapi.Namespace], error) {
+		resp, err := client.IpamNamespacesListWithResponse(ctx, &nautobotapi.IpamNamespacesListParams{
+			Limit:  intPtr(pageSize),
+			Offset: &offset,
+		})
+		if err != nil {
+			return pageResult[nautobotapi.Namespace]{}, err
+		}
+		return stdPage(resp.StatusCode(), resp.JSON200, "namespaces",
+			func(b *nautobotapi.PaginatedNamespaceList) ([]nautobotapi.Namespace, *string) {
+				return b.Results, b.Next
+			})
+	})
+}
+
 // FetchVLANs retrieves all VLANs from the Nautobot API.
 func FetchVLANs(ctx context.Context, client *nautobotapi.ClientWithResponses) ([]nautobotapi.VLAN, error) {
 	return paginate(ctx, "vlans", func(ctx context.Context, offset int) (pageResult[nautobotapi.VLAN], error) {

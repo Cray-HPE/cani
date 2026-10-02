@@ -56,6 +56,8 @@ type RawData struct {
 	IPAddresses               []nautobotapi.IPAddress
 	VRFs                      []nautobotapi.VRF
 	VRFDeviceAssignments      []nautobotapi.VRFDeviceAssignment
+	VRFPrefixAssignments      []nautobotapi.VRFPrefixAssignment
+	Namespaces                []nautobotapi.Namespace
 }
 
 // providerGetter is used to get the Nautobot singleton from the parent package.
@@ -194,6 +196,16 @@ func Import(cmd *cli.Command, args []string, inventory *devicetypes.Inventory) e
 	d.VRFDeviceAssignments, err = FetchVRFDeviceAssignments(ctx, client)
 	if err != nil {
 		return fmt.Errorf("fetching vrf-device-assignments: %w", err)
+	}
+
+	d.VRFPrefixAssignments, err = FetchVRFPrefixAssignments(ctx, client)
+	if err != nil {
+		return fmt.Errorf("fetching vrf-prefix-assignments: %w", err)
+	}
+
+	d.Namespaces, err = FetchNamespaces(ctx, client)
+	if err != nil {
+		return fmt.Errorf("fetching namespaces: %w", err)
 	}
 
 	prov.ClearRawData()

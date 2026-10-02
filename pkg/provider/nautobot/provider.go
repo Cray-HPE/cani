@@ -63,6 +63,8 @@ type Nautobot struct {
 	rawIPAddresses               []nautobotapi.IPAddress
 	rawVRFs                      []nautobotapi.VRF
 	rawVRFDeviceAssignments      []nautobotapi.VRFDeviceAssignment
+	rawVRFPrefixAssignments      []nautobotapi.VRFPrefixAssignment
+	rawNamespaces                []nautobotapi.Namespace
 }
 
 // New creates a new instance of the Nautobot provider
@@ -105,6 +107,8 @@ func (p *Nautobot) ClearRawData() {
 	p.rawIPAddresses = nil
 	p.rawVRFs = nil
 	p.rawVRFDeviceAssignments = nil
+	p.rawVRFPrefixAssignments = nil
+	p.rawNamespaces = nil
 }
 
 // SetRawData stores fetched raw data from the import phase.
@@ -128,6 +132,8 @@ func (p *Nautobot) SetRawData(d imprt.RawData) {
 	p.rawIPAddresses = d.IPAddresses
 	p.rawVRFs = d.VRFs
 	p.rawVRFDeviceAssignments = d.VRFDeviceAssignments
+	p.rawVRFPrefixAssignments = d.VRFPrefixAssignments
+	p.rawNamespaces = d.Namespaces
 }
 
 // GetClient returns the Nautobot API client for the import subpackage.

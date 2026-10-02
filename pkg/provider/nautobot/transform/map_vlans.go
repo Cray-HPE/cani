@@ -66,7 +66,7 @@ func MapVLANs(
 			Location:    resolveAssignedLocation(nbID, assignedLocations, locationMap),
 			ObjectMeta: devicetypes.ObjectMeta{
 				Status:      resolveRefName(vlan.Status, statusNameMap),
-				ExternalIDs: map[string]uuid.UUID{"nautobot": nbID},
+				ExternalIDs: map[string]uuid.UUID{externalIDKeyNautobot: nbID},
 			},
 		}
 		if roleName := resolveTenantRefName(vlan.Role, roleNameMap); roleName != "" {
