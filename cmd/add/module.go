@@ -37,6 +37,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
+	"github.com/google/uuid"
 )
 
 const (
@@ -59,6 +60,9 @@ Supports strategy-based placement across multiple devices:
 Bays are auto-filtered by the module's hardware type (e.g. gpu modules
 go into GPU bays). Use --bay-filter to override.
 
+A spare is stored at a location instead of a bay, and is tracked by the
+identity it records: --spare --location <name> --serial <sn> --asset-tag <tag>
+
 Template variables for --name: %{DEVICE}, %{BAY}, %{SEQ}`,
 		Args: validSlugOrPartNumber(NounModule),
 		RunE: addModule,
@@ -68,7 +72,8 @@ Template variables for --name: %{DEVICE}, %{BAY}, %{SEQ}`,
 	cmd.Flags().String("bay", "", "Module bay name on the parent device")
 	cmd.Flags().String(flagBayFilter, "", "Filter bays by name substring (overrides auto-filter)")
 	cmd.Flags().String("name", "", "Module name, expansion pattern, or template (%{DEVICE}, %{BAY}, %{SEQ})")
-	cmd.Flags().String(flagLocation, "", "Location filter for device selection (name or UUID)")
+	cmd.Flags().String(flagLocation, "", "Location filter for device selection, or the storage location of a --spare module (name or UUID)")
+	cmd.Flags().Bool(flagSpare, false, "Store the module as a spare at --location instead of installing it in a device")
 	cmd.Flags().Bool(flagDryRun, false, "Show placement plan without committing changes")
 
 	return cmd
@@ -84,6 +89,9 @@ func addModule(cmd *cli.Command, args []string) error {
 
 	deviceArg, _ := cmd.Flags().GetString("device")
 	nameArg, _ := cmd.Flags().GetString("name")
+	if err := rejectSpareConflicts(cmd); err != nil {
+		return err
+	}
 
 	_, isStrategy := placement.ParseStrategy(deviceArg)
 	if isStrategy {
@@ -101,17 +109,18 @@ func addModule(cmd *cli.Command, args []string) error {
 
 // moduleAddOpts holds the parsed flags shared by the literal placement helpers.
 type moduleAddOpts struct {
-	qty          int
-	nameArg      string
-	deviceArg    string
-	bayName      string
-	bayFilterArg string
-	prefix       string
-	start        int
-	padWidth     int
-	statusArg    string
-	ident        identity
-	dryRun       bool
+	qty           int
+	nameArg       string
+	deviceArg     string
+	bayName       string
+	bayFilterArg  string
+	prefix        string
+	start         int
+	padWidth      int
+	statusArg     string
+	ident         identity
+	dryRun        bool
+	spareLocation uuid.UUID // set when the module is stored as a spare rather than installed
 }
 
 // loadModuleInventory sets the device store from flags and loads the inventory.
@@ -223,6 +232,12 @@ func addModuleLiteral(cmd *cli.Command, result *lookupResult, qty int, nameArg, 
 	}
 	if opts.statusArg, err = normalizeModuleStatus(opts.statusArg, inventory); err != nil {
 		return err
+	}
+	if spare, _ := cmd.Flags().GetBool(flagSpare); spare {
+		if opts.spareLocation, err = resolveSpareLocation(cmd, inventory); err != nil {
+			return err
+		}
+		return addModuleSingleDevice(inventory, result.Module, nil, opts)
 	}
 
 	devices := resolveLiteralDevices(inventory, deviceArg)

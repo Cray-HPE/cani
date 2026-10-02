@@ -49,10 +49,16 @@ Describe 'cani alpha add module'
   Describe '--dry-run flag'
     Before 'setup_crud_env'
 
-    It 'exits 0 with --dry-run'
-      When call bin/cani alpha add module hpe-1600w-flex-slot-platinum-hot-plug-psu --device test-device --dry-run --config "$CANI_CONF"
+    module_count() {
+      jq '.modules | length' "$CANI_DS"
+    }
+
+    It 'prints the planned placement without saving'
+      When call bin/cani alpha add module hpe-1600w-flex-slot-platinum-hot-plug-psu --device test-device --bay PCIe1 --dry-run --config "$CANI_CONF"
       The status should equal 0
-      The stderr should include 'module(s) added'
+      The output should include 'Would add module'
+      The output should include 'to test-device bay PCIe1'
+      The result of function module_count should equal 1
     End
   End
 
