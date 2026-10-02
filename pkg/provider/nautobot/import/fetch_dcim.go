@@ -33,6 +33,23 @@ import (
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 )
 
+// FetchLocationTypes retrieves all location types from the Nautobot API.
+func FetchLocationTypes(ctx context.Context, client *nautobotapi.ClientWithResponses) ([]nautobotapi.LocationType, error) {
+	return paginate(ctx, "location types", func(ctx context.Context, offset int) (pageResult[nautobotapi.LocationType], error) {
+		resp, err := client.DcimLocationTypesListWithResponse(ctx, &nautobotapi.DcimLocationTypesListParams{
+			Limit:  intPtr(pageSize),
+			Offset: &offset,
+		})
+		if err != nil {
+			return pageResult[nautobotapi.LocationType]{}, err
+		}
+		return stdPage(resp.StatusCode(), resp.JSON200, "location types",
+			func(b *nautobotapi.PaginatedLocationTypeList) ([]nautobotapi.LocationType, *string) {
+				return b.Results, b.Next
+			})
+	})
+}
+
 // FetchLocations retrieves all locations from the Nautobot API.
 func FetchLocations(ctx context.Context, client *nautobotapi.ClientWithResponses) ([]nautobotapi.Location, error) {
 	return paginate(ctx, "locations", func(ctx context.Context, offset int) (pageResult[nautobotapi.Location], error) {

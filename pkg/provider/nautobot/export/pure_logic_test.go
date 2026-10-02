@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
@@ -3708,16 +3709,16 @@ func TestResolveRoleNoDefaultNoCreate(t *testing.T) {
 
 // ---------- resolveLocation error path ----------
 
-// TestResolveLocationNoDefaultNoCreate verifies that resolveLocation returns the
-// error "location is required (use --default-location)" when the device has no
-// location and the mapper has no DefaultLocation.
+// TestResolveLocationNoDefaultNoCreate verifies that resolveLocation returns an
+// actionable "location is required" error when the device has no location and
+// the mapper has no DefaultLocation.
 //
 // Why it matters: every exported device must land at a Nautobot location; absent
 // any source the exporter must fail with actionable guidance, not a blank location.
 // Inputs: an empty CaniDeviceType and a mapper with DefaultLocation "". Outputs: a
-// non-nil error with the exact guidance message.
+// non-nil error naming both remedies (rack location, --default-location).
 // Data choice: empty location plus empty default removes all location sources,
-// forcing the required-location error, which is asserted verbatim.
+// forcing the required-location error.
 func TestResolveLocationNoDefaultNoCreate(t *testing.T) {
 	cache := NewLookupCache(nil)
 	mapper := NewDeviceMapper(cache, &MapperOpts{DefaultLocation: ""})
@@ -3727,7 +3728,7 @@ func TestResolveLocationNoDefaultNoCreate(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when no location and no default")
 	}
-	if err.Error() != "location is required (use --default-location)" {
+	if !strings.Contains(err.Error(), "location is required") || !strings.Contains(err.Error(), "--default-location") {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
@@ -6573,18 +6574,17 @@ func TestResolveRoleNoAutoCreateFails(t *testing.T) {
 	}
 }
 
-// ---------- resolveLocation auto-create path ----------
+// ---------- resolveLocation without any location ----------
 
-// TestResolveLocationAutoCreateDefault verifies resolveLocation falls back to the
-// "Default" location when auto-create is enabled and no location is set.
+// TestResolveLocationWithoutLocationFails verifies resolveLocation returns an
+// error, even with auto-create enabled, when a device has no location source.
 //
-// Why it matters: every Nautobot device must live somewhere, so cani supplies a
-// default location instead of failing the export.
+// Why it matters: the exporter used to invent a "Default" location with no
+// datastore counterpart; a device without a location must be reported instead.
 // Inputs: a device with no location, createLocations=true, and a cache seeded
-// with "Default". Outputs: the cached "Default" CachedItem.
-// Data choice: seeding the cache resolves the default without the nil-client
-// create path.
-func TestResolveLocationAutoCreateDefault(t *testing.T) {
+// with "Default". Outputs: a non-nil error and no lookup of "Default".
+// Data choice: seeding "Default" proves the old fallback is no longer taken.
+func TestResolveLocationWithoutLocationFails(t *testing.T) {
 	cache := NewLookupCache(nil)
 	cache.SetCreateLocations(true)
 	cache.locationsMu.Lock()
@@ -6593,12 +6593,8 @@ func TestResolveLocationAutoCreateDefault(t *testing.T) {
 
 	mapper := NewDeviceMapper(cache, &MapperOpts{})
 	dev := &devicetypes.CaniDeviceType{} // no location
-	item, err := mapper.resolveLocation(dev)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if item.Name != "Default" {
-		t.Errorf("expected auto-created 'Default', got %q", item.Name)
+	if _, err := mapper.resolveLocation(dev); err == nil {
+		t.Fatal("expected an error for a device with no location source")
 	}
 }
 

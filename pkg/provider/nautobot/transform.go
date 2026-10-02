@@ -47,6 +47,7 @@ func (p *Nautobot) Transform(ctx context.Context, existing devicetypes.Inventory
 		len(p.rawPrefixes) > 0 || len(p.rawPrefixLocationAssignments) > 0 || len(p.rawIPAddresses) > 0 ||
 		len(p.rawVRFs) > 0 {
 		raw = &transform.RawData{
+			LocationTypes:             p.rawLocationTypes,
 			Locations:                 p.rawLocations,
 			Racks:                     p.rawRacks,
 			Devices:                   p.rawDevices,

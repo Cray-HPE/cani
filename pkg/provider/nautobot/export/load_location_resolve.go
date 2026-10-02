@@ -111,7 +111,9 @@ func findContentChild(loc *devicetypes.CaniLocationType, contentType string, inv
 
 // locationTypeSupports checks whether a location type slug has the given
 // content type in its ContentTypes list. It consults the in-memory
-// LocationTypeDefinition registry loaded from YAML.
+// LocationTypeDefinition registry loaded from YAML. A type with an empty list
+// (dc, level) is a container for other locations and holds no racks or
+// devices itself; resolveContentLocation descends to a child that does.
 func locationTypeSupports(locTypeSlug string, contentType string) bool {
 	lt, ok := devicetypes.GetLocationTypeBySlug(locTypeSlug)
 	if !ok {

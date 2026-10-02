@@ -37,6 +37,7 @@ import (
 
 // RawData holds all raw API responses fetched during import.
 type RawData struct {
+	LocationTypes             []nautobotapi.LocationType
 	Locations                 []nautobotapi.Location
 	Racks                     []nautobotapi.Rack
 	Devices                   []nautobotapi.Device
@@ -105,6 +106,11 @@ func Import(cmd *cli.Command, args []string, inventory *devicetypes.Inventory) e
 	d.Locations, err = FetchLocations(ctx, client)
 	if err != nil {
 		return fmt.Errorf("fetching locations: %w", err)
+	}
+
+	d.LocationTypes, err = FetchLocationTypes(ctx, client)
+	if err != nil {
+		return fmt.Errorf("fetching location types: %w", err)
 	}
 
 	d.Racks, err = FetchRacks(ctx, client)

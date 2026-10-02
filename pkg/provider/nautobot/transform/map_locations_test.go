@@ -49,7 +49,7 @@ import (
 // proves the second-pass resolution falls back to uuid.Nil.
 func TestMapLocations(t *testing.T) {
 	t.Run("empty input returns empty maps", func(t *testing.T) {
-		locs, nbMap := MapLocations(nil, nil)
+		locs, nbMap := MapLocations(nil, nil, nil)
 		if len(locs) != 0 {
 			t.Errorf("expected 0 locations, got %d", len(locs))
 		}
@@ -62,7 +62,7 @@ func TestMapLocations(t *testing.T) {
 		raw := []nautobotapi.Location{
 			{Name: "orphan", Id: nil},
 		}
-		locs, nbMap := MapLocations(raw, nil)
+		locs, nbMap := MapLocations(raw, nil, nil)
 		if len(locs) != 0 {
 			t.Errorf("expected 0 locations, got %d", len(locs))
 		}
@@ -88,9 +88,10 @@ func TestMapLocations(t *testing.T) {
 			},
 		}
 		setNBRef(&raw[0].Status, statusID)
-		setNBRef(&raw[0].LocationType, uuid.New())
+		locationTypeID := uuid.New()
+		setNBRef(&raw[0].LocationType, locationTypeID)
 
-		locs, nbMap := MapLocations(raw, statusNameMap)
+		locs, nbMap := MapLocations(raw, statusNameMap, map[uuid.UUID]string{locationTypeID: "dc"})
 		if len(locs) != 1 {
 			t.Fatalf("expected 1 location, got %d", len(locs))
 		}
@@ -105,6 +106,9 @@ func TestMapLocations(t *testing.T) {
 		}
 		if loc.Name != "Site-A" {
 			t.Errorf("Name = %q, want %q", loc.Name, "Site-A")
+		}
+		if loc.LocationType != "dc" {
+			t.Errorf("LocationType = %q, want the cani key %q", loc.LocationType, "dc")
 		}
 		if loc.Description != "Test datacenter" {
 			t.Errorf("Description = %q, want %q", loc.Description, "Test datacenter")
@@ -142,7 +146,7 @@ func TestMapLocations(t *testing.T) {
 		setNBRef(&raw[1].Status, uuid.New())
 		setNBRef(&raw[1].LocationType, uuid.New())
 
-		locs, nbMap := MapLocations(raw, nil)
+		locs, nbMap := MapLocations(raw, nil, nil)
 		if len(locs) != 2 {
 			t.Fatalf("expected 2 locations, got %d", len(locs))
 		}
@@ -171,7 +175,7 @@ func TestMapLocations(t *testing.T) {
 		setNBRef(&raw[0].Status, uuid.New())
 		setNBRef(&raw[0].LocationType, uuid.New())
 
-		locs, nbMap := MapLocations(raw, nil)
+		locs, nbMap := MapLocations(raw, nil, nil)
 		childCaniID := nbMap[childNBID]
 		child := locs[childCaniID]
 
@@ -195,7 +199,7 @@ func TestMapLocations(t *testing.T) {
 		setNBRef(&raw[0].Status, uuid.New())
 		setNBRef(&raw[0].LocationType, uuid.New())
 
-		locs, nbMap := MapLocations(raw, nil)
+		locs, nbMap := MapLocations(raw, nil, nil)
 		caniID := nbMap[nbID]
 		loc := locs[caniID]
 

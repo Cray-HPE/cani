@@ -233,6 +233,8 @@ func TestImport_PropagatesLaterFetchError(t *testing.T) {
 		switch r.URL.Path {
 		case "/dcim/locations/":
 			ok([]map[string]interface{}{{"name": "loc1"}})
+		case "/dcim/location-types/":
+			ok([]map[string]interface{}{{"name": "Data Center"}})
 		case "/dcim/racks/":
 			ok([]map[string]interface{}{{"name": "rack1"}})
 		case "/dcim/devices/":

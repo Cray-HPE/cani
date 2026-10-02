@@ -387,8 +387,8 @@ func (m *DeviceMapper) resolveDeviceType(device *devicetypes.CaniDeviceType) (*C
 }
 
 // resolveLocation gets the location ID, using default if device doesn't specify one.
-// Priority: device ProviderMetadata["location"] → parent rack's location → DefaultLocation → "Default".
-// If create_locations is enabled and no location name is available, uses "Default" as the location name.
+// Priority: device ProviderMetadata["location"] → parent rack's location → DefaultLocation.
+// A device with no resolvable location is an error; the exporter never invents one.
 func (m *DeviceMapper) resolveLocation(device *devicetypes.CaniDeviceType) (*CachedItem, error) {
 	name := ""
 	if device.ProviderMetadata != nil {
@@ -410,12 +410,7 @@ func (m *DeviceMapper) resolveLocation(device *devicetypes.CaniDeviceType) (*Cac
 		name = m.defaults.DefaultLocation
 	}
 	if name == "" {
-		if m.cache.createLocations {
-			name = "Default"
-			clog.Detail("[mapper] No location specified, using '%s' for auto-creation", name)
-		} else {
-			return nil, fmt.Errorf("location is required (use --default-location)")
-		}
+		return nil, fmt.Errorf("location is required: place the device in a rack with a location or use --default-location")
 	}
 	return m.cache.GetLocation(name)
 }
