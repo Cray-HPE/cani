@@ -46,6 +46,9 @@
 #   5. Every interface spec is either present in Nautobot or named in a skip
 #      line, and the summary's created plus skipped counts add up to the
 #      number of specs.
+#   6. Import Nautobot into an empty datastore: every module port stays on its
+#      module and none is added to the parent device, although Nautobot 3.2
+#      also names the root device on the port of an installed module.
 
 Describe 'INTEGRATION: Nautobot export fidelity'
 
@@ -191,6 +194,51 @@ print("" if value is None else value)
 PY
   }
 
+  IMPORT_CONF="${CANI_DIR}/import.yml"
+  IMPORT_DS="${CANI_DIR}/import.json"
+
+  # Import Nautobot into an empty datastore with the fixture's provider
+  # settings and keep the log.
+  run_import() {
+    sed "s|^datastore:.*|datastore: ${IMPORT_DS}|" "$CANI_CONF" >"$IMPORT_CONF" &&
+      cani alpha --config "$IMPORT_CONF" import nautobot \
+        --default-location repro-section --default-status Active >"${CANI_DIR}/import.log" 2>&1
+    rc=$?
+    cat "${CANI_DIR}/import.log"
+    return $rc
+  }
+
+  # Compare repro-dl380's ports in the imported datastore with the exported
+  # one: count device-owned names the import added to the device, and the
+  # "HSN 0" and "Port 1" ports on the device and on the module in each bay.
+  imported_port_owners() {
+    DS="$CANI_DS" IMPORTED="$IMPORT_DS" python3 - <<'PY'
+import collections
+import json
+import os
+
+
+def ports(path):
+    with open(path, encoding="utf-8") as datastore:
+        inventory = json.load(datastore)
+    device = next(d for d in inventory["devices"].values() if d["name"] == "repro-dl380")
+    own = collections.Counter(i["name"] for i in device.get("interfaces", []))
+    modules = collections.Counter()
+    for module in inventory.get("modules", {}).values():
+        if module.get("parentDevice") == device["id"]:
+            bay = module.get("moduleBayName", "").lower()
+            modules.update((bay, i["name"]) for i in module.get("interfaces", []))
+    return own, modules
+
+
+exported_own, _ = ports(os.environ["DS"])
+imported_own, imported_modules = ports(os.environ["IMPORTED"])
+added = sum((imported_own - exported_own).values())
+print(f"added_to_device={added} device_hsn0={imported_own['HSN 0']} "
+      f"pcie1_hsn0={imported_modules[('pcie1', 'HSN 0')]} pcie2_port1={imported_modules[('pcie2', 'Port 1')]}")
+PY
+  }
+
   Describe 'fixture'
     It 'purges Nautobot and builds the fixture inventory'
       BeforeCall setup_nautobot_env
@@ -295,6 +343,22 @@ PY
     It 'warns that some objects were not exported as authored'
       When call grep -c 'not exported as authored' "$EXPORT_LOG"
       The output should equal '1'
+    End
+  End
+
+  # Nautobot 3.2 also names the root device on a port of an installed
+  # module, so an import that grouped ports by device alone would give
+  # repro-dl380 a second "HSN 0" and the NIC's "Port 1".
+  Describe 'import'
+    It 'imports the exported fixture into an empty datastore'
+      When call run_import
+      The status should equal 0
+      The output should include 'Import completed successfully'
+    End
+
+    It 'keeps every module port on its module and off the parent device'
+      When call imported_port_owners
+      The output should equal 'added_to_device=0 device_hsn0=1 pcie1_hsn0=1 pcie2_port1=1'
     End
   End
 
