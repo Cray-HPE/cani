@@ -59,8 +59,10 @@ func (result *TransformResult) RemapReferences(inventory *Inventory, remaps Refe
 	result.remapIPAM(remaps)
 }
 
-// DerivePrefixParents computes the most-specific parent for each transformed
-// prefix across both the existing inventory and the current transform result.
+// DerivePrefixParents computes the most-specific parent, within the prefix's
+// namespace, for each transformed prefix the provider did not already map.
+// Candidates span both the existing inventory and the current transform
+// result. A parent set by the provider is preserved as mapped import scope.
 func (result *TransformResult) DerivePrefixParents(existing map[uuid.UUID]*CaniPrefix) {
 	if result == nil {
 		return
@@ -73,20 +75,21 @@ func (result *TransformResult) DerivePrefixParents(existing map[uuid.UUID]*CaniP
 		candidates[id] = prefix
 	}
 	for _, prefix := range result.Prefixes {
-		if prefix != nil {
+		if prefix != nil && prefix.Parent == uuid.Nil {
 			prefix.Parent = FindParentPrefix(prefix, candidates)
 		}
 	}
 }
 
-// DeriveIPAddressParents assigns each transformed address to the most-specific
-// prefix retained in the inventory.
+// DeriveIPAddressParents assigns each transformed address the provider did
+// not already parent to the most-specific prefix retained in the inventory
+// within the address's intended namespace.
 func (result *TransformResult) DeriveIPAddressParents(prefixes map[uuid.UUID]*CaniPrefix) {
 	if result == nil {
 		return
 	}
 	for _, address := range result.IPAddresses {
-		if address != nil {
+		if address != nil && address.Parent == uuid.Nil {
 			address.Parent = FindParentPrefixForIP(address, prefixes)
 		}
 	}
@@ -255,6 +258,7 @@ func (result *TransformResult) remapIPAM(remaps ReferenceRemaps) {
 		prefix.Location = remapUUID(prefix.Location, remaps.Locations)
 		prefix.VLAN = remapUUID(prefix.VLAN, remaps.VLANs)
 		prefix.Parent = remapUUID(prefix.Parent, remaps.Prefixes)
+		prefix.VRFs = remapUUIDs(prefix.VRFs, remaps.VRFs)
 	}
 	for _, address := range result.IPAddresses {
 		if address == nil {

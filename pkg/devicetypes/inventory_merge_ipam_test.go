@@ -32,6 +32,19 @@ import (
 	"github.com/google/uuid"
 )
 
+// merged returns a helper that fails the test when an IPAM merge that should
+// succeed returns an error, so call sites read merged(t)(inv.MergeX(...)).
+func merged(t *testing.T) func(map[uuid.UUID]uuid.UUID, error) map[uuid.UUID]uuid.UUID {
+	t.Helper()
+	return func(remap map[uuid.UUID]uuid.UUID, err error) map[uuid.UUID]uuid.UUID {
+		t.Helper()
+		if err != nil {
+			t.Fatalf("merge returned unexpected error: %v", err)
+		}
+		return remap
+	}
+}
+
 // TestMergeIPAMDeduplicatesByNaturalKey verifies each IPAM merge collapses an
 // incoming object onto the existing one that shares its natural key.
 //
@@ -67,15 +80,15 @@ func TestMergeIPAMDeduplicatesByNaturalKey(t *testing.T) {
 	vlanRemap := inventory.MergeVLANs(map[uuid.UUID]*CaniVLAN{
 		incoming.vlan: {ID: incoming.vlan, VID: 100, Location: location, Description: "merged"},
 	})
-	prefixRemap := inventory.MergePrefixes(map[uuid.UUID]*CaniPrefix{
+	prefixRemap := merged(t)(inventory.MergePrefixes(map[uuid.UUID]*CaniPrefix{
 		incoming.prefix: {ID: incoming.prefix, Prefix: "10.0.0.0/24", VRF: "blue", Description: "merged"},
-	})
-	addressRemap := inventory.MergeIPAddresses(map[uuid.UUID]*CaniIPAddress{
+	}))
+	addressRemap := merged(t)(inventory.MergeIPAddresses(map[uuid.UUID]*CaniIPAddress{
 		incoming.address: {ID: incoming.address, Address: "10.0.0.5/24", Description: "merged"},
-	})
-	vrfRemap := inventory.MergeVRFs(map[uuid.UUID]*CaniVRF{
+	}))
+	vrfRemap := merged(t)(inventory.MergeVRFs(map[uuid.UUID]*CaniVRF{
 		incoming.vrf: {ID: incoming.vrf, Name: "blue", Description: "merged"},
-	})
+	}))
 
 	for _, check := range []struct {
 		name        string
@@ -108,11 +121,11 @@ func TestMergeIPAMDeduplicatesByNaturalKey(t *testing.T) {
 //
 // Why it matters: the dedup above is only safe if the natural key is precise. A
 // VLAN is keyed on VID *and* location, so the same VID in two locations must
-// stay two VLANs; a prefix is keyed on CIDR *and* VRF for the same reason.
+// stay two VLANs; a prefix is keyed on CIDR *and* namespace for the same reason.
 // Collapsing those would silently destroy inventory.
 // Inputs: an inventory holding VID 100 in one location and prefix 10.0.0.0/24 in
-// VRF "blue", merged with the same VID in a different location and the same CIDR
-// in a different VRF.
+// the Global namespace, merged with the same VID in a different location and the
+// same CIDR in namespace "tenant-a".
 // Outputs: both collections grow to two, and each remap is an identity mapping.
 // Data choice: only the second half of each composite key varies, so a merge
 // that considered just VID or just CIDR would fail here and nowhere else.
@@ -122,21 +135,21 @@ func TestMergeIPAMInsertsWhenNaturalKeyDiffers(t *testing.T) {
 
 	inventory := NewInventory()
 	inventory.VLANs[existingVLAN] = &CaniVLAN{ID: existingVLAN, VID: 100, Location: firstLocation}
-	inventory.Prefixes[existingPrefix] = &CaniPrefix{ID: existingPrefix, Prefix: "10.0.0.0/24", VRF: "blue"}
+	inventory.Prefixes[existingPrefix] = &CaniPrefix{ID: existingPrefix, Prefix: "10.0.0.0/24"}
 
 	incomingVLAN, incomingPrefix := uuid.New(), uuid.New()
 	vlanRemap := inventory.MergeVLANs(map[uuid.UUID]*CaniVLAN{
 		incomingVLAN: {ID: incomingVLAN, VID: 100, Location: secondLocation},
 	})
-	prefixRemap := inventory.MergePrefixes(map[uuid.UUID]*CaniPrefix{
-		incomingPrefix: {ID: incomingPrefix, Prefix: "10.0.0.0/24", VRF: "green"},
-	})
+	prefixRemap := merged(t)(inventory.MergePrefixes(map[uuid.UUID]*CaniPrefix{
+		incomingPrefix: {ID: incomingPrefix, Prefix: "10.0.0.0/24", Namespace: "tenant-a"},
+	}))
 
 	if len(inventory.VLANs) != 2 {
 		t.Errorf("VLAN count = %d, want 2 (same VID in a different location is a different VLAN)", len(inventory.VLANs))
 	}
 	if len(inventory.Prefixes) != 2 {
-		t.Errorf("prefix count = %d, want 2 (same CIDR in a different VRF is a different prefix)", len(inventory.Prefixes))
+		t.Errorf("prefix count = %d, want 2 (same CIDR in a different namespace is a different prefix)", len(inventory.Prefixes))
 	}
 	if vlanRemap[incomingVLAN] != incomingVLAN {
 		t.Errorf("vlan remap = %v, want identity %v", vlanRemap[incomingVLAN], incomingVLAN)
@@ -162,9 +175,9 @@ func TestMergeIPAMSkipsNilEntries(t *testing.T) {
 	id := uuid.New()
 
 	vlanRemap := inventory.MergeVLANs(map[uuid.UUID]*CaniVLAN{id: nil})
-	prefixRemap := inventory.MergePrefixes(map[uuid.UUID]*CaniPrefix{id: nil})
-	addressRemap := inventory.MergeIPAddresses(map[uuid.UUID]*CaniIPAddress{id: nil})
-	vrfRemap := inventory.MergeVRFs(map[uuid.UUID]*CaniVRF{id: nil})
+	prefixRemap := merged(t)(inventory.MergePrefixes(map[uuid.UUID]*CaniPrefix{id: nil}))
+	addressRemap := merged(t)(inventory.MergeIPAddresses(map[uuid.UUID]*CaniIPAddress{id: nil}))
+	vrfRemap := merged(t)(inventory.MergeVRFs(map[uuid.UUID]*CaniVRF{id: nil}))
 
 	for _, check := range []struct {
 		name        string

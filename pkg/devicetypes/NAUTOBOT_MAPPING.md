@@ -404,15 +404,18 @@ IPAM identity is scoped by namespace (`ipam_namespace.go`). A prefix is
 identified by namespace plus canonical CIDR, an address by namespace plus
 canonical host (the mask is an attribute), and a VRF by namespace plus exact
 name; a namespace is compared without surrounding whitespace, and an omitted
-one means `Global`. Validation rejects a prefix parent, VRF membership, or
-address parent in another namespace and a parent that does not contain its
-address; legacy duplicates separated only by a VRF name or a mask, and legacy
-VRF names that do not resolve, are preserved for explicit resolution and
-reported as unresolved conflicts, logged without `--debug` on every change and
-once when a datastore migration is saved, capped at ten lines unless `--debug`
-is set. The v1alpha6 → v1alpha7 migration stamps omitted scope as `Global`,
-folds a uniquely resolvable legacy prefix VRF name into `VRFs`, and keeps
-object UUIDs.
+one means `Global`. Merge resolves identity in a fixed order — existing UUID,
+shared provider external ID, then the single natural-key match — and returns
+an error for a key match whose source identity conflicts or a key shared by
+several existing records, so the receiver is never changed by a guess.
+Validation rejects a prefix parent, VRF membership, or address parent in
+another namespace and a parent that does not contain its address; legacy
+duplicates separated only by a VRF name or a mask, and legacy VRF names that do
+not resolve, are preserved for explicit resolution and reported as unresolved
+conflicts, logged without `--debug` on every change and once when a datastore
+migration is saved, capped at ten lines unless `--debug` is set. The v1alpha6 →
+v1alpha7 migration stamps omitted scope as `Global`, folds a uniquely
+resolvable legacy prefix VRF name into `VRFs`, and keeps object UUIDs.
 
 Device deletion follows forward parent FKs, removes owned modules, FRUs,
 interfaces and cables, and detaches IP and VRF assignments. Module deletion uses
