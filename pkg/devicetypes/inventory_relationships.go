@@ -36,12 +36,15 @@ import (
 // RelationshipResult holds the outcome of a relationship verification pass.
 // Fixed lists auto-corrections applied, Warnings lists non-fatal issues,
 // and Errors lists broken references that could not be resolved.
-// Orphans collects items with no parent assigned.
+// Unresolved lists conflicts the operator must resolve by hand, such as two
+// records with one natural key; unlike Warnings, they are logged without
+// --debug. Orphans collects items with no parent assigned.
 type RelationshipResult struct {
-	Fixed    []string
-	Warnings []string
-	Errors   []error
-	Orphans  []OrphanItem
+	Fixed      []string
+	Warnings   []string
+	Unresolved []string
+	Errors     []error
+	Orphans    []OrphanItem
 }
 
 // HasErrors returns true when unresolvable relationship errors exist.
@@ -69,11 +72,13 @@ func (r *RelationshipResult) merge(other *RelationshipResult) {
 	}
 	r.Fixed = append(r.Fixed, other.Fixed...)
 	r.Warnings = append(r.Warnings, other.Warnings...)
+	r.Unresolved = append(r.Unresolved, other.Unresolved...)
 	r.Errors = append(r.Errors, other.Errors...)
 	r.Orphans = append(r.Orphans, other.Orphans...)
 }
 
-// logSummary logs all fixes, warnings, and errors.
+// logSummary logs errors and unresolved conflicts, and with --debug also the
+// fixes and warnings.
 func (r *RelationshipResult) logSummary() {
 	if Debug {
 		for _, f := range r.Fixed {
@@ -83,6 +88,7 @@ func (r *RelationshipResult) logSummary() {
 			log.Printf("Warning: %s", w)
 		}
 	}
+	r.LogUnresolved()
 	for _, e := range r.Errors {
 		log.Printf("Error: %s", e)
 	}

@@ -13,6 +13,7 @@ func (inv *Inventory) validateIPAMRelationships() *RelationshipResult {
 	inv.validateIPAddressRelationships(result)
 	inv.validateVRFRelationships(result)
 	inv.validateDeviceIPAMRelationships(result)
+	inv.validateIPAMScope(result)
 	return result
 }
 

@@ -48,6 +48,7 @@ Each DCIM and IPAM `Cani*Type` implements the `CaniType` interface (`Validate()`
 | `Prefixes` | `Prefix` + `PrefixLocationAssignment` | Import + Export | `loadPrefixes()` in `load_prefixes.go` |
 | `IPAddresses` | `IPAddress` | Import + Export | `loadIPAddresses()` in `load.go` |
 | `VRFs` | `VRF` | Import + Export | `loadVRFs()` in `load_vrfs.go` |
+| (scope) | `Namespace` | Model only | `Namespace` fields on prefixes, addresses and VRFs (empty means `Global`); export still resolves `Global` and import does not set them yet |
 
 ---
 
@@ -399,6 +400,20 @@ and device primary-IP and assigned-VLAN references must resolve to existing
 objects. Prefix parent cycles are rejected. The complete-result merge runs these
 checks after canonical UUID remapping and commits nothing when validation fails.
 
+IPAM identity is scoped by namespace (`ipam_namespace.go`). A prefix is
+identified by namespace plus canonical CIDR, an address by namespace plus
+canonical host (the mask is an attribute), and a VRF by namespace plus exact
+name; a namespace is compared without surrounding whitespace, and an omitted
+one means `Global`. Validation rejects a prefix parent, VRF membership, or
+address parent in another namespace and a parent that does not contain its
+address; legacy duplicates separated only by a VRF name or a mask, and legacy
+VRF names that do not resolve, are preserved for explicit resolution and
+reported as unresolved conflicts, logged without `--debug` on every change and
+once when a datastore migration is saved, capped at ten lines unless `--debug`
+is set. The v1alpha6 → v1alpha7 migration stamps omitted scope as `Global`,
+folds a uniquely resolvable legacy prefix VRF name into `VRFs`, and keeps
+object UUIDs.
+
 Device deletion follows forward parent FKs, removes owned modules, FRUs,
 interfaces and cables, and detaches IP and VRF assignments. Module deletion uses
 the same ownership cleanup. Shared IP addresses and VRFs remain in inventory,
@@ -419,9 +434,9 @@ Imported by `FetchVRFs()` + `MapVRFs()`; exported in Phase 6c by `loadVRFs()` in
 | Cani Field | Go Type | Nautobot Field | Status | Notes |
 |---|---|---|---|---|
 | `ID` | `uuid.UUID` | — | Cani-Internal | Primary key |
-| `Name` | `string` | `VRF.name` | **Mapped** | Natural key for find-or-create |
+| `Name` | `string` | `VRF.name` | **Mapped** | Natural key together with `Namespace`, exact case; a bare-name lookup prefers the exact name and falls back to a single case-insensitive match |
 | `RD` | `string` | `VRF.rd` | **Mapped** | Route distinguisher (RFC 4364); mapped when non-empty |
-| `Namespace` | `string` | `VRF.namespace` (FK) | Partial | Get-or-create on export (defaults to `Global`); not resolved on import |
+| `Namespace` | `string` | `VRF.namespace` (FK) | Partial | Scope of the VRF's identity; empty means `Global` and the v1alpha7 migration stamps it. Get-or-create on export; not resolved on import |
 | `Description` | `string` | `VRF.description` | **Mapped** | Mapped when non-empty |
 | `Devices` | `[]uuid.UUID` | `VRFDeviceAssignment` (M2M) | **Mapped** | Exported via `ensureVRFDeviceAssignment()` in `load_vrfs.go`; imported via `FetchVRFDeviceAssignments()` + `MapVRFs()` |
 | `Status` | `string` | `VRF.status` (FK) | **Mapped** | Resolved by name |
@@ -456,11 +471,14 @@ location).
 Source: `pkg/devicetypes/ipam_prefix.go`
 Imported by `FetchPrefixes()` + `FetchPrefixLocationAssignments()` +
 `MapPrefixes()`; exported in Phase 8 by `loadPrefixes()` in `load_prefixes.go`.
+The namespace is the uniqueness boundary: the same CIDR may exist once per
+namespace.
 
 | Cani Field | Go Type | Nautobot Field | Status | Notes |
 |---|---|---|---|---|
 | `ID` | `uuid.UUID` | — | Cani-Internal | Primary key |
-| `Prefix` | `string` | `Prefix.prefix` | **Mapped** | CIDR is the find-or-create key within the global namespace |
+| `Prefix` | `string` | `Prefix.prefix` | **Mapped** | CIDR; natural key together with `Namespace`, in canonical network form so `10.0.0.5/24` and `10.0.0.0/24` are one key |
+| `Namespace` | `string` | `Prefix.namespace` (FK) | Partial | Scope since v1alpha7; empty means `Global` and the migration stamps it. Export still files every prefix under `Global` and import does not read it yet |
 | `Network` | `string` | `Prefix.network` | Cani-Internal | Derived from the CIDR; not sent on export |
 | `Broadcast` | `string` | `Prefix.broadcast` | Cani-Internal | Derived from the CIDR; not sent on export |
 | `PrefixLen` | `int` | `Prefix.prefix_length` | **Mapped** | Imported directly; Nautobot derives it from `prefix` on export |
@@ -469,8 +487,9 @@ Imported by `FetchPrefixes()` + `FetchPrefixLocationAssignments()` +
 | `Description` | `string` | `Prefix.description` | **Mapped** | Mapped when non-empty |
 | `Location` | `uuid.UUID` | `PrefixLocationAssignment.location` | **Mapped** | Import resolves the first valid assignment; export sends `WritablePrefixRequest.location`, which creates the assignment, and retries unscoped on rejection |
 | `VLAN` | `uuid.UUID` | `Prefix.vlan` (FK) | **Mapped** | Resolved through the imported/exported VLAN UUID map |
-| `VRF` | `string` | — | Not Mapped | CANI stores a VRF name, but prefix import/export does not currently wire it |
-| `Parent` | `uuid.UUID` | `Prefix.parent` (FK) | **Mapped** | Recomputed from CIDRs after import; exported parent-first |
+| `VRF` | `string` | — | Legacy | Pre-v1alpha7 single VRF name. The migration folds it into `VRFs` when exactly one VRF of that name exists in the namespace; otherwise it is retained and reported as an unresolved conflict rather than guessed. `add prefix --vrf` no longer writes it |
+| `VRFs` | `[]uuid.UUID` | `VRFPrefixAssignment` (M2M) | Not Mapped | Canonical VRF memberships, validated to exist in the prefix's namespace; written by `add prefix --vrf`. Nautobot import/export do not wire the assignment records yet |
+| `Parent` | `uuid.UUID` | `Prefix.parent` (FK) | **Mapped** | A parent mapped by the provider is kept; derivation fills only a missing parent, stays inside the namespace and tie-breaks equal lengths on UUID; exported parent-first |
 | `Status` | `string` | `Prefix.status` (FK) | **Mapped** | Resolved by name; falls back to provider default then `"Active"` |
 | `Role` | `string` | `Prefix.role` (FK) | **Mapped** | Resolved by name when non-empty |
 | `Tenant` | `string` | `Prefix.tenant` (FK) | Not Mapped | |
@@ -483,22 +502,24 @@ Imported by `FetchPrefixes()` + `FetchPrefixLocationAssignments()` +
 
 Source: `pkg/devicetypes/ipam_address.go`
 Imported by `FetchIPAddresses()` + `MapIPAddresses()`; exported in Phase 9 by
-`loadIPAddresses()` in `load_ipaddresses.go`. After prefix merge, import derives
-the most-specific retained prefix for each address and remaps the parent to its
-canonical inventory UUID.
+`loadIPAddresses()` in `load_ipaddresses.go`. After prefix merge, an address
+without a provider-mapped parent is given the most-specific retained prefix
+inside its intended namespace, and the parent is remapped to its canonical
+inventory UUID.
 
 | Cani Field | Go Type | Nautobot Field | Status | Notes |
 |---|---|---|---|---|
 | `ID` | `uuid.UUID` | — | Cani-Internal | Primary key |
-| `Host` | `string` | `IPAddress.host` | **Mapped** | Derived from `Address` on import |
+| `Host` | `string` | `IPAddress.host` | **Mapped** | Derived from `Address`; natural key together with the namespace (the mask is an attribute, not identity) |
 | `MaskLength` | `int` | `IPAddress.mask_length` | **Mapped** | Imported; derived from `Address` for local additions |
-| `Address` | `string` | `IPAddress.address` | **Mapped** | Natural key for merge and lookup |
+| `Address` | `string` | `IPAddress.address` | **Mapped** | Display form; the merge key is the bare host within the namespace |
+| `Namespace` | `string` | `IPAddress.namespace` (write-only on create) | Partial | Intent only: a parented address inherits its parent prefix's namespace, and a parent in another namespace is a validation error; the field records authored or imported scope for drafts. Empty means `Global`. Export still sends `Global` for every address |
 | `IPVersion` | `int` | `IPAddress.ip_version` | **Mapped** | Imported; derived from `Address` for local additions |
 | `Type` | `IPAddressType` | `IPAddress.type` | **Mapped** | `host`, `dhcp`, or `slaac` |
 | `IPRole` | `IPAddressRole` | `IPAddress.role` | **Mapped** | Resolved by name |
 | `DNSName` | `string` | `IPAddress.dns_name` | **Mapped** | |
 | `Description` | `string` | `IPAddress.description` | **Mapped** | |
-| `Parent` | `uuid.UUID` | `IPAddress.parent` (FK) | **Mapped** | Derived as the most-specific retained prefix after import; resolved on export |
+| `Parent` | `uuid.UUID` | `IPAddress.parent` (FK) | **Mapped** | Kept when the provider maps it; otherwise derived inside the intended namespace; resolved on export |
 | `Interfaces` | `[]uuid.UUID` | IP address-to-interface assignment | Partial | Exported; import does not currently fetch assignment resources |
 | `NATInside` | `uuid.UUID` | `IPAddress.nat_inside` | Not Mapped | Remapped when supplied by another provider, but Nautobot import/export does not populate it |
 | `Status` | `string` | `IPAddress.status` (FK) | **Mapped** | Resolved by name |
