@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -115,6 +116,40 @@ func TestGetInterfacesByDevice_ExtractsAttachedCableID(t *testing.T) {
 	}
 	if items[0].CableID != cableID {
 		t.Errorf("CableID = %s, want %s", items[0].CableID, cableID)
+	}
+}
+
+// TestGetInterfacesByDevice_ListsOnlyDeviceOwnedPorts verifies the device
+// listing asks Nautobot for the device's own ports only.
+//
+// Why it matters: Nautobot 3.2 also returns a port of an installed module
+// under the device filter, and the device cache is keyed by name, so a module
+// port named like a device port would replace it in device lookups.
+// Inputs: a device UUID and a server recording the query. Outputs: one list
+// call filtered by that device with module__isnull=true.
+// Data choice: asserting the request rather than a response proves the filter
+// is sent, which a fake server could not otherwise distinguish.
+func TestGetInterfacesByDevice_ListsOnlyDeviceOwnedPorts(t *testing.T) {
+	deviceID := uuid.New()
+	var queries []url.Values
+	e, cleanup := newExporterWithServer(t, func(w http.ResponseWriter, r *http.Request) {
+		queries = append(queries, r.URL.Query())
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"count":0,"results":[]}`)
+	})
+	defer cleanup()
+
+	if _, err := e.Cache.GetInterfacesByDevice(deviceID); err != nil {
+		t.Fatalf("GetInterfacesByDevice() error = %v", err)
+	}
+	if len(queries) != 1 {
+		t.Fatalf("list calls = %d, want 1", len(queries))
+	}
+	if got := queries[0].Get("device"); got != deviceID.String() {
+		t.Errorf("device filter = %q, want %s", got, deviceID)
+	}
+	if got := queries[0].Get("module__isnull"); got != "true" {
+		t.Errorf("module__isnull = %q, want true", got)
 	}
 }
 

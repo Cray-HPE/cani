@@ -78,54 +78,65 @@ func (c *LookupCache) GetInterfaceByDeviceAndName(deviceID uuid.UUID, ifaceName 
 	return nil, nil // Not found is not an error
 }
 
-// GetInterfacesByDevice lists all interfaces for a device
+// GetInterfacesByDevice lists the interfaces a device owns directly. Nautobot
+// 3.2 also returns the ports of a module installed in the device under the
+// device filter; module__isnull excludes them because the device cache is
+// keyed by name, so a module port named like a device port would otherwise
+// replace it. Module ports are listed by GetInterfacesByModule.
 func (c *LookupCache) GetInterfacesByDevice(deviceID uuid.UUID) ([]*CachedItem, error) {
 	deviceIDStr := []string{deviceID.String()}
-	limit := 1000
-
-	resp, err := c.client.DcimInterfacesListWithResponse(c.ctx, &nautobotapi.DcimInterfacesListParams{
-		Device: &deviceIDStr,
-		Limit:  &limit,
+	deviceOwned := true
+	return c.listInterfaces("device", deviceID, &nautobotapi.DcimInterfacesListParams{
+		Device:       &deviceIDStr,
+		ModuleIsnull: &deviceOwned,
 	})
+}
+
+// listInterfaces runs one interface list query for an owner and maps every
+// result, including the cable attached to it, into a CachedItem.
+func (c *LookupCache) listInterfaces(kind string, ownerID uuid.UUID, params *nautobotapi.DcimInterfacesListParams) ([]*CachedItem, error) {
+	limit := 1000
+	params.Limit = &limit
+	resp, err := c.client.DcimInterfacesListWithResponse(c.ctx, params)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list interfaces for device %s: %w", deviceID, err)
+		return nil, fmt.Errorf("failed to list interfaces for %s %s: %w", kind, ownerID, err)
 	}
 	if resp.StatusCode() != http.StatusOK {
-		return nil, fmt.Errorf("failed to list interfaces for device %s: status %d: %s",
-			deviceID, resp.StatusCode(), strings.TrimSpace(string(resp.Body)))
+		return nil, fmt.Errorf("failed to list interfaces for %s %s: status %d: %s",
+			kind, ownerID, resp.StatusCode(), strings.TrimSpace(string(resp.Body)))
 	}
-
 	var items []*CachedItem
-	if resp.JSON200 != nil && resp.JSON200.Results != nil {
+	if resp.JSON200 != nil {
 		for _, iface := range resp.JSON200.Results {
-			item := &CachedItem{
-				ID:      toUUID(iface.Id),
-				Name:    iface.Name,
-				Display: *iface.Display,
-				Iface:   remoteInterfaceState(iface),
-			}
-			// Extract cable ID if interface has a cable attached.
-			// Nautobot 3.2 returns the cable as a generic nested object map.
-			if iface.Cable != nil {
-				if idVal, ok := (*iface.Cable)["id"]; ok {
-					if idStr, ok := idVal.(string); ok {
-						if cableUUID, err := uuid.Parse(idStr); err == nil {
-							item.CableID = cableUUID
-						}
-					}
-				}
-			}
-			items = append(items, item)
+			items = append(items, cachedInterfaceItem(iface))
 		}
 	}
-
 	return items, nil
 }
 
+// cachedInterfaceItem maps one Nautobot interface into a CachedItem carrying
+// its remote state and the ID of any cable attached to it.
+func cachedInterfaceItem(iface nautobotapi.Interface) *CachedItem {
+	item := &CachedItem{
+		ID:      toUUID(iface.Id),
+		Name:    iface.Name,
+		Display: derefString(iface.Display),
+		Iface:   remoteInterfaceState(iface),
+	}
+	// Nautobot 3.2 returns the cable as a generic nested object map.
+	if iface.Cable != nil {
+		if idStr, ok := (*iface.Cable)["id"].(string); ok {
+			if cableUUID, err := uuid.Parse(idStr); err == nil {
+				item.CableID = cableUUID
+			}
+		}
+	}
+	return item
+}
+
 // InvalidateInterfacePrefetch marks a device's interface cache as stale so
-// that the next lookup will re-fetch from Nautobot.  This is needed after
-// module creation, which adds new interfaces to a device in Nautobot that
-// were not present when interfaces were first prefetched in Phase 3.
+// that the next lookup re-reads the device's ports from Nautobot, including
+// any created after the first prefetch.
 func (c *LookupCache) InvalidateInterfacePrefetch(deviceID uuid.UUID) {
 	c.interfacesMu.Lock()
 	defer c.interfacesMu.Unlock()
@@ -177,28 +188,31 @@ func (c *LookupCache) GetInterfaceByDeviceAndNameFuzzy(deviceID uuid.UUID, iface
 	if err != nil {
 		return nil, err
 	}
+	return matchInterfaceFuzzy(allInterfaces, ifaceName), nil
+}
 
-	// Try to find a match using normalization
+// matchInterfaceFuzzy returns the first interface whose name matches after
+// normalization, otherwise the first whose trailing port number matches, or
+// nil when neither does.
+func matchInterfaceFuzzy(items []*CachedItem, ifaceName string) *CachedItem {
 	normalizedSearch := normalizeInterfaceName(ifaceName)
-	for _, iface := range allInterfaces {
-		normalizedExisting := normalizeInterfaceName(iface.Name)
-		if normalizedSearch == normalizedExisting {
-			return iface, nil
+	for _, iface := range items {
+		if normalizeInterfaceName(iface.Name) == normalizedSearch {
+			return iface
 		}
 	}
 
 	// Try matching just the numeric portion for port-style interfaces
 	searchNum := extractPortNumber(ifaceName)
-	if searchNum != "" {
-		for _, iface := range allInterfaces {
-			existingNum := extractPortNumber(iface.Name)
-			if existingNum != "" && searchNum == existingNum {
-				return iface, nil
-			}
+	if searchNum == "" {
+		return nil
+	}
+	for _, iface := range items {
+		if existingNum := extractPortNumber(iface.Name); existingNum != "" && searchNum == existingNum {
+			return iface
 		}
 	}
-
-	return nil, nil // Not found
+	return nil
 }
 
 // normalizeInterfaceName normalizes an interface name by lowercasing and removing common prefixes

@@ -206,7 +206,7 @@ func (m *DeviceMapper) MapToWritableDeviceRequest(device *devicetypes.CaniDevice
 		req.Comments = &device.Comments
 	}
 
-	// Map rack and position if device has a parent rack
+	// Map rack and position if device is mounted in a rack (not a bay child)
 	rackID := device.GetRackID(m.inventory)
 	if rackID != uuid.Nil && m.inventory != nil {
 		// First check if the parent is a rack in the Racks collection
@@ -300,7 +300,7 @@ func (m *DeviceMapper) MapToPatchRequest(device *devicetypes.CaniDeviceType, exi
 		req.Comments = &device.Comments
 	}
 
-	// Map rack and position if device has a rack.
+	// Map rack and position if device is mounted in a rack (not a bay child).
 	rackID := device.GetRackID(m.inventory)
 	if rackID != uuid.Nil && m.inventory != nil {
 		// First check if the parent is a rack in the Racks collection
@@ -446,60 +446,4 @@ func (m *DeviceMapper) resolveRole(device *devicetypes.CaniDeviceType) (*CachedI
 	}
 	// clog.Detail("[mapper] Resolved role '%s' to ID: %s", name, role.ID)
 	return role, nil
-}
-
-// MapToWritableRackRequest converts a CaniDeviceType (rack) to a WritableRackRequest
-func (m *DeviceMapper) MapToWritableRackRequest(device *devicetypes.CaniDeviceType) (*nautobotapi.WritableRackRequest, error) {
-	if device == nil {
-		return nil, errors.New(errMsgDeviceNil)
-	}
-
-	// Resolve location
-	location, err := m.resolveLocation(device)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve location for rack %s: %w", device.Name, err)
-	}
-
-	// Resolve status
-	status, err := m.resolveStatus(device)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve status for rack %s: %w", device.Name, err)
-	}
-
-	// Build the request
-	req := &nautobotapi.WritableRackRequest{
-		Name: device.Name,
-	}
-	if err := setRefID(&req.Location, location.ID); err != nil {
-		return nil, fmt.Errorf("set location reference for rack %s: %w", device.Name, err)
-	}
-	if err := setRefID(&req.Status, status.ID); err != nil {
-		return nil, fmt.Errorf("set status reference for rack %s: %w", device.Name, err)
-	}
-
-	// Set rack height (default to 48U if not specified)
-	uHeight := 48
-	if device.ProviderMetadata != nil {
-		if h, _ := device.GetProviderMeta("u_height"); h != nil {
-			if hInt, ok := h.(int); ok && hInt > 0 {
-				uHeight = hInt
-			}
-		}
-	}
-	req.UHeight = &uHeight
-
-	// Map optional fields
-	if flat := device.FlattenProviderMetadata(); len(flat) > 0 {
-		customFields := make(map[string]interface{}, len(flat))
-		for k, v := range flat {
-			if k != "u_height" && k != "rack_position" {
-				customFields[k] = v
-			}
-		}
-		if len(customFields) > 0 {
-			req.CustomFields = toNautobotCustomFields(customFields)
-		}
-	}
-
-	return req, nil
 }
