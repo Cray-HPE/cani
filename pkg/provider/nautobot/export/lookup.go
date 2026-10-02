@@ -101,6 +101,8 @@ type LookupCache struct {
 	roles                map[string]*CachedItem // keyed by name
 	devices              map[string]*CachedItem // keyed by name
 	plannedDevices       map[string]bool        // devices a dry run would create, by name
+	exportedModules      map[uuid.UUID]uuid.UUID // modules this run created or found, inventory ID -> Nautobot ID
+	plannedModules       map[uuid.UUID]bool      // modules a dry run would create, by inventory ID
 	manufacturers        map[string]*CachedItem // keyed by name
 	interfaces           map[string]*CachedItem // keyed by "deviceID:ifaceName"
 	interfacesPrefetched map[uuid.UUID]bool     // tracks devices whose interfaces have been prefetched
@@ -122,6 +124,7 @@ type LookupCache struct {
 	statusesMu      sync.RWMutex
 	rolesMu         sync.RWMutex
 	devicesMu       sync.RWMutex
+	modulesMu       sync.RWMutex
 	manufacturersMu sync.RWMutex
 	interfacesMu    sync.RWMutex
 	tagsMu          sync.RWMutex
@@ -160,6 +163,8 @@ func NewLookupCache(client *NautobotClient) *LookupCache {
 		roles:                make(map[string]*CachedItem),
 		devices:              make(map[string]*CachedItem),
 		plannedDevices:       make(map[string]bool),
+		exportedModules:      make(map[uuid.UUID]uuid.UUID),
+		plannedModules:       make(map[uuid.UUID]bool),
 		manufacturers:        make(map[string]*CachedItem),
 		interfaces:           make(map[string]*CachedItem),
 		interfacesPrefetched: make(map[uuid.UUID]bool),

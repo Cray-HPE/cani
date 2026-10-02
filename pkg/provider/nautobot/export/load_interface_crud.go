@@ -45,8 +45,36 @@ func (e *Exporter) statusRef(name string) (uuid.UUID, error) {
 	return statusItem.ID, nil
 }
 
-// createInterface creates a single interface on a device
+// interfaceOwnerRef names the Nautobot object an interface is created on:
+// exactly one of a device or a module.
+type interfaceOwnerRef struct {
+	DeviceID uuid.UUID
+	ModuleID uuid.UUID
+}
+
+// id returns the owner's Nautobot ID, which also keys the interface cache.
+func (o interfaceOwnerRef) id() uuid.UUID {
+	if o.ModuleID != uuid.Nil {
+		return o.ModuleID
+	}
+	return o.DeviceID
+}
+
+// setOn writes the owner onto the request as a device or a module reference.
+func (o interfaceOwnerRef) setOn(req *nautobotapi.WritableInterfaceRequest) error {
+	if o.ModuleID != uuid.Nil {
+		return setRefID(&req.Module, o.ModuleID)
+	}
+	return setRefID(&req.Device, o.DeviceID)
+}
+
+// createInterface creates a single interface on a device.
 func (e *Exporter) createInterface(ctx context.Context, deviceID uuid.UUID, iface interfaceSpec, result *LoadResult) error {
+	return e.createInterfaceOn(ctx, interfaceOwnerRef{DeviceID: deviceID}, iface, result)
+}
+
+// createInterfaceOn creates a single interface owned by a device or a module.
+func (e *Exporter) createInterfaceOn(ctx context.Context, owner interfaceOwnerRef, iface interfaceSpec, result *LoadResult) error {
 	if e.Options.DryRun {
 		clog.DryRun("Would create interface: %s", iface.Name)
 		result.IfacesCreated++
@@ -67,8 +95,8 @@ func (e *Exporter) createInterface(ctx context.Context, deviceID uuid.UUID, ifac
 		Type:     ifaceType,
 		MgmtOnly: &mgmtOnly,
 	}
-	if err := setRefID(&req.Device, deviceID); err != nil {
-		return fmt.Errorf("set interface device reference: %w", err)
+	if err := owner.setOn(&req); err != nil {
+		return fmt.Errorf("set interface owner reference: %w", err)
 	}
 	if err := setRefID(&req.Status, statusID); err != nil {
 		return fmt.Errorf("set interface status reference: %w", err)
@@ -100,14 +128,14 @@ func (e *Exporter) createInterface(ctx context.Context, deviceID uuid.UUID, ifac
 		return fmt.Errorf(errFmtUnexpectedStatus, resp.StatusCode(), string(resp.Body))
 	}
 
-	// Cache the newly created interface for cable creation
+	// Cache the newly created interface under its owner for cable creation
 	if resp.JSON201 != nil && resp.JSON201.Id != nil {
 		cachedItem := &CachedItem{
 			ID:      uuid.UUID(*resp.JSON201.Id),
 			Name:    iface.Name,
 			Display: iface.Name,
 		}
-		e.Cache.CacheInterface(deviceID, iface.Name, cachedItem)
+		e.Cache.CacheInterface(owner.id(), iface.Name, cachedItem)
 	}
 
 	result.IfacesCreated++

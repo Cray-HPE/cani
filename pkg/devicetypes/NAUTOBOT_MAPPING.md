@@ -228,7 +228,7 @@ Exported in Phase 4 by `loadModules()` in `export/load_modules.go`. For each mod
 | Cani Field | Go Type | Nautobot Field | Status | Notes |
 |---|---|---|---|---|
 | `ID` | `uuid.UUID` | — | Cani-Internal | Primary key |
-| `Name` | `string` | `Module.Name` | **Mapped** | |
+| `Name` | `string` | — | Cani-Internal | Nautobot's `Module` has no name field, so export does not send it. Import names a module after Nautobot's display text (for example `HPE 2-port 25GbE PCIe NIC installed in repro-dl380`); a re-import into a datastore that already holds the module keeps the authored name |
 | `Slug` | `string` | — | **Mapped** (indirectly) | Used to resolve `ModuleType` from library |
 | `PartNumber` | `string` | `ModuleType.PartNumber` | **Mapped** | Template → `ModuleType` |
 | `Manufacturer` | `string` | `ModuleType.Manufacturer` (FK) | **Mapped** | Template → `ModuleType`, FK resolved by name |
@@ -278,12 +278,12 @@ Cables use a library mechanism identical to devices: a slug/part-number resolves
 | `Weight` / `WeightUnit` | `float64` / `string` | — | Cani-Internal | No Nautobot equivalent |
 | `Color` | `string` | `Cable.Color` | **Mapped** | RGB hex string, mapped when non-empty |
 | `Status` | `string` | `Cable.Status` (FK) | **Mapped** | "connected"→"Connected", "planned"→"Planned" |
-| `TerminationA` | `uuid.UUID` | `Cable.TerminationAId` (FK) | **Mapped** | Resolved through device→interface chain |
+| `TerminationA` | `uuid.UUID` | `Cable.TerminationAId` (FK) | **Mapped** | Resolved through device→interface chain; the interface's recorded owner (`CaniInterface.ModuleID`) decides whether export looks the port up on a module or on the device |
 | `TerminationAType` | `string` | `Cable.TerminationAType` | Partial | Hardcoded to `"dcim.interface"` |
 | `TerminationB` | `uuid.UUID` | `Cable.TerminationBId` (FK) | **Mapped** | Same chain |
 | `TerminationBType` | `string` | `Cable.TerminationBType` | Partial | Hardcoded to `"dcim.interface"` |
-| `TerminationADevice` | `uuid.UUID` | — | Cani-Internal | Convenience: resolved to interface at export |
-| `TerminationBDevice` | `uuid.UUID` | — | Cani-Internal | Convenience: resolved to interface at export |
+| `TerminationADevice` | `uuid.UUID` | — | Cani-Internal | The device or module the end terminates on. Import records the module for a module-owned interface (`terminationOwner()` in `transform/map_cables.go`), which Nautobot returns with no device; export accepts either and reads the owner from the interface index |
+| `TerminationBDevice` | `uuid.UUID` | — | Cani-Internal | Same |
 | `TerminationAPort` | `string` | — | Cani-Internal | Port name; used for fuzzy interface lookup |
 | `TerminationBPort` | `string` | — | Cani-Internal | Same |
 | `Tags` | `[]string` | `Cable.Tags` | Not Mapped | |
@@ -372,7 +372,7 @@ references on an interface request (`interfaceOwnerRef.setOn()` in
 
 | Cani Field | Go Type | Nautobot Field | Status | Notes |
 |---|---|---|---|---|
-| `DeviceID` | `uuid.UUID` | `Interface.device` (FK) | **Mapped** | The device the interface is reachable through. For a module-owned interface this is the module's parent device; export sends `device` only for a device-owned port |
+| `DeviceID` | `uuid.UUID` | `Interface.device` (FK) | **Mapped** | The device the interface is reachable through. For a module-owned interface this is the module's parent device, which Nautobot 3.2 also stores in `Interface.device` on a port of an installed module. Export sends `device` only for a device-owned port, and its device-level interface lookups filter on `module__isnull` so a module port never stands in for a same-named device port |
 | `ModuleID` | `uuid.UUID` | `Interface.module` (FK) | **Mapped** | Set only for a port a module's spec declares; `CaniInterface.OwnerID()` returns it in preference to `DeviceID`. Export creates the port with `module` set and finds it again by module and exact name; import attaches module-owned interfaces through `AttachModuleInterfaces()` |
 
 ### 2a.1 Interface enrichment fields (`CaniInterface` / `InterfaceSpec`)
@@ -683,9 +683,12 @@ Racks, Devices, and Modules carry both **template fields** (from the YAML librar
 
 | Template Fields (→ ModuleType) | Instance Fields (→ Module) |
 |---|---|
-| `Model`, `Manufacturer`, `PartNumber` | `Name`, `Serial`, `AssetTag` |
-| `Interfaces` | `ParentDevice`, `ModuleBayName` |
-| | `Status`, `Role`, `Location` |
+| `Model`, `Manufacturer`, `PartNumber`, `Comments` | `Serial`, `AssetTag`, `Status`, `Role` |
+| | `ParentDevice`, `ModuleBayName`, `Location` |
+
+`Interfaces` come from the library type but are exported as `Interface` instances owned by the
+module; no `InterfaceTemplate` is created on the `ModuleType`. `Name` has no Nautobot field (see
+§2.4).
 
 ### Rack: no separate Nautobot type object
 
@@ -834,11 +837,10 @@ For each device created/found in Phase 2:
 ### Phase 4: Modules
 
 Implemented in `loadModules()` in `load_modules.go`. Iterates `inventory.Modules`. For each module:
-- Resolves parent device Nautobot ID from cache
+- Resolves the placement (`load_module_placement.go`): an installed module's parent device Nautobot ID from Phase 2 and its `ModuleBay` (found or created by `ModuleBayName`), or a spare's location; a dry run plans the bay, and plans the whole placement when Phase 2 only planned the parent
 - Gets or creates `ModuleType` (from YAML library: `Model`, `Manufacturer`, `PartNumber`, `Comments`)
-- Gets or creates `ModuleBay` on the parent device (by `ModuleBayName`)
-- Creates `Module` with `ModuleType` FK, `ParentModuleBay` FK, `Status`, and optional `Serial`, `AssetTag`, `Role`, `Location`
-- Creates via `DcimModulesCreate`
+- Creates `Module` with `ModuleType` FK, `Status`, exactly one of `ParentModuleBay` or `Location`, and optional `Serial`, `AssetTag`, `Role`
+- Creates via `DcimModulesCreate`, then records the module's Nautobot ID for this run (`LookupCache.RecordModule`), or marks the module planned in a dry run (`PlanModule`); later phases resolve module-owned ports through that record, never through a persisted external ID
 
 ### Phase 5: FRUs
 
@@ -852,9 +854,9 @@ Implemented in `loadFrus()` in `load_frus.go`. Iterates `inventory.Frus` in topo
 ### Phase 6: Cables
 
 Iterates `inventory.Cables`. For each cable:
-- Resolves both termination devices from `inventory.Devices`
-- Looks up Nautobot device IDs from Phase 2 results
-- Finds interface IDs via fuzzy name matching through the cache
+- Resolves both termination devices from `inventory.Devices`, and the owning module of a module-owned port from the interface index
+- Looks up Nautobot device IDs from Phase 2 results, and module IDs from the record Phase 4 made this run; a dry run previews a cable whose end belongs to a device or module the run only planned instead of looking its interface up
+- Finds interface IDs via fuzzy name matching through the cache, on the module for a module-owned port
 - Checks for existing cables to avoid duplicates
 - Maps `Color` (RGB hex) when non-empty
 - Resolves `Type` via `resolveCableType()`: `CableType` → `CableCategory` → `ConnectorType` → slug fallback

@@ -66,6 +66,12 @@ func (m *CaniModuleType) IsSpare() bool {
 	return m != nil && m.ParentDevice == uuid.Nil && m.Location != uuid.Nil
 }
 
+// DeclaresModuleBays reports whether the device, or its library type when the
+// instance was saved without bays, declares any module bay.
+func (inv *Inventory) DeclaresModuleBays(deviceID uuid.UUID) bool {
+	return len(moduleBaysOf(inv.Devices[deviceID])) > 0
+}
+
 // errorsAbout returns the errors that name id, or every error when none does,
 // so a caller rejecting one object reports that object's problems first while
 // an inventory that is broken elsewhere still refuses the write.
@@ -221,7 +227,8 @@ func (inv *Inventory) validateInstalledModule(
 	switch {
 	case mod.ModuleBayName == "" && len(moduleBaysOf(parent)) > 0:
 		res.Warnings = append(res.Warnings, fmt.Sprintf(
-			"%s: installed in %q without a named module bay; the module name %q is used as the bay", owner, parent.Name, bay))
+			"%s: installed in %q without a named module bay; the module name %q is used as the bay, "+
+				"and export refuses the module until a bay is set with `update module --bay`", owner, parent.Name, bay))
 	case !declaresModuleBay(parent, bay):
 		res.Errors = append(res.Errors, fmt.Errorf("%s: module bay %q is not declared on parent %q", owner, bay, parent.Name))
 	}

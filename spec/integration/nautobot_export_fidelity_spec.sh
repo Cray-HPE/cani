@@ -38,10 +38,9 @@
 #      with one H100 GPU module (nvlink / pcie-gen5-x16 ports).
 #   2. Export to Nautobot and keep the log.
 #   3. Read interfaces back from Nautobot: device and module port types and
-#      attributes (MAC, label, description) must match the datastore. A module
-#      port named like a device port is not carried yet and is recorded as a
-#      Pending example, so implementing it turns it into a failure that asks
-#      for its promotion.
+#      attributes (MAC, label, description) must match the datastore. Module
+#      ports are owned by their module, so a module port named like a device
+#      port is kept next to it rather than skipped.
 #   4. Module ports whose type Nautobot lacks (nvlink, pcie-gen5-x16) are
 #      skipped with a warning, counted in the summary, and never created.
 #   5. Every interface spec is either present in Nautobot or named in a skip
@@ -163,9 +162,10 @@ print(f"unaccounted={unaccounted}")
 PY
   }
 
-  # Print one Nautobot interface field for <device> <interface> <field>.
+  # Print one Nautobot interface field for <device> <interface> <field>
+  # [device|module]; the owner picks between same-named device and module ports.
   nb_interface_field() {
-    DEVICE="$1" IFACE="$2" FIELD="$3" python3 - <<'PY'
+    DEVICE="$1" IFACE="$2" FIELD="$3" OWNER="${4:-}" python3 - <<'PY'
 import json
 import os
 import urllib.parse
@@ -177,6 +177,8 @@ query = urllib.parse.urlencode({"device": os.environ["DEVICE"], "name": os.envir
 request = urllib.request.Request(base_url + "dcim/interfaces/?" + query, headers=headers)
 with urllib.request.urlopen(request) as response:
     results = json.load(response)["results"]
+if os.environ["OWNER"]:
+    results = [r for r in results if (r.get("module") is None) == (os.environ["OWNER"] == "device")]
 if not results:
     print("<missing>")
     raise SystemExit(0)
@@ -209,21 +211,21 @@ PY
     # Nautobot accepts 400gbase-x-qsfpdd; the exporter must not rewrite it to
     # 400gbase-x-osfp.
     It 'keeps the 400gbase-x-qsfpdd interface type'
-      When call nb_interface_field repro-dl380 'HSN 0' type
+      When call nb_interface_field repro-dl380 'HSN 0' type device
       The output should equal '400gbase-x-qsfpdd'
     End
 
     It 'carries the device port label'
-      When call nb_interface_field repro-dl380 'HSN 0' label
+      When call nb_interface_field repro-dl380 'HSN 0' label device
       The output should equal 'NDR InfiniBand CX7'
     End
   End
 
-  # Module ports are created on the parent device because Nautobot does not
-  # derive them from a module type created through the API.
+  # Module ports are created on their module because Nautobot does not derive
+  # them from a module type created through the API.
   Describe 'module interfaces'
-    It 'creates the NIC port on the parent device with its library type'
-      When call nb_interface_field repro-dl380 'Port 1' type
+    It 'creates the NIC port on its module with its library type'
+      When call nb_interface_field repro-dl380 'Port 1' type module
       The output should equal '25gbase-x-sfp28'
     End
 
@@ -242,12 +244,10 @@ PY
       The output should equal 'module port'
     End
 
-    # The CX7 port "HSN 0" collides with the DL380 device port of the same
-    # name and is dropped as a duplicate; only a module-owned interface
-    # (Nautobot >= 2.3) can hold both.
+    # The CX7 port "HSN 0" shares its name with a DL380 device port; module
+    # ownership keeps both.
     It 'keeps a module port named like a device port'
-      Pending 'a module port whose name exists on the parent device is skipped'
-      When call nb_interface_field repro-dl380 'HSN 0' mac_address
+      When call nb_interface_field repro-dl380 'HSN 0' mac_address module
       The output should equal 'AA:BB:CC:DD:EE:02'
     End
   End
@@ -281,10 +281,10 @@ PY
       The output should include 'unaccounted=0'
     End
 
-    It 'names the skipped duplicate port in the summary'
+    It 'does not skip a module port named like a device port'
       When call cat "$EXPORT_LOG"
-      The output should include 'Skipped interface HSN 0 on module cx7-a'
-      The output should include 'Skipped interfaces (name already on device): 1'
+      The output should not include 'Skipped interface HSN 0'
+      The output should not include 'name already on device'
     End
 
     It 'balances created plus skipped interfaces against the datastore'
