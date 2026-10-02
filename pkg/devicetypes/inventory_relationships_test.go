@@ -1195,31 +1195,6 @@ func TestLogSummaryDebugLogsFixedAndWarnings(t *testing.T) {
 	r.logSummary()
 }
 
-// TestValidateModuleRelationshipsNilAndNoParent verifies validateModuleRelationships
-// skips nil module entries and warns (without erroring) on a module that has no
-// parent device assigned.
-//
-// Why it matters: import data frequently contains modules not yet attached to a
-// device; these must surface as warnings rather than hard errors, and nil map
-// slots must never panic the validator.
-// Inputs: an inventory with a nil module entry and a module whose ParentDevice
-// is uuid.Nil. Outputs: no errors and exactly one warning. Data choice: pairing
-// the nil entry with an unparented module covers both the continue guard and the
-// warning branch that the happy-path and missing-device tests skip.
-func TestValidateModuleRelationshipsNilAndNoParent(t *testing.T) {
-	inv := NewInventory()
-	inv.Modules[uuid.New()] = nil
-	inv.Modules[uuid.New()] = &CaniModuleType{Name: "floating"}
-
-	res := inv.validateModuleRelationships()
-	if res.HasErrors() {
-		t.Fatalf("unexpected errors: %v", res.Errors)
-	}
-	if len(res.Warnings) != 1 {
-		t.Fatalf("expected 1 warning for unparented module, got %d: %v", len(res.Warnings), res.Warnings)
-	}
-}
-
 // TestRebuildCableRelationships verifies rebuildCableRelationships preserves
 // invalid cables for diagnosis and resolves valid interface UUIDs from ports.
 //

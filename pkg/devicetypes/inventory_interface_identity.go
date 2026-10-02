@@ -42,6 +42,28 @@ type interfaceOwner struct {
 	name     string
 }
 
+// moduleID returns the owning module, or uuid.Nil for a device-owned interface.
+func (o interfaceOwner) moduleID() uuid.UUID {
+	if o.kind == "module" {
+		return o.ownerID
+	}
+	return uuid.Nil
+}
+
+// interfaceAnswersTo reports whether the indexed interface carries the port
+// name on the device or module a cable end names: it is owned by that object,
+// or by a module installed in that device. The recorded interface therefore
+// settles which of two sibling modules with same-named ports a
+// device-addressed cable end means, where a lookup by name alone would pick
+// whichever module sorts first.
+func (inv *Inventory) interfaceAnswersTo(ifaceID, ownerRef uuid.UUID, portName string) bool {
+	iface := inv.Interfaces[ifaceID]
+	if iface == nil || iface.Name != portName {
+		return false
+	}
+	return iface.OwnerID() == ownerRef || iface.DeviceID == ownerRef
+}
+
 // sortedIDs returns the map keys in byte order so index rebuilds visit owners
 // deterministically and the same owner keeps a contested interface ID.
 func sortedIDs[T any](items map[uuid.UUID]*T) []uuid.UUID {
@@ -66,7 +88,7 @@ func (inv *Inventory) indexInterfaceSpecs(specs []InterfaceSpec, owner interface
 		if _, taken := inv.Interfaces[spec.ID]; taken {
 			inv.reidentifyInterface(spec, owner, result)
 		}
-		inv.Interfaces[spec.ID] = interfaceInstanceFromSpec(spec, owner.deviceID)
+		inv.Interfaces[spec.ID] = interfaceInstanceFromSpec(spec, owner.deviceID, owner.moduleID())
 		if !oldIfaces[spec.ID] {
 			result.Fixed = append(result.Fixed,
 				fmt.Sprintf("interface %q (%s) indexed from %s %q",

@@ -1,6 +1,10 @@
 package devicetypes
 
-import "github.com/google/uuid"
+import (
+	"slices"
+
+	"github.com/google/uuid"
+)
 
 // InterfaceSpec defines an interface template in a device/module type.
 // When used in inventory, ID and ConnectedCable are populated.
@@ -31,11 +35,15 @@ type InterfaceSpec struct {
 }
 
 // CaniInterface represents an instantiated interface on a specific device.
+// DeviceID is always the device the interface is reachable through; when
+// the interface belongs to a module installed in that device, ModuleID names
+// the owning module and DeviceID is the module's parent device.
 type CaniInterface struct {
 	ID            uuid.UUID          `json:"id" yaml:"id"`
 	Name          string             `json:"name" yaml:"name"`
 	InterfaceType InterfacesElemType `json:"interfaceType" yaml:"interface_type"`
 	DeviceID      uuid.UUID          `json:"deviceId" yaml:"device_id"`
+	ModuleID      uuid.UUID          `json:"moduleId,omitempty" yaml:"module_id,omitempty"`
 
 	// Shared metadata (status, role, tags, tenant, custom fields, external IDs, provider metadata)
 	ObjectMeta `yaml:",inline"`
@@ -54,7 +62,19 @@ type CaniInterface struct {
 	IPAddresses    []uuid.UUID `json:"-" yaml:"-"`                                          // Rebuilt from CaniIPAddress.Interfaces.
 }
 
-func interfaceInstanceFromSpec(iface *InterfaceSpec, deviceID uuid.UUID) *CaniInterface {
+// OwnerID returns the hardware that owns the interface: the module when
+// it is module-owned, otherwise the device.
+func (i *CaniInterface) OwnerID() uuid.UUID {
+	if i == nil {
+		return uuid.Nil
+	}
+	if i.ModuleID != uuid.Nil {
+		return i.ModuleID
+	}
+	return i.DeviceID
+}
+
+func interfaceInstanceFromSpec(iface *InterfaceSpec, deviceID, moduleID uuid.UUID) *CaniInterface {
 	mgmtOnly := iface.MgmtOnly != nil && *iface.MgmtOnly
 	role := ResolveInterfaceRole(iface.Role, iface.Name, iface.Type, mgmtOnly)
 	status := iface.Status
@@ -66,6 +86,7 @@ func interfaceInstanceFromSpec(iface *InterfaceSpec, deviceID uuid.UUID) *CaniIn
 		Name:          iface.Name,
 		InterfaceType: iface.Type,
 		DeviceID:      deviceID,
+		ModuleID:      moduleID,
 		ObjectMeta: ObjectMeta{
 			Status:           status,
 			Role:             role,
@@ -157,6 +178,16 @@ type DeviceBaySpec struct {
 	Allowed  *DeviceBaySlugRef `yaml:"allowed,omitempty" json:"allowed,omitempty"`
 	Default  *DeviceBaySlugRef `yaml:"default,omitempty" json:"default,omitempty"`
 	Extra    map[string]any    `yaml:",inline" json:"extra,omitempty"`
+}
+
+// Admits reports whether a device with the slug may be installed in the bay:
+// a bay that lists no allowed slugs admits any device.
+func (s *DeviceBaySpec) Admits(slug string) bool {
+	if s == nil || s.Allowed == nil {
+		return true
+	}
+	allowed := s.Allowed.Slugs()
+	return len(allowed) == 0 || slices.Contains(allowed, slug)
 }
 
 // Identification provides alternate manufacturer/model combinations for lookup.

@@ -413,13 +413,9 @@ func (inv *Inventory) deviceAlreadyLinked(device *CaniDeviceType) bool {
 func (inv *Inventory) validateModuleRelationships() *RelationshipResult {
 	res := &RelationshipResult{}
 	for id, mod := range inv.Modules {
-		if mod == nil {
-			continue
-		}
-		if mod.ParentDevice == uuid.Nil {
-			res.Warnings = append(res.Warnings,
-				fmt.Sprintf("module %q (%s): no parent device assigned",
-					mod.Name, id))
+		if mod == nil || mod.ParentDevice == uuid.Nil {
+			// A module without a parent is either a spare at a location or
+			// unplaced; validatePlacement reports the latter.
 			continue
 		}
 		if _, ok := inv.Devices[mod.ParentDevice]; !ok {
@@ -649,7 +645,10 @@ func (inv *Inventory) validateCableEnd(
 			cable.Label, cableID, side, ifaceRef, portName, ownerKind, ownerName))
 		return res
 	}
-	if ifaceRef != resolvedID {
+	// The recorded interface is authoritative when it carries the port name on
+	// the named owner; a device-addressed end on one of two sibling modules
+	// with same-named ports resolves by name to whichever module sorts first.
+	if ifaceRef != resolvedID && !inv.interfaceAnswersTo(ifaceRef, deviceRef, portName) {
 		res.Errors = append(res.Errors, fmt.Errorf(
 			"cable %q (%s): termination %s interface %s does not match port %q on %s %q (expected %s)",
 			cable.Label, cableID, side, ifaceRef, portName, ownerKind, ownerName, resolvedID))

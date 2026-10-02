@@ -359,6 +359,22 @@ Nautobot parent was left out keeps no parent, so the merge derives one inside
 its namespace. An absent reference keeps the `Global` default, so
 single-namespace instances and older fixtures import as before.
 
+### 2a.0 Interface ownership (`CaniInterface.DeviceID` / `ModuleID`)
+
+Source: `pkg/devicetypes/component_specs.go`
+Every indexed interface records the hardware it belongs to. Both fields are
+forward FKs that `RebuildDerivedState()` re-indexes from the owning device or
+module spec on every load (`indexInterfaceSpecs()` in
+`inventory_interface_identity.go`), so a persisted value that disagrees with the
+spec is replaced rather than trusted. Export writes exactly one of the two
+references on an interface request (`interfaceOwnerRef.setOn()` in
+`load_interface_crud.go`).
+
+| Cani Field | Go Type | Nautobot Field | Status | Notes |
+|---|---|---|---|---|
+| `DeviceID` | `uuid.UUID` | `Interface.device` (FK) | **Mapped** | The device the interface is reachable through. For a module-owned interface this is the module's parent device; export sends `device` only for a device-owned port |
+| `ModuleID` | `uuid.UUID` | `Interface.module` (FK) | **Mapped** | Set only for a port a module's spec declares; `CaniInterface.OwnerID()` returns it in preference to `DeviceID`. Export creates the port with `module` set and finds it again by module and exact name; import attaches module-owned interfaces through `AttachModuleInterfaces()` |
+
 ### 2a.1 Interface enrichment fields (`CaniInterface` / `InterfaceSpec`)
 
 Source: `pkg/devicetypes/component_specs.go`
