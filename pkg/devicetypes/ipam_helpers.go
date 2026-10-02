@@ -22,6 +22,7 @@ func ParsePrefix(p *CaniPrefix) error {
 	ones, _ := ipNet.Mask.Size()
 	p.PrefixLen = ones
 	p.Network = ipNet.IP.String()
+	p.Namespace = strings.TrimSpace(p.Namespace)
 
 	if ip.To4() != nil {
 		p.IPVersion = 4
@@ -67,6 +68,7 @@ func ParseIPAddress(addr *CaniIPAddress) error {
 	addr.Host = ip.String()
 	addr.MaskLength = maskLen
 	addr.Address = fmt.Sprintf("%s/%d", ip.String(), maskLen)
+	addr.Namespace = strings.TrimSpace(addr.Namespace)
 
 	if ip.To4() != nil {
 		addr.IPVersion = 4
@@ -76,8 +78,10 @@ func ParseIPAddress(addr *CaniIPAddress) error {
 	return nil
 }
 
-// FindParentPrefix finds the most-specific prefix that contains the
-// given prefix. Returns uuid.Nil if no parent exists.
+// FindParentPrefix finds the most-specific prefix in the target's namespace
+// that contains the given prefix. Returns uuid.Nil if no parent exists.
+// Equal-length candidates (legacy duplicates) tie-break on UUID so the result
+// is stable across map iteration order.
 func FindParentPrefix(target *CaniPrefix, prefixes map[uuid.UUID]*CaniPrefix) uuid.UUID {
 	if target == nil {
 		return uuid.Nil
@@ -86,35 +90,12 @@ func FindParentPrefix(target *CaniPrefix, prefixes map[uuid.UUID]*CaniPrefix) uu
 	if err != nil {
 		return uuid.Nil
 	}
-
-	var bestID uuid.UUID
-	bestLen := -1
-
-	for id, p := range prefixes {
-		if id == target.ID || p == nil {
-			continue
-		}
-		_, candidateNet, err := net.ParseCIDR(p.Prefix)
-		if err != nil {
-			continue
-		}
-		ones, _ := candidateNet.Mask.Size()
-		if ones >= target.PrefixLen {
-			continue // not less-specific
-		}
-		if !candidateNet.Contains(targetNet.IP) {
-			continue
-		}
-		if ones > bestLen {
-			bestLen = ones
-			bestID = id
-		}
-	}
-	return bestID
+	return findContainingPrefix(targetNet.IP, target.PrefixLen, target.EffectiveNamespace(), target.ID, prefixes)
 }
 
-// FindParentPrefixForIP finds the most-specific prefix that contains
-// the given IP address. Returns uuid.Nil if no parent exists.
+// FindParentPrefixForIP finds the most-specific prefix that contains the
+// given IP address within the address's intended namespace. Returns uuid.Nil
+// if no parent exists.
 func FindParentPrefixForIP(addr *CaniIPAddress, prefixes map[uuid.UUID]*CaniPrefix) uuid.UUID {
 	if addr == nil {
 		return uuid.Nil
@@ -123,28 +104,53 @@ func FindParentPrefixForIP(addr *CaniIPAddress, prefixes map[uuid.UUID]*CaniPref
 	if ip == nil {
 		return uuid.Nil
 	}
+	return findContainingPrefix(ip, maxPrefixLen(ip), NamespaceOrDefault(addr.Namespace), uuid.Nil, prefixes)
+}
 
+// findContainingPrefix returns the longest prefix in namespace that contains
+// ip and is strictly shorter than maxLen, skipping the excluded ID.
+func findContainingPrefix(
+	ip net.IP, maxLen int, namespace string, exclude uuid.UUID, prefixes map[uuid.UUID]*CaniPrefix,
+) uuid.UUID {
 	var bestID uuid.UUID
 	bestLen := -1
-
 	for id, p := range prefixes {
-		if p == nil {
+		if id == exclude {
 			continue
 		}
-		_, candidateNet, err := net.ParseCIDR(p.Prefix)
-		if err != nil {
-			continue
-		}
-		ones, _ := candidateNet.Mask.Size()
-		if !candidateNet.Contains(ip) {
-			continue
-		}
-		if ones > bestLen {
+		ones, ok := containingPrefixLen(p, ip, maxLen, namespace)
+		if ok && (ones > bestLen || (ones == bestLen && id.String() < bestID.String())) {
 			bestLen = ones
 			bestID = id
 		}
 	}
 	return bestID
+}
+
+// containingPrefixLen returns the mask length of p when p is in namespace,
+// contains ip, and is shorter than maxLen.
+func containingPrefixLen(p *CaniPrefix, ip net.IP, maxLen int, namespace string) (int, bool) {
+	if p == nil || p.EffectiveNamespace() != namespace {
+		return 0, false
+	}
+	_, candidateNet, err := net.ParseCIDR(p.Prefix)
+	if err != nil {
+		return 0, false
+	}
+	ones, _ := candidateNet.Mask.Size()
+	if ones >= maxLen || !candidateNet.Contains(ip) {
+		return 0, false
+	}
+	return ones, true
+}
+
+// maxPrefixLen returns the exclusive upper bound on a containing prefix
+// length for a host address, i.e. one past the full mask of its family.
+func maxPrefixLen(ip net.IP) int {
+	if ip.To4() != nil {
+		return 33
+	}
+	return 129
 }
 
 // broadcastIPv4 computes the broadcast address of an IPv4 network.

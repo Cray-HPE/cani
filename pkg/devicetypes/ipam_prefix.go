@@ -42,11 +42,13 @@ const (
 
 // CaniPrefix represents an IPv4 or IPv6 network prefix in CIDR notation.
 // Prefixes form a hierarchy: a more-specific prefix is a child of a
-// less-specific one that contains it.
+// less-specific one that contains it. The namespace is the uniqueness
+// boundary: the same CIDR may exist once per namespace.
 type CaniPrefix struct {
 	// Identity
 	ID          uuid.UUID  `json:"id" yaml:"id"`
 	Prefix      string     `json:"prefix" yaml:"prefix"`                           // CIDR notation, e.g. "10.0.0.0/24"
+	Namespace   string     `json:"namespace,omitempty" yaml:"namespace,omitempty"` // IPAM namespace; empty means Global
 	Network     string     `json:"network,omitempty" yaml:"network,omitempty"`     // Network address (derived)
 	Broadcast   string     `json:"broadcast,omitempty" yaml:"broadcast,omitempty"` // Broadcast address (derived)
 	PrefixLen   int        `json:"prefixLength" yaml:"prefix_length"`              // Mask bits
@@ -55,10 +57,11 @@ type CaniPrefix struct {
 	Description string     `json:"description,omitempty" yaml:"description,omitempty"`
 
 	// Relationships
-	Location uuid.UUID `json:"location,omitempty" yaml:"location,omitempty"` // Optional location scope
-	VLAN     uuid.UUID `json:"vlan,omitempty" yaml:"vlan,omitempty"`         // Optional VLAN association
-	VRF      string    `json:"vrf,omitempty" yaml:"vrf,omitempty"`           // Optional VRF name (string, not FK)
-	Parent   uuid.UUID `json:"parent,omitempty" yaml:"parent,omitempty"`     // Parent prefix (auto-computed)
+	Location uuid.UUID   `json:"location,omitempty" yaml:"location,omitempty"` // Optional location scope
+	VLAN     uuid.UUID   `json:"vlan,omitempty" yaml:"vlan,omitempty"`         // Optional VLAN association
+	VRF      string      `json:"vrf,omitempty" yaml:"vrf,omitempty"`           // Legacy VRF name; kept only while it does not resolve uniquely into VRFs
+	VRFs     []uuid.UUID `json:"vrfs,omitempty" yaml:"vrfs,omitempty"`         // VRF memberships (canonical IDs, same namespace)
+	Parent   uuid.UUID   `json:"parent,omitempty" yaml:"parent,omitempty"`     // Parent prefix (auto-computed within the namespace)
 
 	// Shared metadata (status, role, tags, tenant, custom fields, external IDs, provider metadata)
 	ObjectMeta `yaml:",inline"`

@@ -55,14 +55,18 @@ const (
 
 // CaniIPAddress represents a single host address with its subnet mask.
 // IP addresses are organized under their parent prefix and can be
-// assigned to one or more interfaces.
+// assigned to one or more interfaces. Identity is the host within a
+// namespace; the mask is an attribute. A parented address takes its
+// namespace from the parent prefix, so Namespace only records authored or
+// imported intent for drafts that have no parent yet.
 type CaniIPAddress struct {
 	// Identity
 	ID         uuid.UUID `json:"id" yaml:"id"`
-	Host       string    `json:"host" yaml:"host"`              // IP without mask: "10.0.0.1"
-	MaskLength int       `json:"maskLength" yaml:"mask_length"` // Prefix length: 24
-	Address    string    `json:"address" yaml:"address"`        // Combined CIDR: "10.0.0.1/24"
-	IPVersion  int       `json:"ipVersion" yaml:"ip_version"`   // 4 or 6
+	Host       string    `json:"host" yaml:"host"`                               // IP without mask: "10.0.0.1"
+	MaskLength int       `json:"maskLength" yaml:"mask_length"`                  // Prefix length: 24
+	Address    string    `json:"address" yaml:"address"`                         // Combined CIDR: "10.0.0.1/24"
+	Namespace  string    `json:"namespace,omitempty" yaml:"namespace,omitempty"` // Intended IPAM namespace; empty means Global
+	IPVersion  int       `json:"ipVersion" yaml:"ip_version"`                    // 4 or 6
 
 	// Classification
 	Type        IPAddressType `json:"type,omitempty" yaml:"type,omitempty"`        // host, dhcp, slaac

@@ -28,7 +28,7 @@ type Inventory struct {
 }
 ```
 
-The current schema generation is `v1alpha4`.
+The current schema generation is `v1alpha7`.
 
 ## Hardware Types
 

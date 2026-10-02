@@ -45,7 +45,8 @@ func newPrefixCommand() *cli.Command {
 Examples:
   cani alpha add prefix 10.0.0.0/16 --type container --role infrastructure
   cani alpha add prefix 10.0.1.0/24 --type network --role management --vlan "Management"
-  cani alpha add prefix 10.0.1.128/25 --type pool --role dhcp-pool`,
+  cani alpha add prefix 10.0.1.128/25 --type pool --role dhcp-pool
+  cani alpha add prefix 10.0.2.0/24 --vrf blue`,
 		Args: cli.ExactArgs(1),
 		RunE: addPrefix,
 	}
@@ -53,7 +54,7 @@ Examples:
 	cmd.Flags().String("type", "", "Prefix type: container, network, or pool")
 	cmd.Flags().String("role", "", "Prefix role (e.g. management, bmc, infrastructure)")
 	cmd.Flags().String("vlan", "", "Associated VLAN name or UUID")
-	cmd.Flags().String("vrf", "", "VRF name")
+	cmd.Flags().StringArray("vrf", nil, "VRF the prefix belongs to: name, namespace/name, or UUID (repeatable)")
 	cmd.Flags().String(flagLocation, "", "Location UUID or name")
 	cmd.Flags().String(flagDescription, "", "Prefix description")
 
@@ -84,8 +85,8 @@ func addPrefix(cmd *cli.Command, args []string) error {
 	if cmd.Flags().Changed(flagDescription) {
 		prefix.Description, _ = cmd.Flags().GetString(flagDescription)
 	}
-	if cmd.Flags().Changed("vrf") {
-		prefix.VRF, _ = cmd.Flags().GetString("vrf")
+	if err := resolvePrefixVRFs(cmd, inventory, prefix); err != nil {
+		return err
 	}
 	if cmd.Flags().Changed(flagLocation) {
 		locationArg, _ := cmd.Flags().GetString(flagLocation)
@@ -115,6 +116,26 @@ func addPrefix(cmd *cli.Command, args []string) error {
 	}
 
 	log.Printf("Added prefix %s (%s)", prefix.Prefix, prefix.ID)
+	return nil
+}
+
+// resolvePrefixVRFs turns each --vrf reference into a canonical VRF membership.
+// A name is searched in the prefix's namespace unless qualified as
+// namespace/name; an unknown or ambiguous name is an error so the prefix
+// never carries an unresolved VRF string.
+func resolvePrefixVRFs(cmd *cli.Command, inventory *devicetypes.Inventory, prefix *devicetypes.CaniPrefix) error {
+	refs, _ := cmd.Flags().GetStringArray("vrf")
+	namespace := prefix.EffectiveNamespace()
+	for _, ref := range refs {
+		vrf, err := inventory.ResolveVRFReference(namespace, ref)
+		if err != nil {
+			return fmt.Errorf("resolving --vrf %q: %w", ref, err)
+		}
+		if vrf.EffectiveNamespace() != namespace {
+			return fmt.Errorf("resolving --vrf %q: VRF is in namespace %q, not %q", ref, vrf.EffectiveNamespace(), namespace)
+		}
+		prefix.VRFs = append(prefix.VRFs, vrf.ID)
+	}
 	return nil
 }
 
