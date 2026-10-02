@@ -82,14 +82,24 @@ func (inv *Inventory) validateRackRefs() []string {
 	return errs
 }
 
+// validateModuleRefs checks each module's forward references: an installed
+// module's parent device and, for any module, its location. A spare has no
+// parent device and is valid when its location exists.
 func (inv *Inventory) validateModuleRefs() []string {
 	var errs []string
 	for id, module := range inv.Modules {
 		if module == nil {
 			continue
 		}
-		if _, ok := inv.Devices[module.ParentDevice]; !ok {
-			errs = append(errs, fmt.Sprintf("module %q (%s): parent device %s not found", module.Name, id, module.ParentDevice))
+		if module.ParentDevice != uuid.Nil {
+			if _, ok := inv.Devices[module.ParentDevice]; !ok {
+				errs = append(errs, fmt.Sprintf("module %q (%s): parent device %s not found", module.Name, id, module.ParentDevice))
+			}
+		}
+		if module.Location != uuid.Nil {
+			if _, ok := inv.Locations[module.Location]; !ok {
+				errs = append(errs, fmt.Sprintf("module %q (%s): location %s not found", module.Name, id, module.Location))
+			}
 		}
 	}
 	return errs

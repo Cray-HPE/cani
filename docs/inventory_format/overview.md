@@ -28,12 +28,32 @@ type Inventory struct {
 }
 ```
 
-The current schema generation is `v1alpha8`. It adds optional device parent-bay
+The current schema generation is `v1alpha9`. It records the owning module of a
+module interface (`moduleId`) and admits spare modules, which are stored at a
+location with no parent device. `v1alpha8` added optional device parent-bay
 placement and unresolved module-interface name/label templates. Older
 inventories are migrated through each generation on load, with the original
-file backed up to `.canisave`. The `v1alpha7` to `v1alpha8` step only advances the
-version: it preserves existing values without inferring bay assignments or
-missing templates.
+file backed up to `.canisave`. The `v1alpha7` to `v1alpha8` and `v1alpha8` to
+`v1alpha9` steps only advance the version: they preserve existing values without
+inferring bay assignments or missing templates, and module ownership is rebuilt
+from the module specs on every load. Earlier cani releases refuse a `v1alpha9`
+inventory rather than load and rewrite one that may contain spares.
+
+### Placement validation on load
+
+From `v1alpha9` on, every load validates module and device-bay placement. A
+module bay the parent device does not declare (on a parent that declares bays),
+two authored claims on one bay, or a spare stored at a location that does not
+exist is an error; a module with no bay and no name, a spare that still names
+a bay, or an installed module whose authored location differs from its
+parent's is a warning. Earlier releases accepted any bay name, so a `v1alpha8`
+inventory can carry an error the new rules refuse. Such an inventory still
+loads, but the upgrade is deferred: the file stays at `v1alpha8`, the errors
+are reported, and every save is refused until they are repaired. Repair an
+undeclared bay with `update module --bay <declared bay>`, or re-import from the
+source system, whose declared bays are recorded on the device so a bay the
+library spells differently becomes declared. The upgrade is written on the
+first load after the repair.
 
 ## Hardware Types
 
@@ -55,7 +75,8 @@ Items reference each other by UUID:
 - A **Location** has `Children` (child locations) and `Racks`.
 - A **Rack** has a `Location` FK and a `Devices` list.
 - A **Device** has `Parent`, `Children`, `Rack`, `Location`, and `Frus` references.
-- A **Module** has a `ParentDevice` FK.
+- A **Module** has a `ParentDevice` FK, or, as a spare, a `Location` FK and no
+  parent device.
 - A **Cable** has `TerminationA` and `TerminationB` endpoint UUIDs.
 - A **FRU** has a `Device` or `Parent` FK.
 

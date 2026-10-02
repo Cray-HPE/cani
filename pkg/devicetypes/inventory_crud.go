@@ -114,6 +114,7 @@ func (inv *Inventory) RebuildDerivedState() *RelationshipResult {
 	result.merge(inv.rebuildRackRelationships())
 	result.merge(inv.rebuildDeviceRelationships())
 	result.merge(inv.validateModuleRelationships())
+	result.merge(inv.validatePlacement())
 	result.merge(inv.rebuildInterfaceRelationships())
 	inv.rebuildInterfaceIPAddresses()
 	result.merge(inv.rebuildFruRelationships())

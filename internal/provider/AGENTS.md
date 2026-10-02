@@ -59,3 +59,21 @@ the conformance suite in `conformance/conformance_test.go`.
 3. Call `provider.Register("<name>", &YourProvider{})` in `init()`
 4. Implement optional interfaces as needed (`Importer`, `HasOptions`, etc.)
 5. Keep methods focused—each should do one thing well
+
+## Transform Output Contract
+
+`Transform` returns a `devicetypes.TransformResult` of shared types; the command layer merges it
+through `Inventory.MergeTransformResult`, which validates relationships and refuses the whole
+result on an error. The merge applies the same rules to every provider:
+
+- A source record the provider cannot translate is left out and listed in `TransformResult.Warnings`,
+  one line each; the command layer prints and counts them. Do not invent a value to keep the record.
+- `CaniModuleType.ModuleBayName` is a bay the parent device (or its library type) declares. The
+  merge canonicalises the spelling and clears a bay the parent does not declare, reporting it for
+  the operator; it never persists an undeclared bay, because export would otherwise create it in
+  the target system. A provider that knows the bays its source system declares for a device sets
+  `CaniDeviceType.ModuleBays` (name and position), so those names are declared for that instance
+  and survive the merge; the library template is consulted only for a device that declares none.
+  A provider that only knows its own placement descriptor (a tray or slot
+  number, for example) leaves `ModuleBayName` empty and keeps the descriptor in `ProviderMetadata`.
+- Provider-only attributes live in `ProviderMetadata`, never as new fields on a shared type.
