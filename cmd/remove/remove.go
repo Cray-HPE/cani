@@ -47,6 +47,9 @@ func NewCommand() *cli.Command {
 	cmd.AddCommand(newDeviceCommand())
 	cmd.AddCommand(newModuleCommand())
 	cmd.AddCommand(newCableCommand())
+	cmd.AddCommand(newPrefixCommand())
+	cmd.AddCommand(newIPCommand())
+	cmd.AddCommand(newVRFCommand())
 
 	cmd.PersistentFlags().BoolP("force", "f", false, "Remove items without confirmation.")
 
