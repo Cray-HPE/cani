@@ -406,8 +406,9 @@ canonical host (the mask is an attribute), and a VRF by namespace plus exact
 name; a namespace is compared without surrounding whitespace, and an omitted
 one means `Global`. Merge resolves identity in a fixed order — existing UUID,
 shared provider external ID, then the single natural-key match — and returns
-an error for a key match whose source identity conflicts or a key shared by
-several existing records, so the receiver is never changed by a guess.
+an error for a key match whose source identity conflicts, a key shared by
+several existing records, or a source match that moves a record onto a key
+another record holds, so the receiver is never changed by a guess.
 Validation rejects a prefix parent, VRF membership, or address parent in
 another namespace and a parent that does not contain its address; legacy
 duplicates separated only by a VRF name or a mask, and legacy VRF names that do
