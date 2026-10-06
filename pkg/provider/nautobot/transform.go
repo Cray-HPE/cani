@@ -33,42 +33,12 @@ import (
 )
 
 // Transform transforms raw Nautobot data into CANI's format.
-// When raw data has been fetched (via Import()), it is passed to the
-// transform package for full entity mapping.  Otherwise the legacy
+// When Import() has stored a snapshot, it is passed to the transform
+// package for full entity mapping. Otherwise the legacy
 // copy-existing-devices path is used.
 func (p *Nautobot) Transform(ctx context.Context, existing devicetypes.Inventory) (*devicetypes.TransformResult, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-
-	var raw *transform.RawData
-	if len(p.rawDevices) > 0 || len(p.rawLocations) > 0 ||
-		len(p.rawVLANs) > 0 || len(p.rawVLANLocationAssignments) > 0 ||
-		len(p.rawPrefixes) > 0 || len(p.rawPrefixLocationAssignments) > 0 || len(p.rawIPAddresses) > 0 ||
-		len(p.rawVRFs) > 0 {
-		raw = &transform.RawData{
-			LocationTypes:             p.rawLocationTypes,
-			Locations:                 p.rawLocations,
-			Racks:                     p.rawRacks,
-			Devices:                   p.rawDevices,
-			DeviceTypes:               p.rawDeviceTypes,
-			Interfaces:                p.rawInterfaces,
-			Modules:                   p.rawModules,
-			ModuleBays:                p.rawModuleBays,
-			Cables:                    p.rawCables,
-			InventoryItems:            p.rawInventoryItems,
-			Statuses:                  p.rawStatuses,
-			Roles:                     p.rawRoles,
-			VLANs:                     p.rawVLANs,
-			VLANLocationAssignments:   p.rawVLANLocationAssignments,
-			Prefixes:                  p.rawPrefixes,
-			PrefixLocationAssignments: p.rawPrefixLocationAssignments,
-			IPAddresses:               p.rawIPAddresses,
-			VRFs:                      p.rawVRFs,
-			VRFDeviceAssignments:      p.rawVRFDeviceAssignments,
-			VRFPrefixAssignments:      p.rawVRFPrefixAssignments,
-			Namespaces:                p.rawNamespaces,
-		}
-	}
-	return transform.Transform(existing, raw)
+	return transform.Transform(existing, p.raw)
 }

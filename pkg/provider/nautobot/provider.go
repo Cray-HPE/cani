@@ -31,6 +31,7 @@ import (
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/Cray-HPE/cani/pkg/provider/nautobot/export"
 	imprt "github.com/Cray-HPE/cani/pkg/provider/nautobot/import"
+	"github.com/Cray-HPE/cani/pkg/provider/nautobot/transform"
 )
 
 // Nautobot is the struct for the Nautobot provider
@@ -43,28 +44,9 @@ type Nautobot struct {
 	client *export.NautobotClient
 	cache  *export.LookupCache
 
-	// Raw API responses stored during Import() for use by Transform().
-	rawLocationTypes             []nautobotapi.LocationType
-	rawLocations                 []nautobotapi.Location
-	rawRacks                     []nautobotapi.Rack
-	rawDevices                   []nautobotapi.Device
-	rawDeviceTypes               []nautobotapi.DeviceType
-	rawInterfaces                []nautobotapi.Interface
-	rawModules                   []nautobotapi.Module
-	rawModuleBays                []nautobotapi.ModuleBay
-	rawCables                    []nautobotapi.Cable
-	rawInventoryItems            []nautobotapi.InventoryItem
-	rawStatuses                  []nautobotapi.Status
-	rawRoles                     []nautobotapi.Role
-	rawVLANs                     []nautobotapi.VLAN
-	rawVLANLocationAssignments   []nautobotapi.VLANLocationAssignment
-	rawPrefixes                  []nautobotapi.Prefix
-	rawPrefixLocationAssignments []nautobotapi.PrefixLocationAssignment
-	rawIPAddresses               []nautobotapi.IPAddress
-	rawVRFs                      []nautobotapi.VRF
-	rawVRFDeviceAssignments      []nautobotapi.VRFDeviceAssignment
-	rawVRFPrefixAssignments      []nautobotapi.VRFPrefixAssignment
-	rawNamespaces                []nautobotapi.Namespace
+	// raw is the API snapshot Import() stored for Transform(); nil until an
+	// import has run, which selects the legacy copy-existing-devices path.
+	raw *transform.RawData
 }
 
 // New creates a new instance of the Nautobot provider
@@ -86,54 +68,14 @@ func (p *Nautobot) Slug() string {
 	return providerSlug
 }
 
-// ClearRawData resets the raw data storage for a fresh import.
+// ClearRawData discards the stored snapshot for a fresh import.
 func (p *Nautobot) ClearRawData() {
-	p.rawLocationTypes = nil
-	p.rawLocations = nil
-	p.rawRacks = nil
-	p.rawDevices = nil
-	p.rawDeviceTypes = nil
-	p.rawInterfaces = nil
-	p.rawModules = nil
-	p.rawModuleBays = nil
-	p.rawCables = nil
-	p.rawInventoryItems = nil
-	p.rawStatuses = nil
-	p.rawRoles = nil
-	p.rawVLANs = nil
-	p.rawVLANLocationAssignments = nil
-	p.rawPrefixes = nil
-	p.rawPrefixLocationAssignments = nil
-	p.rawIPAddresses = nil
-	p.rawVRFs = nil
-	p.rawVRFDeviceAssignments = nil
-	p.rawVRFPrefixAssignments = nil
-	p.rawNamespaces = nil
+	p.raw = nil
 }
 
-// SetRawData stores fetched raw data from the import phase.
+// SetRawData stores the snapshot fetched by the import phase.
 func (p *Nautobot) SetRawData(d imprt.RawData) {
-	p.rawLocationTypes = d.LocationTypes
-	p.rawLocations = d.Locations
-	p.rawRacks = d.Racks
-	p.rawDevices = d.Devices
-	p.rawDeviceTypes = d.DeviceTypes
-	p.rawInterfaces = d.Interfaces
-	p.rawModules = d.Modules
-	p.rawModuleBays = d.ModuleBays
-	p.rawCables = d.Cables
-	p.rawInventoryItems = d.InventoryItems
-	p.rawStatuses = d.Statuses
-	p.rawRoles = d.Roles
-	p.rawVLANs = d.VLANs
-	p.rawVLANLocationAssignments = d.VLANLocationAssignments
-	p.rawPrefixes = d.Prefixes
-	p.rawPrefixLocationAssignments = d.PrefixLocationAssignments
-	p.rawIPAddresses = d.IPAddresses
-	p.rawVRFs = d.VRFs
-	p.rawVRFDeviceAssignments = d.VRFDeviceAssignments
-	p.rawVRFPrefixAssignments = d.VRFPrefixAssignments
-	p.rawNamespaces = d.Namespaces
+	p.raw = &d
 }
 
 // GetClient returns the Nautobot API client for the import subpackage.

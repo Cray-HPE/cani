@@ -33,32 +33,13 @@ import (
 	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
+	"github.com/Cray-HPE/cani/pkg/provider/nautobot/transform"
 )
 
-// RawData holds all raw API responses fetched during import.
-type RawData struct {
-	LocationTypes             []nautobotapi.LocationType
-	Locations                 []nautobotapi.Location
-	Racks                     []nautobotapi.Rack
-	Devices                   []nautobotapi.Device
-	DeviceTypes               []nautobotapi.DeviceType
-	Interfaces                []nautobotapi.Interface
-	Modules                   []nautobotapi.Module
-	ModuleBays                []nautobotapi.ModuleBay
-	Cables                    []nautobotapi.Cable
-	InventoryItems            []nautobotapi.InventoryItem
-	Statuses                  []nautobotapi.Status
-	Roles                     []nautobotapi.Role
-	VLANs                     []nautobotapi.VLAN
-	VLANLocationAssignments   []nautobotapi.VLANLocationAssignment
-	Prefixes                  []nautobotapi.Prefix
-	PrefixLocationAssignments []nautobotapi.PrefixLocationAssignment
-	IPAddresses               []nautobotapi.IPAddress
-	VRFs                      []nautobotapi.VRF
-	VRFDeviceAssignments      []nautobotapi.VRFDeviceAssignment
-	VRFPrefixAssignments      []nautobotapi.VRFPrefixAssignment
-	Namespaces                []nautobotapi.Namespace
-}
+// RawData is the snapshot of API collections Import hands to the transform
+// stage. It is the transform package's input type, so the two stages share
+// one definition and a new collection is declared once.
+type RawData = transform.RawData
 
 // providerGetter is used to get the Nautobot singleton from the parent package.
 // Set by the parent package's init() to break the import cycle.
@@ -100,116 +81,64 @@ func Import(cmd *cli.Command, args []string, inventory *devicetypes.Inventory) e
 	if err != nil {
 		return err
 	}
-	ctx := prov.GetContext()
-	client := prov.GetClient()
-
-	var d RawData
-
-	d.Locations, err = FetchLocations(ctx, client)
+	d, err := fetchAll(prov.GetContext(), prov.GetClient())
 	if err != nil {
-		return fmt.Errorf("fetching locations: %w", err)
-	}
-
-	d.LocationTypes, err = FetchLocationTypes(ctx, client)
-	if err != nil {
-		return fmt.Errorf("fetching location types: %w", err)
-	}
-
-	d.Racks, err = FetchRacks(ctx, client)
-	if err != nil {
-		return fmt.Errorf("fetching racks: %w", err)
-	}
-
-	d.Devices, err = FetchDevices(ctx, client)
-	if err != nil {
-		return fmt.Errorf("fetching devices: %w", err)
-	}
-
-	d.DeviceTypes, err = FetchDeviceTypes(ctx, client)
-	if err != nil {
-		return fmt.Errorf("fetching device types: %w", err)
-	}
-
-	d.Interfaces, err = FetchInterfaces(ctx, client)
-	if err != nil {
-		return fmt.Errorf("fetching interfaces: %w", err)
-	}
-
-	d.Modules, err = FetchModules(ctx, client)
-	if err != nil {
-		return fmt.Errorf("fetching modules: %w", err)
-	}
-
-	d.ModuleBays, err = FetchModuleBays(ctx, client)
-	if err != nil {
-		return fmt.Errorf("fetching module bays: %w", err)
-	}
-
-	d.Cables, err = FetchCables(ctx, client)
-	if err != nil {
-		return fmt.Errorf("fetching cables: %w", err)
-	}
-
-	d.InventoryItems, err = FetchInventoryItems(ctx, client)
-	if err != nil {
-		return fmt.Errorf("fetching inventory items: %w", err)
-	}
-
-	d.Statuses, err = FetchStatuses(ctx, client)
-	if err != nil {
-		return fmt.Errorf("fetching statuses: %w", err)
-	}
-
-	d.Roles, err = FetchRoles(ctx, client)
-	if err != nil {
-		return fmt.Errorf("fetching roles: %w", err)
-	}
-
-	d.VLANs, err = FetchVLANs(ctx, client)
-	if err != nil {
-		return fmt.Errorf("fetching vlans: %w", err)
-	}
-	d.VLANLocationAssignments, err = FetchVLANLocationAssignments(ctx, client)
-	if err != nil {
-		return fmt.Errorf("fetching VLAN location assignments: %w", err)
-	}
-
-	d.Prefixes, err = FetchPrefixes(ctx, client)
-	if err != nil {
-		return fmt.Errorf("fetching prefixes: %w", err)
-	}
-	d.PrefixLocationAssignments, err = FetchPrefixLocationAssignments(ctx, client)
-	if err != nil {
-		return fmt.Errorf("fetching prefix location assignments: %w", err)
-	}
-
-	d.IPAddresses, err = FetchIPAddresses(ctx, client)
-	if err != nil {
-		return fmt.Errorf("fetching ip addresses: %w", err)
-	}
-
-	d.VRFs, err = FetchVRFs(ctx, client)
-	if err != nil {
-		return fmt.Errorf("fetching vrfs: %w", err)
-	}
-
-	d.VRFDeviceAssignments, err = FetchVRFDeviceAssignments(ctx, client)
-	if err != nil {
-		return fmt.Errorf("fetching vrf-device-assignments: %w", err)
-	}
-
-	d.VRFPrefixAssignments, err = FetchVRFPrefixAssignments(ctx, client)
-	if err != nil {
-		return fmt.Errorf("fetching vrf-prefix-assignments: %w", err)
-	}
-
-	d.Namespaces, err = FetchNamespaces(ctx, client)
-	if err != nil {
-		return fmt.Errorf("fetching namespaces: %w", err)
+		return err
 	}
 
 	prov.ClearRawData()
 	prov.SetRawData(d)
 
 	return nil
+}
+
+// fetchAll fetches every collection the transform needs, in order. The first
+// failure aborts the import before any raw data is stored.
+func fetchAll(ctx context.Context, client *nautobotapi.ClientWithResponses) (RawData, error) {
+	var d RawData
+	steps := []struct {
+		name  string
+		fetch func() error
+	}{
+		{"locations", into(ctx, client, &d.Locations, FetchLocations)},
+		{"location types", into(ctx, client, &d.LocationTypes, FetchLocationTypes)},
+		{"racks", into(ctx, client, &d.Racks, FetchRacks)},
+		{"devices", into(ctx, client, &d.Devices, FetchDevices)},
+		{"device types", into(ctx, client, &d.DeviceTypes, FetchDeviceTypes)},
+		{"interfaces", into(ctx, client, &d.Interfaces, FetchInterfaces)},
+		{"modules", into(ctx, client, &d.Modules, FetchModules)},
+		{"module bays", into(ctx, client, &d.ModuleBays, FetchModuleBays)},
+		{"cables", into(ctx, client, &d.Cables, FetchCables)},
+		{"inventory items", into(ctx, client, &d.InventoryItems, FetchInventoryItems)},
+		{"statuses", into(ctx, client, &d.Statuses, FetchStatuses)},
+		{"roles", into(ctx, client, &d.Roles, FetchRoles)},
+		{"vlans", into(ctx, client, &d.VLANs, FetchVLANs)},
+		{"VLAN location assignments", into(ctx, client, &d.VLANLocationAssignments, FetchVLANLocationAssignments)},
+		{"prefixes", into(ctx, client, &d.Prefixes, FetchPrefixes)},
+		{"prefix location assignments", into(ctx, client, &d.PrefixLocationAssignments, FetchPrefixLocationAssignments)},
+		{"ip addresses", into(ctx, client, &d.IPAddresses, FetchIPAddresses)},
+		{"vrfs", into(ctx, client, &d.VRFs, FetchVRFs)},
+		{"vrf-device-assignments", into(ctx, client, &d.VRFDeviceAssignments, FetchVRFDeviceAssignments)},
+		{"vrf-prefix-assignments", into(ctx, client, &d.VRFPrefixAssignments, FetchVRFPrefixAssignments)},
+		{"namespaces", into(ctx, client, &d.Namespaces, FetchNamespaces)},
+	}
+	for _, step := range steps {
+		if err := step.fetch(); err != nil {
+			return RawData{}, fmt.Errorf("fetching %s: %w", step.name, err)
+		}
+	}
+	return d, nil
+}
+
+// into binds a collection fetcher to the RawData field it fills.
+func into[T any](
+	ctx context.Context,
+	client *nautobotapi.ClientWithResponses,
+	dst *[]T,
+	fetch func(context.Context, *nautobotapi.ClientWithResponses) ([]T, error),
+) func() error {
+	return func() (err error) {
+		*dst, err = fetch(ctx, client)
+		return err
+	}
 }

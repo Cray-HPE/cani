@@ -32,6 +32,7 @@ import (
 	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
+	"github.com/Cray-HPE/cani/pkg/provider/nautobot/transform"
 	"github.com/google/uuid"
 )
 
@@ -59,15 +60,15 @@ func TestTransform_LegacyPathCopiesExistingDevices(t *testing.T) {
 	}
 }
 
-// TestTransform_UsesRawDataWhenPresent verifies that storing raw API data
+// TestTransform_UsesRawDataWhenPresent verifies that a stored snapshot
 // switches Transform to the raw mapping path and produces the mapped entity.
 func TestTransform_UsesRawDataWhenPresent(t *testing.T) {
 	locID := openapi_types.UUID(uuid.New())
 
 	p := New()
-	p.rawLocations = []nautobotapi.Location{
+	p.raw = &transform.RawData{Locations: []nautobotapi.Location{
 		{Id: &locID, Name: "Site-A"},
-	}
+	}}
 
 	res, err := p.Transform(context.Background(), devicetypes.Inventory{})
 	if err != nil {
