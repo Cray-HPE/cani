@@ -63,6 +63,9 @@ func (c *LookupCache) GetOrCreateLocationType(name string, def *devicetypes.Loca
 	if !c.createLocationTypes {
 		return nil, fmt.Errorf("location type %q not found in Nautobot (enable create_location_types)", name)
 	}
+	if c.dryRun {
+		return plannedCreate("location type", name), nil
+	}
 
 	return c.createLocationType(name, def)
 }

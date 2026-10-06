@@ -35,6 +35,9 @@ import (
 
 // UpdateStatusContentTypes updates an existing status to include additional content types.
 func (c *LookupCache) UpdateStatusContentTypes(id uuid.UUID, name string, contentTypes []string) (*CachedItem, error) {
+	if c.dryRun {
+		return plannedContentTypes("status", id, name, contentTypes), nil
+	}
 	clog.Detail("[nautobot] Updating status '%s' content types to: %v", name, contentTypes)
 
 	patchResp, err := c.client.ExtrasStatusesPartialUpdateWithResponse(c.ctx,
@@ -69,6 +72,9 @@ func (c *LookupCache) UpdateStatusContentTypes(id uuid.UUID, name string, conten
 // additional content types (e.g. ipam.vlan/ipam.prefix so VLANs and prefixes
 // can be scoped to locations of this type).
 func (c *LookupCache) UpdateLocationTypeContentTypes(id uuid.UUID, name string, contentTypes []string) (*CachedItem, error) {
+	if c.dryRun {
+		return plannedContentTypes("location type", id, name, contentTypes), nil
+	}
 	clog.Detail("[nautobot] Updating location type '%s' content types to: %v", name, contentTypes)
 
 	patchResp, err := c.client.DcimLocationTypesPartialUpdateWithResponse(c.ctx,
@@ -103,6 +109,9 @@ func (c *LookupCache) UpdateLocationTypeContentTypes(id uuid.UUID, name string, 
 
 // UpdateRoleContentTypes updates an existing role to add content types
 func (c *LookupCache) UpdateRoleContentTypes(id uuid.UUID, name string, contentTypes []string) (*CachedItem, error) {
+	if c.dryRun {
+		return plannedContentTypes("role", id, name, contentTypes), nil
+	}
 	clog.Detail("[nautobot] Updating role '%s' content types to: %v", name, contentTypes)
 
 	weight := 1000

@@ -226,6 +226,7 @@ func setExternalID(m *map[string]uuid.UUID, provider string, id uuid.UUID) {
 func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 	ctx := context.Background()
 	e.Cache.SetContext(ctx)
+	e.Cache.SetDryRun(e.Options.DryRun)
 
 	result := &LoadResult{
 		Created:          make([]string, 0),

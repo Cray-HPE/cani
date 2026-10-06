@@ -125,6 +125,10 @@ type LookupCache struct {
 	createStatuses      bool
 	createRoles         bool
 	createLocations     bool
+
+	// dryRun plans every write the cache would make on its own instead of
+	// issuing it.
+	dryRun bool
 }
 
 // NewLookupCache creates a new lookup cache for the given client
@@ -147,6 +151,26 @@ func NewLookupCache(client *NautobotClient) *LookupCache {
 // SetContext sets the context for API calls
 func (c *LookupCache) SetContext(ctx context.Context) {
 	c.ctx = ctx
+}
+
+// SetDryRun makes the cache plan, rather than issue, the writes it makes on
+// its own: auto-created reference data and content-type reconciliation.
+func (c *LookupCache) SetDryRun(dryRun bool) {
+	c.dryRun = dryRun
+}
+
+// plannedCreate logs a create a dry run skips and returns a placeholder with a
+// nil ID in its place.
+func plannedCreate(kind, name string) *CachedItem {
+	clog.DryRun("Would create %s: %s", kind, name)
+	return &CachedItem{Name: name, Display: name}
+}
+
+// plannedContentTypes logs a content-type update a dry run skips and returns
+// the object unchanged.
+func plannedContentTypes(kind string, id uuid.UUID, name string, contentTypes []string) *CachedItem {
+	clog.DryRun("Would set %s %s content types to: %v", kind, name, contentTypes)
+	return &CachedItem{ID: id, Name: name, Display: name}
 }
 
 // SetCreateDeviceTypes enables or disables auto-creation of device types

@@ -74,6 +74,16 @@ func (c *LookupCache) GetOrCreateManufacturer(name string) (*CachedItem, error) 
 	}
 
 	// Manufacturer not found, create it
+	return c.createManufacturer(name)
+}
+
+// createManufacturer creates a manufacturer and caches it; the caller holds
+// manufacturersMu.
+func (c *LookupCache) createManufacturer(name string) (*CachedItem, error) {
+	if c.dryRun {
+		c.manufacturers[name] = plannedCreate("manufacturer", name)
+		return c.manufacturers[name], nil
+	}
 	clog.Detail("[nautobot] Creating manufacturer: %s", name)
 	createResp, err := c.client.DcimManufacturersCreateWithResponse(c.ctx,
 		&nautobotapi.DcimManufacturersCreateParams{},
@@ -102,8 +112,20 @@ func (c *LookupCache) GetOrCreateManufacturer(name string) (*CachedItem, error) 
 	return nil, fmt.Errorf("failed to create manufacturer %s: no response body", name)
 }
 
-// CreateDeviceTypeFromLocal creates a device type in Nautobot from the local devicetypes library
+// CreateDeviceTypeFromLocal creates a device type in Nautobot from the local
+// devicetypes library; a dry run only plans it.
 func (c *LookupCache) CreateDeviceTypeFromLocal(slug string) (*CachedItem, error) {
+	if c.dryRun {
+		item := plannedCreate("device type", slug)
+		c.deviceTypesMu.Lock()
+		c.deviceTypes[slug] = item
+		c.deviceTypesMu.Unlock()
+		return item, nil
+	}
+	return c.createDeviceTypeFromLocal(slug)
+}
+
+func (c *LookupCache) createDeviceTypeFromLocal(slug string) (*CachedItem, error) {
 	// Look up device type in local library
 	localDT, found := devicetypes.GetBySlug(slug)
 	if !found {
@@ -190,8 +212,16 @@ func (c *LookupCache) CreateDeviceTypeFromLocal(slug string) (*CachedItem, error
 }
 
 // CreateDeviceTypeFromCaniDevice creates a device type in Nautobot from
-// inventory data when the local YAML library does not contain the slug.
+// inventory data when the local YAML library does not contain the slug; a dry
+// run only plans it.
 func (c *LookupCache) CreateDeviceTypeFromCaniDevice(device *devicetypes.CaniDeviceType) (*CachedItem, error) {
+	if c.dryRun && device != nil && device.Slug != "" {
+		return plannedCreate("device type", device.Slug), nil
+	}
+	return c.createDeviceTypeFromCaniDevice(device)
+}
+
+func (c *LookupCache) createDeviceTypeFromCaniDevice(device *devicetypes.CaniDeviceType) (*CachedItem, error) {
 	if device == nil || device.Slug == "" {
 		return nil, fmt.Errorf("device or slug is empty")
 	}
