@@ -72,7 +72,7 @@ func (e *Exporter) loadVLANs(
 		}
 		if existing != nil {
 			created[vlan.ID] = existing.ID
-			setExternalID(&vlan.ExternalIDs, "nautobot", existing.ID)
+			e.recordExternalID(&vlan.ExternalIDs, existing.ID)
 
 			if e.Options.Merge {
 				if updated, mergeErr := e.mergeVLAN(ctx, vlan, existing.ID); mergeErr != nil {
@@ -102,10 +102,11 @@ func (e *Exporter) loadVLANs(
 		}
 
 		created[vlan.ID] = nautobotID
-		setExternalID(&vlan.ExternalIDs, "nautobot", nautobotID)
+		e.recordExternalID(&vlan.ExternalIDs, nautobotID)
 		e.Cache.CacheVLAN(vlan.VID, locationName, &CachedItem{
-			ID:   nautobotID,
-			Name: vlan.Name,
+			ID:      nautobotID,
+			Name:    vlan.Name,
+			Planned: e.Options.DryRun,
 		})
 		result.VLANsCreated++
 	}

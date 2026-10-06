@@ -46,6 +46,13 @@ func (p *Nautobot) Export(ctx context.Context, cmd *cli.Command, args []string, 
 	return p.exporter.Load(inventory)
 }
 
+// ExportDryRun reports the dry-run setting the last Export resolved from the
+// config file and the --dry-run flag, so the command layer can skip saving an
+// inventory that was only planned against.
+func (p *Nautobot) ExportDryRun() bool {
+	return p.Options != nil && p.Options.Export.DryRun
+}
+
 // setupExportFromConfig initialises the Nautobot client, lookup cache and
 // exporter from config values and command-line flag overrides.
 func (p *Nautobot) setupExportFromConfig(cmd *cli.Command) error {

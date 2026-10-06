@@ -69,7 +69,7 @@ func (e *Exporter) loadPrefixes(
 			continue
 		}
 		created[prefix.ID] = remote.ID
-		setExternalID(&prefix.ExternalIDs, "nautobot", remote.ID)
+		e.recordExternalID(&prefix.ExternalIDs, remote.ID)
 		e.ensureVRFPrefixAssignments(ctx, prefix, remote, inventory, result)
 	}
 
@@ -90,13 +90,15 @@ func (e *Exporter) loadPrefix(
 	result *LoadResult,
 ) (*CachedItem, error) {
 	namespace := prefix.EffectiveNamespace()
-	ns, err := e.Cache.GetOrCreateNamespace(namespace)
+	ns, exists, err := e.ensureNamespace(namespace)
 	if err != nil {
 		return nil, fmt.Errorf("resolve namespace: %w", err)
 	}
-	existing, err := e.Cache.LookupPrefix(namespace, prefix.Prefix)
-	if err != nil {
-		return nil, fmt.Errorf("lookup error: %w", err)
+	var existing *CachedItem
+	if exists {
+		if existing, err = e.Cache.LookupPrefix(namespace, prefix.Prefix); err != nil {
+			return nil, fmt.Errorf("lookup error: %w", err)
+		}
 	}
 	if existing != nil {
 		result.PrefixesSkipped++

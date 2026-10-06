@@ -259,7 +259,7 @@ func TestLoadIPAddresses_UsesParentNamespaceAndRejectsOrphans(t *testing.T) {
 	inv.IPAddresses[orphan] = &devicetypes.CaniIPAddress{ID: orphan, Host: "192.168.0.1", Address: "192.168.0.1/24", Namespace: "tenant-b"}
 	result := &LoadResult{}
 
-	if err := e.loadIPAddresses(context.Background(), inv, map[uuid.UUID]uuid.UUID{prefixID: uuid.New()}, nil, result); err != nil {
+	if _, err := e.loadIPAddresses(context.Background(), inv, map[uuid.UUID]uuid.UUID{prefixID: uuid.New()}, nil, result); err != nil {
 		t.Fatalf("loadIPAddresses returned error: %v", err)
 	}
 

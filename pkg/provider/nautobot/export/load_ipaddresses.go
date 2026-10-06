@@ -41,15 +41,18 @@ import (
 // IP-to-interface assignments via the join table API. An address takes its
 // namespace from its parent prefix, so an address without a containing
 // prefix in the inventory is reported instead of being filed under Global.
+// Returns a map of cani address ID → Nautobot address ID for the primary-IP
+// phase, which must not depend on external IDs a dry run does not record.
 func (e *Exporter) loadIPAddresses(
 	ctx context.Context,
 	inventory *devicetypes.Inventory,
 	prefixMap map[uuid.UUID]uuid.UUID,
 	deviceMap map[string]uuid.UUID,
 	result *LoadResult,
-) error {
+) (map[uuid.UUID]uuid.UUID, error) {
+	loaded := make(map[uuid.UUID]uuid.UUID)
 	if len(inventory.IPAddresses) == 0 {
-		return nil
+		return loaded, nil
 	}
 
 	clog.Header("Phase 9: IP Addresses (%d)", len(inventory.IPAddresses))
@@ -70,12 +73,13 @@ func (e *Exporter) loadIPAddresses(
 			result.Errors = append(result.Errors, fmt.Sprintf("ip %s/%s: %v", parent.EffectiveNamespace(), addr.Address, err))
 			continue
 		}
-		setExternalID(&addr.ExternalIDs, "nautobot", nautobotID)
+		loaded[addr.ID] = nautobotID
+		e.recordExternalID(&addr.ExternalIDs, nautobotID)
 		e.assignIPToInterfaces(ctx, nautobotID, addr, inventory, deviceMap, result)
 	}
 
 	clog.Info("  IP addresses created: %d", result.IPAddressesCreated)
-	return nil
+	return loaded, nil
 }
 
 // loadIPAddress finds or creates one address in the namespace and returns
@@ -87,13 +91,15 @@ func (e *Exporter) loadIPAddress(
 	prefixMap map[uuid.UUID]uuid.UUID,
 	result *LoadResult,
 ) (uuid.UUID, error) {
-	ns, err := e.Cache.GetOrCreateNamespace(namespace)
+	ns, exists, err := e.ensureNamespace(namespace)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("resolve namespace: %w", err)
 	}
-	existing, err := e.Cache.LookupIPAddress(namespace, addr.Address)
-	if err != nil {
-		return uuid.Nil, fmt.Errorf("lookup error: %w", err)
+	var existing *CachedItem
+	if exists {
+		if existing, err = e.Cache.LookupIPAddress(namespace, addr.Address); err != nil {
+			return uuid.Nil, fmt.Errorf("lookup error: %w", err)
+		}
 	}
 	if existing != nil {
 		result.IPAddressesSkipped++

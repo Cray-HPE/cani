@@ -216,3 +216,53 @@ func decodeSentVLAN(t *testing.T, body []byte) sentVLAN {
 	}
 	return v
 }
+
+// TestLoadVLANs_DryRunCachesAPlannedVLAN verifies a dry run stands in for a
+// VLAN it would create with a cached placeholder marked Planned and records no
+// Nautobot ID on the record.
+//
+// Why it matters: later phases resolve VLANs through the cache; a placeholder
+// that looked like a found VLAN would let a dry run ask Nautobot about an
+// object that does not exist, and an ID recorded on the record would outlive
+// the run.
+// Inputs: one VLAN the server does not hold; DryRun on. Outputs: VLANsCreated
+// == 1, no POST, a cached entry with Planned set, and no external ID.
+// Data choice: VID 100 with an empty location matches the cache key the
+// lookup uses, so the assertion reads exactly what the loader cached.
+func TestLoadVLANs_DryRunCachesAPlannedVLAN(t *testing.T) {
+	// Arrange.
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			t.Errorf("dry run POSTed to %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, emptyListJSON)
+	}
+	e, cleanup := newExporterWithServer(t, handler)
+	defer cleanup()
+	seedActiveStatus(t, e)
+	e.Options.DryRun = true
+	e.Cache.SetDryRun(true)
+	vlanID := uuid.New()
+	inv := &devicetypes.Inventory{VLANs: map[uuid.UUID]*devicetypes.CaniVLAN{
+		vlanID: {ID: vlanID, VID: 100, Name: "vlan100", ObjectMeta: devicetypes.ObjectMeta{Status: "Active"}},
+	}}
+	result := &LoadResult{}
+
+	// Act.
+	if _, err := e.loadVLANs(context.Background(), inv, map[uuid.UUID]uuid.UUID{}, result); err != nil {
+		t.Fatalf("loadVLANs returned error: %v", err)
+	}
+
+	// Assert.
+	if result.VLANsCreated != 1 {
+		t.Errorf("VLANsCreated = %d, want 1", result.VLANsCreated)
+	}
+	cached, err := e.Cache.LookupVLAN(100, "")
+	if err != nil || cached == nil || !cached.Planned {
+		t.Errorf("cached VLAN = %+v, %v; want a Planned placeholder", cached, err)
+	}
+	if _, stamped := inv.VLANs[vlanID].ExternalIDs[externalIDKeyNautobot]; stamped {
+		t.Errorf("dry run recorded a Nautobot ID on the VLAN: %v", inv.VLANs[vlanID].ExternalIDs)
+	}
+}

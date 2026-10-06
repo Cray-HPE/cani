@@ -26,6 +26,7 @@ this table in sync when a provider gains or drops a capability.
 | `MetadataApplier` |  |  |  | ✓ |  |  |
 | `DeviceUpdateFlagProvider` | ✓ |  |  |  |  |  |
 | `StagedDeviceDescriber` | ✓ |  |  |  |  |  |
+| `ExportDryRunner` |  |  |  | ✓ |  |  |
 
 ## Notes
 
@@ -38,6 +39,9 @@ this table in sync when a provider gains or drops a capability.
   rather than in `cmd/`.
 - `MetadataApplier` is implemented only by Nautobot, which maps generic
   `--metadata` pairs into its own sub-map.
+- `ExportDryRunner` is implemented only by Nautobot, whose `export.dry_run`
+  config setting can request a dry run the generic `--dry-run` flag never
+  sees; `cmd/export` asks it before saving the inventory.
 - `Configurer` is currently implemented by **no** provider. The interface exists
   for startup config validation but is unused — a candidate to either adopt or
   remove.

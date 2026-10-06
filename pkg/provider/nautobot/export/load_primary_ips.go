@@ -38,8 +38,10 @@ import (
 )
 
 // loadPrimaryIPs patches devices that have a primary IPv4/IPv6 address set.
-// This runs after IP addresses are created so the Nautobot UUIDs are available.
-func (e *Exporter) loadPrimaryIPs(ctx context.Context, inventory *devicetypes.Inventory) error {
+// This runs after IP addresses are created so the Nautobot UUIDs are available:
+// ipIDs carries this run's addresses (a dry run records no external IDs), and
+// an address outside it falls back to the ID a previous run recorded.
+func (e *Exporter) loadPrimaryIPs(ctx context.Context, inventory *devicetypes.Inventory, ipIDs map[uuid.UUID]uuid.UUID) error {
 	var errs []string
 
 	for _, device := range inventory.Devices {
@@ -61,7 +63,7 @@ func (e *Exporter) loadPrimaryIPs(ctx context.Context, inventory *devicetypes.In
 		if device.PrimaryIPv4 != uuid.Nil {
 			ip := inventory.IPAddresses[device.PrimaryIPv4]
 			if ip != nil {
-				if id, ok := ip.ExternalIDs["nautobot"]; ok && id != uuid.Nil {
+				if id, ok := primaryIPRef(ipIDs, ip); ok {
 					payload["primary_ip4"] = map[string]string{"id": id.String()}
 				} else {
 					clog.Warn("device %s: primary IPv4 %s has no Nautobot ID, skipping", device.Name, device.PrimaryIPv4)
@@ -74,7 +76,7 @@ func (e *Exporter) loadPrimaryIPs(ctx context.Context, inventory *devicetypes.In
 		if device.PrimaryIPv6 != uuid.Nil {
 			ip := inventory.IPAddresses[device.PrimaryIPv6]
 			if ip != nil {
-				if id, ok := ip.ExternalIDs["nautobot"]; ok && id != uuid.Nil {
+				if id, ok := primaryIPRef(ipIDs, ip); ok {
 					payload["primary_ip6"] = map[string]string{"id": id.String()}
 				} else {
 					clog.Warn("device %s: primary IPv6 %s has no Nautobot ID, skipping", device.Name, device.PrimaryIPv6)
@@ -126,6 +128,16 @@ func (e *Exporter) loadPrimaryIPs(ctx context.Context, inventory *devicetypes.In
 		return fmt.Errorf("%d primary IP error(s): %s", len(errs), errs[0])
 	}
 	return nil
+}
+
+// primaryIPRef returns the Nautobot ID of an address: the one this run loaded
+// when there is one, else the one recorded on the record.
+func primaryIPRef(ipIDs map[uuid.UUID]uuid.UUID, ip *devicetypes.CaniIPAddress) (uuid.UUID, bool) {
+	if id, ok := ipIDs[ip.ID]; ok && id != uuid.Nil {
+		return id, true
+	}
+	id, ok := ip.ExternalIDs["nautobot"]
+	return id, ok && id != uuid.Nil
 }
 
 // primaryIPsMatch returns true when the remote device already has the same

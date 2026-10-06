@@ -89,7 +89,7 @@ func (e *Exporter) loadLocations(
 			continue
 		}
 		created[loc.ID] = nautobotID
-		setExternalID(&loc.ExternalIDs, "nautobot", nautobotID)
+		recordCreatedExternalID(&loc.ExternalIDs, nautobotID)
 	}
 
 	return created, nil

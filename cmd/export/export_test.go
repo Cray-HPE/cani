@@ -214,3 +214,50 @@ func TestRunExportPersistsExternalIDAfterProviderError(t *testing.T) {
 		t.Errorf("persisted external ID = %s, want %s", got, externalID)
 	}
 }
+
+// TestRunExportDryRunLeavesTheDatastoreUntouched verifies --dry-run never
+// writes the inventory back, whether the provider succeeds or fails.
+//
+// Why it matters: a dry run previews the export; the IDs a provider records
+// on the inventory while planning are placeholders, and saving them would make
+// the next import reject the records as conflicting source identities.
+// Inputs: a valid inventory, --dry-run set, and a fake exporter that stamps an
+// external ID, once returning nil and once an error. Outputs: both runs leave
+// the datastore bytes unchanged.
+// Data choice: the error path exercises the best-effort save that persists IDs
+// on a real run, so the file must be checked after it too.
+func TestRunExportDryRunLeavesTheDatastoreUntouched(t *testing.T) {
+	for name, exportErr := range map[string]error{"success": nil, "provider error": errors.New("boom")} {
+		t.Run(name, func(t *testing.T) {
+			inventory, deviceID := connectedExportInventory()
+			command, inventoryPath := prepareExportTest(t, inventory)
+			command.Flags().Bool("dry-run", false, "")
+			if err := command.Flags().Set("dry-run", "true"); err != nil {
+				t.Fatalf("setting --dry-run: %v", err)
+			}
+			before, err := os.ReadFile(inventoryPath)
+			if err != nil {
+				t.Fatalf("reading inventory before export: %v", err)
+			}
+			provider := &fakeExportProvider{
+				exportErr: exportErr,
+				mutate: func(inventory *devicetypes.Inventory) {
+					inventory.Devices[deviceID].ExternalIDs = map[string]uuid.UUID{"fake-export": uuid.New()}
+				},
+			}
+
+			err = runExport(command, nil, provider)
+
+			if (err != nil) != (exportErr != nil) {
+				t.Fatalf("runExport error = %v, want error: %v", err, exportErr != nil)
+			}
+			after, err := os.ReadFile(inventoryPath)
+			if err != nil {
+				t.Fatalf("reading inventory after export: %v", err)
+			}
+			if !bytes.Equal(before, after) {
+				t.Error("dry run rewrote the inventory file")
+			}
+		})
+	}
+}
