@@ -50,6 +50,7 @@ var uuidPattern = regexp.MustCompile(`[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{
 // CustomFields, ProviderMetadata — is caught. Picking fields by hand would
 // silently stop covering whatever the schema gained next. Masking UUIDs does
 // lose parentage, so a name-resolved relationship line is emitted alongside.
+// IPAM records are rendered the same way by ipamLines.
 func Fingerprint(inventory *devicetypes.Inventory) string {
 	if inventory == nil {
 		return "<nil inventory>"
@@ -77,9 +78,28 @@ func Fingerprint(inventory *devicetypes.Inventory) string {
 	for _, iface := range inventory.Interfaces {
 		lines = append(lines, "interface "+iface.Name+" "+encode(iface))
 	}
+	lines = append(lines, ipamLines(inventory)...)
 
 	sort.Strings(lines)
 	return strings.Join(lines, "\n")
+}
+
+// ipamLines renders the IPAM records, keyed by their natural text.
+func ipamLines(inventory *devicetypes.Inventory) []string {
+	var lines []string
+	for _, prefix := range inventory.Prefixes {
+		lines = append(lines, "prefix "+prefix.Prefix+" "+encode(prefix))
+	}
+	for _, address := range inventory.IPAddresses {
+		lines = append(lines, "ip "+address.Address+" "+encode(address))
+	}
+	for _, vrf := range inventory.VRFs {
+		lines = append(lines, "vrf "+vrf.Name+" "+encode(vrf))
+	}
+	for _, vlan := range inventory.VLANs {
+		lines = append(lines, "vlan "+vlan.Name+" "+encode(vlan))
+	}
+	return lines
 }
 
 // MaskIDs replaces every identifier in text with a fixed placeholder.

@@ -32,6 +32,7 @@ package cmdtest_test
 import (
 	"bytes"
 	"io"
+	"maps"
 	"os"
 	"os/exec"
 	"strings"
@@ -192,21 +193,24 @@ func addRackFingerprint(t *testing.T) string {
 // currently registered.
 func crudFingerprints(t *testing.T) map[string]string {
 	t.Helper()
-	return map[string]string{
+	fingerprints := map[string]string{
 		"add device":    addDeviceFingerprint(t),
 		"add rack":      addRackFingerprint(t),
 		"update device": updateDeviceFingerprint(t),
 		"remove device": removeDeviceFingerprint(t),
 		"show device":   showDeviceFingerprint(t),
 	}
+	maps.Copy(fingerprints, ipamFingerprints(t))
+	return fingerprints
 }
 
 // TestCRUDResultIsInvariantAcrossRegisteredProviders verifies every CRUD verb
 // produces the same result no matter which providers are registered.
 //
 // Why it matters: generic CRUD must remain independent of provider identity.
-// Inputs: five CRUD scenarios, first without providers, then with inert and
-// capable providers. Outputs: equal fingerprints and exact callback arguments.
+// Inputs: five device CRUD scenarios and four IPAM ones, first without
+// providers, then with inert and capable providers. Outputs: equal
+// fingerprints and exact callback arguments.
 // Data choice: a fresh test process keeps these registry states distinct even
 // under repeated or shuffled runs, since registration has no deregister API.
 func TestCRUDResultIsInvariantAcrossRegisteredProviders(t *testing.T) {
@@ -216,6 +220,7 @@ func TestCRUDResultIsInvariantAcrossRegisteredProviders(t *testing.T) {
 	cmdtest.RequireNoProviders(t)
 	baseline := crudFingerprints(t)
 	assertCRUDBaseline(t, baseline)
+	assertIPAMBaseline(t, baseline)
 	states := []provider.Provider{
 		inertProvider{slug: "invariance-alpha"},
 		inertProvider{slug: "invariance-beta"},
