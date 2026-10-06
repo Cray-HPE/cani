@@ -150,19 +150,24 @@ func assertCallCount(t *testing.T, method string, got, want int) {
 
 func assertCRUDCapabilities(t *testing.T, calls capabilityLog) {
 	t.Helper()
-	for method, count := range map[string]int{
-		"OnRackAdded":               len(calls.rackHooks),
-		"RegisterDeviceUpdateFlags": len(calls.registration),
-		"ApplyDeviceUpdateFlags":    len(calls.updates),
+	for _, call := range []struct {
+		method    string
+		got, want int
+	}{
+		{"OnRackAdded", len(calls.rackHooks), 1},
+		{"RegisterDeviceUpdateFlags", len(calls.registration), updateTreesPerRun},
+		{"ApplyDeviceUpdateFlags", len(calls.updates), 1},
 	} {
-		assertCallCount(t, method, count, 1)
+		assertCallCount(t, call.method, call.got, call.want)
 	}
 	rackCall := calls.rackHooks[0]
 	if rackCall.rack.Name != "rack-99" || rackCall.inventory.Racks[rackCall.rack.ID] != rackCall.rack {
 		t.Error("OnRackAdded did not receive the newly added rack and its inventory")
 	}
-	if calls.registration[0].Name() != "device" {
-		t.Error("RegisterDeviceUpdateFlags did not receive the device command")
+	for i, registered := range calls.registration {
+		if registered.Name() != "device" {
+			t.Errorf("RegisterDeviceUpdateFlags call %d received %q, want the device command", i, registered.Name())
+		}
 	}
 	updateCall := calls.updates[0]
 	if updateCall.command != calls.registration[0] || updateCall.device.Name != "cn-99" {

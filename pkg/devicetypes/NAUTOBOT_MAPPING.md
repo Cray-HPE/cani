@@ -458,10 +458,13 @@ batch leaves alone; the records it carries keep the parent, the provider set, or
 the merge derived. `AddPrefixVRF` adds a VRF to a prefix once and refuses one
 from another namespace; an explicit membership supersedes a legacy VRF name,
 which `AddPrefix` and `AddPrefixVRF` clear. `CaniPrefix.RemoveVRF` drops one
-membership and `CaniPrefix.ClearLegacyVRF` drops the legacy name.
-`AddVRFDevice` and `CaniVRF.RemoveDevice` edit a VRF's device assignments the
-same way, the former requiring the device to exist as `AddVRF` does. Each
-reports whether anything changed, so a caller can tell a no-op from a change.
+membership and `CaniPrefix.ClearLegacyVRF` drops the legacy name;
+`RemovePrefixVRFReference` takes the reference text instead, dropping a UUID
+whether or not its VRF still exists, clearing a name equal to the legacy VRF
+name, and resolving any other name in the prefix's namespace. `AddVRFDevice`
+and `CaniVRF.RemoveDevice` edit a VRF's device assignments the same way, the
+former requiring the device to exist as `AddVRF` does. Each reports whether
+anything changed, so a caller can tell a no-op from a change.
 `ResolveVRFReference` takes a VRF as `name`, `namespace/name` or a UUID, so
 same-named VRFs in different namespaces are told apart without a UUID, and
 lists the candidate UUIDs when a name is ambiguous within its namespace.
@@ -469,7 +472,9 @@ lists the candidate UUIDs when a name is ambiguous within its namespace.
 The v1alpha6 → v1alpha7 migration stamps omitted scope as `Global`, folds a
 uniquely resolvable legacy prefix VRF name into `VRFs`, and keeps object UUIDs.
 A legacy name it cannot fold is reported until an explicit membership replaces
-it.
+it: `AddPrefixVRF` clears the name when it adds a membership, and
+`RemovePrefixVRFReference` given the legacy name clears it alone, since a stale
+name resolves to no VRF.
 
 Device deletion follows forward parent FKs, removes owned modules, FRUs,
 interfaces and cables, and detaches IP and VRF assignments. Module deletion uses
@@ -568,7 +573,7 @@ Its VRF memberships become `VRFPrefixAssignment` records
 | `Location` | `uuid.UUID` | `PrefixLocationAssignment.location` | **Mapped** | Import resolves the first valid assignment; export sends `WritablePrefixRequest.location`, which creates the assignment, and retries unscoped on rejection |
 | `VLAN` | `uuid.UUID` | `Prefix.vlan` (FK) | **Mapped** | Resolved through the imported/exported VLAN UUID map |
 | `VRF` | `string` | — | Legacy | Pre-v1alpha7 single VRF name. The migration folds it into `VRFs` when exactly one VRF of that name exists in the namespace; otherwise it is retained and reported as an unresolved conflict rather than guessed, by validation and again by export. `add prefix --vrf` no longer writes it |
-| `VRFs` | `[]uuid.UUID` | `VRFPrefixAssignment` (M2M) | **Mapped** | Canonical VRF memberships, validated to exist in the prefix's namespace; written by `add prefix --vrf`. Import reads them from the `VRFPrefixAssignment` records, skipping a VRF that was not imported, and is authoritative: a re-import replaces the list, so a membership added locally and not yet exported is removed. Export creates the records idempotently (find-or-create per VRF/prefix pair, for new and existing prefixes) |
+| `VRFs` | `[]uuid.UUID` | `VRFPrefixAssignment` (M2M) | **Mapped** | Canonical VRF memberships, validated to exist in the prefix's namespace; written by `add prefix --vrf` and `update prefix --vrf`/`--remove-vrf`. Import reads them from the `VRFPrefixAssignment` records, skipping a VRF that was not imported, and is authoritative: a re-import replaces the list, so a membership added locally and not yet exported is removed. Export creates the records idempotently (find-or-create per VRF/prefix pair, for new and existing prefixes) |
 | `Parent` | `uuid.UUID` | `Prefix.parent` (FK) | **Mapped** | Import preserves the Nautobot parent (none when that parent was not imported); derivation fills only a missing parent, stays inside the namespace and tie-breaks equal lengths on UUID; exported parent-first |
 | `Status` | `string` | `Prefix.status` (FK) | **Mapped** | Resolved by name; falls back to provider default then `"Active"` |
 | `Role` | `string` | `Prefix.role` (FK) | **Mapped** | Resolved by name when non-empty |

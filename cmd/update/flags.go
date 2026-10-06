@@ -34,6 +34,8 @@ const (
 	flagUHeight      = "u-height"
 	flagPosition     = "position"
 	flagNamespace    = "namespace"
+	flagVRF          = "vrf"
+	flagRemoveVRF    = "remove-vrf"
 	flagAddDevice    = "add-device"
 	flagRemoveDevice = "remove-device"
 )

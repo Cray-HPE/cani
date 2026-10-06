@@ -50,6 +50,7 @@ func NewCommand() *cli.Command {
 	cmd.AddCommand(newInterfaceCommand())
 	cmd.AddCommand(newOrphansCommand())
 	cmd.AddCommand(newVRFCommand())
+	cmd.AddCommand(newPrefixCommand())
 
 	cmd.PersistentFlags().StringArray("set", nil, "Set field value as key=value (repeatable)")
 	cmd.PersistentFlags().StringArray("tag", nil, "Tag(s) to apply to the item (repeatable)")

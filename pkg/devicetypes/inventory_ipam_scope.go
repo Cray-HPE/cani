@@ -117,6 +117,25 @@ func (p *CaniPrefix) RemoveVRF(vrfID uuid.UUID) bool {
 	return true
 }
 
+// RemovePrefixVRFReference drops the membership that ref names from the prefix
+// and reports whether anything changed. A UUID is dropped whether or not the
+// VRF still exists, as RemoveVRF allows; a name equal to the prefix's legacy
+// VRF name clears that name, since a stale name resolves to no VRF; any other
+// name resolves in the prefix's namespace.
+func (inv *Inventory) RemovePrefixVRFReference(prefix *CaniPrefix, ref string) (bool, error) {
+	if id, err := uuid.Parse(ref); err == nil {
+		return prefix.RemoveVRF(id), nil
+	}
+	if prefix.VRF != "" && ref == prefix.VRF {
+		return prefix.ClearLegacyVRF(), nil
+	}
+	vrf, err := inv.ResolveVRFReference(prefix.EffectiveNamespace(), ref)
+	if err != nil {
+		return false, err
+	}
+	return prefix.RemoveVRF(vrf.ID), nil
+}
+
 // ClearLegacyVRF drops the legacy VRF name the migration could not fold into
 // memberships and reports whether there was one.
 func (p *CaniPrefix) ClearLegacyVRF() bool {
