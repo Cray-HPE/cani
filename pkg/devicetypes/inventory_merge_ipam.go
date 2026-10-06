@@ -65,24 +65,14 @@ func (inv *Inventory) MergePrefixes(incoming map[uuid.UUID]*CaniPrefix) (map[uui
 	if inv.Prefixes == nil {
 		inv.Prefixes = make(map[uuid.UUID]*CaniPrefix)
 	}
-	index := indexByKey(inv.Prefixes, prefixNaturalKey)
-	remap := make(map[uuid.UUID]uuid.UUID, len(incoming))
-	for _, incomingID := range sortedIDs(incoming) {
-		prefix := incoming[incomingID]
-		if prefix == nil {
-			continue
-		}
-		key := prefixNaturalKey(prefix)
-		resolvedID, err := resolveScopedIdentity(incomingID, prefix.ExternalIDs, inv.Prefixes,
-			index[key], func(p *CaniPrefix) map[string]uuid.UUID { return p.ExternalIDs })
-		if err != nil {
-			return nil, fmt.Errorf("prefix %s in namespace %q: %w", prefix.Prefix, prefix.EffectiveNamespace(), err)
-		}
-		prefix.ID = resolvedID
-		inv.Prefixes[resolvedID] = prefix
-		index[key] = appendUnique(index[key], resolvedID)
-		remap[incomingID] = resolvedID
+	remap, err := resolveIdentities(inv.Prefixes, incoming, prefixNaturalKey, prefixExternalIDs,
+		func(p *CaniPrefix) string {
+			return fmt.Sprintf("prefix %s in namespace %q", p.Prefix, p.EffectiveNamespace())
+		})
+	if err != nil {
+		return nil, err
 	}
+	applyIdentities(inv.Prefixes, incoming, remap, func(p *CaniPrefix, id uuid.UUID) { p.ID = id })
 	return remap, nil
 }
 
@@ -95,105 +85,41 @@ func (inv *Inventory) MergeIPAddresses(incoming map[uuid.UUID]*CaniIPAddress) (m
 		inv.IPAddresses = make(map[uuid.UUID]*CaniIPAddress)
 	}
 	keyOf := func(addr *CaniIPAddress) ipAddressKey { return ipAddressNaturalKey(addr, inv.IPAddressNamespace(addr)) }
-	index := indexByKey(inv.IPAddresses, keyOf)
-	remap := make(map[uuid.UUID]uuid.UUID, len(incoming))
-	for _, incomingID := range sortedIDs(incoming) {
-		address := incoming[incomingID]
-		if address == nil {
-			continue
-		}
-		key := keyOf(address)
-		resolvedID, err := resolveScopedIdentity(incomingID, address.ExternalIDs, inv.IPAddresses,
-			index[key], func(a *CaniIPAddress) map[string]uuid.UUID { return a.ExternalIDs })
-		if err != nil {
-			return nil, fmt.Errorf("IP address %s in namespace %q: %w", key.Host, key.Namespace, err)
-		}
-		address.ID = resolvedID
-		inv.IPAddresses[resolvedID] = address
-		index[key] = appendUnique(index[key], resolvedID)
-		remap[incomingID] = resolvedID
+	remap, err := resolveIdentities(inv.IPAddresses, incoming, keyOf, ipAddressExternalIDs,
+		func(addr *CaniIPAddress) string {
+			key := keyOf(addr)
+			return fmt.Sprintf("IP address %s in namespace %q", key.Host, key.Namespace)
+		})
+	if err != nil {
+		return nil, err
 	}
+	applyIdentities(inv.IPAddresses, incoming, remap, func(a *CaniIPAddress, id uuid.UUID) { a.ID = id })
 	return remap, nil
 }
 
 // MergeVRFs merges VRFs by UUID, then by shared external ID, then by
-// namespace + name, then inserts. Same-named VRFs in one namespace make a
-// name match ambiguous and are reported instead of resolved to the first.
+// namespace + name, then inserts; a VRF without a name is skipped. Same-named
+// VRFs in one namespace make a name match ambiguous and are reported instead
+// of resolved to the first.
 func (inv *Inventory) MergeVRFs(incoming map[uuid.UUID]*CaniVRF) (map[uuid.UUID]uuid.UUID, error) {
 	if inv.VRFs == nil {
 		inv.VRFs = make(map[uuid.UUID]*CaniVRF)
 	}
-	index := indexByKey(inv.VRFs, vrfNaturalKey)
-	remap := make(map[uuid.UUID]uuid.UUID, len(incoming))
-	for _, incomingID := range sortedIDs(incoming) {
-		vrf := incoming[incomingID]
-		if vrf == nil || vrf.Name == "" {
-			continue
+	named := make(map[uuid.UUID]*CaniVRF, len(incoming))
+	for id, vrf := range incoming {
+		if vrf != nil && vrf.Name != "" {
+			named[id] = vrf
 		}
-		key := vrfNaturalKey(vrf)
-		resolvedID, err := resolveScopedIdentity(incomingID, vrf.ExternalIDs, inv.VRFs,
-			index[key], func(v *CaniVRF) map[string]uuid.UUID { return v.ExternalIDs })
-		if err != nil {
-			return nil, fmt.Errorf("VRF %s in namespace %q: %w", vrf.Name, vrf.EffectiveNamespace(), err)
-		}
-		vrf.ID = resolvedID
-		inv.VRFs[resolvedID] = vrf
-		index[key] = appendUnique(index[key], resolvedID)
-		remap[incomingID] = resolvedID
 	}
+	remap, err := resolveIdentities(inv.VRFs, named, vrfNaturalKey, vrfExternalIDs,
+		func(v *CaniVRF) string { return fmt.Sprintf("VRF %s in namespace %q", v.Name, v.EffectiveNamespace()) })
+	if err != nil {
+		return nil, err
+	}
+	applyIdentities(inv.VRFs, named, remap, func(v *CaniVRF, id uuid.UUID) { v.ID = id })
 	return remap, nil
 }
 
-func appendUnique(ids []uuid.UUID, id uuid.UUID) []uuid.UUID {
-	if containsUUID(ids, id) {
-		return ids
-	}
-	return append(ids, id)
-}
-
-// indexByKey groups existing object IDs by natural key in a stable order.
-func indexByKey[T any, K comparable](items map[uuid.UUID]*T, keyOf func(*T) K) map[K][]uuid.UUID {
-	index := make(map[K][]uuid.UUID, len(items))
-	for _, id := range sortedIDs(items) {
-		if item := items[id]; item != nil {
-			key := keyOf(item)
-			index[key] = append(index[key], id)
-		}
-	}
-	return index
-}
-
-// resolveScopedIdentity picks the inventory UUID an incoming object should
-// take: its own when already present, otherwise the existing object sharing
-// a provider external ID, otherwise the single existing object with the same
-// natural key, otherwise itself (insert). Conflicting external IDs on a key
-// match and several key matches are errors.
-func resolveScopedIdentity[T any](
-	incomingID uuid.UUID,
-	incomingExternalIDs map[string]uuid.UUID,
-	existing map[uuid.UUID]*T,
-	keyMatches []uuid.UUID,
-	externalIDsOf func(*T) map[string]uuid.UUID,
-) (uuid.UUID, error) {
-	if _, ok := existing[incomingID]; ok {
-		return incomingID, nil
-	}
-	for _, id := range sortedIDs(existing) {
-		if sharedExternalID(externalIDsOf(existing[id]), incomingExternalIDs) {
-			return id, nil
-		}
-	}
-	switch len(keyMatches) {
-	case 0:
-		return incomingID, nil
-	case 1:
-		if conflictingExternalID(externalIDsOf(existing[keyMatches[0]]), incomingExternalIDs) {
-			return uuid.Nil, fmt.Errorf("existing %s has a different source identity; "+
-				"resolve the conflict explicitly", keyMatches[0])
-		}
-		return keyMatches[0], nil
-	default:
-		return uuid.Nil, fmt.Errorf("natural key is ambiguous among %d existing records (%v); "+
-			"resolve the duplicates explicitly", len(keyMatches), keyMatches)
-	}
-}
+func prefixExternalIDs(p *CaniPrefix) map[string]uuid.UUID       { return p.ExternalIDs }
+func ipAddressExternalIDs(a *CaniIPAddress) map[string]uuid.UUID { return a.ExternalIDs }
+func vrfExternalIDs(v *CaniVRF) map[string]uuid.UUID             { return v.ExternalIDs }
