@@ -38,55 +38,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// namespaceServer answers /ipam/namespaces/ lookups with a stable ID per name
-// and records every other request's path and query for assertions.
-type namespaceServer struct {
-	ids      map[string]uuid.UUID
-	requests []string
-	posts    map[string][][]byte
-}
-
-func newNamespaceServer() *namespaceServer {
-	return &namespaceServer{ids: map[string]uuid.UUID{}, posts: map[string][][]byte{}}
-}
-
-func (s *namespaceServer) id(name string) uuid.UUID {
-	if id, ok := s.ids[name]; ok {
-		return id
-	}
-	s.ids[name] = uuid.New()
-	return s.ids[name]
-}
-
-// handler serves namespaces by name, records POST bodies by path, returns a
-// fresh ID for every create, and answers all other GETs with an empty list.
-func (s *namespaceServer) handler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	s.requests = append(s.requests, r.Method+" "+r.URL.Path+"?"+r.URL.RawQuery)
-	switch {
-	case strings.Contains(r.URL.Path, "ipam/namespaces"):
-		name := r.URL.Query().Get("name")
-		_, _ = io.WriteString(w, `{"count":1,"results":[{"id":"`+s.id(name).String()+`","name":"`+name+`","display":"`+name+`"}]}`)
-	case r.Method == http.MethodPost:
-		body, _ := io.ReadAll(r.Body)
-		s.posts[r.URL.Path] = append(s.posts[r.URL.Path], body)
-		w.WriteHeader(http.StatusCreated)
-		_, _ = io.WriteString(w, `{"id":"`+uuid.New().String()+`"}`)
-	default:
-		_, _ = io.WriteString(w, emptyListJSON)
-	}
-}
-
-func (s *namespaceServer) requestsMatching(substr string) []string {
-	var matches []string
-	for _, request := range s.requests {
-		if strings.Contains(request, substr) {
-			matches = append(matches, request)
-		}
-	}
-	return matches
-}
-
 // TestLoadPrefixes_ScopesEachPrefixByItsNamespace verifies the same CIDR in two
 // namespaces is looked up and created inside each namespace rather than once
 // under Global.

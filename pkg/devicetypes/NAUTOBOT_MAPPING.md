@@ -484,14 +484,15 @@ A device without a location can resolve only unscoped VLANs.
 
 Source: `pkg/devicetypes/ipam_vrf.go`
 Imported by `FetchVRFs()` + `MapVRFs()`; exported in Phase 6c by `loadVRFs()` in
-`load_vrfs.go` (find-or-create by name within the VRF's namespace).
+`load_vrfs.go` (find-or-create by name within the VRF's namespace, which is
+resolved first).
 
 | Cani Field | Go Type | Nautobot Field | Status | Notes |
 |---|---|---|---|---|
 | `ID` | `uuid.UUID` | — | Cani-Internal | Primary key |
 | `Name` | `string` | `VRF.name` | **Mapped** | Natural key together with `Namespace`, exact case; a bare-name lookup prefers the exact name and falls back to a single case-insensitive match |
 | `RD` | `string` | `VRF.rd` | **Mapped** | Route distinguisher (RFC 4364); mapped when non-empty |
-| `Namespace` | `string` | `VRF.namespace` (FK) | Partial | Scope of the VRF's identity; empty means `Global` and the v1alpha7 migration stamps it. Export resolves the namespace by name, creating a missing one on a real run and planning it on a dry run, and a namespace lookup failure fails the VRF rather than defaulting it; not resolved on import |
+| `Namespace` | `string` | `VRF.namespace` (FK) | Partial | Scope of the VRF's identity; empty means `Global` and the v1alpha7 migration stamps it. Export resolves the namespace before the VRF lookup, creating a missing one on a real run and planning it on a dry run, and a namespace lookup failure fails the VRF rather than defaulting it; not resolved on import |
 | `Description` | `string` | `VRF.description` | **Mapped** | Mapped when non-empty |
 | `Devices` | `[]uuid.UUID` | `VRFDeviceAssignment` (M2M) | **Mapped** | Exported via `ensureVRFDeviceAssignment()` in `load_vrfs.go`; imported via `FetchVRFDeviceAssignments()` + `MapVRFs()` |
 | `Status` | `string` | `VRF.status` (FK) | **Mapped** | Resolved by name |
@@ -796,7 +797,7 @@ Iterates `inventory.Cables`. For each cable:
 
 ### Phase 6c: VRFs
 
-Implemented in `loadVRFs()` in `load_vrfs.go`. Iterates `inventory.VRFs`. Find-or-create by name within the VRF's namespace, several matches being an error; resolves the namespace (`ensureNamespace()`: created on a real run, planned on a dry run) and status/tags. After creating/skipping the VRF, iterates `vrf.Devices` and calls `ensureVRFDeviceAssignment()` to create `VRFDeviceAssignment` links (find-or-create). VRFs are created **before** interface enrichment so interface `VRF` references resolve; the VRF cache is keyed by namespace with a by-name index so a bare reference resolves while it is unique.
+Implemented in `loadVRFs()` in `load_vrfs.go`. Iterates `inventory.VRFs`. Resolves the VRF's namespace first (`ensureNamespace()`: created on a real run, planned on a dry run, because Nautobot rejects a VRF lookup filtered by a namespace it does not hold), then find-or-create by name within it, several matches being an error; resolves status/tags. After creating/skipping the VRF, iterates `vrf.Devices` and calls `ensureVRFDeviceAssignment()` to create `VRFDeviceAssignment` links (find-or-create). VRFs are created **before** interface enrichment so interface `VRF` references resolve; the VRF cache is keyed by namespace with a by-name index so a bare reference resolves while it is unique.
 
 ### Phase 7: VLANs
 
