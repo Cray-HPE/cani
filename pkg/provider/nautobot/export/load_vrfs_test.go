@@ -118,6 +118,7 @@ func TestLoadVRFs_SkipsExisting(t *testing.T) {
 	}
 	e, cleanup := newExporterWithServer(t, handler)
 	defer cleanup()
+	seedGlobalNamespace(e, uuid.New())
 
 	vrfID := uuid.New()
 	inv := &devicetypes.Inventory{

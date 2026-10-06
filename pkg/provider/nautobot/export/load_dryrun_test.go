@@ -145,8 +145,9 @@ func recordedExternalIDs(inv *devicetypes.Inventory) []string {
 }
 
 // TestLoadDryRunIssuesNoWrites verifies a full dry-run export against an empty
-// Nautobot, with every auto-create option on, sends nothing but reads and
-// leaves no Nautobot ID on the IPAM records.
+// Nautobot, with every auto-create option on, sends nothing but reads, leaves
+// no Nautobot ID on the IPAM records, and never queries inside a namespace it
+// only plans.
 //
 // Why it matters: --dry-run promises no change to Nautobot, yet the lookup
 // cache created statuses, roles, locations, location types, tags,
@@ -157,8 +158,9 @@ func recordedExternalIDs(inv *devicetypes.Inventory) []string {
 // Inputs: the spine-leaf fixture with one tagged device plus a tagged VRF, a
 // member prefix and an address in a new namespace; a server that holds only a
 // status with no content types and answers 400 to any namespace filter;
-// DryRun with every create option enabled. Outputs: no write request and no
-// external ID on the VRF, prefix or address.
+// DryRun with every create option enabled. Outputs: no write request, no
+// external ID on the VRF, prefix or address, and no request filtered by the
+// planned namespace.
 // Data choice: an empty Nautobot makes every lookup miss, so every create path
 // the options enable is attempted; the tag reaches the one create the options
 // do not gate, the incomplete status reaches the content-type patch, and the
@@ -194,5 +196,9 @@ func TestLoadDryRunIssuesNoWrites(t *testing.T) {
 	}
 	if recorded := recordedExternalIDs(inv); len(recorded) != 0 {
 		t.Errorf("dry run recorded Nautobot IDs on %v", recorded)
+	}
+	insidePlanned := server.requestsMatching(func(request string) bool { return strings.Contains(request, "namespace=tenant-z") })
+	if len(insidePlanned) != 0 {
+		t.Errorf("dry run queried inside the namespace it only plans: %v", insidePlanned)
 	}
 }
