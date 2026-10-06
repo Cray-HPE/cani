@@ -88,7 +88,7 @@ func TestLoadPrimaryIPs_ContinuesAfterOneFailure(t *testing.T) {
 		ipB: {ID: ipB, ObjectMeta: devicetypes.ObjectMeta{ExternalIDs: map[string]uuid.UUID{"nautobot": nautobotIPB}}},
 	}
 
-	err := e.loadPrimaryIPs(context.Background(), inv)
+	err := e.loadPrimaryIPs(context.Background(), inv, nil)
 	if err == nil {
 		t.Fatal("expected error from failed device patch")
 	}
@@ -134,7 +134,7 @@ func TestLoadPrimaryIPs_IndependentFamilyResolution(t *testing.T) {
 		ipv4ID: {ID: ipv4ID, ObjectMeta: devicetypes.ObjectMeta{ExternalIDs: map[string]uuid.UUID{"nautobot": nautobotIPv4}}},
 	}
 
-	err := e.loadPrimaryIPs(context.Background(), inv)
+	err := e.loadPrimaryIPs(context.Background(), inv, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

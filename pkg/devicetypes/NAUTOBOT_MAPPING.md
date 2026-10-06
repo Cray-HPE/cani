@@ -48,7 +48,7 @@ Each DCIM and IPAM `Cani*Type` implements the `CaniType` interface (`Validate()`
 | `Prefixes` | `Prefix` + `PrefixLocationAssignment` + `VRFPrefixAssignment` | Import + Export | `loadPrefixes()` in `load_prefixes.go`; memberships in `load_vrf_prefix_assignments.go` |
 | `IPAddresses` | `IPAddress` | Import + Export | `loadIPAddresses()` in `load_ipaddresses.go` |
 | `VRFs` | `VRF` + `VRFDeviceAssignment` | Import + Export | `loadVRFs()` in `load_vrfs.go` |
-| (scope) | `Namespace` | Export | `Namespace` fields on prefixes, addresses and VRFs (empty means `Global`); export resolves each object's namespace by name and creates a missing one (`GetOrCreateNamespace()` in `lookup_ipam.go`); import does not set them yet |
+| (scope) | `Namespace` | Export | `Namespace` fields on prefixes, addresses and VRFs (empty means `Global`); export resolves each object's namespace by name and creates a missing one on a real run (`ensureNamespace()` in `lookup_namespace.go`; a dry run plans it); import does not set them yet |
 
 ---
 
@@ -290,7 +290,7 @@ Cables use a library mechanism identical to devices: a slug/part-number resolves
 | `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Import records the source Nautobot UUID; merge falls back to label or unordered endpoints |
 | `Source` | `string` | — | Cani-Internal | |
 
-**Cable type derivation** (`resolveCableType()` in `load.go`):
+**Cable type derivation** (`resolveCableType()` in `load_cable_types.go`):
 
 | Priority | Source | Behavior |
 |---|---|---|
@@ -491,7 +491,7 @@ Imported by `FetchVRFs()` + `MapVRFs()`; exported in Phase 6c by `loadVRFs()` in
 | `ID` | `uuid.UUID` | — | Cani-Internal | Primary key |
 | `Name` | `string` | `VRF.name` | **Mapped** | Natural key together with `Namespace`, exact case; a bare-name lookup prefers the exact name and falls back to a single case-insensitive match |
 | `RD` | `string` | `VRF.rd` | **Mapped** | Route distinguisher (RFC 4364); mapped when non-empty |
-| `Namespace` | `string` | `VRF.namespace` (FK) | Partial | Scope of the VRF's identity; empty means `Global` and the v1alpha7 migration stamps it. Export resolves the namespace by name, creating a missing one, and a namespace lookup failure fails the VRF rather than defaulting it; not resolved on import |
+| `Namespace` | `string` | `VRF.namespace` (FK) | Partial | Scope of the VRF's identity; empty means `Global` and the v1alpha7 migration stamps it. Export resolves the namespace by name, creating a missing one on a real run and planning it on a dry run, and a namespace lookup failure fails the VRF rather than defaulting it; not resolved on import |
 | `Description` | `string` | `VRF.description` | **Mapped** | Mapped when non-empty |
 | `Devices` | `[]uuid.UUID` | `VRFDeviceAssignment` (M2M) | **Mapped** | Exported via `ensureVRFDeviceAssignment()` in `load_vrfs.go`; imported via `FetchVRFDeviceAssignments()` + `MapVRFs()` |
 | `Status` | `string` | `VRF.status` (FK) | **Mapped** | Resolved by name |
@@ -535,7 +535,7 @@ Its VRF memberships become `VRFPrefixAssignment` records
 |---|---|---|---|---|
 | `ID` | `uuid.UUID` | — | Cani-Internal | Primary key |
 | `Prefix` | `string` | `Prefix.prefix` | **Mapped** | CIDR; natural key together with `Namespace`, in canonical network form so `10.0.0.5/24` and `10.0.0.0/24` are one key |
-| `Namespace` | `string` | `Prefix.namespace` (FK) | Partial | Scope since v1alpha7; empty means `Global` and the migration stamps it. Export finds or creates each prefix inside its namespace, creating a missing namespace; import does not read it yet |
+| `Namespace` | `string` | `Prefix.namespace` (FK) | Partial | Scope since v1alpha7; empty means `Global` and the migration stamps it. Export finds or creates each prefix inside its namespace, creating a missing namespace on a real run and planning it on a dry run; import does not read it yet |
 | `Network` | `string` | `Prefix.network` | Cani-Internal | Derived from the CIDR; not sent on export |
 | `Broadcast` | `string` | `Prefix.broadcast` | Cani-Internal | Derived from the CIDR; not sent on export |
 | `PrefixLen` | `int` | `Prefix.prefix_length` | **Mapped** | Imported directly; Nautobot derives it from `prefix` on export |
@@ -711,7 +711,17 @@ CaniLocationType (site/building/floor/room)
 
 ## 5. Export Pipeline
 
-The multi-phase export pipeline is orchestrated by `Load()` in `pkg/provider/nautobot/export/load.go`:
+The multi-phase export pipeline is orchestrated by `Load()` in `pkg/provider/nautobot/export/load.go`.
+Each loader records the Nautobot ID of an object it found or created on the
+record's `ExternalIDs`. A dry run records no ID for anything it would create
+and none at all for the IPAM records: it plans missing namespaces and
+reference data, hands out placeholder IDs that never reach the inventory, and
+`cani alpha export --dry-run` does not save the inventory, so the next import
+cannot mistake a placeholder for a conflicting source identity. A location,
+rack or device a dry run finds keeps its real ID in memory; a dry run
+requested through the provider's `export.dry_run` setting alone is reported
+back through the `ExportDryRunner` capability, so the command skips the save
+for it as well.
 
 ### Phase 0a: Custom Fields
 
@@ -786,7 +796,7 @@ Iterates `inventory.Cables`. For each cable:
 
 ### Phase 6c: VRFs
 
-Implemented in `loadVRFs()` in `load_vrfs.go`. Iterates `inventory.VRFs`. Find-or-create by name within the VRF's namespace, several matches being an error; resolves the namespace (created when missing) and status/tags. After creating/skipping the VRF, iterates `vrf.Devices` and calls `ensureVRFDeviceAssignment()` to create `VRFDeviceAssignment` links (find-or-create). VRFs are created **before** interface enrichment so interface `VRF` references resolve; the VRF cache is keyed by namespace with a by-name index so a bare reference resolves while it is unique.
+Implemented in `loadVRFs()` in `load_vrfs.go`. Iterates `inventory.VRFs`. Find-or-create by name within the VRF's namespace, several matches being an error; resolves the namespace (`ensureNamespace()`: created on a real run, planned on a dry run) and status/tags. After creating/skipping the VRF, iterates `vrf.Devices` and calls `ensureVRFDeviceAssignment()` to create `VRFDeviceAssignment` links (find-or-create). VRFs are created **before** interface enrichment so interface `VRF` references resolve; the VRF cache is keyed by namespace with a by-name index so a bare reference resolves while it is unique.
 
 ### Phase 7: VLANs
 
@@ -810,7 +820,7 @@ Implemented in `loadRelationships()` in `load_relationships.go`. Creates Nautobo
 
 ### Phase 11: Primary IPs
 
-Implemented in `loadPrimaryIPs()` in `load_primary_ips.go`. PATCHes devices that have `PrimaryIPv4` or `PrimaryIPv6` set, resolving each family independently to its Nautobot IP UUID. Runs after IP address creation (Phase 9) so the FKs are available. Aggregates per-device errors rather than aborting on the first failure.
+Implemented in `loadPrimaryIPs()` in `load_primary_ips.go`. PATCHes devices that have `PrimaryIPv4` or `PrimaryIPv6` set, resolving each family independently to its Nautobot IP UUID: the ID Phase 9 loaded in this run when there is one, else the one recorded on the address, so a dry run previews the PATCH without recording anything. Runs after IP address creation (Phase 9) so the FKs are available. Aggregates per-device errors rather than aborting on the first failure.
 
 ---
 
@@ -853,7 +863,7 @@ Implemented in `loadPrimaryIPs()` in `load_primary_ips.go`. PATCHes devices that
 
 6. **~~Add `SubdeviceRole` to DeviceType auto-creation~~** — ✅ Implemented in `CreateDeviceTypeFromLocal()` in `lookup.go`. Maps `"parent"` → `nautobotapi.Parent` and `"child"` → `nautobotapi.Child` via `ParentChildStatus.FromSubdeviceRoleEnum()`.
 
-7. **~~Improve cable type mapping~~** — ✅ Implemented via `resolveCableType()` in `load.go`. Four-tier resolution: (1) explicit `CableType` field → direct enum lookup, (2) `CableCategory` → enum lookup, (3) `ConnectorType` → heuristic mapping, (4) legacy slug-based fallback. Full `CableTypeChoices` coverage via `cableTypeMap` and `connectorToCableType` tables.
+7. **~~Improve cable type mapping~~** — ✅ Implemented via `resolveCableType()` in `load_cable_types.go`. Four-tier resolution: (1) explicit `CableType` field → direct enum lookup, (2) `CableCategory` → enum lookup, (3) `ConnectorType` → heuristic mapping, (4) legacy slug-based fallback. Full `CableTypeChoices` coverage via `cableTypeMap` and `connectorToCableType` tables.
 
 8. **~~Use actual `Face` value~~** — ✅ Implemented via `setDeviceFace()` in `export/ref_write.go`. Maps `"front"` → `FaceEnumFront`, `"rear"` → `FaceEnumRear`, empty → nil (Nautobot default).
 

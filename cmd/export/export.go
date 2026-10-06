@@ -33,6 +33,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/util/store"
 	"github.com/Cray-HPE/cani/pkg/datastores"
+	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
 
 // NewCommand creates the parent "export" command with provider subcommands
@@ -123,17 +124,46 @@ func runExport(cmd *cli.Command, args []string, p provider.Provider) error {
 		p.Slug(), len(inv.Locations), len(inv.Racks), len(inv.Devices), len(inv.Modules))
 
 	// Call the provider's Export method to sync to external system
-	if err := exporter.Export(cmd.Context(), cmd, args, inv); err != nil {
+	exportErr := exporter.Export(cmd.Context(), cmd, args, inv)
+
+	// A dry run previews the export; whatever the provider recorded on the
+	// inventory while planning must not outlive the run. The provider may
+	// also have been told to dry-run through its own configuration, which it
+	// can report only once Export has resolved its options.
+	dryRun := effectiveDryRun(cmd, p)
+	if exportErr != nil {
 		// Save inventory even on error so external IDs are persisted
-		_ = datastores.Datastore.Save(inv)
-		return fmt.Errorf("export failed: %w", err)
+		_ = saveUnlessDryRun(inv, dryRun)
+		return fmt.Errorf("export failed: %w", exportErr)
 	}
 
 	// Persist external IDs (and any other mutations) back to the datastore
-	if err := datastores.Datastore.Save(inv); err != nil {
+	if err := saveUnlessDryRun(inv, dryRun); err != nil {
 		return fmt.Errorf("failed to save inventory after export: %w", err)
 	}
 
 	log.Println("Export completed successfully")
 	return nil
+}
+
+// effectiveDryRun combines the generic --dry-run flag with a dry run the
+// provider resolved from its own configuration; a provider without the
+// capability contributes none.
+func effectiveDryRun(cmd *cli.Command, p provider.Provider) bool {
+	if dryRun, _ := cmd.Flags().GetBool("dry-run"); dryRun {
+		return true
+	}
+	runner, ok := p.(provider.ExportDryRunner)
+	return ok && runner.ExportDryRun()
+}
+
+// saveUnlessDryRun persists the inventory after an export; a dry run, whether
+// requested by the flag or by the provider's own configuration, leaves the
+// datastore as it was.
+func saveUnlessDryRun(inv *devicetypes.Inventory, dryRun bool) error {
+	if dryRun {
+		log.Println("Dry run: inventory left unchanged")
+		return nil
+	}
+	return datastores.Datastore.Save(inv)
 }

@@ -159,7 +159,7 @@ func TestLoadIPAddresses_CreatesAddressAndAssignsToInterface(t *testing.T) {
 	result := &LoadResult{}
 
 	// Act.
-	err := e.loadIPAddresses(context.Background(), inv, prefixMap, deviceMap, result)
+	_, err := e.loadIPAddresses(context.Background(), inv, prefixMap, deviceMap, result)
 
 	// Assert.
 	if err != nil {
@@ -252,7 +252,7 @@ func TestLoadIPAddresses_SkipsNilAndEmptyAddresses(t *testing.T) {
 	result := &LoadResult{}
 
 	// Act.
-	err := e.loadIPAddresses(context.Background(), inv,
+	_, err := e.loadIPAddresses(context.Background(), inv,
 		map[uuid.UUID]uuid.UUID{}, map[string]uuid.UUID{}, result)
 
 	// Assert.

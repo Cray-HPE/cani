@@ -72,7 +72,7 @@ func (e *Exporter) loadVRFs(ctx context.Context, inventory *devicetypes.Inventor
 			result.VRFsCreated++
 		}
 		e.Cache.CacheVRF(namespace, vrf.Name, item)
-		setExternalID(&vrf.ExternalIDs, "nautobot", item.ID)
+		e.recordExternalID(&vrf.ExternalIDs, item.ID)
 
 		// Create VRF-device assignments for explicitly listed devices.
 		e.loadVRFDeviceAssignments(ctx, vrf, item, inventory, result)
@@ -144,7 +144,7 @@ func (e *Exporter) createVRF(ctx context.Context, vrf *devicetypes.CaniVRF) (uui
 		req.Description = &vrf.Description
 	}
 
-	ns, err := e.Cache.GetOrCreateNamespace(vrf.EffectiveNamespace())
+	ns, _, err := e.ensureNamespace(vrf.EffectiveNamespace())
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("resolve namespace %q: %w", vrf.EffectiveNamespace(), err)
 	}

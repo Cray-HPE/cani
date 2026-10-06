@@ -34,22 +34,23 @@ import (
 )
 
 // -----------------------------------------------------------------------------
-// GetOrCreateNamespace — create-on-miss (PASSING scenario)
+// ResolveNamespace — create-on-miss (PASSING scenario)
 // -----------------------------------------------------------------------------
 
-// TestGetOrCreateNamespace_CreatesWhenMissing verifies that a namespace absent
-// from Nautobot is created via POST, that the returned item and the package
-// cache capture its new remote ID, and that a second call is served from cache
-// with no further POST.
+// TestResolveNamespace_CreatesWhenMissing verifies that a namespace absent
+// from Nautobot is created via POST on a real run, that the returned item and
+// the cache capture its new remote ID, and that a second call is served from
+// cache with no further POST.
 //
-// Why it matters: every prefix and IP export resolves the "Global" namespace
+// Why it matters: every prefix, address and VRF export resolves its namespace
 // first, so this must create-on-miss exactly once and then memoize to avoid
 // hammering the API each phase.
 // Inputs: namespace name "TestNS-Create" with an empty GET lookup. Outputs:
-// item.ID equals the server-assigned UUID and exactly one create POST occurs.
+// item.ID equals the server-assigned UUID, the item is not Planned, and
+// exactly one create POST occurs.
 // Data choice: the create response includes "display" because the loader
 // dereferences that field when building the cached item.
-func TestGetOrCreateNamespace_CreatesWhenMissing(t *testing.T) {
+func TestResolveNamespace_CreatesWhenMissing(t *testing.T) {
 	// Arrange.
 	const nsName = "TestNS-Create"
 	nsNID := uuid.New()
@@ -78,14 +79,14 @@ func TestGetOrCreateNamespace_CreatesWhenMissing(t *testing.T) {
 	defer cleanup()
 
 	// Act.
-	item, err := e.Cache.GetOrCreateNamespace(nsName)
+	item, err := e.Cache.ResolveNamespace(nsName)
 
 	// Assert.
 	if err != nil {
-		t.Fatalf("GetOrCreateNamespace returned error: %v", err)
+		t.Fatalf("ResolveNamespace returned error: %v", err)
 	}
-	if item == nil {
-		t.Fatal("expected a namespace item, got nil")
+	if item == nil || item.Planned {
+		t.Fatalf("expected an existing namespace item, got %+v", item)
 	}
 	if item.ID != nsNID {
 		t.Errorf("namespace ID = %s, want %s", item.ID, nsNID)
@@ -98,9 +99,9 @@ func TestGetOrCreateNamespace_CreatesWhenMissing(t *testing.T) {
 	}
 
 	// A subsequent call must hit the cache and issue no additional POST.
-	again, err := e.Cache.GetOrCreateNamespace(nsName)
+	again, err := e.Cache.ResolveNamespace(nsName)
 	if err != nil {
-		t.Fatalf("second GetOrCreateNamespace returned error: %v", err)
+		t.Fatalf("second ResolveNamespace returned error: %v", err)
 	}
 	if again.ID != nsNID {
 		t.Errorf("cached namespace ID = %s, want %s", again.ID, nsNID)
@@ -111,22 +112,22 @@ func TestGetOrCreateNamespace_CreatesWhenMissing(t *testing.T) {
 }
 
 // -----------------------------------------------------------------------------
-// GetOrCreateNamespace — cache hit short-circuits any API call
+// ResolveNamespace — cache hit short-circuits any API call
 // -----------------------------------------------------------------------------
 
-// TestGetOrCreateNamespace_ReturnsCachedWithoutAPICall verifies that a
+// TestResolveNamespace_ReturnsCachedWithoutAPICall verifies that a
 // pre-populated namespace is returned straight from the cache with no HTTP
 // round-trip at all.
 //
-// Why it matters: the namespace cache is a package-level global shared across
-// every IPAM phase, so a cache hit must short-circuit to keep repeated resolves
-// from generating redundant Nautobot calls.
-// Inputs: the global namespaces map seeded directly with "TestNS-Cached" before
-// the call. Outputs: the cached item is returned; the fake server fails the
-// test if it receives any request.
-// Data choice: seeding the global map under its lock reproduces the
-// post-first-resolve state without issuing a real create.
-func TestGetOrCreateNamespace_ReturnsCachedWithoutAPICall(t *testing.T) {
+// Why it matters: the namespace cache is shared across every IPAM phase of an
+// export, so a cache hit must short-circuit to keep repeated resolves from
+// generating redundant Nautobot calls.
+// Inputs: the exporter's namespace cache seeded directly with "TestNS-Cached"
+// before the call. Outputs: the cached item is returned; the fake server fails
+// the test if it receives any request.
+// Data choice: seeding the cache map reproduces the post-first-resolve state
+// without issuing a real create.
+func TestResolveNamespace_ReturnsCachedWithoutAPICall(t *testing.T) {
 	// Arrange.
 	const nsName = "TestNS-Cached"
 	cachedNID := uuid.New()
@@ -142,13 +143,55 @@ func TestGetOrCreateNamespace_ReturnsCachedWithoutAPICall(t *testing.T) {
 	e.Cache.namespaces[nsName] = &CachedItem{ID: cachedNID, Name: nsName}
 
 	// Act.
-	item, err := e.Cache.GetOrCreateNamespace(nsName)
+	item, err := e.Cache.ResolveNamespace(nsName)
 
 	// Assert.
 	if err != nil {
-		t.Fatalf("GetOrCreateNamespace returned error: %v", err)
+		t.Fatalf("ResolveNamespace returned error: %v", err)
 	}
-	if item == nil || item.ID != cachedNID {
+	if item == nil || item.ID != cachedNID || item.Planned {
 		t.Errorf("expected cached namespace %s, got %+v", cachedNID, item)
+	}
+}
+
+// TestResolveNamespace_DryRunPlansWithoutWriting verifies that a dry run
+// plans a missing namespace instead of creating it and remembers the plan.
+//
+// Why it matters: --dry-run must never write to Nautobot, and every prefix and
+// address in a new namespace resolves it, so later calls must not repeat the
+// lookup either.
+// Inputs: "TestNS-Planned" absent from Nautobot, resolved twice by a cache in
+// dry-run mode. Outputs: a Planned nil-ID placeholder both times, one
+// namespace GET, and no write request.
+// Data choice: resolving twice proves the plan is cached, not merely that the
+// first call skipped the POST.
+func TestResolveNamespace_DryRunPlansWithoutWriting(t *testing.T) {
+	// Arrange.
+	var gets, writes int
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method != http.MethodGet {
+			writes++
+			w.WriteHeader(http.StatusCreated)
+			return
+		}
+		gets++
+		_, _ = w.Write([]byte(emptyListJSON))
+	}
+	e, cleanup := newExporterWithServer(t, handler)
+	defer cleanup()
+	e.Cache.SetDryRun(true)
+
+	for call := 1; call <= 2; call++ {
+		// Act.
+		item, err := e.Cache.ResolveNamespace("TestNS-Planned")
+
+		// Assert.
+		if err != nil || item == nil || !item.Planned || item.ID != uuid.Nil {
+			t.Fatalf("call %d = (%+v, %v), want a Planned nil-ID placeholder", call, item, err)
+		}
+	}
+	if gets != 1 || writes != 0 {
+		t.Errorf("requests = %d GET and %d writes, want 1 GET and no writes", gets, writes)
 	}
 }

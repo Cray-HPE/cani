@@ -181,3 +181,12 @@ type StagedDeviceDescriber interface {
 	// device.  Returns nil when the provider has nothing to add.
 	DescribeStagedDevice(device *devicetypes.CaniDeviceType) []string
 }
+
+// ExportDryRunner is an optional interface for an Exporter whose dry-run
+// setting can also come from its own configuration, where the generic
+// --dry-run flag cannot see it. The command layer asks after Export has run
+// and skips persisting the inventory when the provider only planned.
+type ExportDryRunner interface {
+	// ExportDryRun reports whether the export that just ran was a dry run.
+	ExportDryRun() bool
+}

@@ -65,69 +65,6 @@ func hostOf(address string) string {
 	return address
 }
 
-// GetOrCreateNamespace looks up a Nautobot Namespace by name. If it doesn't
-// exist and auto-creation is not disabled, it creates a new one.
-func (c *LookupCache) GetOrCreateNamespace(name string) (*CachedItem, error) {
-	c.namespacesMu.RLock()
-	if item, ok := c.namespaces[name]; ok {
-		c.namespacesMu.RUnlock()
-		return item, nil
-	}
-	c.namespacesMu.RUnlock()
-
-	c.namespacesMu.Lock()
-	defer c.namespacesMu.Unlock()
-
-	// Double-check
-	if item, ok := c.namespaces[name]; ok {
-		return item, nil
-	}
-
-	nameFilter := []string{name}
-	resp, err := c.client.IpamNamespacesListWithResponse(c.ctx, &nautobotapi.IpamNamespacesListParams{
-		Name: &nameFilter,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to lookup namespace %s: %w", name, err)
-	}
-	if resp.StatusCode() != http.StatusOK {
-		return nil, fmt.Errorf("failed to lookup namespace %s: status %d", name, resp.StatusCode())
-	}
-
-	if resp.JSON200 != nil && resp.JSON200.Results != nil && len(resp.JSON200.Results) > 0 {
-		ns := (resp.JSON200.Results)[0]
-		item := &CachedItem{
-			ID:      toUUID(ns.Id),
-			Name:    ns.Name,
-			Display: *ns.Display,
-		}
-		c.namespaces[name] = item
-		return item, nil
-	}
-
-	// Namespace not found — create it
-	createResp, err := c.client.IpamNamespacesCreateWithResponse(c.ctx, &nautobotapi.IpamNamespacesCreateParams{}, nautobotapi.NamespaceRequest{
-		Name: name,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create namespace %s: %w", name, err)
-	}
-	if createResp.StatusCode() != http.StatusCreated && createResp.StatusCode() != http.StatusOK {
-		return nil, fmt.Errorf("failed to create namespace %s: status %d: %s", name, createResp.StatusCode(), string(createResp.Body))
-	}
-	if createResp.JSON201 != nil {
-		item := &CachedItem{
-			ID:      toUUID(createResp.JSON201.Id),
-			Name:    createResp.JSON201.Name,
-			Display: *createResp.JSON201.Display,
-		}
-		c.namespaces[name] = item
-		return item, nil
-	}
-
-	return nil, fmt.Errorf("namespace %s: unexpected empty response after create", name)
-}
-
 // LookupVLAN looks up an existing VLAN by VID and location. Returns nil, nil if not found.
 func (c *LookupCache) LookupVLAN(vid int, locationName string) (*CachedItem, error) {
 	key := strconv.Itoa(vid) + ":" + locationName
