@@ -28,6 +28,7 @@ package devicetypes
 import (
 	"fmt"
 	"log"
+	"slices"
 
 	"github.com/google/uuid"
 )
@@ -198,12 +199,8 @@ func containsUUID(slice []uuid.UUID, target uuid.UUID) bool {
 	return false
 }
 
+// removeUUID removes every occurrence of target in place, so a slice without
+// it comes back unchanged, nil included.
 func removeUUID(slice []uuid.UUID, target uuid.UUID) []uuid.UUID {
-	result := make([]uuid.UUID, 0, len(slice))
-	for _, v := range slice {
-		if v != target {
-			result = append(result, v)
-		}
-	}
-	return result
+	return slices.DeleteFunc(slice, func(candidate uuid.UUID) bool { return candidate == target })
 }

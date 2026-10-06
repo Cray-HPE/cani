@@ -448,6 +448,16 @@ interfaces and cables, and detaches IP and VRF assignments. Module deletion uses
 the same ownership cleanup. Shared IP addresses and VRFs remain in inventory,
 and unrelated hardware is retained; derived relationships are rebuilt afterward.
 
+IPAM deletion follows Nautobot's `on_delete` rules (`inventory_remove_ipam.go`).
+Removing a prefix moves its child prefixes and addresses up to its own parent, a
+missing parent record counting as none; a root prefix that still holds addresses
+is refused, as Nautobot refuses it, because every address needs a containing
+prefix. Removing an address clears device primary IPs and NAT-inside references
+that point at it; its interface assignments go with it, and the derived
+interface index is rebuilt once the removal, or a cascade of removals, is done.
+Removing a VRF drops its prefix memberships; interface VRF settings are names
+resolved at export and are left alone.
+
 VLAN resolution prefers an exact device-location match and falls back to an
 unscoped VLAN only when no local candidate exists. VLANs in other locations are
 never selected. Duplicate candidates in the selected scope, or a local candidate
