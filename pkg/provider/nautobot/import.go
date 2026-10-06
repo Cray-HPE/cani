@@ -25,16 +25,19 @@ func (p *Nautobot) Import(ctx context.Context, cmd *cli.Command, args []string, 
 	if err := import_.Import(cmd, args, inventory); err != nil {
 		return fmt.Errorf("nautobot import failed: %w", err)
 	}
+	if p.raw == nil {
+		return nil
+	}
 
-	clog.Detail("  Fetched %d locations", len(p.rawLocations))
-	clog.Detail("  Fetched %d racks", len(p.rawRacks))
-	clog.Detail("  Fetched %d devices", len(p.rawDevices))
-	clog.Detail("  Fetched %d device types", len(p.rawDeviceTypes))
-	clog.Detail("  Fetched %d interfaces", len(p.rawInterfaces))
-	clog.Detail("  Fetched %d modules", len(p.rawModules))
-	clog.Detail("  Fetched %d module bays", len(p.rawModuleBays))
-	clog.Detail("  Fetched %d cables", len(p.rawCables))
-	clog.Detail("  Fetched %d inventory items", len(p.rawInventoryItems))
+	clog.Detail("  Fetched %d locations", len(p.raw.Locations))
+	clog.Detail("  Fetched %d racks", len(p.raw.Racks))
+	clog.Detail("  Fetched %d devices", len(p.raw.Devices))
+	clog.Detail("  Fetched %d device types", len(p.raw.DeviceTypes))
+	clog.Detail("  Fetched %d interfaces", len(p.raw.Interfaces))
+	clog.Detail("  Fetched %d modules", len(p.raw.Modules))
+	clog.Detail("  Fetched %d module bays", len(p.raw.ModuleBays))
+	clog.Detail("  Fetched %d cables", len(p.raw.Cables))
+	clog.Detail("  Fetched %d inventory items", len(p.raw.InventoryItems))
 
 	return nil
 }

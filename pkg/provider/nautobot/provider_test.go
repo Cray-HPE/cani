@@ -27,10 +27,12 @@ package nautobot
 
 import (
 	"context"
+	"reflect"
 	"testing"
 
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	imprt "github.com/Cray-HPE/cani/pkg/provider/nautobot/import"
+	"github.com/Cray-HPE/cani/pkg/provider/nautobot/transform"
 )
 
 func TestNew(t *testing.T) {
@@ -60,65 +62,33 @@ func TestSlug(t *testing.T) {
 	}
 }
 
+// TestClearRawData verifies ClearRawData discards a stored snapshot so the
+// next Transform takes the legacy path until an import stores a new one.
+//
+// Why it matters: a stale snapshot would be re-mapped on a transform-only run.
+// Inputs: a provider holding a snapshot with one location. Outputs: raw is nil
+// after ClearRawData.
+// Data choice: one populated collection is enough to show the whole snapshot
+// goes, since it is held as a single value.
 func TestClearRawData(t *testing.T) {
 	p := New()
-	p.rawLocations = []nautobotapi.Location{{Name: "loc"}}
-	p.rawRacks = []nautobotapi.Rack{{Name: "rack"}}
-	p.rawDevices = []nautobotapi.Device{{}}
-	p.rawDeviceTypes = []nautobotapi.DeviceType{{}}
-	p.rawInterfaces = []nautobotapi.Interface{{}}
-	p.rawModules = []nautobotapi.Module{{}}
-	p.rawModuleBays = []nautobotapi.ModuleBay{{}}
-	p.rawCables = []nautobotapi.Cable{{}}
-	p.rawInventoryItems = []nautobotapi.InventoryItem{{}}
-	p.rawStatuses = []nautobotapi.Status{{}}
-	p.rawRoles = []nautobotapi.Role{{}}
-	p.rawVLANLocationAssignments = []nautobotapi.VLANLocationAssignment{{}}
-	p.rawPrefixLocationAssignments = []nautobotapi.PrefixLocationAssignment{{}}
+	p.raw = &transform.RawData{Locations: []nautobotapi.Location{{Name: "loc"}}}
 
 	p.ClearRawData()
 
-	if p.rawLocations != nil {
-		t.Error("rawLocations not cleared")
-	}
-	if p.rawRacks != nil {
-		t.Error("rawRacks not cleared")
-	}
-	if p.rawDevices != nil {
-		t.Error("rawDevices not cleared")
-	}
-	if p.rawDeviceTypes != nil {
-		t.Error("rawDeviceTypes not cleared")
-	}
-	if p.rawInterfaces != nil {
-		t.Error("rawInterfaces not cleared")
-	}
-	if p.rawModules != nil {
-		t.Error("rawModules not cleared")
-	}
-	if p.rawModuleBays != nil {
-		t.Error("rawModuleBays not cleared")
-	}
-	if p.rawCables != nil {
-		t.Error("rawCables not cleared")
-	}
-	if p.rawInventoryItems != nil {
-		t.Error("rawInventoryItems not cleared")
-	}
-	if p.rawStatuses != nil {
-		t.Error("rawStatuses not cleared")
-	}
-	if p.rawRoles != nil {
-		t.Error("rawRoles not cleared")
-	}
-	if p.rawVLANLocationAssignments != nil {
-		t.Error("rawVLANLocationAssignments not cleared")
-	}
-	if p.rawPrefixLocationAssignments != nil {
-		t.Error("rawPrefixLocationAssignments not cleared")
+	if p.raw != nil {
+		t.Error("snapshot not cleared")
 	}
 }
 
+// TestSetRawData verifies SetRawData stores the import snapshot intact for
+// Transform.
+//
+// Why it matters: every collection the transform maps must arrive unchanged.
+// Inputs: a snapshot with one record in several collections. Outputs: the
+// stored snapshot equals the input.
+// Data choice: named records in distinct collections catch a copy that drops
+// or swaps a field.
 func TestSetRawData(t *testing.T) {
 	p := New()
 
@@ -136,48 +106,13 @@ func TestSetRawData(t *testing.T) {
 		Roles:                     []nautobotapi.Role{{Name: "Compute"}},
 		VLANLocationAssignments:   []nautobotapi.VLANLocationAssignment{{}},
 		PrefixLocationAssignments: []nautobotapi.PrefixLocationAssignment{{}},
+		Namespaces:                []nautobotapi.Namespace{{Name: "Global"}},
 	}
 
 	p.SetRawData(d)
 
-	if len(p.rawLocations) != 1 || p.rawLocations[0].Name != "site-a" {
-		t.Error("rawLocations not set correctly")
-	}
-	if len(p.rawRacks) != 1 || p.rawRacks[0].Name != "rack-1" {
-		t.Error("rawRacks not set correctly")
-	}
-	if len(p.rawDevices) != 1 {
-		t.Error("rawDevices not set correctly")
-	}
-	if len(p.rawDeviceTypes) != 1 || p.rawDeviceTypes[0].Model != "DL380" {
-		t.Error("rawDeviceTypes not set correctly")
-	}
-	if len(p.rawInterfaces) != 1 || p.rawInterfaces[0].Name != "eth0" {
-		t.Error("rawInterfaces not set correctly")
-	}
-	if len(p.rawModules) != 1 {
-		t.Error("rawModules not set correctly")
-	}
-	if len(p.rawModuleBays) != 1 || p.rawModuleBays[0].Name != "bay-0" {
-		t.Error("rawModuleBays not set correctly")
-	}
-	if len(p.rawCables) != 1 {
-		t.Error("rawCables not set correctly")
-	}
-	if len(p.rawInventoryItems) != 1 || p.rawInventoryItems[0].Name != "gpu-0" {
-		t.Error("rawInventoryItems not set correctly")
-	}
-	if len(p.rawStatuses) != 1 || p.rawStatuses[0].Name != "Active" {
-		t.Error("rawStatuses not set correctly")
-	}
-	if len(p.rawRoles) != 1 || p.rawRoles[0].Name != "Compute" {
-		t.Error("rawRoles not set correctly")
-	}
-	if len(p.rawVLANLocationAssignments) != 1 {
-		t.Error("rawVLANLocationAssignments not set correctly")
-	}
-	if len(p.rawPrefixLocationAssignments) != 1 {
-		t.Error("rawPrefixLocationAssignments not set correctly")
+	if p.raw == nil || !reflect.DeepEqual(*p.raw, d) {
+		t.Errorf("stored snapshot = %+v, want %+v", p.raw, d)
 	}
 }
 
