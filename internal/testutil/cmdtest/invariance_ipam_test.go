@@ -32,6 +32,7 @@ import (
 
 	"github.com/Cray-HPE/cani/cmd/add"
 	"github.com/Cray-HPE/cani/cmd/remove"
+	"github.com/Cray-HPE/cani/cmd/update"
 	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/testutil/cmdtest"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
@@ -53,6 +54,7 @@ func ipamInventory() *devicetypes.Inventory {
 var ipamVerbs = map[string]func() *cli.Command{
 	"add":    add.NewCommand,
 	"remove": remove.NewCommand,
+	"update": update.NewCommand,
 }
 
 // ipamFingerprint runs one IPAM verb through a fresh harness and returns a
@@ -75,6 +77,7 @@ func ipamFingerprints(t *testing.T) map[string]string {
 	t.Helper()
 	return map[string]string{
 		"add prefix":    ipamFingerprint(t, "add", "prefix", map[string][]string{"vrf": {"blue"}}, "10.0.1.0/24"),
+		"update prefix": ipamFingerprint(t, "update", "prefix", map[string][]string{"vrf": {"blue"}}, "10.0.0.0/16"),
 		"remove prefix": ipamFingerprint(t, "remove", "prefix", map[string][]string{"cascade": {"true"}}, "10.0.0.0/16"),
 		"remove ip":     ipamFingerprint(t, "remove", "ip", nil, "10.0.0.5"),
 		"remove vrf":    ipamFingerprint(t, "remove", "vrf", nil, "blue"),
@@ -88,6 +91,7 @@ func assertIPAMBaseline(t *testing.T, baseline map[string]string) {
 	for _, guard := range []struct{ verb, want string }{
 		{"add prefix", `prefix 10.0.1.0/24`},
 		{"add prefix", `"vrfs":["<id>"]`},
+		{"update prefix", `"vrfs":["<id>"]`},
 		{"remove prefix", `vrf blue`},
 		{"remove ip", `prefix 10.0.0.0/16`},
 		{"remove vrf", `ip 10.0.0.5/16`},

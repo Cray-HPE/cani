@@ -102,6 +102,66 @@ func TestRemoveDeviceDropsAnAssignmentWhoseDeviceIsGone(t *testing.T) {
 	}
 }
 
+// TestRemovePrefixVRFReferenceByUUIDNeedsNoVRF verifies a UUID reference is
+// dropped from the memberships even when no VRF has that UUID.
+//
+// Why it matters: RemoveVRF promises a membership left by a VRF that is gone
+// can be dropped; a resolver that insisted on finding the VRF first would
+// break that promise for every caller that holds only the reference text.
+// Inputs: a prefix whose only membership names a UUID with no VRF.
+// Outputs: (true, nil) and no memberships.
+// Data choice: an empty VRF map makes any lookup fail, so only remove-by-ID
+// can succeed.
+func TestRemovePrefixVRFReferenceByUUIDNeedsNoVRF(t *testing.T) {
+	// Arrange.
+	inv := NewInventory()
+	gone := uuid.New()
+	prefix := &CaniPrefix{ID: uuid.New(), Prefix: "10.0.0.0/24", VRFs: []uuid.UUID{gone}}
+
+	// Act.
+	changed, err := inv.RemovePrefixVRFReference(prefix, gone.String())
+
+	// Assert.
+	if !changed || err != nil || len(prefix.VRFs) != 0 {
+		t.Errorf("RemovePrefixVRFReference = (%v, %v) with %v left; want (true, nil) and none", changed, err, prefix.VRFs)
+	}
+}
+
+// TestRemovePrefixVRFReferenceByName verifies a name clears the legacy VRF
+// name when it matches it, otherwise resolves the VRF in the prefix's
+// namespace and drops that membership, and reports an unknown name.
+//
+// Why it matters: the three spellings an operator can give must each reach
+// the right model edit without the caller inspecting the prefix.
+// Inputs: tenant-a prefix with legacy name stale and a membership of
+// tenant-a VRF blue; refs "stale", "blue", "red".
+// Outputs: true with the legacy name cleared; true with no memberships; an
+// error for red.
+// Data choice: stale exists nowhere, so it can only be the legacy name.
+func TestRemovePrefixVRFReferenceByName(t *testing.T) {
+	// Arrange.
+	inv := NewInventory()
+	blue := &CaniVRF{ID: uuid.New(), Name: "blue", Namespace: "tenant-a"}
+	inv.VRFs[blue.ID] = blue
+	prefix := &CaniPrefix{ID: uuid.New(), Prefix: "10.0.0.0/24", Namespace: "tenant-a", VRF: "stale", VRFs: []uuid.UUID{blue.ID}}
+
+	// Act.
+	legacy, legacyErr := inv.RemovePrefixVRFReference(prefix, "stale")
+	member, memberErr := inv.RemovePrefixVRFReference(prefix, "blue")
+	_, unknownErr := inv.RemovePrefixVRFReference(prefix, "red")
+
+	// Assert.
+	if !legacy || legacyErr != nil || prefix.VRF != "" {
+		t.Errorf("legacy ref = (%v, %v) leaving %q; want (true, nil) and no name", legacy, legacyErr, prefix.VRF)
+	}
+	if !member || memberErr != nil || len(prefix.VRFs) != 0 {
+		t.Errorf("member ref = (%v, %v) leaving %v; want (true, nil) and none", member, memberErr, prefix.VRFs)
+	}
+	if unknownErr == nil || !strings.Contains(unknownErr.Error(), `"red" not found`) {
+		t.Errorf("unknown ref error = %v, want one naming red", unknownErr)
+	}
+}
+
 // TestResolveVRFReferenceListsAmbiguousCandidates verifies an ambiguous name
 // is refused with every candidate UUID, as the prefix and address resolvers do.
 //

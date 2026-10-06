@@ -189,6 +189,12 @@ func addRackFingerprint(t *testing.T) string {
 	return cmdtest.Fingerprint(harness.Inventory())
 }
 
+// updateTreesPerRun is how many times crudFingerprints builds the update
+// command tree: once for update device and once for update prefix. Building
+// the tree registers each provider's device-update flags, so the capable
+// provider sees that many RegisterDeviceUpdateFlags calls per run.
+const updateTreesPerRun = 2
+
 // crudFingerprints renders every CRUD verb once, under whatever providers are
 // currently registered.
 func crudFingerprints(t *testing.T) map[string]string {
@@ -208,7 +214,7 @@ func crudFingerprints(t *testing.T) map[string]string {
 // produces the same result no matter which providers are registered.
 //
 // Why it matters: generic CRUD must remain independent of provider identity.
-// Inputs: five device CRUD scenarios and four IPAM ones, first without
+// Inputs: five device CRUD scenarios and five IPAM ones, first without
 // providers, then with inert and capable providers. Outputs: equal
 // fingerprints and exact callback arguments.
 // Data choice: a fresh test process keeps these registry states distinct even
