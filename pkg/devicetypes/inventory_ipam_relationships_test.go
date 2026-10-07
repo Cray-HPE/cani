@@ -2,6 +2,7 @@ package devicetypes
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 
@@ -100,11 +101,13 @@ func TestMergeTransformRejectsDanglingIPAMAtomically(t *testing.T) {
 //
 // Why it matters: the conflict surfaces in the IPAM merge stage, after
 // locations, racks, devices and VLANs have already merged into the working
-// copy; the receiver must still be untouched.
+// copy; the receiver must still be untouched, and the error must still be
+// recognisable as ErrSourceIdentityConflict through the transaction's wrapping
+// so the import command can name the remedy.
 // Inputs: the reference fixture (Global 10.0.0.0/24 with a nautobot external
 // ID) and a transform result with the same key under another nautobot UUID.
-// Outputs: an error naming the source-identity conflict and byte-identical
-// inventory and input.
+// Outputs: an error that unwraps to ErrSourceIdentityConflict and names the
+// fixture prefix as the record, and byte-identical inventory and input.
 // Data choice: giving the existing prefix an external ID is what turns a plain
 // natural-key match into a conflict.
 func TestMergeTransformRejectsConflictingIPAMIdentityAtomically(t *testing.T) {
@@ -119,7 +122,13 @@ func TestMergeTransformRejectsConflictingIPAMIdentityAtomically(t *testing.T) {
 
 	_, err := fixture.inventory.MergeTransformResult(result)
 
-	assertIPAMReferenceError(t, "MergeTransformResult", err, "different source identity")
+	var conflict *SourceIdentityConflictError
+	if !errors.Is(err, ErrSourceIdentityConflict) || !errors.As(err, &conflict) {
+		t.Fatalf("MergeTransformResult error = %v, want a SourceIdentityConflictError", err)
+	}
+	if conflict.Record != fixture.prefix.ID || conflict.Kind != IPAMKindPrefix {
+		t.Errorf("conflict names %s %v, want prefix %v", conflict.Kind, conflict.Record, fixture.prefix.ID)
+	}
 	if got := inventoryJSONForReferenceTest(t, fixture.inventory); got != before {
 		t.Error("rejected merge changed the live inventory")
 	}

@@ -26,10 +26,43 @@
 package devicetypes
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
 )
+
+// IPAMKind names the IPAM object a merge error is about.
+type IPAMKind string
+
+const (
+	IPAMKindPrefix    IPAMKind = "prefix"
+	IPAMKindIPAddress IPAMKind = "IP address"
+	IPAMKindVRF       IPAMKind = "VRF"
+)
+
+// ErrSourceIdentityConflict marks a natural-key match whose provider external
+// ID differs from the incoming object's: the source deleted and recreated the
+// object. The record is left as it is rather than following the new object by
+// guesswork, so the operator removes it and imports again.
+var ErrSourceIdentityConflict = errors.New("remove the record and import again")
+
+// SourceIdentityConflictError carries what acting on ErrSourceIdentityConflict
+// needs: which record to remove and the two IDs that disagree.
+type SourceIdentityConflictError struct {
+	Kind     IPAMKind
+	Record   uuid.UUID // the record holding the natural key
+	Source   string    // the provider whose IDs differ
+	Existing uuid.UUID // the record's ID at the source
+	Incoming uuid.UUID // the ID the source holds now
+}
+
+func (e *SourceIdentityConflictError) Error() string {
+	return fmt.Sprintf("record %s carries %s ID %s but the source now holds %s; %v",
+		e.Record, e.Source, e.Existing, e.Incoming, ErrSourceIdentityConflict)
+}
+
+func (e *SourceIdentityConflictError) Unwrap() error { return ErrSourceIdentityConflict }
 
 // resolveIdentities maps each incoming object to the inventory UUID it takes:
 // its own when present, else the record sharing a provider external ID, else
@@ -37,14 +70,15 @@ import (
 // pass runs over the whole batch before any key matching, so a record its
 // source moved to another key no longer answers to the old one, and a record
 // the source moved onto a key another record holds is an error rather than a
-// second record under one key. Errors name the object with describe.
+// second record under one key. Errors name the object with kind and describe.
 func resolveIdentities[T any, K comparable](
+	kind IPAMKind,
 	existing, incoming map[uuid.UUID]*T,
 	keyOf func(*T) K,
 	externalIDsOf func(*T) map[string]uuid.UUID,
 	describe func(*T) string,
 ) (map[uuid.UUID]uuid.UUID, error) {
-	index := newIdentityIndex(existing, keyOf, externalIDsOf)
+	index := newIdentityIndex(kind, existing, keyOf, externalIDsOf)
 	remap := make(map[uuid.UUID]uuid.UUID, len(incoming))
 	unmatched, moved, err := matchBySource(index, incoming, keyOf, externalIDsOf, describe, remap)
 	if err != nil {
@@ -52,15 +86,15 @@ func resolveIdentities[T any, K comparable](
 	}
 	for _, id := range moved {
 		if holder, taken := index.keyTakenFrom(remap[id]); taken {
-			return nil, fmt.Errorf("%s: record %s now holds the natural key of record %s; resolve the duplicate explicitly",
-				describe(incoming[id]), remap[id], holder)
+			return nil, fmt.Errorf("%s %s: record %s now holds the natural key of record %s; resolve the duplicate explicitly",
+				kind, describe(incoming[id]), remap[id], holder)
 		}
 	}
 	for _, id := range unmatched {
 		obj := incoming[id]
 		target, err := index.keyMatch(id, keyOf(obj), externalIDsOf(obj))
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", describe(obj), err)
+			return nil, fmt.Errorf("%s %s: %w", kind, describe(obj), err)
 		}
 		index.replace(target, keyOf(obj), externalIDsOf(obj))
 		remap[id] = target
@@ -85,7 +119,7 @@ func matchBySource[T any, K comparable](
 		}
 		target, ok, err := index.identityMatch(id, externalIDsOf(obj))
 		if err != nil {
-			return nil, nil, fmt.Errorf("%s: %w", describe(obj), err)
+			return nil, nil, fmt.Errorf("%s %s: %w", index.kind, describe(obj), err)
 		}
 		if !ok {
 			unmatched = append(unmatched, id)

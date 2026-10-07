@@ -59,15 +59,16 @@ func (inv *Inventory) MergeVLANs(incoming map[uuid.UUID]*CaniVLAN) map[uuid.UUID
 
 // MergePrefixes merges prefixes by UUID, then by shared external ID, then by
 // namespace + canonical CIDR, then inserts. A natural-key match whose source
-// identity conflicts, or that is ambiguous among legacy duplicates, is an
-// error rather than a silent overwrite.
+// identity conflicts is an ErrSourceIdentityConflict naming the record to
+// remove, and a key ambiguous among legacy duplicates is an error; neither is
+// a silent overwrite.
 func (inv *Inventory) MergePrefixes(incoming map[uuid.UUID]*CaniPrefix) (map[uuid.UUID]uuid.UUID, error) {
 	if inv.Prefixes == nil {
 		inv.Prefixes = make(map[uuid.UUID]*CaniPrefix)
 	}
-	remap, err := resolveIdentities(inv.Prefixes, incoming, prefixNaturalKey, prefixExternalIDs,
+	remap, err := resolveIdentities(IPAMKindPrefix, inv.Prefixes, incoming, prefixNaturalKey, prefixExternalIDs,
 		func(p *CaniPrefix) string {
-			return fmt.Sprintf("prefix %s in namespace %q", p.Prefix, p.EffectiveNamespace())
+			return fmt.Sprintf("%s in namespace %q", p.Prefix, p.EffectiveNamespace())
 		})
 	if err != nil {
 		return nil, err
@@ -85,10 +86,10 @@ func (inv *Inventory) MergeIPAddresses(incoming map[uuid.UUID]*CaniIPAddress) (m
 		inv.IPAddresses = make(map[uuid.UUID]*CaniIPAddress)
 	}
 	keyOf := func(addr *CaniIPAddress) ipAddressKey { return ipAddressNaturalKey(addr, inv.IPAddressNamespace(addr)) }
-	remap, err := resolveIdentities(inv.IPAddresses, incoming, keyOf, ipAddressExternalIDs,
+	remap, err := resolveIdentities(IPAMKindIPAddress, inv.IPAddresses, incoming, keyOf, ipAddressExternalIDs,
 		func(addr *CaniIPAddress) string {
 			key := keyOf(addr)
-			return fmt.Sprintf("IP address %s in namespace %q", key.Host, key.Namespace)
+			return fmt.Sprintf("%s in namespace %q", key.Host, key.Namespace)
 		})
 	if err != nil {
 		return nil, err
@@ -111,8 +112,8 @@ func (inv *Inventory) MergeVRFs(incoming map[uuid.UUID]*CaniVRF) (map[uuid.UUID]
 			named[id] = vrf
 		}
 	}
-	remap, err := resolveIdentities(inv.VRFs, named, vrfNaturalKey, vrfExternalIDs,
-		func(v *CaniVRF) string { return fmt.Sprintf("VRF %s in namespace %q", v.Name, v.EffectiveNamespace()) })
+	remap, err := resolveIdentities(IPAMKindVRF, inv.VRFs, named, vrfNaturalKey, vrfExternalIDs,
+		func(v *CaniVRF) string { return fmt.Sprintf("%s in namespace %q", v.Name, v.EffectiveNamespace()) })
 	if err != nil {
 		return nil, err
 	}
