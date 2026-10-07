@@ -131,9 +131,6 @@ func resolvePrefixVRFs(cmd *cli.Command, inventory *devicetypes.Inventory, prefi
 		if err != nil {
 			return fmt.Errorf("resolving --vrf %q: %w", ref, err)
 		}
-		if vrf.EffectiveNamespace() != namespace {
-			return fmt.Errorf("resolving --vrf %q: VRF is in namespace %q, not %q", ref, vrf.EffectiveNamespace(), namespace)
-		}
 		prefix.VRFs = append(prefix.VRFs, vrf.ID)
 	}
 	return nil

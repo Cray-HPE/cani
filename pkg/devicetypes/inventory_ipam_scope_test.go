@@ -173,3 +173,32 @@ func TestIPAMScopeSeparatesNamespaces(t *testing.T) {
 		t.Fatalf("errors = %v, warnings = %v, unresolved = %v; want none", result.Errors, result.Warnings, result.Unresolved)
 	}
 }
+
+// TestAddPrefixRejectsMembershipOutsideItsNamespace verifies AddPrefix refuses
+// a VRF membership that is missing or belongs to another namespace.
+//
+// Why it matters: the model owns the namespace boundary, so every writer (CLI,
+// provider, future API) gets the same refusal before the prefix is stored.
+// Inputs: a tenant-a VRF; a Global prefix listing it, then a prefix listing an
+// unknown VRF ID. Outputs: a namespace-mismatch error, a not-found error, and
+// no stored prefix.
+// Data choice: both prefixes are otherwise valid, so only the membership check
+// can reject them.
+func TestAddPrefixRejectsMembershipOutsideItsNamespace(t *testing.T) {
+	inv := NewInventory()
+	vrfID := uuid.New()
+	inv.VRFs[vrfID] = &CaniVRF{ID: vrfID, Name: "blue", Namespace: "tenant-a"}
+
+	foreign := inv.AddPrefix(&CaniPrefix{ID: uuid.New(), Prefix: "10.0.0.0/24", VRFs: []uuid.UUID{vrfID}})
+	missing := inv.AddPrefix(&CaniPrefix{ID: uuid.New(), Prefix: "10.0.1.0/24", VRFs: []uuid.UUID{uuid.New()}})
+
+	if foreign == nil || !strings.Contains(foreign.Error(), `VRF "blue" is in namespace "tenant-a", not "Global"`) {
+		t.Errorf("foreign membership error = %v, want a namespace mismatch", foreign)
+	}
+	if missing == nil || !strings.Contains(missing.Error(), "not found") {
+		t.Errorf("missing membership error = %v, want VRF not found", missing)
+	}
+	if len(inv.Prefixes) != 0 {
+		t.Errorf("prefixes = %d, want none stored", len(inv.Prefixes))
+	}
+}
