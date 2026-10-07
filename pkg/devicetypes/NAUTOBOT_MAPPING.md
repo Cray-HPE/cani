@@ -427,7 +427,11 @@ migration is saved, capped at ten lines unless `--debug` is set.
 Authoring checks a record before it is stored; a parent is derived when none is
 given, and parent scope is left to validation. `AddPrefix` refuses a VRF
 membership that is missing or in another namespace, sharing one check with
-validation.
+validation. `AddPrefix`, `AddIPAddress` and `AddVRF` (`inventory_add_ipam.go`)
+reject a record whose natural key another record holds, naming that record. VRF
+names are case-sensitive, as in Nautobot, so `red` and `Red` are different VRFs;
+a name lookup takes the exact name and falls back to a single case-insensitive
+match only when there is none.
 
 The v1alpha6 → v1alpha7 migration stamps omitted scope as `Global`, folds a
 uniquely resolvable legacy prefix VRF name into `VRFs`, and keeps object UUIDs.
