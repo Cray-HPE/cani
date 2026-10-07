@@ -247,7 +247,8 @@ func (inv *Inventory) AddVRF(vrf *CaniVRF) error {
 	return nil
 }
 
-// AddPrefix inserts a single prefix into the inventory and auto-computes its parent.
+// AddPrefix inserts a single prefix into the inventory and auto-computes its
+// parent. Each VRF membership must name an existing VRF in its namespace.
 func (inv *Inventory) AddPrefix(prefix *CaniPrefix) error {
 	if prefix == nil {
 		return fmt.Errorf("prefix must not be nil")
@@ -257,6 +258,9 @@ func (inv *Inventory) AddPrefix(prefix *CaniPrefix) error {
 	}
 	if err := ParsePrefix(prefix); err != nil {
 		return fmt.Errorf("invalid prefix: %w", err)
+	}
+	if err := inv.checkPrefixVRFs(prefix); err != nil {
+		return err
 	}
 	if prefix.Parent == uuid.Nil {
 		prefix.Parent = FindParentPrefix(prefix, inv.Prefixes)

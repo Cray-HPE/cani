@@ -71,17 +71,36 @@ func (inv *Inventory) validatePrefixParentScope(result *RelationshipResult, owne
 }
 
 func (inv *Inventory) validatePrefixVRFScope(result *RelationshipResult, owner string, prefix *CaniPrefix) {
-	namespace := prefix.EffectiveNamespace()
 	for _, vrfID := range prefix.VRFs {
-		vrf := inv.VRFs[vrfID]
-		switch {
-		case vrf == nil:
-			result.Errors = append(result.Errors, fmt.Errorf("%s: VRF %s not found", owner, vrfID))
-		case vrf.EffectiveNamespace() != namespace:
-			result.Errors = append(result.Errors, fmt.Errorf("%s: VRF %q is in namespace %q, not %q",
-				owner, vrf.Name, vrf.EffectiveNamespace(), namespace))
+		if err := inv.prefixVRFError(prefix, vrfID); err != nil {
+			result.Errors = append(result.Errors, fmt.Errorf("%s: %w", owner, err))
 		}
 	}
+}
+
+// checkPrefixVRFs rejects a VRF membership that is missing or outside the
+// prefix's namespace.
+func (inv *Inventory) checkPrefixVRFs(prefix *CaniPrefix) error {
+	for _, vrfID := range prefix.VRFs {
+		if err := inv.prefixVRFError(prefix, vrfID); err != nil {
+			return fmt.Errorf("prefix %s: %w", prefix.Prefix, err)
+		}
+	}
+	return nil
+}
+
+// prefixVRFError reports why vrfID cannot be a membership of prefix: the VRF
+// is missing or belongs to another namespace.
+func (inv *Inventory) prefixVRFError(prefix *CaniPrefix, vrfID uuid.UUID) error {
+	vrf := inv.VRFs[vrfID]
+	switch {
+	case vrf == nil:
+		return fmt.Errorf("VRF %s not found", vrfID)
+	case vrf.EffectiveNamespace() != prefix.EffectiveNamespace():
+		return fmt.Errorf("VRF %q is in namespace %q, not %q",
+			vrf.Name, vrf.EffectiveNamespace(), prefix.EffectiveNamespace())
+	}
+	return nil
 }
 
 func (inv *Inventory) validateIPAddressScope(result *RelationshipResult) {

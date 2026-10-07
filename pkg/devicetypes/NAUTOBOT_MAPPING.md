@@ -61,6 +61,7 @@ Status legend:
 - **Not Mapped** — field exists on both sides but is not wired in the export
 - **Not Exported** — entire type has no export path
 - **Cani-Internal** — no Nautobot equivalent; exists for internal hierarchy or validation
+- **Legacy** — kept only so migration can fold it and validation and export can report it; never exported
 
 ### 2.1 `CaniLocationType` → Nautobot `Location`
 
@@ -411,15 +412,25 @@ several existing records, or a source match that moves a record onto a key
 another record holds, so the receiver is never changed by a guess. A
 source-identity conflict is a `SourceIdentityConflictError` (unwrapping to
 `ErrSourceIdentityConflict`) that names the record, the provider and both IDs;
-the remedy is to remove the record and import again. Validation rejects a
-prefix parent, VRF membership, or address parent in another namespace and a
-parent that does not contain its address; legacy duplicates separated only by
-a VRF name or a mask, and legacy VRF names that do not resolve, are preserved
-for explicit resolution and reported as unresolved conflicts, logged without
-`--debug` on every change and once when a datastore migration is saved, capped
-at ten lines unless `--debug` is set. The v1alpha6 → v1alpha7 migration stamps
-omitted scope as `Global`, folds a uniquely resolvable legacy prefix VRF name
-into `VRFs`, and keeps object UUIDs.
+the remedy is to remove the record and import again. Module, FRU and cable
+merges instead insert an object whose source identity conflicts as a new
+record; IPAM cannot, because Nautobot holds one prefix, address or VRF per
+natural key in a namespace, so that record could never be exported.
+
+Validation rejects a prefix parent, VRF membership, or address parent in
+another namespace and a parent that does not contain its address; legacy
+duplicates separated only by a VRF name or a mask, and legacy VRF names that do
+not resolve, are preserved for explicit resolution and reported as unresolved
+conflicts, logged without `--debug` on every change and once when a datastore
+migration is saved, capped at ten lines unless `--debug` is set.
+
+Authoring checks a record before it is stored; a parent is derived when none is
+given, and parent scope is left to validation. `AddPrefix` refuses a VRF
+membership that is missing or in another namespace, sharing one check with
+validation.
+
+The v1alpha6 → v1alpha7 migration stamps omitted scope as `Global`, folds a
+uniquely resolvable legacy prefix VRF name into `VRFs`, and keeps object UUIDs.
 
 Device deletion follows forward parent FKs, removes owned modules, FRUs,
 interfaces and cables, and detaches IP and VRF assignments. Module deletion uses

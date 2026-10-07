@@ -110,3 +110,35 @@ func TestAddPrefixRejectsUnknownVRF(t *testing.T) {
 		t.Errorf("Saves = %d, want 0 (nothing should persist on failure)", harness.Store.Saves)
 	}
 }
+
+// TestAddPrefixRejectsForeignVRF verifies a --vrf reference qualified into
+// another namespace is refused by the model's membership check before
+// anything is saved.
+//
+// Why it matters: the command only resolves the reference; the namespace
+// boundary is the model's rule, so the refusal must reach the operator from
+// AddPrefix and leave no prefix behind.
+// Inputs: a tenant-a VRF blue; add 10.0.0.0/24 --vrf tenant-a/blue, so the
+// prefix defaults to Global. Outputs: an error naming both namespaces and
+// zero saves.
+// Data choice: a qualified name is the only way to reach a VRF outside the
+// prefix's namespace.
+func TestAddPrefixRejectsForeignVRF(t *testing.T) {
+	// Arrange.
+	inventory := devicetypes.NewInventory()
+	vrfID := uuid.New()
+	inventory.VRFs[vrfID] = &devicetypes.CaniVRF{ID: vrfID, Name: "blue", Namespace: "tenant-a"}
+	harness := cmdtest.New(t, NewCommand(), newPrefixCommand(), inventory)
+
+	// Act.
+	err := harness.Run(t, map[string][]string{"vrf": {"tenant-a/blue"}}, "10.0.0.0/24")
+
+	// Assert.
+	want := `VRF "blue" is in namespace "tenant-a", not "Global"`
+	if err == nil || !strings.Contains(err.Error(), want) {
+		t.Fatalf("add prefix --vrf tenant-a/blue error = %v, want it to contain %q", err, want)
+	}
+	if harness.Store.Saves != 0 {
+		t.Errorf("Saves = %d, want 0 (nothing should persist on failure)", harness.Store.Saves)
+	}
+}
