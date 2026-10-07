@@ -69,10 +69,19 @@ func (c *LookupCache) GetOrCreateTag(name string) (*CachedItem, error) {
 		return item, nil
 	}
 
-	// Tag not found — create it. Content types must cover every object cani
-	// tags (device, rack, interface, inventory item); an empty list makes the
-	// tag unassignable and Nautobot rejects the write with "Related object not
-	// found using the provided attributes".
+	// Tag not found — create it.
+	return c.createTag(name)
+}
+
+// createTag creates a tag and caches it; the caller holds tagsMu. Content types
+// must cover every object cani tags (device, rack, interface, inventory item);
+// an empty list makes the tag unassignable and Nautobot rejects the write with
+// "Related object not found using the provided attributes".
+func (c *LookupCache) createTag(name string) (*CachedItem, error) {
+	if c.dryRun {
+		c.tags[name] = plannedCreate("tag", name)
+		return c.tags[name], nil
+	}
 	clog.Detail("[nautobot] Creating tag: %s", name)
 	createResp, err := c.client.ExtrasTagsCreateWithResponse(c.ctx,
 		&nautobotapi.ExtrasTagsCreateParams{},
@@ -124,6 +133,9 @@ func (c *LookupCache) reconcileTagContentTypes(t nautobotapi.Tag) *CachedItem {
 
 // UpdateTagContentTypes patches an existing tag to include additional content types.
 func (c *LookupCache) UpdateTagContentTypes(id uuid.UUID, name string, contentTypes []string) (*CachedItem, error) {
+	if c.dryRun {
+		return plannedContentTypes("tag", id, name, contentTypes), nil
+	}
 	clog.Detail("[nautobot] Updating tag '%s' content types to: %v", name, contentTypes)
 
 	patchResp, err := c.client.ExtrasTagsPartialUpdateWithResponse(c.ctx,

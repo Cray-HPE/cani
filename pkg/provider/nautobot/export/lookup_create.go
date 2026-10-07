@@ -34,6 +34,10 @@ import (
 
 // CreateStatus creates a new status in Nautobot for use with devices, racks, modules, and IPAM objects.
 func (c *LookupCache) CreateStatus(name string) (*CachedItem, error) {
+	if c.dryRun {
+		c.statuses[name] = plannedCreate("status", name)
+		return c.statuses[name], nil
+	}
 	clog.Detail("[nautobot] Creating status: %s", name)
 
 	// Status requires content_types to specify what objects it applies to.
@@ -70,6 +74,10 @@ func (c *LookupCache) CreateStatus(name string) (*CachedItem, error) {
 
 // CreateRole creates a new role in Nautobot
 func (c *LookupCache) CreateRole(name string) (*CachedItem, error) {
+	if c.dryRun {
+		c.roles[name] = plannedCreate("role", name)
+		return c.roles[name], nil
+	}
 	clog.Detail("[nautobot] Creating role: %s", name)
 
 	// Role requires content_types and weight
@@ -110,6 +118,10 @@ func (c *LookupCache) CreateRole(name string) (*CachedItem, error) {
 // The caller must ensure the location type already exists; this method does
 // not fall back to a hard-coded type.
 func (c *LookupCache) CreateLocation(name string) (*CachedItem, error) {
+	if c.dryRun {
+		c.locations[name] = plannedCreate("location", name)
+		return c.locations[name], nil
+	}
 	clog.Detail("[nautobot] Creating location: %s", name)
 
 	// Use "Section" as the default location type for auto-created locations.
