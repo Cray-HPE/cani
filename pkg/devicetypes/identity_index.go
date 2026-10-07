@@ -28,6 +28,7 @@ package devicetypes
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"slices"
 
 	"github.com/google/uuid"
@@ -38,6 +39,7 @@ import (
 // time and a record taken over by an incoming object answers to its new key
 // and external IDs, not its old ones.
 type identityIndex[K comparable] struct {
+	kind     IPAMKind
 	byKey    map[K][]uuid.UUID
 	bySource map[string]map[uuid.UUID]uuid.UUID
 	keys     map[uuid.UUID]K
@@ -45,9 +47,10 @@ type identityIndex[K comparable] struct {
 }
 
 func newIdentityIndex[T any, K comparable](
-	items map[uuid.UUID]*T, keyOf func(*T) K, externalIDsOf func(*T) map[string]uuid.UUID,
+	kind IPAMKind, items map[uuid.UUID]*T, keyOf func(*T) K, externalIDsOf func(*T) map[string]uuid.UUID,
 ) *identityIndex[K] {
 	index := &identityIndex[K]{
+		kind:     kind,
 		byKey:    make(map[K][]uuid.UUID, len(items)),
 		bySource: make(map[string]map[uuid.UUID]uuid.UUID),
 		keys:     make(map[uuid.UUID]K, len(items)),
@@ -147,15 +150,27 @@ func (x *identityIndex[K]) keyMatch(id uuid.UUID, key K, externalIDs map[string]
 	case 0:
 		return id, nil
 	case 1:
-		if conflictingExternalID(x.sources[matches[0]], externalIDs) {
-			return uuid.Nil, fmt.Errorf("existing %s has a different source identity; "+
-				"resolve the conflict explicitly", matches[0])
+		if conflict := x.sourceConflict(matches[0], externalIDs); conflict != nil {
+			return uuid.Nil, conflict
 		}
 		return matches[0], nil
 	default:
 		return uuid.Nil, fmt.Errorf("natural key is ambiguous among %d existing records (%v); "+
 			"resolve the duplicates explicitly", len(matches), matches)
 	}
+}
+
+// sourceConflict describes the first provider, in name order, whose ID on
+// record differs from the incoming one, or returns nil when none does.
+func (x *identityIndex[K]) sourceConflict(record uuid.UUID, incoming map[string]uuid.UUID) error {
+	existing := x.sources[record]
+	for _, source := range slices.Sorted(maps.Keys(incoming)) {
+		before, after := existing[source], incoming[source]
+		if before != uuid.Nil && after != uuid.Nil && before != after {
+			return &SourceIdentityConflictError{Kind: x.kind, Record: record, Source: source, Existing: before, Incoming: after}
+		}
+	}
+	return nil
 }
 
 // keyTakenFrom returns another record holding the same natural key as id.

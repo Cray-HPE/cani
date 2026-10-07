@@ -26,6 +26,7 @@
 package devicetypes
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -107,41 +108,80 @@ func TestMergeIPAMPrefersSharedExternalIDOverNaturalKey(t *testing.T) {
 	}
 }
 
-// TestMergeIPAMRejectsConflictingAndAmbiguousIdentity verifies a natural-key
-// match with a different source identity, and a key shared by several
-// existing records, both return errors instead of picking a winner.
+// TestMergeIPAMRejectsConflictingIdentity verifies a natural-key match with a
+// different source identity returns ErrSourceIdentityConflict naming the
+// record, both IDs and the remedy, and leaves the collection unchanged.
 //
-// Why it matters: silently overwriting a prefix that Nautobot knows under a
-// different UUID, or merging onto an arbitrary legacy duplicate, would corrupt
-// the mapping that every later export relies on.
-// Inputs: an existing Global 10.0.0.0/24 with external ID X merged with the
-// same key carrying external ID Y; and two existing Global VRFs named "red"
-// merged with a third "red". Outputs: an error mentioning source identity, an
-// error mentioning ambiguity, and unchanged collections.
-// Data choice: VRFs supply the ambiguity case because same-named VRFs are the
-// legacy shape the ticket calls out explicitly.
-func TestMergeIPAMRejectsConflictingAndAmbiguousIdentity(t *testing.T) {
+// Why it matters: Nautobot gives a deleted and recreated prefix a new UUID.
+// Silently overwriting the record would corrupt the mapping every later export
+// relies on, while a bare error would leave the operator with nothing to act
+// on; the typed error is what the import command turns into a remove command.
+// Inputs: an existing Global 10.0.0.0/24 with nautobot ID X merged with the
+// same key carrying nautobot ID Y. Outputs: an error that unwraps to
+// ErrSourceIdentityConflict and carries kind prefix, the record, X and Y; one
+// prefix still holding X.
+// Data choice: the incoming object has its own UUID, as every import mints
+// one, so only the natural key can match it.
+func TestMergeIPAMRejectsConflictingIdentity(t *testing.T) {
+	// Arrange.
 	inventory := NewInventory()
-	existing := uuid.New()
+	existing, before, after := uuid.New(), uuid.New(), uuid.New()
 	inventory.Prefixes[existing] = &CaniPrefix{
-		ID: existing, Prefix: "10.0.0.0/24", ObjectMeta: ObjectMeta{ExternalIDs: map[string]uuid.UUID{"nautobot": uuid.New()}},
+		ID: existing, Prefix: "10.0.0.0/24", ObjectMeta: ObjectMeta{ExternalIDs: map[string]uuid.UUID{"nautobot": before}},
 	}
+
+	// Act.
+	_, err := inventory.MergePrefixes(map[uuid.UUID]*CaniPrefix{
+		uuid.New(): {Prefix: "10.0.0.0/24", ObjectMeta: ObjectMeta{ExternalIDs: map[string]uuid.UUID{"nautobot": after}}},
+	})
+
+	// Assert.
+	if !errors.Is(err, ErrSourceIdentityConflict) {
+		t.Fatalf("MergePrefixes(conflict) error = %v, want ErrSourceIdentityConflict", err)
+	}
+	var conflict *SourceIdentityConflictError
+	if !errors.As(err, &conflict) {
+		t.Fatalf("MergePrefixes(conflict) error = %T, want *SourceIdentityConflictError", err)
+	}
+	want := &SourceIdentityConflictError{Kind: IPAMKindPrefix, Record: existing, Source: "nautobot", Existing: before, Incoming: after}
+	if *conflict != *want {
+		t.Errorf("conflict = %+v, want %+v", *conflict, *want)
+	}
+	if !strings.HasPrefix(err.Error(), `prefix 10.0.0.0/24 in namespace "Global": record `+existing.String()) {
+		t.Errorf("error = %q, want it to name the prefix and the record", err)
+	}
+	if got := inventory.Prefixes[existing].ExternalIDs["nautobot"]; len(inventory.Prefixes) != 1 || got != before {
+		t.Errorf("collection changed on error: %d prefixes, record nautobot ID %v; want 1 still holding %v", len(inventory.Prefixes), got, before)
+	}
+}
+
+// TestMergeIPAMRejectsAmbiguousIdentity verifies a natural key shared by
+// several existing records returns an error instead of picking a winner.
+//
+// Why it matters: merging onto an arbitrary legacy duplicate would corrupt
+// the mapping that every later export relies on.
+// Inputs: two existing Global VRFs named "red" merged with a third "red".
+// Outputs: an error mentioning ambiguity and an unchanged collection.
+// Data choice: same-named VRFs are the legacy shape the ticket calls out.
+func TestMergeIPAMRejectsAmbiguousIdentity(t *testing.T) {
+	// Arrange.
+	inventory := NewInventory()
 	redOne, redTwo := uuid.New(), uuid.New()
 	inventory.VRFs[redOne] = &CaniVRF{ID: redOne, Name: "red"}
 	inventory.VRFs[redTwo] = &CaniVRF{ID: redTwo, Name: "red"}
 
-	_, err := inventory.MergePrefixes(map[uuid.UUID]*CaniPrefix{
-		uuid.New(): {Prefix: "10.0.0.0/24", ObjectMeta: ObjectMeta{ExternalIDs: map[string]uuid.UUID{"nautobot": uuid.New()}}},
-	})
-	if err == nil || !strings.Contains(err.Error(), "different source identity") {
-		t.Errorf("MergePrefixes(conflict) error = %v, want source-identity conflict", err)
-	}
-	_, err = inventory.MergeVRFs(map[uuid.UUID]*CaniVRF{uuid.New(): {Name: "red"}})
+	// Act.
+	_, err := inventory.MergeVRFs(map[uuid.UUID]*CaniVRF{uuid.New(): {Name: "red"}})
+
+	// Assert.
 	if err == nil || !strings.Contains(err.Error(), "ambiguous") {
 		t.Errorf("MergeVRFs(duplicates) error = %v, want ambiguity error", err)
 	}
-	if len(inventory.Prefixes) != 1 || len(inventory.VRFs) != 2 {
-		t.Errorf("collections changed on error: prefixes = %d, vrfs = %d", len(inventory.Prefixes), len(inventory.VRFs))
+	if errors.Is(err, ErrSourceIdentityConflict) {
+		t.Errorf("MergeVRFs(duplicates) error = %v, must not read as a source identity conflict", err)
+	}
+	if len(inventory.VRFs) != 2 {
+		t.Errorf("VRFs changed on error: %d records, want 2", len(inventory.VRFs))
 	}
 }
 
