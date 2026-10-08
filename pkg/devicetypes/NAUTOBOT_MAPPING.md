@@ -456,7 +456,14 @@ prefix. Removing an address clears device primary IPs and NAT-inside references
 that point at it; its interface assignments go with it, and the derived
 interface index is rebuilt once the removal, or a cascade of removals, is done.
 Removing a VRF drops its prefix memberships; interface VRF settings are names
-resolved at export and are left alone.
+resolved at export and are left alone. `ResolvePrefixReference` and
+`ResolveIPAddressReference` (`ipam_resolve.go`) find a record by UUID, which
+names one record whatever its namespace, or by natural key, optionally written
+`namespace/key` — the key is the shortest suffix that parses as a value, so a
+namespace may contain a slash, and VRF references share the grammar — and list
+the UUIDs when a legacy duplicate makes the key ambiguous; a refused root-prefix
+removal is an `ErrPrefixHoldsAddresses`, and `RemovePrefixWithAddresses` removes
+the held addresses with the prefix instead.
 
 VLAN resolution prefers an exact device-location match and falls back to an
 unscoped VLAN only when no local candidate exists. VLANs in other locations are

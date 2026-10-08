@@ -99,10 +99,6 @@ type vrfKey struct {
 	Name      string
 }
 
-func (k prefixKey) String() string    { return k.Namespace + "/" + k.CIDR }
-func (k ipAddressKey) String() string { return k.Namespace + "/" + k.Host }
-func (k vrfKey) String() string       { return k.Namespace + "/" + k.Name }
-
 // canonicalCIDR normalizes a CIDR to its network form ("10.0.0.5/24" becomes
 // "10.0.0.0/24") so equivalent spellings share one key. Unparseable input is
 // returned trimmed so it still participates in exact-match comparisons.
@@ -172,9 +168,9 @@ func (inv *Inventory) FindVRFsByName(namespace, name string) []*CaniVRF {
 }
 
 // ResolveVRFReference resolves a VRF by UUID or by name. A name may be
-// qualified as "namespace/name"; an unqualified name is searched in the given
-// namespace. Several same-named VRFs are reported as ambiguous rather than
-// resolved to the first result.
+// qualified as "namespace/name" (see splitQualified); an unqualified name is
+// searched in the given namespace. Several same-named VRFs are reported as
+// ambiguous rather than resolved to the first result.
 func (inv *Inventory) ResolveVRFReference(namespace, ref string) (*CaniVRF, error) {
 	if id, err := uuid.Parse(ref); err == nil {
 		if vrf, ok := inv.VRFs[id]; ok && vrf != nil {
@@ -182,10 +178,7 @@ func (inv *Inventory) ResolveVRFReference(namespace, ref string) (*CaniVRF, erro
 		}
 		return nil, fmt.Errorf("VRF with UUID %q not found", ref)
 	}
-	name := ref
-	if idx := strings.LastIndexByte(ref, '/'); idx >= 0 {
-		namespace, name = ref[:idx], ref[idx+1:]
-	}
+	namespace, name := splitQualified(namespace, ref, isVRFName)
 	matches := inv.FindVRFsByName(namespace, name)
 	switch len(matches) {
 	case 0:
