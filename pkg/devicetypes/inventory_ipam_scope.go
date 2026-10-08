@@ -28,6 +28,7 @@ package devicetypes
 import (
 	"fmt"
 	"net"
+	"slices"
 
 	"github.com/google/uuid"
 )
@@ -87,6 +88,43 @@ func (inv *Inventory) checkPrefixVRFs(prefix *CaniPrefix) error {
 		}
 	}
 	return nil
+}
+
+// AddPrefixVRF makes prefix a member of the VRF, which must exist in the
+// prefix's namespace, and reports whether anything changed. An explicit
+// membership supersedes a legacy VRF name, so it clears one the migration
+// could not fold.
+func (inv *Inventory) AddPrefixVRF(prefix *CaniPrefix, vrfID uuid.UUID) (bool, error) {
+	if err := inv.prefixVRFError(prefix, vrfID); err != nil {
+		return false, fmt.Errorf("prefix %s: %w", prefix.Prefix, err)
+	}
+	cleared := prefix.ClearLegacyVRF()
+	if slices.Contains(prefix.VRFs, vrfID) {
+		return cleared, nil
+	}
+	prefix.VRFs = append(prefix.VRFs, vrfID)
+	return true, nil
+}
+
+// RemoveVRF drops the prefix's membership of the VRF and reports whether it
+// was a member. The VRF need not exist, so a membership left behind by a VRF
+// that is gone can be dropped too.
+func (p *CaniPrefix) RemoveVRF(vrfID uuid.UUID) bool {
+	if !slices.Contains(p.VRFs, vrfID) {
+		return false
+	}
+	p.VRFs = removeUUID(p.VRFs, vrfID)
+	return true
+}
+
+// ClearLegacyVRF drops the legacy VRF name the migration could not fold into
+// memberships and reports whether there was one.
+func (p *CaniPrefix) ClearLegacyVRF() bool {
+	if p.VRF == "" {
+		return false
+	}
+	p.VRF = ""
+	return true
 }
 
 // prefixVRFError reports why vrfID cannot be a membership of prefix: the VRF
