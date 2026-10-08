@@ -27,6 +27,8 @@ package devicetypes
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 
 	"github.com/google/uuid"
 )
@@ -61,7 +63,10 @@ func (inv *Inventory) MergeVLANs(incoming map[uuid.UUID]*CaniVLAN) map[uuid.UUID
 // namespace + canonical CIDR, then inserts. A natural-key match whose source
 // identity conflicts is an ErrSourceIdentityConflict naming the record to
 // remove, and a key ambiguous among legacy duplicates is an error; neither is
-// a silent overwrite.
+// a silent overwrite. A prefix the merge inserts adopts, as AddPrefix does,
+// the pre-existing records it holds more closely than their current parent;
+// the records the batch itself carries keep the parent the provider set or
+// the merge derived.
 func (inv *Inventory) MergePrefixes(incoming map[uuid.UUID]*CaniPrefix) (map[uuid.UUID]uuid.UUID, error) {
 	if inv.Prefixes == nil {
 		inv.Prefixes = make(map[uuid.UUID]*CaniPrefix)
@@ -73,8 +78,46 @@ func (inv *Inventory) MergePrefixes(incoming map[uuid.UUID]*CaniPrefix) (map[uui
 	if err != nil {
 		return nil, err
 	}
+	inserted := insertedRecords(inv.Prefixes, incoming, remap)
+	untouched := recordsOutside(inv.Prefixes, remap)
+	addresses := slices.Collect(maps.Values(inv.IPAddresses)) // addresses merge after prefixes, so none is the batch's yet
 	applyIdentities(inv.Prefixes, incoming, remap, func(p *CaniPrefix, id uuid.UUID) { p.ID = id })
+	for _, id := range inserted {
+		inv.adoptHeld(inv.Prefixes[id], untouched, addresses)
+	}
 	return remap, nil
+}
+
+// insertedRecords returns, once each and in incoming-UUID order, the resolved
+// UUIDs that are not records yet, so a merge can tell an insert from an update.
+func insertedRecords[T any](existing, incoming map[uuid.UUID]*T, remap map[uuid.UUID]uuid.UUID) []uuid.UUID {
+	seen := make(map[uuid.UUID]bool)
+	var inserted []uuid.UUID
+	for _, id := range sortedIDs(incoming) {
+		target, ok := remap[id]
+		if !ok || seen[target] || existing[target] != nil {
+			continue
+		}
+		seen[target] = true
+		inserted = append(inserted, target)
+	}
+	return inserted
+}
+
+// recordsOutside returns the records no incoming object resolves to: the
+// ones a merge leaves alone.
+func recordsOutside[T any](existing map[uuid.UUID]*T, remap map[uuid.UUID]uuid.UUID) []*T {
+	targets := make(map[uuid.UUID]bool, len(remap))
+	for _, target := range remap {
+		targets[target] = true
+	}
+	var outside []*T
+	for id, record := range existing {
+		if record != nil && !targets[id] {
+			outside = append(outside, record)
+		}
+	}
+	return outside
 }
 
 // MergeIPAddresses merges addresses by UUID, then by shared external ID, then

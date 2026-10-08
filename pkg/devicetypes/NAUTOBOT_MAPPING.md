@@ -431,7 +431,14 @@ validation. `AddPrefix`, `AddIPAddress` and `AddVRF` (`inventory_add_ipam.go`)
 reject a record whose natural key another record holds, naming that record. VRF
 names are case-sensitive, as in Nautobot, so `red` and `Red` are different VRFs;
 a name lookup takes the exact name and falls back to a single case-insensitive
-match only when there is none.
+match only when there is none. A prefix that enters the inventory, whether
+`AddPrefix` stores it or a merge inserts it, becomes the parent of the prefixes
+and addresses in its namespace that it holds more closely than their current
+parent, so supplying a prefix after its addresses gives them a parent; Nautobot
+re-parents the records directly under the new prefix's parent on create, and
+this also repairs records that had none. A merge adopts only the records the
+batch leaves alone; the records it carries keep the parent the provider set or
+the merge derived.
 
 The v1alpha6 → v1alpha7 migration stamps omitted scope as `Global`, folds a
 uniquely resolvable legacy prefix VRF name into `VRFs`, and keeps object UUIDs.
