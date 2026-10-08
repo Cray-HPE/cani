@@ -27,6 +27,9 @@ package devicetypes
 
 import (
 	"fmt"
+	"maps"
+	"net"
+	"slices"
 
 	"github.com/google/uuid"
 )
@@ -68,7 +71,10 @@ func (inv *Inventory) AddVRF(vrf *CaniVRF) error {
 
 // AddPrefix inserts a single prefix into the inventory and auto-computes its
 // parent. Its CIDR must be unique in its namespace, and each VRF membership
-// must name an existing VRF in that namespace.
+// must name an existing VRF in that namespace. It then becomes the parent of
+// the prefixes and addresses in its namespace that it holds more closely than
+// their current parent, so adding a prefix after its addresses gives them a
+// parent; a prefix a merge inserts is adopted the same way.
 func (inv *Inventory) AddPrefix(prefix *CaniPrefix) error {
 	if prefix == nil {
 		return fmt.Errorf("prefix must not be nil")
@@ -90,7 +96,68 @@ func (inv *Inventory) AddPrefix(prefix *CaniPrefix) error {
 		prefix.Parent = FindParentPrefix(prefix, inv.Prefixes)
 	}
 	inv.Prefixes[prefix.ID] = prefix
+	inv.adoptHeld(prefix, slices.Collect(maps.Values(inv.Prefixes)), slices.Collect(maps.Values(inv.IPAddresses)))
 	return nil
+}
+
+// adoptHeld makes prefix the parent of each candidate prefix and address in
+// its namespace that it holds more closely than their current parent does.
+// Nautobot re-parents the records directly under the new prefix's parent when
+// a prefix is created; this also repairs records that had no parent.
+func (inv *Inventory) adoptHeld(prefix *CaniPrefix, prefixes []*CaniPrefix, addresses []*CaniIPAddress) {
+	_, network, err := net.ParseCIDR(prefix.Prefix)
+	if err != nil {
+		return
+	}
+	bits, _ := network.Mask.Size()
+	namespace := prefix.EffectiveNamespace()
+	for _, child := range prefixes {
+		if child == nil || child.ID == prefix.ID || child.EffectiveNamespace() != namespace {
+			continue
+		}
+		if strictlyContains(network, child.Prefix) && inv.closerThanParent(bits, child.Parent) {
+			child.Parent = prefix.ID
+		}
+	}
+	inv.adoptHeldAddresses(prefix.ID, network, namespace, addresses)
+}
+
+func (inv *Inventory) adoptHeldAddresses(prefixID uuid.UUID, network *net.IPNet, namespace string, addresses []*CaniIPAddress) {
+	bits, _ := network.Mask.Size()
+	for _, address := range addresses {
+		if address == nil || inv.IPAddressNamespace(address) != namespace {
+			continue
+		}
+		if network.Contains(net.ParseIP(address.Host)) && inv.closerThanParent(bits, address.Parent) {
+			address.Parent = prefixID
+		}
+	}
+}
+
+// strictlyContains reports whether network holds all of cidr and is shorter.
+func strictlyContains(network *net.IPNet, cidr string) bool {
+	_, inner, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return false
+	}
+	outerBits, _ := network.Mask.Size()
+	innerBits, _ := inner.Mask.Size()
+	return innerBits > outerBits && network.Contains(inner.IP)
+}
+
+// closerThanParent reports whether a containing prefix with the given mask
+// length is closer than the current parent: there is none, or it is shorter.
+func (inv *Inventory) closerThanParent(bits int, current uuid.UUID) bool {
+	parent := inv.Prefixes[current]
+	if parent == nil {
+		return true
+	}
+	_, network, err := net.ParseCIDR(parent.Prefix)
+	if err != nil {
+		return true
+	}
+	parentBits, _ := network.Mask.Size()
+	return parentBits < bits
 }
 
 // AddIPAddress inserts a single IP address into the inventory and
