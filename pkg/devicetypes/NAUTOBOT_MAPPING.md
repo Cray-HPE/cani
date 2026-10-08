@@ -438,10 +438,16 @@ parent, so supplying a prefix after its addresses gives them a parent; Nautobot
 re-parents the records directly under the new prefix's parent on create, and
 this also repairs records that had none. A merge adopts only the records the
 batch leaves alone; the records it carries keep the parent the provider set or
-the merge derived.
+the merge derived. `AddPrefixVRF` adds a VRF to a prefix once and refuses one
+from another namespace; an explicit membership supersedes a legacy VRF name,
+which `AddPrefix` and `AddPrefixVRF` clear. `CaniPrefix.RemoveVRF` drops one
+membership and `CaniPrefix.ClearLegacyVRF` drops the legacy name. Each reports
+whether anything changed, so a caller can tell a no-op from a change.
 
 The v1alpha6 → v1alpha7 migration stamps omitted scope as `Global`, folds a
 uniquely resolvable legacy prefix VRF name into `VRFs`, and keeps object UUIDs.
+A legacy name it cannot fold is reported until an explicit membership replaces
+it.
 
 Device deletion follows forward parent FKs, removes owned modules, FRUs,
 interfaces and cables, and detaches IP and VRF assignments. Module deletion uses

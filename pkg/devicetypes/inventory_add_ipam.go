@@ -71,10 +71,11 @@ func (inv *Inventory) AddVRF(vrf *CaniVRF) error {
 
 // AddPrefix inserts a single prefix into the inventory and auto-computes its
 // parent. Its CIDR must be unique in its namespace, and each VRF membership
-// must name an existing VRF in that namespace. It then becomes the parent of
-// the prefixes and addresses in its namespace that it holds more closely than
-// their current parent, so adding a prefix after its addresses gives them a
-// parent; a prefix a merge inserts is adopted the same way.
+// must name an existing VRF in that namespace; explicit memberships supersede
+// a legacy VRF name. It then becomes the parent of the prefixes and addresses
+// in its namespace that it holds more closely than their current parent, so
+// adding a prefix after its addresses gives them a parent; a prefix a merge
+// inserts is adopted the same way.
 func (inv *Inventory) AddPrefix(prefix *CaniPrefix) error {
 	if prefix == nil {
 		return fmt.Errorf("prefix must not be nil")
@@ -91,6 +92,9 @@ func (inv *Inventory) AddPrefix(prefix *CaniPrefix) error {
 	}
 	if err := inv.checkPrefixVRFs(prefix); err != nil {
 		return err
+	}
+	if len(prefix.VRFs) > 0 {
+		prefix.ClearLegacyVRF()
 	}
 	if prefix.Parent == uuid.Nil {
 		prefix.Parent = FindParentPrefix(prefix, inv.Prefixes)
