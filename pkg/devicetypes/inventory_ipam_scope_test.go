@@ -173,3 +173,114 @@ func TestIPAMScopeSeparatesNamespaces(t *testing.T) {
 		t.Fatalf("errors = %v, warnings = %v, unresolved = %v; want none", result.Errors, result.Warnings, result.Unresolved)
 	}
 }
+
+// TestAddPrefixRejectsMembershipOutsideItsNamespace verifies AddPrefix refuses
+// a VRF membership that is missing or belongs to another namespace.
+//
+// Why it matters: the model owns the namespace boundary, so every writer (CLI,
+// provider, future API) gets the same refusal before the prefix is stored.
+// Inputs: a tenant-a VRF; a Global prefix listing it, then a prefix listing an
+// unknown VRF ID. Outputs: a namespace-mismatch error, a not-found error, and
+// no stored prefix.
+// Data choice: both prefixes are otherwise valid, so only the membership check
+// can reject them.
+func TestAddPrefixRejectsMembershipOutsideItsNamespace(t *testing.T) {
+	inv := NewInventory()
+	vrfID := uuid.New()
+	inv.VRFs[vrfID] = &CaniVRF{ID: vrfID, Name: "blue", Namespace: "tenant-a"}
+
+	foreign := inv.AddPrefix(&CaniPrefix{ID: uuid.New(), Prefix: "10.0.0.0/24", VRFs: []uuid.UUID{vrfID}})
+	missing := inv.AddPrefix(&CaniPrefix{ID: uuid.New(), Prefix: "10.0.1.0/24", VRFs: []uuid.UUID{uuid.New()}})
+
+	if foreign == nil || !strings.Contains(foreign.Error(), `VRF "blue" is in namespace "tenant-a", not "Global"`) {
+		t.Errorf("foreign membership error = %v, want a namespace mismatch", foreign)
+	}
+	if missing == nil || !strings.Contains(missing.Error(), "not found") {
+		t.Errorf("missing membership error = %v, want VRF not found", missing)
+	}
+	if len(inv.Prefixes) != 0 {
+		t.Errorf("prefixes = %d, want none stored", len(inv.Prefixes))
+	}
+}
+
+// TestAddPrefixVRFChecksTheNamespaceAndReportsNewMemberships verifies
+// AddPrefixVRF adds a same-namespace VRF once and refuses one from another
+// namespace without changing the prefix.
+//
+// Why it matters: update prefix relies on it to refuse a membership Nautobot
+// would reject, and on its result to tell whether anything changed.
+// Inputs: a tenant-a prefix; a tenant-a VRF added twice; a Global VRF.
+// Outputs: true then false for the tenant-a VRF; a namespace error for the
+// Global one; one membership in the end.
+// Data choice: the repeat shows an existing membership is not a change.
+func TestAddPrefixVRFChecksTheNamespaceAndReportsNewMemberships(t *testing.T) {
+	// Arrange.
+	inv := NewInventory()
+	tenant, global := uuid.New(), uuid.New()
+	inv.VRFs[tenant] = &CaniVRF{ID: tenant, Name: "blue", Namespace: "tenant-a"}
+	inv.VRFs[global] = &CaniVRF{ID: global, Name: "blue"}
+	prefix := &CaniPrefix{ID: uuid.New(), Prefix: "10.0.0.0/24", Namespace: "tenant-a"}
+
+	// Act.
+	first, firstErr := inv.AddPrefixVRF(prefix, tenant)
+	again, againErr := inv.AddPrefixVRF(prefix, tenant)
+	foreign, foreignErr := inv.AddPrefixVRF(prefix, global)
+
+	// Assert.
+	if !first || again || firstErr != nil || againErr != nil {
+		t.Errorf("tenant-a VRF added = %v then %v (errors %v, %v); want true then false", first, again, firstErr, againErr)
+	}
+	if foreign || foreignErr == nil || !strings.Contains(foreignErr.Error(), `is in namespace "Global", not "tenant-a"`) {
+		t.Errorf("Global VRF added = %v, error = %v; want a namespace error", foreign, foreignErr)
+	}
+	if len(prefix.VRFs) != 1 || prefix.VRFs[0] != tenant {
+		t.Errorf("memberships = %v, want only %v", prefix.VRFs, tenant)
+	}
+}
+
+// TestPrefixVRFMembershipsSupersedeTheLegacyName verifies an explicit
+// membership clears a legacy VRF name, whether the prefix is added with it or
+// gains it later, and that a membership and the name can each be dropped
+// once, reporting a change only when something changed.
+//
+// Why it matters: the legacy name exists only until the operator states the
+// memberships, and update prefix must report a no-op honestly.
+// Inputs: a tenant-a prefix with legacy name "red" and memberships of tenant-a
+// VRFs red and blue; AddPrefixVRF with red (already a member); RemoveVRF
+// with blue twice; ClearLegacyVRF twice on another prefix named "red"; a
+// prefix added with legacy name "red" and a membership of red.
+// Outputs: the add reports a change and clears the name; RemoveVRF reports
+// true then false and leaves only red; ClearLegacyVRF reports true then
+// false; the added prefix is stored without the legacy name.
+// Data choice: red is already a member, so the only change the add can
+// report is clearing the legacy name.
+func TestPrefixVRFMembershipsSupersedeTheLegacyName(t *testing.T) {
+	// Arrange.
+	inv := NewInventory()
+	red, blue := uuid.New(), uuid.New()
+	inv.VRFs[red] = &CaniVRF{ID: red, Name: "red", Namespace: "tenant-a"}
+	inv.VRFs[blue] = &CaniVRF{ID: blue, Name: "blue", Namespace: "tenant-a"}
+	prefix := &CaniPrefix{ID: uuid.New(), Prefix: "10.0.0.0/24", Namespace: "tenant-a", VRF: "red", VRFs: []uuid.UUID{red, blue}}
+	legacyOnly := &CaniPrefix{ID: uuid.New(), Prefix: "10.0.1.0/24", Namespace: "tenant-a", VRF: "red"}
+	added := &CaniPrefix{ID: uuid.New(), Prefix: "10.0.2.0/24", Namespace: "tenant-a", VRF: "red", VRFs: []uuid.UUID{red}}
+
+	// Act.
+	superseded, err := inv.AddPrefixVRF(prefix, red)
+	dropped, droppedAgain := prefix.RemoveVRF(blue), prefix.RemoveVRF(blue)
+	cleared, clearedAgain := legacyOnly.ClearLegacyVRF(), legacyOnly.ClearLegacyVRF()
+	addErr := inv.AddPrefix(added)
+
+	// Assert.
+	if err != nil || !superseded || prefix.VRF != "" {
+		t.Errorf("AddPrefixVRF(red) = %v, %v, legacy name %q; want true, nil and no legacy name", superseded, err, prefix.VRF)
+	}
+	if !dropped || droppedAgain || len(prefix.VRFs) != 1 || prefix.VRFs[0] != red {
+		t.Errorf("RemoveVRF(blue) = %v then %v, memberships %v; want true then false and only red", dropped, droppedAgain, prefix.VRFs)
+	}
+	if !cleared || clearedAgain || legacyOnly.VRF != "" {
+		t.Errorf("ClearLegacyVRF = %v then %v, legacy name %q; want true then false and no name", cleared, clearedAgain, legacyOnly.VRF)
+	}
+	if addErr != nil || added.VRF != "" || len(added.VRFs) != 1 {
+		t.Errorf("AddPrefix with a membership and a legacy name = %v, legacy %q, memberships %v; want stored without the name", addErr, added.VRF, added.VRFs)
+	}
+}

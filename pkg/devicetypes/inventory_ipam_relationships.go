@@ -17,16 +17,27 @@ func (inv *Inventory) validateIPAMRelationships() *RelationshipResult {
 	return result
 }
 
+// rebuildInterfaceIPAddresses rebuilds the derived interface → address index
+// from scratch, in address UUID order, so it can run on its own after an
+// address is removed without leaving a stale assignment behind.
 func (inv *Inventory) rebuildInterfaceIPAddresses() {
-	for addressID, address := range inv.IPAddresses {
-		if address == nil {
-			continue
+	for _, iface := range inv.Interfaces {
+		if iface != nil {
+			iface.IPAddresses = nil
 		}
-		for _, interfaceID := range address.Interfaces {
-			iface := inv.Interfaces[interfaceID]
-			if iface != nil && !containsUUID(iface.IPAddresses, addressID) {
-				iface.IPAddresses = append(iface.IPAddresses, addressID)
-			}
+	}
+	for _, addressID := range sortedIDs(inv.IPAddresses) {
+		if address := inv.IPAddresses[addressID]; address != nil {
+			inv.indexAddressInterfaces(addressID, address.Interfaces)
+		}
+	}
+}
+
+func (inv *Inventory) indexAddressInterfaces(addressID uuid.UUID, interfaces []uuid.UUID) {
+	for _, interfaceID := range interfaces {
+		iface := inv.Interfaces[interfaceID]
+		if iface != nil && !containsUUID(iface.IPAddresses, addressID) {
+			iface.IPAddresses = append(iface.IPAddresses, addressID)
 		}
 	}
 }

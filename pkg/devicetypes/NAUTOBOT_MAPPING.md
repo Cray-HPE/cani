@@ -61,6 +61,7 @@ Status legend:
 - **Not Mapped** — field exists on both sides but is not wired in the export
 - **Not Exported** — entire type has no export path
 - **Cani-Internal** — no Nautobot equivalent; exists for internal hierarchy or validation
+- **Legacy** — kept only so migration can fold it and validation and export can report it; never exported
 
 ### 2.1 `CaniLocationType` → Nautobot `Location`
 
@@ -411,20 +412,64 @@ several existing records, or a source match that moves a record onto a key
 another record holds, so the receiver is never changed by a guess. A
 source-identity conflict is a `SourceIdentityConflictError` (unwrapping to
 `ErrSourceIdentityConflict`) that names the record, the provider and both IDs;
-the remedy is to remove the record and import again. Validation rejects a
-prefix parent, VRF membership, or address parent in another namespace and a
-parent that does not contain its address; legacy duplicates separated only by
-a VRF name or a mask, and legacy VRF names that do not resolve, are preserved
-for explicit resolution and reported as unresolved conflicts, logged without
-`--debug` on every change and once when a datastore migration is saved, capped
-at ten lines unless `--debug` is set. The v1alpha6 → v1alpha7 migration stamps
-omitted scope as `Global`, folds a uniquely resolvable legacy prefix VRF name
-into `VRFs`, and keeps object UUIDs.
+the remedy is to remove the record and import again. Module, FRU and cable
+merges instead insert an object whose source identity conflicts as a new
+record; IPAM cannot, because Nautobot holds one prefix, address or VRF per
+natural key in a namespace, so that record could never be exported.
+
+Validation rejects a prefix parent, VRF membership, or address parent in
+another namespace and a parent that does not contain its address; legacy
+duplicates separated only by a VRF name or a mask, and legacy VRF names that do
+not resolve, are preserved for explicit resolution and reported as unresolved
+conflicts, logged without `--debug` on every change and once when a datastore
+migration is saved, capped at ten lines unless `--debug` is set.
+
+Authoring checks a record before it is stored; a parent is derived when none is
+given, and parent scope is left to validation. `AddPrefix` refuses a VRF
+membership that is missing or in another namespace, sharing one check with
+validation. `AddPrefix`, `AddIPAddress` and `AddVRF` (`inventory_add_ipam.go`)
+reject a record whose natural key another record holds, naming that record. VRF
+names are case-sensitive, as in Nautobot, so `red` and `Red` are different VRFs;
+a name lookup takes the exact name and falls back to a single case-insensitive
+match only when there is none. A prefix that enters the inventory, whether
+`AddPrefix` stores it or a merge inserts it, becomes the parent of the prefixes
+and addresses in its namespace that it holds more closely than their current
+parent, so supplying a prefix after its addresses gives them a parent; Nautobot
+re-parents the records directly under the new prefix's parent on create, and
+this also repairs records that had none. A merge adopts only the records the
+batch leaves alone; the records it carries keep the parent the provider set or
+the merge derived. `AddPrefixVRF` adds a VRF to a prefix once and refuses one
+from another namespace; an explicit membership supersedes a legacy VRF name,
+which `AddPrefix` and `AddPrefixVRF` clear. `CaniPrefix.RemoveVRF` drops one
+membership and `CaniPrefix.ClearLegacyVRF` drops the legacy name. Each reports
+whether anything changed, so a caller can tell a no-op from a change.
+
+The v1alpha6 → v1alpha7 migration stamps omitted scope as `Global`, folds a
+uniquely resolvable legacy prefix VRF name into `VRFs`, and keeps object UUIDs.
+A legacy name it cannot fold is reported until an explicit membership replaces
+it.
 
 Device deletion follows forward parent FKs, removes owned modules, FRUs,
 interfaces and cables, and detaches IP and VRF assignments. Module deletion uses
 the same ownership cleanup. Shared IP addresses and VRFs remain in inventory,
 and unrelated hardware is retained; derived relationships are rebuilt afterward.
+
+IPAM deletion follows Nautobot's `on_delete` rules (`inventory_remove_ipam.go`).
+Removing a prefix moves its child prefixes and addresses up to its own parent, a
+missing parent record counting as none; a root prefix that still holds addresses
+is refused, as Nautobot refuses it, because every address needs a containing
+prefix. Removing an address clears device primary IPs and NAT-inside references
+that point at it; its interface assignments go with it, and the derived
+interface index is rebuilt once the removal, or a cascade of removals, is done.
+Removing a VRF drops its prefix memberships; interface VRF settings are names
+resolved at export and are left alone. `ResolvePrefixReference` and
+`ResolveIPAddressReference` (`ipam_resolve.go`) find a record by UUID, which
+names one record whatever its namespace, or by natural key, optionally written
+`namespace/key` — the key is the shortest suffix that parses as a value, so a
+namespace may contain a slash, and VRF references share the grammar — and list
+the UUIDs when a legacy duplicate makes the key ambiguous; a refused root-prefix
+removal is an `ErrPrefixHoldsAddresses`, and `RemovePrefixWithAddresses` removes
+the held addresses with the prefix instead.
 
 VLAN resolution prefers an exact device-location match and falls back to an
 unscoped VLAN only when no local candidate exists. VLANs in other locations are
