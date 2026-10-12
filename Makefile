@@ -533,8 +533,14 @@ venv: ## Create a Python virtualenv for docs
 	fi
 	$(OK) "virtualenv ready"
 
+.PHONY: gendocs
+gendocs: ## Regenerate docs/commands from the command tree (the release workflow runs the same tool)
+	$(INFO) "generating command docs"
+	go run ./tools/gendocs
+	$(OK) "command docs generated"
+
 .PHONY: serve
-serve: venv ## Serve docs locally with mkdocs
+serve: venv gendocs ## Serve docs locally with mkdocs
 	$(INFO) "serving docs"
 	mkdocs serve
 
