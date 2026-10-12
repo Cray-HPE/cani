@@ -26,12 +26,48 @@
 package imprt
 
 import (
+	"errors"
+	"fmt"
 	"log"
 
 	"github.com/Cray-HPE/cani/internal/config"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
 )
+
+// removeNouns maps each IPAM kind to the `cani alpha remove` subcommand that
+// deletes a record of it.
+var removeNouns = map[devicetypes.IPAMKind]string{
+	devicetypes.IPAMKindPrefix:    "prefix",
+	devicetypes.IPAMKindIPAddress: "ip",
+	devicetypes.IPAMKindVRF:       "vrf",
+}
+
+// identityConflictError appends the exact remove command to a merge error
+// that is a source-identity conflict: the model names the record to remove,
+// the command layer knows which subcommand removes it, and asks the model
+// whether the plain removal would be refused so it can name the cascade
+// instead. Any other error is returned as it is.
+func identityConflictError(inventory *devicetypes.Inventory, err error) error {
+	var conflict *devicetypes.SourceIdentityConflictError
+	if !errors.As(err, &conflict) {
+		return err
+	}
+	noun, ok := removeNouns[conflict.Kind]
+	if !ok {
+		return err
+	}
+	return fmt.Errorf("%w: cani alpha remove %s %s%s", err, noun, conflict.Record, removeFlags(inventory, conflict))
+}
+
+// removeFlags names the flag the remove command needs for the record: a root
+// prefix that still holds addresses can only go with them.
+func removeFlags(inventory *devicetypes.Inventory, conflict *devicetypes.SourceIdentityConflictError) string {
+	if conflict.Kind == devicetypes.IPAMKindPrefix && errors.Is(inventory.CanRemovePrefix(conflict.Record), devicetypes.ErrPrefixHoldsAddresses) {
+		return " --cascade"
+	}
+	return ""
+}
 
 func prepareUnclassifiedDevices(devices map[uuid.UUID]*devicetypes.CaniDeviceType) {
 	if config.Cfg == nil || !config.Cfg.Strict || len(devices) == 0 {

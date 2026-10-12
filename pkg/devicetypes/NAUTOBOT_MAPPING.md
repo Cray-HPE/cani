@@ -426,7 +426,10 @@ several existing records, or a source match that moves a record onto a key
 another record holds, so the receiver is never changed by a guess. A
 source-identity conflict is a `SourceIdentityConflictError` (unwrapping to
 `ErrSourceIdentityConflict`) that names the record, the provider and both IDs;
-the remedy is to remove the record and import again. Module, FRU and cable
+the remedy is to remove the record and import again, and the error carries the
+record's kind and UUID so a caller can name the exact removal, with
+`CanRemovePrefix` telling it whether a root prefix's addresses must go with it.
+Module, FRU and cable
 merges instead insert an object whose source identity conflicts as a new
 record; IPAM cannot, because Nautobot holds one prefix, address or VRF per
 natural key in a namespace, so that record could never be exported.
