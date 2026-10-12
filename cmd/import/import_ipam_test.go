@@ -26,6 +26,8 @@
 package imprt
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -212,5 +214,77 @@ func TestMergeTransformResultRejectsInvalidCable(t *testing.T) {
 	}
 	if len(ctx.inventory.Devices) != 0 || len(ctx.inventory.Cables) != 0 {
 		t.Fatalf("failed merge mutated inventory: devices=%d cables=%d", len(ctx.inventory.Devices), len(ctx.inventory.Cables))
+	}
+}
+
+// conflictingIPAM returns an inventory holding one record of kind under one
+// source ID and a transform result carrying the same natural key under
+// another, the shape of an object the source deleted and recreated. It also
+// returns the record's UUID.
+func conflictingIPAM(kind devicetypes.IPAMKind) (*devicetypes.Inventory, *devicetypes.TransformResult, uuid.UUID) {
+	existing, incoming := uuid.New(), uuid.New()
+	sourced := func() devicetypes.ObjectMeta {
+		return devicetypes.ObjectMeta{ExternalIDs: map[string]uuid.UUID{"source": uuid.New()}}
+	}
+	inventory, result := devicetypes.NewInventory(), &devicetypes.TransformResult{}
+	switch kind {
+	case devicetypes.IPAMKindPrefix:
+		inventory.Prefixes[existing] = &devicetypes.CaniPrefix{ID: existing, Prefix: "10.0.0.0/24", ObjectMeta: sourced()}
+		result.Prefixes = map[uuid.UUID]*devicetypes.CaniPrefix{incoming: {ID: incoming, Prefix: "10.0.0.0/24", ObjectMeta: sourced()}}
+	case devicetypes.IPAMKindIPAddress:
+		inventory.IPAddresses[existing] = &devicetypes.CaniIPAddress{ID: existing, Host: "10.0.0.1", Address: "10.0.0.1/24", ObjectMeta: sourced()}
+		result.IPAddresses = map[uuid.UUID]*devicetypes.CaniIPAddress{incoming: {ID: incoming, Host: "10.0.0.1", Address: "10.0.0.1/24", ObjectMeta: sourced()}}
+	case devicetypes.IPAMKindVRF:
+		inventory.VRFs[existing] = &devicetypes.CaniVRF{ID: existing, Name: "blue", ObjectMeta: sourced()}
+		result.VRFs = map[uuid.UUID]*devicetypes.CaniVRF{incoming: {ID: incoming, Name: "blue", ObjectMeta: sourced()}}
+	}
+	return inventory, result, existing
+}
+
+// TestMergeTransformResultNamesTheRemoveCommandForAConflict verifies an import
+// whose merge meets a source-identity conflict fails with the exact remove
+// command for the record, for each IPAM kind, while the error still unwraps
+// to the model's sentinel and the record is left as it was.
+//
+// Why it matters: the model can only say "remove the record and import again"
+// and name a UUID; which subcommand removes it is the command layer's to say,
+// and a wrong noun would send the operator to a command that rejects the UUID.
+// Inputs: one prefix, address or VRF recorded under one source ID and a
+// transform result with the same natural key under another.
+// Outputs: an error containing "cani alpha remove <prefix|ip|vrf> <record>"
+// that errors.Is ErrSourceIdentityConflict; the inventory still holds one
+// record of the kind.
+// Data choice: the three kinds map to three different nouns, so one case per
+// kind proves the mapping and not a default.
+func TestMergeTransformResultNamesTheRemoveCommandForAConflict(t *testing.T) {
+	cases := []struct {
+		kind devicetypes.IPAMKind
+		noun string
+	}{
+		{devicetypes.IPAMKindPrefix, "prefix"},
+		{devicetypes.IPAMKindIPAddress, "ip"},
+		{devicetypes.IPAMKindVRF, "vrf"},
+	}
+	for _, tc := range cases {
+		t.Run(string(tc.kind), func(t *testing.T) {
+			// Arrange.
+			inventory, result, record := conflictingIPAM(tc.kind)
+			before := len(inventory.Prefixes) + len(inventory.IPAddresses) + len(inventory.VRFs)
+
+			// Act.
+			err := mergeTransformResult(&etlContext{inventory: inventory}, result)
+
+			// Assert.
+			want := fmt.Sprintf("cani alpha remove %s %s", tc.noun, record)
+			if !errors.Is(err, devicetypes.ErrSourceIdentityConflict) || !strings.Contains(err.Error(), want) {
+				t.Fatalf("mergeTransformResult() error = %v; want ErrSourceIdentityConflict naming %q", err, want)
+			}
+			if strings.Count(err.Error(), "cani alpha remove") != 1 {
+				t.Errorf("error names the remove command more than once: %v", err)
+			}
+			if after := len(inventory.Prefixes) + len(inventory.IPAddresses) + len(inventory.VRFs); after != before {
+				t.Errorf("IPAM records = %d after the refused merge, want %d", after, before)
+			}
+		})
 	}
 }

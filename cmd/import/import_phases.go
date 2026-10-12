@@ -147,7 +147,7 @@ func mergeTransformResult(ctx *etlContext, result *devicetypes.TransformResult) 
 	printImportDiff(ctx, result.Devices)
 	log.Printf("Verifying parent-child relationships")
 	_, err := ctx.inventory.MergeTransformResult(result)
-	return err
+	return identityConflictError(ctx.inventory, err)
 }
 
 // runLoadPhase executes the Load phase of the ETL pipeline.
