@@ -42,15 +42,9 @@ var ErrPrefixHoldsAddresses = errors.New("remove them first")
 // address needs a containing prefix; a parent record that is missing counts
 // as none.
 func (inv *Inventory) RemovePrefix(id uuid.UUID) error {
-	prefix := inv.Prefixes[id]
-	if prefix == nil {
-		return fmt.Errorf("prefix %s not found", id)
-	}
-	parent := inv.parentPrefixID(prefix)
-	addresses := inv.prefixAddresses(id)
-	if parent == uuid.Nil && len(addresses) > 0 {
-		return fmt.Errorf("prefix %s (%s) holds %d IP address(es) that would have no parent prefix: %w",
-			prefix.Prefix, id, len(addresses), ErrPrefixHoldsAddresses)
+	parent, addresses, err := inv.prefixRemoval(id)
+	if err != nil {
+		return err
 	}
 	for _, child := range inv.Prefixes {
 		if child != nil && child.Parent == id {
@@ -62,6 +56,30 @@ func (inv *Inventory) RemovePrefix(id uuid.UUID) error {
 	}
 	delete(inv.Prefixes, id)
 	return nil
+}
+
+// CanRemovePrefix reports the error RemovePrefix would return for the prefix,
+// or nil when it would succeed, without changing anything.
+func (inv *Inventory) CanRemovePrefix(id uuid.UUID) error {
+	_, _, err := inv.prefixRemoval(id)
+	return err
+}
+
+// prefixRemoval resolves what removing the prefix needs: the parent its
+// children move to and the addresses it holds. A root prefix that holds
+// addresses is refused with ErrPrefixHoldsAddresses.
+func (inv *Inventory) prefixRemoval(id uuid.UUID) (uuid.UUID, []*CaniIPAddress, error) {
+	prefix := inv.Prefixes[id]
+	if prefix == nil {
+		return uuid.Nil, nil, fmt.Errorf("prefix %s not found", id)
+	}
+	parent := inv.parentPrefixID(prefix)
+	addresses := inv.prefixAddresses(id)
+	if parent == uuid.Nil && len(addresses) > 0 {
+		return uuid.Nil, nil, fmt.Errorf("prefix %s (%s) holds %d IP address(es) that would have no parent prefix: %w",
+			prefix.Prefix, id, len(addresses), ErrPrefixHoldsAddresses)
+	}
+	return parent, addresses, nil
 }
 
 // RemovePrefixWithAddresses deletes a prefix like RemovePrefix, but when the
@@ -143,7 +161,8 @@ func (inv *Inventory) clearPrimaryIPs(id uuid.UUID) {
 
 // RemoveVRF deletes a VRF and its prefix memberships. Its device assignments
 // are held on the VRF and go with it. Interface VRF settings are names that
-// export resolves in the target system, so they are left as they are.
+// export resolves in the target system, so they are left as they are;
+// InterfacesNamingVRF lists them.
 func (inv *Inventory) RemoveVRF(id uuid.UUID) error {
 	if inv.VRFs[id] == nil {
 		return fmt.Errorf("vrf %s not found", id)
@@ -155,6 +174,21 @@ func (inv *Inventory) RemoveVRF(id uuid.UUID) error {
 		}
 	}
 	return nil
+}
+
+// InterfacesNamingVRF returns, in stable order, the interfaces whose VRF
+// setting names the VRF, bare or qualified by its namespace, so a caller can
+// report what still refers to a VRF it removes.
+func (inv *Inventory) InterfacesNamingVRF(vrf *CaniVRF) []*CaniInterface {
+	qualified := vrf.EffectiveNamespace() + "/" + vrf.Name
+	var named []*CaniInterface
+	for _, id := range sortedIDs(inv.Interfaces) {
+		iface := inv.Interfaces[id]
+		if iface != nil && (iface.VRF == vrf.Name || iface.VRF == qualified) {
+			named = append(named, iface)
+		}
+	}
+	return named
 }
 
 func clearReference(ref, removed uuid.UUID) uuid.UUID {

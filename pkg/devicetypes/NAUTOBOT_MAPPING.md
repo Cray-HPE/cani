@@ -475,11 +475,13 @@ IPAM deletion follows Nautobot's `on_delete` rules (`inventory_remove_ipam.go`).
 Removing a prefix moves its child prefixes and addresses up to its own parent, a
 missing parent record counting as none; a root prefix that still holds addresses
 is refused, as Nautobot refuses it, because every address needs a containing
-prefix. Removing an address clears device primary IPs and NAT-inside references
+prefix, and `CanRemovePrefix` reports that refusal without removing anything.
+Removing an address clears device primary IPs and NAT-inside references
 that point at it; its interface assignments go with it, and the derived
 interface index is rebuilt once the removal, or a cascade of removals, is done.
 Removing a VRF drops its prefix memberships; interface VRF settings are names
-resolved at export and are left alone. `ResolvePrefixReference` and
+resolved at export and are left alone, and `InterfacesNamingVRF` lists the
+interfaces that still carry the name. `ResolvePrefixReference` and
 `ResolveIPAddressReference` (`ipam_resolve.go`) find a record by UUID, which
 names one record whatever its namespace, or by natural key, optionally written
 `namespace/key` — the key is the shortest suffix that parses as a value, so a
