@@ -248,6 +248,15 @@ itest: bin venv ## Run integration tests (needs simulators: make sim-up)
 	. venv/bin/activate && PATH="$(TOOLS_BIN):$$PATH" ./spec/support/bin/cani_integrate.sh integration
 	$(OK) "integration tests passed"
 
+.PHONY: itest-nautobot
+# Only the Nautobot specs, with readable output, for iterating on the provider
+# or the round-trip suite against a local instance (make nautobot-up).
+itest-nautobot: export RUN_EXTERNAL_TESTS := 1
+itest-nautobot: bin ## Run the Nautobot integration specs against a live instance
+	$(INFO) "running Nautobot integration specs"
+	PATH="$(TOOLS_BIN):$$PATH" shellspec ./spec/integration/nautobot_*_spec.sh -f documentation
+	$(OK) "Nautobot integration specs passed"
+
 .PHONY: etest
 # disabled in make test due to EOL CSM and slow nature, but can be run independently with `make etest`
 etest: bin venv ## Run edge-case tests
