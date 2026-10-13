@@ -437,7 +437,7 @@ and addresses in its namespace that it holds more closely than their current
 parent, so supplying a prefix after its addresses gives them a parent; Nautobot
 re-parents the records directly under the new prefix's parent on create, and
 this also repairs records that had none. A merge adopts only the records the
-batch leaves alone; the records it carries keep the parent the provider set or
+batch leaves alone; the records it carries keep the parent, the provider set, or
 the merge derived. `AddPrefixVRF` adds a VRF to a prefix once and refuses one
 from another namespace; an explicit membership supersedes a legacy VRF name,
 which `AddPrefix` and `AddPrefixVRF` clear. `CaniPrefix.RemoveVRF` drops one
