@@ -223,3 +223,28 @@ func TestOrNone(t *testing.T) {
 		})
 	}
 }
+
+// TestCompareScalarFieldsReportsComments verifies a differing comment yields
+// a "comments" FieldDiff and an empty local comment yields none.
+//
+// Why it matters: MapToPatchRequest writes Comments whenever the local value
+// is set, so a preview that omitted the field would say "1 field(s) would
+// change" and then let --merge overwrite an operator's Nautobot comment.
+// Inputs: local comment "compute node 2" vs remote "edited in Nautobot";
+// then an empty local comment against the same remote.
+// Outputs: exactly one diff {comments, compute node 2, edited in Nautobot};
+// then no diff, mirroring the PATCH path's skip of empty values.
+// Data choice: otherwise-empty objects isolate the comments branch from the
+// serial and asset-tag ones.
+func TestCompareScalarFieldsReportsComments(t *testing.T) {
+	remoteComment := "edited in Nautobot"
+	remote := &nautobotapi.Device{Comments: &remoteComment}
+
+	diffs := compareScalarFields(&devicetypes.CaniDeviceType{Comments: "compute node 2"}, remote)
+	if len(diffs) != 1 || diffs[0].Field != "comments" || diffs[0].LocalVal != "compute node 2" || diffs[0].RemoteVal != remoteComment {
+		t.Fatalf("expected one comments diff, got %+v", diffs)
+	}
+	if diffs := compareScalarFields(&devicetypes.CaniDeviceType{}, remote); len(diffs) != 0 {
+		t.Fatalf("an empty local comment must not be reported, got %+v", diffs)
+	}
+}

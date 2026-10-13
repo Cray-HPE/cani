@@ -102,6 +102,7 @@ func (c *LookupCache) GetInterfacesByDevice(deviceID uuid.UUID) ([]*CachedItem, 
 				ID:      toUUID(iface.Id),
 				Name:    iface.Name,
 				Display: *iface.Display,
+				Iface:   remoteInterfaceState(iface),
 			}
 			// Extract cable ID if interface has a cable attached.
 			// Nautobot 3.2 returns the cable as a generic nested object map.

@@ -32,13 +32,18 @@ Commands:
   diff A B                       compare two projections; exit 1 when they differ
   changes [MARK]                 print the object-change count, or the changes since MARK
   stamps DATASTORE               count the records that carry a Nautobot external ID
+  patch-device NAME k=v...       edit a device in Nautobot (role and status by name)
+  create-ip NS ADDR [DESC]       add an address in Nautobot
+  delete-ip NS ADDR              delete an address in Nautobot
+  recreate-ip NS ADDR            delete and re-add an address: same key, new UUID
+  recreate-prefix NS CIDR        the same for a prefix and the addresses it holds
 """
 
 import argparse
 import json
 import sys
 
-from roundtrip import changes, projection, reset, seed
+from roundtrip import changes, mutate, projection, reset, seed
 from roundtrip.cani_source import load_cani, stamp_count
 from roundtrip.nautobot_source import fetch_nautobot
 
@@ -105,7 +110,28 @@ def build_parser():
     stamps = sub.add_parser("stamps")
     stamps.add_argument("datastore")
     stamps.set_defaults(run=lambda args: print(stamp_count(load_cani(args.datastore))))
+    add_mutations(sub)
     return parser
+
+
+def add_mutations(sub):
+    patch = sub.add_parser("patch-device")
+    patch.add_argument("name")
+    patch.add_argument("assignments", nargs="+", metavar="key=value")
+    patch.set_defaults(run=lambda args: mutate.patch_device(args.name, args.assignments))
+
+    create = sub.add_parser("create-ip")
+    create.add_argument("namespace")
+    create.add_argument("address")
+    create.add_argument("description", nargs="?", default="")
+    create.set_defaults(run=lambda args: mutate.create_ip(args.namespace, args.address, args.description))
+
+    for name, action in (("delete-ip", mutate.delete_ip), ("recreate-ip", mutate.recreate_ip),
+                         ("recreate-prefix", mutate.recreate_prefix)):
+        command = sub.add_parser(name)
+        command.add_argument("namespace")
+        command.add_argument("value", metavar="ADDR|CIDR")
+        command.set_defaults(run=lambda args, action=action: action(args.namespace, args.value))
 
 
 def main(argv=None):

@@ -75,8 +75,9 @@ type CachedItem struct {
 	Name    string
 	Slug    string
 	Display string
-	CableID uuid.UUID // For interfaces: the ID of the attached cable (if any)
-	Planned bool      // Set when a dry run stands in for an object it would create
+	CableID uuid.UUID       // For interfaces: the ID of the attached cable (if any)
+	Iface   *interfaceState // For interfaces: the fields --merge compares before a PATCH
+	Planned bool            // Set when a dry run stands in for an object it would create
 }
 
 // toUUID converts an openapi_types.UUID pointer to uuid.UUID

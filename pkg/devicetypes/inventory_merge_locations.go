@@ -81,6 +81,8 @@ func mergeRackProperties(existing, incoming *CaniRackType) {
 	if incoming.Location != uuid.Nil {
 		existing.Location = incoming.Location
 	}
+	mergeSet(&existing.Comments, incoming.Comments)
+	mergeSet(&existing.AssetTag, incoming.AssetTag)
 	mergeObjectMeta(&existing.ObjectMeta, incoming.ObjectMeta)
 }
 
@@ -126,5 +128,6 @@ func mergeLocationProperties(existing, incoming *CaniLocationType) {
 	if incoming.Facility != "" {
 		existing.Facility = incoming.Facility
 	}
+	mergeSet(&existing.Comments, incoming.Comments)
 	mergeObjectMeta(&existing.ObjectMeta, incoming.ObjectMeta)
 }
