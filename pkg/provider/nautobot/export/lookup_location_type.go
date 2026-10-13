@@ -37,22 +37,14 @@ import (
 // When def is non-nil, its Nestable, ContentTypes, and Parent fields are used
 // when creating the LocationType in Nautobot. When nil, defaults are applied.
 func (c *LookupCache) GetOrCreateLocationType(name string, def *devicetypes.LocationTypeDefinition) (*CachedItem, error) {
-	// Prefer the display name from the YAML definition over the raw slug.
-	if def != nil && def.Name != "" {
-		name = def.Name
-	}
+	name = locationTypeDisplayName(name, def)
 
-	// Try to find existing location type
-	nameFilter := []string{name}
-	resp, err := c.client.DcimLocationTypesListWithResponse(c.ctx, &nautobotapi.DcimLocationTypesListParams{
-		Name: &nameFilter,
-	})
+	lt, err := c.findLocationType(name)
 	if err != nil {
-		return nil, fmt.Errorf("failed to lookup location type %s: %w", name, err)
+		return nil, err
 	}
-	if resp.StatusCode() == http.StatusOK && resp.JSON200 != nil && resp.JSON200.Results != nil && len(resp.JSON200.Results) > 0 {
-		lt := (resp.JSON200.Results)[0]
-		c.reconcileLocationTypeIPAM(lt)
+	if lt != nil {
+		c.reconcileLocationTypeIPAM(*lt)
 		return &CachedItem{
 			ID:      toUUID(lt.Id),
 			Name:    lt.Name,
@@ -61,13 +53,42 @@ func (c *LookupCache) GetOrCreateLocationType(name string, def *devicetypes.Loca
 	}
 
 	if !c.createLocationTypes {
-		return nil, fmt.Errorf("location type %q not found in Nautobot (enable create_location_types)", name)
+		return nil, errLocationTypeNotFound(name)
 	}
 	if c.dryRun {
 		return plannedCreate("location type", name), nil
 	}
 
 	return c.createLocationType(name, def)
+}
+
+// locationTypeDisplayName prefers the display name from the YAML definition
+// over the raw slug, which is how Nautobot names the type.
+func locationTypeDisplayName(slug string, def *devicetypes.LocationTypeDefinition) string {
+	if def != nil && def.Name != "" {
+		return def.Name
+	}
+	return slug
+}
+
+func errLocationTypeNotFound(name string) error {
+	return fmt.Errorf("location type %q not found in Nautobot (enable create_location_types)", name)
+}
+
+// findLocationType looks a location type up by name without creating or
+// changing anything; nil when Nautobot has none.
+func (c *LookupCache) findLocationType(name string) (*nautobotapi.LocationType, error) {
+	nameFilter := []string{name}
+	resp, err := c.client.DcimLocationTypesListWithResponse(c.ctx, &nautobotapi.DcimLocationTypesListParams{
+		Name: &nameFilter,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to lookup location type %s: %w", name, err)
+	}
+	if resp.StatusCode() == http.StatusOK && resp.JSON200 != nil && resp.JSON200.Results != nil && len(resp.JSON200.Results) > 0 {
+		return &resp.JSON200.Results[0], nil
+	}
+	return nil, nil
 }
 
 // locationTypeIPAMContentTypes lists the IPAM object types that every

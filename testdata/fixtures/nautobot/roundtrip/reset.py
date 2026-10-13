@@ -24,15 +24,17 @@
 
 """Return Nautobot to the state a round-trip spec expects to start from.
 
-Everything an export can create is deleted; statuses, roles, manufacturers,
-tags and custom-field definitions are shared fixtures and stay. The DCIM
-part reuses purge_nautobot_dcim so the two purges cannot drift apart.
+Everything an export can create is deleted; statuses, roles, tags,
+manufacturers and custom-field definitions are shared fixtures and stay,
+except the ones a spec made up under the cani-rt- prefix. The DCIM part
+reuses purge_nautobot_dcim so the two purges cannot drift apart.
 """
 
 import purge_nautobot_dcim
 from seed_nautobot_api import NAUTOBOT_URL, _delete, api, delete_all
 
 GLOBAL_NAMESPACE = "Global"
+SPEC_OWNED_PREFIX = "cani-rt-"
 
 # Assignment tables reference both a VRF and a prefix/device, so they go first.
 VRF_ASSIGNMENTS = (
@@ -41,16 +43,27 @@ VRF_ASSIGNMENTS = (
 )
 
 
-def delete_namespaces_except_global():
-    """Delete every namespace but Global, which Nautobot refuses to drop."""
+def delete_where(path, keep):
+    """Delete every object at a list endpoint except those `keep` accepts."""
     while True:
-        results = api("GET", "ipam/namespaces/?limit=50").get("results", [])
-        doomed = [ns for ns in results if ns["name"] != GLOBAL_NAMESPACE]
+        results = api("GET", f"{path}?limit=50").get("results", [])
+        doomed = [obj for obj in results if not keep(obj)]
         if not doomed:
             return
-        for namespace in doomed:
+        for obj in doomed:
             # api() expects a JSON body, which a 204 DELETE has none of.
-            _delete(f"{NAUTOBOT_URL}/ipam/namespaces/{namespace['id']}/")
+            _delete(f"{NAUTOBOT_URL}/{path}{obj['id']}/")
+
+
+def delete_namespaces_except_global():
+    """Delete every namespace but Global, which Nautobot refuses to drop."""
+    delete_where("ipam/namespaces/", lambda ns: ns["name"] == GLOBAL_NAMESPACE)
+
+
+def delete_spec_owned_metadata():
+    """Drop the statuses, roles and tags a spec invented."""
+    for path in ("extras/statuses/", "extras/roles/", "extras/tags/"):
+        delete_where(path, lambda obj: not obj["name"].startswith(SPEC_OWNED_PREFIX))
 
 
 def reset():
@@ -59,6 +72,7 @@ def reset():
     purge_nautobot_dcim.main()
     delete_all("ipam/vrfs/")
     delete_namespaces_except_global()
+    delete_spec_owned_metadata()
     print("Reset complete")
 
 
