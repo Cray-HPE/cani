@@ -147,6 +147,38 @@ Describe 'INTEGRATION: Nautobot round-trip'
   Skip if 'Nautobot is not reachable' nautobot_unreachable
 ```
 
+### The Nautobot round-trip suite
+
+`spec/integration/nautobot_rt_*_spec.sh` covers the two loops a Nautobot round trip can start from
+(import → export → import and export → import → export), dry runs, the export `create_*` options, `--merge`
+and conflict resolution, and what happens when one side adds, edits or removes something. Run it alone,
+with readable output, against a local instance:
+
+```shell
+make nautobot-up
+make itest-nautobot
+```
+
+These specs do not probe fields one at a time. They reduce both sides to the same shape and assert
+equalities, using the helpers `spec/support/nautobot_roundtrip.sh` wraps around the oracle in
+`testdata/fixtures/nautobot/roundtrip` (standard library only):
+
+| Helper | Claim it lets you make |
+| --- | --- |
+| `rt_assert_parity` | Nautobot and the datastore project identically; on failure, one line per differing key and field |
+| `rt_snapshot cani NAME` / `rt_assert_cani_unchanged NAME` (and the `nautobot` pair) | A command left one side as it was |
+| `rt_mark_changes` / `rt_changes_since_mark` | How many entries Nautobot's object-change ledger gained, and which |
+| `rt_mark_datastore` / `rt_datastore_unchanged` | The datastore file is byte-identical |
+| `rt_reset`, `rt_seed`, `rt_build_inventory` | An empty Nautobot, the seeded fixture, or its CLI-built counterpart |
+| `rt_write_config key=value…` | A config file with an export option variant and every default filled, so nothing prompts |
+| `rt_export` / `rt_import` | Run the command and keep its log in `$RT_DIR` for later assertions |
+
+The projection covers only the rows `pkg/devicetypes/NAUTOBOT_MAPPING.md` marks **Mapped** in both
+directions; `testdata/fixtures/nautobot/roundtrip/projection.py` lists them, and adding a field is one entry
+on each side. Where current behaviour is an asymmetry (export never deletes, import never prunes), the spec
+pins what happens today and leaves an example with no `When` for the behaviour that is not designed yet, so
+implementing it turns the pinned example into a failure that asks for the placeholder to be promoted.
+
 ## Running a subset
 
 ```shell
