@@ -387,7 +387,8 @@ func (m *DeviceMapper) resolveDeviceType(device *devicetypes.CaniDeviceType) (*C
 }
 
 // resolveLocation gets the location ID, using default if device doesn't specify one.
-// Priority: device ProviderMetadata["location"] → parent rack's location → DefaultLocation.
+// Priority: device ProviderMetadata["location"] → parent rack's location → the
+// device's own Location (a device placed directly in a location) → DefaultLocation.
 // A device with no resolvable location is an error; the exporter never invents one.
 func (m *DeviceMapper) resolveLocation(device *devicetypes.CaniDeviceType) (*CachedItem, error) {
 	name := ""
@@ -403,7 +404,7 @@ func (m *DeviceMapper) resolveLocation(device *devicetypes.CaniDeviceType) (*Cac
 	// location hierarchy (Nautobot rejects devices whose location does not
 	// contain their rack).
 	if name == "" {
-		name = m.locationFromParentRack(device)
+		name = m.locationFromInventory(device)
 	}
 
 	if name == "" {
@@ -413,27 +414,6 @@ func (m *DeviceMapper) resolveLocation(device *devicetypes.CaniDeviceType) (*Cac
 		return nil, fmt.Errorf("location is required: place the device in a rack with a location or use --default-location")
 	}
 	return m.cache.GetLocation(name)
-}
-
-// locationFromParentRack returns the location name of the device's parent rack,
-// or "" if the device has no parent rack or the rack has no location set.
-// If the rack's location type doesn't support devices, it walks the location
-// tree to find the deepest descendant that does.
-func (m *DeviceMapper) locationFromParentRack(device *devicetypes.CaniDeviceType) string {
-	if m.inventory == nil {
-		return ""
-	}
-	rackID := device.GetRackID(m.inventory)
-	if rackID == uuid.Nil {
-		return ""
-	}
-	if rack, ok := m.inventory.Racks[rackID]; ok && rack != nil && rack.Location != uuid.Nil {
-		resolved := resolveContentLocation(rack.Location, "device", m.inventory)
-		if resolved != "" {
-			return resolved
-		}
-	}
-	return ""
 }
 
 // resolveStatus gets the status ID, using default if device doesn't specify one

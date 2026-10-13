@@ -26,10 +26,57 @@
 package devicetypes
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/google/uuid"
 )
+
+// clearDeviceReverseLists resets the derived fields on racks and devices
+// so they can be rebuilt from Parent fields. A device placed directly in a
+// location (no Parent) keeps its Location: nothing would re-derive it.
+func (inv *Inventory) clearDeviceReverseLists() {
+	for _, rack := range inv.Racks {
+		if rack != nil {
+			rack.Devices = nil
+			rack.OccupiedSlots = nil
+		}
+	}
+	for _, device := range inv.Devices {
+		if device != nil {
+			device.Children = nil
+			device.Rack = uuid.Nil
+			device.ParentDevice = uuid.Nil
+			if device.Parent != uuid.Nil {
+				device.Location = uuid.Nil
+			}
+		}
+	}
+}
+
+// reportUnplacedDevice records a device without a Parent: an error when its
+// Location names no known location, nothing when it is placed directly in a
+// location (a Nautobot device with no rack), and an orphan otherwise.
+func (inv *Inventory) reportUnplacedDevice(res *RelationshipResult, id uuid.UUID, device *CaniDeviceType) {
+	if device.Location != uuid.Nil {
+		if _, ok := inv.Locations[device.Location]; !ok {
+			res.Errors = append(res.Errors,
+				fmt.Errorf("device %q (%s): location %s not found", device.Name, id, device.Location))
+		}
+		return
+	}
+	res.Warnings = append(res.Warnings,
+		fmt.Sprintf("device %q (%s): no parent assigned (orphan)", device.Name, id))
+	res.Orphans = append(res.Orphans, OrphanItem{
+		ID:               device.ID,
+		Name:             device.Name,
+		Kind:             "device",
+		DeviceType:       string(device.Type),
+		Model:            device.Model,
+		Manufacturer:     device.Manufacturer,
+		ProviderMetadata: device.ProviderMetadata,
+	})
+}
 
 // OrphanItem describes an inventory item that has no parent assigned.
 type OrphanItem struct {

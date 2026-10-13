@@ -99,7 +99,7 @@ Locations are **exported as first-class objects** in Phase 0. `loadLocations()` 
 | `Asn` | `*int64` | `Location.Asn` | **Mapped** | Mapped when non-nil |
 | `Comments` | `string` | `Location.Comments` | **Mapped** | Mapped when non-empty |
 | `Tenant` | `string` | `Location.Tenant` (FK) | Not Mapped | |
-| `Tags` | `[]string` | `Location.Tags` | Not Mapped | |
+| `Tags` | `[]string` | `Location.Tags` | Partial | Import resolves tag names through the tag catalog (`LinkTags`); export does not send them |
 | `CustomFields` | `map[string]any` | `Location.CustomFields` | **Mapped** | Merged with flattened `ProviderMetadata` |
 | `ProviderMetadata` | `map[string]any` | `Location.CustomFields` | **Mapped** | Flattened and merged into custom fields |
 | `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Tracks source object UUIDs |
@@ -147,7 +147,7 @@ Nautobot does **not** have a separate `RackType` model — it uses an enum on th
 | `Devices` | `[]uuid.UUID` | — | Cani-Internal | Rebuilt from `CaniDeviceType.Rack` |
 | `OccupiedSlots` | `map[int]map[string]uuid.UUID` | — | Cani-Internal | Rebuilt from device RackPosition + Face |
 | `Tenant` | `string` | `Rack.Tenant` (FK) | Not Mapped | |
-| `Tags` | `[]string` | `Rack.Tags` | Partial | Resolved and sent on create; not reconciled by merge PATCH |
+| `Tags` | `[]string` | `Rack.Tags` | Partial | Import resolves tag names (`LinkTags`); export resolves and sends them on create, not on merge PATCH |
 | `CustomFields` | `map[string]any` | `Rack.CustomFields` | Not Mapped | |
 | `ProviderMetadata` | `map[string]any` | — | Not Mapped | Provider-specific metadata is not exported for racks |
 | `ProviderDefaults` | `map[string]any` | — | Cani-Internal | Provider-specific hardware-library defaults |
@@ -179,12 +179,12 @@ This type conflates **template fields** (from the YAML library, used to auto-cre
 | `RackPosition` | `int` | `Device.Position` | **Mapped** | Only when parent resolves to a rack |
 | `Face` | `string` | `Device.Face` | **Mapped** | Written by `setDeviceFace()`: `"front"`, `"rear"`, or nil if empty |
 | `Rack` | `uuid.UUID` | `Device.Rack` (FK) | Cani-Internal | Explicit FK; rebuilt from `Parent` at load time |
-| `Location` | `uuid.UUID` | `Device.Location` (FK) | **Mapped** | Provider metadata override, then parent rack location, then provider default |
+| `Location` | `uuid.UUID` | `Device.Location` (FK) | **Mapped** | Export: provider metadata override, then parent rack location, then the device's own `Location`, then provider default. Import sets it from `Device.location`; it is persisted for a device with no rack and re-derived from the rack otherwise |
 | `ParentDevice` | `uuid.UUID` | `Device.ParentBay` | Cani-Internal | Explicit FK; rebuilt from `Parent` at load time |
 | `AssignedVLANs` | `[]uuid.UUID` | Relationship association | **Mapped** | Device↔VLAN; exported in Phase 10 by `loadRelationships()` in `load_relationships.go`. Set by `update device --assign-vlan` |
 | `BMCParent` | `uuid.UUID` | Relationship association | **Mapped** | Marks this device as the BMC of the target device; exported in Phase 10. Set by `update device --bmc-of` |
-| `PrimaryIPv4` | `uuid.UUID` | `Device.primary_ip4` (FK) | **Mapped** | Resolved to Nautobot IP UUID; PATCHed in Phase 11 by `loadPrimaryIPs()` |
-| `PrimaryIPv6` | `uuid.UUID` | `Device.primary_ip6` (FK) | **Mapped** | Resolved to Nautobot IP UUID; PATCHed in Phase 11 by `loadPrimaryIPs()` |
+| `PrimaryIPv4` | `uuid.UUID` | `Device.primary_ip4` (FK) | **Mapped** | Import resolves `primary_ip4` through the imported address's Nautobot UUID (`LinkPrimaryIPs`); export PATCHes it in Phase 11 by `loadPrimaryIPs()` when it differs |
+| `PrimaryIPv6` | `uuid.UUID` | `Device.primary_ip6` (FK) | **Mapped** | Same as `PrimaryIPv4` |
 | `Comments` | `string` | `Device.Comments` | **Mapped** | Mapped when non-empty |
 | `Description` | `string` | — | Cani-Internal | No Nautobot device description |
 | `Vendor` | `string` | — | Cani-Internal | Cani-specific (vendor ≠ manufacturer) |
@@ -194,7 +194,7 @@ This type conflates **template fields** (from the YAML library, used to auto-cre
 | `Identifications` | `[]Identification` | — | Cani-Internal | Alternate manufacturer/model IDs |
 | `Platform` | `string` | `Device.Platform` (FK) | Not Mapped | |
 | `Tenant` | `string` | `Device.Tenant` (FK) | Not Mapped | |
-| `Tags` | `[]string` | `Device.Tags` | Partial | Resolved and sent on create; not reconciled by merge PATCH |
+| `Tags` | `[]string` | `Device.Tags` | Partial | Import resolves tag names (`LinkTags`); export resolves and sends them on create, not on merge PATCH |
 | `CustomFields` | `map[string]any` | `Device.CustomFields` | Not Mapped | Explicit custom fields are not currently included by the device mapper |
 | `ProviderMetadata` | `map[string]any` | `Device.CustomFields` | **Mapped** | Full map sent; `location` and `role` keys also used for FK resolution |
 | `Source` | `string` | — | Cani-Internal | |
@@ -375,7 +375,7 @@ template (name/type/mgmt-only) and are **not** device-type template fields.
 | `VRF` | `string` | `Interface.vrf` (FK) | **Mapped** | VRF reference, `name` or `namespace/name`, resolved to the VRF FK created in Phase 6c; a bare name shared by several exported namespaces is reported and skipped, and a VRF whose own name contains `/` cannot be referenced from an interface |
 | `Description` | `string` | `Interface.description` | **Mapped** | Free-text interface description; sent unconditionally on `updateInterface`, so an emptied local value clears it in Nautobot (inventory is authoritative on reconcile) |
 | `Role` | `string` | `Interface.role` (FK) | **Mapped** | e.g. `management`, `hsn`; validated against registered roles. Nautobot 3.2 marks the FK `omitempty`, so `interfacePatch` injects explicit `role: null` when the local role is empty; enrichment otherwise re-sends the role to avoid clobbering it |
-| `Tags` | `[]string` | `Interface.tags` | **Mapped** | Exported via the shared tag resolver |
+| `Tags` | `[]string` | `Interface.tags` | **Mapped** | Import sets the device interface spec's tags (`LinkTags`); export sends them via the shared tag resolver and --merge compares them before a PATCH |
 | `MacAddress` | `string` | `Interface.mac_address` | **Mapped** | Normalized on `update interface` |
 | `Type` | `InterfacesElemType` | `Interface.type` | **Mapped** | Template field from the library `interfaces[].type`. Values in Nautobot's `InterfaceTypeChoices` enum pass through unchanged (case-folded) and the library alias `1gbase-t` becomes `1000base-t` (`export/interface_types.go`; `TestNautobotInterfaceTypesMatchGeneratedEnum` keeps the set equal to the generated client). Any other value (e.g. `nvlink`, `pcie-gen5-x16`) is skipped before dry-run reporting or create, warned per interface and counted in `LoadResult.IfacesUnsupported`, for device and module interfaces alike |
 | `Label` | `string` | `Interface.label` | **Mapped** | Physical label; sent unconditionally on `updateInterface` so an emptied local value clears it |
@@ -525,7 +525,7 @@ namespace, which is resolved first).
 | `Description` | `string` | `VRF.description` | **Mapped** | Mapped when non-empty |
 | `Devices` | `[]uuid.UUID` | `VRFDeviceAssignment` (M2M) | **Mapped** | Exported via `ensureVRFDeviceAssignment()` in `load_vrfs.go`; imported via `FetchVRFDeviceAssignments()` + `MapVRFs()` |
 | `Status` | `string` | `VRF.status` (FK) | **Mapped** | Resolved by name |
-| `Tags` | `[]string` | `VRF.tags` | **Mapped** | Exported via the shared tag resolver |
+| `Tags` | `[]string` | `VRF.tags` | **Mapped** | Import resolves tag names (`LinkTags`); export sends them via the shared tag resolver |
 | `CustomFields` | `map[string]any` | `VRF.custom_fields` | Partial | Imported; not sent on export |
 | `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Tracks the source Nautobot UUID |
 | `ProviderMetadata` | `map[string]any` | — | Cani-Internal | Provider escape hatch |
@@ -546,7 +546,7 @@ location).
 | `Location` | `uuid.UUID` | `VLANLocationAssignment.location` | **Mapped** | Import resolves the first valid assignment; export sends `VLANRequest.location`, which creates the assignment, and retries unscoped on rejection |
 | `Status` | `string` | `VLAN.status` (FK) | **Mapped** | Resolved by name; falls back to provider default then `"Active"` |
 | `Role` | `string` | `VLAN.role` (FK) | **Mapped** | Resolved by name when non-empty |
-| `Tags` | `[]string` | `VLAN.tags` | Not Mapped | |
+| `Tags` | `[]string` | `VLAN.tags` | Partial | Import resolves tag names (`LinkTags`); export does not send them |
 | `CustomFields` | `map[string]any` | `VLAN.custom_fields` | **Mapped** | Merged with flattened ProviderMetadata on export |
 | `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Tracks the source Nautobot UUID |
 | `ProviderMetadata` | `map[string]any` | `VLAN.custom_fields` | **Mapped** | Flattened and merged into custom_fields payload |
@@ -581,7 +581,7 @@ Its VRF memberships become `VRFPrefixAssignment` records
 | `Status` | `string` | `Prefix.status` (FK) | **Mapped** | Resolved by name; falls back to provider default then `"Active"` |
 | `Role` | `string` | `Prefix.role` (FK) | **Mapped** | Resolved by name when non-empty |
 | `Tenant` | `string` | `Prefix.tenant` (FK) | Not Mapped | |
-| `Tags` | `[]string` | `Prefix.tags` | Not Mapped | |
+| `Tags` | `[]string` | `Prefix.tags` | Partial | Import resolves tag names (`LinkTags`); export does not send them |
 | `CustomFields` | `map[string]any` | `Prefix.custom_fields` | Partial | Imported; not sent on export |
 | `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Tracks the source Nautobot UUID |
 | `ProviderMetadata` | `map[string]any` | — | Cani-Internal | Provider escape hatch; not exported for prefixes |
@@ -615,7 +615,7 @@ intended namespace, and the parent is remapped to its canonical inventory UUID.
 | `Interfaces` | `[]uuid.UUID` | IP address-to-interface assignment | Partial | Exported; import does not currently fetch assignment resources |
 | `NATInside` | `uuid.UUID` | `IPAddress.nat_inside` | Not Mapped | Remapped when supplied by another provider, but Nautobot import/export does not populate it |
 | `Status` | `string` | `IPAddress.status` (FK) | **Mapped** | Resolved by name |
-| `Tags` | `[]string` | `IPAddress.tags` | Not Mapped | |
+| `Tags` | `[]string` | `IPAddress.tags` | Partial | Import resolves tag names (`LinkTags`); export does not send them |
 | `CustomFields` | `map[string]any` | `IPAddress.custom_fields` | Partial | Imported; not sent on export |
 | `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Tracks the source Nautobot UUID |
 | `ProviderMetadata` | `map[string]any` | — | Cani-Internal | Provider escape hatch |

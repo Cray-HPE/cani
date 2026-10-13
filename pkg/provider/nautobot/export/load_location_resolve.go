@@ -117,7 +117,10 @@ func findContentChild(loc *devicetypes.CaniLocationType, contentType string, inv
 func locationTypeSupports(locTypeSlug string, contentType string) bool {
 	lt, ok := devicetypes.GetLocationTypeBySlug(locTypeSlug)
 	if !ok {
-		return false
+		// A type cani's library does not define came from the provider, which
+		// already judged what it may hold; descending past it would relocate
+		// the object to the default location.
+		return true
 	}
 	for _, ct := range lt.ContentTypes {
 		if ct == contentType {
@@ -125,4 +128,37 @@ func locationTypeSupports(locTypeSlug string, contentType string) bool {
 		}
 	}
 	return false
+}
+
+// locationFromInventory returns the location the inventory places the device
+// in: its parent rack's, or, for a device with no Parent, its own Location.
+func (m *DeviceMapper) locationFromInventory(device *devicetypes.CaniDeviceType) string {
+	if name := m.locationFromParentRack(device); name != "" {
+		return name
+	}
+	if device.Parent != uuid.Nil {
+		return ""
+	}
+	return resolveContentLocation(device.Location, "device", m.inventory)
+}
+
+// locationFromParentRack returns the location name of the device's parent rack,
+// or "" if the device has no parent rack or the rack has no location set.
+// If the rack's location type doesn't support devices, it walks the location
+// tree to find the deepest descendant that does.
+func (m *DeviceMapper) locationFromParentRack(device *devicetypes.CaniDeviceType) string {
+	if m.inventory == nil {
+		return ""
+	}
+	rackID := device.GetRackID(m.inventory)
+	if rackID == uuid.Nil {
+		return ""
+	}
+	if rack, ok := m.inventory.Racks[rackID]; ok && rack != nil && rack.Location != uuid.Nil {
+		resolved := resolveContentLocation(rack.Location, "device", m.inventory)
+		if resolved != "" {
+			return resolved
+		}
+	}
+	return ""
 }

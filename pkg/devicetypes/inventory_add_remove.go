@@ -99,6 +99,8 @@ func (inv *Inventory) AddCable(cable *CaniCableType) error {
 }
 
 // RemoveLocation deletes a location and unlinks it from parent/children.
+// Racks, child locations and devices placed directly in the location block
+// the removal, as they would in Nautobot.
 func (inv *Inventory) RemoveLocation(id uuid.UUID) error {
 	loc, exists := inv.Locations[id]
 	if !exists {
@@ -110,6 +112,9 @@ func (inv *Inventory) RemoveLocation(id uuid.UUID) error {
 	if len(loc.Children) > 0 {
 		return fmt.Errorf("location %s still has %d child location(s); remove them first", id, len(loc.Children))
 	}
+	if n := inv.countDevicesPlacedIn(id); n > 0 {
+		return fmt.Errorf("location %s still has %d device(s); remove them first", id, n)
+	}
 	// Unlink from parent
 	if loc.Parent != uuid.Nil {
 		if parent, ok := inv.Locations[loc.Parent]; ok {
@@ -120,7 +125,22 @@ func (inv *Inventory) RemoveLocation(id uuid.UUID) error {
 	return nil
 }
 
-// RemoveRack deletes a rack and moves any contained devices to orphaned state.
+// countDevicesPlacedIn counts the devices placed directly in a location,
+// with no rack or parent device between them; a racked device is reached
+// through its rack, which blocks the removal on its own.
+func (inv *Inventory) countDevicesPlacedIn(id uuid.UUID) int {
+	n := 0
+	for _, device := range inv.Devices {
+		if device != nil && device.Parent == uuid.Nil && device.Location == id {
+			n++
+		}
+	}
+	return n
+}
+
+// RemoveRack deletes a rack. The devices it held keep the rack's location and
+// lose the rack, as a device unracked in Nautobot does; they are orphans only
+// when the rack had no location to leave them in.
 func (inv *Inventory) RemoveRack(id uuid.UUID) error {
 	rack, exists := inv.Racks[id]
 	if !exists {
@@ -130,6 +150,7 @@ func (inv *Inventory) RemoveRack(id uuid.UUID) error {
 	for _, deviceID := range rack.Devices {
 		if device, ok := inv.Devices[deviceID]; ok {
 			device.Parent = uuid.Nil
+			device.Location = rack.Location
 		}
 	}
 	// Unlink from location

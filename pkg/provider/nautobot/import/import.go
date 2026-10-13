@@ -121,6 +121,7 @@ func fetchAll(ctx context.Context, client *nautobotapi.ClientWithResponses) (Raw
 		{"vrf-device-assignments", into(ctx, client, &d.VRFDeviceAssignments, FetchVRFDeviceAssignments)},
 		{"vrf-prefix-assignments", into(ctx, client, &d.VRFPrefixAssignments, FetchVRFPrefixAssignments)},
 		{"namespaces", into(ctx, client, &d.Namespaces, FetchNamespaces)},
+		{"tags", into(ctx, client, &d.Tags, FetchTags)},
 	}
 	for _, step := range steps {
 		if err := step.fetch(); err != nil {

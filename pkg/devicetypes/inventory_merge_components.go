@@ -135,6 +135,17 @@ func mergeFruProperties(existing, incoming *CaniFruType) {
 	mergeObjectMeta(&existing.ObjectMeta, incoming.ObjectMeta)
 }
 
+// mergeSet copies src over *dst when src is set and differs, reporting
+// whether it did; a zero incoming value never clears an existing one.
+func mergeSet[T comparable](dst *T, src T) bool {
+	var zero T
+	if src == zero || *dst == src {
+		return false
+	}
+	*dst = src
+	return true
+}
+
 func mergeObjectMeta(existing *ObjectMeta, incoming ObjectMeta) {
 	if incoming.Status != "" {
 		existing.Status = incoming.Status
