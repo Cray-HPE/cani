@@ -32,6 +32,22 @@ import (
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 )
 
+// PlanDevice records that a dry run would create the named device, so later
+// phases can tell a planned device from one that is missing. The device
+// lookup itself is left alone: a planned device has no ID to hand out.
+func (c *LookupCache) PlanDevice(name string) {
+	c.devicesMu.Lock()
+	defer c.devicesMu.Unlock()
+	c.plannedDevices[name] = true
+}
+
+// DevicePlanned reports whether a dry run stands in for the named device.
+func (c *LookupCache) DevicePlanned(name string) bool {
+	c.devicesMu.RLock()
+	defer c.devicesMu.RUnlock()
+	return c.plannedDevices[name]
+}
+
 // GetDeviceByName looks up a device by name
 func (c *LookupCache) GetDeviceByName(name string) (*CachedItem, error) {
 	c.devicesMu.RLock()
