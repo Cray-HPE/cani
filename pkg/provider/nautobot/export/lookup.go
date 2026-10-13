@@ -99,6 +99,7 @@ type LookupCache struct {
 	statuses             map[string]*CachedItem // keyed by name
 	roles                map[string]*CachedItem // keyed by name
 	devices              map[string]*CachedItem // keyed by name
+	plannedDevices       map[string]bool        // devices a dry run would create, by name
 	manufacturers        map[string]*CachedItem // keyed by name
 	interfaces           map[string]*CachedItem // keyed by "deviceID:ifaceName"
 	interfacesPrefetched map[uuid.UUID]bool     // tracks devices whose interfaces have been prefetched
@@ -157,6 +158,7 @@ func NewLookupCache(client *NautobotClient) *LookupCache {
 		statuses:             make(map[string]*CachedItem),
 		roles:                make(map[string]*CachedItem),
 		devices:              make(map[string]*CachedItem),
+		plannedDevices:       make(map[string]bool),
 		manufacturers:        make(map[string]*CachedItem),
 		interfaces:           make(map[string]*CachedItem),
 		interfacesPrefetched: make(map[uuid.UUID]bool),

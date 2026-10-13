@@ -150,6 +150,9 @@ rt_seed() { rt_py seed; }
 #shellcheck disable=SC2317
 rt_reset_and_seed() { rt_reset && rt_seed; }
 
+#shellcheck disable=SC2317
+rt_reset_and_build() { rt_reset && rt_build_inventory; }
+
 # Run an export, keep its log at $RT_DIR/export.log and echo it, so a spec
 # can assert on the summary and a later step can still read the file.
 #shellcheck disable=SC2317
@@ -210,6 +213,21 @@ rt_changes_since_mark() { rt_py changes "$(cat "$RT_DIR/changes.mark")"; }
 #shellcheck disable=SC2317
 rt_ds_checksum() {
   if [ -f "$CANI_DS" ]; then cksum <"$CANI_DS" | cut -d' ' -f1-2; else echo absent; fi
+}
+
+#shellcheck disable=SC2317
+rt_mark_datastore() { rt_ds_checksum >"$RT_DIR/datastore.mark"; }
+
+# Print "datastore unchanged" or the two fingerprints (exit 1).
+#shellcheck disable=SC2317
+rt_datastore_unchanged() {
+  _rt_now=$(rt_ds_checksum)
+  if [ "$(cat "$RT_DIR/datastore.mark")" = "$_rt_now" ]; then
+    echo 'datastore unchanged'
+  else
+    printf 'datastore changed: %s -> %s\n' "$(cat "$RT_DIR/datastore.mark")" "$_rt_now"
+    return 1
+  fi
 }
 
 # Number of datastore records carrying a Nautobot external ID.
