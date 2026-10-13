@@ -226,25 +226,6 @@ func (inv *Inventory) rebuildRackRelationships() *RelationshipResult {
 	return res
 }
 
-// clearDeviceReverseLists resets all derived fields on racks and devices
-// so they can be rebuilt from Parent fields.
-func (inv *Inventory) clearDeviceReverseLists() {
-	for _, rack := range inv.Racks {
-		if rack != nil {
-			rack.Devices = nil
-			rack.OccupiedSlots = nil
-		}
-	}
-	for _, device := range inv.Devices {
-		if device != nil {
-			device.Children = nil
-			device.Rack = uuid.Nil
-			device.Location = uuid.Nil
-			device.ParentDevice = uuid.Nil
-		}
-	}
-}
-
 // linkDeviceToRack links a device to its parent rack and returns a fix message.
 // Returns true if the parent was a rack.
 func (inv *Inventory) linkDeviceToRack(id uuid.UUID, device *CaniDeviceType) (bool, string) {
@@ -387,18 +368,7 @@ func (inv *Inventory) rebuildDeviceRelationships() *RelationshipResult {
 			continue
 		}
 		if device.Parent == uuid.Nil {
-			res.Warnings = append(res.Warnings,
-				fmt.Sprintf("device %q (%s): no parent assigned (orphan)",
-					device.Name, id))
-			res.Orphans = append(res.Orphans, OrphanItem{
-				ID:               device.ID,
-				Name:             device.Name,
-				Kind:             "device",
-				DeviceType:       string(device.Type),
-				Model:            device.Model,
-				Manufacturer:     device.Manufacturer,
-				ProviderMetadata: device.ProviderMetadata,
-			})
+			inv.reportUnplacedDevice(res, id, device)
 			continue
 		}
 		if !inv.deviceAlreadyLinked(device) {

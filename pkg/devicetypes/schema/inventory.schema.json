@@ -186,6 +186,10 @@
         "isFullDepth": {
           "type": "boolean"
         },
+        "location": {
+          "format": "uuid",
+          "type": "string"
+        },
         "manufacturer": {
           "type": "string"
         },

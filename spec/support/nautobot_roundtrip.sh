@@ -147,6 +147,9 @@ rt_reset() { rt_py reset; }
 #shellcheck disable=SC2317
 rt_seed() { rt_py seed; }
 
+#shellcheck disable=SC2317
+rt_reset_and_seed() { rt_reset && rt_seed; }
+
 # Run an export, keep its log at $RT_DIR/export.log and echo it, so a spec
 # can assert on the summary and a later step can still read the file.
 #shellcheck disable=SC2317
@@ -187,6 +190,14 @@ rt_assert_parity() {
   rt_snapshot cani parity-cani &&
   rt_diff parity-nautobot parity-cani
 }
+
+# Compare the datastore now with the snapshot `rt_snapshot cani NAME` took.
+#shellcheck disable=SC2317
+rt_assert_cani_unchanged() { rt_snapshot cani "$1.after" && rt_diff "$1" "$1.after"; }
+
+# Compare Nautobot now with the snapshot `rt_snapshot nautobot NAME` took.
+#shellcheck disable=SC2317
+rt_assert_nautobot_unchanged() { rt_snapshot nautobot "$1.after" && rt_diff "$1" "$1.after"; }
 
 #shellcheck disable=SC2317
 rt_mark_changes() { rt_py changes >"$RT_DIR/changes.mark"; }

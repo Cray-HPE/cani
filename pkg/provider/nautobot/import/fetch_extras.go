@@ -64,3 +64,21 @@ func FetchRoles(ctx context.Context, client *nautobotapi.ClientWithResponses) ([
 			})
 	})
 }
+
+// FetchTags retrieves the tag catalog, which the transform uses to turn the
+// tag references on every other object into names.
+func FetchTags(ctx context.Context, client *nautobotapi.ClientWithResponses) ([]nautobotapi.Tag, error) {
+	return paginate(ctx, "tags", func(ctx context.Context, offset int) (pageResult[nautobotapi.Tag], error) {
+		resp, err := client.ExtrasTagsListWithResponse(ctx, &nautobotapi.ExtrasTagsListParams{
+			Limit:  intPtr(pageSize),
+			Offset: &offset,
+		})
+		if err != nil {
+			return pageResult[nautobotapi.Tag]{}, err
+		}
+		return stdPage(resp.StatusCode(), resp.JSON200, "tags",
+			func(b *nautobotapi.PaginatedTagList) ([]nautobotapi.Tag, *string) {
+				return b.Results, b.Next
+			})
+	})
+}

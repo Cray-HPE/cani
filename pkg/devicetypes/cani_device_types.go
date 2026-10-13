@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"slices"
 
 	"github.com/google/uuid"
 )
@@ -51,11 +52,13 @@ type CaniDeviceType struct {
 	Children []uuid.UUID `json:"-" yaml:"-"` // reverse index; rebuilt from child Device.Parent at load time
 	Frus     []uuid.UUID `json:"frus,omitempty" yaml:"frus,omitempty"`
 
-	// Explicit FK fields for Nautobot export, derived from Parent at load time.
-	// Non-serialized: rebuilt by RebuildDerivedState so persisted values cannot drift.
-	Rack         uuid.UUID `json:"-" yaml:"-"` // FK to CaniRackType
-	Location     uuid.UUID `json:"-" yaml:"-"` // FK to CaniLocationType
-	ParentDevice uuid.UUID `json:"-" yaml:"-"` // FK to parent device (blade→chassis)
+	// Explicit FK fields for Nautobot export. Rack and ParentDevice are
+	// derived from Parent at load time and never persisted. Location is
+	// derived the same way when the device has a Parent; a device placed
+	// directly in a location (no rack) keeps the persisted value.
+	Rack         uuid.UUID `json:"-" yaml:"-"`                                   // FK to CaniRackType
+	Location     uuid.UUID `json:"location,omitempty" yaml:"location,omitempty"` // FK to CaniLocationType
+	ParentDevice uuid.UUID `json:"-" yaml:"-"`                                   // FK to parent device (blade→chassis)
 
 	// Rack placement
 	RackPosition int    `json:"rackPosition,omitempty" yaml:"rack_position,omitempty"`
@@ -100,104 +103,93 @@ func (c *CaniDeviceType) GetType() Type {
 	return c.Type
 }
 
-// MergeProperties merges non-empty properties from another CaniDeviceType into this one.
-// Returns true if any changes were made.
+// MergeProperties merges set properties from another CaniDeviceType into this
+// one and reports whether anything changed. An empty incoming value never
+// clears an existing one.
 func (c *CaniDeviceType) MergeProperties(other *CaniDeviceType) bool {
 	if c == nil || other == nil {
 		return false
 	}
-	changed := false
+	// Every merge must run, so the results are collected rather than
+	// short-circuited.
+	changes := []bool{
+		c.mergeStrings(other),
+		mergeSet(&c.UHeight, other.UHeight),
+		c.mergePlacement(other),
+		mergeSet(&c.Parent, other.Parent),
+		mergeSet(&c.Location, other.Location),
+		c.mergeMetadata(other.ProviderMetadata),
+	}
+	return slices.Contains(changes, true)
+}
 
-	if other.Name != "" && c.Name != other.Name {
-		c.Name = other.Name
-		changed = true
+// mergeStrings carries every set string field of other; Type joins the table
+// through its underlying string.
+func (c *CaniDeviceType) mergeStrings(other *CaniDeviceType) bool {
+	changed := false
+	for _, f := range []struct {
+		dst *string
+		src string
+	}{
+		{&c.Name, other.Name}, {&c.Slug, other.Slug}, {&c.Manufacturer, other.Manufacturer},
+		{&c.Model, other.Model}, {&c.Status, other.Status}, {(*string)(&c.Type), string(other.Type)},
+		{&c.Role, other.Role}, {&c.Serial, other.Serial}, {&c.Description, other.Description},
+	} {
+		changed = mergeSet(f.dst, f.src) || changed
 	}
-	if other.Slug != "" && c.Slug != other.Slug {
-		c.Slug = other.Slug
-		changed = true
-	}
-	if other.Manufacturer != "" && c.Manufacturer != other.Manufacturer {
-		c.Manufacturer = other.Manufacturer
-		changed = true
-	}
-	if other.Model != "" && c.Model != other.Model {
-		c.Model = other.Model
-		changed = true
-	}
-	if other.Status != "" && c.Status != other.Status {
-		c.Status = other.Status
-		changed = true
-	}
-	if other.Type != "" && c.Type != other.Type {
-		c.Type = other.Type
-		changed = true
-	}
-	if other.UHeight != 0 && c.UHeight != other.UHeight {
-		c.UHeight = other.UHeight
-		changed = true
-	}
-	if other.RackPosition != 0 && c.RackPosition != other.RackPosition {
-		c.RackPosition = other.RackPosition
-		changed = true
-	}
-	if other.Face != "" && c.Face != other.Face {
-		c.Face = other.Face
-		changed = true
-	}
-	// Nautobot requires rack, position, and face to be set together;
-	// default face to "front" when a position is present.
+	return changed
+}
+
+// mergePlacement carries the rack position and face. Nautobot requires rack,
+// position and face to be set together, so a position without a face
+// defaults the face to "front".
+func (c *CaniDeviceType) mergePlacement(other *CaniDeviceType) bool {
+	changed := mergeSet(&c.RackPosition, other.RackPosition)
+	changed = mergeSet(&c.Face, other.Face) || changed
 	if c.RackPosition > 0 && c.Face == "" {
 		c.Face = "front"
 		changed = true
 	}
-	if other.Parent != uuid.Nil && c.Parent != other.Parent {
-		c.Parent = other.Parent
-		changed = true
-	}
-	if other.Role != "" && c.Role != other.Role {
-		c.Role = other.Role
-		changed = true
-	}
-	if other.Serial != "" && c.Serial != other.Serial {
-		c.Serial = other.Serial
-		changed = true
-	}
-	if other.Description != "" && c.Description != other.Description {
-		c.Description = other.Description
-		changed = true
-	}
+	return changed
+}
 
-	// Merge ProviderMetadata: copy/overwrite provider sub-maps and
-	// top-level keys from other into c.
-	if len(other.ProviderMetadata) > 0 {
-		if c.ProviderMetadata == nil {
-			c.ProviderMetadata = make(map[string]any)
+// mergeMetadata copies provider sub-maps key by key and top-level scalar keys
+// from incoming into the device's ProviderMetadata.
+func (c *CaniDeviceType) mergeMetadata(incoming map[string]any) bool {
+	if len(incoming) == 0 {
+		return false
+	}
+	if c.ProviderMetadata == nil {
+		c.ProviderMetadata = make(map[string]any)
+	}
+	changed := false
+	for k, v := range incoming {
+		changed = c.mergeMetadataKey(k, v) || changed
+	}
+	return changed
+}
+
+func (c *CaniDeviceType) mergeMetadataKey(k string, v any) bool {
+	incomingSub, isMap := v.(map[string]any)
+	if !isMap {
+		if reflect.DeepEqual(c.ProviderMetadata[k], v) {
+			return false
 		}
-		for k, v := range other.ProviderMetadata {
-			otherSub, isMap := v.(map[string]any)
-			if !isMap {
-				// Top-level scalar key.
-				if !reflect.DeepEqual(c.ProviderMetadata[k], v) {
-					c.ProviderMetadata[k] = v
-					changed = true
-				}
-				continue
-			}
-			// Merge provider sub-map key by key.
-			existing, _ := c.ProviderMetadata[k].(map[string]any)
-			if existing == nil {
-				existing = make(map[string]any)
-				c.ProviderMetadata[k] = existing
-			}
-			for sk, sv := range otherSub {
-				if !reflect.DeepEqual(existing[sk], sv) {
-					existing[sk] = sv
-					changed = true
-				}
-			}
+		c.ProviderMetadata[k] = v
+		return true
+	}
+	existing, _ := c.ProviderMetadata[k].(map[string]any)
+	if existing == nil {
+		existing = make(map[string]any)
+		c.ProviderMetadata[k] = existing
+	}
+	changed := false
+	for sk, sv := range incomingSub {
+		if !reflect.DeepEqual(existing[sk], sv) {
+			existing[sk] = sv
+			changed = true
 		}
 	}
-
 	return changed
 }
 

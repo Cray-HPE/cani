@@ -87,13 +87,16 @@ func TestResolveLocationNameNotFound(t *testing.T) {
 // ---------- locationTypeSupports ----------
 
 // TestLocationTypeSupports verifies a registered location type reports support
-// only for content types in its list, and unknown slugs return false.
+// only for content types in its list, and a slug the library does not define
+// is trusted to hold anything.
 //
 // Why it matters: Nautobot rejects placing a rack/device under a location type
-// that does not list that content type, so export must check before assigning.
+// that does not list that content type, so export must check before assigning;
+// a type that only Nautobot knows was already accepted by Nautobot, and
+// refusing it would silently move the object to the default location.
 // Inputs: a "test-room-export" type supporting rack+device; queried for rack,
 // device, module, and an unknown slug.
-// Outputs: true for rack/device, false for module and the unknown slug.
+// Outputs: true for rack/device, false for module, true for the unknown slug.
 // Data choice: a type that supports two of three content types plus a bogus slug
 // covers the match, no-match, and not-found branches.
 func TestLocationTypeSupports(t *testing.T) {
@@ -113,8 +116,8 @@ func TestLocationTypeSupports(t *testing.T) {
 	if locationTypeSupports("test-room-export", "module") {
 		t.Error("expected test-room-export to NOT support module")
 	}
-	if locationTypeSupports("nonexistent-slug", "rack") {
-		t.Error("expected unknown slug to return false")
+	if !locationTypeSupports("nonexistent-slug", "rack") {
+		t.Error("expected a slug the library does not define to be trusted")
 	}
 }
 

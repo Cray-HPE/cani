@@ -57,6 +57,7 @@ type RawData struct {
 	VRFDeviceAssignments      []nautobotapi.VRFDeviceAssignment
 	VRFPrefixAssignments      []nautobotapi.VRFPrefixAssignment
 	Namespaces                []nautobotapi.Namespace
+	Tags                      []nautobotapi.Tag
 }
 
 // Transform converts raw Nautobot API data into a TransformResult.
@@ -132,7 +133,7 @@ func transformRaw(raw *RawData) (*devicetypes.TransformResult, error) {
 	warnings = append(warnings, ScopePrefixes(prefixes, raw.Prefixes, namespaceNameMap, vrfs, BuildVRFPrefixMembershipMap(raw.VRFPrefixAssignments))...)
 	warnings = append(warnings, ScopeIPAddresses(ipAddresses, raw.IPAddresses, prefixes)...)
 
-	return &devicetypes.TransformResult{
+	result := &devicetypes.TransformResult{
 		Locations:   locations,
 		Racks:       racks,
 		Devices:     devices,
@@ -144,7 +145,13 @@ func transformRaw(raw *RawData) (*devicetypes.TransformResult, error) {
 		IPAddresses: ipAddresses,
 		VRFs:        vrfs,
 		Warnings:    warnings,
-	}, nil
+	}
+
+	// 13. Cross-object links that need every family mapped: tags on each
+	// record and the devices' primary addresses.
+	LinkTags(result, raw)
+	LinkPrimaryIPs(result, raw.Devices)
+	return result, nil
 }
 
 // transformLegacy is the original path: copy existing devices.

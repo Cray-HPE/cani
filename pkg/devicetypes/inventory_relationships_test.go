@@ -210,47 +210,6 @@ func TestRebuildRackRelationshipsMissingLocation(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// clearDeviceReverseLists
-// ---------------------------------------------------------------------------
-
-func TestClearDeviceReverseListsResetsFields(t *testing.T) {
-	rackID := uuid.New()
-	deviceID := uuid.New()
-	locID := uuid.New()
-	parentDevID := uuid.New()
-
-	inv := NewInventory()
-	inv.Racks[rackID] = &CaniRackType{
-		Name:    "r1",
-		Devices: []uuid.UUID{deviceID},
-	}
-	inv.Devices[deviceID] = &CaniDeviceType{
-		Name:         "d1",
-		Children:     []uuid.UUID{uuid.New()},
-		Rack:         rackID,
-		Location:     locID,
-		ParentDevice: parentDevID,
-	}
-
-	inv.clearDeviceReverseLists()
-
-	if len(inv.Racks[rackID].Devices) != 0 {
-		t.Fatal("expected rack devices to be cleared")
-	}
-	dev := inv.Devices[deviceID]
-	if len(dev.Children) != 0 || dev.Rack != uuid.Nil ||
-		dev.Location != uuid.Nil || dev.ParentDevice != uuid.Nil {
-		t.Fatal("expected all device reverse fields to be cleared")
-	}
-}
-
-func TestClearDeviceReverseListsEmptyInventory(t *testing.T) {
-	inv := NewInventory()
-	// Should not panic on empty maps.
-	inv.clearDeviceReverseLists()
-}
-
-// ---------------------------------------------------------------------------
 // linkDeviceToRack
 // ---------------------------------------------------------------------------
 
