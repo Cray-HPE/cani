@@ -83,7 +83,7 @@ func (p *Nautobot) setupExportFromConfig(cmd *cli.Command) error {
 	cache := export.NewLookupCache(client)
 	cache.SetContext(ctx)
 
-	p.applyCacheFlags(cmd, cache)
+	p.applyCacheFlags(cache)
 
 	if err := p.promptForDefaults(cache); err != nil {
 		return err
@@ -107,7 +107,9 @@ func (p *Nautobot) setupExportFromConfig(cmd *cli.Command) error {
 	return nil
 }
 
-// applyFlagOverrides applies command-line flag overrides to Options.
+// applyFlagOverrides applies command-line flag overrides to Options. A flag
+// given on the command line wins over the config file in either direction;
+// one left at its default changes nothing.
 func (p *Nautobot) applyFlagOverrides(cmd *cli.Command) {
 	if cmd.Flags().Changed("default-location") {
 		p.Options.DefaultLocation, _ = cmd.Flags().GetString("default-location")
@@ -121,66 +123,35 @@ func (p *Nautobot) applyFlagOverrides(cmd *cli.Command) {
 	if p.Options.Export == nil {
 		p.Options.Export = &NautobotExportOpts{}
 	}
-	if cmd.Flags().Changed("merge") {
-		p.Options.Export.Merge, _ = cmd.Flags().GetBool("merge")
-	}
-	if cmd.Flags().Changed("dry-run") {
-		p.Options.Export.DryRun, _ = cmd.Flags().GetBool("dry-run")
+	for _, flag := range []struct {
+		name string
+		dst  *bool
+	}{
+		{"merge", &p.Options.Export.Merge},
+		{"dry-run", &p.Options.Export.DryRun},
+		{"create-device-types", &p.Options.Export.CreateDeviceTypes},
+		{"create-location-types", &p.Options.Export.CreateLocationTypes},
+		{"create-module-types", &p.Options.Export.CreateModuleTypes},
+		{"create-locations", &p.Options.Export.CreateLocations},
+		{"create-statuses", &p.Options.Export.CreateStatuses},
+		{"create-roles", &p.Options.Export.CreateRoles},
+	} {
+		if cmd.Flags().Changed(flag.name) {
+			*flag.dst, _ = cmd.Flags().GetBool(flag.name)
+		}
 	}
 }
 
-// applyCacheFlags applies create_* flags from config and CLI overrides to the cache.
-func (p *Nautobot) applyCacheFlags(cmd *cli.Command, cache *export.LookupCache) {
-	// Apply config values first
-	if p.Options.Export != nil {
-		if p.Options.Export.CreateDeviceTypes {
-			cache.SetCreateDeviceTypes(true)
-		}
-		if p.Options.Export.CreateLocationTypes {
-			cache.SetCreateLocationTypes(true)
-		}
-		if p.Options.Export.CreateLocations {
-			cache.SetCreateLocations(true)
-		}
-		if p.Options.Export.CreateStatuses {
-			cache.SetCreateStatuses(true)
-		}
-		if p.Options.Export.CreateRoles {
-			cache.SetCreateRoles(true)
-		}
-	}
-
-	// CLI overrides
-	if cmd.Flags().Changed("create-device-types") {
-		if v, _ := cmd.Flags().GetBool("create-device-types"); v {
-			cache.SetCreateDeviceTypes(true)
-		}
-	}
-	if cmd.Flags().Changed("create-location-types") {
-		if v, _ := cmd.Flags().GetBool("create-location-types"); v {
-			cache.SetCreateLocationTypes(true)
-		}
-	}
-	if cmd.Flags().Changed("create-statuses") {
-		if v, _ := cmd.Flags().GetBool("create-statuses"); v {
-			cache.SetCreateStatuses(true)
-		}
-	}
-	if cmd.Flags().Changed("create-roles") {
-		if v, _ := cmd.Flags().GetBool("create-roles"); v {
-			cache.SetCreateRoles(true)
-		}
-	}
-	if cmd.Flags().Changed("create-locations") {
-		if v, _ := cmd.Flags().GetBool("create-locations"); v {
-			cache.SetCreateLocations(true)
-		}
-	}
-	if cmd.Flags().Changed("create-module-types") {
-		if v, _ := cmd.Flags().GetBool("create-module-types"); v {
-			cache.SetCreateModuleTypes(true)
-		}
-	}
+// applyCacheFlags mirrors the create_* options, config and flags already
+// merged, into the lookup cache.
+func (p *Nautobot) applyCacheFlags(cache *export.LookupCache) {
+	opts := p.Options.Export
+	cache.SetCreateDeviceTypes(opts.CreateDeviceTypes)
+	cache.SetCreateLocationTypes(opts.CreateLocationTypes)
+	cache.SetCreateModuleTypes(opts.CreateModuleTypes)
+	cache.SetCreateLocations(opts.CreateLocations)
+	cache.SetCreateStatuses(opts.CreateStatuses)
+	cache.SetCreateRoles(opts.CreateRoles)
 }
 
 // promptForDefaults prompts the user interactively for any missing defaults

@@ -35,36 +35,62 @@ import (
 	"github.com/google/uuid"
 )
 
-func (e *Exporter) getOrCreateModuleType(
-	ctx context.Context,
-	module *devicetypes.CaniModuleType,
-) (*CachedItem, error) {
-	model := module.Model
-	if model == "" {
-		model = module.Slug
-	}
-	if model == "" {
-		model = module.Name
-	}
+// moduleTypeModel is the model the module phase looks a module type up by.
+func moduleTypeModel(module *devicetypes.CaniModuleType) string {
+	return firstSet(module.Model, module.Slug, module.Name)
+}
 
+// findModuleType looks a module type up by model; nil means Nautobot has
+// none, which is not an error.
+func (e *Exporter) findModuleType(ctx context.Context, model string) (*CachedItem, error) {
 	modelFilter := []string{model}
 	resp, err := e.Client.DcimModuleTypesListWithResponse(ctx,
 		&nautobotapi.DcimModuleTypesListParams{Model: &modelFilter})
 	if err != nil {
 		return nil, fmt.Errorf("module type lookup: %w", err)
 	}
-	if resp.StatusCode() == http.StatusOK && resp.JSON200 != nil &&
-		resp.JSON200.Results != nil && len(resp.JSON200.Results) > 0 {
-		moduleType := resp.JSON200.Results[0]
-		return &CachedItem{
-			ID: toUUID(moduleType.Id), Name: moduleType.Model,
-			Display: derefString(moduleType.Display),
-		}, nil
+	if resp.StatusCode() != http.StatusOK || resp.JSON200 == nil ||
+		resp.JSON200.Results == nil || len(resp.JSON200.Results) == 0 {
+		return nil, nil
+	}
+	moduleType := resp.JSON200.Results[0]
+	return &CachedItem{
+		ID: toUUID(moduleType.Id), Name: moduleType.Model,
+		Display: derefString(moduleType.Display),
+	}, nil
+}
+
+// errModuleTypeNotFound is the module phase's refusal when a module type is
+// absent and the export may not create it.
+func errModuleTypeNotFound(model string) error {
+	return fmt.Errorf("module type %q not in Nautobot (enable create_module_types)", model)
+}
+
+func (e *Exporter) getOrCreateModuleType(
+	ctx context.Context,
+	module *devicetypes.CaniModuleType,
+) (*CachedItem, error) {
+	model := moduleTypeModel(module)
+	moduleType, err := e.findModuleType(ctx, model)
+	if err != nil {
+		return nil, err
+	}
+	if moduleType != nil {
+		return moduleType, nil
 	}
 	if !e.Options.CreateModuleTypes {
-		return nil, fmt.Errorf("module type %q not in Nautobot (enable create_module_types)", model)
+		return nil, errModuleTypeNotFound(model)
 	}
+	return e.createModuleType(ctx, module, model)
+}
 
+// createModuleType creates the module type under the module's manufacturer,
+// creating that too when Nautobot lacks it.
+func (e *Exporter) createModuleType(
+	ctx context.Context,
+	module *devicetypes.CaniModuleType,
+	model string,
+) (*CachedItem, error) {
 	manufacturer, err := e.Cache.GetOrCreateManufacturer(module.Manufacturer)
 	if err != nil {
 		return nil, fmt.Errorf("manufacturer resolution: %w", err)

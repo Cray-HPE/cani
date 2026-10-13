@@ -233,3 +233,10 @@ rt_datastore_unchanged() {
 # Number of datastore records carrying a Nautobot external ID.
 #shellcheck disable=SC2317
 rt_stamp_count() { rt_py stamps "$CANI_DS"; }
+
+# Number of Nautobot objects a list endpoint (with its filter) returns,
+# for kinds the projection leaves out: types, statuses, roles.
+#shellcheck disable=SC2317
+rt_count() {
+  nb_list "$1" | python3 -c 'import json, sys; print(json.load(sys.stdin).get("count", 0))'
+}

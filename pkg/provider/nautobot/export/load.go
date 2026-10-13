@@ -199,6 +199,12 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 	// Set inventory reference so mapper can resolve parent devices for rack positions
 	mapper.SetInventory(inventory)
 
+	// Pre-flight: every status, role, device type and location type the
+	// inventory names must exist or be creatable before any phase writes.
+	if err := e.refuseMissingRefs(inventory, result); err != nil {
+		return err
+	}
+
 	// Phase 0a: Ensure custom field definitions exist in Nautobot before objects
 	// that carry values for them are exported (must precede location creation).
 	if err := e.EnsureCustomFields(ctx, inventory); err != nil {

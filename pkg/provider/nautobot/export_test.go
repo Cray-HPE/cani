@@ -40,7 +40,48 @@ func newExportFlagCmd() *cli.Command {
 	cmd.Flags().String("default-status", "", "")
 	cmd.Flags().Bool("merge", false, "")
 	cmd.Flags().Bool("dry-run", false, "")
+	for _, name := range []string{
+		"create-device-types", "create-location-types", "create-module-types",
+		"create-locations", "create-statuses", "create-roles",
+	} {
+		cmd.Flags().Bool(name, true, "")
+	}
 	return cmd
+}
+
+// TestApplyFlagOverrides_CreateFlagsWinInBothDirections verifies that a
+// --create-* flag given on the command line replaces the config file's value
+// whether it turns creation on or off, and that a flag left alone keeps the
+// file's value even though the flag's own default is true.
+//
+// Why it matters: a flag set to false used to be ignored, so the command line
+// could widen what the config allowed but never narrow it, and
+// --create-module-types reached nothing at all.
+// Inputs: a config with device types on and module types and roles off;
+// --create-device-types=false and --create-module-types given, roles not.
+// Outputs: device types off, module types on, roles still off.
+// Data choice: one flag per direction plus one untouched flag whose default
+// (true) differs from the config (false) shows the default does not leak.
+func TestApplyFlagOverrides_CreateFlagsWinInBothDirections(t *testing.T) {
+	cmd := newExportFlagCmd()
+	mustSet(t, cmd, "create-device-types", "false")
+	mustSet(t, cmd, "create-module-types", "true")
+	p := New()
+	p.Options.Export.CreateDeviceTypes = true
+	p.Options.Export.CreateModuleTypes = false
+	p.Options.Export.CreateRoles = false
+
+	p.applyFlagOverrides(cmd)
+
+	if p.Options.Export.CreateDeviceTypes {
+		t.Error("--create-device-types=false must turn creation off over the config file")
+	}
+	if !p.Options.Export.CreateModuleTypes {
+		t.Error("--create-module-types must turn creation on over the config file")
+	}
+	if p.Options.Export.CreateRoles {
+		t.Error("an unset flag must leave the config file's value, not impose its default")
+	}
 }
 
 func TestApplyFlagOverrides_ChangedFlagsOverrideOptions(t *testing.T) {
