@@ -121,7 +121,7 @@ func (e *Exporter) collectNewInterfaces(
 			}
 
 			if existing != nil {
-				if e.Options.Merge {
+				if e.Options.Merge && !e.interfaceCurrent(existing, spec) {
 					if err := e.updateInterface(ctx, existing.ID, nautobotID, spec, result); err != nil {
 						clog.Warn("Warning: failed to update interface %s on %s: %v", spec.Name, deviceName, err)
 					}

@@ -161,7 +161,9 @@ func resolveLocalRole(device *devicetypes.CaniDeviceType, mapper *DeviceMapper) 
 	return item
 }
 
-// compareScalarFields compares simple string fields (serial, asset_tag).
+// compareScalarFields compares the simple string fields the PATCH path
+// writes (serial, asset_tag, comments) so the preview never under-reports
+// what --merge will overwrite.
 func compareScalarFields(device *devicetypes.CaniDeviceType, remote *nautobotapi.Device) []FieldDiff {
 	type scalarSpec struct {
 		field    string
@@ -171,6 +173,7 @@ func compareScalarFields(device *devicetypes.CaniDeviceType, remote *nautobotapi
 	specs := []scalarSpec{
 		{"serial", device.Serial, func() string { return ptrStr(remote.Serial) }},
 		{"asset_tag", device.AssetTag, func() string { return ptrStr(remote.AssetTag) }},
+		{"comments", device.Comments, func() string { return ptrStr(remote.Comments) }},
 	}
 	var diffs []FieldDiff
 	for _, s := range specs {

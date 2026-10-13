@@ -171,6 +171,19 @@ rt_import() {
   return $_rt_rc
 }
 
+# Run the `cani alpha ...` remedy the last import printed after "import again:".
+#shellcheck disable=SC2317
+rt_run_import_remedy() {
+  _rt_remedy=$(sed -n 's/.*import again: cani alpha //p' "$RT_DIR/import.log" | head -n 1)
+  if [ -z "$_rt_remedy" ]; then
+    echo 'no remedy in import.log'
+    return 1
+  fi
+  echo "remedy: cani alpha $_rt_remedy"
+  # shellcheck disable=SC2086
+  rt_cani $_rt_remedy
+}
+
 # --- oracle -----------------------------------------------------------------
 
 # rt_snapshot nautobot NAME | rt_snapshot cani NAME  -> $RT_DIR/NAME.json

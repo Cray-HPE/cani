@@ -134,6 +134,7 @@ func (c *CaniDeviceType) mergeStrings(other *CaniDeviceType) bool {
 		{&c.Name, other.Name}, {&c.Slug, other.Slug}, {&c.Manufacturer, other.Manufacturer},
 		{&c.Model, other.Model}, {&c.Status, other.Status}, {(*string)(&c.Type), string(other.Type)},
 		{&c.Role, other.Role}, {&c.Serial, other.Serial}, {&c.Description, other.Description},
+		{&c.Comments, other.Comments}, {&c.AssetTag, other.AssetTag},
 	} {
 		changed = mergeSet(f.dst, f.src) || changed
 	}
