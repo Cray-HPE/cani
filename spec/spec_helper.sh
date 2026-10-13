@@ -77,6 +77,7 @@ spec_helper_loaded() {
 spec_helper_configure() {
   # Available functions: import, before_each, after_each, before_all, after_all
   : import 'support/custom_matcher'
+  import 'support/nautobot_roundtrip'
 }
 
 # compare value to file content
