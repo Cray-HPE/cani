@@ -44,6 +44,27 @@ Describe 'cani alpha update device'
     End
   End
 
+  # update shares add's key=value flag type, so the same typo fails the same way.
+  Describe '--metadata'
+    It 'applies a key=value pair'
+      When call bin/cani alpha update device test-device --metadata role=SpineSwitch --config "$CANI_CONF"
+      The status should equal 0
+      The stderr should include 'Updated device'
+    End
+
+    It 'rejects a value without key=value'
+      When call bin/cani alpha update device test-device --metadata bogus --config "$CANI_CONF"
+      The status should equal 1
+      The stderr should include 'invalid argument "bogus" for --metadata: expected key=value'
+    End
+
+    It 'rejects a --metadata that swallowed the next flag'
+      When call bin/cani alpha update device test-device --metadata --status Active --config "$CANI_CONF"
+      The status should equal 1
+      The stderr should include 'flag needs an argument: --metadata'
+    End
+  End
+
   # ── --primary-ipv4 flag ─────────────────────────────────────────
 
   Describe '--primary-ipv4'
