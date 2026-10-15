@@ -49,7 +49,12 @@ When called with a slug or part number, searches all hardware registries
 
 Use subcommands (rack, device, module, cable, location) to constrain
 to a specific type; subcommands reject slugs that do not match their type.`,
-		Args: cli.MaximumNArgs(1),
+		Args: func(cmd *cli.Command, args []string) error {
+			if len(args) > 1 {
+				return extraArgsError("add", args)
+			}
+			return nil
+		},
 		RunE: func(cmd *cli.Command, args []string) error {
 			if cmd.Flags().Changed("list-supported-types") {
 				return listAllSupportedTypes(cmd)

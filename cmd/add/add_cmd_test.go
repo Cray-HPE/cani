@@ -27,6 +27,7 @@
 package add
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/Cray-HPE/cani/internal/testutil/cmdtest"
@@ -201,5 +202,37 @@ func TestAddIsProviderAgnostic(t *testing.T) {
 	}
 	if len(harness.Inventory().Devices) == 0 {
 		t.Error("no device was added")
+	}
+}
+
+// TestAddRejectsExtraPositionalArgs verifies the bare "add <slug>" form
+// accepts one positional argument only and names the rest.
+//
+// Why it matters: addAny reads args[0] alone, so a second token (a status
+// typed where a flag was meant) used to be ignored without a word; the
+// message matches the one the noun subcommands give so users see one
+// vocabulary.
+// Inputs: the add command's Args validator with two positional tokens, and
+// again with one.
+// Outputs: an error quoting the stray token for two; nil for one.
+// Data choice: the validator is called directly because the bare form's RunE
+// would go on to resolve the slug, which is not under test here.
+func TestAddRejectsExtraPositionalArgs(t *testing.T) {
+	// Arrange.
+	cmd := NewCommand()
+
+	// Act.
+	err := cmd.Args(cmd, []string{"some-slug", "Active"})
+	single := cmd.Args(cmd, []string{"some-slug"})
+
+	// Assert.
+	if err == nil {
+		t.Fatal("expected an error for two positional arguments, got nil")
+	}
+	if !strings.Contains(err.Error(), `unexpected argument(s) ["Active"]; add takes a single slug or part number`) {
+		t.Errorf("error = %q, want the stray token quoted", err)
+	}
+	if single != nil {
+		t.Errorf("one argument: unexpected error: %v", single)
 	}
 }
