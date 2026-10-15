@@ -108,3 +108,17 @@ func (f *FlagSet) GetStringArray(name string) ([]string, error) {
 	}
 	return *v.value, nil
 }
+
+// GetStringToString returns the pairs of a repeatable key=value flag; the map
+// is nil when the flag has no default and was not set.
+func (f *FlagSet) GetStringToString(name string) (map[string]string, error) {
+	flag := f.Lookup(name)
+	if flag == nil {
+		return nil, fmt.Errorf("flag accessed but not defined: %s", name)
+	}
+	v, ok := flag.Value.(*stringToStringValue)
+	if !ok {
+		return nil, fmt.Errorf("trying to get stringToString value of flag of type %s", flag.Value.Type())
+	}
+	return *v.value, nil
+}
