@@ -37,4 +37,24 @@ Describe 'cani flag parsing'
       The stderr should include 'invalid argument "abc" for --position'
     End
   End
+
+  Describe 'a flag written without its value'
+    It 'does not swallow the flag that follows it'
+      When call bin/cani alpha add device cray-xd225v --rack test-rack --tag --status Active --config "$CANI_CONF"
+      The status should equal 1
+      The stderr should include 'flag needs an argument: --tag'
+    End
+
+    It 'does not swallow a trailing flag either'
+      When call bin/cani alpha add device cray-xd225v --rack test-rack --tag --status --config "$CANI_CONF"
+      The status should equal 1
+      The stderr should include 'flag needs an argument: --tag'
+    End
+
+    It 'still accepts a value that merely starts with a dash'
+      When call bin/cani alpha add device cray-xd225v --rack test-rack --name -leading-dash --config "$CANI_CONF"
+      The status should equal 0
+      The stderr should include 'Added device'
+    End
+  End
 End

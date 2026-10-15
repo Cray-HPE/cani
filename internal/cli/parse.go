@@ -85,10 +85,21 @@ func (f *FlagSet) parseLong(body string, args []string, i int) (consumed int, he
 	if flag.NoOptDefVal != "" {
 		return 1, false, f.set(flag, flag.NoOptDefVal)
 	}
-	if i+1 >= len(args) {
+	if i+1 >= len(args) || f.isKnownFlagToken(args[i+1]) {
 		return 0, false, fmt.Errorf("flag needs an argument: --%s", name)
 	}
 	return 2, false, f.set(flag, args[i+1])
+}
+
+// isKnownFlagToken reports whether tok names a flag this set knows ("--name",
+// "--name=value", "-x" or the built-in help), so a flag written without its
+// value fails instead of swallowing the flag that follows it.
+func (f *FlagSet) isKnownFlagToken(tok string) bool {
+	if strings.HasPrefix(tok, "--") {
+		name, _, _ := splitOnEquals(tok[2:])
+		return name == "help" || f.Lookup(name) != nil
+	}
+	return len(tok) == 2 && tok[0] == '-' && (tok[1] == 'h' || f.shorthandLookup(tok[1:]) != nil)
 }
 
 // parseShort handles a "-abc" shorthand cluster and returns how many argv
@@ -122,7 +133,7 @@ func (f *FlagSet) shortValue(flag *Flag, rest string, args []string, i int) (con
 		rest = strings.TrimPrefix(rest, "=")
 		return 1, false, f.set(flag, rest)
 	}
-	if i+1 >= len(args) {
+	if i+1 >= len(args) || f.isKnownFlagToken(args[i+1]) {
 		return 0, false, fmt.Errorf("flag needs an argument: -%s", flag.Shorthand)
 	}
 	return 2, false, f.set(flag, args[i+1])
