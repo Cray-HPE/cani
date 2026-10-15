@@ -222,8 +222,12 @@ test: bin schema spec-setup venv sim-up utest ftest itest # etest
 test-fast: utest ftest ## Run unit + functional tests (no Docker, no Python)
 	$(OK) "fast tests passed"
 
+.PHONY: sizecheck
+sizecheck: ## Enforce the file-size budgets in AGENTS.md (tools/size-exceptions.txt ratchets existing offenders)
+	./tools/sizecheck.sh
+
 .PHONY: utest
-utest: bin ## Run unit tests and enforce tools/coverage-floors.txt
+utest: bin sizecheck ## Run unit tests and enforce tools/coverage-floors.txt
 	$(INFO) "running unit tests"
 	GOOS=$(GOOS) GOARCH=$(GOARCH) ./tools/covercheck.sh
 	$(OK) "unit tests passed"
