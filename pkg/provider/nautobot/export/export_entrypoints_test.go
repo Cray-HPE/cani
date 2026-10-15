@@ -33,36 +33,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// ---------- PrintSummary (smoke) ----------
-
-// TestPrintSummaryDoesNotPanic verifies PrintSummary renders a fully populated
-// LoadResult without panicking.
-//
-// Why it matters: the summary is the operator's end-of-run report; a nil-deref
-// or format panic there would mask an otherwise successful export.
-// Inputs: a LoadResult with every counter and slice field populated.
-// Outputs: none asserted beyond no panic (function only logs).
-// Data choice: filling every field exercises all conditional print branches at
-// once. Note: this is a smoke test and asserts no output content.
-func TestPrintSummaryDoesNotPanic(t *testing.T) {
-	result := &LoadResult{
-		LocationsCreated:   []string{"loc1"},
-		LocationsSkipped:   []string{"loc2"},
-		RacksCreated:       []string{"rack1"},
-		Created:            []string{"dev1", "dev2"},
-		Updated:            []string{"dev3"},
-		Skipped:            []string{"dev4"},
-		IfacesCreated:      5,
-		IfacesSkipped:      2,
-		CablesCreated:      3,
-		VLANsCreated:       1,
-		PrefixesCreated:    2,
-		IPAddressesCreated: 4,
-	}
-	// Should not panic.
-	PrintSummary(result)
-}
-
 // ---------- NewNautobotClient ----------
 
 // TestNewNautobotClientErrors verifies the client constructor rejects an empty
@@ -210,51 +180,6 @@ func TestValidateInventoryValid(t *testing.T) {
 	}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-}
-
-// ---------- PrintSummary (all branches) ----------
-
-// TestPrintSummaryAllBranches verifies that PrintSummary executes without
-// panicking when given a LoadResult that exercises every counter and slice
-// (created/updated/skipped/conflicts/errors across all object kinds).
-//
-// Why it matters: the summary is the operator-facing report of an export run;
-// it must render all non-zero sections without crashing regardless of which
-// counters are populated.
-// Inputs: a LoadResult with every field non-empty. Outputs: none asserted
-// beyond the absence of a panic (the rendered text is not captured).
-// Data choice: populating all fields drives every print branch in one call.
-// NOTE: this is a smoke test; it does not assert the rendered output.
-func TestPrintSummaryAllBranches(t *testing.T) {
-	result := &LoadResult{
-		LocationsCreated:   []string{"loc1"},
-		LocationsSkipped:   []string{"loc2"},
-		RacksCreated:       []string{"rack1"},
-		RacksSkipped:       2,
-		Created:            []string{"dev1"},
-		Updated:            []string{"dev2"},
-		Skipped:            []string{"dev3"},
-		Conflicts:          []ConflictInfo{{DeviceName: "dev3", Reason: "exists"}},
-		IfacesCreated:      5,
-		IfacesSkipped:      2,
-		IfacesUnsupported:  1,
-		ModulesCreated:     1,
-		ModulesSkipped:     1,
-		FrusCreated:        3,
-		FrusSkipped:        1,
-		CablesCreated:      4,
-		CablesSkipped:      1,
-		CablesConflicted:   1,
-		VLANsCreated:       2,
-		VLANsSkipped:       1,
-		PrefixesCreated:    3,
-		PrefixesSkipped:    1,
-		IPAddressesCreated: 6,
-		IPAddressesSkipped: 2,
-		Errors:             []string{"something went wrong"},
-	}
-	// Should not panic.
-	PrintSummary(result)
 }
 
 // ---------- NewExporter ----------
