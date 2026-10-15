@@ -28,11 +28,15 @@
 // replaces the third-party cobra/pflag/viper dependencies.  It provides just
 // the subset of features the cani codebase relies on: a command tree with
 // inherited (persistent) flags, POSIX-style flag parsing with long/short
-// names, slice/array/count flag types, the "changed" partial-update semantics,
-// positional-argument validators, and cobra-style help output.
+// names, slice/array/count/key=value flag types, the "changed" partial-update
+// semantics, positional-argument validators, and cobra-style help output.
 package cli
 
 import (
+	"errors"
+	"fmt"
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -188,3 +192,47 @@ func (s *stringArrayValue) Set(val string) error {
 
 func (s *stringArrayValue) Type() string   { return "stringArray" }
 func (s *stringArrayValue) String() string { return "[" + strings.Join(*s.value, ",") + "]" }
+
+// --- string to string (repeatable key=value) ------------------------------
+
+// stringToStringValue stores repeatable key=value pairs, split on the first
+// "=" so a value may itself contain "=".  A later pair overwrites an earlier
+// key.  The default is replaced on the first command-line occurrence.  A pair
+// without a key is rejected when it is parsed, so the command fails before it
+// runs instead of each caller re-checking the shape.
+type stringToStringValue struct {
+	value   *map[string]string
+	changed bool
+}
+
+func newStringToStringValue(val map[string]string, p *map[string]string) *stringToStringValue {
+	*p = val
+	return &stringToStringValue{value: p}
+}
+
+func (s *stringToStringValue) Set(pair string) error {
+	key, val, ok := strings.Cut(pair, "=")
+	if !ok || key == "" {
+		return errors.New("expected key=value")
+	}
+	if strings.HasPrefix(key, "-") {
+		return fmt.Errorf("key %q looks like a flag; expected key=value", key)
+	}
+	if !s.changed {
+		*s.value = map[string]string{}
+	}
+	(*s.value)[key] = val
+	s.changed = true
+	return nil
+}
+
+func (s *stringToStringValue) Type() string { return "stringToString" }
+
+// String renders the pairs sorted by key so help and tests are deterministic.
+func (s *stringToStringValue) String() string {
+	pairs := make([]string, 0, len(*s.value))
+	for _, key := range slices.Sorted(maps.Keys(*s.value)) {
+		pairs = append(pairs, key+"="+(*s.value)[key])
+	}
+	return "[" + strings.Join(pairs, ",") + "]"
+}

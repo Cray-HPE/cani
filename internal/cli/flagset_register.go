@@ -136,3 +136,12 @@ func (f *FlagSet) StringArray(name string, value []string, usage string) *[]stri
 	f.VarP(newStringArrayValue(value, p), name, "", usage)
 	return p
 }
+
+// --- string to string (repeatable key=value) ------------------------------
+
+// StringToString defines a repeatable key=value flag and returns its pointer.
+func (f *FlagSet) StringToString(name string, value map[string]string, usage string) *map[string]string {
+	p := new(map[string]string)
+	f.VarP(newStringToStringValue(value, p), name, "", usage)
+	return p
+}
