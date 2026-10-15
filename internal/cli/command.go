@@ -66,6 +66,8 @@ type Command struct {
 	parent   *Command
 	commands []*Command
 	ctx      context.Context
+	// args replaces os.Args[1:] in Execute when SetArgs has been called.
+	args []string
 
 	lflags *FlagSet
 	pflags *FlagSet
