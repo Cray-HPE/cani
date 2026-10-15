@@ -135,7 +135,7 @@ type malformedReference struct {
 // makeStatusRefFromUUID creates a testRef whose Id union wraps the given UUID.
 func makeStatusRefFromUUID(id uuid.UUID) testRef {
 	var idUnion nautobotapi.Device_Status_Id
-	_ = SetRefUUID(&idUnion, id)
+	_ = nautobotapi.SetRefUUID(&idUnion, id)
 	return testRef{Id: &idUnion}
 }
 
