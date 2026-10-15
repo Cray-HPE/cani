@@ -100,7 +100,7 @@ Describe 'cani alpha add device'
     End
   End
 
-  # ── --metadata ─────────────────────────────────────────────────────
+  # ── --metadata and stray arguments ──────────────────────────────
   # A `--metadata` with no value used to swallow the next token (here
   # `--status`) and every metadata pair was then dropped silently; the parser
   # now refuses a flag token as a value and a pair without key=value.
@@ -150,6 +150,16 @@ PY
       When call bin/cani alpha add device cray-xd225v --rack test-rack --metadata --status=Active --config "$CANI_CONF"
       The status should equal 1
       The stderr should include 'flag needs an argument: --metadata'
+    End
+  End
+
+  Describe 'positional arguments'
+    Before 'setup_crud_env'
+
+    It 'rejects a second positional argument'
+      When call bin/cani alpha add device cray-xd225v Active --rack test-rack --config "$CANI_CONF"
+      The status should equal 1
+      The stderr should include 'unexpected argument(s) ["Active"]; add device takes a single slug or part number'
     End
   End
 

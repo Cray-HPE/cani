@@ -218,3 +218,33 @@ func TestAddDeviceAppliesMetadataAndStatus(t *testing.T) {
 		t.Errorf("metadata = %v, want role=SpineSwitch", got)
 	}
 }
+
+// TestAddDeviceRejectsExtraPositionalArgs verifies a second positional token
+// is an error rather than silently ignored.
+//
+// Why it matters: addDevice reads args[0] only, so a status or name typed
+// without its flag used to vanish; the device was added as if it were absent.
+// Inputs: a valid slug followed by a stray "Active" token, with a valid rack.
+// Outputs: an error quoting the stray token, zero Save calls.
+// Data choice: "Active" is what the reported command left behind once the
+// parser had consumed "--status" as a metadata value.
+func TestAddDeviceRejectsExtraPositionalArgs(t *testing.T) {
+	// Arrange.
+	inventory, _ := cmdtest.InventoryWithRack("rack-01")
+	harness := cmdtest.New(t, NewCommand(), newDeviceCommand(), inventory)
+
+	// Act.
+	err := harness.Execute(t, "add", "device", cmdtest.DeviceSlug, "Active",
+		"--rack", "rack-01", "--position", "10")
+
+	// Assert.
+	if err == nil {
+		t.Fatal("expected an error for a stray positional argument, got nil")
+	}
+	if !strings.Contains(err.Error(), `unexpected argument(s) ["Active"]; add device takes a single slug or part number`) {
+		t.Errorf("error = %q, want the stray token quoted", err)
+	}
+	if harness.Store.Saves != 0 {
+		t.Errorf("Saves = %d, want 0", harness.Store.Saves)
+	}
+}

@@ -87,6 +87,9 @@ func validSlugOrPartNumber(noun Noun) func(cmd *cli.Command, args []string) erro
 		if len(args) == 0 {
 			return fmt.Errorf("slug or part number required")
 		}
+		if len(args) > 1 {
+			return extraArgsError("add "+string(noun), args)
+		}
 
 		slug := args[0]
 		if _, err := lookupBySlugOrPart(noun, slug); err != nil {
@@ -94,6 +97,12 @@ func validSlugOrPartNumber(noun Noun) func(cmd *cli.Command, args []string) erro
 		}
 		return nil
 	}
+}
+
+// extraArgsError names every positional token after the first, which the add
+// commands would otherwise ignore without a word.
+func extraArgsError(command string, args []string) error {
+	return fmt.Errorf("unexpected argument(s) %q; %s takes a single slug or part number", args[1:], command)
 }
 
 // lookupResult is a discriminated union returned by lookupBySlugOrPart.

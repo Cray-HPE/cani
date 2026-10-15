@@ -211,6 +211,30 @@ Describe 'cani alpha add'
       The stderr should include 'unknown cable slug or part number'
     End
 
+    It 'add with two positional args fails'
+      When call bin/cani alpha add cray-xd225v Active
+      The status should equal 1
+      The stderr should include 'unexpected argument(s) ["Active"]; add takes a single slug or part number'
+    End
+
+    It 'add rack with two positional args fails'
+      When call bin/cani alpha add rack nonexistent-slug Active
+      The status should equal 1
+      The stderr should include 'unexpected argument(s) ["Active"]; add rack takes a single slug or part number'
+    End
+
+    It 'add module with two positional args fails'
+      When call bin/cani alpha add module nonexistent-slug Active
+      The status should equal 1
+      The stderr should include 'unexpected argument(s) ["Active"]; add module takes a single slug or part number'
+    End
+
+    It 'add cable with two positional args fails'
+      When call bin/cani alpha add cable nonexistent-slug Active
+      The status should equal 1
+      The stderr should include 'unexpected argument(s) ["Active"]; add cable takes a single slug or part number'
+    End
+
     It 'add location with no arg fails'
       When call bin/cani alpha add location
       The status should equal 1
