@@ -49,7 +49,7 @@ When called with a slug or part number, searches all hardware registries
 
 Use subcommands (rack, device, module, cable, location) to constrain
 to a specific type; subcommands reject slugs that do not match their type.`,
-		Args: cli.ArbitraryArgs,
+		Args: cli.MaximumNArgs(1),
 		RunE: func(cmd *cli.Command, args []string) error {
 			if cmd.Flags().Changed("list-supported-types") {
 				return listAllSupportedTypes(cmd)
@@ -85,7 +85,7 @@ to a specific type; subcommands reject slugs that do not match their type.`,
 	cmd.PersistentFlags().Int("start", 1, "Starting number for sequential names (used with --prefix).")
 	cmd.PersistentFlags().Int("pad-width", 0, "Zero-pad width for sequential names (0 = auto).")
 	cmd.PersistentFlags().StringArray("tag", nil, "Tag(s) to apply to the item (repeatable)")
-	cmd.PersistentFlags().StringArray("metadata", nil, "Provider metadata key=value pairs (repeatable)")
+	cmd.PersistentFlags().StringToString("metadata", nil, "Provider metadata key=value pairs (repeatable)")
 	cmd.PersistentFlags().String("status", "", "Status (Active, Available, Connected, Decommissioned, Decommissioning, Deprecated, Deprovisioning, Down, End-of-Life, Extended Support, Failed, Inventory, Maintenance, Offline, Planned, Primary, Provisioning, Reserved, Retired, Secondary, Staging, or any custom status)")
 	cmd.PersistentFlags().String("serial", "", "Serial number")
 
