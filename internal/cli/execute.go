@@ -32,12 +32,23 @@ import (
 	"strings"
 )
 
-// Execute resolves the target command from os.Args and runs it.  It is called
-// on the root command.
+// Execute resolves the target command from os.Args (or the arguments given to
+// SetArgs) and runs it.  It is called on the root command.
 func (c *Command) Execute() error {
 	root := c.Root()
-	target, rest := root.find(os.Args[1:])
+	args := root.args
+	if args == nil {
+		args = os.Args[1:]
+	}
+	target, rest := root.find(args)
 	return target.run(rest)
+}
+
+// SetArgs makes Execute parse args instead of os.Args[1:], so a command tree
+// can be driven end to end without touching the process arguments.  An empty
+// slice means no arguments; it is not the same as never calling SetArgs.
+func (c *Command) SetArgs(args []string) {
+	c.Root().args = append([]string{}, args...)
 }
 
 // find walks the command tree, consuming subcommand-name tokens (which may be
