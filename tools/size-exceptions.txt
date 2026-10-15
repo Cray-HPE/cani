@@ -1,0 +1,47 @@
+# Files that already exceed the budgets in AGENTS.md (production < 300 lines,
+# _test.go < 800). Each may stay at the size recorded here but not grow;
+# tools/sizecheck.sh fails when one grows and notes when one is back under
+# budget so its line can be deleted. Do not add new files here.
+cmd/add/device.go 365
+internal/config/migrate.go 336
+pkg/datastores/migrate.go 404
+pkg/devicetypes/cani_device_types.go 312
+pkg/devicetypes/cani_rack_types.go 379
+pkg/devicetypes/connections/csv.go 378
+pkg/devicetypes/inventory_relationships.go 796
+pkg/devicetypes/lookups.go 423
+pkg/devicetypes/suggest_parent.go 343
+pkg/provider/csm/export/csv.go 333
+pkg/provider/csm/export/network.go 396
+pkg/provider/csm/export/sls_builder.go 468
+pkg/provider/csm/import/csv.go 382
+pkg/provider/csm/stage.go 499
+pkg/provider/example/import/dcim_csv.go 414
+pkg/provider/example/import/import.go 408
+pkg/provider/example/transform/cables.go 568
+pkg/provider/example/transform/transform.go 823
+pkg/provider/hpcm/import/cmconfig_parse.go 300
+pkg/provider/hpcm/transform/transform.go 859
+pkg/provider/nautobot/export/load_interfaces.go 316
+pkg/provider/nautobot/export/load.go 1292
+pkg/provider/nautobot/export/mapper.go 547
+pkg/provider/ochami/transform/transform.go 304
+pkg/visual/etl.go 502
+pkg/visual/rack_interactive.go 363
+pkg/visual/rack_minimap_detail.go 340
+pkg/visual/rack_minimap.go 355
+pkg/visual/rack.go 560
+pkg/visual/table.go 318
+pkg/visual/tree_build_device.go 308
+pkg/xname/xnames.go 596
+pkg/datastores/migrate_test.go 862
+pkg/devicetypes/all_test.go 881
+pkg/devicetypes/cani_device_types_test.go 948
+pkg/devicetypes/cani_rack_types_test.go 1008
+pkg/devicetypes/inventory_crud_test.go 1131
+pkg/devicetypes/inventory_queries_test.go 1236
+pkg/devicetypes/inventory_relationships_test.go 1388
+pkg/provider/example/import/import_test.go 1039
+pkg/provider/example/transform/cables_test.go 1196
+pkg/provider/example/transform/dcim_test.go 1785
+pkg/provider/example/transform/transform_test.go 1488
