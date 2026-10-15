@@ -195,49 +195,22 @@ func (e *Exporter) createFruFromCani(
 	return nautobotID, nil
 }
 
+// fruHierarchy reads the parent link of a cani FRU for ordering.
+var fruHierarchy = hierarchyOf[devicetypes.CaniFruType]{
+	id:     func(f *devicetypes.CaniFruType) uuid.UUID { return f.ID },
+	parent: func(f *devicetypes.CaniFruType) uuid.UUID { return f.Parent },
+	name:   func(f *devicetypes.CaniFruType) string { return f.Name },
+}
+
 // topologicalSortFrus returns FRUs ordered so that top-level items come
 // before nested ones, enabling parent FK resolution during sequential creation.
+// Roots and siblings are sorted by name for deterministic output; FRUs whose
+// parent chain never reaches a root are reported and left out.
 func topologicalSortFrus(frus map[uuid.UUID]*devicetypes.CaniFruType) []*devicetypes.CaniFruType {
-	children := make(map[uuid.UUID][]uuid.UUID)
-	var roots []uuid.UUID
-	for id, fru := range frus {
-		if fru == nil {
-			continue
-		}
-		if fru.Parent == uuid.Nil {
-			roots = append(roots, id)
-		} else {
-			children[fru.Parent] = append(children[fru.Parent], id)
-		}
-	}
-
-	var ordered []*devicetypes.CaniFruType
-	queue := make([]uuid.UUID, 0, len(roots))
-	queue = append(queue, roots...)
-	for len(queue) > 0 {
-		id := queue[0]
-		queue = queue[1:]
-		if fru, ok := frus[id]; ok && fru != nil {
-			ordered = append(ordered, fru)
-		}
-		queue = append(queue, children[id]...)
-	}
-
-	// Detect unreachable FRUs (cycles or orphaned parent references).
-	if len(ordered) < len(frus) {
-		var missing []string
-		visited := make(map[uuid.UUID]bool, len(ordered))
-		for _, fru := range ordered {
-			visited[fru.ID] = true
-		}
-		for id, fru := range frus {
-			if fru != nil && !visited[id] {
-				missing = append(missing, fru.Name+" ("+id.String()+")")
-			}
-		}
+	ordered, unreachable := topologicalOrder(frus, fruHierarchy)
+	if len(unreachable) > 0 {
 		clog.Warn("WARNING: %d FRU(s) unreachable (cycle or orphan parent): %v",
-			len(missing), missing)
+			len(unreachable), fruHierarchy.labels(unreachable))
 	}
-
 	return ordered
 }
