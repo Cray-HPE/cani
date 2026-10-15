@@ -27,6 +27,7 @@
 package add
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/Cray-HPE/cani/internal/testutil/cmdtest"
@@ -105,5 +106,115 @@ func TestAddDeviceRejectsUnknownSlug(t *testing.T) {
 	}
 	if harness.Store.Saves != 0 {
 		t.Errorf("Saves = %d, want 0 (nothing should persist on failure)", harness.Store.Saves)
+	}
+}
+
+// TestAddDeviceRejectsMetadataMissingItsValue verifies the command line a
+// reviewer actually typed — a --metadata with no value in front of --status —
+// fails at parse time and writes nothing.
+//
+// Why it matters: the parser used to hand the next token to --metadata
+// whatever it looked like, so "--status" became a metadata value; the old code
+// then dropped every pair silently, never saw --status, and saved a device
+// with the default status and no role. The user only found out after an
+// export.
+// Inputs: the reported argv against an inventory with one rack.
+// Outputs: the parser's missing-argument error naming --metadata, zero Save
+// calls and no device.
+// Data choice: flag order and tokens match the report, including the valid
+// role pair that used to be lost along with the bad one.
+func TestAddDeviceRejectsMetadataMissingItsValue(t *testing.T) {
+	// Arrange.
+	inventory, _ := cmdtest.InventoryWithRack("rack-01")
+	harness := cmdtest.New(t, NewCommand(), newDeviceCommand(), inventory)
+
+	// Act.
+	err := harness.Execute(t, "add", "device", cmdtest.DeviceSlug,
+		"--rack", "rack-01", "--position", "10",
+		"--metadata", "role=SpineSwitch", "--metadata", "--status", "Active")
+
+	// Assert.
+	if err == nil {
+		t.Fatal("expected a parse error, got nil")
+	}
+	if !strings.Contains(err.Error(), "flag needs an argument: --metadata") {
+		t.Errorf("error = %q, want the missing-argument error for --metadata", err)
+	}
+	if harness.Store.Saves != 0 {
+		t.Errorf("Saves = %d, want 0", harness.Store.Saves)
+	}
+	if n := len(harness.Inventory().Devices); n != 0 {
+		t.Errorf("devices = %d, want 0", n)
+	}
+}
+
+// TestAddDeviceRejectsMalformedMetadata verifies a --metadata value without a
+// key=value shape fails at parse time, naming the flag and the value.
+//
+// Why it matters: this is the case the parser's flag-token guard cannot see;
+// the key=value flag type itself has to refuse it before the command runs.
+// Inputs: "--metadata bogus" on an otherwise valid add device.
+// Outputs: an error naming the value and --metadata, and zero Save calls.
+// Data choice: "bogus" has no "=" at all, the simplest malformed pair.
+func TestAddDeviceRejectsMalformedMetadata(t *testing.T) {
+	// Arrange.
+	inventory, _ := cmdtest.InventoryWithRack("rack-01")
+	harness := cmdtest.New(t, NewCommand(), newDeviceCommand(), inventory)
+
+	// Act.
+	err := harness.Execute(t, "add", "device", cmdtest.DeviceSlug,
+		"--rack", "rack-01", "--position", "10", "--metadata", "bogus")
+
+	// Assert.
+	if err == nil {
+		t.Fatal("expected a parse error, got nil")
+	}
+	if !strings.Contains(err.Error(), `invalid argument "bogus" for --metadata: expected key=value`) {
+		t.Errorf("error = %q, want the value and flag named", err)
+	}
+	if harness.Store.Saves != 0 {
+		t.Errorf("Saves = %d, want 0", harness.Store.Saves)
+	}
+}
+
+// TestAddDeviceAppliesMetadataAndStatus verifies the corrected form of the
+// same command parses --metadata and --status and persists both.
+//
+// Why it matters: this is the regression guard for the report's intent, and
+// it proves the stricter flag does not reject well-formed input.
+// Inputs: the reviewer's argv without the stray --metadata.
+// Outputs: one Save, exactly one device with status Active, and the role pair
+// available to providers. No provider is registered here; the dispatch of the
+// pairs to MetadataApplier is covered by the cmdtest capability tests.
+// Data choice: "Active" is a built-in status so no status definition is
+// needed in the inventory.
+func TestAddDeviceAppliesMetadataAndStatus(t *testing.T) {
+	// Arrange.
+	inventory, _ := cmdtest.InventoryWithRack("rack-01")
+	harness := cmdtest.New(t, NewCommand(), newDeviceCommand(), inventory)
+
+	// Act.
+	err := harness.Execute(t, "add", "device", cmdtest.DeviceSlug,
+		"--rack", "rack-01", "--position", "10", "--name", "cn-01",
+		"--metadata", "role=SpineSwitch", "--status", "Active")
+
+	// Assert.
+	if err != nil {
+		t.Fatalf("add device: unexpected error: %v", err)
+	}
+	if harness.Store.Saves != 1 {
+		t.Errorf("Saves = %d, want 1", harness.Store.Saves)
+	}
+	devices := harness.Inventory().Devices
+	if len(devices) != 1 {
+		t.Fatalf("devices = %d, want 1", len(devices))
+	}
+	for _, device := range devices {
+		if device.Status != "Active" {
+			t.Errorf("Status = %q, want %q", device.Status, "Active")
+		}
+	}
+	if got := collectProviderMetadata(harness.Target); got["role"] != "SpineSwitch" {
+		t.Errorf("metadata = %v, want role=SpineSwitch", got)
 	}
 }
