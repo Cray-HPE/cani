@@ -45,17 +45,13 @@ func parseSetFlags(pairs []string) (map[string]string, error) {
 	return result, nil
 }
 
-// applyProviderMetadata parses key=value pairs and lets each registered
-// provider merge them into its own section of the metadata map.
-func applyProviderMetadata(pm *map[string]any, pairs []string) error {
-	parsed, err := parseSetFlags(pairs)
-	if err != nil {
-		return fmt.Errorf("invalid --metadata: %w", err)
-	}
+// applyProviderMetadata lets each registered provider merge the --metadata
+// pairs, already validated by the flag parser, into its own section of the
+// metadata map.
+func applyProviderMetadata(pm *map[string]any, meta map[string]string) {
 	for _, p := range provider.GetProviders() {
 		if ma, ok := p.(provider.MetadataApplier); ok {
-			ma.ApplyMetadata(pm, parsed)
+			ma.ApplyMetadata(pm, meta)
 		}
 	}
-	return nil
 }
