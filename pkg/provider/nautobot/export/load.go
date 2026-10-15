@@ -115,81 +115,6 @@ type ConflictInfo struct {
 	Diffs      []FieldDiff // fields that would change with --merge
 }
 
-// generateDeviceNames assigns a unique cani-prefixed name to every device in
-// the inventory that has no name. The generated name uses the best available
-// identifier: serial number, slug, model, or cani UUID.
-func generateDeviceNames(inventory *devicetypes.Inventory) {
-	for _, device := range inventory.Devices {
-		if device == nil || device.Name != "" {
-			continue
-		}
-		category := devicetypes.ClassifyForNautobot(string(device.Type))
-		if category != devicetypes.CategoryDevice {
-			continue
-		}
-
-		var base string
-		switch {
-		case device.Serial != "":
-			base = device.Serial
-		case device.Slug != "":
-			base = device.Slug
-		case device.Model != "":
-			base = strings.ToLower(strings.ReplaceAll(device.Model, " ", "-"))
-		default:
-			base = device.ID.String()[:8]
-		}
-		device.Name = "cani-" + base
-	}
-}
-
-// disambiguateDeviceNames detects duplicate device names in the inventory
-// and makes them unique by appending a suffix (serial, rack position, or index).
-// Nautobot enforces name uniqueness per location+tenant, so duplicates must be
-// resolved before export.
-func disambiguateDeviceNames(inventory *devicetypes.Inventory) {
-	// Collect device-category entries grouped by name.
-	type entry struct {
-		id     uuid.UUID
-		device *devicetypes.CaniDeviceType
-	}
-	byName := make(map[string][]entry)
-	for id, device := range inventory.Devices {
-		if device == nil || device.Name == "" {
-			continue
-		}
-		category := devicetypes.ClassifyForNautobot(string(device.Type))
-		if category != devicetypes.CategoryDevice {
-			continue
-		}
-		byName[device.Name] = append(byName[device.Name], entry{id, device})
-	}
-
-	// Only process names that appear more than once.
-	for _, entries := range byName {
-		if len(entries) <= 1 {
-			continue
-		}
-		for _, e := range entries {
-			var suffix string
-			switch {
-			case e.device.Serial != "":
-				suffix = " (" + e.device.Serial + ")"
-			case e.device.RackPosition > 0:
-				rackLabel := ""
-				rackID := e.device.GetRackID(inventory)
-				if rack, ok := inventory.Racks[rackID]; ok && rack != nil {
-					rackLabel = rack.Name + " "
-				}
-				suffix = fmt.Sprintf(" (%sU%d)", rackLabel, e.device.RackPosition)
-			default:
-				suffix = fmt.Sprintf(" (%s)", e.id.String()[:8])
-			}
-			e.device.Name = e.device.Name + suffix
-		}
-	}
-}
-
 // setExternalID stores a remote UUID under the given provider key.
 // It initialises the map when nil.
 func setExternalID(m *map[string]uuid.UUID, provider string, id uuid.UUID) {
@@ -379,8 +304,8 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 	}
 
 	// Pre-Phase 2: Ensure every device has a name, then disambiguate duplicates
-	generateDeviceNames(inventory)
-	disambiguateDeviceNames(inventory)
+	inventory.GenerateDeviceNames()
+	inventory.DisambiguateDeviceNames()
 
 	// Pre-Phase 2b: Detect and resolve position swaps so that per-device
 	// PATCH calls do not violate Nautobot's unique (rack, position, face)

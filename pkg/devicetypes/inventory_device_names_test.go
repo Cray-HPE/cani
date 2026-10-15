@@ -23,16 +23,128 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-package export
+package devicetypes
 
 import (
 	"testing"
 
-	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
 )
 
-// ---------- generateDeviceNames (additional branches) ----------
+// TestGenerateDeviceNames verifies GenerateDeviceNames assigns a cani-prefixed
+// name derived from the serial to unnamed devices while leaving already-named
+// devices untouched.
+//
+// Why it matters: Nautobot requires every device to have a name, so the
+// exporter must synthesize stable names for inventory entries that lack one
+// without clobbering names operators already set.
+// Inputs: an Inventory with one unnamed node (serial "SN123") and one already
+// named "my-server". Outputs: in-place names "cani-SN123" and "my-server".
+// Data choice: a populated serial exercises the highest-priority naming source,
+// while the pre-named device guards the no-overwrite branch.
+func TestGenerateDeviceNames(t *testing.T) {
+	tests := []struct {
+		name         string
+		inventory    *Inventory
+		checkDevice  uuid.UUID
+		expectedName string
+	}{
+		{
+			name: "unnamed device gets name from serial",
+			inventory: func() *Inventory {
+				id := uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+				return &Inventory{
+					Devices: map[uuid.UUID]*CaniDeviceType{
+						id: {
+							ID:     id,
+							Name:   "",
+							Type:   Type("node"),
+							Serial: "SN123",
+						},
+					},
+				}
+			}(),
+			checkDevice:  uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+			expectedName: "cani-SN123",
+		},
+		{
+			name: "already-named device is not changed",
+			inventory: func() *Inventory {
+				id := uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
+				return &Inventory{
+					Devices: map[uuid.UUID]*CaniDeviceType{
+						id: {
+							ID:   id,
+							Name: "my-server",
+							Type: Type("node"),
+						},
+					},
+				}
+			}(),
+			checkDevice:  uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+			expectedName: "my-server",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.inventory.GenerateDeviceNames()
+			got := tt.inventory.Devices[tt.checkDevice].Name
+			if got != tt.expectedName {
+				t.Errorf("GenerateDeviceNames() device name = %q, want %q", got, tt.expectedName)
+			}
+		})
+	}
+}
+
+// TestDisambiguateDeviceNames verifies DisambiguateDeviceNames suffixes
+// colliding device names to make them unique and leaves singleton names alone.
+//
+// Why it matters: Nautobot enforces name uniqueness per location+tenant, so two
+// inventory devices sharing a name must be split before export or one create
+// will fail.
+// Inputs: subtests with two nodes both named "server" (serials SN-A/SN-B) and a
+// lone "unique-server". Outputs: the duplicates become distinct names; the
+// unique name is unchanged.
+// Data choice: distinct serials let the function append serial-based suffixes,
+// its primary disambiguation strategy.
+func TestDisambiguateDeviceNames(t *testing.T) {
+	t.Run("duplicate names get suffixed", func(t *testing.T) {
+		id1 := uuid.New()
+		id2 := uuid.New()
+		inv := &Inventory{
+			Devices: map[uuid.UUID]*CaniDeviceType{
+				id1: {ID: id1, Name: "server", Type: Type("node"), Serial: "SN-A"},
+				id2: {ID: id2, Name: "server", Type: Type("node"), Serial: "SN-B"},
+			},
+		}
+
+		inv.DisambiguateDeviceNames()
+
+		name1 := inv.Devices[id1].Name
+		name2 := inv.Devices[id2].Name
+		if name1 == name2 {
+			t.Errorf("names should be unique after disambiguation: %q == %q", name1, name2)
+		}
+	})
+
+	t.Run("unique names are not changed", func(t *testing.T) {
+		id1 := uuid.New()
+		inv := &Inventory{
+			Devices: map[uuid.UUID]*CaniDeviceType{
+				id1: {ID: id1, Name: "unique-server", Type: Type("node")},
+			},
+		}
+
+		inv.DisambiguateDeviceNames()
+
+		if inv.Devices[id1].Name != "unique-server" {
+			t.Errorf("unique name should not change, got %q", inv.Devices[id1].Name)
+		}
+	})
+}
+
+// ---------- GenerateDeviceNames (additional branches) ----------
 
 // TestGenerateDeviceNamesAllBranches verifies name generation picks serial,
 // then slug, then model, then UUID, leaves already-named devices alone, and
@@ -52,8 +164,8 @@ func TestGenerateDeviceNamesAllBranches(t *testing.T) {
 	namedID := uuid.New()
 	systemID := uuid.New()
 
-	inv := &devicetypes.Inventory{
-		Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
+	inv := &Inventory{
+		Devices: map[uuid.UUID]*CaniDeviceType{
 			nodeID:   {ID: nodeID, Name: "", Type: "node", Serial: "SN-ABC"},
 			slugID:   {ID: slugID, Name: "", Type: "node", Slug: "hpe-dl360"},
 			modelID:  {ID: modelID, Name: "", Type: "node", Model: "ProLiant DL380"},
@@ -63,7 +175,7 @@ func TestGenerateDeviceNamesAllBranches(t *testing.T) {
 		},
 	}
 
-	generateDeviceNames(inv)
+	inv.GenerateDeviceNames()
 
 	if inv.Devices[nodeID].Name != "cani-SN-ABC" {
 		t.Errorf("serial branch: got %q", inv.Devices[nodeID].Name)
@@ -86,7 +198,7 @@ func TestGenerateDeviceNamesAllBranches(t *testing.T) {
 	}
 }
 
-// ---------- disambiguateDeviceNames (additional cases) ----------
+// ---------- DisambiguateDeviceNames (additional cases) ----------
 
 // TestDisambiguateDeviceNamesAllSuffixes verifies duplicate names are made
 // unique via serial, rack-position, or UUID suffixes (in that priority).
@@ -105,18 +217,18 @@ func TestDisambiguateDeviceNamesAllSuffixes(t *testing.T) {
 	id3 := uuid.New()
 	rackID := uuid.New()
 
-	inv := &devicetypes.Inventory{
-		Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
+	inv := &Inventory{
+		Devices: map[uuid.UUID]*CaniDeviceType{
 			id1: {ID: id1, Name: "dup-server", Type: "node", Serial: "SN001"},
 			id2: {ID: id2, Name: "dup-server", Type: "node", RackPosition: 5, Rack: rackID},
 			id3: {ID: id3, Name: "dup-server", Type: "node"},
 		},
-		Racks: map[uuid.UUID]*devicetypes.CaniRackType{
+		Racks: map[uuid.UUID]*CaniRackType{
 			rackID: {Name: "Rack-A"},
 		},
 	}
 
-	disambiguateDeviceNames(inv)
+	inv.DisambiguateDeviceNames()
 
 	// All names should now be unique.
 	names := make(map[string]int)
@@ -157,14 +269,14 @@ func TestDisambiguateDeviceNamesNoDuplicates(t *testing.T) {
 	id1 := uuid.New()
 	id2 := uuid.New()
 
-	inv := &devicetypes.Inventory{
-		Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
+	inv := &Inventory{
+		Devices: map[uuid.UUID]*CaniDeviceType{
 			id1: {ID: id1, Name: "server-1", Type: "node"},
 			id2: {ID: id2, Name: "server-2", Type: "node"},
 		},
 	}
 
-	disambiguateDeviceNames(inv)
+	inv.DisambiguateDeviceNames()
 
 	// Names should not be modified.
 	if inv.Devices[id1].Name != "server-1" {
@@ -175,9 +287,9 @@ func TestDisambiguateDeviceNamesNoDuplicates(t *testing.T) {
 	}
 }
 
-// ---------- generateDeviceNames with Model path ----------
+// ---------- GenerateDeviceNames with Model path ----------
 
-// TestGenerateDeviceNamesModelPath verifies generateDeviceNames derives a name
+// TestGenerateDeviceNamesModelPath verifies GenerateDeviceNames derives a name
 // from the device Model when Name is empty, slugified under a "cani-" prefix.
 //
 // Why it matters: Nautobot requires a device name, so unnamed cani devices need
@@ -188,19 +300,19 @@ func TestDisambiguateDeviceNamesNoDuplicates(t *testing.T) {
 // slugging.
 func TestGenerateDeviceNamesModelPath(t *testing.T) {
 	id := uuid.New()
-	inv := &devicetypes.Inventory{
-		Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
+	inv := &Inventory{
+		Devices: map[uuid.UUID]*CaniDeviceType{
 			id: {ID: id, Name: "", Type: "node", Model: "HPE DL380 Gen10"},
 		},
 	}
-	generateDeviceNames(inv)
+	inv.GenerateDeviceNames()
 	expected := "cani-hpe-dl380-gen10"
 	if inv.Devices[id].Name != expected {
 		t.Errorf("expected %q, got %q", expected, inv.Devices[id].Name)
 	}
 }
 
-// TestGenerateDeviceNamesSkipsNonDevice verifies generateDeviceNames leaves the
+// TestGenerateDeviceNamesSkipsNonDevice verifies GenerateDeviceNames leaves the
 // Name untouched for inventory entries that are not the device category.
 //
 // Why it matters: only Nautobot "device" objects need generated names; racks and
@@ -210,18 +322,18 @@ func TestGenerateDeviceNamesModelPath(t *testing.T) {
 // Data choice: Type="rack" exercises the ClassifyForNautobot non-device branch.
 func TestGenerateDeviceNamesSkipsNonDevice(t *testing.T) {
 	id := uuid.New()
-	inv := &devicetypes.Inventory{
-		Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
+	inv := &Inventory{
+		Devices: map[uuid.UUID]*CaniDeviceType{
 			id: {ID: id, Name: "", Type: "rack", Model: "should-not-change"},
 		},
 	}
-	generateDeviceNames(inv)
+	inv.GenerateDeviceNames()
 	if inv.Devices[id].Name != "" {
 		t.Errorf("expected empty name for non-device, got %q", inv.Devices[id].Name)
 	}
 }
 
-// TestGenerateDeviceNamesUUIDFallback verifies generateDeviceNames falls back to
+// TestGenerateDeviceNamesUUIDFallback verifies GenerateDeviceNames falls back to
 // the UUID prefix when a device has no serial, slug, or model.
 //
 // Why it matters: even a device with no descriptive fields must still receive a
@@ -231,21 +343,21 @@ func TestGenerateDeviceNamesSkipsNonDevice(t *testing.T) {
 // Data choice: omitting every name source forces the last-resort UUID branch.
 func TestGenerateDeviceNamesUUIDFallback(t *testing.T) {
 	id := uuid.New()
-	inv := &devicetypes.Inventory{
-		Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
+	inv := &Inventory{
+		Devices: map[uuid.UUID]*CaniDeviceType{
 			id: {ID: id, Name: "", Type: "node"},
 		},
 	}
-	generateDeviceNames(inv)
+	inv.GenerateDeviceNames()
 	expected := "cani-" + id.String()[:8]
 	if inv.Devices[id].Name != expected {
 		t.Errorf("expected %q, got %q", expected, inv.Devices[id].Name)
 	}
 }
 
-// ---------- disambiguateDeviceNames — RackPosition without rack name ----------
+// ---------- DisambiguateDeviceNames — RackPosition without rack name ----------
 
-// TestDisambiguateDeviceNamesRackPositionNoName verifies disambiguateDeviceNames
+// TestDisambiguateDeviceNamesRackPositionNoName verifies DisambiguateDeviceNames
 // makes duplicate names unique using the rack position when the rack is unnamed.
 //
 // Why it matters: Nautobot enforces name uniqueness per location, so colliding
@@ -259,17 +371,17 @@ func TestDisambiguateDeviceNamesRackPositionNoName(t *testing.T) {
 	id2 := uuid.New()
 	rackID := uuid.New()
 
-	inv := &devicetypes.Inventory{
-		Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{
+	inv := &Inventory{
+		Devices: map[uuid.UUID]*CaniDeviceType{
 			id1: {ID: id1, Name: "dup-node", Type: "node", RackPosition: 3, Rack: rackID},
 			id2: {ID: id2, Name: "dup-node", Type: "node", RackPosition: 7, Rack: rackID},
 		},
-		Racks: map[uuid.UUID]*devicetypes.CaniRackType{
+		Racks: map[uuid.UUID]*CaniRackType{
 			rackID: {Name: ""},
 		},
 	}
 
-	disambiguateDeviceNames(inv)
+	inv.DisambiguateDeviceNames()
 
 	// Both should have unique names with position suffix
 	if inv.Devices[id1].Name == inv.Devices[id2].Name {
