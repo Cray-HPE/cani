@@ -1,3 +1,28 @@
+/*
+ *
+ *  MIT License
+ *
+ *  (C) Copyright 2026 Hewlett Packard Enterprise Development LP
+ *
+ *  Permission is hereby granted, free of charge, to any person obtaining a
+ *  copy of this software and associated documentation files (the "Software"),
+ *  to deal in the Software without restriction, including without limitation
+ *  the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ *  and/or sell copies of the Software, and to permit persons to whom the
+ *  Software is furnished to do so, subject to the following conditions:
+ *
+ *  The above copyright notice and this permission notice shall be included
+ *  in all copies or substantial portions of the Software.
+ *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ *  THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ *  OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ *  ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ *  OTHER DEALINGS IN THE SOFTWARE.
+ *
+ */
 package transform
 
 import (
@@ -12,67 +37,15 @@ import (
 )
 
 // RefUUID extracts a UUID from any generated per-field reference union type
-// (e.g. Device_Status_Id, Cable_Status_Id). Nautobot 3.2 emits a distinct
-// oneOf(UUID|int) union per reference field; every such type implements
-// json.Marshaler with the UUID as member 0. Marshaling then parsing keeps the
-// read path type-agnostic. Returns uuid.Nil when the union is nil or holds an
-// integer id; malformed union output is reported once per generated type.
+// (e.g. Device_Status_Id, Cable_Status_Id) via nautobotapi.RefUUIDChecked.
+// Returns uuid.Nil when the union is nil or holds an integer id; malformed
+// union output is reported once per generated type.
 func RefUUID(m json.Marshaler) uuid.UUID {
-	id, err := RefUUIDChecked(m)
+	id, err := nautobotapi.RefUUIDChecked(m)
 	if err != nil {
 		warnReferenceShape(m, err)
 	}
 	return id
-}
-
-// RefUUIDChecked extracts a UUID while distinguishing normal absent/integer
-// variants from malformed generated union output.
-func RefUUIDChecked(m json.Marshaler) (uuid.UUID, error) {
-	if m == nil {
-		return uuid.Nil, nil
-	}
-	// Guard against a typed-nil pointer (e.g. a nil *Device_Status_Id) whose
-	// value-receiver MarshalJSON would panic on dereference.
-	if rv := reflect.ValueOf(m); rv.Kind() == reflect.Pointer && rv.IsNil() {
-		return uuid.Nil, nil
-	}
-	b, err := m.MarshalJSON()
-	if err != nil {
-		return uuid.Nil, fmt.Errorf("marshal reference ID %T: %w", m, err)
-	}
-	if len(b) == 0 {
-		return uuid.Nil, fmt.Errorf("marshal reference ID %T: empty JSON", m)
-	}
-	var value any
-	if err := json.Unmarshal(b, &value); err != nil {
-		return uuid.Nil, fmt.Errorf("decode reference ID %T: %w", m, err)
-	}
-	s, ok := value.(string)
-	if !ok {
-		if value == nil {
-			return uuid.Nil, nil
-		}
-		if _, ok := value.(float64); ok {
-			return uuid.Nil, nil
-		}
-		return uuid.Nil, fmt.Errorf("decode reference ID %T: unexpected JSON type %T", m, value)
-	}
-	id, err := uuid.Parse(s)
-	if err != nil {
-		return uuid.Nil, fmt.Errorf("decode reference ID %T: %w", m, err)
-	}
-	return id, nil
-}
-
-// SetRefUUID sets any generated per-field reference union type to a UUID by
-// unmarshaling the JSON-encoded UUID into the union's member 0. The concrete
-// per-field union type is named once at the call site's declaration.
-func SetRefUUID(u json.Unmarshaler, id uuid.UUID) error {
-	b, err := json.Marshal(id)
-	if err != nil {
-		return err
-	}
-	return u.UnmarshalJSON(b)
 }
 
 // referenceFields extracts the Id (as json.Marshaler) and Url (*string) from a
@@ -120,7 +93,7 @@ func ReferenceUUID(ref any) (uuid.UUID, error) {
 	if err != nil {
 		return uuid.Nil, err
 	}
-	return RefUUIDChecked(m)
+	return nautobotapi.RefUUIDChecked(m)
 }
 
 var referenceShapeWarnings sync.Map
@@ -251,7 +224,7 @@ func resolveRefName(ref any, nameMap map[uuid.UUID]string) string {
 		warnReferenceShape(ref, err)
 		return ""
 	}
-	id, err := RefUUIDChecked(m)
+	id, err := nautobotapi.RefUUIDChecked(m)
 	if err != nil {
 		warnReferenceShape(ref, err)
 	}

@@ -33,7 +33,6 @@ import (
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
-	"github.com/Cray-HPE/cani/pkg/provider/nautobot/transform"
 	"github.com/google/uuid"
 )
 
@@ -268,14 +267,4 @@ func resolveLocalRackName(device *devicetypes.CaniDeviceType, mapper *DeviceMapp
 		return rack.Name
 	}
 	return ""
-}
-
-// refID extracts a UUID from any generated per-field reference Id union.
-func refID(id json.Marshaler) uuid.UUID {
-	return transform.RefUUID(id)
-}
-
-// tenantRefID extracts a UUID from any generated per-field reference Id union.
-func tenantRefID(id json.Marshaler) uuid.UUID {
-	return transform.RefUUID(id)
 }
