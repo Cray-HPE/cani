@@ -96,10 +96,8 @@ func updateLocation(cmd *cli.Command, args []string) error {
 	}
 
 	if cmd.Flags().Changed("metadata") {
-		pairs, _ := cmd.Flags().GetStringArray("metadata")
-		if err := applyProviderMetadata(&loc.ProviderMetadata, pairs); err != nil {
-			return err
-		}
+		meta, _ := cmd.Flags().GetStringToString("metadata")
+		applyProviderMetadata(&loc.ProviderMetadata, meta)
 	}
 
 	// Apply generic --set pairs

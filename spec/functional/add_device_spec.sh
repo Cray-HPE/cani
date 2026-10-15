@@ -100,4 +100,67 @@ Describe 'cani alpha add device'
     End
   End
 
+  # ── --metadata and stray arguments ──────────────────────────────
+  # A `--metadata` with no value used to swallow the next token (here
+  # `--status`) and every metadata pair was then dropped silently; the parser
+  # now refuses a flag token as a value and a pair without key=value.
+
+  Describe '--metadata flag'
+    Before 'setup_crud_env'
+
+    # Prints "<status> <nautobot role>" for the named device straight from the
+    # datastore, so the assertion does not depend on show's table layout.
+    device_status_and_role() {
+      DEVICE_NAME="$1" DS="$CANI_DS" python3 - <<'PY'
+import json, os
+with open(os.environ["DS"]) as fh:
+    devices = json.load(fh)["devices"].values()
+for device in devices:
+    if device["name"] == os.environ["DEVICE_NAME"]:
+        role = ((device.get("providerMetadata") or {}).get("nautobot") or {}).get("role")
+        print(device["status"], role)
+PY
+    }
+
+    It 'applies metadata and status together'
+      When call bin/cani alpha add device cray-xd225v --rack test-rack --name meta-01 --metadata role=SpineSwitch --status Active --config "$CANI_CONF"
+      The status should equal 0
+      The stderr should include 'Added device'
+    End
+
+    It 'persists the role and the status on the device'
+      bin/cani alpha add device cray-xd225v --rack test-rack --name meta-01 --metadata role=SpineSwitch --status Active --config "$CANI_CONF" >/dev/null 2>&1
+      When call device_status_and_role meta-01
+      The output should equal 'Active SpineSwitch'
+    End
+
+    It 'rejects a --metadata that swallowed the next flag'
+      When call bin/cani alpha add device cray-xd225v --rack test-rack --metadata role=SpineSwitch --metadata --status Active --config "$CANI_CONF"
+      The status should equal 1
+      The stderr should include 'flag needs an argument: --metadata'
+    End
+
+    It 'rejects a --metadata value without key=value'
+      When call bin/cani alpha add device cray-xd225v --rack test-rack --metadata bogus --config "$CANI_CONF"
+      The status should equal 1
+      The stderr should include 'invalid argument "bogus" for --metadata: expected key=value'
+    End
+
+    It 'rejects a --metadata key that is itself a flag'
+      When call bin/cani alpha add device cray-xd225v --rack test-rack --metadata --status=Active --config "$CANI_CONF"
+      The status should equal 1
+      The stderr should include 'flag needs an argument: --metadata'
+    End
+  End
+
+  Describe 'positional arguments'
+    Before 'setup_crud_env'
+
+    It 'rejects a second positional argument'
+      When call bin/cani alpha add device cray-xd225v Active --rack test-rack --config "$CANI_CONF"
+      The status should equal 1
+      The stderr should include 'unexpected argument(s) ["Active"]; add device takes a single slug or part number'
+    End
+  End
+
 End

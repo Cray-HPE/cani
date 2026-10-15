@@ -92,9 +92,7 @@ func updateDevice(cmd *cli.Command, args []string) error {
 	if err := applyParentUpdate(cmd, inventory, device); err != nil {
 		return err
 	}
-	if err := applyTagsAndMetadata(cmd, device); err != nil {
-		return err
-	}
+	applyTagsAndMetadata(cmd, device)
 	if err := applyProviderDeviceFlags(cmd, device); err != nil {
 		return err
 	}

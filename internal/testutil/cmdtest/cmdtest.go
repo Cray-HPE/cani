@@ -28,6 +28,10 @@
 // datastore. It exists so cmd/add, cmd/remove, cmd/update and cmd/show can be
 // exercised through their real RunE hooks without touching disk, reading
 // os.Args, or registering a provider.
+//
+// Harness.Run sets flag values directly and calls the hooks; Harness.Execute
+// feeds an argument vector through the real parser first, for behaviour that
+// lives in parsing itself (flag values, positional arity).
 package cmdtest
 
 import (
@@ -173,6 +177,16 @@ func (h *Harness) Run(t *testing.T, flags map[string][]string, args ...string) e
 		}
 	}
 	return h.Target.RunE(h.Target, args)
+}
+
+// Execute runs the synthetic tree from args exactly as main runs the real one
+// from os.Args: subcommand resolution, flag parsing, flag-group validation and
+// every hook. args start after the program name, e.g. "add", "device", slug.
+// Errors are returned and, as in production, printed with usage on Err.
+func (h *Harness) Execute(t *testing.T, args ...string) error {
+	t.Helper()
+	h.Root.SetArgs(args)
+	return h.Root.Execute()
 }
 
 // Inventory returns the inventory currently held by the store.

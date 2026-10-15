@@ -31,18 +31,11 @@ import (
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
 
-// collectProviderMetadata parses --metadata key=value flags into a map.
-// Returns nil if the flag was not set or parsing fails.
+// collectProviderMetadata returns the --metadata key=value pairs, already
+// validated by the flag parser, or nil when the flag was not set.
 func collectProviderMetadata(cmd *cli.Command) map[string]string {
-	pairs, _ := cmd.Flags().GetStringArray("metadata")
-	if len(pairs) == 0 {
-		return nil
-	}
-	m, err := ParseMetadataFlags(pairs)
-	if err != nil {
-		return nil
-	}
-	return m
+	meta, _ := cmd.Flags().GetStringToString("metadata")
+	return meta
 }
 
 // applyTagsToDevice appends tags to a device.

@@ -169,21 +169,6 @@ func singularKind(kind string) string {
 	}
 }
 
-// ParseMetadataFlags parses --metadata key=value pairs into a map.
-// The parsed values are handed to each provider's MetadataApplier, which
-// decides where to store them.
-func ParseMetadataFlags(pairs []string) (map[string]string, error) {
-	result := make(map[string]string, len(pairs))
-	for _, p := range pairs {
-		parts := strings.SplitN(p, "=", 2)
-		if len(parts) != 2 {
-			return nil, fmt.Errorf("invalid --metadata value %q; expected key=value", p)
-		}
-		result[parts[0]] = parts[1]
-	}
-	return result, nil
-}
-
 func newMetadataCustomFieldCommand() *cli.Command {
 	cmd := &cli.Command{
 		Use:   "custom-field <key>",

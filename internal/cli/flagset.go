@@ -122,10 +122,11 @@ func (f *FlagSet) Set(name, value string) error {
 	return f.set(flag, value)
 }
 
-// set assigns value to flag and marks it changed.
+// set assigns value to flag and marks it changed.  A Value that rejects its
+// input only knows the input, so the flag is named here.
 func (f *FlagSet) set(flag *Flag, value string) error {
 	if err := flag.Value.Set(value); err != nil {
-		return err
+		return fmt.Errorf("invalid argument %q for --%s: %w", value, flag.Name, err)
 	}
 	flag.Changed = true
 	return nil
