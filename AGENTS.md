@@ -12,7 +12,7 @@
 - default to small components
 - default to small diffs
 - keep cognitive complexity < 10 per function
-- file size < 300 lines
+- file size < 300 lines (`_test.go` files < 800); `make sizecheck` enforces both, and files that already exceeded a budget are frozen at their recorded size in `tools/size-exceptions.txt`
 - write modular, maintainble code
 - write functions that do one thing and one thing well
 - declare AI assistance with an `Assisted-by: <tool>` commit trailer

@@ -29,7 +29,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"sort"
 
 	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
@@ -233,49 +232,22 @@ func (e *Exporter) createLocationFromCani(
 	return nautobotID, nil
 }
 
+// locationHierarchy reads the parent link of a cani location for ordering.
+var locationHierarchy = hierarchyOf[devicetypes.CaniLocationType]{
+	id:     func(l *devicetypes.CaniLocationType) uuid.UUID { return l.ID },
+	parent: func(l *devicetypes.CaniLocationType) uuid.UUID { return l.Parent },
+	name:   func(l *devicetypes.CaniLocationType) string { return l.Name },
+}
+
 // topologicalSortLocations returns locations ordered so that parents come
 // before children, enabling parent FK resolution during sequential creation.
-// Roots and siblings are sorted by name for deterministic output.
+// Roots and siblings are sorted by name for deterministic output; locations
+// whose parent chain never reaches a root are reported and left out.
 func topologicalSortLocations(locs map[uuid.UUID]*devicetypes.CaniLocationType) []*devicetypes.CaniLocationType {
-	// Build child → parent and parent → children maps.
-	children := make(map[uuid.UUID][]uuid.UUID)
-	var roots []uuid.UUID
-	for id, loc := range locs {
-		if loc == nil {
-			continue
-		}
-		if loc.Parent == uuid.Nil {
-			roots = append(roots, id)
-		} else {
-			children[loc.Parent] = append(children[loc.Parent], id)
-		}
-	}
-
-	// Sort roots by location name for deterministic ordering.
-	sort.Slice(roots, func(i, j int) bool {
-		return locs[roots[i]].Name < locs[roots[j]].Name
-	})
-
-	// Sort each child list by name so siblings are deterministic.
-	for parentID, kids := range children {
-		sort.Slice(kids, func(i, j int) bool {
-			return locs[kids[i]].Name < locs[kids[j]].Name
-		})
-		children[parentID] = kids
-	}
-
-	// BFS from roots.
-	var ordered []*devicetypes.CaniLocationType
-	queue := make([]uuid.UUID, 0, len(roots))
-	queue = append(queue, roots...)
-
-	for len(queue) > 0 {
-		id := queue[0]
-		queue = queue[1:]
-		if loc, ok := locs[id]; ok && loc != nil {
-			ordered = append(ordered, loc)
-		}
-		queue = append(queue, children[id]...)
+	ordered, unreachable := topologicalOrder(locs, locationHierarchy)
+	if len(unreachable) > 0 {
+		clog.Warn("WARNING: %d location(s) unreachable (cycle or orphan parent): %v",
+			len(unreachable), locationHierarchy.labels(unreachable))
 	}
 	return ordered
 }
