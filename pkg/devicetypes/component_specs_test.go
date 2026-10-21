@@ -72,6 +72,53 @@ func TestInterfaceSpecUnmarshalInvalidID(t *testing.T) {
 	}
 }
 
+func TestInterfaceTemplateJSONFields(t *testing.T) {
+	name, label := "custom-{module}/0", ""
+	spec := InterfaceSpec{Name: "custom-A/0", NameTemplate: &name, LabelTemplate: &label}
+	data, err := json.Marshal(spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fields map[string]any
+	if err := json.Unmarshal(data, &fields); err != nil {
+		t.Fatal(err)
+	}
+	if fields["nameTemplate"] != name || fields["labelTemplate"] != "" {
+		t.Fatalf("template values or camelCase JSON keys lost: %s", data)
+	}
+}
+
+func TestInterfaceTemplateYAMLFields(t *testing.T) {
+	name, label := "custom-{module}/0", ""
+	spec := InterfaceSpec{Name: "custom-A/0", NameTemplate: &name, LabelTemplate: &label}
+	data, err := yaml.Marshal(spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fields map[string]any
+	if err := yaml.Unmarshal(data, &fields); err != nil {
+		t.Fatal(err)
+	}
+	if fields["name_template"] != name || fields["label_template"] != "" {
+		t.Fatalf("template values or snake_case YAML keys lost: %s", data)
+	}
+}
+
+func TestInterfaceTemplatesOmittedWhenUnused(t *testing.T) {
+	spec := InterfaceSpec{Name: "eth0"}
+	jsonData, err := json.Marshal(spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	yamlData, err := yaml.Marshal(spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(jsonData), "Template") || strings.Contains(string(yamlData), "_template") {
+		t.Fatalf("unused template fields serialized: JSON=%s YAML=%s", jsonData, yamlData)
+	}
+}
+
 func TestCaniInterfaceJSONRoundTrip(t *testing.T) {
 	cable := uuid.New()
 	orig := CaniInterface{

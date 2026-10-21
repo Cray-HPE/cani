@@ -75,6 +75,7 @@ func (inv *Inventory) AddModule(mod *CaniModuleType) error {
 	if _, exists := inv.Modules[mod.ID]; exists {
 		return fmt.Errorf("module %s already exists", mod.ID)
 	}
+	inv.ResolveModuleNames(mod)
 	inv.Modules[mod.ID] = mod
 	inv.VerifyParentChildRelationships()
 	return nil

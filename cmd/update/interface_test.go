@@ -120,3 +120,36 @@ func TestApplyInterfaceFieldsPreservesUntouchedFields(t *testing.T) {
 		t.Errorf("Mode = %q, want %q (should be preserved)", iface.Mode, "tagged")
 	}
 }
+
+func TestModuleInterfaceLabelEditSurvivesMove(t *testing.T) {
+	assertModuleLabelEditSurvivesMove(t, "manually assigned label")
+}
+
+func TestModuleInterfaceLabelClearSurvivesMove(t *testing.T) {
+	assertModuleLabelEditSurvivesMove(t, "")
+}
+
+func assertModuleLabelEditSurvivesMove(t *testing.T, label string) {
+	t.Helper()
+	inventory := devicetypes.NewInventory()
+	deviceID := uuid.New()
+	inventory.Devices[deviceID] = &devicetypes.CaniDeviceType{
+		ID: deviceID, ModuleBays: []devicetypes.ModuleBaySpec{{Name: "A"}, {Name: "B"}},
+	}
+	module := &devicetypes.CaniModuleType{
+		ID: uuid.New(), ParentDevice: deviceID, ModuleBayName: "A",
+		Interfaces: []devicetypes.InterfaceSpec{{Name: "port-{module}", Label: "label-{module}"}},
+	}
+	inventory.ResolveModuleNames(module)
+	instance := module.InstantiateInterfaces()[0]
+	target := interfaceTarget{instance: &instance, spec: &module.Interfaces[0]}
+	applyInterfaceFields(target, interfaceUpdates{label: label}, map[string]bool{"label": true})
+	module.ModuleBayName = "B"
+	inventory.ResolveModuleNames(module)
+	if module.Interfaces[0].Label != label {
+		t.Fatalf("move undid explicit label edit: got %q, want %q", module.Interfaces[0].Label, label)
+	}
+	if original := module.Interfaces[0].LabelTemplate; original == nil || *original != label {
+		t.Fatalf("label override not retained as template: %+v", module.Interfaces[0])
+	}
+}

@@ -31,7 +31,7 @@
 #
 # Test flow:
 #   1. Purge DCIM objects and build an inventory with the CLI using the
-#      fixture library in testdata/fixtures/cani/types/bays: a two-bay
+#      fixture library in testdata/fixtures/cani/types/library: a two-bay
 #      "example-dual-chassis" in a rack, with one "example-half-switch" in
 #      each bay (Bay 1 auto-assigned, Bay 2 named).
 #   2. Export. Nautobot must hold both switches in the chassis bays, with no
@@ -39,6 +39,10 @@
 #   3. Export again: both bays are already installed and are skipped.
 #   4. Import into an empty datastore: the switches come back as children of
 #      the chassis with their bay names.
+#
+# The same fixture adds an "example-server" with an "example-dual-port-nic" in
+# module bay PCIe1 (position 1). The NIC's ports use forge's {module}
+# placeholder, so Nautobot must receive them as "HSN 1/0" and "HSN 1/1".
 
 Describe 'INTEGRATION: Nautobot device bays round trip'
 
@@ -57,7 +61,7 @@ Describe 'INTEGRATION: Nautobot device bays round trip'
   cani_cfg() { cani alpha "$@" --config "$CANI_CONF" --types-dirs "$TYPES_DIR"; }
 
   build_inventory() {
-    cp -R "$FIXTURES/cani/types/bays" "$TYPES_DIR" &&
+    cp -R "$FIXTURES/cani/types/library" "$TYPES_DIR" &&
     cani_cfg add location dc --name bays-dc &&
     cani_cfg add location level --name bays-level --parent bays-dc &&
     cani_cfg add location section --name bays-section --parent bays-level &&
@@ -65,7 +69,9 @@ Describe 'INTEGRATION: Nautobot device bays round trip'
       --location bays-section --name bays-rack &&
     cani_cfg add device example-dual-chassis --rack bays-rack --position 30 --name bays-chassis &&
     cani_cfg add device example-half-switch --parent bays-chassis --name bays-sw-a &&
-    cani_cfg add device example-half-switch --parent bays-chassis --bay "Bay 2" --name bays-sw-b
+    cani_cfg add device example-half-switch --parent bays-chassis --bay "Bay 2" --name bays-sw-b &&
+    cani_cfg add device example-server --rack bays-rack --position 32 --name bays-srv &&
+    cani_cfg add module example-dual-port-nic --device bays-srv --bay PCIe1 --name bays-nic
   }
 
   build_fixture() {
@@ -90,6 +96,15 @@ import json, sys
 d = json.load(sys.stdin)['results'][0]
 face = d.get('face')
 print(f\"{d.get('position')}/{face.get('value') if isinstance(face, dict) else face}\")
+"
+  }
+
+  # Print a device's Nautobot "HSN" interface names, sorted and comma-separated
+  # (the fixture server has no ports of its own, so export adds defaults).
+  nb_interface_names() {
+    nb_list "dcim/interfaces/?device=$1&limit=100" | python3 -c "
+import json, sys
+print(','.join(sorted(i['name'] for i in json.load(sys.stdin)['results'] if i['name'].startswith('HSN'))))
 "
   }
 
@@ -138,6 +153,11 @@ print(f\"{parent}/{d.get('parentBay', '')}\")
     It 'leaves the switches without their own rack position or face'
       When call nb_device_slot bays-sw-a
       The output should equal 'None/None'
+    End
+
+    It 'resolves {module} in module port names to the bay position'
+      When call nb_interface_names bays-srv
+      The output should equal 'HSN 1/0,HSN 1/1'
     End
 
     It 'skips bays that are already installed on a second export'

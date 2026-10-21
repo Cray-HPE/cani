@@ -140,3 +140,23 @@ Nautobot-format libraries (for example ones converted from the netbox-community 
 | `Juniper` | `EX4100-24T` | `juniper-ex4100-24t` |
 
 An explicit `slug` always takes precedence. A file with no `slug` and without both `manufacturer` and `model` is skipped with a warning.
+
+Module types may also name their ports with Nautobot's `{module}` placeholder, for example `HSN {module}/0`. When the module is installed in a module bay, `cani` replaces `{module}` with the bay's `position` from the parent device type (or the bay name when it has no position), as Nautobot does. A NIC in bay `PCIe1` with position `1` gets port `HSN 1/0`; moving it to another bay with `cani alpha update module --bay` renames its ports.
+
+Resolved inventory interface specs retain the original token-bearing names and
+labels in optional `nameTemplate` and `labelTemplate` JSON fields
+(`name_template` and `label_template` in YAML). These portable internal fields
+survive save/load cycles, including for customized port layouts; only the
+resolved names and labels are exported. Explicit interface-label edits replace
+the label template too, so a later module move does not undo the edit or restore
+a label that was cleared.
+
+Moving a module also updates matching cable endpoint port names and the
+interface index while preserving interface UUIDs and endpoint ownership.
+Contradictory or unresolved cable references are not guessed or repaired.
+
+Older inventories without template fields can recover them from a matching
+library layout. A customized port whose template was already lost remains a
+literal name rather than guessing which characters were once a placeholder.
+To restore rebaying for such a port, supply its original template, for example
+`"nameTemplate": "custom-{module}/0"`, in the inventory interface spec.

@@ -1169,6 +1169,9 @@
         "label": {
           "type": "string"
         },
+        "labelTemplate": {
+          "type": "string"
+        },
         "lag": {
           "type": "string"
         },
@@ -1182,6 +1185,9 @@
           "type": "string"
         },
         "name": {
+          "type": "string"
+        },
+        "nameTemplate": {
           "type": "string"
         },
         "providerMetadata": {

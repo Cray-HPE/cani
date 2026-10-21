@@ -7,8 +7,10 @@ import "github.com/google/uuid"
 type InterfaceSpec struct {
 	ID               uuid.UUID            `yaml:"id,omitempty" json:"id,omitempty"`
 	Name             string               `yaml:"name" json:"name"`
+	NameTemplate     *string              `yaml:"name_template,omitempty" json:"nameTemplate,omitempty"`
 	Type             InterfacesElemType   `yaml:"type" json:"type"`
 	Label            string               `yaml:"label,omitempty" json:"label,omitempty"`
+	LabelTemplate    *string              `yaml:"label_template,omitempty" json:"labelTemplate,omitempty"`
 	Role             string               `yaml:"role,omitempty" json:"role,omitempty"`
 	MacAddress       string               `yaml:"mac_address,omitempty" json:"macAddress,omitempty"`
 	MgmtOnly         *bool                `yaml:"mgmt_only,omitempty" json:"mgmt_only,omitempty"`

@@ -134,6 +134,37 @@ func TestGeneratedSchemaStructure(t *testing.T) {
 	}
 }
 
+func TestInterfaceTemplateSchemaFields(t *testing.T) {
+	var doc map[string]any
+	if err := json.Unmarshal(mustGenerate(t), &doc); err != nil {
+		t.Fatal(err)
+	}
+	spec := childMap(t, childMap(t, doc, "$defs"), "InterfaceSpec")
+	assertOptionalTemplateString(t, spec, "nameTemplate")
+	assertOptionalTemplateString(t, spec, "labelTemplate")
+}
+
+func assertOptionalTemplateString(t *testing.T, spec map[string]any, field string) {
+	t.Helper()
+	property := childMap(t, childMap(t, spec, "properties"), field)
+	if property["type"] != "string" {
+		t.Errorf("%s.type=%v, want string", field, property["type"])
+	}
+	value, present := spec["required"]
+	if !present {
+		return
+	}
+	required, ok := value.([]any)
+	if !ok {
+		t.Fatal("InterfaceSpec required fields are invalid")
+	}
+	for _, name := range required {
+		if name == field {
+			t.Errorf("%s must remain optional", field)
+		}
+	}
+}
+
 // mustGenerate returns the generated schema bytes or fails the test.
 func mustGenerate(t *testing.T) []byte {
 	t.Helper()

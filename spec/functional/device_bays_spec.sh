@@ -25,7 +25,7 @@
 
 # ── device bays and derived slugs ───────────────────────────────────
 #
-# Uses the fixture library in testdata/fixtures/cani/types/bays: a two-bay
+# Uses the fixture library in testdata/fixtures/cani/types/library: a two-bay
 # "example-dual-chassis" and an "Example Half Switch" with no slug, which cani
 # derives as "example-half-switch". The library is copied into $CANI_DIR so
 # the per-directory types cache is never written into the repository.
@@ -33,7 +33,7 @@
 # CRUD inventory (rack "test-rack") plus a private copy of the bay library.
 setup_bays_env() {
   setup_crud_env
-  cp -R "$FIXTURES/cani/types/bays" "$CANI_DIR/types"
+  cp -R "$FIXTURES/cani/types/library" "$CANI_DIR/types"
 }
 
 # cani_bays runs bin/cani against the test config and fixture library.
