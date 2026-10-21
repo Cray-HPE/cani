@@ -175,9 +175,9 @@ equalities, using the helpers `spec/support/nautobot_roundtrip.sh` wraps around 
 
 The projection covers only the rows `pkg/devicetypes/NAUTOBOT_MAPPING.md` marks **Mapped** in both
 directions; `testdata/fixtures/nautobot/roundtrip/projection.py` lists them, and adding a field is one entry
-on each side. Where current behaviour is an asymmetry (export never deletes, import never prunes), the spec
-pins what happens today and leaves an example with no `When` for the behaviour that is not designed yet, so
-implementing it turns the pinned example into a failure that asks for the placeholder to be promoted.
+on each side. The specs pin current asymmetries: export never deletes, and import never prunes.
+Examples without a `When` reserve those undesigned behaviours. Implementing either behaviour fails its
+current-behaviour assertion; replace the corresponding placeholder with an executable example.
 
 ## Running a subset
 
