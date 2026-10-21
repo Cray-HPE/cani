@@ -111,3 +111,35 @@ func TestRemoteInterfaceStateReadsGeneratedShape(t *testing.T) {
 		t.Fatalf("an interface without tags must yield no tag key, got %q", got.Tags)
 	}
 }
+
+// TestInterfaceCurrentPreservesMACAndClearsRole verifies role reconciliation.
+// Why it matters: an empty local MAC preserves the remote value, but an empty role clears it.
+// Inputs: a cached interface with a MAC and role, and matching or empty local roles.
+// Outputs: the matching role is current; clearing the role requires an update.
+// Data choice: the remote MAC is populated while the local MAC remains empty.
+func TestInterfaceCurrentPreservesMACAndClearsRole(t *testing.T) {
+	statusID, roleID := uuid.New(), uuid.New()
+	cache := NewLookupCache(nil)
+	cache.statuses["Active"] = &CachedItem{ID: statusID, Name: "Active"}
+	cache.roles["management"] = &CachedItem{ID: roleID, Name: "management"}
+	exporter := &Exporter{Cache: cache}
+	var remote nautobotapi.Interface
+	body := `{"name":"eth0","type":{"value":"1000base-t"},"mac_address":"aa:bb:cc:dd:ee:ff",` +
+		`"status":{"id":"` + statusID.String() + `"},"role":{"id":"` + roleID.String() + `"}}`
+	if err := json.Unmarshal([]byte(body), &remote); err != nil {
+		t.Fatal(err)
+	}
+	existing := &CachedItem{ID: uuid.New(), Iface: remoteInterfaceState(remote)}
+	spec := interfaceSpec{Name: "eth0", Type: "1000base-t", Role: "management"}
+
+	current := exporter.interfaceCurrent(existing, spec)
+	spec.Role = ""
+	cleared := exporter.interfaceCurrent(existing, spec)
+
+	if !current {
+		t.Fatal("matching role and unspecified local MAC must preserve the remote state")
+	}
+	if cleared {
+		t.Fatal("clearing a remote role must require an update")
+	}
+}

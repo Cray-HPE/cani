@@ -178,6 +178,7 @@ func TestLoadDryRunIssuesNoWrites(t *testing.T) {
 		enable(true)
 	}
 	e.Options.DryRun = true
+	e.Options.CreateModuleTypes = true
 	e.Options.DefaultStatus = "Active"
 	e.Options.DefaultRole = "Leaf"
 	inv := loadSpineLeafInventory(t)
@@ -188,9 +189,12 @@ func TestLoadDryRunIssuesNoWrites(t *testing.T) {
 	addTaggedTenantIPAM(inv)
 
 	// Act.
-	_ = e.Load(inv)
+	err := e.Load(inv)
 
 	// Assert.
+	if e.Cache.namespaces["tenant-z"] == nil {
+		t.Fatalf("dry run did not reach the IPAM phases: %v", err)
+	}
 	if writes := server.writes(); len(writes) != 0 {
 		t.Errorf("dry run wrote to Nautobot (%d requests): %v", len(writes), writes)
 	}
