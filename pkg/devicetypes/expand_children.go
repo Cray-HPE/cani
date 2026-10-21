@@ -31,6 +31,7 @@ func expandBays(parent *CaniDeviceType, acc map[uuid.UUID]*CaniDeviceType) {
 			continue
 		}
 		child.Parent = parent.ID
+		child.ParentBay = bay.Name
 		parent.Children = append(parent.Children, child.ID)
 		acc[child.ID] = child
 		expandBays(child, acc)

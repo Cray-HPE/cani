@@ -63,6 +63,7 @@ func newDeviceCommand() *cli.Command {
 	cmd.Flags().String("face", "", "Rack face (front, rear)")
 	cmd.Flags().Bool("swap", false, "Swap position with the device occupying the target slot")
 	cmd.Flags().String("parent", "", "Parent UUID or name (rack or device)")
+	cmd.Flags().String("bay", "", "Device bay in the parent device (default: first free bay)")
 	cmd.Flags().String("primary-ipv4", "", "Primary IPv4 address (CIDR or UUID)")
 	cmd.Flags().String("primary-ipv6", "", "Primary IPv6 address (CIDR or UUID)")
 	cmd.Flags().StringSlice(flagAssignVLAN, nil, "Assign a VLAN (VID or name) to this device (comma-separated or repeatable)")

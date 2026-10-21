@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024, 2026 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -98,6 +98,7 @@ func computeDeviceDiffs(existing, dev *devicetypes.CaniDeviceType) []fieldDiff {
 	if dev.Parent != uuid.Nil && dev.Parent != existing.Parent {
 		diffs = append(diffs, fieldDiff{"parent", existing.Parent.String(), dev.Parent.String()})
 	}
+	diffs = appendStrDiff(diffs, "bay", existing.ParentBay, dev.ParentBay)
 	diffs = appendStrDiff(diffs, "face", existing.Face, dev.Face)
 	diffs = appendStrDiff(diffs, "serial", existing.Serial, dev.Serial)
 	return diffs

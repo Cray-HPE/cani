@@ -207,3 +207,13 @@ func (e *Exporter) postModule(
 	result.ModulesCreated++
 	return nil
 }
+
+// printModuleSummary reports module create/skip counts.
+func printModuleSummary(result *LoadResult) {
+	if result.ModulesCreated > 0 {
+		clog.Created("Created modules: %d", result.ModulesCreated)
+	}
+	if result.ModulesSkipped > 0 {
+		clog.Skipped("Skipped modules (already exist): %d", result.ModulesSkipped)
+	}
+}

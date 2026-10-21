@@ -169,6 +169,23 @@ func FetchModuleBays(ctx context.Context, client *nautobotapi.ClientWithResponse
 	})
 }
 
+// FetchDeviceBays retrieves all device bays from the Nautobot API.
+func FetchDeviceBays(ctx context.Context, client *nautobotapi.ClientWithResponses) ([]nautobotapi.DeviceBay, error) {
+	return paginate(ctx, "device bays", func(ctx context.Context, offset int) (pageResult[nautobotapi.DeviceBay], error) {
+		resp, err := client.DcimDeviceBaysListWithResponse(ctx, &nautobotapi.DcimDeviceBaysListParams{
+			Limit:  intPtr(pageSize),
+			Offset: &offset,
+		})
+		if err != nil {
+			return pageResult[nautobotapi.DeviceBay]{}, err
+		}
+		return stdPage(resp.StatusCode(), resp.JSON200, "device bays",
+			func(b *nautobotapi.PaginatedDeviceBayList) ([]nautobotapi.DeviceBay, *string) {
+				return b.Results, b.Next
+			})
+	})
+}
+
 // FetchCables retrieves all cables from the Nautobot API.
 func FetchCables(ctx context.Context, client *nautobotapi.ClientWithResponses) ([]nautobotapi.Cable, error) {
 	return paginate(ctx, "cables", func(ctx context.Context, offset int) (pageResult[nautobotapi.Cable], error) {

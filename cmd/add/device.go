@@ -34,7 +34,6 @@ import (
 	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/nameexpand"
 	"github.com/Cray-HPE/cani/internal/util/placement"
-	"github.com/Cray-HPE/cani/internal/util/resolve"
 	"github.com/Cray-HPE/cani/internal/util/store"
 	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/datastores"
@@ -48,7 +47,7 @@ func newDeviceCommand() *cli.Command {
 		Use:   "device <slug-or-part-number>",
 		Short: "Add device(s) to the inventory.",
 		Long:  "Add one or more devices to the inventory by slug or part number.",
-		Args:  validSlugOrPartNumber(NounDevice),
+		Args:  validDeviceArgs,
 		RunE:  addDevice,
 	}
 
@@ -59,6 +58,7 @@ func newDeviceCommand() *cli.Command {
 	cmd.Flags().String("location", "", "Location filter for rack selection (name or UUID)")
 	cmd.Flags().String("zone", "", "Rack zone (top, middle, bottom) — overrides auto-detection from hardware type")
 	cmd.Flags().Bool("dry-run", false, "Show placement plan without committing changes")
+	cmd.Flags().String("bay", "", "Device bay in the --parent device (default: first free bay)")
 
 	return cmd
 }
@@ -232,6 +232,11 @@ func addDeviceLiteral(cmd *cli.Command, result *lookupResult, qty int, nameArg, 
 	locationID := inventory.EnsureLocation()
 	inventory.AssignRacksToLocation(locationID)
 
+	parent, bayArg, err := literalDeviceParent(cmd, inventory, rackArg, parentArg)
+	if err != nil {
+		return err
+	}
+
 	if statusArg != "" {
 		normalized, verr := validate.StatusWithInventory(statusArg, inventory)
 		if verr != nil {
@@ -246,21 +251,11 @@ func addDeviceLiteral(cmd *cli.Command, result *lookupResult, qty int, nameArg, 
 	devicesToAdd := make(map[uuid.UUID]*devicetypes.CaniDeviceType)
 	for i := range qty {
 		device := result.Device.NewInstance()
-
-		if rackArg != "" {
-			rackID, rerr := resolve.Rack(inventory, rackArg)
-			if rerr != nil {
-				return fmt.Errorf("resolving rack %q: %w", rackArg, rerr)
-			}
-			device.Parent = rackID
-		} else if parentArg != "" {
-			if pid, perr := uuid.Parse(parentArg); perr == nil {
-				device.Parent = pid
-			}
-		}
-
 		device.RackPosition = position
 		device.Face = face
+		if err := applyDeviceParent(inventory, device, parent, bayArg, devicesToAdd); err != nil {
+			return err
+		}
 
 		if names != nil {
 			device.Name = names[i]
@@ -322,10 +317,7 @@ func addDeviceLiteral(cmd *cli.Command, result *lookupResult, qty int, nameArg, 
 		return fmt.Errorf("failed to save inventory: %w", err)
 	}
 
-	for _, d := range devicesToAdd {
-		log.Printf("Added device %s (%s)", d.ID, d.Name)
-	}
-	log.Printf("%d device(s) added", qty)
+	logAddedDevices(devicesToAdd, qty)
 	return nil
 }
 

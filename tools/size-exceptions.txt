@@ -5,7 +5,6 @@
 cmd/add/device.go 365
 internal/config/migrate.go 336
 pkg/datastores/migrate.go 404
-pkg/devicetypes/cani_device_types.go 312
 pkg/devicetypes/cani_rack_types.go 379
 pkg/devicetypes/connections/csv.go 378
 pkg/devicetypes/inventory_relationships.go 796

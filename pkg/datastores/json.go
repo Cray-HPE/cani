@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024, 2026 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -86,7 +86,8 @@ func (s *JSONStore) Load() (*devicetypes.Inventory, error) {
 		return s.loadLegacy(data)
 	case devicetypes.SchemaVersionV1Alpha2, devicetypes.SchemaVersionV1Alpha3,
 		devicetypes.SchemaVersionV1Alpha4, devicetypes.SchemaVersionV1Alpha5,
-		devicetypes.SchemaVersionV1Alpha6, devicetypes.CurrentSchemaVersion:
+		devicetypes.SchemaVersionV1Alpha6, devicetypes.SchemaVersionV1Alpha7,
+		devicetypes.CurrentSchemaVersion:
 		return s.loadCurrent(data, schemaVersion)
 	default:
 		return nil, fmt.Errorf("%w %q: this cani release supports %q through %q and will not rewrite the file",
@@ -138,6 +139,7 @@ func (s *JSONStore) loadLegacy(data []byte) (*devicetypes.Inventory, error) {
 	migrateV1Alpha4(inventory)
 	migrateV1Alpha5(inventory)
 	migrateV1Alpha6(inventory)
+	migrateV1Alpha7(inventory)
 	relationships := inventory.RebuildDerivedState()
 	if err := relationships.Err(); err != nil {
 		log.Printf("Skipped saving migrated datastore with relationship errors: %v", err)
@@ -212,6 +214,9 @@ func migrateSchemaToCurrent(data []byte, inventory *devicetypes.Inventory) {
 	}
 	if inventory.SchemaVersion == devicetypes.SchemaVersionV1Alpha6 {
 		migrateV1Alpha6(inventory)
+	}
+	if inventory.SchemaVersion == devicetypes.SchemaVersionV1Alpha7 {
+		migrateV1Alpha7(inventory)
 	}
 }
 

@@ -108,6 +108,7 @@ func fetchAll(ctx context.Context, client *nautobotapi.ClientWithResponses) (Raw
 		{"interfaces", into(ctx, client, &d.Interfaces, FetchInterfaces)},
 		{"modules", into(ctx, client, &d.Modules, FetchModules)},
 		{"module bays", into(ctx, client, &d.ModuleBays, FetchModuleBays)},
+		{"device bays", into(ctx, client, &d.DeviceBays, FetchDeviceBays)},
 		{"cables", into(ctx, client, &d.Cables, FetchCables)},
 		{"inventory items", into(ctx, client, &d.InventoryItems, FetchInventoryItems)},
 		{"statuses", into(ctx, client, &d.Statuses, FetchStatuses)},

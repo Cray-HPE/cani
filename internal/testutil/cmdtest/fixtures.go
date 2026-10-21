@@ -94,3 +94,26 @@ func AddChildDevice(inventory *devicetypes.Inventory, parentDeviceID uuid.UUID, 
 	}
 	return childID
 }
+
+// AddChassisWithBays puts a 1U parent device with the named device bays into
+// the rack and returns its ID, for tests that install children into bays.
+// The bays live on the instance, so no library device type is needed.
+func AddChassisWithBays(inventory *devicetypes.Inventory, rackID uuid.UUID, name string, position int, bays ...string) uuid.UUID {
+	chassisID := uuid.New()
+	specs := make([]devicetypes.DeviceBaySpec, 0, len(bays))
+	for _, bay := range bays {
+		specs = append(specs, devicetypes.DeviceBaySpec{Name: bay})
+	}
+	inventory.Devices[chassisID] = &devicetypes.CaniDeviceType{
+		ID:            chassisID,
+		Name:          name,
+		Parent:        rackID,
+		RackPosition:  position,
+		Face:          devicetypes.FaceFront,
+		UHeight:       1,
+		SubdeviceRole: "parent",
+		DeviceBays:    specs,
+		Type:          devicetypes.TypeChassis,
+	}
+	return chassisID
+}

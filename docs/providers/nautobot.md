@@ -22,6 +22,33 @@ cani alpha export nautobot --dry-run
 cani alpha export nautobot --merge
 ```
 
+### Device-bay moves
+
+With `--merge`, export reconciles bay assignments for inventory devices that
+resolve successfully in Nautobot. It clears obsolete assignments before device
+updates and installs the desired assignments afterward. This supports moving a
+child between bays or parents, detaching it into a rack, swapping children, and
+replacing an occupant that is moving out.
+
+Destination conflicts are checked before any bay is cleared. Occupants outside
+the resolved inventory, including devices removed entirely from local inventory,
+are never automatically detached. Without `--merge`, existing occupied bays
+remain conflicts.
+
+Bay lookup errors are returned rather than treated as missing bays. A bay is
+created only after a successful, well-formed lookup confirms no matches; failed
+HTTP requests, malformed responses, and inconsistent empty pages never trigger
+creation.
+
+Creation responses must include a nonzero bay UUID, a nonzero parent UUID, and a
+bay name. Invalid responses are reported without sending an installation PATCH.
+Failed creations and installations do not increment successful-install counts.
+
+`--dry-run --merge` reports planned removals and installations without sending
+write requests. If discovery or removal fails, export stops before device
+updates or installations; successful removals before a later failure are not
+rolled back. Re-export after correcting the failure to finish reconciliation.
+
 ## Configuration
 
 Provider-specific options in `~/.cani/cani.yml`:

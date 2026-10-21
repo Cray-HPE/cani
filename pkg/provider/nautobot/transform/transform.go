@@ -44,6 +44,7 @@ type RawData struct {
 	Interfaces                []nautobotapi.Interface
 	Modules                   []nautobotapi.Module
 	ModuleBays                []nautobotapi.ModuleBay
+	DeviceBays                []nautobotapi.DeviceBay
 	Cables                    []nautobotapi.Cable
 	InventoryItems            []nautobotapi.InventoryItem
 	Statuses                  []nautobotapi.Status
@@ -92,7 +93,7 @@ func transformRaw(raw *RawData) (*devicetypes.TransformResult, error) {
 
 	// 4. Devices.
 	devices, deviceMap := MapDevices(raw.Devices, rackMap, locationMap, deviceTypeMap, ifacesByDevice, statusNameMap, roleNameMap)
-	clog.Detail("  Transformed %d devices", len(devices))
+	clog.Detail("  Transformed %d devices (%d in device bays)", len(devices), ApplyDeviceBays(raw.DeviceBays, devices, deviceMap))
 
 	// 5. Cables.
 	cables := MapCables(raw.Cables, deviceMap, ifaceMap, statusNameMap)

@@ -28,7 +28,12 @@ type Inventory struct {
 }
 ```
 
-The current schema generation is `v1alpha7`.
+The current schema generation is `v1alpha8`. It adds optional device parent-bay
+placement and unresolved module-interface name/label templates. Older
+inventories are migrated through each generation on load, with the original
+file backed up to `.canisave`. The `v1alpha7` to `v1alpha8` step only advances the
+version: it preserves existing values without inferring bay assignments or
+missing templates.
 
 ## Hardware Types
 

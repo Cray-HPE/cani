@@ -47,10 +47,11 @@ type CaniDeviceType struct {
 	ObjectMeta `yaml:",inline"`
 
 	// Inventory state
-	Platform string      `json:"platform,omitempty" yaml:"platform,omitempty"` // OS/firmware platform
-	Parent   uuid.UUID   `json:"parent" yaml:"parent,omitempty"`
-	Children []uuid.UUID `json:"-" yaml:"-"` // reverse index; rebuilt from child Device.Parent at load time
-	Frus     []uuid.UUID `json:"frus,omitempty" yaml:"frus,omitempty"`
+	Platform  string      `json:"platform,omitempty" yaml:"platform,omitempty"` // OS/firmware platform
+	Parent    uuid.UUID   `json:"parent" yaml:"parent,omitempty"`
+	ParentBay string      `json:"parentBay,omitempty" yaml:"parent_bay,omitempty"` // device bay occupied in the parent device
+	Children  []uuid.UUID `json:"-" yaml:"-"`                                      // reverse index; rebuilt from child Device.Parent at load time
+	Frus      []uuid.UUID `json:"frus,omitempty" yaml:"frus,omitempty"`
 
 	// Explicit FK fields for Nautobot export. Rack and ParentDevice are
 	// derived from Parent at load time and never persisted. Location is
@@ -117,6 +118,7 @@ func (c *CaniDeviceType) MergeProperties(other *CaniDeviceType) bool {
 		mergeSet(&c.UHeight, other.UHeight),
 		c.mergePlacement(other),
 		mergeSet(&c.Parent, other.Parent),
+		mergeSet(&c.ParentBay, other.ParentBay),
 		mergeSet(&c.Location, other.Location),
 		c.mergeMetadata(other.ProviderMetadata),
 	}
@@ -269,31 +271,6 @@ func (c *CaniDeviceType) GetInterface(name string) *InterfaceSpec {
 		}
 	}
 	return nil
-}
-
-// GetRackID returns the rack ID for this device. Prefers the explicit Rack FK;
-// falls back to checking if Parent exists in the inventory's Racks collection.
-// Returns uuid.Nil if not in a rack.
-func (c *CaniDeviceType) GetRackID(inv *Inventory) uuid.UUID {
-	if c == nil || inv == nil {
-		return uuid.Nil
-	}
-	if c.Rack != uuid.Nil {
-		return c.Rack
-	}
-	if _, ok := inv.Racks[c.Parent]; ok {
-		return c.Parent
-	}
-	return uuid.Nil
-}
-
-// GetUHeight returns the U-height for this device.
-// Returns 1 as default if not set.
-func (c *CaniDeviceType) GetUHeight() int {
-	if c == nil || c.UHeight < 1 {
-		return 1
-	}
-	return c.UHeight
 }
 
 // GetIsFullDepth returns whether this device occupies full rack depth.
