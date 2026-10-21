@@ -194,6 +194,29 @@ func TestFetchModuleBays_Pagination(t *testing.T) {
 	}
 }
 
+// TestFetchDeviceBays_Pagination verifies FetchDeviceBays follows the "next"
+// link and concatenates results across multiple API pages.
+//
+// Why it matters: device bays tell the import which chassis each half-width
+// or blade device is installed in; a missed page would leave children loose
+// in the rack. Inputs: two single-item pages for /dcim/device-bays/. Outputs:
+// two bays from two API calls.
+func TestFetchDeviceBays_Pagination(t *testing.T) {
+	var calls int32
+	srv := twoPageServer(t, "/dcim/device-bays/",
+		[]map[string]interface{}{{"name": "Bay 1"}},
+		[]map[string]interface{}{{"name": "Bay 2"}}, &calls)
+	defer srv.Close()
+
+	got, err := FetchDeviceBays(context.Background(), newTestClient(t, srv.URL))
+	if err != nil {
+		t.Fatalf("FetchDeviceBays: %v", err)
+	}
+	if len(got) != 2 || atomic.LoadInt32(&calls) != 2 {
+		t.Fatalf("got %d device bays from %d calls, want 2 from 2", len(got), calls)
+	}
+}
+
 // TestFetchInventoryItems_Pagination verifies FetchInventoryItems follows the
 // "next" link and concatenates results across multiple API pages.
 //
@@ -427,6 +450,7 @@ func TestFetchTransportErrors(t *testing.T) {
 		{"interfaces", func() error { _, err := FetchInterfaces(ctx, client); return err }},
 		{"modules", func() error { _, err := FetchModules(ctx, client); return err }},
 		{"module-bays", func() error { _, err := FetchModuleBays(ctx, client); return err }},
+		{"device-bays", func() error { _, err := FetchDeviceBays(ctx, client); return err }},
 		{"cables", func() error { _, err := FetchCables(ctx, client); return err }},
 		{"inventory-items", func() error { _, err := FetchInventoryItems(ctx, client); return err }},
 		{"statuses", func() error { _, err := FetchStatuses(ctx, client); return err }},

@@ -63,16 +63,9 @@ func DeviceToTreeNode(dev *devicetypes.CaniDeviceType, inv *devicetypes.Inventor
 
 // deviceBaseNode builds the label and detail for a device node (no children).
 func deviceBaseNode(dev *devicetypes.CaniDeviceType, tf TreeFilter) TreeNode {
-	uPos := ""
-	if dev.RackPosition > 0 {
-		if dev.UHeight > 1 {
-			uPos = fmt.Sprintf("U%d-U%d", dev.RackPosition, dev.RackPosition-dev.UHeight+1)
-		} else {
-			uPos = fmt.Sprintf("U%d", dev.RackPosition)
-		}
-		if !tf.NoColor {
-			uPos = ColorGray + uPos + ColorReset
-		}
+	uPos := rackSlotLabel(dev)
+	if uPos != "" && !tf.NoColor {
+		uPos = ColorGray + uPos + ColorReset
 	}
 	slug := Trunc(dev.Model, 30)
 	if slug != "" && !tf.NoColor {

@@ -175,9 +175,10 @@ This type conflates **template fields** (from the YAML library, used to auto-cre
 | `AssetTag` | `string` | `Device.AssetTag` | **Mapped** | |
 | `Status` | `string` | `Device.Status` (FK) | **Mapped** | Falls back to provider default, then "Active" |
 | `Role` | `string` | `Device.Role` (FK) | **Mapped** | Explicit `Role` field checked first, then `ProviderMetadata["role"]` fallback |
-| `Parent` | `uuid.UUID` | `Device.Rack` (FK) or `Device.ParentBay` | **Mapped** | Overloaded: mapper checks Racks first, then Devices |
-| `RackPosition` | `int` | `Device.Position` | **Mapped** | Only when parent resolves to a rack |
-| `Face` | `string` | `Device.Face` | **Mapped** | Written by `setDeviceFace()`: `"front"`, `"rear"`, or nil if empty |
+| `Parent` | `uuid.UUID` | `Device.Rack` (FK) or `Device.ParentBay` | **Mapped** | Overloaded: mapper checks Racks first, then Devices. A device parent is exported by installing the child in the parent's bay (Phase 2b) |
+| `ParentBay` | `string` | `Device.parent_bay` (read) / `DeviceBay.Name`, `DeviceBay.InstalledDevice` (write) | **Mapped** | Bay occupied in the parent device. Export: Phase 2b sets the named bay's `installed_device`. Import: `ApplyDeviceBays()` sets `Parent` + `ParentBay` from each occupied bay |
+| `RackPosition` | `int` | `Device.Position` | **Mapped** | Only when parent resolves to a rack; omitted for child devices (`isChildDevice()`) |
+| `Face` | `string` | `Device.Face` | **Mapped** | Written by `setDeviceFace()`: `"front"`, `"rear"`, or nil if empty; omitted for child devices, which Nautobot rejects |
 | `Rack` | `uuid.UUID` | `Device.Rack` (FK) | Cani-Internal | Explicit FK; rebuilt from `Parent` at load time |
 | `Location` | `uuid.UUID` | `Device.Location` (FK) | **Mapped** | Export: provider metadata override, then parent rack location, then the device's own `Location`, then provider default. Import sets it from `Device.location`; it is persisted for a device with no rack and re-derived from the rack otherwise |
 | `ParentDevice` | `uuid.UUID` | `Device.ParentBay` | Cani-Internal | Explicit FK; rebuilt from `Parent` at load time |
@@ -215,7 +216,7 @@ When `create_device_types` is enabled, `CreateDeviceTypeFromLocal()` looks up th
 | `ConsolePorts` | Creates `ConsolePortTemplate` objects | Not Mapped | |
 | `PowerPorts` | Creates `PowerPortTemplate` objects | Not Mapped | |
 | `ModuleBays` | Creates `ModuleBayTemplate` objects | Not Mapped | |
-| `DeviceBays` | Creates `DeviceBayTemplate` objects | Not Mapped | |
+| `DeviceBays` | Creates `DeviceBayTemplate` objects | Not Mapped | Templates not created; Phase 2b creates the named bay on the parent device when it is missing |
 
 ---
 
@@ -657,7 +658,7 @@ Racks, Devices, and Modules carry both **template fields** (from the YAML librar
 | `Model`, `Manufacturer`, `PartNumber` | `Name`, `Serial`, `AssetTag` |
 | `UHeight`, `IsFullDepth`, `SubdeviceRole` | `Status`, `Role`, `Platform` |
 | `Interfaces`, `ConsolePorts`, `PowerPorts` | `Rack`, `Location`, `RackPosition`, `Face` |
-| `ModuleBays`, `DeviceBays` | `Parent`, `Children`, `ParentDevice` |
+| `ModuleBays`, `DeviceBays` | `Parent`, `ParentBay`, `Children`, `ParentDevice` |
 | `Identifications` | `Tenant`, `Tags`, `CustomFields` |
 
 ### Module: template → `ModuleType`, instance → `Module`
@@ -693,7 +694,7 @@ All relationships are expressed as single-direction FKs on the child object — 
 | Location → Location | `CaniLocationType.Parent` | `Location.Parent` | `CaniLocationType.Children` |
 | Rack → Location | `CaniRackType.Location` | `Rack.Location` | `CaniLocationType.Racks` |
 | Device → Rack | `CaniDeviceType.Parent` (when target is a rack) | `Device.Rack` + `Device.Position` + `Device.Face` | `CaniRackType.Devices` + `.OccupiedSlots` |
-| Device → Device | `CaniDeviceType.Parent` (when target is a device) | `Device.ParentBay` | `CaniDeviceType.Children` |
+| Device → Device | `CaniDeviceType.Parent` (when target is a device) + `.ParentBay` | `DeviceBay.InstalledDevice` (read back as `Device.ParentBay`) | `CaniDeviceType.Children` |
 | Module → Device | `CaniModuleType.ParentDevice` + `.ModuleBayName` | `Module.Device` + `Module.ModuleBay` | — |
 | FRU → Device | `CaniFruType.Device` | `InventoryItem.Device` | — |
 | FRU → FRU | `CaniFruType.Parent` | `InventoryItem.Parent` | — |
@@ -703,9 +704,11 @@ All relationships are expressed as single-direction FKs on the child object — 
 
 `CaniDeviceType.Parent` is overloaded — it can point to either a rack UUID or another device UUID. The mapper resolves this with a sequential check:
 
-1. Look up `Parent` in `inventory.Racks` → if found, map to `Device.Rack`
-2. Look up `Parent` in `inventory.Devices` → if found, map to `Device.ParentBay`
+1. Look up `Parent` in `inventory.Racks` → if found, map to `Device.Rack` + `Device.Position` + `Device.Face`
+2. Look up `Parent` in `inventory.Devices` → if found, the device is a child: it is created with the ancestor rack but no position or face, then installed into the parent's `ParentBay` in Phase 2b
 3. If neither, report error
+
+`ParentBay` is only meaningful when `Parent` is a device. `Inventory.InstallInBay()` in `device_bays.go` assigns it (used by `add device --parent/--bay`, `update device --parent/--bay`): the bay must exist on the parent's device type, be free, and allow the child's slug; an empty bay name picks the first free bay. Device-bay defaults expanded by `ExpandChildren()` also record their bay. A parent device without device bays accepts children without a bay, as before.
 
 The `rebuildDeviceRelationships()` function in `inventory_relationships.go` performs the same logic at load time, setting the explicit FK fields:
 - `device.Rack = device.Parent` (when parent is a rack)
@@ -732,7 +735,7 @@ CaniLocationType (site/building/floor/room)
   └─ CaniLocationType.Parent → parent Location
   └─ owns → CaniRackType (via Rack.Location)
        └─ contains → CaniDeviceType (via Device.Parent → rack)
-            ├─ children → CaniDeviceType (via Device.Parent → device)  [chassis→blade]
+            ├─ children → CaniDeviceType (via Device.Parent → device, in Device.ParentBay)  [chassis→blade]
             ├─ modules → CaniModuleType (via Module.ParentDevice)
             ├─ frus → CaniFruType (via FRU.Device)
             │    └─ nested → CaniFruType (via FRU.Parent)
@@ -790,6 +793,18 @@ Iterates `inventory.Devices` where `ClassifyForNautobot(string(device.Type)) == 
 - If exists and no `--merge`: skips with conflict info
 - If new: creates via `DcimDevicesCreate` using `MapToWritableDeviceRequest()`
 - Maps `Comments` and `Face` (via `setDeviceFace()`) in both create and patch paths; tags are sent on create
+- Child devices (parent is a device, or `SubdeviceRole == "child"`) get the rack but no `Position` or `Face` (`setRackSlot()` in `child_device.go`); diff and swap detection skip those fields for them
+
+### Phase 2b: Device bays
+
+Implemented in `loadDeviceBays()` in `load_device_bays.go`. For each device with a `ParentBay` whose parent and self both resolved to Nautobot IDs in Phase 2:
+- Looks up the bay by name on the parent device (`DcimDeviceBaysList`); creates it with `DcimDeviceBaysCreate` when the parent's device type has no matching bay template
+- Skips when the bay already holds the child; reports an error when it holds a different device
+- Otherwise PATCHes `installed_device` via `DcimDeviceBaysPartialUpdate`
+
+Nautobot only accepts the install when the parent's device type is `subdevice_role: parent` and the child's is `child`. Counts are reported as `DeviceBaysInstalled` / `DeviceBaysSkipped`.
+
+On import, `FetchDeviceBays()` reads all device bays and `ApplyDeviceBays()` in `transform/map_device_bays.go` re-parents each installed device to the bay's device with the bay name, clearing its own position and face. A merge keeps an existing `ParentBay` when the incoming device has none.
 
 ### Phase 3: Interfaces
 
@@ -900,6 +915,8 @@ Implemented in `loadPrimaryIPs()` in `load_primary_ips.go`. PATCHes devices that
 
 8. **~~Use actual `Face` value~~** — ✅ Implemented via `setDeviceFace()` in `export/ref_write.go`. Maps `"front"` → `FaceEnumFront`, `"rear"` → `FaceEnumRear`, empty → nil (Nautobot default).
 
+8a. **~~Install child devices in device bays~~** — ✅ Implemented. `CaniDeviceType.ParentBay` records the bay; Phase 2b (`load_device_bays.go`) installs children on export and `ApplyDeviceBays()` restores them on import. Child devices no longer send rack position or face, which Nautobot rejects.
+
 ### Lower Priority
 
 9. **~~Normalize interfaces into `Inventory.Interfaces`~~** — ✅ Implemented. Added `Interfaces map[uuid.UUID]*CaniInterface` to `Inventory` struct in `inventory.go`. `rebuildInterfaceRelationships()` in `inventory_relationships.go` populates the map from device and module `Interfaces` slices during `VerifyParentChildRelationships()`. `GetInterfaceByID()` in `inventory_queries.go` rewritten from O(n×m) scan to O(1) map lookup. Added `GetInterfacesByDevice()` helper. `CaniInterface` YAML tags fixed from PascalCase to snake_case.
@@ -926,9 +943,13 @@ Implemented in `loadPrimaryIPs()` in `load_primary_ips.go`. PATCHes devices that
 | Component specs | `pkg/devicetypes/component_specs.go` |
 | Type enums & classification | `pkg/devicetypes/registry.go` |
 | Relationship rebuild logic | `pkg/devicetypes/inventory_relationships.go` |
+| Device bay assignment | `pkg/devicetypes/device_bays.go` |
 | Lookup functions | `pkg/devicetypes/all.go` |
 | Nautobot mapper | `pkg/provider/nautobot/export/mapper.go` |
+| Nautobot child-device placement | `pkg/provider/nautobot/export/child_device.go` |
 | Nautobot export pipeline | `pkg/provider/nautobot/export/load.go` |
+| Nautobot device bay export | `pkg/provider/nautobot/export/load_device_bays.go` |
+| Nautobot device bay import | `pkg/provider/nautobot/transform/map_device_bays.go` |
 | Nautobot location export | `pkg/provider/nautobot/export/load_locations.go` |
 | Nautobot module export | `pkg/provider/nautobot/export/load_modules.go` |
 | Nautobot FRU export | `pkg/provider/nautobot/export/load_frus.go` |

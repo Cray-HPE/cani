@@ -83,6 +83,7 @@ type LoadResult struct {
 	IfacesUnresolvedRefs        int            // Number of interface refs (LAG/VRF/VLAN) skipped as unresolved during enrichment
 	ModulesCreated              int            // Number of modules created
 	ModulesSkipped              int            // Number of modules skipped (already exist)
+	DeviceBayCounts                            // Child devices installed into / already in parent device bays
 	FrusCreated                 int            // Number of FRUs (inventory items) created
 	FrusSkipped                 int            // Number of FRUs skipped (already exist)
 	CablesCreated               int            // Number of cables created
@@ -152,6 +153,7 @@ func recordCreatedExternalID(m *map[string]uuid.UUID, id uuid.UUID) {
 //	Phase 1   – Racks (from inventory.Racks)
 //	Phase 1b  – Racks (legacy: from inventory.Devices with rack category)
 //	Phase 2   – Devices
+//	Phase 2b  – Device bays (install child devices into parent bays)
 //	Phase 3   – Interfaces (bulk batched)
 //	Phase 4   – Modules
 //	Phase 5   – FRUs (inventory items)
@@ -312,11 +314,10 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 	inventory.GenerateDeviceNames()
 	inventory.DisambiguateDeviceNames()
 
-	// Pre-Phase 2b: Detect and resolve position swaps so that per-device
-	// PATCH calls do not violate Nautobot's unique (rack, position, face)
-	// constraint.
-	if err := e.resolvePositionSwaps(ctx, inventory); err != nil {
-		result.Errors = append(result.Errors, fmt.Sprintf("position swap resolution: %v", err))
+	// Pre-Phase 2b: Clear obsolete bay assignments and resolve rack swaps
+	// before device updates encounter placement constraints.
+	if err := e.prepareDeviceMoves(ctx, inventory, result); err != nil {
+		return err
 	}
 
 	// Phase 2: Create devices
@@ -440,6 +441,8 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 			}
 		}
 	}
+
+	e.loadDeviceBays(ctx, inventory, createdDeviceIDs, result) // Phase 2b: install child devices into parent bays
 
 	// Phase 3: Create interfaces for devices (bulk batched)
 	if err := e.loadInterfaces(ctx, inventory, createdDeviceIDs, result); err != nil {
@@ -1016,13 +1019,9 @@ func (e *Exporter) printLoadSummary(result *LoadResult) {
 		clog.Warn("Unresolved interface references skipped during enrichment: %d", result.IfacesUnresolvedRefs)
 	}
 
-	// Modules
-	if result.ModulesCreated > 0 {
-		clog.Created("Created modules: %d", result.ModulesCreated)
-	}
-	if result.ModulesSkipped > 0 {
-		clog.Skipped("Skipped modules (already exist): %d", result.ModulesSkipped)
-	}
+	// Modules and device bays
+	printModuleSummary(result)
+	printDeviceBaySummary(result)
 
 	// Inventory items (FRUs)
 	if result.FrusCreated > 0 {

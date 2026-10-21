@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023, 2026 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -41,7 +41,8 @@ const (
 	SchemaVersionV1Alpha5 = "v1alpha5"
 	SchemaVersionV1Alpha6 = "v1alpha6"
 	SchemaVersionV1Alpha7 = "v1alpha7"
-	CurrentSchemaVersion  = SchemaVersionV1Alpha7
+	SchemaVersionV1Alpha8 = "v1alpha8"
+	CurrentSchemaVersion  = SchemaVersionV1Alpha8
 )
 
 // Inventory represents the entire inventory of devices, racks, locations, etc.

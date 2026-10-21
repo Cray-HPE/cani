@@ -72,17 +72,29 @@ func applyPositionUpdate(cmd *cli.Command, inventory *devicetypes.Inventory, id 
 	return moveOrSwap(rack, inventory, id, device, newPos, newFace, doSwap)
 }
 
-// applyParentUpdate handles a --parent change.
+// applyParentUpdate handles --parent and --bay changes. A device parent with
+// device bays installs the device into a bay; any other parent clears the bay.
 func applyParentUpdate(cmd *cli.Command, inventory *devicetypes.Inventory, device *devicetypes.CaniDeviceType) error {
-	if !cmd.Flags().Changed("parent") {
+	if !cmd.Flags().Changed("parent") && !cmd.Flags().Changed("bay") {
 		return nil
 	}
-	parentRef, _ := cmd.Flags().GetString("parent")
-	parentID, perr := resolveParent(inventory, parentRef)
-	if perr != nil {
-		return fmt.Errorf("resolving parent: %w", perr)
+	parentID := device.Parent
+	if cmd.Flags().Changed("parent") {
+		parentRef, _ := cmd.Flags().GetString("parent")
+		var perr error
+		if parentID, perr = resolveParent(inventory, parentRef); perr != nil {
+			return fmt.Errorf("resolving parent: %w", perr)
+		}
+	}
+	bayArg, _ := cmd.Flags().GetString("bay")
+	if parent := inventory.Devices[parentID]; parent.HasDeviceBays() {
+		return inventory.InstallInBay(device, parentID, bayArg, nil)
+	}
+	if bayArg != "" {
+		return fmt.Errorf("--bay requires the parent to be a device with device bays")
 	}
 	device.Parent = parentID
+	device.ParentBay = ""
 	return nil
 }
 
