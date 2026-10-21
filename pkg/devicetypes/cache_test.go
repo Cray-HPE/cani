@@ -1,5 +1,4 @@
-/*
- *
+/* *
  *  MIT License
  *
  *  (C) Copyright 2023-2026 Hewlett Packard Enterprise Development LP
@@ -32,7 +31,6 @@ package devicetypes
 // | writeDirCache        | TestDirCacheRoundTrip           | -                              |
 // | readDirCache         | TestDirCacheRoundTrip           | TestReadDirCacheErrors         |
 // | registerCachedTypes  | TestRegisterCachedTypes         | TestRegisterCachedTypes        |
-// | collectTypesFromSource | TestCollectTypesFromSource    | -                              |
 // | removeDirCache       | TestRemoveDirCache              | TestRemoveDirCache             |
 
 import (
@@ -86,6 +84,23 @@ func TestReadDirCacheErrors(t *testing.T) {
 	}
 	if _, err := readDirCache(bad); err == nil {
 		t.Error("expected error for malformed JSON, got nil")
+	}
+}
+
+// TestReadDirCacheRejectsOldVersion verifies readDirCache refuses a cache
+// written with a different format version.
+//
+// Why it matters: a cache built by an older loader (for example one that
+// skipped slug-less types) would otherwise hide types the current loader can
+// parse. Inputs: a valid JSON cache with no version field. Outputs: an error,
+// forcing the YAML slow path.
+func TestReadDirCacheRejectsOldVersion(t *testing.T) {
+	old := filepath.Join(t.TempDir(), cacheFileName)
+	if err := os.WriteFile(old, []byte(`{"device_types":[]}`), 0o644); err != nil {
+		t.Fatalf("setup write failed: %v", err)
+	}
+	if _, err := readDirCache(old); err == nil {
+		t.Error("expected error for unversioned cache, got nil")
 	}
 }
 
@@ -152,30 +167,6 @@ func TestRegisterCachedTypes(t *testing.T) {
 	}
 	if allDeviceTypes["cache-dev"].Source != "cache" {
 		t.Error("second pass overwrote existing source")
-	}
-}
-
-// TestCollectTypesFromSource verifies collectTypesFromSource gathers only the
-// registered types whose Source matches the requested value.
-//
-// Why it matters: writing a directory cache must capture exactly the types that
-// came from that directory, so source filtering governs cache correctness.
-// Inputs: two device types registered with different sources ("src-a",
-// "src-b"), collected for "src-a". Outputs: a cache containing only the src-a
-// device type. Data choice: two differing sources prove the filter both
-// includes a match and excludes a non-match.
-func TestCollectTypesFromSource(t *testing.T) {
-	t.Cleanup(func() {
-		delete(allDeviceTypes, "src-a-dev")
-		delete(allDeviceTypes, "src-b-dev")
-	})
-
-	RegisterDeviceType(CaniDeviceType{Slug: "src-a-dev", Source: "src-a"})
-	RegisterDeviceType(CaniDeviceType{Slug: "src-b-dev", Source: "src-b"})
-
-	got := collectTypesFromSource("src-a")
-	if len(got.DeviceTypes) != 1 || got.DeviceTypes[0].Slug != "src-a-dev" {
-		t.Errorf("collectTypesFromSource(src-a) = %+v, want only src-a-dev", got.DeviceTypes)
 	}
 }
 

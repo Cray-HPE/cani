@@ -57,10 +57,13 @@ func LoadFromDir(root, source string) error {
 		return nil
 	}
 
-	// Slow path: walk YAML files and register types.
+	// Slow path: walk YAML files and register types. The cache records every
+	// parsed type, not just those that won registration, so it stays valid when
+	// other sources load alongside this one.
+	parsed := &dirCache{}
 	subDirs := []struct {
 		name string
-		load func(dir, source string) error
+		load func(dir, source string, c *dirCache) error
 	}{
 		{"device-types", loadDeviceTypesFromDir},
 		{"module-types", loadModuleTypesFromDir},
@@ -74,17 +77,17 @@ func LoadFromDir(root, source string) error {
 		if !dirExists(dir) {
 			continue
 		}
-		if err := sd.load(dir, source); err != nil {
+		if err := sd.load(dir, source, parsed); err != nil {
 			return fmt.Errorf("loading %s from %s: %w", sd.name, root, err)
 		}
 	}
 
 	// Persist cache for next invocation.
-	writeDirCache(cachePath, collectTypesFromSource(source))
+	writeDirCache(cachePath, parsed)
 	return nil
 }
 
-func loadDeviceTypesFromDir(dir, source string) error {
+func loadDeviceTypesFromDir(dir, source string, c *dirCache) error {
 	return walkYAMLFiles(dir, func(data []byte, path string) {
 		forEachYAMLDoc(data, func(doc []byte) {
 			var dt CaniDeviceType
@@ -92,9 +95,11 @@ func loadDeviceTypesFromDir(dir, source string) error {
 				log.Printf("Warning: failed to parse device type %s: %v", path, err)
 				return
 			}
+			dt.Slug = resolveSlug(dt.Slug, dt.Manufacturer, dt.Model, path)
 			if dt.Slug == "" {
 				return
 			}
+			c.DeviceTypes = append(c.DeviceTypes, dt)
 			if _, exists := allDeviceTypes[dt.Slug]; exists {
 				return
 			}
@@ -107,16 +112,18 @@ func loadDeviceTypesFromDir(dir, source string) error {
 	})
 }
 
-func loadModuleTypesFromDir(dir, source string) error {
+func loadModuleTypesFromDir(dir, source string, c *dirCache) error {
 	return walkYAMLFiles(dir, func(data []byte, path string) {
 		var mt CaniModuleType
 		if err := yaml.Unmarshal(data, &mt); err != nil {
 			log.Printf("Warning: failed to parse module type %s: %v", path, err)
 			return
 		}
+		mt.Slug = resolveSlug(mt.Slug, mt.Manufacturer, mt.Model, path)
 		if mt.Slug == "" {
 			return
 		}
+		c.ModuleTypes = append(c.ModuleTypes, mt)
 		if _, exists := allModuleTypes[mt.Slug]; exists {
 			return
 		}
@@ -128,7 +135,7 @@ func loadModuleTypesFromDir(dir, source string) error {
 	})
 }
 
-func loadCableTypesFromDir(dir, source string) error {
+func loadCableTypesFromDir(dir, source string, c *dirCache) error {
 	return walkYAMLFiles(dir, func(data []byte, path string) {
 		var ct CaniCableType
 		if err := yaml.Unmarshal(data, &ct); err != nil {
@@ -138,6 +145,7 @@ func loadCableTypesFromDir(dir, source string) error {
 		if ct.Slug == "" {
 			return
 		}
+		c.CableTypes = append(c.CableTypes, ct)
 		if _, exists := allCableTypes[ct.Slug]; exists {
 			return
 		}
@@ -149,7 +157,7 @@ func loadCableTypesFromDir(dir, source string) error {
 	})
 }
 
-func loadRackTypesFromDir(dir, source string) error {
+func loadRackTypesFromDir(dir, source string, c *dirCache) error {
 	return walkYAMLFiles(dir, func(data []byte, path string) {
 		var rt CaniRackType
 		if err := yaml.Unmarshal(data, &rt); err != nil {
@@ -159,6 +167,7 @@ func loadRackTypesFromDir(dir, source string) error {
 		if rt.Slug == "" {
 			return
 		}
+		c.RackTypes = append(c.RackTypes, rt)
 		if _, exists := allRackTypes[rt.Slug]; exists {
 			return
 		}
@@ -170,7 +179,7 @@ func loadRackTypesFromDir(dir, source string) error {
 	})
 }
 
-func loadFruTypesFromDir(dir, source string) error {
+func loadFruTypesFromDir(dir, source string, c *dirCache) error {
 	return walkYAMLFiles(dir, func(data []byte, path string) {
 		var ft CaniFruType
 		if err := yaml.Unmarshal(data, &ft); err != nil {
@@ -180,6 +189,7 @@ func loadFruTypesFromDir(dir, source string) error {
 		if ft.Slug == "" {
 			return
 		}
+		c.FruTypes = append(c.FruTypes, ft)
 		if _, exists := allFruTypes[ft.Slug]; exists {
 			return
 		}
@@ -191,7 +201,7 @@ func loadFruTypesFromDir(dir, source string) error {
 	})
 }
 
-func loadLocationTypesFromDir(dir, source string) error {
+func loadLocationTypesFromDir(dir, source string, c *dirCache) error {
 	return walkYAMLFiles(dir, func(data []byte, path string) {
 		var lt LocationTypeDefinition
 		if err := yaml.Unmarshal(data, &lt); err != nil {
@@ -201,6 +211,7 @@ func loadLocationTypesFromDir(dir, source string) error {
 		if lt.Slug == "" {
 			return
 		}
+		c.LocationTypes = append(c.LocationTypes, lt)
 		if _, exists := allLocationTypes[lt.Slug]; exists {
 			return
 		}

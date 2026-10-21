@@ -129,7 +129,7 @@ func TestLoadDeviceTypesFromDirHappyPath(t *testing.T) {
 	writeYAML(t, filepath.Join(dir, "test-device.yaml"),
 		"slug: test-dev-loader\nmanufacturer: Acme\nmodel: D1\n")
 
-	err := loadDeviceTypesFromDir(dir, "test-source")
+	err := loadDeviceTypesFromDir(dir, "test-source", &dirCache{})
 	if err != nil {
 		t.Fatalf("loadDeviceTypesFromDir returned error: %v", err)
 	}
@@ -150,7 +150,7 @@ func TestLoadDeviceTypesFromDirInvalidYAML(t *testing.T) {
 	writeYAML(t, filepath.Join(dir, "bad.yaml"), "{{{{not valid yaml")
 
 	// Invalid YAML is logged but does not return an error.
-	err := loadDeviceTypesFromDir(dir, "test-source")
+	err := loadDeviceTypesFromDir(dir, "test-source", &dirCache{})
 	if err != nil {
 		t.Fatalf("expected no error for invalid YAML (logged warning), got: %v", err)
 	}
@@ -169,7 +169,7 @@ func TestLoadModuleTypesFromDirHappyPath(t *testing.T) {
 	writeYAML(t, filepath.Join(dir, "mod.yaml"),
 		"slug: test-mod-loader\nmanufacturer: Acme\nmodel: M1\n")
 
-	err := loadModuleTypesFromDir(dir, "test-source")
+	err := loadModuleTypesFromDir(dir, "test-source", &dirCache{})
 	if err != nil {
 		t.Fatalf("loadModuleTypesFromDir returned error: %v", err)
 	}
@@ -189,7 +189,7 @@ func TestLoadModuleTypesFromDirInvalidYAML(t *testing.T) {
 	dir := mkTmpDir(t)
 	writeYAML(t, filepath.Join(dir, "bad.yaml"), "{{{{not valid yaml")
 
-	err := loadModuleTypesFromDir(dir, "test-source")
+	err := loadModuleTypesFromDir(dir, "test-source", &dirCache{})
 	if err != nil {
 		t.Fatalf("expected no error for invalid YAML, got: %v", err)
 	}
@@ -208,7 +208,7 @@ func TestLoadCableTypesFromDirHappyPath(t *testing.T) {
 	writeYAML(t, filepath.Join(dir, "cable.yaml"),
 		"slug: test-cable-loader\nmanufacturer: Acme\nmodel: C1\n")
 
-	err := loadCableTypesFromDir(dir, "test-source")
+	err := loadCableTypesFromDir(dir, "test-source", &dirCache{})
 	if err != nil {
 		t.Fatalf("loadCableTypesFromDir returned error: %v", err)
 	}
@@ -228,7 +228,7 @@ func TestLoadCableTypesFromDirInvalidYAML(t *testing.T) {
 	dir := mkTmpDir(t)
 	writeYAML(t, filepath.Join(dir, "bad.yaml"), "{{{{not valid yaml")
 
-	err := loadCableTypesFromDir(dir, "test-source")
+	err := loadCableTypesFromDir(dir, "test-source", &dirCache{})
 	if err != nil {
 		t.Fatalf("expected no error for invalid YAML, got: %v", err)
 	}
@@ -247,7 +247,7 @@ func TestLoadRackTypesFromDirHappyPath(t *testing.T) {
 	writeYAML(t, filepath.Join(dir, "rack.yaml"),
 		"slug: test-rack-loader\nmanufacturer: Acme\nmodel: R1\n")
 
-	err := loadRackTypesFromDir(dir, "test-source")
+	err := loadRackTypesFromDir(dir, "test-source", &dirCache{})
 	if err != nil {
 		t.Fatalf("loadRackTypesFromDir returned error: %v", err)
 	}
@@ -267,7 +267,7 @@ func TestLoadRackTypesFromDirInvalidYAML(t *testing.T) {
 	dir := mkTmpDir(t)
 	writeYAML(t, filepath.Join(dir, "bad.yaml"), "{{{{not valid yaml")
 
-	err := loadRackTypesFromDir(dir, "test-source")
+	err := loadRackTypesFromDir(dir, "test-source", &dirCache{})
 	if err != nil {
 		t.Fatalf("expected no error for invalid YAML, got: %v", err)
 	}
@@ -286,7 +286,7 @@ func TestLoadFruTypesFromDirHappyPath(t *testing.T) {
 	writeYAML(t, filepath.Join(dir, "fru.yaml"),
 		"slug: test-fru-loader\nmanufacturer: Acme\nmodel: F1\n")
 
-	err := loadFruTypesFromDir(dir, "test-source")
+	err := loadFruTypesFromDir(dir, "test-source", &dirCache{})
 	if err != nil {
 		t.Fatalf("loadFruTypesFromDir returned error: %v", err)
 	}
@@ -306,7 +306,7 @@ func TestLoadFruTypesFromDirInvalidYAML(t *testing.T) {
 	dir := mkTmpDir(t)
 	writeYAML(t, filepath.Join(dir, "bad.yaml"), "{{{{not valid yaml")
 
-	err := loadFruTypesFromDir(dir, "test-source")
+	err := loadFruTypesFromDir(dir, "test-source", &dirCache{})
 	if err != nil {
 		t.Fatalf("expected no error for invalid YAML, got: %v", err)
 	}
@@ -445,7 +445,7 @@ func TestLoadDeviceTypesFromDirSkipsEmptyAndDuplicate(t *testing.T) {
 	writeYAML(t, filepath.Join(dir, "d.yaml"),
 		"slug: \"\"\nmodel: X\n---\nslug: dup-dev\nmodel: Y\n")
 
-	if err := loadDeviceTypesFromDir(dir, "src"); err != nil {
+	if err := loadDeviceTypesFromDir(dir, "src", &dirCache{}); err != nil {
 		t.Fatalf("loadDeviceTypesFromDir error: %v", err)
 	}
 	if allDeviceTypes["dup-dev"].Model != "" {
@@ -480,16 +480,16 @@ func TestLoadTypesFromDirSkipBranches(t *testing.T) {
 		return dir
 	}
 
-	if err := loadModuleTypesFromDir(mkDir("dup-mod"), "src"); err != nil {
+	if err := loadModuleTypesFromDir(mkDir("dup-mod"), "src", &dirCache{}); err != nil {
 		t.Fatalf("loadModuleTypesFromDir error: %v", err)
 	}
-	if err := loadCableTypesFromDir(mkDir("dup-cable"), "src"); err != nil {
+	if err := loadCableTypesFromDir(mkDir("dup-cable"), "src", &dirCache{}); err != nil {
 		t.Fatalf("loadCableTypesFromDir error: %v", err)
 	}
-	if err := loadRackTypesFromDir(mkDir("dup-rack"), "src"); err != nil {
+	if err := loadRackTypesFromDir(mkDir("dup-rack"), "src", &dirCache{}); err != nil {
 		t.Fatalf("loadRackTypesFromDir error: %v", err)
 	}
-	if err := loadFruTypesFromDir(mkDir("dup-fru"), "src"); err != nil {
+	if err := loadFruTypesFromDir(mkDir("dup-fru"), "src", &dirCache{}); err != nil {
 		t.Fatalf("loadFruTypesFromDir error: %v", err)
 	}
 
@@ -517,7 +517,7 @@ func TestLoadLocationTypesFromDirHappyPath(t *testing.T) {
 	writeYAML(t, filepath.Join(dir, "loc.yaml"),
 		"slug: test-loc-loader\nname: Test Location\n")
 
-	if err := loadLocationTypesFromDir(dir, "test-source"); err != nil {
+	if err := loadLocationTypesFromDir(dir, "test-source", &dirCache{}); err != nil {
 		t.Fatalf("loadLocationTypesFromDir returned error: %v", err)
 	}
 	lt, ok := allLocationTypes["test-loc-loader"]
@@ -542,7 +542,7 @@ func TestLoadLocationTypesFromDirInvalidYAML(t *testing.T) {
 	dir := mkTmpDir(t)
 	writeYAML(t, filepath.Join(dir, "bad.yaml"), "{{{{not valid yaml")
 
-	if err := loadLocationTypesFromDir(dir, "test-source"); err != nil {
+	if err := loadLocationTypesFromDir(dir, "test-source", &dirCache{}); err != nil {
 		t.Fatalf("expected no error for invalid YAML, got: %v", err)
 	}
 }
@@ -574,10 +574,10 @@ func TestLoadTypesFromDirDebugLogging(t *testing.T) {
 		delete(allLocationTypes, "dbg-loc-loader")
 	})
 
-	if err := loadDeviceTypesFromDir(devDir, "dbg-source"); err != nil {
+	if err := loadDeviceTypesFromDir(devDir, "dbg-source", &dirCache{}); err != nil {
 		t.Fatalf("loadDeviceTypesFromDir: %v", err)
 	}
-	if err := loadLocationTypesFromDir(locDir, "dbg-source"); err != nil {
+	if err := loadLocationTypesFromDir(locDir, "dbg-source", &dirCache{}); err != nil {
 		t.Fatalf("loadLocationTypesFromDir: %v", err)
 	}
 

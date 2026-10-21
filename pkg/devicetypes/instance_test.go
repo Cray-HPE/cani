@@ -95,4 +95,3 @@ func TestNewInstanceResetsInterfaceIdentity(t *testing.T) {
 		t.Fatalf("nil receiver should yield nil, got %+v", nilDevice)
 	}
 }
-

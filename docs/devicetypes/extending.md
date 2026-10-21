@@ -129,3 +129,14 @@ Each source directory is scanned for these subdirectories:
 | `inventory-types/` | `CaniFruType` |
 
 Any `.yaml` or `.yml` file in these subdirectories is parsed and registered by slug.
+
+## Slugs For Nautobot-Format Libraries
+
+Nautobot-format libraries (for example ones converted from the netbox-community library) may omit `slug` because Nautobot generates it on import. When a device or module type has no `slug`, `cani` derives one from `manufacturer` and `model` using the same rule as the Nautobot importer: lowercase `"<manufacturer> <model>"` and replace each run of non-word characters with `-`.
+
+| manufacturer | model | derived slug |
+|--------------|-------|--------------|
+| `HPE` | `Aruba 10000-48Y6C Back-to-Front` | `hpe-aruba-10000-48y6c-back-to-front` |
+| `Juniper` | `EX4100-24T` | `juniper-ex4100-24t` |
+
+An explicit `slug` always takes precedence. A file with no `slug` and without both `manufacturer` and `model` is skipped with a warning.
