@@ -2,6 +2,7 @@ package devicetypes
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -9,9 +10,17 @@ import (
 
 const cacheFileName = ".cani-types-cache.json"
 
+// dirCacheVersion must be bumped whenever YAML loading semantics change, so
+// caches written by older binaries are discarded and rebuilt from YAML.
+// Version 1: slugs are derived from manufacturer/model when absent.
+// Version 2: caches hold every parsed type, including ones shadowed by an
+// earlier source; version 1 caches could silently omit those.
+const dirCacheVersion = 2
+
 // dirCache holds pre-parsed hardware types for a single directory source.
 // It is serialized to JSON so subsequent loads skip YAML parsing.
 type dirCache struct {
+	Version       int                      `json:"version"`
 	DeviceTypes   []CaniDeviceType         `json:"device_types,omitempty"`
 	ModuleTypes   []CaniModuleType         `json:"module_types,omitempty"`
 	CableTypes    []CaniCableType          `json:"cable_types,omitempty"`
@@ -30,12 +39,16 @@ func readDirCache(path string) (*dirCache, error) {
 	if err := json.Unmarshal(data, &c); err != nil {
 		return nil, err
 	}
+	if c.Version != dirCacheVersion {
+		return nil, fmt.Errorf("types cache %s has version %d, want %d", path, c.Version, dirCacheVersion)
+	}
 	return &c, nil
 }
 
 // writeDirCache persists the cache to disk. Errors are logged but
 // not fatal — a missing cache just means the next load will re-parse.
 func writeDirCache(path string, c *dirCache) {
+	c.Version = dirCacheVersion
 	data, err := json.Marshal(c)
 	if err != nil {
 		log.Printf("Warning: failed to marshal types cache: %v", err)
@@ -113,43 +126,6 @@ func registerCachedTypes(c *dirCache, source string) {
 		lt.Source = source
 		RegisterLocationType(lt)
 	}
-}
-
-// collectTypesFromSource gathers all registered types that match
-// the given source string into a dirCache for serialization.
-func collectTypesFromSource(source string) *dirCache {
-	c := &dirCache{}
-	for _, dt := range allDeviceTypes {
-		if dt.Source == source {
-			c.DeviceTypes = append(c.DeviceTypes, dt)
-		}
-	}
-	for _, mt := range allModuleTypes {
-		if mt.Source == source {
-			c.ModuleTypes = append(c.ModuleTypes, mt)
-		}
-	}
-	for _, ct := range allCableTypes {
-		if ct.Source == source {
-			c.CableTypes = append(c.CableTypes, ct)
-		}
-	}
-	for _, rt := range allRackTypes {
-		if rt.Source == source {
-			c.RackTypes = append(c.RackTypes, rt)
-		}
-	}
-	for _, ft := range allFruTypes {
-		if ft.Source == source {
-			c.FruTypes = append(c.FruTypes, ft)
-		}
-	}
-	for _, lt := range allLocationTypes {
-		if lt.Source == source {
-			c.LocationTypes = append(c.LocationTypes, lt)
-		}
-	}
-	return c
 }
 
 // removeDirCache deletes the cache file for a directory. Called when

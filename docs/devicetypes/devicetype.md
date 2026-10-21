@@ -35,7 +35,7 @@ Each device type definition includes:
 |-------|-------------|
 | `manufacturer` | Vendor name (e.g. `HPE`, `Cray`) |
 | `model` | Model identifier (e.g. `ProLiant DL380 Gen10`) |
-| `slug` | URL-safe unique key (e.g. `hpe-proliant-dl380-gen10`) |
+| `slug` | URL-safe unique key (e.g. `hpe-proliant-dl380-gen10`). Required for built-in types; external libraries may omit it and `cani` derives it from `manufacturer` and `model` (see [Extending](extending.md#slugs-for-nautobot-format-libraries)) |
 | `hardware-type` | Classification (`Device`, `Rack`, `Module`, `Cable`) |
 | `u_height` | Rack units consumed (devices and racks) |
 | `interfaces` | Network interface definitions |
