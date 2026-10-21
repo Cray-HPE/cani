@@ -103,3 +103,34 @@ func (inv *Inventory) rebindCableTerminations(owner interfaceOwner, port string,
 		}
 	}
 }
+
+func (inv *Inventory) syncInterfaceRename(owner interfaceOwner, before InterfaceSpec, spec *InterfaceSpec) {
+	if spec.ID == uuid.Nil {
+		return
+	}
+	if indexed := inv.Interfaces[spec.ID]; indexed != nil && indexed.DeviceID == owner.deviceID && indexed.Name == before.Name {
+		indexed.Name, indexed.Label = spec.Name, spec.Label
+	}
+	if spec.Name == before.Name {
+		return
+	}
+	for _, cable := range inv.Cables {
+		cable.renameInterfacePort(owner, before, spec.Name)
+	}
+}
+
+// Require a coherent old endpoint so renaming does not repair contradictory
+// UUID, owner, or port fields that relationship validation should report.
+func (c *CaniCableType) renameInterfacePort(owner interfaceOwner, before InterfaceSpec, name string) {
+	if c == nil {
+		return
+	}
+	if c.TerminationA == before.ID && c.TerminationAPort == before.Name && c.TerminationADevice != uuid.Nil &&
+		(c.TerminationADevice == owner.ownerID || c.TerminationADevice == owner.deviceID) {
+		c.TerminationAPort = name
+	}
+	if c.TerminationB == before.ID && c.TerminationBPort == before.Name && c.TerminationBDevice != uuid.Nil &&
+		(c.TerminationBDevice == owner.ownerID || c.TerminationBDevice == owner.deviceID) {
+		c.TerminationBPort = name
+	}
+}

@@ -102,8 +102,10 @@ func TestCreateModuleInterfacesSendsPortAttributes(t *testing.T) {
 	seedActiveStatus(t, e)
 	e.Cache.roles["management"] = &CachedItem{ID: uuid.New(), Name: "management"}
 	mgmt := true
+	nameTemplate, labelTemplate := "Port {module}", "Fabric {module}"
 	module := &devicetypes.CaniModuleType{Name: "nic-a", Interfaces: []devicetypes.InterfaceSpec{{
 		Name: "Port 1", Type: devicetypes.InterfacesElemTypeA25GbaseXSfp28, Label: "Fabric A",
+		NameTemplate: &nameTemplate, LabelTemplate: &labelTemplate,
 		MacAddress: "aa:bb:cc:dd:ee:01", MgmtOnly: &mgmt, Description: "module port",
 	}}}
 
@@ -116,6 +118,11 @@ func TestCreateModuleInterfacesSendsPortAttributes(t *testing.T) {
 	}
 	if body["mgmt_only"] != true {
 		t.Fatalf("mgmt_only = %v, want true", body["mgmt_only"])
+	}
+	for _, key := range []string{"nameTemplate", "labelTemplate", "name_template", "label_template"} {
+		if _, present := body[key]; present {
+			t.Errorf("internal template field %q leaked into interface POST", key)
+		}
 	}
 }
 

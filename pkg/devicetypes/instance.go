@@ -75,6 +75,14 @@ func newInstanceInterfaces(specs []InterfaceSpec) []InterfaceSpec {
 		clone := spec
 		clone.ID = uuid.Nil
 		clone.ConnectedCable = nil
+		if spec.NameTemplate != nil {
+			template := *spec.NameTemplate
+			clone.NameTemplate = &template
+		}
+		if spec.LabelTemplate != nil {
+			template := *spec.LabelTemplate
+			clone.LabelTemplate = &template
+		}
 		clone.Tags = slices.Clone(spec.Tags)
 		clone.TaggedVLANs = slices.Clone(spec.TaggedVLANs)
 		clone.CustomFields = cloneAnyMap(spec.CustomFields)

@@ -68,6 +68,9 @@ var interfaceFields = []interfaceField{
 		t.instance.Label = u.label
 		if t.spec != nil {
 			t.spec.Label = u.label
+			if t.spec.LabelTemplate != nil {
+				t.spec.LabelTemplate = &u.label
+			}
 		}
 	}},
 	{"mac", func(t interfaceTarget, u interfaceUpdates) {

@@ -71,6 +71,7 @@ func updateModule(cmd *cli.Command, args []string) error {
 	}
 
 	mod := inventory.Modules[id]
+	bayBefore := mod.ModuleBayName
 
 	if cmd.Flags().Changed("name") {
 		mod.Name, _ = cmd.Flags().GetString("name")
@@ -90,6 +91,9 @@ func updateModule(cmd *cli.Command, args []string) error {
 
 	if err := applySetToModule(cmd, mod); err != nil {
 		return err
+	}
+	if mod.ModuleBayName != bayBefore {
+		inventory.ResolveModuleNames(mod)
 	}
 
 	if err := datastores.Datastore.Save(inventory); err != nil {
