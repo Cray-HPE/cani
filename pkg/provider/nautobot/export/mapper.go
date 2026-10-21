@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2023-2024, 2026 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -219,14 +219,7 @@ func (m *DeviceMapper) MapToWritableDeviceRequest(device *devicetypes.CaniDevice
 					return nil, fmt.Errorf("set rack reference for %s: %w", device.Name, err)
 				}
 
-				// Set position from RackPosition field
-				if device.RackPosition > 0 {
-					pos := device.RackPosition
-					req.Position = &pos
-				}
-
-				// Use actual Face value, defaulting to "front" if unset
-				setDeviceFace(&req.Face, device.Face)
+				setRackSlot(device, m.inventory, &req.Position, &req.Face)
 			}
 		} else if parentDevice := m.inventory.Devices[rackID]; parentDevice != nil && parentDevice.Type == devicetypes.Rack {
 			// Fallback: check if parent is a rack-type device in Devices collection (legacy)
@@ -236,12 +229,7 @@ func (m *DeviceMapper) MapToWritableDeviceRequest(device *devicetypes.CaniDevice
 					return nil, fmt.Errorf("set rack reference for %s: %w", device.Name, err)
 				}
 
-				if device.RackPosition > 0 {
-					pos := device.RackPosition
-					req.Position = &pos
-				}
-
-				setDeviceFace(&req.Face, device.Face)
+				setRackSlot(device, m.inventory, &req.Position, &req.Face)
 			}
 		}
 	}
@@ -324,12 +312,7 @@ func (m *DeviceMapper) MapToPatchRequest(device *devicetypes.CaniDeviceType, exi
 					return nil, fmt.Errorf("set rack reference for %s: %w", device.Name, err)
 				}
 
-				if device.RackPosition > 0 {
-					pos := device.RackPosition
-					req.Position = &pos
-				}
-
-				setDeviceFace(&req.Face, device.Face)
+				setRackSlot(device, m.inventory, &req.Position, &req.Face)
 			}
 		} else if parentDevice := m.inventory.Devices[rackID]; parentDevice != nil && parentDevice.Type == devicetypes.Rack {
 			// Fallback: check if parent is a rack-type device in Devices collection (legacy)
@@ -339,12 +322,7 @@ func (m *DeviceMapper) MapToPatchRequest(device *devicetypes.CaniDeviceType, exi
 					return nil, fmt.Errorf("set rack reference for %s: %w", device.Name, err)
 				}
 
-				if device.RackPosition > 0 {
-					pos := device.RackPosition
-					req.Position = &pos
-				}
-
-				setDeviceFace(&req.Face, device.Face)
+				setRackSlot(device, m.inventory, &req.Position, &req.Face)
 			}
 		}
 	}

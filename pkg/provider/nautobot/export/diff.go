@@ -81,8 +81,10 @@ func compareDeviceFields(
 	}
 
 	diffs = append(diffs, compareRack(device, remote, mapper)...)
-	diffs = append(diffs, comparePosition(device, remote)...)
-	diffs = append(diffs, compareFace(device, remote)...)
+	if !isChildDevice(device, mapper.inventory) {
+		diffs = append(diffs, comparePosition(device, remote)...)
+		diffs = append(diffs, compareFace(device, remote)...)
+	}
 	diffs = append(diffs, compareScalarFields(device, remote)...)
 	diffs = append(diffs, compareCustomFields(device.FlattenProviderMetadata(), remote.CustomFields)...)
 
