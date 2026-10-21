@@ -159,7 +159,7 @@ func (e *Exporter) collectPendingMoves(
 		if !ok || nid == uuid.Nil {
 			continue
 		}
-		if device.RackPosition <= 0 {
+		if device.RackPosition <= 0 || isChildDevice(device, inventory) {
 			continue
 		}
 
