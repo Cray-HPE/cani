@@ -49,6 +49,10 @@
 #   6. Import Nautobot into an empty datastore: every module port stays on its
 #      module and none is added to the parent device, although Nautobot 3.2
 #      also names the root device on the port of an installed module.
+#   7. Rename a module bay in Nautobot to a name the embedded library does not
+#      declare, import again: the device records the bay as declared, the
+#      module keeps it, and a re-export from that datastore creates neither a
+#      bay nor a module.
 
 Describe 'INTEGRATION: Nautobot export fidelity'
 
@@ -239,6 +243,83 @@ print(f"added_to_device={added} device_hsn0={imported_own['HSN 0']} "
 PY
   }
 
+  RENAMED_CONF="${CANI_DIR}/renamed.yml"
+  RENAMED_DS="${CANI_DIR}/renamed.json"
+
+  # rename_module_bay renames one module bay of a device in Nautobot and
+  # prints the name Nautobot stored, so the import sees a bay name the
+  # embedded library does not declare for the device type.
+  rename_module_bay() {
+    DEVICE="$1" FROM="$2" TO="$3" python3 - <<'PY'
+import json
+import os
+import urllib.parse
+import urllib.request
+
+base_url = os.environ["NAUTOBOT_URL"].rstrip("/") + "/"
+headers = {"Authorization": "Token " + os.environ["NAUTOBOT_TOKEN"], "Content-Type": "application/json"}
+query = urllib.parse.urlencode({"parent_device": os.environ["DEVICE"], "name": os.environ["FROM"]})
+with urllib.request.urlopen(urllib.request.Request(base_url + "dcim/module-bays/?" + query, headers=headers)) as response:
+    bay = json.load(response)["results"][0]
+body = json.dumps({"name": os.environ["TO"]}).encode()
+request = urllib.request.Request(base_url + f"dcim/module-bays/{bay['id']}/", data=body, headers=headers, method="PATCH")
+with urllib.request.urlopen(request) as response:
+    print(f"renamed={json.load(response)['name']}")
+PY
+  }
+
+  # Import Nautobot into a second empty datastore after the rename.
+  run_import_renamed() {
+    sed "s|^datastore:.*|datastore: ${RENAMED_DS}|" "$CANI_CONF" >"$RENAMED_CONF" &&
+      cani alpha --config "$RENAMED_CONF" import nautobot \
+        --default-location repro-section --default-status Active >"${CANI_DIR}/renamed-import.log" 2>&1
+    rc=$?
+    cat "${CANI_DIR}/renamed-import.log"
+    return $rc
+  }
+
+  # imported_renamed_bays prints the bays the imported repro-dl380 declares
+  # and the bay of each module imported into it, both sorted.
+  imported_renamed_bays() {
+    IMPORTED="$RENAMED_DS" python3 - <<'PY'
+import json
+import os
+
+with open(os.environ["IMPORTED"], encoding="utf-8") as datastore:
+    inventory = json.load(datastore)
+device = next(d for d in inventory["devices"].values() if d["name"] == "repro-dl380")
+declared = sorted(bay["name"] for bay in device.get("moduleBays", []))
+placed = sorted(module.get("moduleBayName") or "<none>" for module in inventory.get("modules", {}).values()
+                if module.get("parentDevice") == device["id"])
+print(f"declared={','.join(declared)} modules={','.join(placed)}")
+PY
+  }
+
+  # Re-export the renamed import and keep its log.
+  reexport_renamed() {
+    cani alpha --config "$RENAMED_CONF" export nautobot >"${CANI_DIR}/renamed-export.log" 2>&1
+    rc=$?
+    cat "${CANI_DIR}/renamed-export.log"
+    return $rc
+  }
+
+  # nautobot_module_bays prints the number of module bays a device has in
+  # Nautobot, which a re-export that honours the renamed bay leaves unchanged.
+  nautobot_module_bays() {
+    DEVICE="$1" python3 - <<'PY'
+import json
+import os
+import urllib.parse
+import urllib.request
+
+base_url = os.environ["NAUTOBOT_URL"].rstrip("/") + "/"
+headers = {"Authorization": "Token " + os.environ["NAUTOBOT_TOKEN"]}
+query = urllib.parse.urlencode({"parent_device": os.environ["DEVICE"], "limit": 1})
+with urllib.request.urlopen(urllib.request.Request(base_url + "dcim/module-bays/?" + query, headers=headers)) as response:
+    print(f"module_bays={json.load(response)['count']}")
+PY
+  }
+
   Describe 'fixture'
     It 'purges Nautobot and builds the fixture inventory'
       BeforeCall setup_nautobot_env
@@ -359,6 +440,42 @@ PY
     It 'keeps every module port on its module and off the parent device'
       When call imported_port_owners
       The output should equal 'added_to_device=0 device_hsn0=1 pcie1_hsn0=1 pcie2_port1=1'
+    End
+  End
+
+  Describe 'import of a bay the library does not declare'
+    It 'renames the NIC bay in Nautobot'
+      When call rename_module_bay repro-dl380 PCIe2 'Slot B'
+      The output should equal 'renamed=Slot B'
+    End
+
+    It 'imports the renamed bay without clearing it'
+      When call run_import_renamed
+      The status should equal 0
+      The output should include 'Import completed successfully'
+      The output should not include 'imported without a bay'
+    End
+
+    It 'declares the Nautobot bays on the device and keeps the module in the renamed one'
+      When call imported_renamed_bays
+      The output should equal 'declared=PCIe1,Slot B modules=PCIe1,Slot B'
+    End
+
+    It 're-exports the imported inventory without creating a module'
+      When call reexport_renamed
+      The status should equal 0
+      The output should include 'Skipped modules (already exist): 3'
+      The output should not include 'Created modules'
+    End
+
+    It 'leaves repro-dl380 with its two module bays'
+      When call nautobot_module_bays repro-dl380
+      The output should equal 'module_bays=2'
+    End
+
+    It 'restores the bay name'
+      When call rename_module_bay repro-dl380 'Slot B' PCIe2
+      The output should equal 'renamed=PCIe2'
     End
   End
 
