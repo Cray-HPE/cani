@@ -203,6 +203,11 @@ jobs:
     env:
       TAG: ${{ inputs.tag || github.ref_name }}
     steps:
+    - uses: actions/create-github-app-token@v1
+      with:
+        app-id: ${{ secrets.PAGES_PUSH_BOT_APP_ID }}
+        private-key: ${{ secrets.PAGES_PUSH_BOT_APP_KEY }}
+
     - uses: actions/checkout@v4
       with:
         ref: ${{ inputs.tag || github.ref_name }}
