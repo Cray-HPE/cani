@@ -204,6 +204,7 @@ jobs:
       TAG: ${{ inputs.tag || github.ref_name }}
     steps:
     - uses: actions/create-github-app-token@v1
+      id: app-token
       with:
         app-id: ${{ secrets.PAGES_PUSH_BOT_APP_ID }}
         private-key: ${{ secrets.PAGES_PUSH_BOT_APP_KEY }}
@@ -212,6 +213,7 @@ jobs:
       with:
         ref: ${{ inputs.tag || github.ref_name }}
         fetch-depth: 0 # Also fetch git-tags
+        persist-credentials: false
 
     - uses: actions/setup-go@v5
       with:
@@ -226,9 +228,12 @@ jobs:
         python-version: '3.12'
 
     - name: configure git user for bot commits
+      env:
+        APP_TOKEN: ${{ steps.app-token.outputs.token }}
       run: |
-        git config --local user.email "github-actions[bot]@users.noreply.github.com"
-        git config --local user.name "github-actions[bot]"
+        git config --local user.email "pages-push-bot[bot]@users.noreply.github.com"
+        git config --local user.name "pages-push-bot[bot]"
+        git config --local http.extraheader "Authorization: basic $(printf "x-access-token:%s" "$APP_TOKEN" | base64 -w 0)"
 
     - name: install requirements with nox
       run: |
