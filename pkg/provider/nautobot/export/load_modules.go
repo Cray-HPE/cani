@@ -29,6 +29,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
+	"strings"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
@@ -39,22 +41,14 @@ import (
 // For each module it:
 //  1. Creates or looks up the ModuleType (template) from the library.
 //  2. Creates or looks up the ModuleBay on the parent device.
-//  3. Creates the Module instance.
+//  3. Creates the Module instance, or moves the one Nautobot already holds.
 func (e *Exporter) loadModules(
 	ctx context.Context,
 	inventory *devicetypes.Inventory,
 	createdDeviceIDs map[string]uuid.UUID,
 	result *LoadResult,
 ) error {
-	if len(inventory.Modules) == 0 {
-		return nil
-	}
-
-	for _, module := range inventory.Modules {
-		if module == nil || module.Name == "" {
-			continue
-		}
-
+	for _, module := range moduleExportOrder(inventory) {
 		if err := e.createModuleFromCani(ctx, module, inventory, createdDeviceIDs, result); err != nil {
 			result.Errors = append(result.Errors,
 				fmt.Sprintf("module %s: create error: %v", module.Name, err))
@@ -63,11 +57,35 @@ func (e *Exporter) loadModules(
 	return nil
 }
 
+// moduleExportOrder returns the named modules with spares first, so a module
+// leaving a bay vacates it before the module entering that bay is placed;
+// names break ties so the log order is stable.
+func moduleExportOrder(inventory *devicetypes.Inventory) []*devicetypes.CaniModuleType {
+	modules := make([]*devicetypes.CaniModuleType, 0, len(inventory.Modules))
+	for _, module := range inventory.Modules {
+		if module != nil && module.Name != "" {
+			modules = append(modules, module)
+		}
+	}
+	slices.SortFunc(modules, func(a, b *devicetypes.CaniModuleType) int {
+		if a.IsSpare() != b.IsSpare() {
+			if a.IsSpare() {
+				return -1
+			}
+			return 1
+		}
+		return strings.Compare(a.Name, b.Name)
+	})
+	return modules
+}
+
 // createModuleFromCani exports a single CaniModuleType as a Nautobot Module.
 // An installed module is sent with only its parent module bay (its location
 // is inherited from the parent); a spare is sent with only its location. A
-// module with neither is reported. The module's own ports are created on the
-// module so same-named ports on sibling modules stay distinct.
+// module with neither is reported. A module Nautobot already holds is left
+// alone when it sits where the inventory places it and moved otherwise. The
+// module's own ports are created on the module so same-named ports on
+// sibling modules stay distinct.
 func (e *Exporter) createModuleFromCani(
 	ctx context.Context,
 	module *devicetypes.CaniModuleType,
@@ -79,14 +97,16 @@ func (e *Exporter) createModuleFromCani(
 	if err != nil {
 		return err
 	}
-	moduleNautobotID, err := e.findExistingModule(ctx, module, placement)
+	remote, current, err := e.findExistingModule(ctx, module, placement)
 	if err != nil {
 		return fmt.Errorf("existing module lookup: %w", err)
 	}
+	var moduleNautobotID uuid.UUID
 	switch {
-	case moduleNautobotID != uuid.Nil:
-		clog.Skipped("Skipped module (already exists): %s (%s)", module.Name, placement.describe())
-		result.ModulesSkipped++
+	case remote != nil:
+		if moduleNautobotID, err = e.reconcileExistingModule(ctx, module, remote, current, placement, result); err != nil {
+			return err
+		}
 	case e.Options.DryRun:
 		if err := e.previewModuleCreate(ctx, module, placement); err != nil {
 			return err
@@ -96,11 +116,7 @@ func (e *Exporter) createModuleFromCani(
 		e.exportModulePorts(ctx, module, uuid.Nil, result)
 		return nil
 	default:
-		req, err := e.buildModuleRequest(ctx, module, placement)
-		if err != nil {
-			return err
-		}
-		if moduleNautobotID, err = e.postModule(ctx, req, module, placement, result); err != nil {
+		if moduleNautobotID, err = e.createModule(ctx, module, placement, result); err != nil {
 			return err
 		}
 	}
@@ -108,6 +124,34 @@ func (e *Exporter) createModuleFromCani(
 	e.Cache.RecordModule(module.ID, moduleNautobotID)
 	e.exportModulePorts(ctx, module, moduleNautobotID, result)
 	return nil
+}
+
+// createModule builds and posts the module, returning its new Nautobot ID.
+func (e *Exporter) createModule(
+	ctx context.Context, module *devicetypes.CaniModuleType, placement modulePlacement, result *LoadResult,
+) (uuid.UUID, error) {
+	req, err := e.buildModuleRequest(ctx, module, placement)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return e.postModule(ctx, req, module, placement, result)
+}
+
+// reconcileExistingModule leaves a module that already sits where the
+// inventory places it and moves one that does not, returning its Nautobot ID.
+func (e *Exporter) reconcileExistingModule(
+	ctx context.Context, module *devicetypes.CaniModuleType, remote *nautobotapi.Module,
+	current bool, placement modulePlacement, result *LoadResult,
+) (uuid.UUID, error) {
+	if current {
+		clog.Skipped("Skipped module (already exists): %s (%s)", module.Name, placement.describe())
+		result.ModulesSkipped++
+		return toUUID(remote.Id), nil
+	}
+	if err := e.moveModule(ctx, module, remote, placement, result); err != nil {
+		return uuid.Nil, err
+	}
+	return toUUID(remote.Id), nil
 }
 
 // previewModuleCreate performs the lookups a create would need without
@@ -230,12 +274,18 @@ func (e *Exporter) postModule(
 	return created, nil
 }
 
-// printModuleSummary reports module create/skip counts.
+// printModuleSummary reports module create, move and skip counts.
 func printModuleSummary(result *LoadResult) {
 	if result.ModulesCreated > 0 {
 		clog.Created("Created modules: %d", result.ModulesCreated)
 	}
+	if result.ModulesMoved > 0 {
+		clog.Changed("Moved modules: %d", result.ModulesMoved)
+	}
 	if result.ModulesSkipped > 0 {
 		clog.Skipped("Skipped modules (already exist): %d", result.ModulesSkipped)
+	}
+	if result.ModulesMisplaced > 0 {
+		clog.Skipped("Skipped modules (placement differs; use --merge to move): %d", result.ModulesMisplaced)
 	}
 }

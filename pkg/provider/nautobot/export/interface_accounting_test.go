@@ -34,13 +34,13 @@ import "testing"
 // Why it matters: the closing summary warning fires on this total; counting
 // idempotent re-run skips would make every second export warn.
 // Inputs: a LoadResult with one of each lossy counter and ten already-exists
-// skips. Outputs: 3.
+// skips. Outputs: 4.
 // Data choice: distinct non-zero values make a missed or doubled term visible.
 func TestLossyExportCountSumsNonErrorLosses(t *testing.T) {
 	result := &LoadResult{IfacesUnsupported: 1, IfacesUnresolvedRefs: 1,
-		CablesConflicted: 1, IfacesSkipped: 10, CablesSkipped: 10}
-	if got := lossyExportCount(result); got != 3 {
-		t.Fatalf("lossyExportCount = %d, want 3", got)
+		CablesConflicted: 1, ModulesMisplaced: 1, IfacesSkipped: 10, CablesSkipped: 10, ModulesSkipped: 10}
+	if got := lossyExportCount(result); got != 4 {
+		t.Fatalf("lossyExportCount = %d, want 4", got)
 	}
 	if got := lossyExportCount(&LoadResult{IfacesSkipped: 3}); got != 0 {
 		t.Fatalf("already-exists skips counted as lossy: %d", got)

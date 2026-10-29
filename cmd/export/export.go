@@ -50,7 +50,7 @@ func NewCommand() *cli.Command {
 	}
 
 	// Add common persistent flags for all export subcommands
-	cmd.PersistentFlags().Bool("merge", false, "Update existing devices instead of skipping conflicts")
+	cmd.PersistentFlags().Bool("merge", false, "Update existing devices and move existing modules instead of skipping conflicts")
 	cmd.PersistentFlags().Bool("dry-run", false, "Preview changes without making API calls")
 
 	// Add provider subcommands
