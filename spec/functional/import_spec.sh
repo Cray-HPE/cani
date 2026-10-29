@@ -87,6 +87,57 @@ Describe 'cani alpha import'
     End
   End
 
+  # A provider may spell a module bay its own way. The merge canonicalises a
+  # declared bay and clears an undeclared one with a warning, so one bad row
+  # does not abort the whole import and nothing undeclared reaches the store.
+  Describe 'example DCIM CSV module bays'
+    Before 'setup_test_env'
+    After  'teardown_test_env'
+
+    import_dcim_with_bays() {
+      _path="$CANI_DIR/dcim-bays.csv"
+      {
+        sed -n '1,16p' "$FIXTURES/example/dcim.csv"
+        printf 'device,hpe-xd670,GH-x3701u34,1,x3701,34,front,ComputeNode,Active,5UF435KF42,,,,,,,,,,,\n'
+        printf 'module,nvidia-h100-sxm-gpu,gpu-cased,1,,,,,,,GH-x3701u34,gpu 0,,,,,,,,,,\n'
+        printf 'module,nvidia-h100-sxm-gpu,gpu-typo,1,,,,,,,GH-x3701u34,GPU9,,,,,,,,,,\n'
+      } >"$_path"
+      bin/cani alpha import example --csv "$_path" --config "$CANI_CONF"
+    }
+
+    stored_bays() {
+      jq -r '[.modules[] | "\(.name)=\(.moduleBayName // "")"] | sort | join(" ")' "$CANI_DS"
+    }
+
+    # Import the sheet, then import it again with gpu-cased moved to "GPU 1".
+    reimport_with_moved_module() {
+      import_dcim_with_bays >/dev/null 2>&1 &&
+        sed 's/,gpu-cased,1,,,,,,,GH-x3701u34,gpu 0,/,gpu-cased,1,,,,,,,GH-x3701u34,GPU 1,/' \
+          "$CANI_DIR/dcim-bays.csv" >"$CANI_DIR/dcim-moved.csv" &&
+        bin/cani alpha import example --csv "$CANI_DIR/dcim-moved.csv" --config "$CANI_CONF"
+    }
+
+    It 'imports despite an undeclared bay and reports it'
+      When call import_dcim_with_bays
+      The status should equal 0
+      The stderr should include 'module "gpu-typo"'
+      The stderr should include 'has no module bay "GPU9"'
+      The stderr should include 'update module --bay'
+    End
+
+    It 'stores the declared spelling and leaves the undeclared bay empty'
+      import_dcim_with_bays >/dev/null 2>&1
+      When call stored_bays
+      The output should equal 'gpu-cased=GPU 0 gpu-typo='
+    End
+
+    It 'moves a module to the bay a re-import of the sheet reports'
+      reimport_with_moved_module >/dev/null 2>&1
+      When call stored_bays
+      The output should equal 'gpu-cased=GPU 1 gpu-typo='
+    End
+  End
+
   Describe 'nautobot --help'
     Parameters:value --default-location --default-role --default-status
     It "has $1 flag"

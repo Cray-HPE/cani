@@ -147,3 +147,54 @@ func TestCableEndsResolveModuleTerminations(t *testing.T) {
 		t.Fatal("an unknown termination must be an error")
 	}
 }
+
+// TestCableEndsUseInterfaceOwnerForDeviceAddressedPort verifies a cable that
+// names the parent device with a module's port name is exported against the
+// module the resolved interface records as its owner, with the Nautobot ID
+// this run confirmed for that module, while a device-owned port keeps no
+// module; a persisted external ID alone yields no module ID.
+//
+// Why it matters: the inventory admits module ports through the parent
+// device, so the interface index, not the termination device field, is the
+// only reliable record of which module owns the port; without it two sibling
+// modules with identical port names cannot be told apart in Nautobot. The
+// persisted external ID may name a module Nautobot has since lost, and a
+// lookup filtered on such an ID is a 400, so only an ID the module phase
+// created or found this run is used.
+// Inputs: a device with port "eth0" and a module in it with port "p1" whose
+// persisted external ID is stale; a cable from the device to "p1" and to
+// "eth0"; then the module recorded as found this run.
+// Outputs: the "p1" end names the module and carries Nil before the record
+// and the recorded ID after it; the "eth0" end carries no module.
+// Data choice: both cables address the device so only the port name differs
+// between the module-owned and device-owned ends.
+func TestCableEndsUseInterfaceOwnerForDeviceAddressedPort(t *testing.T) {
+	inv := devicetypes.NewInventory()
+	devID, modID, staleNBID, nbModID := uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	inv.Devices[devID] = &devicetypes.CaniDeviceType{ID: devID, Name: "node-01", Interfaces: []devicetypes.InterfaceSpec{{Name: "eth0"}}}
+	inv.Modules[modID] = &devicetypes.CaniModuleType{
+		ID: modID, Name: "nic-1", ParentDevice: devID, Interfaces: []devicetypes.InterfaceSpec{{Name: "p1"}},
+		ObjectMeta: devicetypes.ObjectMeta{ExternalIDs: map[string]uuid.UUID{externalIDKeyNautobot: staleNBID}},
+	}
+	viaModule := &devicetypes.CaniCableType{ID: uuid.New(), TerminationADevice: devID, TerminationAPort: "p1", TerminationBDevice: devID, TerminationBPort: "eth0"}
+	inv.Cables[viaModule.ID] = viaModule
+	if err := inv.RebuildDerivedState().Err(); err != nil {
+		t.Fatalf("fixture rebuild: %v", err)
+	}
+	e := &Exporter{Cache: NewLookupCache(nil)}
+
+	a, b, err := cableEnds(inv, viaModule)
+	if err != nil || a.module != inv.Modules[modID] || b.module != nil {
+		t.Fatalf("ends = module %v / %v, err = %v; want nic-1 and none", a.module, b.module, err)
+	}
+	e.resolveEndModules(&a, &b)
+	if a.moduleID != uuid.Nil || b.moduleID != uuid.Nil {
+		t.Errorf("before the run confirms the module: moduleIDs = %v / %v, want Nil / Nil (the stale %v must not be used)", a.moduleID, b.moduleID, staleNBID)
+	}
+
+	e.Cache.RecordModule(modID, nbModID)
+	e.resolveEndModules(&a, &b)
+	if a.moduleID != nbModID || b.moduleID != uuid.Nil {
+		t.Errorf("after the run confirms the module: moduleIDs = %v / %v, want %v / Nil", a.moduleID, b.moduleID, nbModID)
+	}
+}

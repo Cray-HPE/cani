@@ -96,6 +96,8 @@ cani (root)
     │   ├── device <uuid-or-name>
     │   ├── module <uuid-or-name>
     │   └── cable <uuid-or-name>
+    ├── swap/                    # Exchange placements
+    │   └── module <installed> <spare>
     ├── show/                    # Display inventory
     │   ├── location
     │   ├── rack
@@ -165,8 +167,10 @@ Persistent flags inherited by all `add` subcommands:
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--device` | string | `""` | Parent device UUID or name |
-| `--bay` | string | `""` | Module bay name |
+| `--device` | string | `""` | Parent device UUID, name, slug, or `%{FILL}` strategy |
+| `--bay` | string | `""` | Module bay name on the parent device; stored in the spelling the parent declares |
+| `--spare` | bool | false | Store the module at `--location` instead of installing it in a device |
+| `--location` | string | `""` | Location filter for device selection, or the storage location of a `--spare` module |
 
 #### `add cable <slug-or-part-number>`
 
@@ -187,7 +191,7 @@ Each takes `<uuid-or-name>` as a positional arg. Persistent flag:
 |------|-------|------|---------|-------------|
 | `--force` | `-f` | bool | false | Skip confirmation |
 
-- `remove location` — Errors if the location still has child racks.
+- `remove location` — Errors if the location still has racks, child locations, directly placed devices, or spare modules.
 - `remove rack` — Unlinks devices before deleting.
 - `remove device` — Cascades to children (modules, cables).
 - `remove module` — Removes the module.
@@ -204,6 +208,17 @@ Each takes `<uuid-or-name>` as a positional arg. Supports typed flags **and** ge
 | `device` | `--name`, `--status`, `--role`, `--description`, `--position`, `--face` | name, status, role, description, rack_position, face, serial, asset_tag |
 | `module` | `--name`, `--status`, `--role`, `--description`, `--bay` | name, status, role, description, module_bay_name, serial, asset_tag |
 | `cable` | `--label`, `--status`, `--color`, `--description` | label, status, color, description |
+
+### `swap` Subcommands
+
+#### `swap module <installed-uuid-or-name> <spare-uuid-or-name>`
+
+Installs the spare in the installed module's bay and stores the installed module at a location, validated and saved as one change (`Inventory.SwapModules`). Both modules are resolved as `update` resolves them. The spare takes the bay and the port names the bay gives it; the replaced module keeps its name, serial, asset tag and cables. Both modules must be the same hardware type when both record one, and the installed module must name its bay when the parent declares bays. The next `export nautobot --merge` moves both modules in Nautobot.
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--location` | string | `""` | Location to store the replaced module at (name or UUID); default: the parent device's location |
+| `--dry-run` | bool | false | Print the resulting placements without saving |
 
 ### `show` Subcommands
 

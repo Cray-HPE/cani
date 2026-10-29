@@ -261,7 +261,7 @@ func TestGetOrCreateModuleBay_ErrorsOnCreateNon201(t *testing.T) {
 // IfacesCreated and the POST count by exactly one.
 //
 // Why it matters: a module's interfaces (e.g. HSN ports from a NIC) become
-// device interfaces in Nautobot; filtering unsupported types (nvlink) avoids
+// module-owned interfaces in Nautobot; filtering unsupported types (nvlink) avoids
 // create failures while still recording real network ports, and the count
 // keeps the omission visible in the export summary.
 // Inputs: a module with one 100gbase-x-qsfp28 and one nvlink interface, plus a
@@ -286,7 +286,7 @@ func TestCreateModuleInterfaces_CreatesValidSkipsInvalid(t *testing.T) {
 	}
 
 	result := &LoadResult{}
-	if err := e.createModuleInterfaces(context.Background(), module, &devicetypes.CaniDeviceType{Name: "node"}, uuid.New(), result); err != nil {
+	if err := e.createModuleInterfaces(context.Background(), module, uuid.New(), result); err != nil {
 		t.Fatalf("createModuleInterfaces() error = %v", err)
 	}
 	if result.IfacesCreated != 1 {
@@ -301,24 +301,23 @@ func TestCreateModuleInterfaces_CreatesValidSkipsInvalid(t *testing.T) {
 }
 
 // TestCreateModuleInterfaces_SkipsExistingInterface verifies that
-// createModuleInterfaces skips an interface already present in the cache,
-// issuing no POST, and counts it as already existing when the parent device
-// spec does not declare the name itself.
+// createModuleInterfaces skips an interface the module already has in the
+// cache, issuing no POST, and counts it as already existing.
 //
 // Why it matters: a re-export must stay idempotent, and the summary must
-// distinguish "created last run" from a name collision with the device spec.
+// account for ports created by an earlier run.
 // Inputs: a module declaring "hsn0" with that interface pre-seeded via
-// CacheInterface on the device and a parent device without an "hsn0" spec.
-// Outputs: IfacesCreated == 0, IfacesSkipped == 1, zero POSTs.
-// Data choice: pre-seeding the cache under the same device+name key models the
+// CacheInterface on the module's Nautobot ID. Outputs: IfacesCreated == 0,
+// IfacesSkipped == 1, zero POSTs.
+// Data choice: pre-seeding the cache under the same module+name key models the
 // "created by an earlier run" case the code guards against.
 func TestCreateModuleInterfaces_SkipsExistingInterface(t *testing.T) {
 	var postCalls int
 	e, cleanup := newExporterWithServer(t, moduleIfaceServer(&postCalls, http.StatusCreated, `{}`))
 	defer cleanup()
-	deviceID := uuid.New()
+	moduleID := uuid.New()
 	// Pre-seed the cache so the interface is treated as already present.
-	e.Cache.CacheInterface(deviceID, "hsn0", &CachedItem{ID: uuid.New(), Name: "hsn0"})
+	e.Cache.CacheInterface(moduleID, "hsn0", &CachedItem{ID: uuid.New(), Name: "hsn0"})
 
 	module := &devicetypes.CaniModuleType{
 		Name: "ConnectX-6",
@@ -328,46 +327,80 @@ func TestCreateModuleInterfaces_SkipsExistingInterface(t *testing.T) {
 	}
 
 	result := &LoadResult{}
-	if err := e.createModuleInterfaces(context.Background(), module, &devicetypes.CaniDeviceType{Name: "node"}, deviceID, result); err != nil {
+	if err := e.createModuleInterfaces(context.Background(), module, moduleID, result); err != nil {
 		t.Fatalf("createModuleInterfaces() error = %v", err)
 	}
-	if result.IfacesCreated != 0 || result.IfacesSkipped != 1 || result.IfacesSkippedDuplicate != 0 {
-		t.Errorf("created=%d skipped=%d duplicate=%d, want 0/1/0",
-			result.IfacesCreated, result.IfacesSkipped, result.IfacesSkippedDuplicate)
+	if result.IfacesCreated != 0 || result.IfacesSkipped != 1 {
+		t.Errorf("created=%d skipped=%d, want 0/1", result.IfacesCreated, result.IfacesSkipped)
 	}
 	if postCalls != 0 {
 		t.Errorf("expected no interface POST for an existing interface, got %d", postCalls)
 	}
 }
 
-// TestCreateModuleInterfaces_CountsDuplicateDeviceName verifies that a module
-// port whose name the parent device spec also declares is counted as a
-// duplicate-name skip rather than as an already-existing interface.
+// TestCreateModuleInterfaces_KeepsPortNamedLikeDevicePort verifies that a
+// module port whose name the parent device already uses is still created on
+// the module.
 //
-// Why it matters: this is the DL380 Gen11 + CX7 "HSN 0" case where the module
-// copy (which carries the MAC) was dropped silently; the summary must say so.
-// Inputs: a parent device spec with "HSN 0", the same name cached as created,
-// and a module declaring "HSN 0". Outputs: IfacesSkippedDuplicate == 1 and
-// IfacesSkipped == 0.
+// Why it matters: this is the DL380 Gen11 + CX7 "HSN 0" case; the module copy
+// carries the MAC and must exist next to the device copy, not be skipped.
+// Inputs: "HSN 0" cached on the parent device's ID and a module declaring
+// "HSN 0". Outputs: IfacesCreated == 1, IfacesSkipped == 0, one POST.
 // Data choice: mirrors the library collision found in the live reproduction.
-func TestCreateModuleInterfaces_CountsDuplicateDeviceName(t *testing.T) {
+func TestCreateModuleInterfaces_KeepsPortNamedLikeDevicePort(t *testing.T) {
 	var postCalls int
-	e, cleanup := newExporterWithServer(t, moduleIfaceServer(&postCalls, http.StatusCreated, `{}`))
+	created := fmt.Sprintf(`{"id":%q,"name":"HSN 0","display":"HSN 0"}`, uuid.NewString())
+	e, cleanup := newExporterWithServer(t, moduleIfaceServer(&postCalls, http.StatusCreated, created))
 	defer cleanup()
-	deviceID := uuid.New()
-	e.Cache.CacheInterface(deviceID, "HSN 0", &CachedItem{ID: uuid.New(), Name: "HSN 0"})
-	parent := &devicetypes.CaniDeviceType{Name: "repro-dl380",
-		Interfaces: []devicetypes.InterfaceSpec{{Name: "HSN 0", Type: devicetypes.InterfacesElemTypeA400GbaseXQsfpdd}}}
+	seedActiveStatus(t, e)
+	e.Cache.roles["hsn"] = &CachedItem{ID: uuid.New(), Name: "hsn"}
+	parentDeviceID := uuid.New()
+	e.Cache.CacheInterface(parentDeviceID, "HSN 0", &CachedItem{ID: uuid.New(), Name: "HSN 0"})
 	module := &devicetypes.CaniModuleType{Name: "cx7-a",
 		Interfaces: []devicetypes.InterfaceSpec{{Name: "HSN 0", Type: devicetypes.InterfacesElemTypeA400GbaseXQsfpdd}}}
 
 	result := &LoadResult{}
-	if err := e.createModuleInterfaces(context.Background(), module, parent, deviceID, result); err != nil {
+	if err := e.createModuleInterfaces(context.Background(), module, uuid.New(), result); err != nil {
 		t.Fatalf("createModuleInterfaces() error = %v", err)
 	}
-	if result.IfacesSkippedDuplicate != 1 || result.IfacesSkipped != 0 || postCalls != 0 {
-		t.Errorf("duplicate=%d skipped=%d posts=%d, want 1/0/0",
-			result.IfacesSkippedDuplicate, result.IfacesSkipped, postCalls)
+	if result.IfacesCreated != 1 || result.IfacesSkipped != 0 || postCalls != 1 {
+		t.Errorf("created=%d skipped=%d posts=%d, want 1/0/1",
+			result.IfacesCreated, result.IfacesSkipped, postCalls)
+	}
+}
+
+// TestCreateModuleInterfaces_DryRunPlansPortsWithoutModuleID verifies that a
+// dry run plans a module's supported ports when the module has no Nautobot ID,
+// without any API call.
+//
+// Why it matters: --dry-run must preview module ports too, but a module that
+// would be created has no ID to look its ports up by, and a preview must not
+// touch Nautobot.
+// Inputs: DryRun set, a module with one 100gbase-x-qsfp28 and one nvlink port,
+// uuid.Nil as the module ID, and a server that fails on any request.
+// Outputs: IfacesCreated == 1, IfacesUnsupported == 1, IfacesSkipped == 0.
+// Data choice: uuid.Nil is exactly the ID a module that would be created has.
+func TestCreateModuleInterfaces_DryRunPlansPortsWithoutModuleID(t *testing.T) {
+	e, cleanup := newExporterWithServer(t, func(_ http.ResponseWriter, r *http.Request) {
+		t.Errorf("unexpected %s %s during a dry run", r.Method, r.URL)
+	})
+	defer cleanup()
+	e.Options.DryRun = true
+	module := &devicetypes.CaniModuleType{
+		Name: "ConnectX-6",
+		Interfaces: []devicetypes.InterfaceSpec{
+			{Name: "hsn0", Type: devicetypes.InterfacesElemType("100gbase-x-qsfp28")},
+			{Name: "nvlink0", Type: devicetypes.InterfacesElemType("nvlink")},
+		},
+	}
+
+	result := &LoadResult{}
+	if err := e.createModuleInterfaces(context.Background(), module, uuid.Nil, result); err != nil {
+		t.Fatalf("createModuleInterfaces() error = %v", err)
+	}
+	if result.IfacesCreated != 1 || result.IfacesUnsupported != 1 || result.IfacesSkipped != 0 {
+		t.Errorf("created=%d unsupported=%d skipped=%d, want 1/1/0",
+			result.IfacesCreated, result.IfacesUnsupported, result.IfacesSkipped)
 	}
 }
 
@@ -395,7 +428,7 @@ func TestCreateModuleInterfaces_ReturnsErrorWhenCreateFails(t *testing.T) {
 	}
 
 	result := &LoadResult{}
-	if err := e.createModuleInterfaces(context.Background(), module, &devicetypes.CaniDeviceType{Name: "node"}, uuid.New(), result); err == nil {
+	if err := e.createModuleInterfaces(context.Background(), module, uuid.New(), result); err == nil {
 		t.Fatal("expected an error when the underlying interface create fails")
 	}
 }
@@ -417,7 +450,7 @@ func TestCreateModuleInterfaces_EmptyInterfacesNoOp(t *testing.T) {
 
 	module := &devicetypes.CaniModuleType{Name: "Empty"}
 	result := &LoadResult{}
-	if err := e.createModuleInterfaces(context.Background(), module, &devicetypes.CaniDeviceType{Name: "node"}, uuid.New(), result); err != nil {
+	if err := e.createModuleInterfaces(context.Background(), module, uuid.New(), result); err != nil {
 		t.Fatalf("createModuleInterfaces() error = %v", err)
 	}
 	if result.IfacesCreated != 0 || postCalls != 0 {

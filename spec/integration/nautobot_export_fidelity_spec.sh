@@ -38,15 +38,27 @@
 #      with one H100 GPU module (nvlink / pcie-gen5-x16 ports).
 #   2. Export to Nautobot and keep the log.
 #   3. Read interfaces back from Nautobot: device and module port types and
-#      attributes (MAC, label, description) must match the datastore. A module
-#      port named like a device port is not carried yet and is recorded as a
-#      Pending example, so implementing it turns it into a failure that asks
-#      for its promotion.
+#      attributes (MAC, label, description) must match the datastore. Module
+#      ports are owned by their module, so a module port named like a device
+#      port is kept next to it rather than skipped.
 #   4. Module ports whose type Nautobot lacks (nvlink, pcie-gen5-x16) are
 #      skipped with a warning, counted in the summary, and never created.
 #   5. Every interface spec is either present in Nautobot or named in a skip
 #      line, and the summary's created plus skipped counts add up to the
 #      number of specs.
+#   6. Import Nautobot into an empty datastore: every module port stays on its
+#      module and none is added to the parent device, although Nautobot 3.2
+#      also names the root device on the port of an installed module.
+#   7. Rename a module bay in Nautobot to a name the embedded library does not
+#      declare, import again: the device records the bay as declared, the
+#      module keeps it, and a re-export from that datastore creates neither a
+#      bay nor a module.
+#   8. Store a spare NIC, export it, then `swap module` the installed NIC for
+#      it: a plain export reports the two pending moves, `--merge --dry-run`
+#      previews them without writing, `--merge` moves both modules under their
+#      recorded IDs and creates none, a re-export is idempotent, a bay move
+#      made with `update module --bay` follows the same path, and an import of
+#      the result places both modules where the datastore does.
 
 Describe 'INTEGRATION: Nautobot export fidelity'
 
@@ -163,9 +175,10 @@ print(f"unaccounted={unaccounted}")
 PY
   }
 
-  # Print one Nautobot interface field for <device> <interface> <field>.
+  # Print one Nautobot interface field for <device> <interface> <field>
+  # [device|module]; the owner picks between same-named device and module ports.
   nb_interface_field() {
-    DEVICE="$1" IFACE="$2" FIELD="$3" python3 - <<'PY'
+    DEVICE="$1" IFACE="$2" FIELD="$3" OWNER="${4:-}" python3 - <<'PY'
 import json
 import os
 import urllib.parse
@@ -177,6 +190,8 @@ query = urllib.parse.urlencode({"device": os.environ["DEVICE"], "name": os.envir
 request = urllib.request.Request(base_url + "dcim/interfaces/?" + query, headers=headers)
 with urllib.request.urlopen(request) as response:
     results = json.load(response)["results"]
+if os.environ["OWNER"]:
+    results = [r for r in results if (r.get("module") is None) == (os.environ["OWNER"] == "device")]
 if not results:
     print("<missing>")
     raise SystemExit(0)
@@ -186,6 +201,128 @@ if isinstance(value, dict):
 if isinstance(value, list):
     value = ",".join(sorted(item.get("name", str(item)) if isinstance(item, dict) else str(item) for item in value))
 print("" if value is None else value)
+PY
+  }
+
+  IMPORT_CONF="${CANI_DIR}/import.yml"
+  IMPORT_DS="${CANI_DIR}/import.json"
+
+  # Import Nautobot into an empty datastore with the fixture's provider
+  # settings and keep the log.
+  run_import() {
+    sed "s|^datastore:.*|datastore: ${IMPORT_DS}|" "$CANI_CONF" >"$IMPORT_CONF" &&
+      cani alpha --config "$IMPORT_CONF" import nautobot \
+        --default-location repro-section --default-status Active >"${CANI_DIR}/import.log" 2>&1
+    rc=$?
+    cat "${CANI_DIR}/import.log"
+    return $rc
+  }
+
+  # Compare repro-dl380's ports in the imported datastore with the exported
+  # one: count device-owned names the import added to the device, and the
+  # "HSN 0" and "Port 1" ports on the device and on the module in each bay.
+  imported_port_owners() {
+    DS="$CANI_DS" IMPORTED="$IMPORT_DS" python3 - <<'PY'
+import collections
+import json
+import os
+
+
+def ports(path):
+    with open(path, encoding="utf-8") as datastore:
+        inventory = json.load(datastore)
+    device = next(d for d in inventory["devices"].values() if d["name"] == "repro-dl380")
+    own = collections.Counter(i["name"] for i in device.get("interfaces", []))
+    modules = collections.Counter()
+    for module in inventory.get("modules", {}).values():
+        if module.get("parentDevice") == device["id"]:
+            bay = module.get("moduleBayName", "").lower()
+            modules.update((bay, i["name"]) for i in module.get("interfaces", []))
+    return own, modules
+
+
+exported_own, _ = ports(os.environ["DS"])
+imported_own, imported_modules = ports(os.environ["IMPORTED"])
+added = sum((imported_own - exported_own).values())
+print(f"added_to_device={added} device_hsn0={imported_own['HSN 0']} "
+      f"pcie1_hsn0={imported_modules[('pcie1', 'HSN 0')]} pcie2_port1={imported_modules[('pcie2', 'Port 1')]}")
+PY
+  }
+
+  RENAMED_CONF="${CANI_DIR}/renamed.yml"
+  RENAMED_DS="${CANI_DIR}/renamed.json"
+
+  # rename_module_bay renames one module bay of a device in Nautobot and
+  # prints the name Nautobot stored, so the import sees a bay name the
+  # embedded library does not declare for the device type.
+  rename_module_bay() {
+    DEVICE="$1" FROM="$2" TO="$3" python3 - <<'PY'
+import json
+import os
+import urllib.parse
+import urllib.request
+
+base_url = os.environ["NAUTOBOT_URL"].rstrip("/") + "/"
+headers = {"Authorization": "Token " + os.environ["NAUTOBOT_TOKEN"], "Content-Type": "application/json"}
+query = urllib.parse.urlencode({"parent_device": os.environ["DEVICE"], "name": os.environ["FROM"]})
+with urllib.request.urlopen(urllib.request.Request(base_url + "dcim/module-bays/?" + query, headers=headers)) as response:
+    bay = json.load(response)["results"][0]
+body = json.dumps({"name": os.environ["TO"]}).encode()
+request = urllib.request.Request(base_url + f"dcim/module-bays/{bay['id']}/", data=body, headers=headers, method="PATCH")
+with urllib.request.urlopen(request) as response:
+    print(f"renamed={json.load(response)['name']}")
+PY
+  }
+
+  # Import Nautobot into a second empty datastore after the rename.
+  run_import_renamed() {
+    sed "s|^datastore:.*|datastore: ${RENAMED_DS}|" "$CANI_CONF" >"$RENAMED_CONF" &&
+      cani alpha --config "$RENAMED_CONF" import nautobot \
+        --default-location repro-section --default-status Active >"${CANI_DIR}/renamed-import.log" 2>&1
+    rc=$?
+    cat "${CANI_DIR}/renamed-import.log"
+    return $rc
+  }
+
+  # imported_renamed_bays prints the bays the imported repro-dl380 declares
+  # and the bay of each module imported into it, both sorted.
+  imported_renamed_bays() {
+    IMPORTED="$RENAMED_DS" python3 - <<'PY'
+import json
+import os
+
+with open(os.environ["IMPORTED"], encoding="utf-8") as datastore:
+    inventory = json.load(datastore)
+device = next(d for d in inventory["devices"].values() if d["name"] == "repro-dl380")
+declared = sorted(bay["name"] for bay in device.get("moduleBays", []))
+placed = sorted(module.get("moduleBayName") or "<none>" for module in inventory.get("modules", {}).values()
+                if module.get("parentDevice") == device["id"])
+print(f"declared={','.join(declared)} modules={','.join(placed)}")
+PY
+  }
+
+  # Re-export the renamed import and keep its log.
+  reexport_renamed() {
+    cani alpha --config "$RENAMED_CONF" export nautobot >"${CANI_DIR}/renamed-export.log" 2>&1
+    rc=$?
+    cat "${CANI_DIR}/renamed-export.log"
+    return $rc
+  }
+
+  # nautobot_module_bays prints the number of module bays a device has in
+  # Nautobot, which a re-export that honours the renamed bay leaves unchanged.
+  nautobot_module_bays() {
+    DEVICE="$1" python3 - <<'PY'
+import json
+import os
+import urllib.parse
+import urllib.request
+
+base_url = os.environ["NAUTOBOT_URL"].rstrip("/") + "/"
+headers = {"Authorization": "Token " + os.environ["NAUTOBOT_TOKEN"]}
+query = urllib.parse.urlencode({"parent_device": os.environ["DEVICE"], "limit": 1})
+with urllib.request.urlopen(urllib.request.Request(base_url + "dcim/module-bays/?" + query, headers=headers)) as response:
+    print(f"module_bays={json.load(response)['count']}")
 PY
   }
 
@@ -209,21 +346,21 @@ PY
     # Nautobot accepts 400gbase-x-qsfpdd; the exporter must not rewrite it to
     # 400gbase-x-osfp.
     It 'keeps the 400gbase-x-qsfpdd interface type'
-      When call nb_interface_field repro-dl380 'HSN 0' type
+      When call nb_interface_field repro-dl380 'HSN 0' type device
       The output should equal '400gbase-x-qsfpdd'
     End
 
     It 'carries the device port label'
-      When call nb_interface_field repro-dl380 'HSN 0' label
+      When call nb_interface_field repro-dl380 'HSN 0' label device
       The output should equal 'NDR InfiniBand CX7'
     End
   End
 
-  # Module ports are created on the parent device because Nautobot does not
-  # derive them from a module type created through the API.
+  # Module ports are created on their module because Nautobot does not derive
+  # them from a module type created through the API.
   Describe 'module interfaces'
-    It 'creates the NIC port on the parent device with its library type'
-      When call nb_interface_field repro-dl380 'Port 1' type
+    It 'creates the NIC port on its module with its library type'
+      When call nb_interface_field repro-dl380 'Port 1' type module
       The output should equal '25gbase-x-sfp28'
     End
 
@@ -242,12 +379,10 @@ PY
       The output should equal 'module port'
     End
 
-    # The CX7 port "HSN 0" collides with the DL380 device port of the same
-    # name and is dropped as a duplicate; only a module-owned interface
-    # (Nautobot >= 2.3) can hold both.
+    # The CX7 port "HSN 0" shares its name with a DL380 device port; module
+    # ownership keeps both.
     It 'keeps a module port named like a device port'
-      Pending 'a module port whose name exists on the parent device is skipped'
-      When call nb_interface_field repro-dl380 'HSN 0' mac_address
+      When call nb_interface_field repro-dl380 'HSN 0' mac_address module
       The output should equal 'AA:BB:CC:DD:EE:02'
     End
   End
@@ -281,10 +416,10 @@ PY
       The output should include 'unaccounted=0'
     End
 
-    It 'names the skipped duplicate port in the summary'
+    It 'does not skip a module port named like a device port'
       When call cat "$EXPORT_LOG"
-      The output should include 'Skipped interface HSN 0 on module cx7-a'
-      The output should include 'Skipped interfaces (name already on device): 1'
+      The output should not include 'Skipped interface HSN 0'
+      The output should not include 'name already on device'
     End
 
     It 'balances created plus skipped interfaces against the datastore'
@@ -295,6 +430,279 @@ PY
     It 'warns that some objects were not exported as authored'
       When call grep -c 'not exported as authored' "$EXPORT_LOG"
       The output should equal '1'
+    End
+  End
+
+  # Nautobot 3.2 also names the root device on a port of an installed
+  # module, so an import that grouped ports by device alone would give
+  # repro-dl380 a second "HSN 0" and the NIC's "Port 1".
+  Describe 'import'
+    It 'imports the exported fixture into an empty datastore'
+      When call run_import
+      The status should equal 0
+      The output should include 'Import completed successfully'
+    End
+
+    It 'keeps every module port on its module and off the parent device'
+      When call imported_port_owners
+      The output should equal 'added_to_device=0 device_hsn0=1 pcie1_hsn0=1 pcie2_port1=1'
+    End
+  End
+
+  Describe 'import of a bay the library does not declare'
+    It 'renames the NIC bay in Nautobot'
+      When call rename_module_bay repro-dl380 PCIe2 'Slot B'
+      The output should equal 'renamed=Slot B'
+    End
+
+    It 'imports the renamed bay without clearing it'
+      When call run_import_renamed
+      The status should equal 0
+      The output should include 'Import completed successfully'
+      The output should not include 'imported without a bay'
+    End
+
+    It 'declares the Nautobot bays on the device and keeps the module in the renamed one'
+      When call imported_renamed_bays
+      The output should equal 'declared=PCIe1,Slot B modules=PCIe1,Slot B'
+    End
+
+    It 're-exports the imported inventory without creating a module'
+      When call reexport_renamed
+      The status should equal 0
+      The output should include 'Skipped modules (already exist): 3'
+      The output should not include 'Created modules'
+    End
+
+    It 'leaves repro-dl380 with its two module bays'
+      When call nautobot_module_bays repro-dl380
+      The output should equal 'module_bays=2'
+    End
+
+    It 'restores the bay name'
+      When call rename_module_bay repro-dl380 'Slot B' PCIe2
+      The output should equal 'renamed=PCIe2'
+    End
+  End
+
+  SWAP_LOG="${CANI_DIR}/swap-export.log"
+  SWAPPED_CONF="${CANI_DIR}/swapped.yml"
+  SWAPPED_DS="${CANI_DIR}/swapped.json"
+
+  # export_swap runs an export with the given flags and keeps its log apart
+  # from the fixture export's, whose accounting the earlier blocks assert.
+  export_swap() {
+    cani_cfg export nautobot "$@" >"$SWAP_LOG" 2>&1
+    rc=$?
+    cat "$SWAP_LOG"
+    return $rc
+  }
+
+  # local_module_placement prints where the datastore places the named module.
+  local_module_placement() {
+    jq -r --arg name "$1" '
+      . as $inv | .modules[] | select(.name == $name)
+      | "parent=\($inv.devices[.parentDevice // ""].name // "-") " +
+        "bay=\(if (.moduleBayName // "") == "" then "-" else .moduleBayName end) " +
+        "location=\($inv.locations[.location // ""].name // "-")"' "$CANI_DS"
+  }
+
+  # nautobot_module_placement prints where Nautobot holds the named datastore
+  # module, fetched through the module's recorded Nautobot ID.
+  nautobot_module_placement() {
+    MODULE="$1" DS="$CANI_DS" python3 - <<'PY'
+import json
+import os
+import urllib.request
+
+with open(os.environ["DS"], encoding="utf-8") as datastore:
+    inventory = json.load(datastore)
+module = next(m for m in inventory["modules"].values() if m["name"] == os.environ["MODULE"])
+nautobot_id = module.get("externalIDs", {}).get("nautobot")
+base_url = os.environ["NAUTOBOT_URL"].rstrip("/") + "/"
+headers = {"Authorization": "Token " + os.environ["NAUTOBOT_TOKEN"]}
+with urllib.request.urlopen(urllib.request.Request(base_url + f"dcim/modules/{nautobot_id}/?depth=1", headers=headers)) as response:
+    remote = json.load(response)
+bay = (remote.get("parent_module_bay") or {}).get("name") or "-"
+location = (remote.get("location") or {}).get("name") or "-"
+print(f"bay={bay} location={location}")
+PY
+  }
+
+  # distinct_external_ids reports whether nic-a and nic-spare carry two
+  # different recorded Nautobot IDs, which a bay-based match would cross-wire.
+  distinct_external_ids() {
+    jq -r '[.modules[] | select(.name == "nic-a" or .name == "nic-spare") | .externalIDs.nautobot]
+      | "distinct=\(length == 2 and .[0] != null and .[1] != null and .[0] != .[1])"' "$CANI_DS"
+  }
+
+  # Import Nautobot into a third empty datastore after the swap.
+  run_import_swapped() {
+    sed "s|^datastore:.*|datastore: ${SWAPPED_DS}|" "$CANI_CONF" >"$SWAPPED_CONF" &&
+      cani alpha --config "$SWAPPED_CONF" import nautobot \
+        --default-location repro-section --default-status Active >"${CANI_DIR}/swapped-import.log" 2>&1
+    rc=$?
+    cat "${CANI_DIR}/swapped-import.log"
+    return $rc
+  }
+
+  # imported_swap_placements prints where the import placed the modules that
+  # carry nic-spare's and nic-a's Nautobot IDs; import names modules after
+  # Nautobot's display text, so the ID is the only stable handle.
+  imported_swap_placements() {
+    DS="$CANI_DS" IMPORTED="$SWAPPED_DS" python3 - <<'PY'
+import json
+import os
+
+
+def load(path):
+    with open(path, encoding="utf-8") as datastore:
+        return json.load(datastore)
+
+
+source, imported = load(os.environ["DS"]), load(os.environ["IMPORTED"])
+by_nautobot_id = {m.get("externalIDs", {}).get("nautobot"): m for m in imported["modules"].values()}
+
+
+def describe(name):
+    nautobot_id = next(m for m in source["modules"].values() if m["name"] == name)["externalIDs"]["nautobot"]
+    module = by_nautobot_id.get(nautobot_id)
+    if module is None:
+        return f"{name}: <missing>"
+    parent = imported["devices"].get(module.get("parentDevice") or "", {}).get("name", "-")
+    location = imported["locations"].get(module.get("location") or "", {}).get("name", "-")
+    return f"{name}: parent={parent} bay={module.get('moduleBayName') or '-'} location={location}"
+
+
+print(describe("nic-spare") + " | " + describe("nic-a"))
+PY
+  }
+
+  # A failed NIC is replaced by a spare with `swap module`; an export with
+  # --merge then moves both modules in Nautobot through their recorded IDs, so
+  # the spare is never matched to the module it replaces through the bay they
+  # share in turn. A plain bay move follows the same path, and an import of
+  # the result places both modules where the datastore does.
+  Describe 'module swap'
+    It 'stores a spare NIC at repro-section and exports it'
+      cani_cfg add module hpe-2p-25gbe-pcie-nic --spare --location repro-section --name nic-spare --serial SP1 >/dev/null 2>&1
+      When call export_swap
+      The status should equal 0
+      The output should include 'Created modules: 1'
+      The output should include 'Skipped modules (already exist): 3'
+    End
+
+    It 'holds the spare at its location in Nautobot'
+      When call nautobot_module_placement nic-spare
+      The output should equal 'bay=- location=repro-section'
+    End
+
+    It 'previews the swap without changing the datastore'
+      When call cani_cfg swap module nic-a nic-spare --dry-run
+      The status should equal 0
+      The output should include 'Would install nic-spare in repro-dl380 bay PCIe2'
+      The output should include 'Would store nic-a at location repro-section'
+    End
+
+    It 'leaves nic-a installed after the preview'
+      When call local_module_placement nic-a
+      The output should equal 'parent=repro-dl380 bay=PCIe2 location=-'
+    End
+
+    It 'swaps the failed NIC for the spare in the datastore'
+      When call cani_cfg swap module nic-a nic-spare
+      The status should equal 0
+      The stderr should include 'Swapped modules: nic-spare'
+    End
+
+    It 'installs the spare in PCIe2 locally'
+      When call local_module_placement nic-spare
+      The output should equal 'parent=repro-dl380 bay=PCIe2 location=-'
+    End
+
+    It 'stores the failed NIC at repro-section locally'
+      When call local_module_placement nic-a
+      The output should equal 'parent=- bay=- location=repro-section'
+    End
+
+    It 'reports the pending moves without --merge and moves nothing'
+      When call export_swap
+      The status should equal 0
+      The output should include 'Skipped modules (placement differs; use --merge to move): 2'
+      The output should include 'not exported as authored'
+      The output should not include 'Moved module'
+    End
+
+    It 'leaves the failed NIC in PCIe2 in Nautobot after the plain export'
+      When call nautobot_module_placement nic-a
+      The output should equal 'bay=PCIe2 location=-'
+    End
+
+    It 'previews both moves with --merge --dry-run'
+      When call export_swap --merge --dry-run
+      The status should equal 0
+      The output should include 'Would move module: nic-a (spare at location: repro-section)'
+      The output should include 'Would move module: nic-spare (parent: repro-dl380, bay: PCIe2)'
+    End
+
+    It 'leaves the spare at its location in Nautobot after the dry run'
+      When call nautobot_module_placement nic-spare
+      The output should equal 'bay=- location=repro-section'
+    End
+
+    It 'moves both modules with --merge and creates none'
+      When call export_swap --merge
+      The status should equal 0
+      The output should include 'Moved module: nic-a (spare at location: repro-section)'
+      The output should include 'Moved module: nic-spare (parent: repro-dl380, bay: PCIe2)'
+      The output should include 'Moved modules: 2'
+      The output should not include 'Created modules'
+    End
+
+    It 'installs the spare in PCIe2 in Nautobot'
+      When call nautobot_module_placement nic-spare
+      The output should equal 'bay=PCIe2 location=-'
+    End
+
+    It 'stores the failed NIC at repro-section in Nautobot'
+      When call nautobot_module_placement nic-a
+      The output should equal 'bay=- location=repro-section'
+    End
+
+    It 'keeps the two modules under two Nautobot IDs'
+      When call distinct_external_ids
+      The output should equal 'distinct=true'
+    End
+
+    It 're-exports idempotently after the swap'
+      When call export_swap --merge
+      The status should equal 0
+      The output should include 'Skipped modules (already exist): 4'
+      The output should not include 'Moved module'
+    End
+
+    It 'moves a module between bays with update module --bay and --merge'
+      cani_cfg update module nic-spare --bay PCIe3 >/dev/null 2>&1
+      When call export_swap --merge
+      The status should equal 0
+      The output should include 'Moved module: nic-spare (parent: repro-dl380, bay: PCIe3)'
+      The output should include 'Moved modules: 1'
+    End
+
+    It 'holds the moved module in PCIe3 in Nautobot'
+      When call nautobot_module_placement nic-spare
+      The output should equal 'bay=PCIe3 location=-'
+    End
+
+    It 'imports the swapped inventory into an empty datastore'
+      When call run_import_swapped
+      The status should equal 0
+      The output should include 'Import completed successfully'
+    End
+
+    It 'places both modules where the datastore does'
+      When call imported_swap_placements
+      The output should equal 'nic-spare: parent=repro-dl380 bay=PCIe3 location=- | nic-a: parent=- bay=- location=repro-section'
     End
   End
 

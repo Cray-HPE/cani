@@ -67,15 +67,12 @@ func (e *Exporter) assignIPToInterfaces(
 			continue
 		}
 
-		// Find the interface in Nautobot
-		nautobotIface, err := e.Cache.GetInterfaceByDeviceAndName(deviceNautobotID, iface.Name)
+		// Find the interface in Nautobot: on its module when module-owned,
+		// otherwise on the device (exact, then fuzzy).
+		nautobotIface, err := e.resolveOwnedInterface(e.exportedModuleID(inventory, iface.OwnerID(), ifaceID), deviceNautobotID, iface.Name)
 		if err != nil || nautobotIface == nil {
-			// Try fuzzy match
-			nautobotIface, err = e.Cache.GetInterfaceByDeviceAndNameFuzzy(deviceNautobotID, iface.Name)
-			if err != nil || nautobotIface == nil {
-				clog.Detail("  IP %s: interface %s on %s not found in Nautobot", addr.Address, iface.Name, device.Name)
-				continue
-			}
+			clog.Detail("  IP %s: interface %s on %s not found in Nautobot", addr.Address, iface.Name, device.Name)
+			continue
 		}
 
 		if e.Options.DryRun {

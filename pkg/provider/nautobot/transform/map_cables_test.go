@@ -134,7 +134,7 @@ func TestMapCables(t *testing.T) {
 	}
 
 	t.Run("empty input returns empty map", func(t *testing.T) {
-		got := MapCables(nil, deviceMap, ifaceMap, nil)
+		got := MapCables(nil, deviceMap, ifaceMap, nil, nil)
 		if len(got) != 0 {
 			t.Errorf("expected 0, got %d", len(got))
 		}
@@ -145,7 +145,7 @@ func TestMapCables(t *testing.T) {
 			{Id: nil, TerminationAId: oaPtr(ifaceAID), TerminationBId: oaPtr(ifaceBID)},
 		}
 		setNBRef(&raw[0].Status, uuid.New())
-		got := MapCables(raw, deviceMap, ifaceMap, nil)
+		got := MapCables(raw, deviceMap, ifaceMap, nil, nil)
 		if len(got) != 0 {
 			t.Errorf("expected 0, got %d", len(got))
 		}
@@ -177,7 +177,7 @@ func TestMapCables(t *testing.T) {
 		setNBValue(&raw[0].LengthUnit, "m")
 		setNBRef(&raw[0].Status, statusID)
 
-		got := MapCables(raw, deviceMap, ifaceMap, map[uuid.UUID]string{statusID: "Connected"})
+		got := MapCables(raw, deviceMap, ifaceMap, nil, map[uuid.UUID]string{statusID: "Connected"})
 		if len(got) != 1 {
 			t.Fatalf("expected 1, got %d", len(got))
 		}
@@ -246,7 +246,7 @@ func TestMapCables(t *testing.T) {
 		}
 		setNBRef(&raw[0].Status, uuid.New())
 
-		got := MapCables(raw, deviceMap, ifaceMap, nil)
+		got := MapCables(raw, deviceMap, ifaceMap, nil, nil)
 		for _, cable := range got {
 			if cable.TerminationA != uuid.Nil {
 				t.Errorf("TerminationA = %s, want Nil", cable.TerminationA)
@@ -278,7 +278,7 @@ func TestMapCables(t *testing.T) {
 		}
 		setNBRef(&raw[0].Status, uuid.New())
 
-		got := MapCables(raw, deviceMap, ifaceMap, nil)
+		got := MapCables(raw, deviceMap, ifaceMap, nil, nil)
 		for _, cable := range got {
 			if cable.CustomFields == nil {
 				t.Fatal("expected CustomFields to be set")

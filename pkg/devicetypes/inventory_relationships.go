@@ -413,13 +413,9 @@ func (inv *Inventory) deviceAlreadyLinked(device *CaniDeviceType) bool {
 func (inv *Inventory) validateModuleRelationships() *RelationshipResult {
 	res := &RelationshipResult{}
 	for id, mod := range inv.Modules {
-		if mod == nil {
-			continue
-		}
-		if mod.ParentDevice == uuid.Nil {
-			res.Warnings = append(res.Warnings,
-				fmt.Sprintf("module %q (%s): no parent device assigned",
-					mod.Name, id))
+		if mod == nil || mod.ParentDevice == uuid.Nil {
+			// A module without a parent is either a spare at a location or
+			// unplaced; validatePlacement reports the latter.
 			continue
 		}
 		if _, ok := inv.Devices[mod.ParentDevice]; !ok {

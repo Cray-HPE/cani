@@ -177,6 +177,7 @@ This type conflates **template fields** (from the YAML library, used to auto-cre
 | `Role` | `string` | `Device.Role` (FK) | **Mapped** | Explicit `Role` field checked first, then `ProviderMetadata["role"]` fallback |
 | `Parent` | `uuid.UUID` | `Device.Rack` (FK) or `Device.ParentBay` | **Mapped** | Overloaded: mapper checks Racks first, then Devices. A device parent is exported by installing the child in the parent's bay (Phase 2b) |
 | `ParentBay` | `string` | `Device.parent_bay` (read) / `DeviceBay.Name`, `DeviceBay.InstalledDevice` (write) | **Mapped** | Bay occupied in the parent device. Export: Phase 2b sets the named bay's `installed_device`. Import: `ApplyDeviceBays()` sets `Parent` + `ParentBay` from each occupied bay |
+| `ModuleBays` | `[]ModuleBaySpec` | `ModuleBay` objects on the device (read) | **Mapped** (import) | Import records the bays Nautobot declares on the device instance (`ApplyModuleBays()`), name and position, and `MergeProperties` carries them onto an existing device, so `Inventory.ReconcileModuleBays()` resolves a module's bay against the source system's names rather than clearing a bay the library spells differently. A device that declares none takes the library template's bays (`moduleBaysOf()`). Export creates a module's bay when placing the module (Phase 4), never from this field |
 | `RackPosition` | `int` | `Device.Position` | **Mapped** | Only when parent resolves to a rack; omitted for child devices (`isChildDevice()`) |
 | `Face` | `string` | `Device.Face` | **Mapped** | Written by `setDeviceFace()`: `"front"`, `"rear"`, or nil if empty; omitted for child devices, which Nautobot rejects |
 | `Rack` | `uuid.UUID` | `Device.Rack` (FK) | Cani-Internal | Explicit FK; rebuilt from `Parent` at load time |
@@ -215,7 +216,7 @@ When `create_device_types` is enabled, `CreateDeviceTypeFromLocal()` looks up th
 | `Interfaces` | Creates `InterfaceTemplate` objects | Not Mapped | Templates not created; interfaces created on device instance |
 | `ConsolePorts` | Creates `ConsolePortTemplate` objects | Not Mapped | |
 | `PowerPorts` | Creates `PowerPortTemplate` objects | Not Mapped | |
-| `ModuleBays` | Creates `ModuleBayTemplate` objects | Not Mapped | |
+| `ModuleBays` | Creates `ModuleBayTemplate` objects | Not Mapped | Templates not created; Phase 4 creates the named bay on the parent device when placing a module. On import the instance records the bays Nautobot declares (see the instance table) |
 | `DeviceBays` | Creates `DeviceBayTemplate` objects | Not Mapped | Templates not created; Phase 2b creates the named bay on the parent device when it is missing |
 
 ---
@@ -223,12 +224,12 @@ When `create_device_types` is enabled, `CreateDeviceTypeFromLocal()` looks up th
 ### 2.4 `CaniModuleType` → Nautobot `Module` + `ModuleType`
 
 Source: `pkg/devicetypes/cani_module_types.go`
-Exported in Phase 4 by `loadModules()` in `export/load_modules.go`. For each module, the pipeline: (1) gets or creates a `ModuleType` from YAML library data, (2) gets or creates a `ModuleBay` on the parent device, (3) creates the `Module` with the resolved FKs, and (4) creates module-defined interfaces on the parent device.
+Exported in Phase 4 by `loadModules()` in `export/load_modules.go`, spares first so a module leaving a bay vacates it before the module entering that bay is placed. For each module, the pipeline: (1) gets or creates a `ModuleType` from YAML library data, (2) resolves the placement (`load_module_placement.go`) — an installed module gets or creates a `ModuleBay` on the parent device and sends only `parent_module_bay`, a spare sends only `location`, a module with neither is reported — (3) finds the existing module (`load_module_match.go`) through its recorded external ID first, which names the module wherever Nautobot now holds it (a stale ID is dropped with a warning), otherwise through the occupant of its bay (a different known serial in the bay is a conflict) or, for a spare, through its serial, (4) skips a found module that already sits where the inventory places it, moves one that does not with `--merge` (a PATCH that sets the new placement field and clears the other; a bay another module still holds is refused with the remedy) and otherwise reports it as not exported as authored, creates a module Nautobot lacks, and (5) creates module-defined interfaces on the module itself.
 
 | Cani Field | Go Type | Nautobot Field | Status | Notes |
 |---|---|---|---|---|
 | `ID` | `uuid.UUID` | — | Cani-Internal | Primary key |
-| `Name` | `string` | `Module.Name` | **Mapped** | |
+| `Name` | `string` | — | Cani-Internal | Nautobot's `Module` has no name field, so export does not send it. Import names a module after Nautobot's display text (for example `HPE 2-port 25GbE PCIe NIC installed in repro-dl380`); a re-import into a datastore that already holds the module keeps the authored name |
 | `Slug` | `string` | — | **Mapped** (indirectly) | Used to resolve `ModuleType` from library |
 | `PartNumber` | `string` | `ModuleType.PartNumber` | **Mapped** | Template → `ModuleType` |
 | `Manufacturer` | `string` | `ModuleType.Manufacturer` (FK) | **Mapped** | Template → `ModuleType`, FK resolved by name |
@@ -237,14 +238,14 @@ Exported in Phase 4 by `loadModules()` in `export/load_modules.go`. For each mod
 | `Type` | `Type` | — | Cani-Internal | CANI classification |
 | `Weight` / `WeightUnit` | `float64` / `string` | — | Cani-Internal | No Nautobot equivalent |
 | `Comments` | `string` | `ModuleType.Comments` | **Mapped** | Template → `ModuleType.Comments` |
-| `Interfaces` | `[]InterfaceSpec` | Creates `Interface` objects on parent device | **Mapped** | Created after the module with the full attribute set (see §2a.1). A port the device spec already declares is skipped (device spec takes precedence), logged by name and counted as `Skipped interfaces (name already on device)`; types outside Nautobot's `InterfaceTypeChoices` enum are skipped with a warning and counted (see §2a.1 `Type`). Names and labels containing Nautobot's `{module}` placeholder are resolved by `Inventory.ResolveModuleNames()` (`module_token.go`) to the module bay's position when the module is added or moved, so the resolved names are what get exported |
-| `ParentDevice` | `uuid.UUID` | `Module.Device` (via parent device's module bay) | **Mapped** | Resolved to Nautobot device ID via cache |
-| `ModuleBayName` | `string` | `Module.ParentModuleBay` (FK) | **Mapped** | Gets or creates ModuleBay on parent device |
+| `Interfaces` | `[]InterfaceSpec` | `Interface` objects owned by the module (`Interface.module`) | **Mapped** | Created on the module after it exists with the full attribute set (see §2a.1), looked up by module so same-named ports on sibling modules stay distinct; types outside Nautobot's `InterfaceTypeChoices` enum are skipped with a warning and counted (see §2a.1 `Type`). Import attaches module-owned interfaces to their module (`AttachModuleInterfaces()`); the index records the owner in `CaniInterface.ModuleID`. Names and labels containing Nautobot's `{module}` placeholder are resolved by `Inventory.ResolveModuleNames()` (`module_token.go`) to the module bay's position when the module is added or moved, so the resolved names are what get exported |
+| `ParentDevice` | `uuid.UUID` | `Module.parent_module_bay` → parent device | **Mapped** | Resolved to Nautobot device ID via cache. Empty for a spare. When an import merges a module the datastore already holds, it takes the parent, bay and location as one unit (`mergeModulePlacement()`), so a module moved, installed or stored as a spare in Nautobot is placed where Nautobot reports it; a record with no placement keeps the existing one. The authoring side moves placement as one unit too: `Inventory.PlaceModule()` installs or stores a module, and `swap module <installed> <spare>` (`Inventory.SwapModules()`) stores an installed module at a location and installs a spare in the bay it leaves, validating both and restoring both when either is refused; `export nautobot --merge` then moves both modules |
+| `ModuleBayName` | `string` | `Module.ParentModuleBay` (FK) | **Mapped** | Gets or creates ModuleBay on parent device. The module name is the legacy default: on a parent that declares no bays export uses it as the bay, and on a parent that declares bays it is reported as a warning and export refuses the module until a bay is set with `update module --bay`. A re-import that names no bay on the same parent keeps the existing bay. Bay names compare case-insensitively and `add`/`update module --bay` store the spelling the parent declares (`Inventory.ResolveModuleBayName()`), so one bay yields one Nautobot ModuleBay. A provider transform result passes through `Inventory.ReconcileModuleBays()` during the merge: a declared bay is canonicalised, an undeclared one is cleared and reported as unresolved rather than aborting the import, so export never creates a bay the library does not declare. Two authored claims on one bay are a validation error, and `AddModule` refuses the module; a collision involving that legacy default is a warning, so inventories written before bays were named stay writable |
+| `Location` | `uuid.UUID` | `Module.location` (FK) | **Mapped** | Sent only for a spare (no parent). An installed module inherits its parent's location; an authored location that differs from the parent's is a validation error. A spare's location must exist and admit modules; export descends to a descendant whose type holds modules (then the default location) as it does for devices, and `RemoveLocation` refuses a location that stores spares, as Nautobot's `PROTECT` does |
 | `Serial` | `string` | `Module.Serial` | **Mapped** | Mapped when non-empty |
 | `AssetTag` | `string` | `Module.AssetTag` | **Mapped** | Mapped when non-empty |
 | `Status` | `string` | `Module.Status` (FK) | **Mapped** | Falls back to provider default |
 | `Role` | `string` | `Module.Role` (FK) | **Mapped** | Resolved by name when non-empty |
-| `Location` | `uuid.UUID` | `Module.Location` (FK) | **Mapped** | Resolved via cache when non-nil |
 | `Tenant` | `string` | `Module.Tenant` (FK) | Not Mapped | |
 | `Tags` | `[]string` | `Module.Tags` | Not Mapped | |
 | `CustomFields` | `map[string]any` | `Module.CustomFields` | Not Mapped | |
@@ -278,12 +279,12 @@ Cables use a library mechanism identical to devices: a slug/part-number resolves
 | `Weight` / `WeightUnit` | `float64` / `string` | — | Cani-Internal | No Nautobot equivalent |
 | `Color` | `string` | `Cable.Color` | **Mapped** | RGB hex string, mapped when non-empty |
 | `Status` | `string` | `Cable.Status` (FK) | **Mapped** | "connected"→"Connected", "planned"→"Planned" |
-| `TerminationA` | `uuid.UUID` | `Cable.TerminationAId` (FK) | **Mapped** | Resolved through device→interface chain |
+| `TerminationA` | `uuid.UUID` | `Cable.TerminationAId` (FK) | **Mapped** | Resolved through device→interface chain; the interface's recorded owner (`CaniInterface.ModuleID`) decides whether export looks the port up on a module or on the device |
 | `TerminationAType` | `string` | `Cable.TerminationAType` | Partial | Hardcoded to `"dcim.interface"` |
 | `TerminationB` | `uuid.UUID` | `Cable.TerminationBId` (FK) | **Mapped** | Same chain |
 | `TerminationBType` | `string` | `Cable.TerminationBType` | Partial | Hardcoded to `"dcim.interface"` |
-| `TerminationADevice` | `uuid.UUID` | — | Cani-Internal | Convenience: resolved to interface at export |
-| `TerminationBDevice` | `uuid.UUID` | — | Cani-Internal | Convenience: resolved to interface at export |
+| `TerminationADevice` | `uuid.UUID` | — | Cani-Internal | The device or module the end terminates on. Import records the module for a module-owned interface (`terminationOwner()` in `transform/map_cables.go`), even though Nautobot 3.2 also names the root device on a port of an installed module; an end whose module was not imported stays empty. Export accepts either and reads the owner from the interface index |
+| `TerminationBDevice` | `uuid.UUID` | — | Cani-Internal | Same |
 | `TerminationAPort` | `string` | — | Cani-Internal | Port name; used for fuzzy interface lookup |
 | `TerminationBPort` | `string` | — | Cani-Internal | Same |
 | `Tags` | `[]string` | `Cable.Tags` | Not Mapped | |
@@ -359,6 +360,22 @@ Nautobot parent was left out keeps no parent, so the merge derives one inside
 its namespace. An absent reference keeps the `Global` default, so
 single-namespace instances and older fixtures import as before.
 
+### 2a.0 Interface ownership (`CaniInterface.DeviceID` / `ModuleID`)
+
+Source: `pkg/devicetypes/component_specs.go`
+Every indexed interface records the hardware it belongs to. Both fields are
+forward FKs that `RebuildDerivedState()` re-indexes from the owning device or
+module spec on every load (`indexInterfaceSpecs()` in
+`inventory_interface_identity.go`), so a persisted value that disagrees with the
+spec is replaced rather than trusted. Export writes exactly one of the two
+references on an interface request (`interfaceOwnerRef.setOn()` in
+`load_interface_crud.go`).
+
+| Cani Field | Go Type | Nautobot Field | Status | Notes |
+|---|---|---|---|---|
+| `DeviceID` | `uuid.UUID` | `Interface.device` (FK) | **Mapped** | The device the interface is reachable through. For a module-owned interface this is the module's parent device, which Nautobot 3.2 also stores in `Interface.device` on a port of an installed module. Export sends `device` only for a device-owned port, and its device-level interface lookups filter on `module__isnull` so a module port never stands in for a same-named device port |
+| `ModuleID` | `uuid.UUID` | `Interface.module` (FK) | **Mapped** | Set only for a port a module's spec declares; `CaniInterface.OwnerID()` returns it in preference to `DeviceID`. Export creates the port with `module` set and finds it again by module and exact name; import attaches module-owned interfaces through `AttachModuleInterfaces()`, and `GroupInterfacesByDevice()` leaves any interface with a `module` reference off its device even when Nautobot 3.2 sets `Interface.device` on it |
+
 ### 2a.1 Interface enrichment fields (`CaniInterface` / `InterfaceSpec`)
 
 Source: `pkg/devicetypes/component_specs.go`
@@ -404,8 +421,9 @@ external-only references remain valid; validation is deferred to export.
 
 Every interface spec the export does not create is named in a skip line and
 counted: an unsupported type under `Skipped interfaces (type not in Nautobot)`
-(see `Type` above) and a module port whose name the device spec already
-declares under `Skipped interfaces (name already on device)`. The summary
+(see `Type` above). A module port is created on its module, so one named like
+a device port (the DL380 Gen11 and CX7 "HSN 0") exists next to the device
+port instead of being skipped. The summary
 closes with an explicit warning whenever any object was skipped, so
 `created + skipped` always accounts for every interface spec even though the
 exit status stays 0. A dry run plans module ports the same way after "Would
@@ -667,9 +685,12 @@ Racks, Devices, and Modules carry both **template fields** (from the YAML librar
 
 | Template Fields (→ ModuleType) | Instance Fields (→ Module) |
 |---|---|
-| `Model`, `Manufacturer`, `PartNumber` | `Name`, `Serial`, `AssetTag` |
-| `Interfaces` | `ParentDevice`, `ModuleBayName` |
-| | `Status`, `Role`, `Location` |
+| `Model`, `Manufacturer`, `PartNumber`, `Comments` | `Serial`, `AssetTag`, `Status`, `Role` |
+| | `ParentDevice`, `ModuleBayName`, `Location` |
+
+`Interfaces` come from the library type but are exported as `Interface` instances owned by the
+module; no `InterfaceTemplate` is created on the `ModuleType`. `Name` has no Nautobot field (see
+§2.4).
 
 ### Rack: no separate Nautobot type object
 
@@ -817,12 +838,13 @@ For each device created/found in Phase 2:
 
 ### Phase 4: Modules
 
-Implemented in `loadModules()` in `load_modules.go`. Iterates `inventory.Modules`. For each module:
-- Resolves parent device Nautobot ID from cache
+Implemented in `loadModules()` in `load_modules.go`. Iterates `inventory.Modules` with spares first (`moduleExportOrder()`), so a module a swap stores vacates its bay before the module the swap installs claims it. For each module:
+- Resolves the placement (`load_module_placement.go`): an installed module's parent device Nautobot ID from Phase 2 and its `ModuleBay` (found or created by `ModuleBayName`), or a spare's location; a dry run plans the bay, and plans the whole placement when Phase 2 only planned the parent
+- Finds the module Nautobot already holds (`load_module_match.go`): by recorded external ID first (`DcimModulesRetrieve`; a 404 drops the stale ID with a warning), otherwise by the occupant of its bay or, for a spare, by serial
+- Leaves a found module that sits where the inventory places it (`Skipped module (already exists)`); moves one that does not with `--merge` by PATCHing `parent_module_bay` or `location` and clearing the other (`Moved module`), after refusing a bay another module holds; without `--merge` reports it (`Skipped module (placement differs; use --merge to move)`) and counts it among the objects not exported as authored
 - Gets or creates `ModuleType` (from YAML library: `Model`, `Manufacturer`, `PartNumber`, `Comments`)
-- Gets or creates `ModuleBay` on the parent device (by `ModuleBayName`)
-- Creates `Module` with `ModuleType` FK, `ParentModuleBay` FK, `Status`, and optional `Serial`, `AssetTag`, `Role`, `Location`
-- Creates via `DcimModulesCreate`
+- Creates `Module` with `ModuleType` FK, `Status`, exactly one of `ParentModuleBay` or `Location`, and optional `Serial`, `AssetTag`, `Role`
+- Creates via `DcimModulesCreate`, then records the module's Nautobot ID for this run (`LookupCache.RecordModule`), or marks the module planned in a dry run (`PlanModule`); later phases resolve module-owned ports through that record, never through a persisted external ID
 
 ### Phase 5: FRUs
 
@@ -836,9 +858,9 @@ Implemented in `loadFrus()` in `load_frus.go`. Iterates `inventory.Frus` in topo
 ### Phase 6: Cables
 
 Iterates `inventory.Cables`. For each cable:
-- Resolves both termination devices from `inventory.Devices`
-- Looks up Nautobot device IDs from Phase 2 results
-- Finds interface IDs via fuzzy name matching through the cache
+- Resolves both termination devices from `inventory.Devices`, and the owning module of a module-owned port from the interface index
+- Looks up Nautobot device IDs from Phase 2 results, and module IDs from the record Phase 4 made this run; a dry run previews a cable whose end belongs to a device or module the run only planned instead of looking its interface up
+- Finds interface IDs via fuzzy name matching through the cache, on the module for a module-owned port
 - Checks for existing cables to avoid duplicates
 - Maps `Color` (RGB hex) when non-empty
 - Resolves `Type` via `resolveCableType()`: `CableType` → `CableCategory` → `ConnectorType` → slug fallback

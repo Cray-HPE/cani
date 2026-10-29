@@ -34,11 +34,15 @@ import (
 // MapCables converts Nautobot Cable objects to CANI cables.
 // It requires:
 //   - deviceMap: Nautobot device UUID → CANI device UUID
-//   - ifaceMap: Nautobot interface UUID → (Nautobot device UUID, interface name)
+//   - ifaceMap: Nautobot interface UUID → (owner UUIDs, interface name)
+//   - moduleMap: Nautobot module UUID → CANI module UUID, for a termination
+//     on a module-owned interface, which the inventory records against its
+//     module even though Nautobot 3.2 also names the root device on it
 func MapCables(
 	raw []nautobotapi.Cable,
 	deviceMap map[uuid.UUID]uuid.UUID,
 	ifaceMap map[uuid.UUID]ifaceRef,
+	moduleMap map[uuid.UUID]uuid.UUID,
 	statusNameMap map[uuid.UUID]string,
 ) map[uuid.UUID]*devicetypes.CaniCableType {
 	result := make(map[uuid.UUID]*devicetypes.CaniCableType, len(raw))
@@ -77,9 +81,9 @@ func MapCables(
 		// Resolve termination A.
 		termAIfaceID := directUUID(cable.TerminationAId)
 		if ref, ok := ifaceMap[termAIfaceID]; ok {
-			if caniDevID, ok2 := deviceMap[ref.deviceID]; ok2 {
+			if ownerID, ok2 := terminationOwner(ref, deviceMap, moduleMap); ok2 {
 				caniCable.TerminationA = termAIfaceID
-				caniCable.TerminationADevice = caniDevID
+				caniCable.TerminationADevice = ownerID
 				caniCable.TerminationAPort = ref.name
 			}
 		}
@@ -88,9 +92,9 @@ func MapCables(
 		// Resolve termination B.
 		termBIfaceID := directUUID(cable.TerminationBId)
 		if ref, ok := ifaceMap[termBIfaceID]; ok {
-			if caniDevID, ok2 := deviceMap[ref.deviceID]; ok2 {
+			if ownerID, ok2 := terminationOwner(ref, deviceMap, moduleMap); ok2 {
 				caniCable.TerminationB = termBIfaceID
-				caniCable.TerminationBDevice = caniDevID
+				caniCable.TerminationBDevice = ownerID
 				caniCable.TerminationBPort = ref.name
 			}
 		}
@@ -106,13 +110,37 @@ func MapCables(
 	return result
 }
 
-// ifaceRef holds the device and name for an interface, used during cable mapping.
+// terminationOwner returns the CANI device or module a cable end terminates
+// on. A module-owned interface resolves through moduleMap to the module
+// itself, the owner the inventory records for a module port, before its
+// device is considered: Nautobot 3.2 also sets the root device on a port of
+// an installed module. An end whose module was not imported stays
+// unresolved rather than falling back to that device. A device-owned
+// interface resolves through deviceMap.
+func terminationOwner(ref ifaceRef, deviceMap, moduleMap map[uuid.UUID]uuid.UUID) (uuid.UUID, bool) {
+	if ref.moduleID != uuid.Nil {
+		id, ok := moduleMap[ref.moduleID]
+		return id, ok
+	}
+	if ref.deviceID != uuid.Nil {
+		id, ok := deviceMap[ref.deviceID]
+		return id, ok
+	}
+	return uuid.Nil, false
+}
+
+// ifaceRef holds the owner and name of an interface, used during cable
+// mapping. moduleID is set for a module-owned interface and deviceID for any
+// interface Nautobot places on a device: a device-owned port, or, since
+// Nautobot 3.2, a port of a module installed in that device. A port of a
+// spare module carries only moduleID.
 type ifaceRef struct {
-	deviceID uuid.UUID // Nautobot device UUID
+	deviceID uuid.UUID // Nautobot device UUID; Nil for a port of a spare module
+	moduleID uuid.UUID // Nautobot module UUID; Nil for a device-owned interface
 	name     string
 }
 
-// BuildInterfaceMap creates a lookup from Nautobot interface UUID → (device UUID, name).
+// BuildInterfaceMap creates a lookup from Nautobot interface UUID → (owner, name).
 func BuildInterfaceMap(ifaces []nautobotapi.Interface) map[uuid.UUID]ifaceRef {
 	m := make(map[uuid.UUID]ifaceRef, len(ifaces))
 	for _, iface := range ifaces {
@@ -120,11 +148,14 @@ func BuildInterfaceMap(ifaces []nautobotapi.Interface) map[uuid.UUID]ifaceRef {
 		if ifaceID == uuid.Nil {
 			continue
 		}
-		devID := uuid.Nil
+		ref := ifaceRef{name: iface.Name}
 		if iface.Device != nil {
-			devID = tenantRefID(iface.Device)
+			ref.deviceID = tenantRefID(iface.Device)
 		}
-		m[ifaceID] = ifaceRef{deviceID: devID, name: iface.Name}
+		if iface.Module != nil {
+			ref.moduleID = refID(iface.Module)
+		}
+		m[ifaceID] = ref
 	}
 	return m
 }

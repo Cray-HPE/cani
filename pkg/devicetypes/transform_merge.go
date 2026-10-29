@@ -31,14 +31,19 @@ import (
 )
 
 // TransformMergeSummary describes the canonical UUIDs retained while merging a
-// provider transform result into an inventory.
+// provider transform result into an inventory, and the placements the merge
+// could not reconcile and left for the operator.
 type TransformMergeSummary struct {
-	Remaps ReferenceRemaps
+	Remaps     ReferenceRemaps
+	Unresolved []string
 }
 
 // MergeTransformResult atomically merges a complete provider transform result.
 // Both inputs are cloned before mutation; the receiver is replaced only after
-// every entity has merged and all relationships validate.
+// every entity has merged and all relationships validate. A module bay the
+// provider authored is reconciled against the bays its parent declares
+// (ReconcileModuleBays) before validation, so a provider's naming cannot
+// abort the import; what it could not reconcile is logged and returned.
 func (inv *Inventory) MergeTransformResult(result *TransformResult) (*TransformMergeSummary, error) {
 	if inv == nil {
 		return nil, fmt.Errorf("inventory must not be nil")
@@ -67,6 +72,7 @@ func (inv *Inventory) MergeTransformResult(result *TransformResult) (*TransformM
 	incoming.RemapReferences(working, remaps)
 	remaps.Modules = working.MergeModules(incoming.Modules)
 	incoming.RemapReferences(working, remaps)
+	unresolved := working.ReconcileModuleBays(remaps.Modules)
 	remaps.Frus = working.MergeFrus(incoming.Frus)
 	incoming.RemapReferences(working, remaps)
 	remaps.Cables = working.MergeCables(incoming.Cables)
@@ -82,7 +88,8 @@ func (inv *Inventory) MergeTransformResult(result *TransformResult) (*TransformM
 	}
 	working.RebuildProviderKeyIndex()
 	*inv = *working
-	return &TransformMergeSummary{Remaps: remaps}, nil
+	(&RelationshipResult{Unresolved: unresolved}).LogUnresolved()
+	return &TransformMergeSummary{Remaps: remaps, Unresolved: unresolved}, nil
 }
 
 // mergeTransformIPAM merges VRFs, prefixes, and addresses in dependency

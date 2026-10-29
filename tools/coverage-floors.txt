@@ -14,6 +14,7 @@ github.com/Cray-HPE/cani/cmd/add                   18.0
 github.com/Cray-HPE/cani/cmd/remove                26.0
 github.com/Cray-HPE/cani/cmd/update                19.0
 github.com/Cray-HPE/cani/cmd/show                  16.0
+github.com/Cray-HPE/cani/cmd/swap                  78.0
 
 # Plugin contract and CLI framework.
 github.com/Cray-HPE/cani/internal/provider        100.0

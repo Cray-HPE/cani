@@ -12,6 +12,18 @@
 - when transforming, parse raw data from provider struct or from cani inventory
 - use getters and setters to get info to and from the provider struct to keep logic isolated to each sub package
 
+### Emit shared types the merge can validate
+
+- set `ModuleBayName` only to a bay the parent device type declares; the merge canonicalises the
+  spelling, clears an undeclared bay and reports it, so a provider-specific placement descriptor
+  belongs in `ProviderMetadata`, not in the bay name (see the Transform output contract in
+  `internal/provider/AGENTS.md`)
+- when the source system declares a device's module bays, set `CaniDeviceType.ModuleBays` from
+  them (the Nautobot provider's `ApplyModuleBays`), so a bay name the library spells differently
+  is declared for that device instead of being cleared by the merge
+- leave out a record you cannot translate and list it in `TransformResult.Warnings` rather than
+  inventing a value for it
+
 ## Don't
 
 - do not repeat flags that exist in parent or root commands

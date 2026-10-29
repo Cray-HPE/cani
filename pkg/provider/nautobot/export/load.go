@@ -79,10 +79,11 @@ type LoadResult struct {
 	IfacesCreated               int            // Number of interfaces created
 	IfacesSkipped               int            // Number of interfaces skipped (already exist)
 	IfacesUnsupported           int            // Number of interfaces skipped (type not in Nautobot's InterfaceTypeChoices enum)
-	IfacesSkippedDuplicate      int            // Number of module interfaces skipped because the device spec declares the same name
 	IfacesUnresolvedRefs        int            // Number of interface refs (LAG/VRF/VLAN) skipped as unresolved during enrichment
 	ModulesCreated              int            // Number of modules created
+	ModulesMoved                int            // Number of modules moved to the placement the inventory records
 	ModulesSkipped              int            // Number of modules skipped (already exist)
+	ModulesMisplaced            int            // Number of modules whose placement differs, left in place without --merge
 	DeviceBayCounts                            // Child devices installed into / already in parent device bays
 	FrusCreated                 int            // Number of FRUs (inventory items) created
 	FrusSkipped                 int            // Number of FRUs skipped (already exist)
@@ -1014,7 +1015,6 @@ func (e *Exporter) printLoadSummary(result *LoadResult) {
 	if result.IfacesUnsupported > 0 {
 		clog.Warn("Skipped interfaces (type not in Nautobot): %d", result.IfacesUnsupported)
 	}
-	printInterfaceAccounting(result)
 	if result.IfacesUnresolvedRefs > 0 {
 		clog.Warn("Unresolved interface references skipped during enrichment: %d", result.IfacesUnresolvedRefs)
 	}

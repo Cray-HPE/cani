@@ -64,7 +64,10 @@ func (inv *Inventory) AddRack(rack *CaniRackType) error {
 	return nil
 }
 
-// AddModule inserts a single module into the inventory.
+// AddModule inserts a single module into the inventory. A module whose
+// placement the inventory rejects (an undeclared or occupied bay, a location
+// that disagrees with its parent's, or a spare at a location that does not
+// exist or admit modules) is not added, and the error is returned.
 func (inv *Inventory) AddModule(mod *CaniModuleType) error {
 	if mod == nil {
 		return fmt.Errorf("module must not be nil")
@@ -75,9 +78,19 @@ func (inv *Inventory) AddModule(mod *CaniModuleType) error {
 	if _, exists := inv.Modules[mod.ID]; exists {
 		return fmt.Errorf("module %s already exists", mod.ID)
 	}
+	if loc := inv.Locations[mod.Location]; mod.IsSpare() && loc != nil {
+		if err := loc.ValidateContentType("module"); err != nil {
+			return err
+		}
+	}
 	inv.ResolveModuleNames(mod)
 	inv.Modules[mod.ID] = mod
-	inv.VerifyParentChildRelationships()
+	result := inv.VerifyParentChildRelationships()
+	if err := result.errorsAbout(mod.ID); err != nil {
+		delete(inv.Modules, mod.ID)
+		inv.RebuildDerivedState()
+		return err
+	}
 	return nil
 }
 
@@ -100,8 +113,8 @@ func (inv *Inventory) AddCable(cable *CaniCableType) error {
 }
 
 // RemoveLocation deletes a location and unlinks it from parent/children.
-// Racks, child locations and devices placed directly in the location block
-// the removal, as they would in Nautobot.
+// Racks, child locations, devices placed directly in the location and spare
+// modules stored there block the removal, as they would in Nautobot.
 func (inv *Inventory) RemoveLocation(id uuid.UUID) error {
 	loc, exists := inv.Locations[id]
 	if !exists {
@@ -115,6 +128,9 @@ func (inv *Inventory) RemoveLocation(id uuid.UUID) error {
 	}
 	if n := inv.countDevicesPlacedIn(id); n > 0 {
 		return fmt.Errorf("location %s still has %d device(s); remove them first", id, n)
+	}
+	if n := inv.countSparesStoredIn(id); n > 0 {
+		return fmt.Errorf("location %s still has %d spare module(s); remove or install them first", id, n)
 	}
 	// Unlink from parent
 	if loc.Parent != uuid.Nil {
@@ -133,6 +149,18 @@ func (inv *Inventory) countDevicesPlacedIn(id uuid.UUID) int {
 	n := 0
 	for _, device := range inv.Devices {
 		if device != nil && device.Parent == uuid.Nil && device.Location == id {
+			n++
+		}
+	}
+	return n
+}
+
+// countSparesStoredIn counts the modules stored at a location rather than
+// installed in a device; Nautobot protects such a location from deletion.
+func (inv *Inventory) countSparesStoredIn(id uuid.UUID) int {
+	n := 0
+	for _, mod := range inv.Modules {
+		if mod.IsSpare() && mod.Location == id {
 			n++
 		}
 	}

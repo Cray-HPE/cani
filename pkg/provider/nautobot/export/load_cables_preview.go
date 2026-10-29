@@ -37,39 +37,50 @@ import (
 // create is previewed here rather than failing the device lookup. An end
 // that does exist in Nautobot is still checked for a cable already attached,
 // so the preview skips the same conflicts the real run would.
-func (e *Exporter) previewPlannedCable(cable *devicetypes.CaniCableType, deviceA, deviceB *devicetypes.CaniDeviceType, result *LoadResult) bool {
+func (e *Exporter) previewPlannedCable(cable *devicetypes.CaniCableType, a, b cableEnd, result *LoadResult) bool {
 	if !e.Options.DryRun {
 		return false
 	}
-	plannedA, plannedB := e.Cache.DevicePlanned(deviceA.Name), e.Cache.DevicePlanned(deviceB.Name)
+	plannedA, plannedB := e.endPlanned(a), e.endPlanned(b)
 	if !plannedA && !plannedB {
 		return false
 	}
-	if (!plannedA && e.interfaceCabled(deviceA.Name, cable.TerminationAPort)) ||
-		(!plannedB && e.interfaceCabled(deviceB.Name, cable.TerminationBPort)) {
+	if (!plannedA && e.interfaceCabled(a)) || (!plannedB && e.interfaceCabled(b)) {
 		result.CablesConflicted++
 		return true
 	}
 	clog.DryRun("Would create cable: %s (%s:%s <-> %s:%s)",
-		cable.Label, deviceA.Name, cable.TerminationAPort, deviceB.Name, cable.TerminationBPort)
+		cable.Label, a.device.Name, cable.TerminationAPort, b.device.Name, cable.TerminationBPort)
 	result.CablesCreated++
 	return true
 }
 
-// interfaceCabled reports whether the named interface of a device that is
-// already in Nautobot carries a cable, logging the skip the create path logs
-// for the same conflict. A device or interface the lookup cannot find is not
-// a conflict here; the create path reports those itself.
-func (e *Exporter) interfaceCabled(deviceName, port string) bool {
-	device, err := e.Cache.GetDeviceByName(deviceName)
+// endPlanned reports whether the dry run stands in for the end's device or,
+// for a module-owned port, for its module: neither exists in Nautobot yet,
+// so the interface cannot be looked up and the cable is previewed instead.
+func (e *Exporter) endPlanned(end cableEnd) bool {
+	if e.Cache.DevicePlanned(end.device.Name) {
+		return true
+	}
+	return end.module != nil && e.Cache.ModulePlanned(end.module.ID)
+}
+
+// interfaceCabled reports whether the end's interface, on a device that is
+// already in Nautobot, carries a cable, logging the skip the create path logs
+// for the same conflict. The interface is resolved as the create path
+// resolves it, so a module port is looked up on its module. A device or
+// interface the lookup cannot find is not a conflict here; the create path
+// reports those itself.
+func (e *Exporter) interfaceCabled(end cableEnd) bool {
+	device, err := e.Cache.GetDeviceByName(end.device.Name)
 	if err != nil || device == nil {
 		return false
 	}
-	iface, err := e.Cache.GetInterfaceByDeviceAndNameFuzzy(device.ID, port)
+	iface, err := e.resolveOwnedInterface(end.moduleID, device.ID, end.port)
 	if err != nil || iface == nil || iface.CableID == uuid.Nil {
 		return false
 	}
-	clog.Skipped("Skipped cable (interface already cabled): %s:%s", deviceName, port)
+	clog.Skipped("Skipped cable (interface already cabled): %s:%s", end.device.Name, end.port)
 	return true
 }
 

@@ -35,10 +35,14 @@ import (
 
 // cableEnd is one termination of a cable: the inventory device that owns the
 // port, directly or through a module, and once looked up its Nautobot
-// device ID and interface.
+// device ID and interface. module is the inventory module that owns the
+// port, nil for a device-owned port; moduleID is the Nautobot ID this run
+// created or found for that module, else Nil.
 type cableEnd struct {
 	device   *devicetypes.CaniDeviceType
+	module   *devicetypes.CaniModuleType
 	port     string
+	moduleID uuid.UUID
 	deviceID uuid.UUID
 	iface    *CachedItem
 }
@@ -54,7 +58,8 @@ func (e *Exporter) createCaniCableType(ctx context.Context, cableID uuid.UUID, c
 	if err != nil {
 		return err
 	}
-	if e.previewPlannedCable(cable, a.device, b.device, result) {
+	e.resolveEndModules(&a, &b)
+	if e.previewPlannedCable(cable, a, b, result) {
 		return nil
 	}
 	if err := e.resolveCableEnds(&a, &b, deviceIDMap); err != nil {
@@ -79,15 +84,55 @@ func (e *Exporter) createCaniCableType(ctx context.Context, cableID uuid.UUID, c
 	return e.postCable(ctx, cable, a, b, req, result)
 }
 
-// cableEnds resolves both terminations to inventory devices; a termination on
-// a module belongs to the module's parent device.
+// cableEnds resolves both terminations to inventory devices and owning
+// modules; a termination on a module belongs to the module's parent device.
 func cableEnds(inventory *devicetypes.Inventory, cable *devicetypes.CaniCableType) (a, b cableEnd, err error) {
-	a = cableEnd{device: terminationDevice(inventory, cable.TerminationADevice), port: cable.TerminationAPort}
-	b = cableEnd{device: terminationDevice(inventory, cable.TerminationBDevice), port: cable.TerminationBPort}
+	a = cableEnd{device: terminationDevice(inventory, cable.TerminationADevice), port: cable.TerminationAPort,
+		module: owningModule(inventory, cable.TerminationADevice, cable.TerminationA)}
+	b = cableEnd{device: terminationDevice(inventory, cable.TerminationBDevice), port: cable.TerminationBPort,
+		module: owningModule(inventory, cable.TerminationBDevice, cable.TerminationB)}
 	if a.device == nil || b.device == nil {
 		return a, b, fmt.Errorf("cable endpoints reference unknown devices (A=%s, B=%s)", cable.TerminationADevice, cable.TerminationBDevice)
 	}
 	return a, b, nil
+}
+
+// owningModule returns the inventory module that owns a termination: the
+// module ownerID names directly, or otherwise the module the resolved
+// interface records as its owner, which covers a cable that addresses the
+// parent device by one of its modules' port names. nil when the port is
+// device-owned.
+func owningModule(inventory *devicetypes.Inventory, ownerID, ifaceID uuid.UUID) *devicetypes.CaniModuleType {
+	if module := inventory.Modules[ownerID]; module != nil {
+		return module
+	}
+	if iface := inventory.Interfaces[ifaceID]; iface != nil && iface.ModuleID != uuid.Nil {
+		return inventory.Modules[iface.ModuleID]
+	}
+	return nil
+}
+
+// resolveEndModules sets each module-owned end's Nautobot module ID to the
+// one this run created or found. A module the run only planned or failed to
+// export leaves Nil, so no lookup is attempted against an ID Nautobot may
+// not have.
+func (e *Exporter) resolveEndModules(a, b *cableEnd) {
+	for _, end := range []*cableEnd{a, b} {
+		if end.module != nil {
+			end.moduleID = e.Cache.ExportedModuleID(end.module.ID)
+		}
+	}
+}
+
+// exportedModuleID returns the Nautobot ID this run confirmed for the module
+// that owns a termination, or uuid.Nil for a device-owned port or a module
+// the run did not create or find.
+func (e *Exporter) exportedModuleID(inventory *devicetypes.Inventory, ownerID, ifaceID uuid.UUID) uuid.UUID {
+	module := owningModule(inventory, ownerID, ifaceID)
+	if module == nil {
+		return uuid.Nil
+	}
+	return e.Cache.ExportedModuleID(module.ID)
 }
 
 func terminationDevice(inventory *devicetypes.Inventory, id uuid.UUID) *devicetypes.CaniDeviceType {
@@ -132,24 +177,35 @@ func (e *Exporter) resolveEndDevice(end *cableEnd, deviceIDMap map[string]uuid.U
 	return nil
 }
 
-// resolveEndInterface finds the end's interface by fuzzy name, which absorbs
-// naming differences between the inventory and Nautobot. A miss drops the
-// device's interface prefetch and retries once: the module phase adds
-// interfaces after the interface phase prefetched them.
+// resolveEndInterface finds the end's interface through
+// resolveOwnedInterface and reports a miss with the end's device name.
 func (e *Exporter) resolveEndInterface(end *cableEnd) error {
-	iface, err := e.Cache.GetInterfaceByDeviceAndNameFuzzy(end.deviceID, end.port)
-	if err != nil {
+	iface, err := e.resolveOwnedInterface(end.moduleID, end.deviceID, end.port)
+	if err != nil || iface == nil {
 		return fmt.Errorf(errFmtFindInterface, end.port, end.device.Name, err)
-	}
-	if iface == nil {
-		e.Cache.InvalidateInterfacePrefetch(end.deviceID)
-		iface, err = e.Cache.GetInterfaceByDeviceAndNameFuzzy(end.deviceID, end.port)
-		if err != nil || iface == nil {
-			return fmt.Errorf(errFmtFindInterface, end.port, end.device.Name, err)
-		}
 	}
 	end.iface = iface
 	return nil
+}
+
+// resolveOwnedInterface finds a Nautobot interface by its owner. A
+// module-owned port (moduleID set) is looked up only among its module's ports,
+// by exact and then fuzzy name, so it matches neither a sibling module's port
+// nor a same-named port of the parent device. Any other port is looked up
+// among the device's own ports by fuzzy name, which absorbs naming
+// differences between the inventory and Nautobot; a miss drops the device's
+// interface prefetch and retries once. Returns nil, nil when the interface
+// does not exist.
+func (e *Exporter) resolveOwnedInterface(moduleID, deviceID uuid.UUID, port string) (*CachedItem, error) {
+	if moduleID != uuid.Nil {
+		return e.Cache.GetInterfaceByModuleAndNameFuzzy(moduleID, port)
+	}
+	iface, err := e.Cache.GetInterfaceByDeviceAndNameFuzzy(deviceID, port)
+	if err != nil || iface != nil {
+		return iface, err
+	}
+	e.Cache.InvalidateInterfacePrefetch(deviceID)
+	return e.Cache.GetInterfaceByDeviceAndNameFuzzy(deviceID, port)
 }
 
 // skipPresentCable reports a cable Nautobot already has between the two

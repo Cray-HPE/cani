@@ -29,8 +29,9 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
+	"strings"
 
-	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/google/uuid"
@@ -40,22 +41,14 @@ import (
 // For each module it:
 //  1. Creates or looks up the ModuleType (template) from the library.
 //  2. Creates or looks up the ModuleBay on the parent device.
-//  3. Creates the Module instance.
+//  3. Creates the Module instance, or moves the one Nautobot already holds.
 func (e *Exporter) loadModules(
 	ctx context.Context,
 	inventory *devicetypes.Inventory,
 	createdDeviceIDs map[string]uuid.UUID,
 	result *LoadResult,
 ) error {
-	if len(inventory.Modules) == 0 {
-		return nil
-	}
-
-	for _, module := range inventory.Modules {
-		if module == nil || module.Name == "" {
-			continue
-		}
-
+	for _, module := range moduleExportOrder(inventory) {
 		if err := e.createModuleFromCani(ctx, module, inventory, createdDeviceIDs, result); err != nil {
 			result.Errors = append(result.Errors,
 				fmt.Sprintf("module %s: create error: %v", module.Name, err))
@@ -64,7 +57,35 @@ func (e *Exporter) loadModules(
 	return nil
 }
 
-// createModuleFromCani creates a single Nautobot Module from a CaniModuleType.
+// moduleExportOrder returns the named modules with spares first, so a module
+// leaving a bay vacates it before the module entering that bay is placed;
+// names break ties so the log order is stable.
+func moduleExportOrder(inventory *devicetypes.Inventory) []*devicetypes.CaniModuleType {
+	modules := make([]*devicetypes.CaniModuleType, 0, len(inventory.Modules))
+	for _, module := range inventory.Modules {
+		if module != nil && module.Name != "" {
+			modules = append(modules, module)
+		}
+	}
+	slices.SortFunc(modules, func(a, b *devicetypes.CaniModuleType) int {
+		if a.IsSpare() != b.IsSpare() {
+			if a.IsSpare() {
+				return -1
+			}
+			return 1
+		}
+		return strings.Compare(a.Name, b.Name)
+	})
+	return modules
+}
+
+// createModuleFromCani exports a single CaniModuleType as a Nautobot Module.
+// An installed module is sent with only its parent module bay (its location
+// is inherited from the parent); a spare is sent with only its location. A
+// module with neither is reported. A module Nautobot already holds is left
+// alone when it sits where the inventory places it and moved otherwise. The
+// module's own ports are created on the module so same-named ports on
+// sibling modules stay distinct.
 func (e *Exporter) createModuleFromCani(
 	ctx context.Context,
 	module *devicetypes.CaniModuleType,
@@ -72,148 +93,199 @@ func (e *Exporter) createModuleFromCani(
 	createdDeviceIDs map[string]uuid.UUID,
 	result *LoadResult,
 ) error {
-	// Resolve parent device in Nautobot.
-	parentDevice := inventory.Devices[module.ParentDevice]
-	if parentDevice == nil {
-		return fmt.Errorf("parent device %s not found in inventory", module.ParentDevice)
+	placement, err := e.resolveModulePlacement(ctx, module, inventory, createdDeviceIDs)
+	if err != nil {
+		return err
 	}
-	parentNautobotID, ok := createdDeviceIDs[parentDevice.Name]
-	if !ok {
-		return fmt.Errorf("parent device %s not found in Nautobot", parentDevice.Name)
+	remote, current, err := e.findExistingModule(ctx, module, placement)
+	if err != nil {
+		return fmt.Errorf("existing module lookup: %w", err)
 	}
+	var moduleNautobotID uuid.UUID
+	switch {
+	case remote != nil:
+		if moduleNautobotID, err = e.reconcileExistingModule(ctx, module, remote, current, placement, result); err != nil {
+			return err
+		}
+	case e.Options.DryRun:
+		if err := e.previewModuleCreate(ctx, module, placement); err != nil {
+			return err
+		}
+		result.ModulesCreated++
+		e.Cache.PlanModule(module.ID)
+		e.exportModulePorts(ctx, module, uuid.Nil, result)
+		return nil
+	default:
+		if moduleNautobotID, err = e.createModule(ctx, module, placement, result); err != nil {
+			return err
+		}
+	}
+	setExternalID(&module.ExternalIDs, externalIDKeyNautobot, moduleNautobotID)
+	e.Cache.RecordModule(module.ID, moduleNautobotID)
+	e.exportModulePorts(ctx, module, moduleNautobotID, result)
+	return nil
+}
 
-	// Create or look up ModuleType.
-	moduleTypeItem, err := e.getOrCreateModuleType(ctx, module)
+// createModule builds and posts the module, returning its new Nautobot ID.
+func (e *Exporter) createModule(
+	ctx context.Context, module *devicetypes.CaniModuleType, placement modulePlacement, result *LoadResult,
+) (uuid.UUID, error) {
+	req, err := e.buildModuleRequest(ctx, module, placement)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return e.postModule(ctx, req, module, placement, result)
+}
+
+// reconcileExistingModule leaves a module that already sits where the
+// inventory places it and moves one that does not, returning its Nautobot ID.
+func (e *Exporter) reconcileExistingModule(
+	ctx context.Context, module *devicetypes.CaniModuleType, remote *nautobotapi.Module,
+	current bool, placement modulePlacement, result *LoadResult,
+) (uuid.UUID, error) {
+	if current {
+		clog.Skipped("Skipped module (already exists): %s (%s)", module.Name, placement.describe())
+		result.ModulesSkipped++
+		return toUUID(remote.Id), nil
+	}
+	if err := e.moveModule(ctx, module, remote, placement, result); err != nil {
+		return uuid.Nil, err
+	}
+	return toUUID(remote.Id), nil
+}
+
+// previewModuleCreate performs the lookups a create would need without
+// writing anything: the module type must exist or be creatable, and the
+// status must resolve. It then reports the planned module.
+func (e *Exporter) previewModuleCreate(ctx context.Context, module *devicetypes.CaniModuleType, placement modulePlacement) error {
+	model := moduleTypeModel(module)
+	moduleType, err := e.findModuleType(ctx, model)
 	if err != nil {
 		return fmt.Errorf("module type resolution: %w", err)
 	}
-
-	// Create or look up ModuleBay on parent device.
-	moduleBayName := module.ModuleBayName
-	if moduleBayName == "" {
-		moduleBayName = module.Name
+	switch {
+	case moduleType != nil:
+	case !e.Options.CreateModuleTypes:
+		return fmt.Errorf("module type resolution: %w", errModuleTypeNotFound(model))
+	default:
+		clog.DryRun("Would create module type: %s (manufacturer: %s)", model, module.Manufacturer)
 	}
-	moduleBayItem, err := e.getOrCreateModuleBay(ctx, parentNautobotID, moduleBayName)
-	if err != nil {
-		return fmt.Errorf("module bay resolution: %w", err)
-	}
-
-	// Resolve status.
-	statusName := module.Status
-	if statusName == "" {
-		statusName = e.Options.DefaultStatus
-	}
-	if statusName == "" {
-		statusName = "Active"
-	}
-	status, err := e.Cache.GetStatus(statusName)
-	if err != nil {
+	if _, err := e.Cache.GetStatus(e.moduleStatusName(module)); err != nil {
 		return fmt.Errorf("status resolution: %w", err)
 	}
+	clog.DryRun("Would create module: %s (%s)", module.Name, placement.describe())
+	return nil
+}
 
-	// Build the Module request.
-	req := nautobotapi.ModuleRequest{}
-	if err := setRefID(&req.ModuleType, moduleTypeItem.ID); err != nil {
-		return fmt.Errorf("set module type reference: %w", err)
+// exportModulePorts creates the module's ports on the module, or plans them in
+// a dry run, where the module has no Nautobot ID yet. Nautobot does not
+// auto-create interfaces for module types created via the API. A failure is
+// recorded on the result so the export reports it rather than only logging it.
+func (e *Exporter) exportModulePorts(ctx context.Context, module *devicetypes.CaniModuleType, moduleNautobotID uuid.UUID, result *LoadResult) {
+	if len(module.Interfaces) == 0 || (moduleNautobotID == uuid.Nil && !e.Options.DryRun) {
+		return
 	}
-	if err := setRefID(&req.ParentModuleBay, moduleBayItem.ID); err != nil {
-		return fmt.Errorf("set parent module bay reference: %w", err)
+	if err := e.createModuleInterfaces(ctx, module, moduleNautobotID, result); err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("module %s: interfaces: %v", module.Name, err))
+	}
+}
+
+// buildModuleRequest assembles the Module create request with exactly one
+// placement reference.
+func (e *Exporter) buildModuleRequest(
+	ctx context.Context, module *devicetypes.CaniModuleType, placement modulePlacement,
+) (nautobotapi.ModuleRequest, error) {
+	req := nautobotapi.ModuleRequest{}
+	moduleTypeItem, err := e.getOrCreateModuleType(ctx, module)
+	if err != nil {
+		return req, fmt.Errorf("module type resolution: %w", err)
+	}
+	status, err := e.Cache.GetStatus(e.moduleStatusName(module))
+	if err != nil {
+		return req, fmt.Errorf("status resolution: %w", err)
+	}
+	if err := setRefID(&req.ModuleType, moduleTypeItem.ID); err != nil {
+		return req, fmt.Errorf("set module type reference: %w", err)
 	}
 	if err := setRefID(&req.Status, status.ID); err != nil {
-		return fmt.Errorf("set module status reference: %w", err)
+		return req, fmt.Errorf("set module status reference: %w", err)
 	}
+	if err := placement.setOn(&req); err != nil {
+		return req, err
+	}
+	return req, e.applyModuleOptionalFields(&req, module)
+}
 
-	// Optional fields.
+// applyModuleOptionalFields maps serial, asset tag, and role when present.
+func (e *Exporter) applyModuleOptionalFields(req *nautobotapi.ModuleRequest, module *devicetypes.CaniModuleType) error {
 	if module.Serial != "" {
 		req.Serial = &module.Serial
 	}
 	if module.AssetTag != "" {
 		req.AssetTag = &module.AssetTag
 	}
-	if module.Role != "" {
-		role, err := e.Cache.GetRole(module.Role)
-		if err == nil && role != nil {
-			if err := setRefID(&req.Role, role.ID); err != nil {
-				return fmt.Errorf("set module role reference: %w", err)
-			}
-		}
-	}
-	if module.Location != uuid.Nil {
-		// Try to resolve location by looking it up in the inventory.
-		if loc, ok := inventory.Locations[module.Location]; ok && loc != nil {
-			locItem, err := e.Cache.GetLocation(loc.Name)
-			if err == nil && locItem != nil {
-				if err := setRefID(&req.Location, locItem.ID); err != nil {
-					return fmt.Errorf("set module location reference: %w", err)
-				}
-			}
-		}
-	}
-
-	// Idempotency: check if a module already occupies this bay.
-	bayUUID := openapi_types.UUID(moduleBayItem.ID)
-	existResp, err := e.Client.DcimModulesListWithResponse(ctx, &nautobotapi.DcimModulesListParams{
-		ParentModuleBay: &[]openapi_types.UUID{bayUUID},
-	})
-	if err == nil && existResp.StatusCode() == http.StatusOK &&
-		existResp.JSON200 != nil && existResp.JSON200.Count > 0 {
-		clog.Skipped("Skipped module (already exists): %s (bay: %s, device: %s)",
-			module.Name, moduleBayName, parentDevice.Name)
-		result.ModulesSkipped++
+	if module.Role == "" {
 		return nil
 	}
-
-	if e.Options.DryRun {
-		clog.DryRun("Would create module: %s (parent: %s, bay: %s)",
-			module.Name, parentDevice.Name, moduleBayName)
-		result.ModulesCreated++
-	} else if err := e.postModule(ctx, req, module, parentDevice, moduleBayName, result); err != nil {
-		return err
+	role, err := e.Cache.GetRole(module.Role)
+	if err != nil || role == nil {
+		return nil
 	}
-
-	// Create the module's interfaces on the parent device.
-	// Nautobot doesn't auto-create interfaces from module types created via API,
-	// so we explicitly create them and associate with the parent device.
-	if len(module.Interfaces) > 0 {
-		if err := e.createModuleInterfaces(ctx, module, parentDevice, parentNautobotID, result); err != nil {
-			clog.Warn("Warning: failed to create interfaces for module %s: %v", module.Name, err)
-		}
+	if err := setRefID(&req.Role, role.ID); err != nil {
+		return fmt.Errorf("set module role reference: %w", err)
 	}
-
 	return nil
 }
 
-// postModule sends the module create request and records the outcome.
+// moduleStatusName returns the module's status, the provider default, or Active.
+func (e *Exporter) moduleStatusName(module *devicetypes.CaniModuleType) string {
+	if module.Status != "" {
+		return module.Status
+	}
+	if e.Options.DefaultStatus != "" {
+		return e.Options.DefaultStatus
+	}
+	return "Active"
+}
+
+// postModule sends the module create request and returns the new Nautobot ID.
 func (e *Exporter) postModule(
 	ctx context.Context,
 	req nautobotapi.ModuleRequest,
 	module *devicetypes.CaniModuleType,
-	parentDevice *devicetypes.CaniDeviceType,
-	moduleBayName string,
+	placement modulePlacement,
 	result *LoadResult,
-) error {
+) (uuid.UUID, error) {
 	resp, err := e.Client.DcimModulesCreateWithResponse(ctx,
 		&nautobotapi.DcimModulesCreateParams{}, req)
 	if err != nil {
-		return fmt.Errorf("API error: %w", err)
+		return uuid.Nil, fmt.Errorf("API error: %w", err)
 	}
 	if resp.StatusCode() != http.StatusCreated && resp.StatusCode() != http.StatusOK {
-		return fmt.Errorf("unexpected status %d: %s",
+		return uuid.Nil, fmt.Errorf("unexpected status %d: %s",
 			resp.StatusCode(), string(resp.Body))
 	}
-
-	clog.Created("Created module: %s (parent: %s, bay: %s)",
-		module.Name, parentDevice.Name, moduleBayName)
+	var created uuid.UUID
+	if resp.JSON201 != nil {
+		created = toUUID(resp.JSON201.Id)
+	}
+	clog.Created("Created module: %s (%s)", module.Name, placement.describe())
 	result.ModulesCreated++
-	return nil
+	return created, nil
 }
 
-// printModuleSummary reports module create/skip counts.
+// printModuleSummary reports module create, move and skip counts.
 func printModuleSummary(result *LoadResult) {
 	if result.ModulesCreated > 0 {
 		clog.Created("Created modules: %d", result.ModulesCreated)
 	}
+	if result.ModulesMoved > 0 {
+		clog.Changed("Moved modules: %d", result.ModulesMoved)
+	}
 	if result.ModulesSkipped > 0 {
 		clog.Skipped("Skipped modules (already exist): %d", result.ModulesSkipped)
+	}
+	if result.ModulesMisplaced > 0 {
+		clog.Skipped("Skipped modules (placement differs; use --merge to move): %d", result.ModulesMisplaced)
 	}
 }
