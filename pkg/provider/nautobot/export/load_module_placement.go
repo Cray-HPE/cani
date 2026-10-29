@@ -29,9 +29,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 
-	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/google/uuid"
@@ -166,67 +164,4 @@ func (e *Exporter) resolveInstalledBay(ctx context.Context, parentNautobotID uui
 	}
 	placement.bay = bay
 	return placement, nil
-}
-
-// findExistingModule returns the Nautobot ID of the module that already
-// represents this one, or uuid.Nil. An installed module is found through its
-// bay; a different module in that bay (by serial, when both are known) is a
-// conflict rather than a match. A bay that does not exist yet has no
-// occupant. A spare is found through its recorded external ID, then its
-// serial, because it has no bay to anchor it.
-func (e *Exporter) findExistingModule(
-	ctx context.Context, module *devicetypes.CaniModuleType, placement modulePlacement,
-) (uuid.UUID, error) {
-	if placement.planned {
-		return uuid.Nil, nil
-	}
-	if placement.installed() {
-		return e.findModuleInBay(ctx, module, placement)
-	}
-	if known := module.ExternalIDs[externalIDKeyNautobot]; known != uuid.Nil {
-		if found, err := e.listModules(ctx, &nautobotapi.DcimModulesListParams{Id: &[]openapi_types.UUID{openapi_types.UUID(known)}}); err != nil || len(found) > 0 {
-			return known, err
-		}
-	}
-	if module.Serial == "" {
-		return uuid.Nil, nil
-	}
-	found, err := e.listModules(ctx, &nautobotapi.DcimModulesListParams{Serial: &[]string{module.Serial}})
-	if err != nil || len(found) == 0 {
-		return uuid.Nil, err
-	}
-	return toUUID(found[0].Id), nil
-}
-
-// findModuleInBay returns the module occupying the placement's bay, treating
-// an occupant with a different known serial as a conflict.
-func (e *Exporter) findModuleInBay(
-	ctx context.Context, module *devicetypes.CaniModuleType, placement modulePlacement,
-) (uuid.UUID, error) {
-	bayUUID := openapi_types.UUID(placement.bay.ID)
-	found, err := e.listModules(ctx, &nautobotapi.DcimModulesListParams{ParentModuleBay: &[]openapi_types.UUID{bayUUID}})
-	if err != nil || len(found) == 0 {
-		return uuid.Nil, err
-	}
-	occupant := found[0]
-	if module.Serial != "" && derefString(occupant.Serial) != "" && derefString(occupant.Serial) != module.Serial {
-		return uuid.Nil, fmt.Errorf("bay %q on %s is occupied by module serial %q, not %q",
-			placement.bayName, placement.parentName, derefString(occupant.Serial), module.Serial)
-	}
-	return toUUID(occupant.Id), nil
-}
-
-// listModules runs one module list query and returns its results.
-func (e *Exporter) listModules(ctx context.Context, params *nautobotapi.DcimModulesListParams) ([]nautobotapi.Module, error) {
-	resp, err := e.Client.DcimModulesListWithResponse(ctx, params)
-	if err != nil {
-		return nil, fmt.Errorf("API error: %w", err)
-	}
-	if resp.StatusCode() != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status %d: %s", resp.StatusCode(), string(resp.Body))
-	}
-	if resp.JSON200 == nil {
-		return nil, nil
-	}
-	return resp.JSON200.Results, nil
 }

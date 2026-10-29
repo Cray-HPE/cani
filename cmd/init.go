@@ -35,6 +35,7 @@ import (
 	"github.com/Cray-HPE/cani/cmd/remove"
 	"github.com/Cray-HPE/cani/cmd/serve"
 	"github.com/Cray-HPE/cani/cmd/show"
+	"github.com/Cray-HPE/cani/cmd/swap"
 	"github.com/Cray-HPE/cani/cmd/update"
 	"github.com/Cray-HPE/cani/internal/cli"
 )
@@ -60,6 +61,7 @@ func Init() {
 	showCmd := show.NewCommand()
 	exportCmd := export.NewCommand()
 	updateCmd := update.NewCommand()
+	swapCmd := swap.NewCommand()
 	classifyCmd := classify.NewCommand()
 
 	// at present, all commands are under the alpha command since this is still a work in progress
@@ -73,6 +75,7 @@ func Init() {
 		serveCmd,
 		exportCmd,
 		updateCmd,
+		swapCmd,
 		classifyCmd,
 	)
 }

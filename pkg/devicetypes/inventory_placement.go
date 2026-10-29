@@ -72,16 +72,16 @@ func (inv *Inventory) DeclaresModuleBays(deviceID uuid.UUID) bool {
 	return len(moduleBaysOf(inv.Devices[deviceID])) > 0
 }
 
-// errorsAbout returns the errors that name id, or every error when none does,
-// so a caller rejecting one object reports that object's problems first while
-// an inventory that is broken elsewhere still refuses the write.
-func (r *RelationshipResult) errorsAbout(id uuid.UUID) error {
+// errorsAbout returns the errors that name any of ids, or every error when
+// none does, so a caller rejecting one or two objects reports their problems
+// first while an inventory that is broken elsewhere still refuses the write.
+func (r *RelationshipResult) errorsAbout(ids ...uuid.UUID) error {
 	if r == nil || len(r.Errors) == 0 {
 		return nil
 	}
 	var own []error
 	for _, err := range r.Errors {
-		if strings.Contains(err.Error(), id.String()) {
+		if slices.ContainsFunc(ids, func(id uuid.UUID) bool { return strings.Contains(err.Error(), id.String()) }) {
 			own = append(own, err)
 		}
 	}

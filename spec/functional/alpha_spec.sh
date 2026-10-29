@@ -35,7 +35,7 @@ Describe 'cani alpha'
     End
 
     Describe 'subcommands'
-      Parameters:value add remove update show import export serve classify
+      Parameters:value add remove update swap show import export serve classify
       It "lists the $1 subcommand"
         When call bin/cani alpha --help
         The stdout should include "$1"
