@@ -229,9 +229,9 @@ func TestFindModuleInBay_ConflictsOnDifferentSerial(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), `occupied by module serial "OTHER", not "MINE"`) {
 		t.Errorf("different serial error = %v, want conflict", err)
 	}
-	id, err := e.findModuleInBay(context.Background(), &devicetypes.CaniModuleType{Serial: "OTHER"}, placement)
-	if err != nil || id != occupantID {
-		t.Errorf("same serial = %v, %v; want occupant %s", id, err, occupantID)
+	occupant, err := e.findModuleInBay(context.Background(), &devicetypes.CaniModuleType{Serial: "OTHER"}, placement)
+	if err != nil || occupant == nil || toUUID(occupant.Id) != occupantID {
+		t.Errorf("same serial = %v, %v; want occupant %s", occupant, err, occupantID)
 	}
 }
 

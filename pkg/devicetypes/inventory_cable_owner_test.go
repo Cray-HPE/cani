@@ -95,3 +95,51 @@ func TestCableEndKeepsRecordedPortOnSiblingModule(t *testing.T) {
 		t.Fatalf("cable recorded on another device's port: error = %v, want a port mismatch", err)
 	}
 }
+
+// TestSwapModulesWithSiblingSharingPortNames verifies SwapModules installs a
+// spare in place of either of two sibling modules with same-named ports and
+// moves the device-addressed cable to the spare, whichever module sorts
+// first.
+//
+// Why it matters: the spare's port keeps the recorded interface on the
+// device-addressed end; validation had to accept that port even though a
+// name lookup on the chassis finds the sibling's first.
+// Inputs: the sibling fixture, a spare of the same type at the site, and a
+// cable from the chassis "Port 1" on the swapped module's port; once swapping
+// the first module and once the second. Outputs: no error, the cable's A end
+// is the spare's port and the spare holds the bay the module left.
+// Data choice: the spare's UUID sorts after both siblings, so a name lookup
+// never finds its port first.
+func TestSwapModulesWithSiblingSharingPortNames(t *testing.T) {
+	for _, swapSecond := range []bool{false, true} {
+		inv, chassis, first, second, sw := siblingNICs(t)
+		outgoing := first
+		if swapSecond {
+			outgoing = second
+		}
+		spare := &CaniModuleType{ID: orderedID(3), Name: "spare", Model: "nic", Location: siteOf(inv, chassis),
+			Interfaces: []InterfaceSpec{{Name: "Port 1"}}}
+		if err := inv.AddModule(spare); err != nil {
+			t.Fatalf("seed spare: %v", err)
+		}
+		cable := &CaniCableType{ID: uuid.New(), Label: "data",
+			TerminationADevice: chassis.ID, TerminationAPort: "Port 1", TerminationA: outgoing.Interfaces[0].ID,
+			TerminationBDevice: sw.ID, TerminationBPort: "swp1", TerminationB: sw.Interfaces[0].ID}
+		inv.Cables[cable.ID] = cable
+		if err := inv.RebuildDerivedState().Err(); err != nil {
+			t.Fatalf("seed cable: %v", err)
+		}
+		bay := outgoing.ModuleBayName
+
+		if err := inv.SwapModules(outgoing.ID, spare.ID, uuid.Nil); err != nil {
+			t.Fatalf("swap second=%v: %v", swapSecond, err)
+		}
+		if cable.TerminationA != spare.Interfaces[0].ID || cable.TerminationADevice != chassis.ID {
+			t.Errorf("swap second=%v: cable A end = {%v %v}, want the spare's port on the chassis", swapSecond, cable.TerminationADevice, cable.TerminationA)
+		}
+		if spare.ParentDevice != chassis.ID || spare.ModuleBayName != bay || !outgoing.IsSpare() {
+			t.Errorf("swap second=%v: spare = {%v %q}, outgoing spare=%v; want the spare in %q and the module stored",
+				swapSecond, spare.ParentDevice, spare.ModuleBayName, outgoing.IsSpare(), bay)
+		}
+	}
+}

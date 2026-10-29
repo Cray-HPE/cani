@@ -53,6 +53,12 @@
 #      declare, import again: the device records the bay as declared, the
 #      module keeps it, and a re-export from that datastore creates neither a
 #      bay nor a module.
+#   8. Store a spare NIC, export it, then `swap module` the installed NIC for
+#      it: a plain export reports the two pending moves, `--merge --dry-run`
+#      previews them without writing, `--merge` moves both modules under their
+#      recorded IDs and creates none, a re-export is idempotent, a bay move
+#      made with `update module --bay` follows the same path, and an import of
+#      the result places both modules where the datastore does.
 
 Describe 'INTEGRATION: Nautobot export fidelity'
 
@@ -476,6 +482,227 @@ PY
     It 'restores the bay name'
       When call rename_module_bay repro-dl380 'Slot B' PCIe2
       The output should equal 'renamed=PCIe2'
+    End
+  End
+
+  SWAP_LOG="${CANI_DIR}/swap-export.log"
+  SWAPPED_CONF="${CANI_DIR}/swapped.yml"
+  SWAPPED_DS="${CANI_DIR}/swapped.json"
+
+  # export_swap runs an export with the given flags and keeps its log apart
+  # from the fixture export's, whose accounting the earlier blocks assert.
+  export_swap() {
+    cani_cfg export nautobot "$@" >"$SWAP_LOG" 2>&1
+    rc=$?
+    cat "$SWAP_LOG"
+    return $rc
+  }
+
+  # local_module_placement prints where the datastore places the named module.
+  local_module_placement() {
+    jq -r --arg name "$1" '
+      . as $inv | .modules[] | select(.name == $name)
+      | "parent=\($inv.devices[.parentDevice // ""].name // "-") " +
+        "bay=\(if (.moduleBayName // "") == "" then "-" else .moduleBayName end) " +
+        "location=\($inv.locations[.location // ""].name // "-")"' "$CANI_DS"
+  }
+
+  # nautobot_module_placement prints where Nautobot holds the named datastore
+  # module, fetched through the module's recorded Nautobot ID.
+  nautobot_module_placement() {
+    MODULE="$1" DS="$CANI_DS" python3 - <<'PY'
+import json
+import os
+import urllib.request
+
+with open(os.environ["DS"], encoding="utf-8") as datastore:
+    inventory = json.load(datastore)
+module = next(m for m in inventory["modules"].values() if m["name"] == os.environ["MODULE"])
+nautobot_id = module.get("externalIDs", {}).get("nautobot")
+base_url = os.environ["NAUTOBOT_URL"].rstrip("/") + "/"
+headers = {"Authorization": "Token " + os.environ["NAUTOBOT_TOKEN"]}
+with urllib.request.urlopen(urllib.request.Request(base_url + f"dcim/modules/{nautobot_id}/?depth=1", headers=headers)) as response:
+    remote = json.load(response)
+bay = (remote.get("parent_module_bay") or {}).get("name") or "-"
+location = (remote.get("location") or {}).get("name") or "-"
+print(f"bay={bay} location={location}")
+PY
+  }
+
+  # distinct_external_ids reports whether nic-a and nic-spare carry two
+  # different recorded Nautobot IDs, which a bay-based match would cross-wire.
+  distinct_external_ids() {
+    jq -r '[.modules[] | select(.name == "nic-a" or .name == "nic-spare") | .externalIDs.nautobot]
+      | "distinct=\(length == 2 and .[0] != null and .[1] != null and .[0] != .[1])"' "$CANI_DS"
+  }
+
+  # Import Nautobot into a third empty datastore after the swap.
+  run_import_swapped() {
+    sed "s|^datastore:.*|datastore: ${SWAPPED_DS}|" "$CANI_CONF" >"$SWAPPED_CONF" &&
+      cani alpha --config "$SWAPPED_CONF" import nautobot \
+        --default-location repro-section --default-status Active >"${CANI_DIR}/swapped-import.log" 2>&1
+    rc=$?
+    cat "${CANI_DIR}/swapped-import.log"
+    return $rc
+  }
+
+  # imported_swap_placements prints where the import placed the modules that
+  # carry nic-spare's and nic-a's Nautobot IDs; import names modules after
+  # Nautobot's display text, so the ID is the only stable handle.
+  imported_swap_placements() {
+    DS="$CANI_DS" IMPORTED="$SWAPPED_DS" python3 - <<'PY'
+import json
+import os
+
+
+def load(path):
+    with open(path, encoding="utf-8") as datastore:
+        return json.load(datastore)
+
+
+source, imported = load(os.environ["DS"]), load(os.environ["IMPORTED"])
+by_nautobot_id = {m.get("externalIDs", {}).get("nautobot"): m for m in imported["modules"].values()}
+
+
+def describe(name):
+    nautobot_id = next(m for m in source["modules"].values() if m["name"] == name)["externalIDs"]["nautobot"]
+    module = by_nautobot_id.get(nautobot_id)
+    if module is None:
+        return f"{name}: <missing>"
+    parent = imported["devices"].get(module.get("parentDevice") or "", {}).get("name", "-")
+    location = imported["locations"].get(module.get("location") or "", {}).get("name", "-")
+    return f"{name}: parent={parent} bay={module.get('moduleBayName') or '-'} location={location}"
+
+
+print(describe("nic-spare") + " | " + describe("nic-a"))
+PY
+  }
+
+  # A failed NIC is replaced by a spare with `swap module`; an export with
+  # --merge then moves both modules in Nautobot through their recorded IDs, so
+  # the spare is never matched to the module it replaces through the bay they
+  # share in turn. A plain bay move follows the same path, and an import of
+  # the result places both modules where the datastore does.
+  Describe 'module swap'
+    It 'stores a spare NIC at repro-section and exports it'
+      cani_cfg add module hpe-2p-25gbe-pcie-nic --spare --location repro-section --name nic-spare --serial SP1 >/dev/null 2>&1
+      When call export_swap
+      The status should equal 0
+      The output should include 'Created modules: 1'
+      The output should include 'Skipped modules (already exist): 3'
+    End
+
+    It 'holds the spare at its location in Nautobot'
+      When call nautobot_module_placement nic-spare
+      The output should equal 'bay=- location=repro-section'
+    End
+
+    It 'previews the swap without changing the datastore'
+      When call cani_cfg swap module nic-a nic-spare --dry-run
+      The status should equal 0
+      The output should include 'Would install nic-spare in repro-dl380 bay PCIe2'
+      The output should include 'Would store nic-a at location repro-section'
+    End
+
+    It 'leaves nic-a installed after the preview'
+      When call local_module_placement nic-a
+      The output should equal 'parent=repro-dl380 bay=PCIe2 location=-'
+    End
+
+    It 'swaps the failed NIC for the spare in the datastore'
+      When call cani_cfg swap module nic-a nic-spare
+      The status should equal 0
+      The stderr should include 'Swapped modules: nic-spare'
+    End
+
+    It 'installs the spare in PCIe2 locally'
+      When call local_module_placement nic-spare
+      The output should equal 'parent=repro-dl380 bay=PCIe2 location=-'
+    End
+
+    It 'stores the failed NIC at repro-section locally'
+      When call local_module_placement nic-a
+      The output should equal 'parent=- bay=- location=repro-section'
+    End
+
+    It 'reports the pending moves without --merge and moves nothing'
+      When call export_swap
+      The status should equal 0
+      The output should include 'Skipped modules (placement differs; use --merge to move): 2'
+      The output should include 'not exported as authored'
+      The output should not include 'Moved module'
+    End
+
+    It 'leaves the failed NIC in PCIe2 in Nautobot after the plain export'
+      When call nautobot_module_placement nic-a
+      The output should equal 'bay=PCIe2 location=-'
+    End
+
+    It 'previews both moves with --merge --dry-run'
+      When call export_swap --merge --dry-run
+      The status should equal 0
+      The output should include 'Would move module: nic-a (spare at location: repro-section)'
+      The output should include 'Would move module: nic-spare (parent: repro-dl380, bay: PCIe2)'
+    End
+
+    It 'leaves the spare at its location in Nautobot after the dry run'
+      When call nautobot_module_placement nic-spare
+      The output should equal 'bay=- location=repro-section'
+    End
+
+    It 'moves both modules with --merge and creates none'
+      When call export_swap --merge
+      The status should equal 0
+      The output should include 'Moved module: nic-a (spare at location: repro-section)'
+      The output should include 'Moved module: nic-spare (parent: repro-dl380, bay: PCIe2)'
+      The output should include 'Moved modules: 2'
+      The output should not include 'Created modules'
+    End
+
+    It 'installs the spare in PCIe2 in Nautobot'
+      When call nautobot_module_placement nic-spare
+      The output should equal 'bay=PCIe2 location=-'
+    End
+
+    It 'stores the failed NIC at repro-section in Nautobot'
+      When call nautobot_module_placement nic-a
+      The output should equal 'bay=- location=repro-section'
+    End
+
+    It 'keeps the two modules under two Nautobot IDs'
+      When call distinct_external_ids
+      The output should equal 'distinct=true'
+    End
+
+    It 're-exports idempotently after the swap'
+      When call export_swap --merge
+      The status should equal 0
+      The output should include 'Skipped modules (already exist): 4'
+      The output should not include 'Moved module'
+    End
+
+    It 'moves a module between bays with update module --bay and --merge'
+      cani_cfg update module nic-spare --bay PCIe3 >/dev/null 2>&1
+      When call export_swap --merge
+      The status should equal 0
+      The output should include 'Moved module: nic-spare (parent: repro-dl380, bay: PCIe3)'
+      The output should include 'Moved modules: 1'
+    End
+
+    It 'holds the moved module in PCIe3 in Nautobot'
+      When call nautobot_module_placement nic-spare
+      The output should equal 'bay=PCIe3 location=-'
+    End
+
+    It 'imports the swapped inventory into an empty datastore'
+      When call run_import_swapped
+      The status should equal 0
+      The output should include 'Import completed successfully'
+    End
+
+    It 'places both modules where the datastore does'
+      When call imported_swap_placements
+      The output should equal 'nic-spare: parent=repro-dl380 bay=PCIe3 location=- | nic-a: parent=- bay=- location=repro-section'
     End
   End
 
