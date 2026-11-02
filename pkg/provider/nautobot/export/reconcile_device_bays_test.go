@@ -403,6 +403,10 @@ func TestManagedDeviceBaysPaginationAndBatching(t *testing.T) {
 			}
 			f.server.pageSize = 1
 			assertManagedBayCount(t, f.exporter, targets)
+			// uWSGI stores the query twice in a default 4 KiB request buffer.
+			if f.server.maxQueryBytes > 1536 {
+				t.Fatalf("bay listing query is %d bytes; want at most 1536", f.server.maxQueryBytes)
+			}
 		})
 	}
 }
