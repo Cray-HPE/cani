@@ -56,6 +56,7 @@ type bayMoveServer struct {
 	invalidJSON       bool
 	invalidBay        bool
 	emptyNext         bool
+	maxQueryBytes     int
 }
 
 func (s *bayMoveServer) handle(w http.ResponseWriter, r *http.Request) {
@@ -68,6 +69,7 @@ func (s *bayMoveServer) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.requests = append(s.requests, capturedRequest{method: r.Method, path: r.URL.Path, body: body})
+	s.maxQueryBytes = max(s.maxQueryBytes, len(r.URL.RawQuery))
 	switch {
 	case strings.Contains(r.URL.Path, "/dcim/device-bays/"):
 		s.handleBay(w, r, body)

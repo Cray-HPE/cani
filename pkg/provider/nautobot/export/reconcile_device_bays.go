@@ -40,6 +40,12 @@ import (
 
 const deviceBayPageSize = 100
 
+// deviceBayFilterBatchSize bounds the installed_device values sent in one bay
+// listing. Each value adds about 54 query bytes, and uWSGI holds the query
+// twice (QUERY_STRING and REQUEST_URI) in its default 4 KiB request buffer, so
+// a larger batch is reset before it reaches Nautobot.
+const deviceBayFilterBatchSize = 20
+
 type deviceBayTarget struct {
 	parent uuid.UUID
 	name   string
@@ -103,7 +109,7 @@ func (e *Exporter) managedDeviceBays(ctx context.Context, targets map[uuid.UUID]
 	}
 	slices.Sort(ids)
 	var bays []remoteDeviceBay
-	for batch := range slices.Chunk(ids, deviceBayPageSize) {
+	for batch := range slices.Chunk(ids, deviceBayFilterBatchSize) {
 		page, err := e.listDeviceBays(ctx, nautobotapi.DcimDeviceBaysListParams{InstalledDevice: &batch})
 		if err != nil {
 			return nil, err
