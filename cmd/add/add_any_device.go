@@ -40,7 +40,7 @@ import (
 func addAnyDevice(cmd *cli.Command, args []string, device *devicetypes.CaniDeviceType, qty int) error {
 	parentArg, _ := cmd.Flags().GetString("parent")
 	statusArg, _ := cmd.Flags().GetString("status")
-	serialArg, _ := cmd.Flags().GetString("serial")
+	ident := identityFromFlags(cmd)
 	auto, _ := cmd.Flags().GetBool("auto")
 
 	names, err := resolveNamesFromFlags(cmd, qty)
@@ -77,7 +77,7 @@ func addAnyDevice(cmd *cli.Command, args []string, device *devicetypes.CaniDevic
 	attrs := deviceAttrs{
 		parentArg: parentArg,
 		statusArg: statusArg,
-		serialArg: serialArg,
+		ident:     ident,
 		tags:      tags,
 		provMeta:  collectProviderMetadata(cmd),
 	}
@@ -100,7 +100,7 @@ func normalizeStatus(statusArg string, inventory *devicetypes.Inventory) (string
 type deviceAttrs struct {
 	parentArg string
 	statusArg string
-	serialArg string
+	ident     identity
 	tags      []string
 	provMeta  map[string]string
 }
@@ -148,9 +148,7 @@ func buildOneDevice(
 	if attrs.statusArg != "" {
 		d.Status = attrs.statusArg
 	}
-	if attrs.serialArg != "" {
-		d.Serial = attrs.serialArg
-	}
+	attrs.ident.apply(&d.Serial, &d.AssetTag)
 	applyTagsToDevice(&d, attrs.tags)
 	applyProviderMetadataToDevice(&d, attrs.provMeta)
 	return &d

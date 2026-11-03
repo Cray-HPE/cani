@@ -110,7 +110,7 @@ type moduleAddOpts struct {
 	start        int
 	padWidth     int
 	statusArg    string
-	serialArg    string
+	ident        identity
 	dryRun       bool
 }
 
@@ -135,18 +135,17 @@ func normalizeModuleStatus(statusArg string, inventory *devicetypes.Inventory) (
 	return validate.StatusWithInventory(statusArg, inventory)
 }
 
-// applyModuleStatusSerial copies optional status and serial onto a module.
-func applyModuleStatusSerial(mod *devicetypes.CaniModuleType, statusArg, serialArg string) {
+// applyModuleStatusIdentity copies the optional status, serial and asset
+// tag onto a module.
+func applyModuleStatusIdentity(mod *devicetypes.CaniModuleType, statusArg string, ident identity) {
 	if statusArg != "" {
 		mod.Status = statusArg
 	}
-	if serialArg != "" {
-		mod.Serial = serialArg
-	}
+	ident.apply(&mod.Serial, &mod.AssetTag)
 }
 
 // commitPlannedModules creates and saves a module for each placement entry.
-func commitPlannedModules(inventory *devicetypes.Inventory, base *devicetypes.CaniModuleType, entries []placement.ModulePlacementEntry, names []string, statusArg, serialArg string) error {
+func commitPlannedModules(inventory *devicetypes.Inventory, base *devicetypes.CaniModuleType, entries []placement.ModulePlacementEntry, names []string, statusArg string, ident identity) error {
 	for i, e := range entries {
 		mod := base.NewInstance()
 		mod.ParentDevice = e.DeviceID
@@ -154,7 +153,7 @@ func commitPlannedModules(inventory *devicetypes.Inventory, base *devicetypes.Ca
 		if i < len(names) {
 			mod.Name = names[i]
 		}
-		applyModuleStatusSerial(mod, statusArg, serialArg)
+		applyModuleStatusIdentity(mod, statusArg, ident)
 		if err := inventory.AddModule(mod); err != nil {
 			return fmt.Errorf(errAddModule, err)
 		}
@@ -172,7 +171,7 @@ func addModuleStrategy(cmd *cli.Command, result *lookupResult, qty int, nameArg,
 	locationArg, _ := cmd.Flags().GetString(flagLocation)
 	dryRun, _ := cmd.Flags().GetBool(flagDryRun)
 	statusArg, _ := cmd.Flags().GetString("status")
-	serialArg, _ := cmd.Flags().GetString("serial")
+	ident := identityFromFlags(cmd)
 
 	strategy, _ := placement.ParseStrategy(deviceArg)
 
@@ -205,7 +204,7 @@ func addModuleStrategy(cmd *cli.Command, result *lookupResult, qty int, nameArg,
 		return nil
 	}
 
-	if err := commitPlannedModules(inventory, result.Module, entries, names, statusArg, serialArg); err != nil {
+	if err := commitPlannedModules(inventory, result.Module, entries, names, statusArg, ident); err != nil {
 		return err
 	}
 
@@ -240,7 +239,7 @@ func parseModuleOpts(cmd *cli.Command, qty int, nameArg, deviceArg string) modul
 	opts.bayFilterArg, _ = cmd.Flags().GetString(flagBayFilter)
 	opts.dryRun, _ = cmd.Flags().GetBool(flagDryRun)
 	opts.statusArg, _ = cmd.Flags().GetString("status")
-	opts.serialArg, _ = cmd.Flags().GetString("serial")
+	opts.ident = identityFromFlags(cmd)
 	opts.prefix, _ = cmd.Flags().GetString("prefix")
 	opts.start, _ = cmd.Flags().GetInt("start")
 	opts.padWidth, _ = cmd.Flags().GetInt("pad-width")

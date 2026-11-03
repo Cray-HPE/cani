@@ -38,7 +38,7 @@ import (
 // rackAttrs carries the per-rack attributes applied to each new rack.
 type rackAttrs struct {
 	statusArg  string
-	serialArg  string
+	ident      identity
 	locationID uuid.UUID
 	tags       []string
 	provMeta   map[string]string
@@ -47,7 +47,7 @@ type rackAttrs struct {
 // addAnyRack adds rack(s) using the resolved rack type.
 func addAnyRack(cmd *cli.Command, args []string, rack *devicetypes.CaniRackType, qty int) error {
 	statusArg, _ := cmd.Flags().GetString("status")
-	serialArg, _ := cmd.Flags().GetString("serial")
+	ident := identityFromFlags(cmd)
 	locationArg, _ := cmd.Flags().GetString("location")
 
 	names, err := resolveNamesFromFlags(cmd, qty)
@@ -68,7 +68,7 @@ func addAnyRack(cmd *cli.Command, args []string, rack *devicetypes.CaniRackType,
 	tags, _ := cmd.Flags().GetStringArray("tag")
 	attrs := rackAttrs{
 		statusArg:  statusArg,
-		serialArg:  serialArg,
+		ident:      ident,
 		locationID: resolveLocation(inventory, locationArg),
 		tags:       tags,
 		provMeta:   collectProviderMetadata(cmd),
@@ -96,9 +96,7 @@ func addRacks(inventory *devicetypes.Inventory, rack *devicetypes.CaniRackType, 
 		if attrs.statusArg != "" {
 			r.Status = attrs.statusArg
 		}
-		if attrs.serialArg != "" {
-			r.Serial = attrs.serialArg
-		}
+		attrs.ident.apply(&r.Serial, &r.AssetTag)
 		applyTagsToRack(&r, attrs.tags)
 		applyProviderMetadataToRack(&r, attrs.provMeta)
 

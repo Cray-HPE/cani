@@ -39,7 +39,7 @@ import (
 func addAnyModule(cmd *cli.Command, args []string, mod *devicetypes.CaniModuleType, qty int) error {
 	parentArg, _ := cmd.Flags().GetString("parent")
 	statusArg, _ := cmd.Flags().GetString("status")
-	serialArg, _ := cmd.Flags().GetString("serial")
+	ident := identityFromFlags(cmd)
 
 	names, err := resolveNamesFromFlags(cmd, qty)
 	if err != nil {
@@ -56,7 +56,7 @@ func addAnyModule(cmd *cli.Command, args []string, mod *devicetypes.CaniModuleTy
 		return err
 	}
 
-	if err := addModules(inventory, mod, names, parentArg, statusArg, serialArg, qty); err != nil {
+	if err := addModules(inventory, mod, names, parentArg, statusArg, ident, qty); err != nil {
 		return err
 	}
 
@@ -69,7 +69,7 @@ func addAnyModule(cmd *cli.Command, args []string, mod *devicetypes.CaniModuleTy
 }
 
 // addModules builds and adds qty modules to the inventory.
-func addModules(inventory *devicetypes.Inventory, mod *devicetypes.CaniModuleType, names []string, parentArg, statusArg, serialArg string, qty int) error {
+func addModules(inventory *devicetypes.Inventory, mod *devicetypes.CaniModuleType, names []string, parentArg, statusArg string, ident identity, qty int) error {
 	for i := range qty {
 		m := *mod
 		m.ID = uuid.New()
@@ -80,9 +80,7 @@ func addModules(inventory *devicetypes.Inventory, mod *devicetypes.CaniModuleTyp
 		if statusArg != "" {
 			m.Status = statusArg
 		}
-		if serialArg != "" {
-			m.Serial = serialArg
-		}
+		ident.apply(&m.Serial, &m.AssetTag)
 
 		if err := inventory.AddModule(&m); err != nil {
 			return fmt.Errorf("failed to add module: %w", err)
