@@ -30,6 +30,7 @@ services:
   #
   cray-sls-postgres:
     hostname: sls-postgres
+    mem_limit: 256m
     image: artifactory.algol60.net/csm-docker/stable/docker.io/library/postgres:13.2-alpine
     platform: linux/amd64
     environment:
@@ -59,6 +60,7 @@ services:
       - POSTGRES_HOST=cray-sls-postgres
       - DBOPTS=sslmode=disable
       - DBUSER=slsuser
+    mem_limit: 384m
     ports:
       - "8376:8376"
     depends_on:
@@ -77,6 +79,7 @@ services:
   #
   cray-smd-postgres:
     hostname: hmsds-postgres
+    mem_limit: 256m
     image: artifactory.algol60.net/csm-docker/stable/docker.io/library/postgres:13.2-alpine
     platform: linux/amd64
     environment:
@@ -111,6 +114,7 @@ services:
       - SMD_RVAULT=false
       - SMD_SLS_HOST=http://cray-sls:8376/v1
     hostname: cray-smd
+    mem_limit: 384m
     depends_on:
       - cray-smd-init
       - cray-sls
@@ -132,6 +136,7 @@ services:
   # real systems.
   api-gateway:
     image: nginx:alpine
+    mem_limit: 128m
     platform: linux/amd64
     restart: unless-stopped
     depends_on:

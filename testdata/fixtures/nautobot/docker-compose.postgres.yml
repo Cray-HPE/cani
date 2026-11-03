@@ -2,12 +2,13 @@
 services:
   db:
     image: "postgres:18-alpine"
+    mem_limit: 512m
     env_file:
       - "env/local.env"
       - "env/creds.env"
     command:
       - "-c"
-      - "max_connections=1000"
+      - "max_connections=200"
     volumes:
       - "postgres_data:/var/lib/postgresql"
     healthcheck:
