@@ -25,6 +25,8 @@
  */
 
 // Package resolve provides UUID-then-name resolution for inventory items.
+// A module is also found by the serial number or asset tag it records,
+// the identity a stock of identical spare cards is tracked by.
 package resolve
 
 import (
@@ -69,7 +71,10 @@ func Device(inv *devicetypes.Inventory, arg string) (uuid.UUID, error) {
 	return findByName(arg, deviceNames(inv))
 }
 
-// Module resolves a positional arg to a module UUID.
+// Module resolves a positional arg to a module UUID: a UUID, or a value
+// matching a module's name, serial number or asset tag. The fields are
+// matched together, so a value that is one module's name and another's
+// serial is reported as ambiguous rather than resolved to either.
 func Module(inv *devicetypes.Inventory, arg string) (uuid.UUID, error) {
 	if id, err := uuid.Parse(arg); err == nil {
 		if _, ok := inv.Modules[id]; ok {
@@ -91,19 +96,50 @@ func Cable(inv *devicetypes.Inventory, arg string) (uuid.UUID, error) {
 	return findByName(arg, cableLabels(inv))
 }
 
-// nameEntry pairs a name with its UUID for lookup.
+// nameEntry pairs a name with its UUID for lookup. identity holds the
+// further values an item may be addressed by; only modules supply any.
 type nameEntry struct {
-	id   uuid.UUID
-	name string
+	id       uuid.UUID
+	name     string
+	identity []string
 }
 
-// findByName does case-insensitive name matching. Returns an error on
-// zero or multiple matches.
+// matches reports whether the value equals the name or one of the identity
+// values, ignoring case. An empty field never matches.
+func (e nameEntry) matches(lower string) bool {
+	if lower == "" {
+		return false
+	}
+	if strings.ToLower(e.name) == lower {
+		return true
+	}
+	for _, v := range e.identity {
+		if strings.ToLower(v) == lower {
+			return true
+		}
+	}
+	return false
+}
+
+// describe renders the entry for an ambiguity report: its UUID followed by
+// whichever of its name and identity values it has.
+func (e nameEntry) describe() string {
+	fields := []string{e.id.String()}
+	for _, v := range append([]string{e.name}, e.identity...) {
+		if v != "" {
+			fields = append(fields, v)
+		}
+	}
+	return "  " + strings.Join(fields, "  ")
+}
+
+// findByName does case-insensitive matching on the name and identity values
+// of each entry. Returns an error on zero or multiple matches.
 func findByName(arg string, entries []nameEntry) (uuid.UUID, error) {
 	lower := strings.ToLower(arg)
 	var matches []nameEntry
 	for _, e := range entries {
-		if strings.ToLower(e.name) == lower {
+		if e.matches(lower) {
 			matches = append(matches, e)
 		}
 	}
@@ -115,7 +151,7 @@ func findByName(arg string, entries []nameEntry) (uuid.UUID, error) {
 	default:
 		lines := make([]string, 0, len(matches))
 		for _, m := range matches {
-			lines = append(lines, fmt.Sprintf("  %s  %s", m.id, m.name))
+			lines = append(lines, m.describe())
 		}
 		return uuid.Nil, fmt.Errorf(
 			"multiple items match %q; use a UUID:\n%s",
@@ -154,11 +190,12 @@ func deviceNames(inv *devicetypes.Inventory) []nameEntry {
 	return entries
 }
 
+// moduleNames lists each module by its name, serial number and asset tag.
 func moduleNames(inv *devicetypes.Inventory) []nameEntry {
 	entries := make([]nameEntry, 0, len(inv.Modules))
 	for id, m := range inv.Modules {
 		if m != nil {
-			entries = append(entries, nameEntry{id: id, name: m.Name})
+			entries = append(entries, nameEntry{id: id, name: m.Name, identity: []string{m.Serial, m.AssetTag}})
 		}
 	}
 	return entries

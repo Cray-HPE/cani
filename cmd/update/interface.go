@@ -69,7 +69,7 @@ Examples:
 	}
 
 	cmd.Flags().String("device", "", "Device name or UUID (required when not using positional UUID)")
-	cmd.Flags().String("module", "", "Module name or UUID (targets only that module's own interfaces)")
+	cmd.Flags().String("module", "", "Module UUID, name, serial or asset tag (targets only that module's own interfaces)")
 	cmd.Flags().String("name", "", "Interface name or glob pattern (e.g. \"1/1/*\")")
 	cmd.Flags().String("role", "", "Interface role (e.g. management, hsn, storage, access)")
 	cmd.Flags().String("label", "", "Interface label")

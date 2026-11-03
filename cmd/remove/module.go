@@ -38,9 +38,9 @@ import (
 // newModuleCommand creates the "remove module" subcommand.
 func newModuleCommand() *cli.Command {
 	return &cli.Command{
-		Use:   "module <uuid-or-name>",
+		Use:   "module <uuid-name-serial-or-asset-tag>",
 		Short: "Remove a module from the inventory.",
-		Long:  "Remove a module by UUID or name.",
+		Long:  "Remove a module by UUID, name, serial number or asset tag.",
 		Args:  cli.ExactArgs(1),
 		RunE:  removeModule,
 	}

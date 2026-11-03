@@ -117,7 +117,7 @@ func newModuleCommand() *cli.Command {
 	return &cli.Command{
 		Use:   "module [name|uuid]",
 		Short: "List modules in the inventory.",
-		Long:  "List modules, or show a single module by name or UUID.",
+		Long:  "List modules, or show a single module by UUID, name, serial number or asset tag.",
 		Args:  cli.MaximumNArgs(1),
 		RunE:  showModules,
 	}

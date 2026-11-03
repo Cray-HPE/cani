@@ -39,9 +39,9 @@ import (
 // newModuleCommand creates the "update module" subcommand.
 func newModuleCommand() *cli.Command {
 	cmd := &cli.Command{
-		Use:   "module <uuid-or-name>",
+		Use:   "module <uuid-name-serial-or-asset-tag>",
 		Short: "Update a module in the inventory.",
-		Long:  "Update a module's fields by UUID or name.",
+		Long:  "Update a module's fields. The module is named by UUID, name, serial number or asset tag.",
 		Args:  cli.ExactArgs(1),
 		RunE:  updateModule,
 	}

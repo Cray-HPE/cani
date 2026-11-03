@@ -88,13 +88,13 @@ cani (root)
     │   ├── location <uuid-or-name>
     │   ├── rack <uuid-or-name>
     │   ├── device <uuid-or-name>
-    │   ├── module <uuid-or-name>
+    │   ├── module <uuid-name-serial-or-asset-tag>
     │   └── cable <uuid-or-name>
     ├── update/                  # Modify inventory items
     │   ├── location <uuid-or-name>
     │   ├── rack <uuid-or-name>
     │   ├── device <uuid-or-name>
-    │   ├── module <uuid-or-name>
+    │   ├── module <uuid-name-serial-or-asset-tag>
     │   └── cable <uuid-or-name>
     ├── show/                    # Display inventory
     │   ├── location
@@ -185,7 +185,7 @@ Persistent flags inherited by all `add` subcommands:
 
 ### `remove` Subcommands
 
-Each takes `<uuid-or-name>` as a positional arg. Persistent flag:
+Each takes `<uuid-or-name>` as a positional arg; a module may also be named by its serial number or asset tag (`internal/util/resolve.Module` matches name, serial and asset tag together and reports a value that matches more than one module as ambiguous). Persistent flag:
 
 | Flag | Short | Type | Default | Description |
 |------|-------|------|---------|-------------|
@@ -199,7 +199,7 @@ Each takes `<uuid-or-name>` as a positional arg. Persistent flag:
 
 ### `update` Subcommands
 
-Each takes `<uuid-or-name>` as a positional arg. Supports typed flags **and** generic `--set key=value` (repeatable).
+Each takes `<uuid-or-name>` as a positional arg; a module may also be named by its serial number or asset tag, as under `remove`. Supports typed flags **and** generic `--set key=value` (repeatable).
 
 | Noun | Typed Flags | `--set` Keys |
 |------|-------------|--------------|
