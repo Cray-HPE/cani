@@ -46,9 +46,34 @@ func LoadAll(typesDirs, typesRepos []string, typesRepoClone, typesRepoPull bool)
 	return nil
 }
 
-// LoadFromDir scans a root directory for hardware type subdirectories
-// (device-types, module-types, cable-types, rack-types, inventory-types)
-// and registers any YAML types found. Existing slugs are not overwritten.
+// librarySubDirs are the subdirectories of a type library that LoadFromDir
+// reads, each with its loader. A git clone of a library checks out only these
+// directories (gitClone), so a directory added here is also what a clone
+// downloads.
+var librarySubDirs = []struct {
+	name string
+	load func(dir, source string, c *dirCache) error
+}{
+	{"device-types", loadDeviceTypesFromDir},
+	{"module-types", loadModuleTypesFromDir},
+	{"cable-types", loadCableTypesFromDir},
+	{"rack-types", loadRackTypesFromDir},
+	{"inventory-types", loadFruTypesFromDir},
+	{"location-types", loadLocationTypesFromDir},
+}
+
+// librarySubDirNames returns the names of the directories LoadFromDir reads.
+func librarySubDirNames() []string {
+	names := make([]string, 0, len(librarySubDirs))
+	for _, sd := range librarySubDirs {
+		names = append(names, sd.name)
+	}
+	return names
+}
+
+// LoadFromDir scans a root directory for the hardware type subdirectories in
+// librarySubDirs and registers any YAML types found. Existing slugs are not
+// overwritten.
 func LoadFromDir(root, source string) error {
 	// Fast path: load from a pre-built JSON cache when available.
 	cachePath := filepath.Join(root, cacheFileName)
@@ -61,18 +86,7 @@ func LoadFromDir(root, source string) error {
 	// parsed type, not just those that won registration, so it stays valid when
 	// other sources load alongside this one.
 	parsed := &dirCache{}
-	subDirs := []struct {
-		name string
-		load func(dir, source string, c *dirCache) error
-	}{
-		{"device-types", loadDeviceTypesFromDir},
-		{"module-types", loadModuleTypesFromDir},
-		{"cable-types", loadCableTypesFromDir},
-		{"rack-types", loadRackTypesFromDir},
-		{"inventory-types", loadFruTypesFromDir},
-		{"location-types", loadLocationTypesFromDir},
-	}
-	for _, sd := range subDirs {
+	for _, sd := range librarySubDirs {
 		dir := filepath.Join(root, sd.name)
 		if !dirExists(dir) {
 			continue

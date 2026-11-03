@@ -1,10 +1,107 @@
 package devicetypes
 
-import "testing"
+import (
+	"os"
+	"os/exec"
+	"path/filepath"
+	"testing"
+)
 
-// TestGitLoaderPlaceholder ensures the test file is not empty so `go test` recognises it.
-func TestGitLoaderPlaceholder(t *testing.T) {
-	t.Log("gitloader tests are commented out; enable them when CI has git available")
+// libraryRepo creates a bare repository holding a type library with one
+// device type and one elevation image, returning its path and a work clone
+// through which the test can add later commits.
+func libraryRepo(t *testing.T) (bare, work string) {
+	t.Helper()
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git is not on PATH")
+	}
+	bare = filepath.Join(t.TempDir(), "library.git")
+	work = filepath.Join(t.TempDir(), "work")
+	gitRun(t, "", "init", "--quiet", "--bare", bare)
+	gitRun(t, "", "clone", "--quiet", bare, work)
+	gitRun(t, work, "config", "user.email", "test@example.com")
+	gitRun(t, work, "config", "user.name", "test")
+	writeLibraryFile(t, work, filepath.Join("device-types", "acme", "server.yaml"), "manufacturer: Acme\nmodel: Server\nslug: acme-server\n")
+	writeLibraryFile(t, work, filepath.Join("elevation-images", "acme", "server.png"), "not really a png")
+	gitRun(t, work, "add", ".")
+	gitRun(t, work, "commit", "--quiet", "--no-gpg-sign", "-m", "library")
+	gitRun(t, work, "push", "--quiet", "origin", "HEAD")
+	return bare, work
+}
+
+func gitRun(t *testing.T, dir string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git %v: %v\n%s", args, err, out)
+	}
+}
+
+func writeLibraryFile(t *testing.T, root, rel, content string) {
+	t.Helper()
+	path := filepath.Join(root, rel)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func pathExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+// TestGitCloneChecksOutOnlyTypeDirectories verifies gitClone produces a
+// clone that holds the type directories LoadFromDir reads and not the
+// library's image directories, and that gitPull on that clone brings in a
+// type added upstream afterwards.
+//
+// Why it matters: the community library is over a gigabyte with its
+// elevation and module images, which cani never reads; cloning all of it
+// made a first load take minutes and the export tests that load the library
+// hit the test timeout on a slow runner.
+// Inputs: a bare library repository with one device type and one image; a
+// clone of it, then a module type pushed upstream and a pull. Outputs: the
+// device type file present, the image directory absent, the loader
+// registering the device type from the clone, and the module type present
+// after the pull.
+// Data choice: the image sits beside the type in a sibling directory, so only
+// a sparse checkout, not the depth, explains its absence.
+func TestGitCloneChecksOutOnlyTypeDirectories(t *testing.T) {
+	bare, work := libraryRepo(t)
+	target := filepath.Join(t.TempDir(), "nested", "clone")
+
+	if err := gitClone(bare, target); err != nil {
+		t.Fatalf("gitClone: %v", err)
+	}
+
+	if !pathExists(filepath.Join(target, "device-types", "acme", "server.yaml")) {
+		t.Error("device-types/acme/server.yaml missing from the clone")
+	}
+	if pathExists(filepath.Join(target, "elevation-images")) {
+		t.Error("elevation-images was checked out; the clone must be sparse")
+	}
+	if err := LoadFromDir(target, "git:test"); err != nil {
+		t.Fatalf("LoadFromDir on the sparse clone: %v", err)
+	}
+	if _, ok := GetBySlug("acme-server"); !ok {
+		t.Error("device type acme-server was not registered from the sparse clone")
+	}
+
+	writeLibraryFile(t, work, filepath.Join("module-types", "acme", "nic.yaml"), "manufacturer: Acme\nmodel: NIC\nslug: acme-nic\n")
+	gitRun(t, work, "add", ".")
+	gitRun(t, work, "commit", "--quiet", "--no-gpg-sign", "-m", "add a module type")
+	gitRun(t, work, "push", "--quiet", "origin", "HEAD")
+
+	if err := gitPull(target); err != nil {
+		t.Fatalf("gitPull on the sparse clone: %v", err)
+	}
+	if !pathExists(filepath.Join(target, "module-types", "acme", "nic.yaml")) {
+		t.Error("module-types/acme/nic.yaml missing after the pull")
+	}
 }
 
 // | Function         | Happy-path test                          | Failure test                              |
