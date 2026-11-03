@@ -171,8 +171,9 @@ Persistent flags inherited by all `add` subcommands:
 |------|------|---------|-------------|
 | `--device` | string | `""` | Parent device UUID, name, slug, or `%{FILL}` strategy |
 | `--bay` | string | `""` | Module bay name on the parent device; stored in the spelling the parent declares |
-| `--spare` | bool | false | Store the module at `--location` instead of installing it in a device; `--name` is optional, and an unnamed module is listed by its model and the `--serial`/`--asset-tag` it records |
+| `--spare` | bool | false | Store the module at `--location` instead of installing it in a device; refused together with `--device` or `--bay`. `--name` is optional, and an unnamed module is listed by its model and the `--serial`/`--asset-tag` it records |
 | `--location` | string | `""` | Location filter for device selection, or the storage location of a `--spare` module |
+| `--dry-run` | bool | false | Print the planned placements (or the spare's storage location) without saving; honored on every placement path |
 
 #### `add cable <slug-or-part-number>`
 
@@ -215,7 +216,7 @@ Each takes `<uuid-or-name>` as a positional arg; a module may also be named by i
 
 #### `swap module <installed> <spare>`
 
-Installs the spare in the installed module's bay and stores the installed module at a location, validated and saved as one change (`Inventory.SwapModules`). Both modules are resolved as `update` resolves them: by UUID, name, serial number or asset tag. The spare takes the bay, the port names the bay gives it, and the cables on those ports: each cable on the replaced module's ports is re-terminated at the spare's port of the same name, whether the cable named the module or the parent device as its owner (`Inventory.CablesOnModule`). The replaced module is stored with no cables and keeps its name, serial and asset tag. Both modules must be the same hardware type when both record one, and the installed module must name its bay when the parent declares bays. The next `export nautobot --merge` moves both modules in Nautobot.
+Installs the spare in the installed module's bay and stores the installed module at a location, validated and saved as one change (`Inventory.SwapModules`). Both modules are resolved as `update` resolves them: by UUID, name, serial number or asset tag. The spare takes the bay, the port names the bay gives it, and the cables on those ports: each cable on the replaced module's ports is re-terminated at the spare's port of the same name, whether the cable named the module or the parent device as its owner (`Inventory.CablesOnModule`). The replaced module is stored with no cables and keeps its name, serial and asset tag; a name is a label that travels with the card, and position is read from the DEVICE and BAY columns of `show module` or the device-addressed cable form. Both modules must be the same hardware type when both record one, and the installed module must name its bay when the parent declares bays. The next `export nautobot --merge` moves both modules in Nautobot.
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|

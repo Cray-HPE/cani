@@ -50,9 +50,12 @@ func MapModules(
 		}
 		caniID := uuid.New()
 
+		// Nautobot has no module name; its display text is derived from the
+		// module's type, identity and placement, which the inventory renders
+		// itself from the fields below, so it stays current when the module
+		// moves. A name an operator authored is kept by the merge.
 		m := &devicetypes.CaniModuleType{
 			ID:     caniID,
-			Name:   strVal(mod.Display),
 			Serial: strVal(mod.Serial),
 			ObjectMeta: devicetypes.ObjectMeta{
 				Status:      resolveRefName(mod.Status, statusNameMap),
@@ -72,9 +75,6 @@ func MapModules(
 					m.ParentDevice = caniDevID
 				}
 				m.ModuleBayName = ref.name
-				if m.Name == "" {
-					m.Name = ref.name
-				}
 			}
 		}
 

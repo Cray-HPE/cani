@@ -169,6 +169,9 @@ func ModuleToTreeNode(mod *devicetypes.CaniModuleType, inv *devicetypes.Inventor
 // ModuleBayNode renders a module bay. When mod is non-nil, the bay is populated.
 func ModuleBayNode(bayName string, mod *devicetypes.CaniModuleType, inv *devicetypes.Inventory, tf TreeFilter) TreeNode {
 	bayTag := "bay:" + bayName
+	if bayName == "" && mod.IsSpare() {
+		bayTag = "spare"
+	}
 	modName := mod.Label()
 
 	var label string

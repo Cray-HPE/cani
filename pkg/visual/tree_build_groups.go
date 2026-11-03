@@ -54,12 +54,15 @@ func BuildDeviceTree(devices []*devicetypes.CaniDeviceType, inv *devicetypes.Inv
 	return nodes
 }
 
-// BuildModuleTree groups modules by parent device as tree nodes.
+// BuildModuleTree groups modules by placement as tree nodes, as Nautobot
+// displays a module: an installed module under its parent device, a spare
+// under the location that stores it, and a module with neither under
+// "(unassigned)".
 func BuildModuleTree(modules []*devicetypes.CaniModuleType, inv *devicetypes.Inventory, tf TreeFilter) []TreeNode {
 	groups := make(map[uuid.UUID][]*devicetypes.CaniModuleType)
 	var order []uuid.UUID
 	for _, mod := range modules {
-		pid := mod.ParentDevice
+		pid := modulePlacementGroup(mod)
 		if _, seen := groups[pid]; !seen {
 			order = append(order, pid)
 		}
@@ -68,17 +71,32 @@ func BuildModuleTree(modules []*devicetypes.CaniModuleType, inv *devicetypes.Inv
 
 	nodes := make([]TreeNode, 0, len(order))
 	for _, pid := range order {
-		parentLabel := ResolveDeviceName(pid, inv)
-		if parentLabel == "" {
-			parentLabel = labelUnassigned
-		}
-		node := TreeNode{Label: parentLabel, Detail: "device"}
+		node := modulePlacementNode(pid, inv)
 		for _, mod := range groups[pid] {
 			node.Children = append(node.Children, ModuleToTreeNode(mod, inv, tf))
 		}
 		nodes = append(nodes, node)
 	}
 	return nodes
+}
+
+// modulePlacementGroup is the device or location a module is grouped under.
+func modulePlacementGroup(mod *devicetypes.CaniModuleType) uuid.UUID {
+	if mod.ParentDevice != uuid.Nil {
+		return mod.ParentDevice
+	}
+	return mod.Location
+}
+
+// modulePlacementNode labels a group by the device or location it is.
+func modulePlacementNode(id uuid.UUID, inv *devicetypes.Inventory) TreeNode {
+	if label := ResolveDeviceName(id, inv); label != "" {
+		return TreeNode{Label: label, Detail: "device"}
+	}
+	if loc := inv.Locations[id]; loc != nil {
+		return TreeNode{Label: loc.Name, Detail: "location"}
+	}
+	return TreeNode{Label: labelUnassigned, Detail: "device"}
 }
 
 // BuildCableTree groups cables by A-termination device as tree nodes.
