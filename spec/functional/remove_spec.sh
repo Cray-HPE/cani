@@ -97,7 +97,7 @@ Describe 'cani alpha remove'
     It 'exits 0 and describes removing a module'
       When call bin/cani alpha remove module --help
       The status should equal 0
-      The stdout should include 'Remove a module by UUID or name'
+      The stdout should include 'Remove a module by UUID, name, serial number or asset tag'
     End
   End
 

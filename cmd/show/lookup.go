@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Cray-HPE/cani/internal/util/resolve"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
 )
@@ -81,20 +82,14 @@ func findDeviceByNameOrUUID(arg string, inv *devicetypes.Inventory) (*devicetype
 	return nil, fmt.Errorf("device %q not found", arg)
 }
 
-// findModuleByNameOrUUID looks up a module by UUID string or exact name (case-insensitive).
+// findModuleByNameOrUUID looks up a module as the other verbs do: by UUID,
+// name, serial number or asset tag (case-insensitive).
 func findModuleByNameOrUUID(arg string, inv *devicetypes.Inventory) (*devicetypes.CaniModuleType, error) {
-	if id, err := uuid.Parse(arg); err == nil {
-		if m, ok := inv.Modules[id]; ok {
-			return m, nil
-		}
-		return nil, fmt.Errorf("module with UUID %q not found", arg)
+	id, err := resolve.Module(inv, arg)
+	if err != nil {
+		return nil, err
 	}
-	for _, m := range inv.Modules {
-		if strings.EqualFold(m.Name, arg) {
-			return m, nil
-		}
-	}
-	return nil, fmt.Errorf("module %q not found", arg)
+	return inv.Modules[id], nil
 }
 
 // findCableByLabelOrUUID looks up a cable by UUID string or exact label (case-insensitive).

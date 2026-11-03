@@ -252,6 +252,84 @@ func TestModule_ResolvesByNameAndReportsMissing(t *testing.T) {
 	}
 }
 
+// TestModule_ResolvesBySerialAndAssetTag verifies a module is found by its
+// serial number or asset tag, ignoring case, so a stock of identical spares
+// that share the model as their name can each be addressed by the identity
+// printed on the card; and that an empty serial or asset tag never matches.
+//
+// Why it matters: `add module --spare` without --name gives every spare of a
+// type the same name, and Nautobot identifies a module by type, serial and
+// asset tag rather than a name.
+// Inputs: two spares named for their model, one with serial CX4000002 and
+// asset tag AT-7, one with no identity; lookups by "cx4000002", "at-7",
+// "" and the shared name.
+// Outputs: the identified spare for both identity values; an error for the
+// empty value; the duplicate-name ambiguity error for the shared name.
+func TestModule_ResolvesBySerialAndAssetTag(t *testing.T) {
+	tagged, blank := uuid.New(), uuid.New()
+	inv := &devicetypes.Inventory{
+		Modules: map[uuid.UUID]*devicetypes.CaniModuleType{
+			tagged: {ID: tagged, Name: "ConnectX-4", Serial: "CX4000002", AssetTag: "AT-7"},
+			blank:  {ID: blank, Name: "ConnectX-4"},
+		},
+	}
+	for _, arg := range []string{"cx4000002", "AT-7"} {
+		if got, err := Module(inv, arg); err != nil || got != tagged {
+			t.Errorf("Module(%q) = (%s, %v), want the tagged spare %s", arg, got, err, tagged)
+		}
+	}
+	if _, err := Module(inv, ""); err == nil {
+		t.Error("expected an error for an empty value; blank identity fields must not match")
+	}
+	if _, err := Module(inv, "connectx-4"); err == nil || !strings.Contains(err.Error(), "multiple items match") {
+		t.Errorf("shared name error = %v, want the ambiguity report", err)
+	}
+}
+
+// TestModule_NameEqualToAnotherSerialIsAmbiguous verifies a value that is
+// one module's name and another module's serial is reported as ambiguous,
+// listing both with their identity values, rather than resolved to either.
+//
+// Why it matters: a first-field-wins match would let a name silently shadow
+// a serial, and the operator would act on the wrong card.
+// Inputs: module "A1" and a module whose serial is "a1".
+// Outputs: an error naming both UUIDs and the serial.
+func TestModule_NameEqualToAnotherSerialIsAmbiguous(t *testing.T) {
+	named, serialled := uuid.New(), uuid.New()
+	inv := &devicetypes.Inventory{
+		Modules: map[uuid.UUID]*devicetypes.CaniModuleType{
+			named:     {ID: named, Name: "A1"},
+			serialled: {ID: serialled, Name: "nic", Serial: "a1"},
+		},
+	}
+	_, err := Module(inv, "A1")
+	if err == nil {
+		t.Fatal("expected an ambiguity error")
+	}
+	for _, want := range []string{named.String(), serialled.String(), "a1", "use a UUID"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error %q does not mention %q", err, want)
+		}
+	}
+}
+
+// TestDevice_DoesNotResolveBySerial verifies the identity match is scoped to
+// modules: a device's serial is not a device identifier.
+//
+// Why it matters: device names are the identity cani and Nautobot share, and
+// widening devices would add an ambiguity surface without a workflow.
+// Inputs: a device with serial "SN-1" looked up by "SN-1".
+// Outputs: a not-found error.
+func TestDevice_DoesNotResolveBySerial(t *testing.T) {
+	id := uuid.New()
+	inv := &devicetypes.Inventory{
+		Devices: map[uuid.UUID]*devicetypes.CaniDeviceType{id: {ID: id, Name: "cn-01", Serial: "SN-1"}},
+	}
+	if _, err := Device(inv, "SN-1"); err == nil {
+		t.Error("expected a device serial not to resolve")
+	}
+}
+
 // TestCable_ResolvesByUUIDAndReportsMissing covers both of the cable resolver's
 // UUID branches.
 func TestCable_ResolvesByUUIDAndReportsMissing(t *testing.T) {
