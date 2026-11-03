@@ -91,7 +91,7 @@ func addDeviceStrategy(cmd *cli.Command, result *lookupResult, qty int, nameArg 
 	zoneArg, _ := cmd.Flags().GetString("zone")
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
 	statusArg, _ := cmd.Flags().GetString("status")
-	serialArg, _ := cmd.Flags().GetString("serial")
+	ident := identityFromFlags(cmd)
 
 	if face == "" {
 		face = devicetypes.FaceFront
@@ -167,9 +167,7 @@ func addDeviceStrategy(cmd *cli.Command, result *lookupResult, qty int, nameArg 
 		if statusArg != "" {
 			device.Status = statusArg
 		}
-		if serialArg != "" {
-			device.Serial = serialArg
-		}
+		ident.apply(&device.Serial, &device.AssetTag)
 		applyTagsToDevice(device, tags)
 		applyProviderMetadataToDevice(device, provMeta)
 		devicesToAdd[device.ID] = device
@@ -210,7 +208,7 @@ func addDeviceLiteral(cmd *cli.Command, result *lookupResult, qty int, nameArg, 
 	position, _ := cmd.Flags().GetInt("position")
 	face, _ := cmd.Flags().GetString("face")
 	statusArg, _ := cmd.Flags().GetString("status")
-	serialArg, _ := cmd.Flags().GetString("serial")
+	ident := identityFromFlags(cmd)
 	prefix, _ := cmd.Flags().GetString("prefix")
 	start, _ := cmd.Flags().GetInt("start")
 	padWidth, _ := cmd.Flags().GetInt("pad-width")
@@ -281,9 +279,7 @@ func addDeviceLiteral(cmd *cli.Command, result *lookupResult, qty int, nameArg, 
 		if statusArg != "" {
 			device.Status = statusArg
 		}
-		if serialArg != "" {
-			device.Serial = serialArg
-		}
+		ident.apply(&device.Serial, &device.AssetTag)
 		applyTagsToDevice(device, tags)
 		applyProviderMetadataToDevice(device, provMeta)
 

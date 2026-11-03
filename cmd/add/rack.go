@@ -65,7 +65,7 @@ func addRack(cmd *cli.Command, args []string) error {
 	}
 
 	statusArg, _ := cmd.Flags().GetString("status")
-	serialArg, _ := cmd.Flags().GetString("serial")
+	ident := identityFromFlags(cmd)
 
 	nameArg, _ := cmd.Flags().GetString("name")
 	prefix, _ := cmd.Flags().GetString("prefix")
@@ -113,9 +113,7 @@ func addRack(cmd *cli.Command, args []string) error {
 		if statusArg != "" {
 			rack.Status = statusArg
 		}
-		if serialArg != "" {
-			rack.Serial = serialArg
-		}
+		ident.apply(&rack.Serial, &rack.AssetTag)
 		applyTagsToRack(&rack, tags)
 		applyProviderMetadataToRack(&rack, provMeta)
 

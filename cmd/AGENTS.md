@@ -139,6 +139,8 @@ Persistent flags inherited by all `add` subcommands:
 | `--list-supported-types` | `-L` | bool | false | List hardware types for the noun |
 | `--qty` | `-q` | int | 1 | Quantity to add |
 | `--parent` | `-p` | string | nil UUID | Parent item UUID |
+| `--serial` | | string | `""` | Serial number, stamped on each device, rack or module added |
+| `--asset-tag` | | string | `""` | Asset tag, stamped on each device, rack or module added |
 
 #### `add location <name>`
 

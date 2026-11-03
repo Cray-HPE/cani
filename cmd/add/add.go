@@ -92,7 +92,8 @@ to a specific type; subcommands reject slugs that do not match their type.`,
 	cmd.PersistentFlags().StringArray("tag", nil, "Tag(s) to apply to the item (repeatable)")
 	cmd.PersistentFlags().StringToString("metadata", nil, "Provider metadata key=value pairs (repeatable)")
 	cmd.PersistentFlags().String("status", "", "Status (Active, Available, Connected, Decommissioned, Decommissioning, Deprecated, Deprovisioning, Down, End-of-Life, Extended Support, Failed, Inventory, Maintenance, Offline, Planned, Primary, Provisioning, Reserved, Retired, Secondary, Staging, or any custom status)")
-	cmd.PersistentFlags().String("serial", "", "Serial number")
+	cmd.PersistentFlags().String(flagSerial, "", "Serial number")
+	cmd.PersistentFlags().String(flagAssetTag, "", "Asset tag")
 
 	// Flags for slug-based adds (not persistent – subcommands define their own).
 	cmd.Flags().String("location", "", "Parent location UUID or name")

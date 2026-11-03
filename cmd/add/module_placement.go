@@ -55,7 +55,7 @@ func addModuleMultiDevice(inventory *devicetypes.Inventory, base *devicetypes.Ca
 		return nil
 	}
 
-	if err := commitPlannedModules(inventory, base, entries, names, opts.statusArg, opts.serialArg); err != nil {
+	if err := commitPlannedModules(inventory, base, entries, names, opts.statusArg, opts.ident); err != nil {
 		return err
 	}
 	log.Printf("%d module(s) added", len(entries))
@@ -78,7 +78,7 @@ func addModuleSingleDevice(inventory *devicetypes.Inventory, base *devicetypes.C
 		if names != nil {
 			mod.Name = names[i]
 		}
-		applyModuleStatusSerial(mod, opts.statusArg, opts.serialArg)
+		applyModuleStatusIdentity(mod, opts.statusArg, opts.ident)
 		if err := inventory.AddModule(mod); err != nil {
 			return fmt.Errorf(errAddModule, err)
 		}
