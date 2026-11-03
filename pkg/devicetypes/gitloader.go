@@ -116,7 +116,13 @@ func isSCPSyntax(s string) bool {
 	return slash == -1 || colon < slash
 }
 
-// gitClone clones a repository into the target directory.
+// gitClone clones a repository into the target directory with a history of
+// one commit and only the directories LoadFromDir reads checked out. The
+// community library carries hundreds of megabytes of elevation and module
+// images that cani never reads; a blobless, sparse clone downloads only the
+// type definitions, so a first load takes seconds rather than minutes and
+// does not stall on a slow link. The clone needs git 2.25 or later; a server
+// that does not filter blobs sends them all and the checkout stays sparse.
 func gitClone(repoURL, target string) error {
 	if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
 		return fmt.Errorf("creating cache parent dir: %w", err)
@@ -126,13 +132,23 @@ func gitClone(repoURL, target string) error {
 		log.Printf("Cloning types repo %s into %s", repoURL, target)
 	}
 
-	cmd := exec.Command("git", "clone", "--depth", "1", "--", repoURL, target)
-	cmd.Stdout = os.Stderr
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
+	if err := runGit("clone", "--depth", "1", "--filter=blob:none", "--sparse", "--", repoURL, target); err != nil {
 		return fmt.Errorf("git clone %s: %w", repoURL, err)
 	}
+	args := append([]string{"-C", target, "sparse-checkout", "set"}, librarySubDirNames()...)
+	if err := runGit(args...); err != nil {
+		return fmt.Errorf("git sparse-checkout %s: %w", repoURL, err)
+	}
 	return nil
+}
+
+// runGit runs one git command, passing its output through to stderr as the
+// clone and pull always have.
+func runGit(args ...string) error {
+	cmd := exec.Command("git", args...)
+	cmd.Stdout = os.Stderr
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
 
 // gitPull fetches and merges the latest changes in an existing clone.
@@ -144,10 +160,7 @@ func gitPull(repoDir string) error {
 		log.Printf("Pulling latest types from %s", repoDir)
 	}
 
-	cmd := exec.Command("git", "-C", repoDir, "pull", "--ff-only")
-	cmd.Stdout = os.Stderr
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
+	if err := runGit("-C", repoDir, "pull", "--ff-only"); err != nil {
 		return fmt.Errorf("git pull in %s: %w", repoDir, err)
 	}
 	return nil
