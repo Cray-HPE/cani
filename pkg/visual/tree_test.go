@@ -29,6 +29,9 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/Cray-HPE/cani/pkg/devicetypes"
+	"github.com/google/uuid"
 )
 
 // TestRenderTreeConnectors verifies RenderTree emits the exact connector layout
@@ -209,4 +212,43 @@ func TestRenderTreeColorEmitsAnsiCodes(t *testing.T) {
 	want := "r " + ColorGray + "d" + ColorReset + "\n" +
 		ColorGray + "└── " + ColorReset + "c\n"
 	assertExactOutput(t, output.String(), want)
+}
+
+// TestBuildModuleTreeGroupsByPlacement verifies the module tree places an
+// installed module under its parent device with its bay, a spare under the
+// location that stores it tagged "spare", and a module with neither
+// placement under "(unassigned)".
+//
+// Why it matters: this is how an operator finds a card; Nautobot displays a
+// module as "installed in <device>" or "at location <location>", and a
+// spare listed under "(unassigned)" with an empty bay tag read as an error.
+// Inputs: device cn-01 with module nic-a in bay PCIe1, an unnamed spare with
+// serial S at location lab, and a module with no placement.
+// Outputs: three roots labelled cn-01 (device), lab (location) and
+// "(unassigned)"; the spare's line shows "spare" and "CX4 (Serial: S)".
+func TestBuildModuleTreeGroupsByPlacement(t *testing.T) {
+	inv := devicetypes.NewInventory()
+	dev, loc := uuid.New(), uuid.New()
+	inv.Devices[dev] = &devicetypes.CaniDeviceType{ID: dev, Name: "cn-01"}
+	inv.Locations[loc] = &devicetypes.CaniLocationType{ID: loc, Name: "lab"}
+	modules := []*devicetypes.CaniModuleType{
+		{ID: uuid.New(), Name: "nic-a", ParentDevice: dev, ModuleBayName: "PCIe1"},
+		{ID: uuid.New(), Model: "CX4", Serial: "S", Location: loc},
+		{ID: uuid.New(), Name: "lost"},
+	}
+
+	nodes := BuildModuleTree(modules, inv, TreeFilter{NoColor: true})
+	if len(nodes) != 3 {
+		t.Fatalf("roots = %d, want 3", len(nodes))
+	}
+	want := []struct{ label, detail, child string }{
+		{"cn-01", "device", "bay:PCIe1 | nic-a"},
+		{"lab", "location", "spare | CX4 (Serial: S)"},
+		{"(unassigned)", "device", "bay: | lost"},
+	}
+	for i, w := range want {
+		if nodes[i].Label != w.label || nodes[i].Detail != w.detail || len(nodes[i].Children) != 1 || !strings.Contains(nodes[i].Children[0].Label, w.child) {
+			t.Errorf("root %d = {%q %q %v}, want {%q %q child containing %q}", i, nodes[i].Label, nodes[i].Detail, nodes[i].Children, w.label, w.detail, w.child)
+		}
+	}
 }

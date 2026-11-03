@@ -271,3 +271,40 @@ func TestMapModules_LocationAndRole(t *testing.T) {
 		}
 	}
 }
+
+// TestMapModulesLeavesTheNameToTheInventory verifies an imported module
+// carries no name, whatever display text Nautobot sent, so the inventory
+// renders the module from its type, identity and placement and the text
+// cannot go stale when the module is later moved.
+//
+// Why it matters: Nautobot's display is derived ("… installed in mn01"); a
+// datastore that froze it as the name showed a swapped card under the bay
+// it had left, and a name an operator authored must survive a re-import,
+// which the merge guarantees only when the import supplies none.
+// Inputs: an installed module with display "CX4 installed in mn01" and a
+// spare with display "CX4 (Serial: S) at location lab".
+// Outputs: both modules with an empty name, the installed one with its bay.
+func TestMapModulesLeavesTheNameToTheInventory(t *testing.T) {
+	devNBID, devCaniID, bayID := uuid.New(), uuid.New(), uuid.New()
+	moduleBayMap := map[uuid.UUID]moduleBayRef{bayID: {deviceID: devNBID, name: "PCIe1"}}
+	installedID, spareID := openapi_types.UUID(uuid.New()), openapi_types.UUID(uuid.New())
+	installedDisplay, spareDisplay := "CX4 installed in mn01", "CX4 (Serial: S) at location lab"
+	raw := []nautobotapi.Module{
+		{Id: &installedID, Display: &installedDisplay},
+		{Id: &spareID, Display: &spareDisplay},
+	}
+	setNBRef(&raw[0].ParentModuleBay, bayID)
+
+	got := MapModules(raw, moduleBayMap, map[uuid.UUID]uuid.UUID{devNBID: devCaniID}, nil, nil, nil)
+	if len(got) != 2 {
+		t.Fatalf("expected 2 modules, got %d", len(got))
+	}
+	for _, m := range got {
+		if m.Name != "" {
+			t.Errorf("imported module name = %q, want empty; display text is derived, not stored", m.Name)
+		}
+		if m.ParentDevice == devCaniID && m.ModuleBayName != "PCIe1" {
+			t.Errorf("installed module bay = %q, want PCIe1", m.ModuleBayName)
+		}
+	}
+}
