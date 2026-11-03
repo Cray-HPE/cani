@@ -202,7 +202,7 @@ func (refs catalogRefs) collectInterfaces(specs []interfaceSpec) {
 // one is not a refusal.
 func (refs catalogRefs) collectModules(inventory *devicetypes.Inventory, defaultStatus string) {
 	for _, module := range inventory.Modules {
-		if module == nil || module.Name == "" {
+		if module == nil {
 			continue
 		}
 		refs.statuses[firstSet(module.Status, defaultStatus, "Active")] = true

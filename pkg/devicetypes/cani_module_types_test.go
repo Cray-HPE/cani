@@ -489,3 +489,37 @@ func TestModuleGetInterfaceReturnsNilForNilReceiver(t *testing.T) {
 		t.Fatalf("expected nil for nil receiver, got %v", got)
 	}
 }
+
+// TestModuleLabelFollowsNautobot verifies Label renders a named module by its
+// name and an unnamed module as Nautobot renders one: the model followed by
+// the serial and asset tag it records, falling back to the slug when there
+// is no model and to a short ID when there is no identity.
+//
+// Why it matters: spares are authored without names and must still read
+// unambiguously in tables, logs and errors, by the values printed on the
+// card.
+// Inputs: a named module; unnamed modules with serial and asset tag, serial
+// only, asset tag only, no identity, and no model.
+// Outputs: the name; "Model (Serial: S) (Asset Tag: A)"; "Model (Serial:
+// S)"; "Model (Asset Tag: A)"; "Model <8 hex>"; "slug (Serial: S)".
+func TestModuleLabelFollowsNautobot(t *testing.T) {
+	id := uuid.MustParse("12345678-1234-1234-1234-123456789abc")
+	cases := []struct {
+		name string
+		mod  *CaniModuleType
+		want string
+	}{
+		{"named", &CaniModuleType{ID: id, Name: "nic-a", Model: "CX4", Serial: "S"}, "nic-a"},
+		{"serial and asset tag", &CaniModuleType{ID: id, Model: "CX4", Serial: "S", AssetTag: "A"}, "CX4 (Serial: S) (Asset Tag: A)"},
+		{"serial only", &CaniModuleType{ID: id, Model: "CX4", Serial: "S"}, "CX4 (Serial: S)"},
+		{"asset tag only", &CaniModuleType{ID: id, Model: "CX4", AssetTag: "A"}, "CX4 (Asset Tag: A)"},
+		{"no identity", &CaniModuleType{ID: id, Model: "CX4"}, "CX4 12345678"},
+		{"no model", &CaniModuleType{ID: id, Slug: "cx4", Serial: "S"}, "cx4 (Serial: S)"},
+		{"nil", nil, ""},
+	}
+	for _, tc := range cases {
+		if got := tc.mod.Label(); got != tc.want {
+			t.Errorf("%s: Label() = %q, want %q", tc.name, got, tc.want)
+		}
+	}
+}

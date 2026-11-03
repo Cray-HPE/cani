@@ -138,7 +138,7 @@ func showModules(cmd *cli.Command, args []string) error {
 		modules = append(modules, mod)
 	}
 	sort.Slice(modules, func(i, j int) bool {
-		return modules[i].Name < modules[j].Name
+		return modules[i].Label() < modules[j].Label()
 	})
 
 	format, _ := cmd.Flags().GetString("format")

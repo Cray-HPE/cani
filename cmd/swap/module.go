@@ -134,18 +134,18 @@ func outcomeOf(inventory *devicetypes.Inventory, installedID, spareID uuid.UUID,
 // print writes the dry-run report.
 func (o swapOutcome) print(w io.Writer) {
 	fmt.Fprintf(w, "Would install %s in %s bay %s\nWould store %s at location %s\n",
-		o.spare.Name, o.parent.Name, o.spare.EffectiveModuleBayName(), o.installed.Name, o.stock.Name)
+		o.spare.Label(), o.parent.Name, o.spare.EffectiveModuleBayName(), o.installed.Label(), o.stock.Name)
 	if o.moved > 0 {
-		fmt.Fprintf(w, "Would move %d cable(s) to the ports of %s\n", o.moved, o.spare.Name)
+		fmt.Fprintf(w, "Would move %d cable(s) to the ports of %s\n", o.moved, o.spare.Label())
 	}
 }
 
 // log records the saved swap.
 func (o swapOutcome) log() {
 	log.Printf("Swapped modules: %s (%s) installed in %s bay %s, %s (%s) stored at %s",
-		o.spare.Name, o.spare.ID, o.parent.Name, o.spare.EffectiveModuleBayName(), o.installed.Name, o.installed.ID, o.stock.Name)
+		o.spare.Label(), o.spare.ID, o.parent.Name, o.spare.EffectiveModuleBayName(), o.installed.Label(), o.installed.ID, o.stock.Name)
 	if o.moved > 0 {
-		log.Printf("%d cable(s) moved to the ports of %s", o.moved, o.spare.Name)
+		log.Printf("%d cable(s) moved to the ports of %s", o.moved, o.spare.Label())
 	}
 }
 

@@ -77,3 +77,6 @@ result on an error. The merge applies the same rules to every provider:
   A provider that only knows its own placement descriptor (a tray or slot
   number, for example) leaves `ModuleBayName` empty and keeps the descriptor in `ProviderMetadata`.
 - Provider-only attributes live in `ProviderMetadata`, never as new fields on a shared type.
+- A module is matched to an existing one by external ID, then by identity (asset tag, or serial on
+  the same type when both record one), then by name. An incoming module whose identity names two
+  existing modules is a conflict; the merge refuses the whole result rather than choosing one.

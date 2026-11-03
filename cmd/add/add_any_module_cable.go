@@ -85,7 +85,7 @@ func addModules(inventory *devicetypes.Inventory, mod *devicetypes.CaniModuleTyp
 		if err := inventory.AddModule(&m); err != nil {
 			return fmt.Errorf("failed to add module: %w", err)
 		}
-		log.Printf("Added module %s (%s)", m.ID, m.Name)
+		log.Printf("Added module %s (%s)", m.ID, m.Label())
 	}
 	return nil
 }

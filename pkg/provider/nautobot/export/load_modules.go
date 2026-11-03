@@ -51,19 +51,20 @@ func (e *Exporter) loadModules(
 	for _, module := range moduleExportOrder(inventory) {
 		if err := e.createModuleFromCani(ctx, module, inventory, createdDeviceIDs, result); err != nil {
 			result.Errors = append(result.Errors,
-				fmt.Sprintf("module %s: create error: %v", module.Name, err))
+				fmt.Sprintf("module %s: create error: %v", module.Label(), err))
 		}
 	}
 	return nil
 }
 
-// moduleExportOrder returns the named modules with spares first, so a module
+// moduleExportOrder returns the modules with spares first, so a module
 // leaving a bay vacates it before the module entering that bay is placed;
-// names break ties so the log order is stable.
+// labels break ties so the log order is stable. A module needs no name to
+// be exported: Nautobot identifies it by type, serial and asset tag.
 func moduleExportOrder(inventory *devicetypes.Inventory) []*devicetypes.CaniModuleType {
 	modules := make([]*devicetypes.CaniModuleType, 0, len(inventory.Modules))
 	for _, module := range inventory.Modules {
-		if module != nil && module.Name != "" {
+		if module != nil {
 			modules = append(modules, module)
 		}
 	}
@@ -74,7 +75,7 @@ func moduleExportOrder(inventory *devicetypes.Inventory) []*devicetypes.CaniModu
 			}
 			return 1
 		}
-		return strings.Compare(a.Name, b.Name)
+		return strings.Compare(a.Label(), b.Label())
 	})
 	return modules
 }
@@ -144,7 +145,7 @@ func (e *Exporter) reconcileExistingModule(
 	current bool, placement modulePlacement, result *LoadResult,
 ) (uuid.UUID, error) {
 	if current {
-		clog.Skipped("Skipped module (already exists): %s (%s)", module.Name, placement.describe())
+		clog.Skipped("Skipped module (already exists): %s (%s)", module.Label(), placement.describe())
 		result.ModulesSkipped++
 		return toUUID(remote.Id), nil
 	}
@@ -173,7 +174,7 @@ func (e *Exporter) previewModuleCreate(ctx context.Context, module *devicetypes.
 	if _, err := e.Cache.GetStatus(e.moduleStatusName(module)); err != nil {
 		return fmt.Errorf("status resolution: %w", err)
 	}
-	clog.DryRun("Would create module: %s (%s)", module.Name, placement.describe())
+	clog.DryRun("Would create module: %s (%s)", module.Label(), placement.describe())
 	return nil
 }
 
@@ -186,7 +187,7 @@ func (e *Exporter) exportModulePorts(ctx context.Context, module *devicetypes.Ca
 		return
 	}
 	if err := e.createModuleInterfaces(ctx, module, moduleNautobotID, result); err != nil {
-		result.Errors = append(result.Errors, fmt.Sprintf("module %s: interfaces: %v", module.Name, err))
+		result.Errors = append(result.Errors, fmt.Sprintf("module %s: interfaces: %v", module.Label(), err))
 	}
 }
 
@@ -269,7 +270,7 @@ func (e *Exporter) postModule(
 	if resp.JSON201 != nil {
 		created = toUUID(resp.JSON201.Id)
 	}
-	clog.Created("Created module: %s (%s)", module.Name, placement.describe())
+	clog.Created("Created module: %s (%s)", module.Label(), placement.describe())
 	result.ModulesCreated++
 	return created, nil
 }

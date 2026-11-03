@@ -777,54 +777,6 @@ func TestMergeModuleProperties(t *testing.T) {
 
 // ---------- MergeModules ----------
 
-// TestMergeModules verifies MergeModules resolves incoming modules by UUID
-// match, then name match, then insert, while skipping nil, unnamed, and invalid
-// modules.
-//
-// Why it matters: module re-import must converge without duplicates and must
-// reject modules whose slug is absent from the library, since those cannot be
-// rendered downstream.
-// Inputs: an inventory with a "nic-0" module, then a merge containing a
-// UUID-matched update, a name-matched "nic-0", a new "nic-1", a nil, an unnamed
-// module, and one with an unregistered slug. Outputs: the UUID and name matches
-// folded in, "nic-1" inserted, and the three invalid entries skipped.
-// Data choice: the unregistered-slug entry drives the Validate()-failure skip
-// branch that a simpler test would miss.
-func TestMergeModules(t *testing.T) {
-	inv := NewInventory()
-	devID := uuid.New()
-	idA := uuid.New()
-	inv.Modules[idA] = &CaniModuleType{ID: idA, Name: "nic-0", ParentDevice: devID, ObjectMeta: ObjectMeta{Status: "old"}}
-
-	inv.MergeModules(map[uuid.UUID]*CaniModuleType{
-		idA:        {ID: idA, Name: "nic-0", ObjectMeta: ObjectMeta{Status: "updated"}}, // UUID match
-		uuid.New(): {Name: "nic-0", Serial: "SN-name"},                                  // name match
-		uuid.New(): {Name: "nic-1"},                                                     // insert
-		uuid.New(): nil,                                                                 // skipped (nil)
-		uuid.New(): {Name: ""},                                                          // skipped (no name)
-		uuid.New(): {Name: "bad", Slug: "not-in-library"},                               // skipped (invalid)
-	})
-
-	if inv.Modules[idA].Status != "updated" {
-		t.Errorf("UUID-matched module Status = %q, want %q", inv.Modules[idA].Status, "updated")
-	}
-	if inv.Modules[idA].Serial != "SN-name" {
-		t.Errorf("name-matched merge did not apply, Serial = %q, want %q", inv.Modules[idA].Serial, "SN-name")
-	}
-	var hasNic1 bool
-	for _, m := range inv.Modules {
-		if m != nil && m.Name == "nic-1" {
-			hasNic1 = true
-		}
-	}
-	if !hasNic1 {
-		t.Error("expected nic-1 to be inserted")
-	}
-	if len(inv.Modules) != 2 {
-		t.Errorf("final module count = %d, want 2 (nic-0 + nic-1)", len(inv.Modules))
-	}
-}
-
 // ---------- mergeFruProperties ----------
 
 // TestMergeFruProperties verifies mergeFruProperties copies every non-empty

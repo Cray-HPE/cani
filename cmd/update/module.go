@@ -109,7 +109,7 @@ func updateModule(cmd *cli.Command, args []string) error {
 		return fmt.Errorf("failed to save inventory: %w", err)
 	}
 
-	log.Printf("Updated module %s (%s)", id, mod.Name)
+	log.Printf("Updated module %s (%s)", id, mod.Label())
 	return nil
 }
 

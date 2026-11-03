@@ -173,8 +173,8 @@ func connectionDeviceName(id uuid.UUID, inv *devicetypes.Inventory) string {
 	if dev, ok := inv.Devices[id]; ok && dev.Name != "" {
 		return dev.Name
 	}
-	if mod, ok := inv.Modules[id]; ok && mod.Name != "" {
-		return mod.Name
+	if mod, ok := inv.Modules[id]; ok {
+		return mod.Label()
 	}
 	return id.String()
 }

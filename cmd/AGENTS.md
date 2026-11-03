@@ -171,7 +171,7 @@ Persistent flags inherited by all `add` subcommands:
 |------|------|---------|-------------|
 | `--device` | string | `""` | Parent device UUID, name, slug, or `%{FILL}` strategy |
 | `--bay` | string | `""` | Module bay name on the parent device; stored in the spelling the parent declares |
-| `--spare` | bool | false | Store the module at `--location` instead of installing it in a device |
+| `--spare` | bool | false | Store the module at `--location` instead of installing it in a device; `--name` is optional, and an unnamed module is listed by its model and the `--serial`/`--asset-tag` it records |
 | `--location` | string | `""` | Location filter for device selection, or the storage location of a `--spare` module |
 
 #### `add cable <slug-or-part-number>`

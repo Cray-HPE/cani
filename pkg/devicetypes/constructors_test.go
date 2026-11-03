@@ -284,8 +284,11 @@ func TestNewModuleFromSlugHappyPath(t *testing.T) {
 	if mod.Status != "Active" {
 		t.Errorf("expected status %q, got %q", "Active", mod.Status)
 	}
-	if mod.Name != "PSU-1600W" {
-		t.Errorf("expected name %q from model, got %q", "PSU-1600W", mod.Name)
+	if mod.Name != "" {
+		t.Errorf("expected no name on a new module, got %q", mod.Name)
+	}
+	if !strings.HasPrefix(mod.Label(), "PSU-1600W ") {
+		t.Errorf("expected the label to lead with the model, got %q", mod.Label())
 	}
 }
 
@@ -325,8 +328,11 @@ func TestNewModuleFromPartNumberHappyPath(t *testing.T) {
 	if mod.Status != "Active" {
 		t.Errorf("expected status %q, got %q", "Active", mod.Status)
 	}
-	if mod.Name != "NIC-25G" {
-		t.Errorf("expected name %q from model, got %q", "NIC-25G", mod.Name)
+	if mod.Name != "" {
+		t.Errorf("expected no name on a new module, got %q", mod.Name)
+	}
+	if !strings.HasPrefix(mod.Label(), "NIC-25G ") {
+		t.Errorf("expected the label to lead with the model, got %q", mod.Label())
 	}
 }
 

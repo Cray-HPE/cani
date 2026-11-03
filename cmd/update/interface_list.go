@@ -65,7 +65,7 @@ func listDeviceInterfaces(cmd *cli.Command, inv *devicetypes.Inventory) error {
 			continue
 		}
 		for _, iface := range mod.Interfaces {
-			printInterfaceRow(iface, "module:"+mod.Name)
+			printInterfaceRow(iface, "module:"+mod.Label())
 		}
 	}
 

@@ -30,7 +30,6 @@ pkg/visual/rack_interactive.go 363
 pkg/visual/rack_minimap_detail.go 340
 pkg/visual/rack_minimap.go 355
 pkg/visual/rack.go 560
-pkg/visual/table.go 318
 pkg/visual/tree_build_device.go 308
 pkg/xname/xnames.go 596
 pkg/datastores/migrate_test.go 862

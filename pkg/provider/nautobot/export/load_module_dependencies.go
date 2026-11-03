@@ -202,7 +202,7 @@ func (e *Exporter) createModuleInterfaces(
 	result *LoadResult,
 ) error {
 	owner := interfaceOwnerRef{ModuleID: moduleNautobotID}
-	for _, spec := range supportedInterfaceSpecs(moduleInterfaceSpecs(module), module.Name, result) {
+	for _, spec := range supportedInterfaceSpecs(moduleInterfaceSpecs(module), module.Label(), result) {
 		exists, err := e.moduleHasInterface(moduleNautobotID, spec.Name)
 		if err != nil {
 			return fmt.Errorf("interface %s: %w", spec.Name, err)

@@ -26,23 +26,30 @@
 package devicetypes
 
 import (
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/google/uuid"
 )
 
-// MergeModules merges modules by UUID, source identity, or name and parent.
-func (inv *Inventory) MergeModules(incoming map[uuid.UUID]*CaniModuleType) map[uuid.UUID]uuid.UUID {
+// MergeModules merges modules by UUID, external ID, identity (serial on the
+// same type, or asset tag), or name and parent. An incoming module whose
+// identity names two existing modules is a conflict the merge refuses rather
+// than resolves: folding it into either would leave two records claiming one
+// identity, which Nautobot's uniqueness rules forbid.
+func (inv *Inventory) MergeModules(incoming map[uuid.UUID]*CaniModuleType) (map[uuid.UUID]uuid.UUID, error) {
 	remap := make(map[uuid.UUID]uuid.UUID, len(incoming))
 	if inv.Modules == nil {
 		inv.Modules = make(map[uuid.UUID]*CaniModuleType)
 	}
-	for incomingID, module := range incoming {
-		if module == nil || module.Name == "" {
+	for _, incomingID := range sortedIDs(incoming) {
+		module := incoming[incomingID]
+		if module == nil {
 			continue
 		}
 		if err := module.Validate(); err != nil {
-			log.Printf("Skipping invalid module %q: %v", module.Name, err)
+			log.Printf("Skipping invalid module %q: %v", module.Label(), err)
 			continue
 		}
 		if existing, ok := inv.Modules[incomingID]; ok {
@@ -50,23 +57,60 @@ func (inv *Inventory) MergeModules(incoming map[uuid.UUID]*CaniModuleType) map[u
 			remap[incomingID] = incomingID
 			continue
 		}
-		matched := false
-		for existingID, existing := range inv.Modules {
-			if existing != nil && (sharedExternalID(existing.ExternalIDs, module.ExternalIDs) ||
-				(!conflictingExternalID(existing.ExternalIDs, module.ExternalIDs) && existing.Name == module.Name &&
-					(existing.ParentDevice == module.ParentDevice || existing.ParentDevice == uuid.Nil || module.ParentDevice == uuid.Nil))) {
-				mergeModuleProperties(existing, module)
-				remap[incomingID] = existingID
-				matched = true
-				break
-			}
+		existingID, matched, err := inv.matchModule(module)
+		if err != nil {
+			return nil, err
 		}
-		if !matched {
-			inv.Modules[incomingID] = module
-			remap[incomingID] = incomingID
+		if matched {
+			mergeModuleProperties(inv.Modules[existingID], module)
+			remap[incomingID] = existingID
+			continue
+		}
+		inv.Modules[incomingID] = module
+		remap[incomingID] = incomingID
+	}
+	return remap, nil
+}
+
+// matchModule finds the existing module an incoming one is, visiting existing
+// modules in a stable order: a shared external ID settles it; otherwise the
+// one module that shares its identity, or failing that the first that shares
+// its name. Two existing modules sharing the incoming identity (one its
+// serial, another its asset tag, for example) is an error naming all three.
+func (inv *Inventory) matchModule(module *CaniModuleType) (uuid.UUID, bool, error) {
+	var byIdentity []uuid.UUID
+	byName := uuid.Nil
+	for _, id := range sortedIDs(inv.Modules) {
+		existing := inv.Modules[id]
+		switch {
+		case existing == nil:
+		case sharedExternalID(existing.ExternalIDs, module.ExternalIDs):
+			return id, true, nil
+		case conflictingExternalID(existing.ExternalIDs, module.ExternalIDs):
+		case sameModuleIdentity(existing, module):
+			byIdentity = append(byIdentity, id)
+		case byName == uuid.Nil && sameModuleName(existing, module):
+			byName = id
 		}
 	}
-	return remap
+	switch {
+	case len(byIdentity) > 1:
+		return uuid.Nil, false, fmt.Errorf("module %s matches %d existing modules by identity (%s); correct the serial or asset tag in the source or the datastore",
+			module.Label(), len(byIdentity), inv.moduleLabels(byIdentity))
+	case len(byIdentity) == 1:
+		return byIdentity[0], true, nil
+	case byName != uuid.Nil:
+		return byName, true, nil
+	}
+	return uuid.Nil, false, nil
+}
+
+func (inv *Inventory) moduleLabels(ids []uuid.UUID) string {
+	labels := make([]string, 0, len(ids))
+	for _, id := range ids {
+		labels = append(labels, fmt.Sprintf("%s %s", inv.Modules[id].Label(), id))
+	}
+	return strings.Join(labels, ", ")
 }
 
 func mergeModuleProperties(existing, incoming *CaniModuleType) {
@@ -219,4 +263,26 @@ func mergeProviderMetadata(existing *ObjectMeta, incoming map[string]any) {
 			existingMap[key] = item
 		}
 	}
+}
+
+// sameModuleIdentity reports whether two modules share Nautobot's module
+// identity: the same asset tag, or the same serial on the same hardware
+// type. The type is compared only when both modules record one, as the swap
+// rule compares it, so a module imported without a type (Nautobot's module
+// type reference carries no model) still converges on its serial with the
+// authored record of the same card.
+func sameModuleIdentity(a, b *CaniModuleType) bool {
+	if a.AssetTag != "" && strings.EqualFold(a.AssetTag, b.AssetTag) {
+		return true
+	}
+	if a.Serial == "" || !strings.EqualFold(a.Serial, b.Serial) {
+		return false
+	}
+	typeA, typeB := moduleTypeKey(a), moduleTypeKey(b)
+	return typeA == "" || typeB == "" || strings.EqualFold(typeA, typeB)
+}
+
+func sameModuleName(a, b *CaniModuleType) bool {
+	return a.Name != "" && a.Name == b.Name &&
+		(a.ParentDevice == b.ParentDevice || a.ParentDevice == uuid.Nil || b.ParentDevice == uuid.Nil)
 }

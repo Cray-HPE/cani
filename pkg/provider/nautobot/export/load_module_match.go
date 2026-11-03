@@ -57,7 +57,7 @@ func (e *Exporter) findExistingModule(
 		if err != nil || remote != nil {
 			return remote, remote != nil && placementCurrent(remote, placement), err
 		}
-		clog.Warn("Stored Nautobot ID %s for module %q no longer exists; re-resolving by placement", known, module.Name)
+		clog.Warn("Stored Nautobot ID %s for module %q no longer exists; re-resolving by placement", known, module.Label())
 		delete(module.ExternalIDs, externalIDKeyNautobot)
 	}
 	switch {
@@ -202,12 +202,12 @@ func (e *Exporter) moveModule(
 	placement modulePlacement, result *LoadResult,
 ) error {
 	if !e.Options.Merge {
-		clog.Skipped("Skipped module (placement differs; use --merge to move): %s (%s)", module.Name, placement.describe())
+		clog.Skipped("Skipped module (placement differs; use --merge to move): %s (%s)", module.Label(), placement.describe())
 		result.ModulesMisplaced++
 		return nil
 	}
 	if e.Options.DryRun {
-		clog.DryRun("Would move module: %s (%s)", module.Name, placement.describe())
+		clog.DryRun("Would move module: %s (%s)", module.Label(), placement.describe())
 		result.ModulesMoved++
 		return nil
 	}
@@ -227,7 +227,7 @@ func (e *Exporter) moveModule(
 	if resp.StatusCode() != http.StatusOK {
 		return fmt.Errorf("unexpected status %d moving module: %s", resp.StatusCode(), string(resp.Body))
 	}
-	clog.Changed("Moved module: %s (%s)", module.Name, placement.describe())
+	clog.Changed("Moved module: %s (%s)", module.Label(), placement.describe())
 	result.ModulesMoved++
 	return nil
 }
