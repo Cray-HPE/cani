@@ -166,7 +166,7 @@ func commitPlannedModules(inventory *devicetypes.Inventory, base *devicetypes.Ca
 		if err := inventory.AddModule(mod); err != nil {
 			return fmt.Errorf(errAddModule, err)
 		}
-		log.Printf("Added module %s (%s) in %s bay %s", mod.ID, mod.Name, e.DeviceName, e.BayName)
+		log.Printf("Added module %s (%s) in %s bay %s", mod.ID, mod.Label(), e.DeviceName, e.BayName)
 	}
 	if err := datastores.Datastore.Save(inventory); err != nil {
 		return fmt.Errorf(errSaveInventory, err)

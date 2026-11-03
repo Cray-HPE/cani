@@ -130,6 +130,9 @@ func (inv *Inventory) FindModuleByName(name string) *CaniModuleType {
 	if inv == nil {
 		return nil
 	}
+	if name == "" {
+		return nil
+	}
 	for _, mod := range inv.Modules {
 		if mod != nil && mod.Name == name {
 			return mod

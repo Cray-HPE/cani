@@ -229,7 +229,7 @@ Exported in Phase 4 by `loadModules()` in `export/load_modules.go`, spares first
 | Cani Field | Go Type | Nautobot Field | Status | Notes |
 |---|---|---|---|---|
 | `ID` | `uuid.UUID` | — | Cani-Internal | Primary key |
-| `Name` | `string` | — | Cani-Internal | Nautobot's `Module` has no name field, so export does not send it. Import names a module after Nautobot's display text (for example `HPE 2-port 25GbE PCIe NIC installed in repro-dl380`); a re-import into a datastore that already holds the module keeps the authored name |
+| `Name` | `string` | — | Cani-Internal | Optional label. Nautobot's `Module` has no name field, so export does not send it, and a module needs none to be exported, merged or addressed: identity is the serial on a hardware type, or the asset tag, as Nautobot's uniqueness rules are, and `Inventory.MergeModules()` folds modules on identity before falling back to a shared name. An unnamed module is shown and logged by `CaniModuleType.Label()` as Nautobot renders one, `Model (Serial: X) (Asset Tag: Y)`. Import names a module after Nautobot's display text (for example `HPE 2-port 25GbE PCIe NIC installed in repro-dl380`); a re-import into a datastore that already holds the module keeps the authored name |
 | `Slug` | `string` | — | **Mapped** (indirectly) | Used to resolve `ModuleType` from library |
 | `PartNumber` | `string` | `ModuleType.PartNumber` | **Mapped** | Template → `ModuleType` |
 | `Manufacturer` | `string` | `ModuleType.Manufacturer` (FK) | **Mapped** | Template → `ModuleType`, FK resolved by name |

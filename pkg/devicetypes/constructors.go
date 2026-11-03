@@ -130,7 +130,6 @@ func NewModuleFromSlug(slug string) (*CaniModuleType, error) {
 		return nil, fmt.Errorf("module type slug %q not found in library", slug)
 	}
 	mod := mt.NewInstance()
-	mod.Name = mt.Model
 	mod.Status = string(StatusActive)
 	return mod, nil
 }
@@ -142,7 +141,6 @@ func NewModuleFromPartNumber(partNumber string) (*CaniModuleType, error) {
 		return nil, fmt.Errorf("module type part number %q not found in library", partNumber)
 	}
 	mod := mt.NewInstance()
-	mod.Name = mt.Model
 	mod.Status = string(StatusActive)
 	return mod, nil
 }

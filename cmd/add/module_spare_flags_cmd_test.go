@@ -71,21 +71,21 @@ func spareHarness(t *testing.T) (*cmdtest.Harness, string) {
 // Why it matters: the single-device add path ignored --dry-run and saved,
 // so an operator previewing a spare wrote it; the flag is documented as a
 // preview on the same command and honored on every other placement path.
-// Inputs: --spare --location <site> --dry-run for a library NIC. Outputs: no
-// error, one "Would store module" line naming the type and site on stdout,
-// zero modules, zero saves.
-// Data choice: the library NIC has a model, which is what the preview names
-// an unnamed module by.
+// Inputs: --spare --location <site> --serial SN-1 --dry-run for a library
+// NIC. Outputs: no error, one "Would store module" line naming the type,
+// serial and site on stdout, zero modules, zero saves.
+// Data choice: the serial proves the preview describes the unnamed module
+// as its label would read once added.
 func TestAddModuleSpareDryRunSavesNothing(t *testing.T) {
 	harness, siteName := spareHarness(t)
 
-	out, err := runCapturingStdout(t, harness, map[string][]string{"spare": {"true"}, "location": {siteName}, "dry-run": {"true"}}, "hpe-2p-25gbe-pcie-nic")
+	out, err := runCapturingStdout(t, harness, map[string][]string{"spare": {"true"}, "location": {siteName}, "serial": {"SN-1"}, "dry-run": {"true"}}, "hpe-2p-25gbe-pcie-nic")
 
 	if err != nil {
 		t.Fatalf("dry run: unexpected error: %v", err)
 	}
-	if !strings.Contains(out, "Would store module HPE 2-port 25GbE PCIe NIC at location "+siteName) {
-		t.Errorf("stdout = %q, want the planned spare with its model and location", out)
+	if !strings.Contains(out, "Would store module") || !strings.Contains(out, "(Serial: SN-1)") || !strings.Contains(out, "at location "+siteName) {
+		t.Errorf("stdout = %q, want the planned spare with its serial and location", out)
 	}
 	if n := len(harness.Inventory().Modules); n != 0 || harness.Store.Saves != 0 {
 		t.Errorf("modules = %d, saves = %d; want nothing added or saved", n, harness.Store.Saves)

@@ -3,6 +3,7 @@ package devicetypes
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -41,6 +42,35 @@ type CaniModuleType struct {
 
 	// Source tracks where this type was loaded from (e.g. "builtin", "local:/path", "git:url").
 	Source string `json:"-" yaml:"-"`
+}
+
+// Label is how a module is shown and logged. A named module is shown by its
+// name. An unnamed module is shown as Nautobot renders a module: its type
+// followed by the identity it records, "Model (Serial: X) (Asset Tag: Y)",
+// so a stock of identical spares reads by the values printed on the cards.
+// A module with neither a name nor an identity falls back to its type and
+// the first eight characters of its ID.
+func (m *CaniModuleType) Label() string {
+	if m == nil {
+		return ""
+	}
+	if m.Name != "" {
+		return m.Name
+	}
+	label := m.Model
+	if label == "" {
+		label = m.Slug
+	}
+	if m.Serial != "" {
+		label += " (Serial: " + m.Serial + ")"
+	}
+	if m.AssetTag != "" {
+		label += " (Asset Tag: " + m.AssetTag + ")"
+	}
+	if m.Serial == "" && m.AssetTag == "" && m.ID != uuid.Nil {
+		label += " " + m.ID.String()[:8]
+	}
+	return strings.TrimSpace(label)
 }
 
 // Validate checks the module for internal consistency.

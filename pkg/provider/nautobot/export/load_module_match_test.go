@@ -396,15 +396,18 @@ func TestLoadModulesExportsSwapInOrder(t *testing.T) {
 }
 
 // TestModuleExportOrderPutsSparesFirst verifies the export order lists spares
-// before installed modules, sorts by name within each group, and drops nil
-// and unnamed modules.
+// before installed modules, sorts by label within each group, drops nil
+// entries, and keeps an unnamed module, which sorts by its model and serial.
 //
 // Why it matters: a stable, spares-first order is what lets a swap export in
-// one run and keeps the log comparable between runs.
+// one run and keeps the log comparable between runs; a spare authored by
+// serial alone must be exported, since Nautobot needs no module name.
 // Inputs: installed "b" and "a", spares "z" and "y", a nil entry and an
-// unnamed module. Outputs: y, z, a, b.
+// unnamed spare of model "m" with serial "s". Outputs: m (Serial: s), y, z,
+// a, b.
 // Data choice: reverse-alphabetical insertion proves the sort rather than
-// map order.
+// map order; the unnamed spare's label sorts before "y" to prove it is
+// ordered with the other spares rather than appended.
 func TestModuleExportOrderPutsSparesFirst(t *testing.T) {
 	inv := devicetypes.NewInventory()
 	site, parent := uuid.New(), uuid.New()
@@ -417,13 +420,13 @@ func TestModuleExportOrderPutsSparesFirst(t *testing.T) {
 		inv.Modules[id] = &devicetypes.CaniModuleType{ID: id, Name: name, Location: site}
 	}
 	inv.Modules[uuid.New()] = nil
-	inv.Modules[uuid.New()] = &devicetypes.CaniModuleType{ID: uuid.New(), Location: site}
+	inv.Modules[uuid.New()] = &devicetypes.CaniModuleType{ID: uuid.New(), Location: site, Model: "m", Serial: "s"}
 
-	var names []string
+	var labels []string
 	for _, module := range moduleExportOrder(inv) {
-		names = append(names, module.Name)
+		labels = append(labels, module.Label())
 	}
-	if got := strings.Join(names, ","); got != "y,z,a,b" {
-		t.Errorf("order = %s, want y,z,a,b", got)
+	if got := strings.Join(labels, ","); got != "m (Serial: s),y,z,a,b" {
+		t.Errorf("order = %s, want m (Serial: s),y,z,a,b", got)
 	}
 }

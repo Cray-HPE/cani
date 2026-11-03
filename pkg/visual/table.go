@@ -113,7 +113,7 @@ func ResolveDeviceName(id uuid.UUID, inv *devicetypes.Inventory) string {
 	}
 	if inv.Modules != nil {
 		if m, ok := inv.Modules[id]; ok {
-			return m.Name
+			return m.Label()
 		}
 	}
 	return ""
@@ -255,37 +255,6 @@ func PrintDeviceTable(devices []*devicetypes.CaniDeviceType, inv *devicetypes.In
 		fmt.Println(row)
 	}
 	fmt.Printf("\nTotal: %d device(s)\n", len(devices))
-}
-
-// PrintModuleTable renders modules as a fixed-width table.
-func PrintModuleTable(modules []*devicetypes.CaniModuleType, inv *devicetypes.Inventory) {
-	header := Col("NAME", ColName) + "  " +
-		Col("TYPE", ColType) + "  " +
-		Col("MODEL", ColModel) + "  " +
-		Col("STATUS", ColStatus) + "  " +
-		Col("DEVICE", ColDevice) + "  " +
-		Col("BAY", ColBay)
-	sep := Col(strings.Repeat("-", ColName), ColName) + "  " +
-		Col(strings.Repeat("-", ColType), ColType) + "  " +
-		Col(strings.Repeat("-", ColModel), ColModel) + "  " +
-		Col(strings.Repeat("-", ColStatus), ColStatus) + "  " +
-		Col(strings.Repeat("-", ColDevice), ColDevice) + "  " +
-		Col(strings.Repeat("-", ColBay), ColBay)
-
-	fmt.Println(header)
-	fmt.Println(sep)
-	for _, m := range modules {
-		devName := ResolveDeviceName(m.ParentDevice, inv)
-		fmt.Println(
-			Col(m.Name, ColName) + "  " +
-				Col(string(m.Type), ColType) + "  " +
-				Col(m.Model, ColModel) + "  " +
-				Col(m.Status, ColStatus) + "  " +
-				Col(devName, ColDevice) + "  " +
-				Col(m.ModuleBayName, ColBay),
-		)
-	}
-	fmt.Printf("\nTotal: %d module(s)\n", len(modules))
 }
 
 // PrintCableTable renders cables as a fixed-width table.

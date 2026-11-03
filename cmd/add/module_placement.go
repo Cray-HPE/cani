@@ -100,7 +100,7 @@ func addModuleSingleDevice(inventory *devicetypes.Inventory, base *devicetypes.C
 		if err := inventory.AddModule(mod); err != nil {
 			return fmt.Errorf(errAddModule, err)
 		}
-		log.Printf("Added module %s (%s)", mod.ID, mod.Name)
+		log.Printf("Added module %s (%s)", mod.ID, mod.Label())
 	}
 
 	if err := datastores.Datastore.Save(inventory); err != nil {
@@ -112,12 +112,12 @@ func addModuleSingleDevice(inventory *devicetypes.Inventory, base *devicetypes.C
 
 // printSingleDevicePlan prints one line per module addModuleSingleDevice
 // would add: installed in the device and bay, stored at the spare location,
-// or added with no parent. An unnamed module is described by its model, the
-// name an instance gets by default.
+// or added with no parent. An unnamed module is described as its Label
+// would read, by type and the identity the flags stamp on it.
 func printSingleDevicePlan(w io.Writer, inventory *devicetypes.Inventory, base *devicetypes.CaniModuleType,
 	devices []*devicetypes.CaniDeviceType, names []string, opts moduleAddOpts) {
 	for i := range opts.qty {
-		label := plannedModuleLabel(base, names, i)
+		label := plannedModuleLabel(base, names, i, opts.ident)
 		switch {
 		case opts.spareLocation != uuid.Nil:
 			fmt.Fprintf(w, "Would store module %s at location %s\n", label, inventory.Locations[opts.spareLocation].Name)
@@ -131,13 +131,16 @@ func printSingleDevicePlan(w io.Writer, inventory *devicetypes.Inventory, base *
 	}
 }
 
-// plannedModuleLabel is the name the i-th planned module gets, or the model
-// an unnamed instance is named after.
-func plannedModuleLabel(base *devicetypes.CaniModuleType, names []string, i int) string {
+// plannedModuleLabel is the name the i-th planned module gets, or the label
+// an unnamed instance would carry: its type and the serial or asset tag.
+func plannedModuleLabel(base *devicetypes.CaniModuleType, names []string, i int, ident identity) string {
 	if names != nil {
 		return names[i]
 	}
-	return base.Model
+	planned := *base
+	planned.ID = uuid.Nil
+	ident.apply(&planned.Serial, &planned.AssetTag)
+	return planned.Label()
 }
 
 // resolveSingleDeviceNames resolves module names for the single-device flow,

@@ -76,7 +76,7 @@ port1_summary() {
 
 # module_count prints the number of modules in the datastore.
 # add_identified_spares stores two unnamed spares of one type, each with its
-# own serial and asset tag; both take the model as their name.
+# own serial and asset tag.
 add_identified_spares() {
   cani_crud add module hpe-2p-25gbe-pcie-nic --spare --location test-site --serial SN-0001 --asset-tag AT-0001 >/dev/null 2>&1 &&
   cani_crud add module hpe-2p-25gbe-pcie-nic --spare --location test-site --serial SN-0002 --asset-tag AT-0002 >/dev/null 2>&1
@@ -125,10 +125,10 @@ Describe 'module placement'
     End
 
     It 'previews a spare with --dry-run without saving it'
-      When call cani_crud add module hpe-2p-25gbe-pcie-nic --spare --location test-site --dry-run
+      When call cani_crud add module hpe-2p-25gbe-pcie-nic --spare --location test-site --serial SN-DRY --dry-run
       The status should equal 0
       The output should include 'Would store module'
-      The output should include 'at location test-site'
+      The output should include '(Serial: SN-DRY) at location test-site'
       The result of function module_count should equal 1
     End
 
@@ -170,13 +170,31 @@ Describe 'module placement'
       The result of function identity_sn1 should equal ''
     End
 
-    It 'reports the shared model name as ambiguous and lists the identities'
-      add_identified_spares
-      When call cani_crud update module 'HPE 2-port 25GbE PCIe NIC' --status Failed
+    It 'reports a name two spares share as ambiguous and lists their identities'
+      cani_crud add module hpe-2p-25gbe-pcie-nic --spare --location test-site --name twin --serial SN-0001 >/dev/null 2>&1
+      cani_crud add module hpe-2p-25gbe-pcie-nic --spare --location test-site --name twin --asset-tag AT-0002 >/dev/null 2>&1
+      When call cani_crud update module twin --status Failed
       The status should equal 1
       The stderr should include 'multiple items match'
       The stderr should include 'SN-0001'
       The stderr should include 'AT-0002'
+    End
+
+    It 'lists an unnamed spare by its model and serial'
+      add_identified_spares
+      When call cani_crud show module
+      The status should equal 0
+      The output should include 'SERIAL'
+      The output should include 'SN-0001'
+      The output should include 'SN-0002'
+    End
+
+    It 'shows an unnamed spare by its serial'
+      add_identified_spares
+      When call cani_crud show module SN-0002
+      The status should equal 0
+      The output should include 'SN-0002'
+      The output should not include 'SN-0001'
     End
   End
 

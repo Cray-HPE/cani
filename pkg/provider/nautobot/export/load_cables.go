@@ -137,7 +137,7 @@ func (e *Exporter) confirmedModuleID(module *devicetypes.CaniModuleType, port, d
 		return id, nil
 	}
 	return uuid.Nil, fmt.Errorf("module %s owning port %s on %s was not exported this run; resolve its error first",
-		module.Name, port, deviceName)
+		module.Label(), port, deviceName)
 }
 
 func terminationDevice(inventory *devicetypes.Inventory, id uuid.UUID) *devicetypes.CaniDeviceType {
