@@ -28,6 +28,14 @@ Nautobot records every create, update and delete made through the API in
 extras/object-changes. A command that must not write (a dry run, an export
 with nothing to do) is therefore checked by counting the ledger before and
 after; the newest entries name whatever slipped through.
+
+The ledger covers change-logged models only. In Nautobot 3.2 the
+ipam/ip-address-to-interface join rows and extras/relationship-associations
+are plain BaseModel tables with no ObjectChange of their own: a new join row
+is logged only as an update of the address and the interface it associates,
+and an association is not logged at all. The specs that re-export an
+inventory with assignments therefore count those two endpoints directly
+(rt_mark_joins / rt_joins_unchanged) alongside the ledger.
 """
 
 from seed_nautobot_api import api

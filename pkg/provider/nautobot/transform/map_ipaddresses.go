@@ -38,8 +38,9 @@ import (
 //   - statusNameMap: Nautobot status UUID → status name
 //   - roleNameMap: Nautobot role UUID → role name
 //
-// Interface assignments and NAT relationships are intentionally left unset:
-// interfaces are re-linked separately. The parent prefix and namespace are
+// Interface assignments are linked afterwards by LinkIPAssignments from the
+// ip-address-to-interface rows, once every device and module port is placed;
+// NAT relationships are not modelled. The parent prefix and namespace are
 // left for ScopeIPAddresses, which sets them from the Nautobot parent once
 // every prefix is mapped.
 func MapIPAddresses(

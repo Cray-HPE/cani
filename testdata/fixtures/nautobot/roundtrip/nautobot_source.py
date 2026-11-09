@@ -42,6 +42,7 @@ COLLECTIONS = {
     "vrfs": "ipam/vrfs/",
     "prefixes": "ipam/prefixes/",
     "ip_addresses": "ipam/ip-addresses/",
+    "ip_assignments": "ipam/ip-address-to-interface/",
     "vlans": "ipam/vlans/",
     "vlan_locations": "ipam/vlan-location-assignments/",
     "prefix_locations": "ipam/prefix-location-assignments/",

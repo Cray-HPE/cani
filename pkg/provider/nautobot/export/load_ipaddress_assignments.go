@@ -31,6 +31,7 @@ import (
 	"io"
 	"net/http"
 
+	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
 	"github.com/google/uuid"
@@ -45,16 +46,30 @@ type ipAssignment struct {
 	target *CachedItem
 }
 
-// assignIPToInterfaces creates IPAddressToInterface join records for each
-// interface the IP is assigned to.
+// assignIPToInterfaces creates an IPAddressToInterface join record for each
+// interface the address is assigned to. An address that already existed in
+// Nautobot may already carry some of them: those are read first and counted
+// as skipped, so a repeated export duplicates nothing and a dry run against
+// an existing address reports only what is missing. An address this run
+// created or planned can have none and is not queried. Nautobot's join table
+// is not change-logged, so this skip is the only record of the comparison.
 func (e *Exporter) assignIPToInterfaces(
 	ctx context.Context,
 	ipNautobotID uuid.UUID,
+	existed bool,
 	addr *devicetypes.CaniIPAddress,
 	inventory *devicetypes.Inventory,
 	deviceMap map[string]uuid.UUID,
 	result *LoadResult,
 ) {
+	assigned := map[uuid.UUID]bool{}
+	if existed {
+		var err error
+		if assigned, err = e.listIPAssignments(ctx, ipNautobotID); err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("ip %s: list interface assignments: %v", addr.Address, err))
+			return
+		}
+	}
 	for _, ifaceID := range addr.Interfaces {
 		assignment, err := e.resolveIPAssignment(inventory, ifaceID, addr.Address, deviceMap)
 		if err != nil {
@@ -65,45 +80,70 @@ func (e *Exporter) assignIPToInterfaces(
 			continue
 		}
 		device, iface := assignment.device, assignment.iface
+		if assignment.target != nil && assigned[assignment.target.ID] {
+			clog.Detail("  IP %s already assigned to %s:%s", addr.Address, device.Name, iface.Name)
+			result.IPAssignmentsSkipped++
+			continue
+		}
 		if e.Options.DryRun {
 			clog.DryRun("Would assign IP %s to interface %s:%s", addr.Address, device.Name, iface.Name)
+			result.IPAssignmentsCreated++
 			continue
 		}
-		nautobotIface := assignment.target
+		if err := e.createIPAssignment(ctx, ipNautobotID, assignment.target.ID); err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("ip %s: assignment to %s:%s: %v", addr.Address, device.Name, iface.Name, err))
+			continue
+		}
+		result.IPAssignmentsCreated++
+	}
+}
 
-		// Create the IP-to-interface assignment
-		assignReq := nautobotapi.IPAddressToInterfaceRequest{}
-		if err := setRefID(&assignReq.IpAddress, ipNautobotID); err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("ip %s: set assignment IP reference: %v", addr.Address, err))
-			continue
-		}
-		if err := setRefID(&assignReq.Interface, nautobotIface.ID); err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("ip %s: set assignment interface reference: %v", addr.Address, err))
-			continue
-		}
-
-		httpResp, err := e.Client.IpamIpAddressToInterfaceCreate(
-			ctx,
-			&nautobotapi.IpamIpAddressToInterfaceCreateParams{},
-			assignReq,
-		)
-		if err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("ip %s: interface assignment error: %v", addr.Address, err))
-			continue
-		}
-		respBody, _ := io.ReadAll(httpResp.Body)
-		httpResp.Body.Close()
-		if httpResp.StatusCode != http.StatusCreated && httpResp.StatusCode != http.StatusOK {
-			// 400 with "already exists" is acceptable (idempotency)
-			if httpResp.StatusCode == http.StatusBadRequest {
-				clog.Detail("  IP %s already assigned to %s:%s", addr.Address, device.Name, iface.Name)
-				continue
+// listIPAssignments returns the Nautobot interface IDs an address is
+// already assigned to. One page is enough: an address is on a handful of
+// ports at most, the same bound the interface lookups use.
+func (e *Exporter) listIPAssignments(ctx context.Context, ipNautobotID uuid.UUID) (map[uuid.UUID]bool, error) {
+	filter, limit := []openapi_types.UUID{openapi_types.UUID(ipNautobotID)}, 1000
+	resp, err := e.Client.IpamIpAddressToInterfaceListWithResponse(ctx, &nautobotapi.IpamIpAddressToInterfaceListParams{
+		IpAddress: &filter, Limit: &limit,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode() != http.StatusOK || resp.JSON200 == nil {
+		return nil, fmt.Errorf("unexpected status %d: %s", resp.StatusCode(), string(resp.Body))
+	}
+	assigned := make(map[uuid.UUID]bool, len(resp.JSON200.Results))
+	for i := range resp.JSON200.Results {
+		if iface := resp.JSON200.Results[i].Interface; iface != nil && iface.Id != nil {
+			if id := refID(iface.Id); id != uuid.Nil {
+				assigned[id] = true
 			}
-			result.Errors = append(result.Errors,
-				fmt.Sprintf("ip %s: assignment to %s:%s returned %d: %s",
-					addr.Address, device.Name, iface.Name, httpResp.StatusCode, string(respBody)))
 		}
 	}
+	return assigned, nil
+}
+
+// createIPAssignment posts one join record. Any status other than 201 is an
+// error: a 400 here means a malformed reference, not an existing assignment,
+// which listIPAssignments already ruled out.
+func (e *Exporter) createIPAssignment(ctx context.Context, ipNautobotID, ifaceNautobotID uuid.UUID) error {
+	req := nautobotapi.IPAddressToInterfaceRequest{}
+	if err := setRefID(&req.IpAddress, ipNautobotID); err != nil {
+		return fmt.Errorf("set assignment IP reference: %w", err)
+	}
+	if err := setRefID(&req.Interface, ifaceNautobotID); err != nil {
+		return fmt.Errorf("set assignment interface reference: %w", err)
+	}
+	httpResp, err := e.Client.IpamIpAddressToInterfaceCreate(ctx, &nautobotapi.IpamIpAddressToInterfaceCreateParams{}, req)
+	if err != nil {
+		return fmt.Errorf("interface assignment error: %w", err)
+	}
+	respBody, _ := io.ReadAll(httpResp.Body)
+	httpResp.Body.Close()
+	if httpResp.StatusCode != http.StatusCreated && httpResp.StatusCode != http.StatusOK {
+		return fmt.Errorf("returned %d: %s", httpResp.StatusCode, string(respBody))
+	}
+	return nil
 }
 
 // resolveIPAssignment finds the Nautobot interface an address is assigned

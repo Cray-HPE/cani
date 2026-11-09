@@ -44,16 +44,19 @@
 #   b. Build the fixture with `cani alpha add ...`: rt-dc > rt-level >
 #      rt-section, rt-rack, rt-node-1 and rt-node-2 (DL325s) joined by a
 #      cable, tenants tenant-a/tenant-b with overlapping 10.0.0.0/24 and
-#      10.0.0.5/24, VRF blue in both, VLAN 3100 and 10.31.0.0/24 on it.
-#   c. Export into the empty Nautobot: two devices and three prefixes created,
-#      no interface skipped for a type Nautobot lacks.
+#      10.0.0.5/24 (tenant-a's on rt-node-1 Gig-E 1), VRF blue in both,
+#      VLAN 3100 and 10.31.0.0/24 on it.
+#   c. Export into the empty Nautobot: two devices, three prefixes and one
+#      address assignment created, no interface skipped for a type Nautobot
+#      lacks.
 #   d. Parity: Nautobot now projects identically to the datastore.
 #   e. Snapshot the datastore projection, delete canidb.json and import what
 #      was exported into the empty datastore.
 #   f. The new datastore projects identically to the snapshot (nothing was lost
 #      on the way out and back) and parity holds.
-#   g. Mark the ledger and export again: no "Created" or "Updated" line, and
-#      the ledger grew by zero entries.
+#   g. Mark the ledger and the assignment table and export again: no "Created"
+#      or "Updated" line, the one assignment is read and skipped, the ledger
+#      grew by zero entries and the assignment table has the same rows.
 
 Describe 'INTEGRATION: Nautobot round trip export -> import -> export'
 
@@ -83,6 +86,7 @@ Describe 'INTEGRATION: Nautobot round trip export -> import -> export'
       The output should include 'Export completed successfully'
       The output should include 'Created devices: 2'
       The output should include 'Created prefixes: 3'
+      The output should include 'Created IP address assignments: 1'
       The output should not include 'Skipped interfaces (type not in Nautobot)'
     End
 
@@ -123,20 +127,29 @@ Describe 'INTEGRATION: Nautobot round trip export -> import -> export'
   End
 
   Describe 'second export'
-    # g. Exporting the re-imported datastore has nothing left to do.
+    # g. Exporting the re-imported datastore has nothing left to do: the
+    # assignment is read back from Nautobot and skipped, not posted again.
     It 'writes nothing to Nautobot'
       BeforeCall rt_mark_changes
+      BeforeCall rt_mark_joins
       When call rt_export
       The status should equal 0
       The output should include 'Export completed successfully'
       The output should not include 'Created '
       The output should not include 'Updated '
+      The output should include 'Skipped IP address assignments (already exist): 1'
     End
 
     It 'leaves the change ledger where it was'
       When call rt_changes_since_mark
       The status should equal 0
       The line 1 of output should equal 'changes=0'
+    End
+
+    It 'adds no assignment or association row'
+      When call rt_joins_unchanged
+      The status should equal 0
+      The output should equal 'joins unchanged'
     End
   End
 
