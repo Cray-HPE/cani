@@ -59,6 +59,8 @@ type RawData struct {
 	VRFPrefixAssignments      []nautobotapi.VRFPrefixAssignment
 	Namespaces                []nautobotapi.Namespace
 	Tags                      []nautobotapi.Tag
+	CustomFields              []nautobotapi.CustomField
+	CustomFieldChoices        []nautobotapi.CustomFieldChoice
 }
 
 // Transform converts raw Nautobot API data into a TransformResult.
@@ -144,6 +146,13 @@ func transformRaw(raw *RawData) (*devicetypes.TransformResult, error) {
 	warnings = append(warnings, ScopeIPAddresses(ipAddresses, raw.IPAddresses, prefixes)...)
 	warnings = append(warnings, moduleWarnings...)
 
+	// 12b. Custom-field definitions into the metadata catalog, so an export
+	// to a fresh destination can create them before it sends the values the
+	// mappers above copied onto each object.
+	customFields, cfWarnings := MapCustomFields(raw.CustomFields, raw.CustomFieldChoices)
+	warnings = append(warnings, cfWarnings...)
+	clog.Detail("  Transformed %d custom field definitions", len(customFields))
+
 	result := &devicetypes.TransformResult{
 		Locations:   locations,
 		Racks:       racks,
@@ -156,6 +165,9 @@ func transformRaw(raw *RawData) (*devicetypes.TransformResult, error) {
 		IPAddresses: ipAddresses,
 		VRFs:        vrfs,
 		Warnings:    warnings,
+	}
+	if len(customFields) > 0 {
+		result.Metadata = &devicetypes.InventoryMetadata{CustomFields: customFields}
 	}
 
 	// 13. Cross-object links that need every family mapped: tags on each

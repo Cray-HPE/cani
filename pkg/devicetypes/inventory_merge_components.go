@@ -133,7 +133,7 @@ func mergeModuleProperties(existing, incoming *CaniModuleType) {
 		existing.Type = incoming.Type
 	}
 	mergeModulePlacement(existing, incoming)
-	mergeObjectMeta(&existing.ObjectMeta, incoming.ObjectMeta)
+	existing.ObjectMeta.Merge(incoming.ObjectMeta)
 }
 
 // mergeModulePlacement takes the incoming module's placement as one unit, so
@@ -200,7 +200,7 @@ func mergeFruProperties(existing, incoming *CaniFruType) {
 	if incoming.Manufacturer != "" {
 		existing.Manufacturer = incoming.Manufacturer
 	}
-	mergeObjectMeta(&existing.ObjectMeta, incoming.ObjectMeta)
+	existing.ObjectMeta.Merge(incoming.ObjectMeta)
 }
 
 // mergeSet copies src over *dst when src is set and differs, reporting
@@ -212,57 +212,6 @@ func mergeSet[T comparable](dst *T, src T) bool {
 	}
 	*dst = src
 	return true
-}
-
-func mergeObjectMeta(existing *ObjectMeta, incoming ObjectMeta) {
-	if incoming.Status != "" {
-		existing.Status = incoming.Status
-	}
-	if incoming.Role != "" {
-		existing.Role = incoming.Role
-	}
-	if incoming.Tenant != "" {
-		existing.Tenant = incoming.Tenant
-	}
-	if incoming.Tags != nil {
-		existing.Tags = append([]string(nil), incoming.Tags...)
-	}
-	if incoming.CustomFields != nil {
-		if existing.CustomFields == nil {
-			existing.CustomFields = make(map[string]any)
-		}
-		for key, value := range incoming.CustomFields {
-			existing.CustomFields[key] = value
-		}
-	}
-	if incoming.ExternalIDs != nil {
-		if existing.ExternalIDs == nil {
-			existing.ExternalIDs = make(map[string]uuid.UUID)
-		}
-		for source, id := range incoming.ExternalIDs {
-			existing.ExternalIDs[source] = id
-		}
-	}
-	if incoming.ProviderMetadata != nil {
-		mergeProviderMetadata(existing, incoming.ProviderMetadata)
-	}
-}
-
-func mergeProviderMetadata(existing *ObjectMeta, incoming map[string]any) {
-	if existing.ProviderMetadata == nil {
-		existing.ProviderMetadata = make(map[string]any)
-	}
-	for provider, value := range incoming {
-		incomingMap, incomingOK := value.(map[string]any)
-		existingMap, existingOK := existing.ProviderMetadata[provider].(map[string]any)
-		if !incomingOK || !existingOK {
-			existing.ProviderMetadata[provider] = value
-			continue
-		}
-		for key, item := range incomingMap {
-			existingMap[key] = item
-		}
-	}
 }
 
 // sameModuleIdentity reports whether two modules share Nautobot's module

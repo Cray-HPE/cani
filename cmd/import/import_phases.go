@@ -144,7 +144,7 @@ func displayTransformSummary(ctx *etlContext, result *devicetypes.TransformResul
 func mergeTransformResult(ctx *etlContext, result *devicetypes.TransformResult) error {
 	result.EnsureUniqueDeviceNames()
 	prepareUnclassifiedDevices(result.Devices)
-	printImportDiff(ctx, result.Devices)
+	printImportDiff(ctx, result)
 	log.Printf("Verifying parent-child relationships")
 	_, err := ctx.inventory.MergeTransformResult(result)
 	return identityConflictError(ctx.inventory, err)

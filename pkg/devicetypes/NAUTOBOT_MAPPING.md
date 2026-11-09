@@ -648,10 +648,24 @@ Exported in Phase 0a by `EnsureCustomFields()` in `lookup_custom_fields.go`.
 Runs before any object phases so custom-field definitions exist before objects
 that carry values for them are created.
 
+Import fetches `extras/custom-fields` and `extras/custom-field-choices`
+(`MapCustomFields` in `transform/map_custom_fields.go`) into the catalog, so an
+inventory imported from one Nautobot carries the definitions its values need
+when it seeds another. Only the content types CANI exports are kept; a
+definition that applies to none of them is left out and reported.
+
 Transform metadata merges include complete custom-field definitions, keyed by
 `Key`. Existing local definitions win on reimport, matching the metadata catalog's
 add-only merge policy. New definitions use the same validation as `AddCustomField`;
 validation errors reject the complete transform without partially applying it.
+
+#### Custom-field value semantics (every object family)
+
+- **Definition drift under `--merge`.** `type` and `key` are immutable in
+  Nautobot and are never PATCHed; a type mismatch is reported. `content_types`
+  is sent as remote ∪ local and never shrunk, because removing a content type
+  makes Nautobot delete the field's values on every object of that type; a
+  remote-only content type is reported and kept.
 
 | Cani Field | Go Type | Nautobot Object | Status | Notes |
 |---|---|---|---|---|
@@ -664,6 +678,10 @@ validation errors reject the complete transform without partially applying it.
 | `CustomFieldDefinition.Default` | `any` | `CustomField.default` | **Mapped** | |
 | `CustomFieldDefinition.Choices` | `[]string` | `CustomFieldChoice.value` | **Mapped** | One choice object per value; idempotent |
 | `CustomFieldDefinition.Weight` | `int` | `CustomField.weight` | **Mapped** | Mapped when non-zero |
+| - | - | `CustomField.validation_minimum`, `validation_maximum`, `validation_regex` | Not Mapped | Not modelled by the catalog; import names a definition that sets one (never the value), and a fresh destination gets the definition without it |
+| - | - | `CustomField.filter_logic` | Not Mapped | Not modelled; a destination definition gets Nautobot's default `loose`, and import names a definition that sets another |
+| - | - | `CustomField.grouping`, `advanced_ui`, `scope_filter` | Not Mapped | Not modelled; import names a definition that sets one |
+| - | - | `CustomFieldChoice.weight` | Not Mapped | Choices keep their order; export recreates them with weights 100, 200, …, and import names a field whose weights differ from those |
 
 ---
 
@@ -785,8 +803,9 @@ for it as well.
 ### Phase 0a: Custom Fields
 
 Implemented in `EnsureCustomFields()` in `lookup_custom_fields.go`. Iterates `inventory.ListCustomFields()`. For each `CustomFieldDefinition`:
-- Looks up existing field by label; verifies key matches (errors on collision)
+- Looks up existing field by key
 - Creates the field if missing (skipped under `--dry-run`)
+- Under `--merge`, reconciles label, description, required, weight and added content types; never changes `type` or `key` and never removes a content type (see §2a.6)
 - For `select`/`multi-select` types, ensures each declared choice exists (skipped under `--dry-run`)
 
 Must run before Phase 0b so locations/devices/VLANs carrying custom-field values reference valid definitions.

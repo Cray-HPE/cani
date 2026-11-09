@@ -49,6 +49,22 @@ write requests. If discovery or removal fails, export stops before device
 updates or installations; successful removals before a later failure are not
 rolled back. Re-export after correcting the failure to finish reconciliation.
 
+### Custom fields
+
+Import fetches the custom-field definitions and their choices into the
+inventory metadata catalog, and export creates any definition the destination
+lacks before it writes the first object (Phase 0a). The catalog does not model a
+definition's validation limits and pattern, filter logic, grouping, advanced-UI
+flag or scope filter, nor its exact choice weights (choices keep their order):
+import names every definition that sets one, never the value, and a fresh
+destination gets the definition without it.
+
+Under `--merge`, a definition's label, description, required flag, weight and
+newly added content types are reconciled. Its `type` and `key` are immutable in
+Nautobot and are only reported when they differ, and a content type is never
+removed, since Nautobot would delete the field's values on every object of
+that type.
+
 ## Configuration
 
 Provider-specific options in `~/.cani/cani.yml`:

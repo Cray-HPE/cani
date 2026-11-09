@@ -123,6 +123,8 @@ func fetchAll(ctx context.Context, client *nautobotapi.ClientWithResponses) (Raw
 		{"vrf-prefix-assignments", into(ctx, client, &d.VRFPrefixAssignments, FetchVRFPrefixAssignments)},
 		{"namespaces", into(ctx, client, &d.Namespaces, FetchNamespaces)},
 		{"tags", into(ctx, client, &d.Tags, FetchTags)},
+		{"custom fields", into(ctx, client, &d.CustomFields, FetchCustomFields)},
+		{"custom field choices", into(ctx, client, &d.CustomFieldChoices, FetchCustomFieldChoices)},
 	}
 	for _, step := range steps {
 		if err := step.fetch(); err != nil {
