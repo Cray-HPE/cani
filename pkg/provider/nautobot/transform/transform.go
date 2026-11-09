@@ -54,6 +54,7 @@ type RawData struct {
 	Prefixes                  []nautobotapi.Prefix
 	PrefixLocationAssignments []nautobotapi.PrefixLocationAssignment
 	IPAddresses               []nautobotapi.IPAddress
+	IPAddressAssignments      []nautobotapi.IPAddressToInterface
 	VRFs                      []nautobotapi.VRF
 	VRFDeviceAssignments      []nautobotapi.VRFDeviceAssignment
 	VRFPrefixAssignments      []nautobotapi.VRFPrefixAssignment
@@ -171,8 +172,10 @@ func transformRaw(raw *RawData) (*devicetypes.TransformResult, error) {
 	}
 
 	// 13. Cross-object links that need every family mapped: tags on each
-	// record and the devices' primary addresses.
+	// record, the addresses' interface assignments (which need the device
+	// and module ports placed above) and the devices' primary addresses.
 	LinkTags(result, raw)
+	result.Warnings = append(result.Warnings, LinkIPAssignments(result, raw.IPAddressAssignments, ifaceMap)...)
 	LinkPrimaryIPs(result, raw.Devices)
 	return result, nil
 }

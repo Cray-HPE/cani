@@ -633,7 +633,7 @@ intended namespace, and the parent is remapped to its canonical inventory UUID.
 | `DNSName` | `string` | `IPAddress.dns_name` | **Mapped** | |
 | `Description` | `string` | `IPAddress.description` | **Mapped** | |
 | `Parent` | `uuid.UUID` | `IPAddress.parent` (FK) | **Mapped** | Preserved from Nautobot on import; otherwise derived inside the intended namespace; resolved on export and required for it |
-| `Interfaces` | `[]uuid.UUID` | IP address-to-interface assignment | Partial | Exported; import does not currently fetch assignment resources |
+| `Interfaces` | `[]uuid.UUID` | `IPAddressToInterface` rows (`ipam/ip-address-to-interface`) | **Mapped** | Import fetches the join table (`FetchIPAddressToInterfaces`) and links each address to the ports the result placed, device-owned or module-owned, after every port exists (`LinkIPAssignments`); many-to-many (one address on several ports) is kept. On merge the IDs follow a device or module merged onto an existing record to the same-named ports it kept (`ReferenceRemaps.Interfaces`, which cable terminations follow too); the incoming address replaces the local one, assignments included, and an assignment to a port the kept record has no port of that name for is dropped and listed as unresolved rather than refusing the import. Export reads the rows an existing address already has and creates only the missing ones (`IPAssignmentsCreated` / `IPAssignmentsSkipped`); a row on a VM interface is reported and skipped, and the rows' `is_source`/`is_destination`/`is_default`/`is_preferred`/`is_primary`/`is_secondary`/`is_standby` flags are not modelled: import keeps the assignment and names every flag the row sets in `TransformResult.Warnings` |
 | `NATInside` | `uuid.UUID` | `IPAddress.nat_inside` | Not Mapped | Remapped when supplied by another provider, but Nautobot import/export does not populate it |
 | `Status` | `string` | `IPAddress.status` (FK) | **Mapped** | Resolved by name |
 | `Tags` | `[]string` | `IPAddress.tags` | Partial | Import resolves tag names (`LinkTags`); export does not send them |
@@ -921,7 +921,7 @@ Implemented in `loadPrefixes()` in `load_prefixes.go`. Iterates `inventory.Prefi
 
 ### Phase 9: IP Addresses
 
-Implemented in `loadIPAddresses()` in `load_ipaddresses.go`. Iterates `inventory.IPAddresses`. Find-or-create by host within the parent prefix's namespace (the mask is an attribute); an address without a containing prefix in the inventory is reported. Resolves the parent prefix and assigns the address to its interface(s).
+Implemented in `loadIPAddresses()` in `load_ipaddresses.go`. Iterates `inventory.IPAddresses`. Find-or-create by host within the parent prefix's namespace (the mask is an attribute); an address without a containing prefix in the inventory is reported. Resolves the parent prefix and assigns the address to its interface(s): for an address Nautobot already held, the existing `ipam/ip-address-to-interface` rows are read first and counted as skipped, so a repeated export posts no duplicate (`load_ipaddress_assignments.go`). The join row has no change-log entry of its own (Nautobot 3.2 records its creation as an update of the address and of the interface), so the round-trip specs count its rows directly as well as reading the object-change ledger.
 
 ### Phase 10: Relationships
 

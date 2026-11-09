@@ -307,7 +307,7 @@ func TestAssignIPToInterfaces_SkipsUnknownInterface(t *testing.T) {
 	result := &LoadResult{}
 
 	// Act / Assert (must not panic).
-	e.assignIPToInterfaces(context.Background(), uuid.New(), addr, inv,
+	e.assignIPToInterfaces(context.Background(), uuid.New(), false, addr, inv,
 		map[string]uuid.UUID{}, result)
 
 	if len(result.Errors) != 0 {

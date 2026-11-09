@@ -50,11 +50,10 @@
 #   c. Reset Nautobot: no object and no cani_rt_ definition survives.
 #   d. Export into the empty Nautobot. The definitions are created first and
 #      every value arrives; the racks, whose recorded IDs belong to the source,
-#      are created. compute-001's primary IPv4 is refused, because import does
-#      not yet carry the address's interface assignment, which a primary
-#      address needs.
-#   e. The destination projects as the source did except for that primary
-#      IPv4.
+#      are created; the addresses' interface assignments arrive, so the
+#      primary IPv4 and IPv6 do too.
+#   e. The destination projects as the source did, assignments included, and
+#      the datastore, now recording the destination's IDs, projects as it.
 
 # Reset, seed the base fixture and layer the custom fields on it.
 #shellcheck disable=SC2317
@@ -114,22 +113,28 @@ Describe 'INTEGRATION: Nautobot fresh seed: import from one Nautobot, export int
       The output should include 'cani_rt_ definitions=0'
     End
 
-    # d. Definitions first, then every object; only the primary IPv4 fails.
+    # d. Definitions first, then every object, assignments and primaries last.
     It 'exports the imported inventory into it'
       When call rt_export
-      The status should equal 1
+      The status should equal 0
       The output should include 'Created custom field: cani_rt_flag'
       The output should include 'Created custom field: cani_rt_tier'
       The output should not include 'did not arrive'
       The output should not include 'Skipped rack (already exported)'
-      The output should include 'compute-001: primary IP patch: status 400'
+      The output should include 'Export completed successfully'
     End
 
-    # e. Everything else arrived as the source had it.
-    It 'matches the source but for the primary IPv4'
+    # e. Everything arrived as the source had it.
+    It 'matches the source'
       When call rt_diff_against_source
-      The status should equal 1
-      The output should equal "device/compute-001: primary_ip4: '10.0.0.5/24' != ''"
+      The status should equal 0
+      The output should equal 'projections equal'
+    End
+
+    It 'projects the datastore and the destination identically'
+      When call rt_assert_parity
+      The status should equal 0
+      The output should equal 'projections equal'
     End
   End
 

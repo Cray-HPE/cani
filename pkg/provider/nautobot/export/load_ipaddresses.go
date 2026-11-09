@@ -68,14 +68,14 @@ func (e *Exporter) loadIPAddresses(
 				addr.Address, inventory.IPAddressNamespace(addr)))
 			continue
 		}
-		nautobotID, err := e.loadIPAddress(ctx, addr, parent.EffectiveNamespace(), prefixMap, result)
+		nautobotID, existed, err := e.loadIPAddress(ctx, addr, parent.EffectiveNamespace(), prefixMap, result)
 		if err != nil {
 			result.Errors = append(result.Errors, fmt.Sprintf("ip %s/%s: %v", parent.EffectiveNamespace(), addr.Address, err))
 			continue
 		}
 		loaded[addr.ID] = nautobotID
 		e.recordExternalID(&addr.ExternalIDs, nautobotID)
-		e.assignIPToInterfaces(ctx, nautobotID, addr, inventory, deviceMap, result)
+		e.assignIPToInterfaces(ctx, nautobotID, existed, addr, inventory, deviceMap, result)
 	}
 
 	clog.Info("  IP addresses created: %d", result.IPAddressesCreated)
@@ -83,35 +83,36 @@ func (e *Exporter) loadIPAddresses(
 }
 
 // loadIPAddress finds or creates one address in the namespace and returns
-// its Nautobot ID. Finding an existing address counts as skipped.
+// its Nautobot ID and whether it already existed. Finding an existing
+// address counts as skipped.
 func (e *Exporter) loadIPAddress(
 	ctx context.Context,
 	addr *devicetypes.CaniIPAddress,
 	namespace string,
 	prefixMap map[uuid.UUID]uuid.UUID,
 	result *LoadResult,
-) (uuid.UUID, error) {
+) (uuid.UUID, bool, error) {
 	ns, exists, err := e.ensureNamespace(namespace)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("resolve namespace: %w", err)
+		return uuid.Nil, false, fmt.Errorf("resolve namespace: %w", err)
 	}
 	var existing *CachedItem
 	if exists {
 		if existing, err = e.Cache.LookupIPAddress(namespace, addr.Address); err != nil {
-			return uuid.Nil, fmt.Errorf("lookup error: %w", err)
+			return uuid.Nil, false, fmt.Errorf("lookup error: %w", err)
 		}
 	}
 	if existing != nil {
 		result.IPAddressesSkipped++
-		return existing.ID, nil
+		return existing.ID, true, nil
 	}
 	nautobotID, err := e.createIPAddress(ctx, addr, ns.ID, prefixMap, result)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("create error: %w", err)
+		return uuid.Nil, false, fmt.Errorf("create error: %w", err)
 	}
 	e.Cache.CacheIPAddress(namespace, addr.Address, &CachedItem{ID: nautobotID, Name: addr.Address})
 	result.IPAddressesCreated++
-	return nautobotID, nil
+	return nautobotID, false, nil
 }
 
 // createIPAddress creates a single IP address in Nautobot.

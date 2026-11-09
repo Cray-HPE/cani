@@ -79,6 +79,35 @@ Nautobot and are only reported when they differ, and a content type is never
 removed, since Nautobot would delete the field's values on every object of
 that type.
 
+### IP address assignments and primary IPs
+
+Import reads the `ipam/ip-address-to-interface` join table (a Nautobot
+address does not list its own interfaces) and links every address to the
+device and module ports it is assigned to, one address on several ports
+included; an assignment to a virtual-machine interface is reported and left
+out. A device's primary IPv4 and IPv6 travel with it, and Nautobot accepts a
+primary address only when it is assigned to one of that device's interfaces,
+so the two arrive together on a fresh destination.
+
+On a re-import, an imported device or module that matches an existing record
+keeps that record's ports, and the assignments and cables follow the ports by
+name, so an inventory authored with the CLI can take an import. An imported
+address replaces the local one, assignments included. An assignment to a port
+the existing record has no port of that name for (a bond, a loopback or a
+port the template names differently) is dropped from the import and listed
+with the other unresolved records; the rest of the import merges, and
+Nautobot keeps the assignment, since export never deletes one.
+
+Export creates the assignments an address lacks and leaves the ones Nautobot
+already holds alone: for an address that already exists it reads the current
+rows first, so a repeated export never posts a duplicate, and the summary
+counts assignments created and skipped. The join row has no change-log entry
+of its own (Nautobot records its creation as an update of the address and of
+the interface), so a repeated export is verified by counting its rows as
+well as the ledger. A row's `is_source`, `is_destination`, `is_default`,
+`is_preferred`, `is_primary`, `is_secondary` and `is_standby` flags are not
+modelled: import keeps the assignment and names every flag the row sets.
+
 ## Configuration
 
 Provider-specific options in `~/.cani/cani.yml`:
