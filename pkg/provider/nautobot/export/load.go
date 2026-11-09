@@ -104,6 +104,8 @@ type LoadResult struct {
 	PrefixesSkipped             int            // Number of prefixes skipped (already exist)
 	IPAddressesCreated          int            // Number of IP addresses created
 	IPAddressesSkipped          int            // Number of IP addresses skipped (already exist)
+	IPAssignmentsCreated        int            // Number of IP-to-interface assignments created
+	IPAssignmentsSkipped        int            // Number of IP-to-interface assignments skipped (already exist)
 	RelationshipsCreated        int            // Number of relationship associations created
 	RelationshipsSkipped        int            // Number of relationship associations skipped (already exist)
 }
@@ -1078,6 +1080,12 @@ func (e *Exporter) printLoadSummary(result *LoadResult) {
 	}
 	if result.IPAddressesSkipped > 0 {
 		clog.Skipped("Skipped IP addresses (already exist): %d", result.IPAddressesSkipped)
+	}
+	if result.IPAssignmentsCreated > 0 {
+		clog.Created("Created IP address assignments: %d", result.IPAssignmentsCreated)
+	}
+	if result.IPAssignmentsSkipped > 0 {
+		clog.Skipped("Skipped IP address assignments (already exist): %d", result.IPAssignmentsSkipped)
 	}
 
 	// Errors

@@ -84,12 +84,15 @@ Describe 'INTEGRATION: Nautobot IPAM update and remove verbs'
       The output should include 'Import completed successfully'
     End
 
-    # b. Each tenant holds one of each kind; the filter must return only that one.
-    It 'lists only the prefix of the namespace asked for'
+    # b. The filter must return only the records of the namespace asked for:
+    # tenant-a holds two prefixes (the shared /24 and its v6 /64), the others
+    # one of each kind.
+    It 'lists only the prefixes of the namespace asked for'
       When call rt_cani show prefix --namespace tenant-a
       The status should equal 0
       The output should include '10.0.0.0/24'
-      The output should include 'Total: 1 prefix(es)'
+      The output should include '2001:db8:a::/64'
+      The output should include 'Total: 2 prefix(es)'
     End
 
     It 'lists only the VRF of the namespace asked for'

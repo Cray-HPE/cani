@@ -29,9 +29,11 @@ compute-002 (one eth0 each) joined by one cable; location test-edge holding
 edge-001 with no rack. IPAM: namespaces tenant-a and tenant-b that each hold
 10.0.0.0/24 and host 10.0.0.5/24; VRF "blue" in both tenants, assigned to
 tenant-a's prefix and to compute-001; tenant-a's host is assigned to
-compute-001 eth0 and is its primary IPv4; VLAN 3100 and 10.31.0.0/24 in
-Global scoped to test-dc. Run after `reset` so every POST creates exactly one
-object.
+compute-001 eth0 and to edge-001 eth0 (one address on two ports) and is
+compute-001's primary IPv4; tenant-a also holds 2001:db8:a::/64 and host
+2001:db8:a::5/64 on compute-001 eth0 as its primary IPv6; VLAN 3100 and
+10.31.0.0/24 in Global scoped to test-dc. Run after `reset` so every POST
+creates exactly one object.
 """
 
 from seed_nautobot import (
@@ -53,6 +55,8 @@ TAG = "cani-rt-tag"
 TENANTS = ("tenant-a", "tenant-b")
 SHARED_PREFIX = "10.0.0.0/24"
 SHARED_HOST = "10.0.0.5/24"
+V6_PREFIX = "2001:db8:a::/64"
+V6_HOST = "2001:db8:a::5/64"
 
 ACTIVE_CONTENT_TYPES = [
     "dcim.device", "dcim.interface", "dcim.location", "dcim.rack",
@@ -104,12 +108,23 @@ def seed_dcim(status_id):
     }))
     eth0 = {name: create_interface(dev["id"], "eth0", status_id) for name, dev in devices.items()}
     create_cable(eth0["compute-001"]["id"], eth0["compute-002"]["id"], get_status_id("Connected", ["dcim.cable"]))
-    return location, devices, eth0["compute-001"]
+    return location, devices, eth0
 
 
-def seed_tenants(status_id, compute_001_id, compute_001_eth0_id):
-    """Create the overlapping tenant networks, the VRF memberships and the
-    primary address of compute-001."""
+def assign(ip_id, interface_id):
+    api("POST", "ipam/ip-address-to-interface/", {"ip_address": ref(ip_id), "interface": ref(interface_id)})
+
+
+def seed_tenants(status_id, compute_001_id, ports):
+    """Create the overlapping tenant networks, the VRF memberships, the
+    assignments of tenant-a's hosts and the primary addresses of compute-001.
+
+    ports maps device name -> its eth0. tenant-a's IPv4 host sits on two ports
+    (compute-001 and edge-001), the many-to-many shape Nautobot 2 allows; its
+    IPv6 host sits on compute-001 alone. Both are compute-001's primaries, one
+    per address family, which Nautobot accepts only because each is assigned
+    to one of that device's interfaces.
+    """
     for index, tenant in enumerate(TENANTS, start=1):
         namespace = api("POST", "ipam/namespaces/", {"name": tenant})
         vrf = api("POST", "ipam/vrfs/", {
@@ -127,10 +142,25 @@ def seed_tenants(status_id, compute_001_id, compute_001_eth0_id):
         if tenant == "tenant-a":
             api("POST", "ipam/vrf-prefix-assignments/", {"vrf": ref(vrf["id"]), "prefix": ref(prefix["id"])})
             api("POST", "ipam/vrf-device-assignments/", {"vrf": ref(vrf["id"]), "device": ref(compute_001_id)})
-            api("POST", "ipam/ip-address-to-interface/", {
-                "ip_address": ref(host["id"]), "interface": ref(compute_001_eth0_id),
+            assign(host["id"], ports["compute-001"]["id"])
+            assign(host["id"], ports["edge-001"]["id"])
+            v6_host = seed_v6(status_id, namespace["id"])
+            assign(v6_host["id"], ports["compute-001"]["id"])
+            api("PATCH", f"dcim/devices/{compute_001_id}/", {
+                "primary_ip4": ref(host["id"]), "primary_ip6": ref(v6_host["id"]),
             })
-            api("PATCH", f"dcim/devices/{compute_001_id}/", {"primary_ip4": ref(host["id"])})
+
+
+def seed_v6(status_id, namespace_id):
+    """Create tenant-a's IPv6 network and host; returns the host."""
+    api("POST", "ipam/prefixes/", {
+        "prefix": V6_PREFIX, "namespace": ref(namespace_id),
+        "status": ref(status_id), "type": "network", "description": "v6 network in tenant-a",
+    })
+    return api("POST", "ipam/ip-addresses/", {
+        "address": V6_HOST, "namespace": ref(namespace_id), "status": ref(status_id),
+        "type": "host", "dns_name": "host6.tenant-a.example.test", "description": "v6 host in tenant-a",
+    })
 
 
 def seed_global_scope(status_id, location_id):
@@ -148,10 +178,11 @@ def seed_global_scope(status_id, location_id):
 def seed():
     status_id = get_status_id("Active", ACTIVE_CONTENT_TYPES)
     ensure_content_types("extras/statuses/", status_id, ACTIVE_CONTENT_TYPES)
-    location, devices, compute_001_eth0 = seed_dcim(status_id)
-    seed_tenants(status_id, devices["compute-001"]["id"], compute_001_eth0["id"])
+    location, devices, ports = seed_dcim(status_id)
+    seed_tenants(status_id, devices["compute-001"]["id"], ports)
     seed_global_scope(status_id, location["id"])
-    print("Seed complete: 2 locations, 1 rack, 3 devices, 1 cable, 2 tenants, 3 prefixes, 2 addresses, 2 VRFs, 1 VLAN")
+    print("Seed complete: 2 locations, 1 rack, 3 devices, 1 cable, 2 tenants, 4 prefixes, 3 addresses, "
+          "3 assignments, 2 VRFs, 1 VLAN")
 
 
 if __name__ == "__main__":

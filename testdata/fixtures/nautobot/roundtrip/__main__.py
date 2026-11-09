@@ -38,6 +38,8 @@ Commands:
   delete-ip NS ADDR              delete an address in Nautobot
   recreate-ip NS ADDR            delete and re-add an address: same key, new UUID
   recreate-prefix NS CIDR        the same for a prefix and the addresses it holds
+  assign-ip NS ADDR DEV IFACE    assign an address to a device port in Nautobot
+  unassign-ip NS ADDR DEV IFACE  take an address off a device port in Nautobot
 """
 
 import argparse
@@ -140,6 +142,15 @@ def add_mutations(sub):
         command.add_argument("namespace")
         command.add_argument("value", metavar="ADDR|CIDR")
         command.set_defaults(run=lambda args, action=action: action(args.namespace, args.value))
+
+    for name, action in (("assign-ip", mutate.assign_ip), ("unassign-ip", mutate.unassign_ip)):
+        command = sub.add_parser(name)
+        command.add_argument("namespace")
+        command.add_argument("address")
+        command.add_argument("device")
+        command.add_argument("interface")
+        command.set_defaults(run=lambda args, action=action: action(
+            args.namespace, args.address, args.device, args.interface))
 
 
 def main(argv=None):

@@ -33,7 +33,7 @@ what cani promises to carry, not about everything Nautobot stores:
   rack       §2.2   key name            location, status, u_height, comments, tags
   device     §2.3   key name            device_type, status, role, location, rack,
                                         position, face, serial, comments, tags,
-                                        primary_ip4
+                                        primary_ip4, primary_ip6
   interface  §2a.1  key device|name     type, mac, label, description, status, tags
   cable      §2.5   key endpoints       label, status, color
   namespace  §2a    key name            (membership only: names some record uses)
@@ -41,18 +41,21 @@ what cani promises to carry, not about everything Nautobot stores:
   prefix     §2a.4  key namespace|cidr  status, type, role, description, vlan,
                                         locations, parent, tags
   ip         §2a.5  key namespace|addr  status, type, role, dns_name, description,
-                                        parent, tags
+                                        parent, interfaces, tags
   vlan       §2a.3  key vid|location    name, status, role, description, tags
 
 A device's location is its rack's when it has one and its own otherwise, on
 both sides. A VLAN is keyed the way MergeVLANs matches it, by VID within its
-location, so its name is compared rather than relied on. Not projected on
-purpose: location type keys
-(nautobot_location_types_spec.sh owns the key<->display rule), IP->interface
-assignments (import leaves them unset until FORGE-566), Cable.Type (export
-derives it from CableType, CableCategory, ConnectorType or Slug, so a library
-cable gains it only after a round trip), tenants and custom fields. Lists are
-sorted so set-valued fields compare as values.
+location, so its name is compared rather than relied on. An address's
+interfaces are the device|name labels of the ports it is assigned to, read
+from the ipam/ip-address-to-interface join table on the Nautobot side; the
+join rows' is_* flags and VM interfaces are not modelled and not compared.
+Not projected on purpose: location type keys
+(nautobot_location_types_spec.sh owns the key<->display rule), Cable.Type
+(export derives it from CableType, CableCategory, ConnectorType or Slug, so
+a library cable gains it only after a round trip) and tenants. Custom fields
+are projected by custom_fields.py, for the cani_rt_ keys the fresh-seed spec
+sets. Lists are sorted so set-valued fields compare as values.
 """
 
 from roundtrip.cani_source import is_set
@@ -97,6 +100,7 @@ def project_nautobot(raw):
     assigned = _group(raw["vrf_devices"], "vrf", "device", "name")
     vlan_locs = _group(raw["vlan_locations"], "vlan", "location", "name")
     prefix_locs = _group(raw["prefix_locations"], "prefix", "location", "name")
+    ip_ports = _ip_ports(raw.get("ip_assignments", []), interfaces)
     out = {
         "location": {loc["name"]: {
             "parent": ref(loc.get("parent")), "status": ref(loc.get("status")),
@@ -113,6 +117,7 @@ def project_nautobot(raw):
             "face": choice(dev.get("face")), "serial": text(dev.get("serial")),
             "comments": text(dev.get("comments")), "tags": tags(dev),
             "primary_ip4": ref(dev.get("primary_ip4"), "address"),
+            "primary_ip6": ref(dev.get("primary_ip6"), "address"),
         } for dev in raw["devices"]},
         "interface": {interfaces[i["id"]]: {
             "type": choice(i.get("type")), "mac": text(i.get("mac_address")).lower(),
@@ -135,7 +140,7 @@ def project_nautobot(raw):
         "ip": {f"{prefix_ns.get(ref(ip.get('parent'), 'id'), GLOBAL)}|{ip['address']}": {
             "status": ref(ip.get("status")), "type": choice(ip.get("type")), "role": ref(ip.get("role")),
             "dns_name": text(ip.get("dns_name")), "description": text(ip.get("description")),
-            "parent": ref(ip.get("parent"), "prefix"), "tags": tags(ip),
+            "parent": ref(ip.get("parent"), "prefix"), "interfaces": ip_ports.get(ip["id"], []), "tags": tags(ip),
         } for ip in raw["ip_addresses"]},
         "vlan": {vlan_key(v["vid"], vlan_locs.get(v["id"], [])): {
             "name": text(v.get("name")), "status": ref(v.get("status")), "role": ref(v.get("role")),
@@ -152,6 +157,17 @@ def _group(assignments, owner, member, member_key):
     for row in assignments:
         grouped.setdefault(ref(row.get(owner), "id"), []).append(ref(row.get(member), member_key))
     return {owner_id: sorted(values) for owner_id, values in grouped.items()}
+
+
+def _ip_ports(assignments, interfaces):
+    """{address id: sorted [device|name]} from the ip-address-to-interface
+    table; a row on a VM interface has no device interface and is skipped."""
+    grouped = {}
+    for row in assignments:
+        port = interfaces.get(ref(row.get("interface"), "id"))
+        if port:
+            grouped.setdefault(ref(row.get("ip_address"), "id"), []).append(port)
+    return {ip_id: sorted(ports) for ip_id, ports in grouped.items()}
 
 
 def _endpoints(a, b):
@@ -191,8 +207,15 @@ def project_cani(inv):
     def endpoint(cable, side):
         return f"{dev_name(cable.get(f'termination{side}Device'))}|{cable.get(f'termination{side}Port')}"
 
-    def primary_ip4(dev):
-        return text(inv["ip_addresses"].get(dev.get("primaryIpv4") or "", {}).get("address"))
+    def primary_ip(dev, field):
+        return text(inv["ip_addresses"].get(dev.get(field) or "", {}).get("address"))
+
+    def port(iface_id):
+        iface = inv["interfaces"].get(iface_id or "")
+        return f"{dev_name(iface.get('deviceId'))}|{iface['name']}" if iface else ""
+
+    def ports(ip):
+        return sorted(label for label in (port(i) for i in ip.get("interfaces") or []) if label)
 
     out = {
         "location": {loc["name"]: {
@@ -210,7 +233,8 @@ def project_cani(inv):
             "rack": text(rack_of(dev).get("name")), "position": dev.get("rackPosition") or 0,
             "face": text(dev.get("face")), "serial": text(dev.get("serial")),
             "comments": text(dev.get("comments")), "tags": local_tags(dev),
-            "primary_ip4": primary_ip4(dev),
+            "primary_ip4": primary_ip(dev, "primaryIpv4"),
+            "primary_ip6": primary_ip(dev, "primaryIpv6"),
         } for dev in inv["devices"].values()},
         "interface": {f"{dev_name(i.get('deviceId'))}|{i['name']}": {
             "type": text(i.get("interfaceType")), "mac": text(i.get("macAddress")).lower(),
@@ -233,7 +257,7 @@ def project_cani(inv):
         "ip": {f"{ns(ip)}|{ip['address']}": {
             "status": text(ip.get("status")), "type": text(ip.get("type")), "role": text(ip.get("ipRole")),
             "dns_name": text(ip.get("dnsName")), "description": text(ip.get("description")),
-            "parent": parent_cidr(ip), "tags": local_tags(ip),
+            "parent": parent_cidr(ip), "interfaces": ports(ip), "tags": local_tags(ip),
         } for ip in inv["ip_addresses"].values()},
         "vlan": {vlan_key(v["vid"], scope(v)): {
             "name": text(v.get("name")), "status": text(v.get("status")), "role": text(v.get("role")),

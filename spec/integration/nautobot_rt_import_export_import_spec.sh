@@ -40,23 +40,30 @@
 #
 # Walkthrough:
 #   a. Reset Nautobot to empty and seed the fixture: test-dc > rack-01 holding
-#      compute-001 (tagged, primary IPv4 10.0.0.5) and compute-002 joined by a
-#      cable, test-edge holding rack-less edge-001, tenants tenant-a/tenant-b
-#      each with 10.0.0.0/24 and 10.0.0.5/24, VRF blue in both, VLAN 3100.
+#      compute-001 (tagged, primary IPv4 10.0.0.5 and IPv6 2001:db8:a::5, both
+#      on its eth0) and compute-002 joined by a cable, test-edge holding
+#      rack-less edge-001 (tenant-a's 10.0.0.5 is on its eth0 too), tenants
+#      tenant-a/tenant-b each with 10.0.0.0/24 and 10.0.0.5/24, tenant-a also
+#      with 2001:db8:a::/64, VRF blue in both, VLAN 3100.
 #   b. Import into an empty datastore; the command reports success.
 #   c. Parity: every location, rack, device (edge-001's location, the tag and
-#      the primary IPv4 included), interface, cable, VRF, prefix, address and
-#      VLAN matches on both sides.
-#   d. Mark the ledger and export the untouched datastore: exit 0, and the
-#      summary has no "Created" or "Updated" line.
-#   e. The ledger grew by zero entries: the export wrote nothing.
-#   f. The export log counts all three devices as skipped and names no field
-#      that would change.
+#      both primary addresses included), interface, cable, VRF, prefix,
+#      address (its port assignments included) and VLAN matches on both sides.
+#   d. Mark the ledger and the two tables the ledger cannot see (address
+#      assignments, relationship associations) and export the untouched
+#      datastore: exit 0, and the summary has no "Created" or "Updated" line.
+#   e. The ledger grew by zero entries and both tables hold the same number of
+#      rows: the export wrote nothing, not even a duplicate assignment.
+#   f. The export log counts all three devices as skipped, names no field
+#      that would change, and counts the three assignments as already there.
 #   g. Parity still holds after the export.
 #   h. Snapshot the datastore projection and import again into the populated
 #      datastore; the command reports success.
 #   i. The datastore projection equals the snapshot (a re-import is a no-op)
 #      and parity still holds.
+#   j. Negative control: take tenant-a's host off edge-001 eth0 in Nautobot;
+#      parity must fail on exactly that address's interfaces, so the oracle
+#      is shown to see an assignment. Put it back; parity holds again.
 
 Describe 'INTEGRATION: Nautobot round trip import -> export -> import'
 
@@ -92,6 +99,7 @@ Describe 'INTEGRATION: Nautobot round trip import -> export -> import'
     # d. Export what was just imported: nothing to create or update.
     It 'writes nothing to Nautobot'
       BeforeCall rt_mark_changes
+      BeforeCall rt_mark_joins
       When call rt_export
       The status should equal 0
       The output should include 'Export completed successfully'
@@ -99,19 +107,34 @@ Describe 'INTEGRATION: Nautobot round trip import -> export -> import'
       The output should not include 'Updated '
     End
 
-    # e. The ledger proves it: no object changed in Nautobot.
+    # e. The ledger proves it for every change-logged model, and the two
+    # tables Nautobot does not change-log are counted directly.
     It 'leaves the change ledger where it was'
       When call rt_changes_since_mark
       The status should equal 0
       The line 1 of output should equal 'changes=0'
     End
 
+    It 'adds no assignment or association row'
+      When call rt_joins_unchanged
+      The status should equal 0
+      The output should equal 'joins unchanged'
+    End
+
     # f. An up-to-date device is counted under "conflicts" with no field detail;
-    # the label is misleading but the count is the contract this pins.
+    # the label is misleading but the count is the contract this pins. The
+    # three seeded assignments are read before any write and reported as
+    # already present.
     It 'counts all three devices as skipped with nothing to change'
       When call grep -E 'Skipped devices|would change' "$RT_DIR/export.log"
       The lines of output should equal 1
       The output should include 'Skipped devices (conflicts): 3'
+    End
+
+    It 'counts the three assignments as already in Nautobot'
+      When call grep -E 'IP address assignments' "$RT_DIR/export.log"
+      The lines of output should equal 1
+      The output should include 'Skipped IP address assignments (already exist): 3'
     End
 
     # g. The export changed neither side.
@@ -143,6 +166,36 @@ Describe 'INTEGRATION: Nautobot round trip import -> export -> import'
     End
 
     It 'keeps parity'
+      When call rt_assert_parity
+      The status should equal 0
+      The output should equal 'projections equal'
+    End
+  End
+
+  Describe 'the oracle sees an assignment'
+    # j. Take one of the two ports off tenant-a's host in Nautobot: parity must
+    # fail on exactly that field, or the comparison above proved nothing about
+    # assignments.
+    It 'takes tenant-a 10.0.0.5/24 off edge-001 eth0 in Nautobot'
+      When call rt_py unassign-ip tenant-a 10.0.0.5/24 edge-001 eth0
+      The status should equal 0
+      The output should include 'unassigned tenant-a|10.0.0.5/24 from edge-001|eth0'
+    End
+
+    It 'fails parity on that address alone'
+      When call rt_assert_parity
+      The status should equal 1
+      The lines of output should equal 1
+      The output should equal "ip/tenant-a|10.0.0.5/24: interfaces: ['compute-001|eth0'] != ['compute-001|eth0', 'edge-001|eth0']"
+    End
+
+    It 'puts the assignment back'
+      When call rt_py assign-ip tenant-a 10.0.0.5/24 edge-001 eth0
+      The status should equal 0
+      The output should include 'assigned tenant-a|10.0.0.5/24 to edge-001|eth0'
+    End
+
+    It 'keeps parity again'
       When call rt_assert_parity
       The status should equal 0
       The output should equal 'projections equal'

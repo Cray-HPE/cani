@@ -118,6 +118,7 @@ func fetchAll(ctx context.Context, client *nautobotapi.ClientWithResponses) (Raw
 		{"prefixes", into(ctx, client, &d.Prefixes, FetchPrefixes)},
 		{"prefix location assignments", into(ctx, client, &d.PrefixLocationAssignments, FetchPrefixLocationAssignments)},
 		{"ip addresses", into(ctx, client, &d.IPAddresses, FetchIPAddresses)},
+		{"ip address assignments", into(ctx, client, &d.IPAddressAssignments, FetchIPAddressToInterfaces)},
 		{"vrfs", into(ctx, client, &d.VRFs, FetchVRFs)},
 		{"vrf-device-assignments", into(ctx, client, &d.VRFDeviceAssignments, FetchVRFDeviceAssignments)},
 		{"vrf-prefix-assignments", into(ctx, client, &d.VRFPrefixAssignments, FetchVRFPrefixAssignments)},

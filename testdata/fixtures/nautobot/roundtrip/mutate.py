@@ -25,9 +25,10 @@
 """Edits made on the Nautobot side, the way another operator would make them.
 
 The specs use these to diverge Nautobot from the datastore: patch a device
-field, add or delete an address, or recreate an object under the same
-natural key so it comes back with a new UUID (the source-identity conflict
-an import must refuse with a remedy).
+field, add or delete an address, assign an address to a port or take it off
+one, or recreate an object under the same natural key so it comes back with
+a new UUID (the source-identity conflict an import must refuse with a
+remedy).
 """
 
 import urllib.parse
@@ -85,6 +86,29 @@ def delete_ip(namespace, address):
     ip = one("ipam/ip-addresses/", address=address, namespace=namespace)
     _delete(f"{NAUTOBOT_URL}/ipam/ip-addresses/{ip['id']}/")
     print(f"deleted {namespace}|{address} ({ip['id']})")
+
+
+def _port(device, interface):
+    """The one interface of the named device."""
+    dev = one("dcim/devices/", name=device)
+    return one("dcim/interfaces/", device=dev["id"], name=interface)
+
+
+def assign_ip(namespace, address, device, interface):
+    """Assign an address to a device port, as the seed does."""
+    ip = one("ipam/ip-addresses/", address=address, namespace=namespace)
+    port = _port(device, interface)
+    row = api("POST", "ipam/ip-address-to-interface/", {"ip_address": {"id": ip["id"]}, "interface": {"id": port["id"]}})
+    print(f"assigned {namespace}|{address} to {device}|{interface} ({row['id']})")
+
+
+def unassign_ip(namespace, address, device, interface):
+    """Remove one address-to-port assignment, leaving the address in place."""
+    ip = one("ipam/ip-addresses/", address=address, namespace=namespace)
+    port = _port(device, interface)
+    row = one("ipam/ip-address-to-interface/", ip_address=ip["id"], interface=port["id"])
+    _delete(f"{NAUTOBOT_URL}/ipam/ip-address-to-interface/{row['id']}/")
+    print(f"unassigned {namespace}|{address} from {device}|{interface} ({row['id']})")
 
 
 def _snapshot(obj, fields):
