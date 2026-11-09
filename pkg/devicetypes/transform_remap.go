@@ -35,6 +35,7 @@ type ReferenceRemaps struct {
 	Racks       map[uuid.UUID]uuid.UUID
 	Devices     map[uuid.UUID]uuid.UUID
 	Modules     map[uuid.UUID]uuid.UUID
+	Interfaces  map[uuid.UUID]uuid.UUID // incoming interface spec ID → the ID the merged owner kept
 	Frus        map[uuid.UUID]uuid.UUID
 	Cables      map[uuid.UUID]uuid.UUID
 	VLANs       map[uuid.UUID]uuid.UUID
@@ -240,32 +241,10 @@ func (result *TransformResult) remapCables(remaps ReferenceRemaps) {
 		if cable == nil {
 			continue
 		}
+		cable.TerminationA = remapUUID(cable.TerminationA, remaps.Interfaces)
+		cable.TerminationB = remapUUID(cable.TerminationB, remaps.Interfaces)
 		cable.TerminationADevice = remapUUID(cable.TerminationADevice, remaps.Devices, remaps.Modules)
 		cable.TerminationBDevice = remapUUID(cable.TerminationBDevice, remaps.Devices, remaps.Modules)
-	}
-}
-
-func (result *TransformResult) remapIPAM(remaps ReferenceRemaps) {
-	for _, vlan := range result.VLANs {
-		if vlan != nil {
-			vlan.Location = remapUUID(vlan.Location, remaps.Locations)
-		}
-	}
-	for _, prefix := range result.Prefixes {
-		if prefix == nil {
-			continue
-		}
-		prefix.Location = remapUUID(prefix.Location, remaps.Locations)
-		prefix.VLAN = remapUUID(prefix.VLAN, remaps.VLANs)
-		prefix.Parent = remapUUID(prefix.Parent, remaps.Prefixes)
-		prefix.VRFs = remapUUIDs(prefix.VRFs, remaps.VRFs)
-	}
-	for _, address := range result.IPAddresses {
-		if address == nil {
-			continue
-		}
-		address.Parent = remapUUID(address.Parent, remaps.Prefixes)
-		address.NATInside = remapUUID(address.NATInside, remaps.IPAddresses)
 	}
 }
 

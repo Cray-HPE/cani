@@ -43,7 +43,9 @@ type TransformMergeSummary struct {
 // every entity has merged and all relationships validate. A module bay the
 // provider authored is reconciled against the bays its parent declares
 // (ReconcileModuleBays) before validation, so a provider's naming cannot
-// abort the import; what it could not reconcile is logged and returned.
+// abort the import; what it could not reconcile is logged and returned, as
+// is an address assignment dropped because the record a device or module
+// merged onto has no port of that name.
 func (inv *Inventory) MergeTransformResult(result *TransformResult) (*TransformMergeSummary, error) {
 	if inv == nil {
 		return nil, fmt.Errorf("inventory must not be nil")
@@ -73,8 +75,14 @@ func (inv *Inventory) MergeTransformResult(result *TransformResult) (*TransformM
 	if remaps.Modules, err = working.MergeModules(incoming.Modules); err != nil {
 		return nil, fmt.Errorf("merge modules: %w", err)
 	}
+	// Devices and modules merged onto existing records kept those records'
+	// ports; the addresses and cables on the incoming ports follow them, and
+	// an assignment to a port the kept record lacks is dropped and reported.
+	ports := incoming.InterfaceRemap(working, remaps)
+	remaps.Interfaces = ports.Remap
 	incoming.RemapReferences(working, remaps)
 	unresolved := working.ReconcileModuleBays(remaps.Modules)
+	unresolved = append(unresolved, incoming.dropOrphanedAssignments(ports.Orphaned)...)
 	remaps.Frus = working.MergeFrus(incoming.Frus)
 	incoming.RemapReferences(working, remaps)
 	remaps.Cables = working.MergeCables(incoming.Cables)
