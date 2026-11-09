@@ -150,7 +150,8 @@ Describe 'INTEGRATION: Nautobot round-trip'
 ### The Nautobot round-trip suite
 
 `spec/integration/nautobot_rt_*_spec.sh` covers the two loops a Nautobot round trip can start from
-(import → export → import and export → import → export), dry runs, the export `create_*` options, `--merge`
+(import → export → import and export → import → export), a fresh seed (an imported inventory, custom fields
+included, exported into an emptied Nautobot and compared with the source), dry runs, the export `create_*` options, `--merge`
 and conflict resolution, and what happens when one side adds, edits or removes something. Run it alone,
 with readable output, against a local instance:
 

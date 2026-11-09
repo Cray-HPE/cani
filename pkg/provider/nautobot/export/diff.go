@@ -86,7 +86,7 @@ func compareDeviceFields(
 		diffs = append(diffs, compareFace(device, remote)...)
 	}
 	diffs = append(diffs, compareScalarFields(device, remote)...)
-	diffs = append(diffs, compareCustomFields(device.FlattenProviderMetadata(), remote.CustomFields)...)
+	diffs = append(diffs, compareCustomFields(customFieldsOf(&device.ObjectMeta).values, remote.CustomFields)...)
 
 	return diffs
 }

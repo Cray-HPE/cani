@@ -123,10 +123,7 @@ func (m *DeviceMapper) MapToNautobotDevice(device *devicetypes.CaniDeviceType) (
 		return nil, fmt.Errorf("failed to build references for %s: %w", device.Name, err)
 	}
 
-	// Map optional fields - use flattened ProviderMetadata for custom fields
-	if flat := device.FlattenProviderMetadata(); len(flat) > 0 {
-		req.CustomFields = toNautobotCustomFields(flat)
-	}
+	req.CustomFields = customFieldsPayload("device", device.Name, &device.ObjectMeta)
 
 	// Map serial number if available
 	if device.Serial != "" {
@@ -184,10 +181,7 @@ func (m *DeviceMapper) MapToWritableDeviceRequest(device *devicetypes.CaniDevice
 		return nil, fmt.Errorf("failed to build references for %s: %w", device.Name, err)
 	}
 
-	// Map optional fields - use flattened ProviderMetadata for custom fields
-	if flat := device.FlattenProviderMetadata(); len(flat) > 0 {
-		req.CustomFields = toNautobotCustomFields(flat)
-	}
+	req.CustomFields = customFieldsPayload("device", device.Name, &device.ObjectMeta)
 
 	// Map serial number if available
 	if device.Serial != "" {
@@ -278,10 +272,7 @@ func (m *DeviceMapper) MapToPatchRequest(device *devicetypes.CaniDeviceType, exi
 		}
 	}
 
-	// Map optional fields - use flattened ProviderMetadata for custom fields
-	if flat := device.FlattenProviderMetadata(); len(flat) > 0 {
-		req.CustomFields = toNautobotCustomFields(flat)
-	}
+	req.CustomFields = customFieldsPayload("device", device.Name, &device.ObjectMeta)
 
 	// Map serial number if available
 	if device.Serial != "" {

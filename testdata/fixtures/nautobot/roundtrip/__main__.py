@@ -27,6 +27,7 @@
 Commands:
   reset                          empty Nautobot of every object an export can create
   seed                           create the deterministic round-trip fixture
+  seed-custom-fields             add cani_rt_ custom-field definitions and values to the seed
   project nautobot OUT           write the Nautobot projection to OUT
   project cani DATASTORE OUT     write the datastore projection to OUT
   diff A B                       compare two projections; exit 1 when they differ
@@ -43,7 +44,7 @@ import argparse
 import json
 import sys
 
-from roundtrip import changes, mutate, projection, reset, seed
+from roundtrip import changes, custom_fields, mutate, projection, reset, seed
 from roundtrip.cani_source import load_cani, stamp_count
 from roundtrip.nautobot_source import fetch_nautobot
 
@@ -61,9 +62,15 @@ def _read(path):
 
 def cmd_project(args):
     if args.side == "nautobot":
-        _write(args.paths[0], projection.project_nautobot(fetch_nautobot()))
+        raw = fetch_nautobot()
+        out = projection.project_nautobot(raw)
+        out["custom_fields"] = custom_fields.project_nautobot(raw)
+        _write(args.paths[0], out)
     else:
-        _write(args.paths[1], projection.project_cani(load_cani(args.paths[0])))
+        inv = load_cani(args.paths[0])
+        out = projection.project_cani(inv)
+        out["custom_fields"] = custom_fields.project_cani(inv)
+        _write(args.paths[1], out)
     return 0
 
 
@@ -92,6 +99,7 @@ def build_parser():
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("reset").set_defaults(run=lambda _args: reset.reset())
     sub.add_parser("seed").set_defaults(run=lambda _args: seed.seed())
+    sub.add_parser("seed-custom-fields").set_defaults(run=lambda _args: custom_fields.seed())
 
     project = sub.add_parser("project")
     project.add_argument("side", choices=("nautobot", "cani"))

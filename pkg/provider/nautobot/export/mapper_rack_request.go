@@ -73,18 +73,8 @@ func (m *DeviceMapper) MapToWritableRackRequest(device *devicetypes.CaniDeviceTy
 	}
 	req.UHeight = &uHeight
 
-	// Map optional fields
-	if flat := device.FlattenProviderMetadata(); len(flat) > 0 {
-		customFields := make(map[string]interface{}, len(flat))
-		for k, v := range flat {
-			if k != "u_height" && k != "rack_position" {
-				customFields[k] = v
-			}
-		}
-		if len(customFields) > 0 {
-			req.CustomFields = toNautobotCustomFields(customFields)
-		}
-	}
+	// Rack geometry travels in dedicated fields, not as custom fields.
+	req.CustomFields = customFieldsPayload("rack", device.Name, &device.ObjectMeta, "u_height", "rack_position")
 
 	return req, nil
 }

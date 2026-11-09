@@ -38,7 +38,7 @@ import (
 
 // mergeLocation fetches the remote location, compares against local intent,
 // and PATCHes any drifted fields. Returns true if the location was updated.
-func (e *Exporter) mergeLocation(ctx context.Context, loc *devicetypes.CaniLocationType, nautobotID uuid.UUID) (bool, error) {
+func (e *Exporter) mergeLocation(ctx context.Context, loc *devicetypes.CaniLocationType, nautobotID uuid.UUID, result *LoadResult) (bool, error) {
 	remote, err := e.fetchLocationByID(ctx, nautobotID)
 	if err != nil {
 		return false, err
@@ -62,6 +62,7 @@ func (e *Exporter) mergeLocation(ctx context.Context, loc *devicetypes.CaniLocat
 	if resp.StatusCode() != http.StatusOK {
 		return false, fmt.Errorf("unexpected status %d: %s", resp.StatusCode(), string(resp.Body))
 	}
+	recordDroppedCustomFields("location", loc.Name, req.CustomFields, resp.Body, result)
 	clog.Changed("Merged location: %s", loc.Name)
 	return true, nil
 }
@@ -99,10 +100,11 @@ func buildLocationPatch(loc *devicetypes.CaniLocationType, remote *nautobotapi.L
 	drifted = driftStr(loc.Longitude, remote.Longitude, &req.Longitude) || drifted
 	drifted = driftStr(loc.Comments, remote.Comments, &req.Comments) || drifted
 
-	// Compare custom fields (explicit + flattened provider metadata)
-	localCF := mergedCustomFields(loc.CustomFields, loc.FlattenProviderMetadata())
+	// Compare custom fields through the same projection a create sends, so a
+	// key set both explicitly and by provider metadata is reported here too.
+	localCF := customFieldsOf(&loc.ObjectMeta).values
 	if len(localCF) > 0 && customFieldsDrifted(localCF, remote.CustomFields) {
-		req.CustomFields = toNautobotCustomFields(localCF)
+		req.CustomFields = customFieldsPayload("location", loc.Name, &loc.ObjectMeta)
 		drifted = true
 	}
 

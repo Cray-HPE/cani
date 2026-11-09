@@ -37,7 +37,7 @@ import (
 
 // mergeVLAN fetches the remote VLAN, compares against local intent,
 // and PATCHes any drifted fields. Returns true if the VLAN was updated.
-func (e *Exporter) mergeVLAN(ctx context.Context, vlan *devicetypes.CaniVLAN, nautobotID uuid.UUID) (bool, error) {
+func (e *Exporter) mergeVLAN(ctx context.Context, vlan *devicetypes.CaniVLAN, nautobotID uuid.UUID, result *LoadResult) (bool, error) {
 	remote, err := e.fetchVLANByID(ctx, nautobotID)
 	if err != nil {
 		return false, err
@@ -61,6 +61,7 @@ func (e *Exporter) mergeVLAN(ctx context.Context, vlan *devicetypes.CaniVLAN, na
 	if resp.StatusCode() != http.StatusOK {
 		return false, fmt.Errorf("unexpected status %d: %s", resp.StatusCode(), string(resp.Body))
 	}
+	recordDroppedCustomFields("VLAN", vlan.Name, req.CustomFields, resp.Body, result)
 	clog.Changed("Merged VLAN %d: %s", vlan.VID, vlan.Name)
 	return true, nil
 }
@@ -95,10 +96,11 @@ func buildVLANPatch(vlan *devicetypes.CaniVLAN, remote *nautobotapi.VLAN) (*naut
 		drifted = true
 	}
 
-	// Compare custom fields (explicit + flattened provider metadata)
-	localCF := mergedCustomFields(vlan.CustomFields, vlan.FlattenProviderMetadata())
+	// Compare custom fields through the same projection a create sends, so a
+	// key set both explicitly and by provider metadata is reported here too.
+	localCF := customFieldsOf(&vlan.ObjectMeta).values
 	if len(localCF) > 0 && customFieldsDrifted(localCF, remote.CustomFields) {
-		req.CustomFields = toNautobotCustomFields(localCF)
+		req.CustomFields = customFieldsPayload("VLAN", vlan.Name, &vlan.ObjectMeta)
 		drifted = true
 	}
 
