@@ -74,7 +74,7 @@ func TestMergeLocation_PatchesWhenDrifted(t *testing.T) {
 		Description: "new",
 	}
 
-	updated, err := e.mergeLocation(context.Background(), loc, locID)
+	updated, err := e.mergeLocation(context.Background(), loc, locID, &LoadResult{})
 	if err != nil {
 		t.Fatalf("mergeLocation() error = %v", err)
 	}
@@ -100,7 +100,7 @@ func TestMergeLocation_SkipsWhenNoDrift(t *testing.T) {
 		Name: "DC1",
 	}
 
-	updated, err := e.mergeLocation(context.Background(), loc, locID)
+	updated, err := e.mergeLocation(context.Background(), loc, locID, &LoadResult{})
 	if err != nil {
 		t.Fatalf("mergeLocation() error = %v", err)
 	}
@@ -128,7 +128,7 @@ func TestMergeLocation_DryRunDoesNotPatch(t *testing.T) {
 		Description: "new",
 	}
 
-	updated, err := e.mergeLocation(context.Background(), loc, locID)
+	updated, err := e.mergeLocation(context.Background(), loc, locID, &LoadResult{})
 	if err != nil {
 		t.Fatalf("mergeLocation() error = %v", err)
 	}

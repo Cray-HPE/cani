@@ -199,16 +199,18 @@ func (e *Exporter) createPrefix(
 			}
 		}
 	}
+	req.CustomFields = customFieldsPayload("prefix", prefix.Prefix, &prefix.ObjectMeta)
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create prefix: %s", prefix.Prefix)
 		return uuid.New(), nil
 	}
 
-	nautobotID, err := e.postPrefixWithFallback(ctx, prefix, &req)
+	nautobotID, body, err := e.postPrefixWithFallback(ctx, prefix, &req)
 	if err != nil {
 		return uuid.Nil, err
 	}
+	recordDroppedCustomFields("prefix", prefix.Prefix, req.CustomFields, body, result)
 
 	clog.Created("  + Prefix: %s (%s)", prefix.Prefix, prefix.Type)
 	return nautobotID, nil

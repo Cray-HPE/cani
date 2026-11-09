@@ -181,6 +181,7 @@ func (e *Exporter) createIPAddress(
 			}
 		}
 	}
+	req.CustomFields = customFieldsPayload("IP address", addr.Address, &addr.ObjectMeta)
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create IP address: %s", addr.Address)
@@ -197,6 +198,7 @@ func (e *Exporter) createIPAddress(
 	if resp.StatusCode != http.StatusCreated {
 		return uuid.Nil, fmt.Errorf("unexpected status %d: %s", resp.StatusCode, string(body))
 	}
+	recordDroppedCustomFields("IP address", addr.Address, req.CustomFields, body, result)
 
 	var respObj struct {
 		ID string `json:"id"`

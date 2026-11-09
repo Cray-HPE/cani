@@ -26,7 +26,8 @@
 
 Everything an export can create is deleted; statuses, roles, tags,
 manufacturers and custom-field definitions are shared fixtures and stay,
-except the ones a spec made up under the cani-rt- prefix. The DCIM part
+except the ones a spec made up under the cani-rt- prefix (cani_rt_ for a
+custom-field key, which must be an identifier). The DCIM part
 reuses purge_nautobot_dcim so the two purges cannot drift apart.
 """
 
@@ -35,6 +36,7 @@ from seed_nautobot_api import NAUTOBOT_URL, _delete, api, delete_all
 
 GLOBAL_NAMESPACE = "Global"
 SPEC_OWNED_PREFIX = "cani-rt-"
+SPEC_OWNED_FIELD_PREFIX = "cani_rt_"
 
 # Assignment tables reference both a VRF and a prefix/device, so they go first.
 VRF_ASSIGNMENTS = (
@@ -61,9 +63,10 @@ def delete_namespaces_except_global():
 
 
 def delete_spec_owned_metadata():
-    """Drop the statuses, roles and tags a spec invented."""
+    """Drop the statuses, roles, tags and custom fields a spec invented."""
     for path in ("extras/statuses/", "extras/roles/", "extras/tags/"):
         delete_where(path, lambda obj: not obj["name"].startswith(SPEC_OWNED_PREFIX))
+    delete_where("extras/custom-fields/", lambda obj: not obj["key"].startswith(SPEC_OWNED_FIELD_PREFIX))
 
 
 def reset():

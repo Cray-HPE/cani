@@ -51,9 +51,29 @@ rolled back. Re-export after correcting the failure to finish reconciliation.
 
 ### Custom fields
 
+Every object family that carries custom fields in the inventory (locations,
+racks, devices, modules, cables, inventory items, VLANs, prefixes, IP
+addresses, VRFs) sends them on create and on `--merge`, through one projection:
+explicit custom fields merged with flattened provider metadata. When both set
+the same key the provider value is sent and the export logs the collision by
+object and key. `false`, `0` and empty strings are sent as written, because
+Nautobot fills an omitted key from the definition's default. Import keeps
+the two in step: a custom field read back from Nautobot replaces the copy of
+that key set earlier with `--metadata`, so an edit made in Nautobot is not
+reverted by the next export, and a `--metadata` change made after the import
+is what the next export sends. A device's
+`role` and `location` provider metadata (for example `--metadata role=...`)
+set the device's role and location and are not sent as custom fields.
+
 Import fetches the custom-field definitions and their choices into the
 inventory metadata catalog, and export creates any definition the destination
-lacks before it writes the first object (Phase 0a). The catalog does not model a
+lacks before it writes the first object (Phase 0a). Nautobot answers 2xx for
+a value whose key has no definition for that object type (it logs a warning
+on the server and keeps the value in the object's data, but the API never
+exposes it), so after each write the export compares the keys it sent with
+the keys the response carries and reports every key that did not arrive; the
+summary counts them with the other objects that were not exported as
+authored. The catalog does not model a
 definition's validation limits and pattern, filter logic, grouping, advanced-UI
 flag or scope filter, nor its exact choice weights (choices keep their order):
 import names every definition that sets one, never the value, and a fresh

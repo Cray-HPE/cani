@@ -41,6 +41,7 @@ package logcolor
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 )
@@ -67,8 +68,14 @@ type Logger struct {
 
 // New creates a Logger that writes to stderr with the given prefix.
 func New(prefix string, noColor bool) *Logger {
+	return NewWithWriter(os.Stderr, prefix, noColor)
+}
+
+// NewWithWriter creates a Logger that writes to w with the given prefix, so a
+// test can read back what a workflow reported.
+func NewWithWriter(w io.Writer, prefix string, noColor bool) *Logger {
 	return &Logger{
-		std:     log.New(os.Stderr, prefix, log.LstdFlags),
+		std:     log.New(w, prefix, log.LstdFlags),
 		noColor: noColor,
 	}
 }

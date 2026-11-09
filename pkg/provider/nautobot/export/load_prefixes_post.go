@@ -39,18 +39,19 @@ import (
 
 // postPrefixWithFallback POSTs the prefix, retrying once without a location when
 // Nautobot rejects the association (e.g. the location type does not permit
-// prefixes).
+// prefixes). It returns the new ID and the response body of the successful
+// create.
 func (e *Exporter) postPrefixWithFallback(
 	ctx context.Context,
 	prefix *devicetypes.CaniPrefix,
 	req *nautobotapi.WritablePrefixRequest,
-) (uuid.UUID, error) {
+) (uuid.UUID, []byte, error) {
 	id, code, body, err := e.postPrefix(ctx, req)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("API error: %w", err)
+		return uuid.Nil, nil, fmt.Errorf("API error: %w", err)
 	}
 	if code == http.StatusCreated {
-		return id, nil
+		return id, body, nil
 	}
 	// An unsupported location type makes Nautobot reject the prefix — cleanly
 	// with 400, or with a 500 when its location validation crashes. Either way,
@@ -60,39 +61,39 @@ func (e *Exporter) postPrefixWithFallback(
 		req.Location = nil
 		id, code, body, err = e.postPrefix(ctx, req)
 		if err != nil {
-			return uuid.Nil, fmt.Errorf("API error: %w", err)
+			return uuid.Nil, nil, fmt.Errorf("API error: %w", err)
 		}
 		if code == http.StatusCreated {
-			return id, nil
+			return id, body, nil
 		}
 	}
-	return uuid.Nil, fmt.Errorf("unexpected status %d: %s", code, body)
+	return uuid.Nil, nil, fmt.Errorf("unexpected status %d: %s", code, body)
 }
 
 // postPrefix performs a single prefix create using a raw API call (the generated
 // response parser mishandles Nautobot's UUID format). It returns the new ID (on
 // 201), the HTTP status code, and the response body.
-func (e *Exporter) postPrefix(ctx context.Context, req *nautobotapi.WritablePrefixRequest) (uuid.UUID, int, string, error) {
+func (e *Exporter) postPrefix(ctx context.Context, req *nautobotapi.WritablePrefixRequest) (uuid.UUID, int, []byte, error) {
 	httpResp, err := e.Client.IpamPrefixesCreate(ctx, &nautobotapi.IpamPrefixesCreateParams{}, *req)
 	if err != nil {
-		return uuid.Nil, 0, "", err
+		return uuid.Nil, 0, nil, err
 	}
 	defer httpResp.Body.Close()
 
 	body, _ := io.ReadAll(httpResp.Body)
 	if httpResp.StatusCode != http.StatusCreated {
-		return uuid.Nil, httpResp.StatusCode, string(body), nil
+		return uuid.Nil, httpResp.StatusCode, body, nil
 	}
 
 	var respObj struct {
 		ID string `json:"id"`
 	}
 	if err := json.Unmarshal(body, &respObj); err != nil {
-		return uuid.Nil, httpResp.StatusCode, string(body), fmt.Errorf("failed to parse response: %w", err)
+		return uuid.Nil, httpResp.StatusCode, body, fmt.Errorf("failed to parse response: %w", err)
 	}
 	id, err := uuid.Parse(respObj.ID)
 	if err != nil {
-		return uuid.Nil, httpResp.StatusCode, string(body), fmt.Errorf("failed to parse UUID from response: %w", err)
+		return uuid.Nil, httpResp.StatusCode, body, fmt.Errorf("failed to parse UUID from response: %w", err)
 	}
-	return id, httpResp.StatusCode, string(body), nil
+	return id, httpResp.StatusCode, body, nil
 }
