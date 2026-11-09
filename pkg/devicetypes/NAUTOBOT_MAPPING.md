@@ -803,6 +803,7 @@ Implemented in `loadLocations()` in `load_locations.go`. Iterates `inventory.Loc
 ### Phase 1: Racks
 
 Iterates `inventory.Racks`. For each rack:
+- Reuses a recorded Nautobot ID only when the destination holds it (`DcimRacksRetrieve`; a 404 drops the stale ID with a warning, as for devices and modules), otherwise finds the rack by name and creates it when missing, so an inventory imported from one Nautobot seeds another
 - Resolves `rack.Location` through the inventory hierarchy, descending to the deepest child location that supports racks; falls back to the provider default or `"Default"`
 - Resolves status (`rack.Status` → default → `"Active"`)
 - Creates via `DcimRacksCreate` with `Name`, `Location`, `Status`, dimensions/unit, width, rack type, facility ID, serial, asset tag, descending-units flag, comments, and tags
