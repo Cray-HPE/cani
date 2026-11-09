@@ -67,7 +67,7 @@ func (e *Exporter) loadLocations(
 			setExternalID(&loc.ExternalIDs, "nautobot", existing.ID)
 
 			if e.Options.Merge {
-				if updated, mergeErr := e.mergeLocation(ctx, loc, existing.ID); mergeErr != nil {
+				if updated, mergeErr := e.mergeLocation(ctx, loc, existing.ID, result); mergeErr != nil {
 					result.Errors = append(result.Errors,
 						fmt.Sprintf("location %s: merge error: %v", loc.Name, mergeErr))
 				} else if updated {
@@ -184,19 +184,7 @@ func (e *Exporter) createLocationFromCani(
 	if loc.Comments != "" {
 		req.Comments = &loc.Comments
 	}
-	// Merge explicit CustomFields and flattened ProviderMetadata (same as devices).
-	cf := map[string]interface{}{}
-	for k, v := range loc.CustomFields {
-		cf[k] = v
-	}
-	if flat := loc.FlattenProviderMetadata(); len(flat) > 0 {
-		for k, v := range flat {
-			cf[k] = v
-		}
-	}
-	if len(cf) > 0 {
-		req.CustomFields = toNautobotCustomFields(cf)
-	}
+	req.CustomFields = customFieldsPayload("location", loc.Name, &loc.ObjectMeta)
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create location: %s (type: %s)", loc.Name, locTypeName)
@@ -215,6 +203,7 @@ func (e *Exporter) createLocationFromCani(
 		return uuid.Nil, fmt.Errorf("unexpected status %d: %s",
 			resp.StatusCode(), string(resp.Body))
 	}
+	recordDroppedCustomFields("location", loc.Name, req.CustomFields, resp.Body, result)
 
 	var nautobotID uuid.UUID
 	if resp.JSON201 != nil && resp.JSON201.Id != nil {

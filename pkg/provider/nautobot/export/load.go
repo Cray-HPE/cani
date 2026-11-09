@@ -80,6 +80,7 @@ type LoadResult struct {
 	IfacesSkipped               int            // Number of interfaces skipped (already exist)
 	IfacesUnsupported           int            // Number of interfaces skipped (type not in Nautobot's InterfaceTypeChoices enum)
 	IfacesUnresolvedRefs        int            // Number of interface refs (LAG/VRF/VLAN) skipped as unresolved during enrichment
+	CustomFieldsDropped         int            // Number of custom-field values a write sent that Nautobot's response did not carry
 	ModulesCreated              int            // Number of modules created
 	ModulesMoved                int            // Number of modules moved to the placement the inventory records
 	ModulesSkipped              int            // Number of modules skipped (already exist)
@@ -554,6 +555,7 @@ func (e *Exporter) createDevice(ctx context.Context, device *devicetypes.CaniDev
 		}
 		return fmt.Errorf(errFmtUnexpectedStatus, resp.StatusCode(), body)
 	}
+	recordDroppedCustomFields("device", device.Name, req.CustomFields, resp.Body, result)
 
 	clog.Created("Created device: %s", device.Name)
 	result.Created = append(result.Created, device.Name)
@@ -581,6 +583,7 @@ func (e *Exporter) updateDevice(ctx context.Context, device *devicetypes.CaniDev
 	if resp.StatusCode() != http.StatusOK {
 		return fmt.Errorf(errFmtUnexpectedStatus, resp.StatusCode(), string(resp.Body))
 	}
+	recordDroppedCustomFields("device", device.Name, req.CustomFields, resp.Body, result)
 
 	clog.Changed("Updated device: %s", device.Name)
 	result.Updated = append(result.Updated, device.Name)
@@ -611,6 +614,7 @@ func (e *Exporter) createRack(ctx context.Context, device *devicetypes.CaniDevic
 	if resp.StatusCode() != http.StatusCreated && resp.StatusCode() != http.StatusOK {
 		return fmt.Errorf(errFmtUnexpectedStatus, resp.StatusCode(), string(resp.Body))
 	}
+	recordDroppedCustomFields("rack", device.Name, req.CustomFields, resp.Body, result)
 
 	clog.Created("Created rack: %s", device.Name)
 	result.RacksCreated = append(result.RacksCreated, device.Name)
@@ -727,6 +731,7 @@ func (e *Exporter) createRackFromCaniRack(ctx context.Context, rack *devicetypes
 	if rack.DescUnits {
 		req.DescUnits = &rack.DescUnits
 	}
+	req.CustomFields = customFieldsPayload("rack", rack.Name, &rack.ObjectMeta)
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create rack: %s", rack.Name)
@@ -742,6 +747,7 @@ func (e *Exporter) createRackFromCaniRack(ctx context.Context, rack *devicetypes
 	if resp.StatusCode() != http.StatusCreated && resp.StatusCode() != http.StatusOK {
 		return uuid.Nil, fmt.Errorf(errFmtUnexpectedStatus, resp.StatusCode(), string(resp.Body))
 	}
+	recordDroppedCustomFields("rack", rack.Name, req.CustomFields, resp.Body, result)
 
 	var nautobotID uuid.UUID
 	if resp.JSON201 != nil && resp.JSON201.Id != nil {
@@ -822,6 +828,7 @@ func (e *Exporter) createDeviceWithID(ctx context.Context, device *devicetypes.C
 	if resp.JSON201 != nil && resp.JSON201.Id != nil {
 		nautobotID = *resp.JSON201.Id
 	}
+	recordDroppedCustomFields("device", device.Name, req.CustomFields, resp.Body, result)
 
 	clog.Created("Created device: %s (ID: %s)", device.Name, nautobotID)
 	result.Created = append(result.Created, device.Name)
@@ -1018,6 +1025,9 @@ func (e *Exporter) printLoadSummary(result *LoadResult) {
 	}
 	if result.IfacesUnresolvedRefs > 0 {
 		clog.Warn("Unresolved interface references skipped during enrichment: %d", result.IfacesUnresolvedRefs)
+	}
+	if result.CustomFieldsDropped > 0 {
+		clog.Warn("Custom field values not accepted by Nautobot (no definition for the object type): %d", result.CustomFieldsDropped)
 	}
 
 	// Modules and device bays

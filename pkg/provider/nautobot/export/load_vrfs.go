@@ -83,7 +83,7 @@ func (e *Exporter) loadVRF(ctx context.Context, vrf *devicetypes.CaniVRF, result
 	}
 	item := &CachedItem{ID: nautobotID, Name: vrf.Name}
 	if nautobotID == uuid.Nil {
-		if item.ID, err = e.createVRF(ctx, vrf, ns.ID); err != nil {
+		if item.ID, err = e.createVRF(ctx, vrf, ns.ID, result); err != nil {
 			return nil, fmt.Errorf("create error: %w", err)
 		}
 		item.Planned = e.Options.DryRun
@@ -149,7 +149,7 @@ func (e *Exporter) findVRF(ctx context.Context, namespace, name string) (uuid.UU
 
 // createVRF creates a single VRF in Nautobot from a CaniVRF in the given
 // namespace.
-func (e *Exporter) createVRF(ctx context.Context, vrf *devicetypes.CaniVRF, namespaceID uuid.UUID) (uuid.UUID, error) {
+func (e *Exporter) createVRF(ctx context.Context, vrf *devicetypes.CaniVRF, namespaceID uuid.UUID, result *LoadResult) (uuid.UUID, error) {
 	req, err := e.vrfRequest(vrf, namespaceID)
 	if err != nil {
 		return uuid.Nil, err
@@ -167,13 +167,14 @@ func (e *Exporter) createVRF(ctx context.Context, vrf *devicetypes.CaniVRF, name
 	if resp.StatusCode() != http.StatusCreated || resp.JSON201 == nil {
 		return uuid.Nil, fmt.Errorf("unexpected status %d: %s", resp.StatusCode(), string(resp.Body))
 	}
+	recordDroppedCustomFields("VRF", vrf.Name, req.CustomFields, resp.Body, result)
 
 	clog.Created("  + VRF: %s", vrf.Name)
 	return toUUID(resp.JSON201.Id), nil
 }
 
 // vrfRequest builds the create request for a VRF in the given namespace,
-// resolving its status and tags.
+// resolving its status, tags and custom fields.
 func (e *Exporter) vrfRequest(vrf *devicetypes.CaniVRF, namespaceID uuid.UUID) (nautobotapi.VRFRequest, error) {
 	req := nautobotapi.VRFRequest{Name: vrf.Name}
 	if vrf.RD != "" {
@@ -191,6 +192,7 @@ func (e *Exporter) vrfRequest(vrf *devicetypes.CaniVRF, namespaceID uuid.UUID) (
 	if err := setRefSlice(&req.Tags, e.Cache.resolveTagRefs(vrf.Tags)); err != nil {
 		return req, fmt.Errorf("set VRF tag references: %w", err)
 	}
+	req.CustomFields = customFieldsPayload("VRF", vrf.Name, &vrf.ObjectMeta)
 	return req, nil
 }
 

@@ -75,7 +75,7 @@ func (e *Exporter) loadVLANs(
 			e.recordExternalID(&vlan.ExternalIDs, existing.ID)
 
 			if e.Options.Merge {
-				if updated, mergeErr := e.mergeVLAN(ctx, vlan, existing.ID); mergeErr != nil {
+				if updated, mergeErr := e.mergeVLAN(ctx, vlan, existing.ID, result); mergeErr != nil {
 					result.Errors = append(result.Errors,
 						fmt.Sprintf("vlan %d (%s): merge error: %v", vlan.VID, vlan.Name, mergeErr))
 				} else if updated {
@@ -166,19 +166,8 @@ func (e *Exporter) createVLAN(
 		}
 	}
 
-	// Merge CustomFields and ProviderMetadata into custom_fields payload
-	cf := map[string]interface{}{}
-	for k, v := range vlan.CustomFields {
-		cf[k] = v
-	}
-	if flat := vlan.FlattenProviderMetadata(); len(flat) > 0 {
-		for k, v := range flat {
-			cf[k] = v
-		}
-	}
-	if len(cf) > 0 {
-		req.CustomFields = toNautobotCustomFields(cf)
-		clog.Info("  VLAN %d custom_fields: %d key(s)", vlan.VID, len(cf))
+	if req.CustomFields = customFieldsPayload("VLAN", vlan.Name, &vlan.ObjectMeta); req.CustomFields != nil {
+		clog.Info("  VLAN %d custom_fields: %d key(s)", vlan.VID, len(*req.CustomFields))
 	}
 
 	if e.Options.DryRun {
@@ -186,10 +175,11 @@ func (e *Exporter) createVLAN(
 		return uuid.New(), nil
 	}
 
-	nautobotID, err := e.postVLANWithFallback(ctx, vlan, &req)
+	nautobotID, body, err := e.postVLANWithFallback(ctx, vlan, &req)
 	if err != nil {
 		return uuid.Nil, err
 	}
+	recordDroppedCustomFields("VLAN", vlan.Name, req.CustomFields, body, result)
 	clog.Created("  + VLAN %d: %s", vlan.VID, vlan.Name)
 	return nautobotID, nil
 }
@@ -197,18 +187,19 @@ func (e *Exporter) createVLAN(
 // postVLANWithFallback POSTs the VLAN, retrying once without a location when
 // Nautobot rejects the association (e.g. the location type does not permit
 // VLANs). This keeps VLANs exporting even when their location type lacks the
-// ipam.vlan content type.
+// ipam.vlan content type. It returns the new ID and the response body of the
+// successful create.
 func (e *Exporter) postVLANWithFallback(
 	ctx context.Context,
 	vlan *devicetypes.CaniVLAN,
 	req *nautobotapi.VLANRequest,
-) (uuid.UUID, error) {
+) (uuid.UUID, []byte, error) {
 	id, code, body, err := e.postVLAN(ctx, req)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("API error: %w", err)
+		return uuid.Nil, nil, fmt.Errorf("API error: %w", err)
 	}
 	if code == http.StatusCreated {
-		return id, nil
+		return id, body, nil
 	}
 	// An unsupported location type makes Nautobot reject the VLAN — cleanly with
 	// 400, or with a 500 when its location validation crashes. Either way, retry
@@ -218,26 +209,26 @@ func (e *Exporter) postVLANWithFallback(
 		req.Location = nil
 		id, code, body, err = e.postVLAN(ctx, req)
 		if err != nil {
-			return uuid.Nil, fmt.Errorf("API error: %w", err)
+			return uuid.Nil, nil, fmt.Errorf("API error: %w", err)
 		}
 		if code == http.StatusCreated {
-			return id, nil
+			return id, body, nil
 		}
 	}
-	return uuid.Nil, fmt.Errorf("unexpected status %d: %s", code, body)
+	return uuid.Nil, nil, fmt.Errorf("unexpected status %d: %s", code, body)
 }
 
 // postVLAN performs a single VLAN create, returning the new ID (on 201), the
 // HTTP status code, and the response body.
-func (e *Exporter) postVLAN(ctx context.Context, req *nautobotapi.VLANRequest) (uuid.UUID, int, string, error) {
+func (e *Exporter) postVLAN(ctx context.Context, req *nautobotapi.VLANRequest) (uuid.UUID, int, []byte, error) {
 	resp, err := e.Client.IpamVlansCreateWithResponse(ctx, &nautobotapi.IpamVlansCreateParams{}, *req)
 	if err != nil {
-		return uuid.Nil, 0, "", err
+		return uuid.Nil, 0, nil, err
 	}
 	if resp.StatusCode() == http.StatusCreated && resp.JSON201 != nil {
-		return toUUID(resp.JSON201.Id), resp.StatusCode(), string(resp.Body), nil
+		return toUUID(resp.JSON201.Id), resp.StatusCode(), resp.Body, nil
 	}
-	return uuid.Nil, resp.StatusCode(), string(resp.Body), nil
+	return uuid.Nil, resp.StatusCode(), resp.Body, nil
 }
 
 // resolveLocationName returns the name of a location from its cani UUID.

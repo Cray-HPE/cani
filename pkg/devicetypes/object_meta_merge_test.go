@@ -82,6 +82,50 @@ func TestObjectMetaMergeKeepsAndOverwritesKeys(t *testing.T) {
 	}
 }
 
+// TestObjectMetaMergeRetiresSupersededProviderKeys verifies a custom field
+// reported by a source system removes the same key from that system's
+// provider-metadata bucket and nothing else.
+//
+// Why it matters: a value first set with --metadata lives in the provider
+// bucket and wins on export, so an edit made in the source system and read
+// back by import was reverted by the next export.
+// Inputs: a receiver whose nautobot bucket holds vsx_role=secondary and
+// role, and whose csm bucket holds vsx_role too; incoming identified by a
+// nautobot external ID with custom field vsx_role=primary.
+// Expected: custom field primary; the nautobot bucket keeps only role; the
+// csm bucket is untouched; a change is reported. A second receiver whose
+// bucket held only the superseded key loses the bucket.
+func TestObjectMetaMergeRetiresSupersededProviderKeys(t *testing.T) {
+	in := ObjectMeta{
+		CustomFields: map[string]any{"vsx_role": "primary"},
+		ExternalIDs:  map[string]uuid.UUID{"nautobot": uuid.New()},
+	}
+	m := ObjectMeta{ProviderMetadata: map[string]any{
+		"nautobot": map[string]any{"vsx_role": "secondary", "role": "LeafSwitch"},
+		"csm":      map[string]any{"vsx_role": "kept"},
+	}}
+
+	if !m.Merge(in) {
+		t.Fatal("expected a change to be reported")
+	}
+	if m.CustomFields["vsx_role"] != "primary" {
+		t.Errorf("custom field = %v, want primary", m.CustomFields["vsx_role"])
+	}
+	nb, _ := m.ProviderMetadata["nautobot"].(map[string]any)
+	if _, stale := nb["vsx_role"]; stale || nb["role"] != "LeafSwitch" {
+		t.Errorf("nautobot bucket = %v, want only role", nb)
+	}
+	if csm, _ := m.ProviderMetadata["csm"].(map[string]any); csm["vsx_role"] != "kept" {
+		t.Errorf("csm bucket = %v, want it untouched", csm)
+	}
+
+	only := ObjectMeta{ProviderMetadata: map[string]any{"nautobot": map[string]any{"vsx_role": "secondary"}}}
+	only.Merge(in)
+	if _, left := only.ProviderMetadata["nautobot"]; left {
+		t.Errorf("emptied bucket was kept: %v", only.ProviderMetadata)
+	}
+}
+
 // TestObjectMetaMergeNoOp verifies an empty or identical incoming meta leaves
 // the receiver untouched and reports no change.
 //

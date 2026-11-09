@@ -33,7 +33,9 @@ import (
 // Merge carries every set field of incoming into m and reports whether
 // anything changed. An empty incoming value never clears an existing one;
 // custom fields, external IDs and provider metadata merge key by key, and a
-// non-nil tag list replaces the existing one.
+// non-nil tag list replaces the existing one. A custom field the source
+// system reports also retires the copy of that key held in the source's own
+// provider-metadata bucket, so the two cannot disagree.
 func (m *ObjectMeta) Merge(incoming ObjectMeta) bool {
 	if m == nil {
 		return false
@@ -47,9 +49,44 @@ func (m *ObjectMeta) Merge(incoming ObjectMeta) bool {
 		m.mergeTags(incoming.Tags),
 		mergeMapKeys(&m.CustomFields, incoming.CustomFields),
 		mergeMapKeys(&m.ExternalIDs, incoming.ExternalIDs),
+		m.dropSupersededProviderKeys(incoming),
 		m.mergeProviderMetadata(incoming.ProviderMetadata),
 	}
 	return slices.Contains(changes, true)
+}
+
+// dropSupersededProviderKeys removes, from the provider-metadata bucket of
+// each source system that identifies incoming (the keys of its ExternalIDs),
+// every key incoming reports as a custom field. Such a bucket entry is an
+// older local write of the same field for that system; left in place it
+// would override the value just read back on the next export. Buckets of
+// other providers are untouched, and an emptied bucket is removed.
+func (m *ObjectMeta) dropSupersededProviderKeys(incoming ObjectMeta) bool {
+	changed := false
+	for source := range incoming.ExternalIDs {
+		bucket, ok := m.ProviderMetadata[source].(map[string]any)
+		if !ok || !dropKeys(bucket, incoming.CustomFields) {
+			continue
+		}
+		changed = true
+		if len(bucket) == 0 {
+			delete(m.ProviderMetadata, source)
+		}
+	}
+	return changed
+}
+
+// dropKeys deletes from bucket every key present in keys and reports
+// whether any was removed.
+func dropKeys(bucket, keys map[string]any) bool {
+	removed := false
+	for key := range keys {
+		if _, held := bucket[key]; held {
+			delete(bucket, key)
+			removed = true
+		}
+	}
+	return removed
 }
 
 func (m *ObjectMeta) mergeTags(incoming []string) bool {

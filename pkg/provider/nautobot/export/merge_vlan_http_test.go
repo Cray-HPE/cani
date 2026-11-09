@@ -67,7 +67,7 @@ func TestMergeVLAN_PatchesWhenDrifted(t *testing.T) {
 
 	vlan := &devicetypes.CaniVLAN{ID: uuid.New(), VID: 100, Name: "new-name"}
 
-	updated, err := e.mergeVLAN(context.Background(), vlan, vlanID)
+	updated, err := e.mergeVLAN(context.Background(), vlan, vlanID, &LoadResult{})
 	if err != nil {
 		t.Fatalf("mergeVLAN() error = %v", err)
 	}
@@ -90,7 +90,7 @@ func TestMergeVLAN_SkipsWhenNoDrift(t *testing.T) {
 
 	vlan := &devicetypes.CaniVLAN{ID: uuid.New(), VID: 100, Name: "mgmt"}
 
-	updated, err := e.mergeVLAN(context.Background(), vlan, vlanID)
+	updated, err := e.mergeVLAN(context.Background(), vlan, vlanID, &LoadResult{})
 	if err != nil {
 		t.Fatalf("mergeVLAN() error = %v", err)
 	}
@@ -114,7 +114,7 @@ func TestMergeVLAN_DryRunDoesNotPatch(t *testing.T) {
 
 	vlan := &devicetypes.CaniVLAN{ID: uuid.New(), VID: 200, Name: "new"}
 
-	updated, err := e.mergeVLAN(context.Background(), vlan, vlanID)
+	updated, err := e.mergeVLAN(context.Background(), vlan, vlanID, &LoadResult{})
 	if err != nil {
 		t.Fatalf("mergeVLAN() error = %v", err)
 	}
