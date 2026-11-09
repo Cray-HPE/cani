@@ -36,9 +36,38 @@ import (
 )
 
 // reconcileCustomFieldDrift compares the remote custom field definition against
-// the local intent and PATCHes any drifted fields (label, type, content_types,
-// required, default, weight, description).
+// the local intent and PATCHes any drifted fields (label, content_types,
+// required, weight, description). Two of Nautobot's rules shape what is sent:
+// a definition's type cannot change once created, so a type mismatch is
+// reported and left alone; and removing a content type deletes every value of
+// the field on that object type, so content types are only ever added.
 func (e *Exporter) reconcileCustomFieldDrift(ctx context.Context, id uuid.UUID, remote nautobotapi.CustomField, local devicetypes.CustomFieldDefinition) error {
+	reportCustomFieldTypeDrift(remote, local)
+	req, drifted := buildCustomFieldPatch(remote, local)
+	if !drifted {
+		return nil
+	}
+
+	if e.Options.DryRun {
+		clog.DryRun("Would update drifted custom field definition: %s (key=%s)", local.Label, local.Key)
+		return nil
+	}
+
+	resp, err := e.Client.ExtrasCustomFieldsPartialUpdateWithResponse(ctx, id,
+		&nautobotapi.ExtrasCustomFieldsPartialUpdateParams{}, req)
+	if err != nil {
+		return fmt.Errorf("PATCH custom field %q: %w", local.Key, err)
+	}
+	if resp.StatusCode() != http.StatusOK {
+		return fmt.Errorf("PATCH custom field %q: status %d: %s", local.Key, resp.StatusCode(), string(resp.Body))
+	}
+	clog.Changed("Reconciled drifted custom field: %s (key=%s)", local.Label, local.Key)
+	return nil
+}
+
+// buildCustomFieldPatch collects the mutable definition fields whose remote
+// value differs from the local one.
+func buildCustomFieldPatch(remote nautobotapi.CustomField, local devicetypes.CustomFieldDefinition) (nautobotapi.PatchedWritableCustomFieldRequest, bool) {
 	var drifted bool
 	req := nautobotapi.PatchedWritableCustomFieldRequest{}
 
@@ -46,13 +75,8 @@ func (e *Exporter) reconcileCustomFieldDrift(ctx context.Context, id uuid.UUID, 
 		req.Label = &local.Label
 		drifted = true
 	}
-	if remote.Type.Value != nil && string(*remote.Type.Value) != local.Type {
-		t := nautobotapi.CustomFieldTypeChoices(local.Type)
-		req.Type = &t
-		drifted = true
-	}
-	if !stringSlicesEqual(remote.ContentTypes, local.ContentTypes) {
-		req.ContentTypes = &local.ContentTypes
+	if added := mergedContentTypes(remote.ContentTypes, local.ContentTypes, local.Key); added != nil {
+		req.ContentTypes = &added
 		drifted = true
 	}
 	remoteRequired := remote.Required != nil && *remote.Required
@@ -76,43 +100,50 @@ func (e *Exporter) reconcileCustomFieldDrift(ctx context.Context, id uuid.UUID, 
 		req.Description = &local.Description
 		drifted = true
 	}
-
-	if !drifted {
-		return nil
-	}
-
-	if e.Options.DryRun {
-		clog.DryRun("Would update drifted custom field definition: %s (key=%s)", local.Label, local.Key)
-		return nil
-	}
-
-	resp, err := e.Client.ExtrasCustomFieldsPartialUpdateWithResponse(ctx, id,
-		&nautobotapi.ExtrasCustomFieldsPartialUpdateParams{}, req)
-	if err != nil {
-		return fmt.Errorf("PATCH custom field %q: %w", local.Key, err)
-	}
-	if resp.StatusCode() != http.StatusOK {
-		return fmt.Errorf("PATCH custom field %q: status %d: %s", local.Key, resp.StatusCode(), string(resp.Body))
-	}
-	clog.Changed("Reconciled drifted custom field: %s (key=%s)", local.Label, local.Key)
-	return nil
+	return req, drifted
 }
 
-// stringSlicesEqual reports whether two string slices contain the same elements
-// (order-insensitive).
-func stringSlicesEqual(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
+// reportCustomFieldTypeDrift warns when the catalog and Nautobot disagree on
+// a definition's type. Nautobot refuses to change a type once created, so
+// the values this export sends may be rejected; the operator has to recreate
+// the field or change the catalog.
+func reportCustomFieldTypeDrift(remote nautobotapi.CustomField, local devicetypes.CustomFieldDefinition) {
+	if remote.Type.Value == nil || string(*remote.Type.Value) == local.Type {
+		return
 	}
-	counts := make(map[string]int, len(a))
-	for _, s := range a {
-		counts[s]++
-	}
-	for _, s := range b {
-		counts[s]--
-		if counts[s] < 0 {
-			return false
+	clog.Warn("custom field %q: Nautobot defines it as %s but the inventory catalog says %s; a custom field's type cannot be changed once created, so values of this field may be rejected",
+		local.Key, string(*remote.Type.Value), local.Type)
+}
+
+// mergedContentTypes returns remote ∪ local when local names a content type
+// Nautobot lacks, and nil when there is nothing to add. A content type that
+// only Nautobot has is reported and kept: removing it would delete the
+// field's values from every object of that type.
+func mergedContentTypes(remote, local []string, key string) []string {
+	have, wanted := stringSet(remote), stringSet(local)
+	merged := append([]string(nil), remote...)
+	for _, ct := range local {
+		if !have[ct] {
+			merged = append(merged, ct)
+			have[ct] = true
 		}
 	}
-	return true
+	for _, ct := range remote {
+		if !wanted[ct] {
+			clog.Warn("custom field %q: Nautobot also applies it to %s, which the inventory catalog does not list; left in place because removing it would delete those values", key, ct)
+		}
+	}
+	if len(merged) == len(remote) {
+		return nil
+	}
+	return merged
+}
+
+// stringSet indexes items for membership tests.
+func stringSet(items []string) map[string]bool {
+	set := make(map[string]bool, len(items))
+	for _, item := range items {
+		set[item] = true
+	}
+	return set
 }

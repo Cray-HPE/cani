@@ -40,11 +40,11 @@ import (
 // diff, then none.
 func TestComputeDeviceDiffsBay(t *testing.T) {
 	existing := &devicetypes.CaniDeviceType{ParentBay: "Bay 1"}
-	diffs := computeDeviceDiffs(existing, &devicetypes.CaniDeviceType{ParentBay: "Bay 2"})
+	diffs := computeDeviceDiffs(existing, &devicetypes.CaniDeviceType{ParentBay: "Bay 2"}, parentNamer{})
 	if len(diffs) != 1 || diffs[0].field != "bay" || diffs[0].newVal != "Bay 2" {
 		t.Errorf("diffs = %+v, want one bay diff to Bay 2", diffs)
 	}
-	if diffs := computeDeviceDiffs(existing, &devicetypes.CaniDeviceType{}); len(diffs) != 0 {
+	if diffs := computeDeviceDiffs(existing, &devicetypes.CaniDeviceType{}, parentNamer{}); len(diffs) != 0 {
 		t.Errorf("diffs = %+v, want none for an incoming device without a bay", diffs)
 	}
 }
