@@ -247,7 +247,8 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 			}
 		}
 
-		// If we already have a Nautobot UUID from a previous export, use it
+		// A stored ID the destination lacks is dropped; one it holds is reused.
+		e.pruneStaleRackID(ctx, rack)
 		if nid, ok := rack.ExternalIDs[externalIDKeyNautobot]; ok && nid != uuid.Nil {
 			createdRackIDs[rackID] = nid
 			clog.Skipped("Skipped rack (already exported): %s", rack.Name)
