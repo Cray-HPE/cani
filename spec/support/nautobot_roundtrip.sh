@@ -130,7 +130,8 @@ rt_build_inventory() {
   rt_cani add prefix 10.0.0.0/24 --namespace tenant-b --type network --status Active \
     --description 'network in tenant-b' &&
   rt_cani add ip 10.0.0.5/24 --namespace tenant-a --type host --status Active \
-    --dns-name host.tenant-a.example.test --description 'host in tenant-a' &&
+    --dns-name host.tenant-a.example.test --description 'host in tenant-a' \
+    --interface 'rt-node-1:Gig-E 1' &&
   rt_cani add ip 10.0.0.5/24 --namespace tenant-b --type host --status Active \
     --dns-name host.tenant-b.example.test --description 'host in tenant-b' &&
   rt_cani add vlan 3100 --name rt-vlan --status Active --location rt-section &&
@@ -252,4 +253,30 @@ rt_stamp_count() { rt_py stamps "$CANI_DS"; }
 #shellcheck disable=SC2317
 rt_count() {
   nb_list "$1" | python3 -c 'import json, sys; print(json.load(sys.stdin).get("count", 0))'
+}
+
+# The two tables the change ledger does not show as rows of their own:
+# IP-address-to-interface assignments (Nautobot logs a new row as an update of
+# the address and the interface, never as an entry for the row) and
+# relationship associations (a plain BaseModel with no change log at all).
+# Mark their row counts before a command that must not write, then compare.
+#shellcheck disable=SC2317
+rt_join_counts() {
+  printf 'assignments=%s associations=%s\n' \
+    "$(rt_count 'ipam/ip-address-to-interface/')" "$(rt_count 'extras/relationship-associations/')"
+}
+
+#shellcheck disable=SC2317
+rt_mark_joins() { rt_join_counts >"$RT_DIR/joins.mark"; }
+
+# Print "joins unchanged" or the two count lines (exit 1).
+#shellcheck disable=SC2317
+rt_joins_unchanged() {
+  _rt_now=$(rt_join_counts)
+  if [ "$(cat "$RT_DIR/joins.mark")" = "$_rt_now" ]; then
+    echo 'joins unchanged'
+  else
+    printf 'joins changed: %s -> %s\n' "$(cat "$RT_DIR/joins.mark")" "$_rt_now"
+    return 1
+  fi
 }
