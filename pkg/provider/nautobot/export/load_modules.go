@@ -217,7 +217,8 @@ func (e *Exporter) buildModuleRequest(
 	return req, e.applyModuleOptionalFields(&req, module)
 }
 
-// applyModuleOptionalFields maps serial, asset tag, and role when present.
+// applyModuleOptionalFields maps serial, asset tag, custom fields and role
+// when present.
 func (e *Exporter) applyModuleOptionalFields(req *nautobotapi.ModuleRequest, module *devicetypes.CaniModuleType) error {
 	if module.Serial != "" {
 		req.Serial = &module.Serial
@@ -225,6 +226,7 @@ func (e *Exporter) applyModuleOptionalFields(req *nautobotapi.ModuleRequest, mod
 	if module.AssetTag != "" {
 		req.AssetTag = &module.AssetTag
 	}
+	req.CustomFields = customFieldsPayload("module", module.Label(), &module.ObjectMeta)
 	if module.Role == "" {
 		return nil
 	}
@@ -270,6 +272,7 @@ func (e *Exporter) postModule(
 	if resp.JSON201 != nil {
 		created = toUUID(resp.JSON201.Id)
 	}
+	recordDroppedCustomFields("module", module.Label(), req.CustomFields, resp.Body, result)
 	clog.Created("Created module: %s (%s)", module.Label(), placement.describe())
 	result.ModulesCreated++
 	return created, nil

@@ -26,8 +26,23 @@
 package export
 
 import (
+	"bytes"
 	"reflect"
+	"testing"
+
+	"github.com/Cray-HPE/cani/pkg/provider/nautobot/logcolor"
 )
+
+// captureClog routes the package logger into a buffer for the rest of the
+// test, so what the export reported can be asserted on.
+func captureClog(t *testing.T) *bytes.Buffer {
+	t.Helper()
+	var buf bytes.Buffer
+	saved := clog
+	clog = logcolor.NewWithWriter(&buf, "", true)
+	t.Cleanup(func() { clog = saved })
+	return &buf
+}
 
 // nbCF wraps a flat custom-fields map in the Nautobot 3.2 pointer-value shape.
 func nbCF(cf map[string]interface{}) *map[string]*interface{} {

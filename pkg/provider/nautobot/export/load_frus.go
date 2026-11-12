@@ -161,11 +161,7 @@ func (e *Exporter) createFruFromCani(
 		return uuid.Nil, fmt.Errorf("set inventory item tag references: %w", err)
 	}
 
-	// Map CustomFields
-	if len(fru.CustomFields) > 0 {
-		cf := map[string]interface{}(fru.CustomFields)
-		req.CustomFields = toNautobotCustomFields(cf)
-	}
+	req.CustomFields = customFieldsPayload("inventory item", fru.Name, &fru.ObjectMeta)
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create inventory item: %s (device: %s)",
@@ -183,6 +179,7 @@ func (e *Exporter) createFruFromCani(
 		return uuid.Nil, fmt.Errorf("unexpected status %d: %s",
 			resp.StatusCode(), string(resp.Body))
 	}
+	recordDroppedCustomFields("inventory item", fru.Name, req.CustomFields, resp.Body, result)
 
 	var nautobotID uuid.UUID
 	if resp.JSON201 != nil && resp.JSON201.Id != nil {

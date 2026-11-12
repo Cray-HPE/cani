@@ -26,6 +26,7 @@
 package export
 
 import (
+	"strings"
 	"testing"
 
 	openapi_types "github.com/Cray-HPE/cani/internal/openapi/types"
@@ -225,6 +226,71 @@ func TestBuildVLANPatch_NoDriftWhenIdentical(t *testing.T) {
 	_, drifted := buildVLANPatch(vlan, remote)
 	if drifted {
 		t.Error("expected no drift when all fields match")
+	}
+}
+
+// TestMergePatchesSendTheProjectionAndNameACollision verifies that the
+// location and VLAN merge paths send the same custom-field projection a
+// create sends: on a key set both explicitly and by provider metadata the
+// provider value is patched and the collision is logged by object and key,
+// never by value.
+//
+// Why it matters: the merge paths used to take the projection's values
+// without its collision report, so a key an operator set two ways was
+// resolved silently on --merge and named only on create.
+// Inputs: a location and a VLAN whose explicit custom field "owner" and
+// provider metadata "owner" disagree, each against a remote that holds a
+// third value.
+// Outputs: the patch carries the provider value; the log names the object
+// and the key and contains neither value.
+// Data choice: three distinct values make the precedence visible in the
+// patch and prove the log carries none of them.
+func TestMergePatchesSendTheProjectionAndNameACollision(t *testing.T) {
+	meta := func() devicetypes.ObjectMeta {
+		return devicetypes.ObjectMeta{
+			CustomFields:     map[string]any{"owner": "explicit-team"},
+			ProviderMetadata: map[string]any{"nautobot": map[string]any{"owner": "provider-team"}},
+		}
+	}
+	cases := map[string]struct {
+		patch    func() *map[string]*interface{}
+		wantLine string
+	}{
+		"location": {
+			patch: func() *map[string]*interface{} {
+				loc := &devicetypes.CaniLocationType{ID: uuid.New(), Name: "DC1", ObjectMeta: meta()}
+				req, _ := buildLocationPatch(loc, &nautobotapi.Location{Name: "DC1", CustomFields: nbCF(map[string]interface{}{"owner": "remote-team"})})
+				return req.CustomFields
+			},
+			wantLine: `location DC1: custom field "owner" is set both explicitly and by provider metadata`,
+		},
+		"VLAN": {
+			patch: func() *map[string]*interface{} {
+				vlan := &devicetypes.CaniVLAN{ID: uuid.New(), VID: 300, Name: "storage", ObjectMeta: meta()}
+				req, _ := buildVLANPatch(vlan, &nautobotapi.VLAN{Name: "storage", Vid: 300, CustomFields: nbCF(map[string]interface{}{"owner": "remote-team"})})
+				return req.CustomFields
+			},
+			wantLine: `VLAN storage: custom field "owner" is set both explicitly and by provider metadata`,
+		},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			logged := captureClog(t)
+
+			sent := derefCustomFields(tc.patch())
+
+			if sent["owner"] != "provider-team" {
+				t.Errorf("patched owner = %v, want the provider value", sent["owner"])
+			}
+			if !strings.Contains(logged.String(), tc.wantLine) {
+				t.Errorf("log = %q, want it to contain %q", logged.String(), tc.wantLine)
+			}
+			for _, value := range []string{"explicit-team", "provider-team", "remote-team"} {
+				if strings.Contains(logged.String(), value) {
+					t.Errorf("log names the value %q; a finding must name only the object and the key", value)
+				}
+			}
+		})
 	}
 }
 

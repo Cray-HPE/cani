@@ -28,7 +28,8 @@ package export
 // lossyExportCount totals the objects that did not reach Nautobot as
 // authored without being errors.
 func lossyExportCount(result *LoadResult) int {
-	return result.IfacesUnsupported + result.IfacesUnresolvedRefs + result.CablesConflicted + result.ModulesMisplaced
+	return result.IfacesUnsupported + result.IfacesUnresolvedRefs + result.CablesConflicted +
+		result.ModulesMisplaced + result.CustomFieldsDropped
 }
 
 // printLossyExportWarning closes the summary with an explicit warning when
