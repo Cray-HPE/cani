@@ -3,7 +3,6 @@ package devicetypes
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"slices"
 
 	"github.com/google/uuid"
@@ -121,7 +120,7 @@ func (c *CaniDeviceType) MergeProperties(other *CaniDeviceType) bool {
 		mergeSet(&c.ParentBay, other.ParentBay),
 		mergeSet(&c.Location, other.Location),
 		c.mergeModuleBays(other.ModuleBays),
-		c.mergeMetadata(other.ProviderMetadata),
+		c.ObjectMeta.Merge(other.ObjectMeta),
 	}
 	return slices.Contains(changes, true)
 }
@@ -146,8 +145,7 @@ func (c *CaniDeviceType) mergeStrings(other *CaniDeviceType) bool {
 		src string
 	}{
 		{&c.Name, other.Name}, {&c.Slug, other.Slug}, {&c.Manufacturer, other.Manufacturer},
-		{&c.Model, other.Model}, {&c.Status, other.Status}, {(*string)(&c.Type), string(other.Type)},
-		{&c.Role, other.Role}, {&c.Serial, other.Serial}, {&c.Description, other.Description},
+		{&c.Model, other.Model}, {(*string)(&c.Type), string(other.Type)}, {&c.Serial, other.Serial}, {&c.Description, other.Description},
 		{&c.Comments, other.Comments}, {&c.AssetTag, other.AssetTag},
 	} {
 		changed = mergeSet(f.dst, f.src) || changed
@@ -164,46 +162,6 @@ func (c *CaniDeviceType) mergePlacement(other *CaniDeviceType) bool {
 	if c.RackPosition > 0 && c.Face == "" {
 		c.Face = "front"
 		changed = true
-	}
-	return changed
-}
-
-// mergeMetadata copies provider sub-maps key by key and top-level scalar keys
-// from incoming into the device's ProviderMetadata.
-func (c *CaniDeviceType) mergeMetadata(incoming map[string]any) bool {
-	if len(incoming) == 0 {
-		return false
-	}
-	if c.ProviderMetadata == nil {
-		c.ProviderMetadata = make(map[string]any)
-	}
-	changed := false
-	for k, v := range incoming {
-		changed = c.mergeMetadataKey(k, v) || changed
-	}
-	return changed
-}
-
-func (c *CaniDeviceType) mergeMetadataKey(k string, v any) bool {
-	incomingSub, isMap := v.(map[string]any)
-	if !isMap {
-		if reflect.DeepEqual(c.ProviderMetadata[k], v) {
-			return false
-		}
-		c.ProviderMetadata[k] = v
-		return true
-	}
-	existing, _ := c.ProviderMetadata[k].(map[string]any)
-	if existing == nil {
-		existing = make(map[string]any)
-		c.ProviderMetadata[k] = existing
-	}
-	changed := false
-	for sk, sv := range incomingSub {
-		if !reflect.DeepEqual(existing[sk], sv) {
-			existing[sk] = sv
-			changed = true
-		}
 	}
 	return changed
 }

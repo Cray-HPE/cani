@@ -30,7 +30,6 @@ import (
 	"log"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
-	"github.com/google/uuid"
 )
 
 // fieldDiff captures a single field's pending change during import merge.
@@ -48,9 +47,10 @@ type changedDevice struct {
 
 // printImportDiff prints a summary of fields that will change when incoming
 // devices are merged into the existing inventory.
-func printImportDiff(ctx *etlContext, incoming map[uuid.UUID]*devicetypes.CaniDeviceType) {
+func printImportDiff(ctx *etlContext, result *devicetypes.TransformResult) {
+	names := parentNamer{inv: ctx.inventory, result: result}
 	var changedDevices []changedDevice
-	for _, dev := range incoming {
+	for _, dev := range result.Devices {
 		if dev == nil || dev.Name == "" {
 			continue
 		}
@@ -58,7 +58,7 @@ func printImportDiff(ctx *etlContext, incoming map[uuid.UUID]*devicetypes.CaniDe
 		if existing == nil {
 			continue
 		}
-		if diffs := computeDeviceDiffs(existing, dev); len(diffs) > 0 {
+		if diffs := computeDeviceDiffs(existing, dev, names); len(diffs) > 0 {
 			changedDevices = append(changedDevices, changedDevice{dev.Name, diffs})
 		}
 	}
@@ -87,7 +87,7 @@ func appendStrDiff(diffs []fieldDiff, field, oldVal, newVal string) []fieldDiff 
 // computeDeviceDiffs returns the set of fields that differ between an existing
 // device and its incoming counterpart, preserving field order. Only non-empty
 // incoming values that differ from the existing value are reported.
-func computeDeviceDiffs(existing, dev *devicetypes.CaniDeviceType) []fieldDiff {
+func computeDeviceDiffs(existing, dev *devicetypes.CaniDeviceType, names parentNamer) []fieldDiff {
 	var diffs []fieldDiff
 	if dev.RackPosition != 0 && dev.RackPosition != existing.RackPosition {
 		diffs = append(diffs, fieldDiff{"position", fmt.Sprintf("%d", existing.RackPosition), fmt.Sprintf("%d", dev.RackPosition)})
@@ -95,13 +95,11 @@ func computeDeviceDiffs(existing, dev *devicetypes.CaniDeviceType) []fieldDiff {
 	diffs = appendStrDiff(diffs, "status", existing.Status, dev.Status)
 	diffs = appendStrDiff(diffs, "role", existing.Role, dev.Role)
 	diffs = appendStrDiff(diffs, "model", existing.Model, dev.Model)
-	if dev.Parent != uuid.Nil && dev.Parent != existing.Parent {
-		diffs = append(diffs, fieldDiff{"parent", existing.Parent.String(), dev.Parent.String()})
-	}
+	diffs = appendParentDiff(diffs, names, existing.Parent, dev.Parent)
 	diffs = appendStrDiff(diffs, "bay", existing.ParentBay, dev.ParentBay)
 	diffs = appendStrDiff(diffs, "face", existing.Face, dev.Face)
 	diffs = appendStrDiff(diffs, "serial", existing.Serial, dev.Serial)
-	return diffs
+	return appendCustomFieldDiffs(diffs, existing.CustomFields, dev.CustomFields)
 }
 
 // printChangedDevices logs the pending field changes grouped by device.
