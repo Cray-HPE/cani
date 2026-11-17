@@ -118,15 +118,6 @@ func applyLocationUpdate(cmd *cli.Command, inventory *devicetypes.Inventory, dev
 	return inventory.SetDeviceLocation(device, locationID)
 }
 
-// applyTagsAndMetadata handles --tag and --metadata changes.
-func applyTagsAndMetadata(cmd *cli.Command, device *devicetypes.CaniDeviceType) {
-	applyTagFlag(cmd, &device.ObjectMeta)
-	if cmd.Flags().Changed("metadata") {
-		meta, _ := cmd.Flags().GetStringToString("metadata")
-		applyProviderMetadata(&device.ProviderMetadata, meta)
-	}
-}
-
 // applyPrimaryIPs handles --primary-ipv4 and --primary-ipv6 changes.
 func applyPrimaryIPs(cmd *cli.Command, inventory *devicetypes.Inventory, device *devicetypes.CaniDeviceType) error {
 	if cmd.Flags().Changed("primary-ipv4") {

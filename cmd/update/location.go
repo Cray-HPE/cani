@@ -95,10 +95,8 @@ func updateLocation(cmd *cli.Command, args []string) error {
 		}
 	}
 
-	applyTagFlag(cmd, &loc.ObjectMeta)
-	if cmd.Flags().Changed("metadata") {
-		meta, _ := cmd.Flags().GetStringToString("metadata")
-		applyProviderMetadata(&loc.ProviderMetadata, meta)
+	if _, err := applyLabelFlags(cmd, inventory, &loc.ObjectMeta, devicetypes.ContentTypeLocation); err != nil {
+		return err
 	}
 
 	// Apply generic --set pairs

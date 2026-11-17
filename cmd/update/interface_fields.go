@@ -33,6 +33,7 @@ import (
 	"strings"
 
 	"github.com/Cray-HPE/cani/internal/cli"
+	"github.com/Cray-HPE/cani/internal/util/customfields"
 	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
@@ -160,7 +161,9 @@ func anyInterfaceFlagChanged(cmd *cli.Command) bool {
 
 // parseInterfaceUpdates reads and validates the interface update flags.
 func parseInterfaceUpdates(cmd *cli.Command, inventory *devicetypes.Inventory) (interfaceUpdates, error) {
-	if err := validate.RejectFlags(cmd, "set"); err != nil {
+	// An interface has no --set key table, and its custom fields are not
+	// exchanged with any provider.
+	if err := validate.RejectFlags(cmd, "set", customfields.FlagSet, customfields.FlagClear); err != nil {
 		return interfaceUpdates{}, err
 	}
 	u := interfaceUpdates{}

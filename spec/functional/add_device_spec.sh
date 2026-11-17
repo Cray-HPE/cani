@@ -100,56 +100,73 @@ Describe 'cani alpha add device'
     End
   End
 
-  # ── --metadata and stray arguments ──────────────────────────────
-  # A `--metadata` with no value used to swallow the next token (here
-  # `--status`) and every metadata pair was then dropped silently; the parser
-  # now refuses a flag token as a value and a pair without key=value.
+  # ── --custom-field and stray arguments ──────────────────────────
+  # A key=value flag with no value used to swallow the next token (here
+  # `--status`) and every pair was then dropped silently; the parser now
+  # refuses a flag token as a value and a pair without key=value. The key
+  # itself must be a custom field the inventory defines for devices.
 
-  Describe '--metadata flag'
-    Before 'setup_crud_env'
+  Describe '--custom-field flag'
+    setup_custom_field_env() {
+      setup_crud_env
+      bin/cani alpha add metadata custom-field site_code --label "Site code" --type text --content-types dcim.device --config "$CANI_CONF" >/dev/null 2>&1
+    }
+    Before 'setup_custom_field_env'
 
-    # Prints "<status> <nautobot role>" for the named device straight from the
-    # datastore, so the assertion does not depend on show's table layout.
-    device_status_and_role() {
+    # Prints "<status> <role> <site_code>" for the named device straight from
+    # the datastore, so the assertion does not depend on show's table layout.
+    device_status_role_and_field() {
       DEVICE_NAME="$1" DS="$CANI_DS" python3 - <<'PY'
 import json, os
 with open(os.environ["DS"]) as fh:
     devices = json.load(fh)["devices"].values()
 for device in devices:
     if device["name"] == os.environ["DEVICE_NAME"]:
-        role = ((device.get("providerMetadata") or {}).get("nautobot") or {}).get("role")
-        print(device["status"], role)
+        print(device["status"], device.get("role"), (device.get("customFields") or {}).get("site_code"))
 PY
     }
 
-    It 'applies metadata and status together'
-      When call bin/cani alpha add device cray-xd225v --rack test-rack --name meta-01 --metadata role=SpineSwitch --status Active --config "$CANI_CONF"
+    It 'applies a role, a custom field and a status together'
+      When call bin/cani alpha add device cray-xd225v --rack test-rack --name meta-01 --role SpineSwitch --custom-field site_code=dc1 --status Active --config "$CANI_CONF"
       The status should equal 0
       The stderr should include 'Added device'
     End
 
-    It 'persists the role and the status on the device'
-      bin/cani alpha add device cray-xd225v --rack test-rack --name meta-01 --metadata role=SpineSwitch --status Active --config "$CANI_CONF" >/dev/null 2>&1
-      When call device_status_and_role meta-01
-      The output should equal 'Active SpineSwitch'
+    It 'persists the role, the custom field and the status on the device'
+      bin/cani alpha add device cray-xd225v --rack test-rack --name meta-01 --role SpineSwitch --custom-field site_code=dc1 --status Active --config "$CANI_CONF" >/dev/null 2>&1
+      When call device_status_role_and_field meta-01
+      The output should equal 'Active SpineSwitch dc1'
     End
 
-    It 'rejects a --metadata that swallowed the next flag'
-      When call bin/cani alpha add device cray-xd225v --rack test-rack --metadata role=SpineSwitch --metadata --status Active --config "$CANI_CONF"
+    It 'refuses a custom field the inventory does not define'
+      When call bin/cani alpha add device cray-xd225v --rack test-rack --custom-field site_cod=dc1 --config "$CANI_CONF"
       The status should equal 1
-      The stderr should include 'flag needs an argument: --metadata'
+      The stderr should include '--custom-field: custom field "site_cod" is not defined in the inventory'
+      The stderr should include "define it with 'add metadata custom-field'"
     End
 
-    It 'rejects a --metadata value without key=value'
-      When call bin/cani alpha add device cray-xd225v --rack test-rack --metadata bogus --config "$CANI_CONF"
+    It 'rejects a --custom-field that swallowed the next flag'
+      When call bin/cani alpha add device cray-xd225v --rack test-rack --custom-field site_code=dc1 --custom-field --status Active --config "$CANI_CONF"
       The status should equal 1
-      The stderr should include 'invalid argument "bogus" for --metadata: expected key=value'
+      The stderr should include 'flag needs an argument: --custom-field'
     End
 
-    It 'rejects a --metadata key that is itself a flag'
-      When call bin/cani alpha add device cray-xd225v --rack test-rack --metadata --status=Active --config "$CANI_CONF"
+    It 'rejects a --custom-field value without key=value'
+      When call bin/cani alpha add device cray-xd225v --rack test-rack --custom-field bogus --config "$CANI_CONF"
       The status should equal 1
-      The stderr should include 'flag needs an argument: --metadata'
+      The stderr should include 'invalid argument "bogus" for --custom-field: expected key=value'
+    End
+
+    It 'rejects a --custom-field key that is itself a flag'
+      When call bin/cani alpha add device cray-xd225v --rack test-rack --custom-field --status=Active --config "$CANI_CONF"
+      The status should equal 1
+      The stderr should include 'flag needs an argument: --custom-field'
+    End
+
+    It 'no longer accepts --metadata'
+      When call bin/cani alpha add device cray-xd225v --rack test-rack --metadata role=SpineSwitch --config "$CANI_CONF"
+      The status should equal 1
+      The stderr should include 'unknown flag: --metadata'
     End
   End
 

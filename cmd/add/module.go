@@ -34,7 +34,6 @@ import (
 	"github.com/Cray-HPE/cani/internal/util/nameexpand"
 	"github.com/Cray-HPE/cani/internal/util/placement"
 	"github.com/Cray-HPE/cani/internal/util/store"
-	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
@@ -135,17 +134,20 @@ func loadModuleInventory(cmd *cli.Command) (*devicetypes.Inventory, error) {
 	return inventory, nil
 }
 
-// normalizeModuleStatus validates a status against the inventory, returning the
-// canonical form. An empty status is returned unchanged.
-func normalizeModuleStatus(statusArg string, inventory *devicetypes.Inventory) (string, error) {
-	if statusArg == "" {
-		return "", nil
+// resolve completes the attributes that depend on the inventory: the status
+// is validated against it and returned in its canonical form, and the
+// --custom-field values are checked against its definitions.
+func (a moduleAttrs) resolve(cmd *cli.Command, inventory *devicetypes.Inventory) (moduleAttrs, error) {
+	var err error
+	if a.status, err = normalizeStatus(a.status, inventory); err != nil {
+		return a, err
 	}
-	return validate.StatusWithInventory(statusArg, inventory)
+	a.labels, err = a.labels.withCustomFields(cmd, inventory, devicetypes.ContentTypeModule)
+	return a, err
 }
 
 // moduleAttrs is what an add stamps on every module it creates: the status,
-// the asset-tracking identity, and the role and tags.
+// the asset-tracking identity, and the role, tags and custom fields.
 type moduleAttrs struct {
 	status string
 	ident  identity
@@ -153,7 +155,7 @@ type moduleAttrs struct {
 }
 
 // moduleAttrsFromFlags reads the flags that fill moduleAttrs. The caller
-// validates the status once the inventory is loaded.
+// calls resolve once the inventory is loaded.
 func moduleAttrsFromFlags(cmd *cli.Command) moduleAttrs {
 	status, _ := cmd.Flags().GetString("status")
 	return moduleAttrs{status: status, ident: identityFromFlags(cmd), labels: labelsFromFlags(cmd)}
@@ -206,7 +208,7 @@ func addModuleStrategy(cmd *cli.Command, result *lookupResult, qty int, nameArg,
 	if err != nil {
 		return err
 	}
-	if attrs.status, err = normalizeModuleStatus(attrs.status, inventory); err != nil {
+	if attrs, err = attrs.resolve(cmd, inventory); err != nil {
 		return err
 	}
 
@@ -244,7 +246,7 @@ func addModuleLiteral(cmd *cli.Command, result *lookupResult, qty int, nameArg, 
 	if err != nil {
 		return err
 	}
-	if opts.attrs.status, err = normalizeModuleStatus(opts.attrs.status, inventory); err != nil {
+	if opts.attrs, err = opts.attrs.resolve(cmd, inventory); err != nil {
 		return err
 	}
 	if spare, _ := cmd.Flags().GetBool(flagSpare); spare {

@@ -25,7 +25,10 @@
  */
 package add
 
-import "github.com/Cray-HPE/cani/internal/cli"
+import (
+	"github.com/Cray-HPE/cani/internal/cli"
+	"github.com/Cray-HPE/cani/internal/util/customfields"
+)
 
 // Shared CLI flag names used across multiple "add" subcommands. Centralizing
 // them avoids duplicated string literals and keeps flag wiring consistent.
@@ -40,6 +43,10 @@ const (
 	flagDryRun      = "dry-run"
 	flagRole        = "role"
 )
+
+// itemFlags are the flags `add` hands to every subcommand that describe an
+// inventory item. A subcommand that creates none refuses them by name.
+var itemFlags = []string{"tag", "status", customfields.FlagSet}
 
 // roleFlagHelp describes --role on the nouns that stamp it on what they add.
 const roleFlagHelp = "Role (e.g. LeafSwitch, ComputeNode)"

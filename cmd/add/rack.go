@@ -34,6 +34,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/util/store"
 	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/datastores"
+	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
 )
 
@@ -99,8 +100,10 @@ func addRack(cmd *cli.Command, args []string) error {
 
 	locationID := resolveLocation(inventory, locationArg)
 
-	lbl := labelsFromFlags(cmd)
-	provMeta := collectProviderMetadata(cmd)
+	lbl, err := labelsFromFlags(cmd).withCustomFields(cmd, inventory, devicetypes.ContentTypeRack)
+	if err != nil {
+		return err
+	}
 
 	for i := range qty {
 		rack := *result.Rack // shallow copy
@@ -116,7 +119,6 @@ func addRack(cmd *cli.Command, args []string) error {
 		}
 		ident.apply(&rack.Serial, &rack.AssetTag)
 		lbl.apply(&rack.ObjectMeta)
-		applyProviderMetadataToRack(&rack, provMeta)
 
 		// Let registered providers apply post-add logic.
 		if err := runRackPostAddHooks(&rack, inventory); err != nil {

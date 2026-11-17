@@ -31,6 +31,7 @@ import (
 	"strconv"
 
 	"github.com/Cray-HPE/cani/internal/cli"
+	"github.com/Cray-HPE/cani/internal/util/customfields"
 	"github.com/Cray-HPE/cani/internal/util/store"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
@@ -104,8 +105,8 @@ func addVLAN(cmd *cli.Command, args []string) error {
 	if len(tags) > 0 {
 		vlan.Tags = tags
 	}
-	if meta := collectProviderMetadata(cmd); len(meta) > 0 {
-		applyProviderMetadataMap(&vlan.ProviderMetadata, meta)
+	if err := customfields.Apply(cmd, inventory, &vlan.ObjectMeta, devicetypes.ContentTypeVLAN); err != nil {
+		return err
 	}
 
 	if err := inventory.AddVLAN(vlan); err != nil {

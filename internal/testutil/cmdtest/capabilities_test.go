@@ -28,7 +28,6 @@ package cmdtest_test
 
 import (
 	"context"
-	"maps"
 	"testing"
 
 	"github.com/Cray-HPE/cani/internal/cli"
@@ -60,11 +59,6 @@ type deviceUpdateCall struct {
 	device  *devicetypes.CaniDeviceType
 }
 
-type metadataCall struct {
-	target *map[string]any
-	values map[string]string
-}
-
 type stageCall struct {
 	inventory *devicetypes.Inventory
 	slug      string
@@ -74,7 +68,6 @@ type capabilityLog struct {
 	rackHooks    []rackHookCall
 	registration []*cli.Command
 	updates      []deviceUpdateCall
-	metadata     []metadataCall
 	descriptions []*devicetypes.CaniDeviceType
 	newStages    []stageCall
 	existing     []stageCall
@@ -83,7 +76,6 @@ type capabilityLog struct {
 type capableProvider struct {
 	inertProvider
 	calls         capabilityLog
-	applyMetadata func(*map[string]any, map[string]string)
 	stageNew      func(*devicetypes.Inventory, string) bool
 	stageExisting func(*devicetypes.Inventory, string) bool
 }
@@ -93,13 +85,6 @@ var invarianceProvider = &capableProvider{inertProvider: inertProvider{slug: "in
 func (provider *capableProvider) OnRackAdded(rack *devicetypes.CaniRackType, inventory *devicetypes.Inventory) error {
 	provider.calls.rackHooks = append(provider.calls.rackHooks, rackHookCall{rack, inventory})
 	return nil
-}
-
-func (provider *capableProvider) ApplyMetadata(target *map[string]any, values map[string]string) {
-	provider.calls.metadata = append(provider.calls.metadata, metadataCall{target, maps.Clone(values)})
-	if provider.applyMetadata != nil {
-		provider.applyMetadata(target, values)
-	}
 }
 
 func (provider *capableProvider) DescribeStagedDevice(device *devicetypes.CaniDeviceType) []string {

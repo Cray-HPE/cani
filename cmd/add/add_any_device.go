@@ -72,13 +72,16 @@ func addAnyDevice(cmd *cli.Command, args []string, device *devicetypes.CaniDevic
 	if err != nil {
 		return err
 	}
+	lbl, err := labelsFromFlags(cmd).withCustomFields(cmd, inventory, devicetypes.ContentTypeDevice)
+	if err != nil {
+		return err
+	}
 
 	attrs := deviceAttrs{
 		parentArg: parentArg,
 		statusArg: statusArg,
 		ident:     ident,
-		labels:    labelsFromFlags(cmd),
-		provMeta:  collectProviderMetadata(cmd),
+		labels:    lbl,
 	}
 
 	devicesToAdd := buildDevicesToAdd(device, names, attrs, qty)
@@ -122,7 +125,6 @@ type deviceAttrs struct {
 	statusArg string
 	ident     identity
 	labels    labels
-	provMeta  map[string]string
 }
 
 // buildDevicesToAdd constructs the device(s) to add, expanding any child
@@ -152,7 +154,7 @@ func buildDevicesToAdd(
 }
 
 // buildOneDevice constructs a single device from the resolved type, applying
-// the supplied parent, name, status, serial, role, tags, and provider metadata.
+// the supplied parent, name, status, serial, role, tags, and custom fields.
 func buildOneDevice(
 	device *devicetypes.CaniDeviceType,
 	name string,
@@ -170,7 +172,6 @@ func buildOneDevice(
 	}
 	attrs.ident.apply(&d.Serial, &d.AssetTag)
 	attrs.labels.apply(&d.ObjectMeta)
-	applyProviderMetadataToDevice(&d, attrs.provMeta)
 	return &d
 }
 

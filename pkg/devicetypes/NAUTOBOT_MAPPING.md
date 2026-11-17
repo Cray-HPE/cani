@@ -671,10 +671,8 @@ validation errors reject the complete transform without partially applying it.
   differently.
 - **Import retires the superseded provider copy.** When import reads a custom
   field back, `ObjectMeta.Merge` removes the same key from the source's own
-  provider-metadata bucket (`providerMetadata.nautobot`). A value first set
-  with `--metadata` therefore cannot outlive an edit made in Nautobot, and a
-  later `--metadata` write still wins until the next import. A collision now
-  means a local edit that has not been exported yet. Buckets of other
+  provider-metadata bucket (`providerMetadata.nautobot`). A value held there
+  therefore cannot outlive an edit made in Nautobot. Buckets of other
   providers are not touched.
 - **Reserved provider keys.** A provider-metadata key that a mapper already
   sends as a dedicated Nautobot field is not a custom field: `role` and

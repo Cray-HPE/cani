@@ -151,7 +151,7 @@ Key relationships:
 - `Validate()` — Full referential integrity check across all maps
 
 **Custom Fields** (in `custom_field_values.go`):
-- `CustomFieldFor(contentType, key)` — the definition of a key when the metadata catalog defines it for that object kind
+- `CustomFieldFor(contentType, key)` — the definition of a key when the metadata catalog defines it for that object kind; a key with no definition at all is `ErrCustomFieldNotDefined`, which a caller can tell from a key defined for another kind
 - `SetCustomField(meta, contentType, key, raw)` — parse text into the type the definition declares (`integer`, `boolean`, `date`, `json`, `select`, `multi-select`, or text) and store it; an undefined key, a wrong type and a value outside the choices are errors
 - `ClearCustomField(meta, contentType, key)` — a defined field becomes an explicit null (a required one is refused); a key with no definition is deleted
 

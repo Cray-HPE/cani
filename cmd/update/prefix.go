@@ -106,7 +106,10 @@ func applyPrefixUpdates(cmd *cli.Command, inventory *devicetypes.Inventory, pref
 	if changed {
 		prefix.Description, _ = cmd.Flags().GetString(flagDescription)
 	}
-	changed = applyTagFlag(cmd, &prefix.ObjectMeta) || changed
+	labelled, err := applyLabelFlags(cmd, inventory, &prefix.ObjectMeta, devicetypes.ContentTypePrefix)
+	if err != nil {
+		return false, err
+	}
 	added, err := addPrefixVRFs(cmd, inventory, prefix)
 	if err != nil {
 		return false, err
@@ -115,7 +118,7 @@ func applyPrefixUpdates(cmd *cli.Command, inventory *devicetypes.Inventory, pref
 	if err != nil {
 		return false, err
 	}
-	return changed || added || removed, nil
+	return changed || labelled || added || removed, nil
 }
 
 // addPrefixVRFs adds each --vrf membership; the model clears a legacy VRF name

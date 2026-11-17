@@ -27,7 +27,6 @@
 package cmdtest_test
 
 import (
-	"maps"
 	"testing"
 
 	"github.com/Cray-HPE/cani/cmd/add"
@@ -36,64 +35,6 @@ import (
 	"github.com/Cray-HPE/cani/internal/testutil/cmdtest"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
-
-// TestMetadataCapabilityReceivesParsedPairs verifies add and update dispatch metadata.
-//
-// Why it matters: generic flags must reach the provider with the right target.
-// Inputs: two metadata pairs and an inventory containing a different device.
-// Outputs: one callback with exact parsed values and metadata on the saved target.
-// Data choice: an equals sign inside a value detects lossy flag parsing, while
-// distinct device names distinguish updating the intended object from another.
-func TestMetadataCapabilityReceivesParsedPairs(t *testing.T) {
-	cases := []struct {
-		name    string
-		command func() *cli.Command
-		ref     string
-		target  string
-		flags   map[string][]string
-	}{
-		{"add", add.NewCommand, cmdtest.DeviceSlug, "cn-02", map[string][]string{"rack": {"rack-01"}, "name": {"cn-02"}}},
-		{"update", update.NewCommand, "cn-01", "cn-99", map[string][]string{"name": {"cn-99"}}},
-	}
-	for _, testCase := range cases {
-		t.Run(testCase.name, func(t *testing.T) {
-			capabilities := useCapabilities(t)
-			capabilities.applyMetadata = func(target *map[string]any, values map[string]string) {
-				if *target == nil {
-					*target = make(map[string]any)
-				}
-				(*target)[capabilities.Slug()] = maps.Clone(values)
-			}
-			inventory, rackID := cmdtest.InventoryWithRack("rack-01")
-			cmdtest.AddDevice(inventory, rackID, "cn-01", 10)
-			parent := testCase.command()
-			harness := cmdtest.New(t, parent, subcommand(t, parent, "device"), inventory)
-			flags := maps.Clone(testCase.flags)
-			flags["metadata"] = []string{"owner=ops", "note=a=b"}
-
-			if err := harness.Run(t, flags, testCase.ref); err != nil {
-				t.Fatal(err)
-			}
-
-			device := namedDevice(t, harness.Inventory(), testCase.target)
-			assertMetadataResult(t, capabilities, device)
-		})
-	}
-}
-
-func assertMetadataResult(t *testing.T, capabilities *capableProvider, device *devicetypes.CaniDeviceType) {
-	t.Helper()
-	assertCallCount(t, "ApplyMetadata", len(capabilities.calls.metadata), 1)
-	call := capabilities.calls.metadata[0]
-	want := map[string]string{"owner": "ops", "note": "a=b"}
-	if !maps.Equal(call.values, want) {
-		t.Errorf("metadata arguments = %v, want %v", call.values, want)
-	}
-	got, ok := device.ProviderMetadata[capabilities.Slug()].(map[string]string)
-	if !ok || !maps.Equal(got, want) {
-		t.Errorf("saved target metadata = %v, want %v", got, want)
-	}
-}
 
 // TestProviderDeviceUpdateFlags verifies contributed flags reach runtime dispatch.
 //

@@ -31,6 +31,7 @@ import (
 	"testing"
 
 	"github.com/Cray-HPE/cani/internal/testutil/cmdtest"
+	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
 
 // TestAddDevicePlacesDeviceInRack verifies that "add device <slug>" resolves
@@ -109,21 +110,21 @@ func TestAddDeviceRejectsUnknownSlug(t *testing.T) {
 	}
 }
 
-// TestAddDeviceRejectsMetadataMissingItsValue verifies the command line a
-// reviewer actually typed — a --metadata with no value in front of --status —
-// fails at parse time and writes nothing.
+// TestAddDeviceRejectsCustomFieldMissingItsValue verifies a key=value flag
+// with no value in front of another flag fails at parse time and writes
+// nothing.
 //
-// Why it matters: the parser used to hand the next token to --metadata
-// whatever it looked like, so "--status" became a metadata value; the old code
-// then dropped every pair silently, never saw --status, and saved a device
-// with the default status and no role. The user only found out after an
-// export.
-// Inputs: the reported argv against an inventory with one rack.
-// Outputs: the parser's missing-argument error naming --metadata, zero Save
-// calls and no device.
-// Data choice: flag order and tokens match the report, including the valid
-// role pair that used to be lost along with the bad one.
-func TestAddDeviceRejectsMetadataMissingItsValue(t *testing.T) {
+// Why it matters: the parser used to hand the next token to a key=value flag
+// whatever it looked like, so "--status" became a value; the pairs were then
+// dropped silently, --status was never seen, and a device was saved with the
+// default status. The user only found out after an export.
+// Inputs: a valid pair, then --custom-field directly followed by --status,
+// against an inventory with one rack.
+// Outputs: the parser's missing-argument error naming --custom-field, zero
+// Save calls and no device.
+// Data choice: the valid pair comes first, because it used to be lost along
+// with the bad one.
+func TestAddDeviceRejectsCustomFieldMissingItsValue(t *testing.T) {
 	// Arrange.
 	inventory, _ := cmdtest.InventoryWithRack("rack-01")
 	harness := cmdtest.New(t, NewCommand(), newDeviceCommand(), inventory)
@@ -131,14 +132,14 @@ func TestAddDeviceRejectsMetadataMissingItsValue(t *testing.T) {
 	// Act.
 	err := harness.Execute(t, "add", "device", cmdtest.DeviceSlug,
 		"--rack", "rack-01", "--position", "10",
-		"--metadata", "role=SpineSwitch", "--metadata", "--status", "Active")
+		"--custom-field", "site_code=dc1", "--custom-field", "--status", "Active")
 
 	// Assert.
 	if err == nil {
 		t.Fatal("expected a parse error, got nil")
 	}
-	if !strings.Contains(err.Error(), "flag needs an argument: --metadata") {
-		t.Errorf("error = %q, want the missing-argument error for --metadata", err)
+	if !strings.Contains(err.Error(), "flag needs an argument: --custom-field") {
+		t.Errorf("error = %q, want the missing-argument error for --custom-field", err)
 	}
 	if harness.Store.Saves != 0 {
 		t.Errorf("Saves = %d, want 0", harness.Store.Saves)
@@ -148,28 +149,29 @@ func TestAddDeviceRejectsMetadataMissingItsValue(t *testing.T) {
 	}
 }
 
-// TestAddDeviceRejectsMalformedMetadata verifies a --metadata value without a
-// key=value shape fails at parse time, naming the flag and the value.
+// TestAddDeviceRejectsMalformedCustomField verifies a --custom-field value
+// without a key=value shape fails at parse time, naming the flag and the
+// value.
 //
 // Why it matters: this is the case the parser's flag-token guard cannot see;
 // the key=value flag type itself has to refuse it before the command runs.
-// Inputs: "--metadata bogus" on an otherwise valid add device.
-// Outputs: an error naming the value and --metadata, and zero Save calls.
+// Inputs: "--custom-field bogus" on an otherwise valid add device.
+// Outputs: an error naming the value and --custom-field, and zero Save calls.
 // Data choice: "bogus" has no "=" at all, the simplest malformed pair.
-func TestAddDeviceRejectsMalformedMetadata(t *testing.T) {
+func TestAddDeviceRejectsMalformedCustomField(t *testing.T) {
 	// Arrange.
 	inventory, _ := cmdtest.InventoryWithRack("rack-01")
 	harness := cmdtest.New(t, NewCommand(), newDeviceCommand(), inventory)
 
 	// Act.
 	err := harness.Execute(t, "add", "device", cmdtest.DeviceSlug,
-		"--rack", "rack-01", "--position", "10", "--metadata", "bogus")
+		"--rack", "rack-01", "--position", "10", "--custom-field", "bogus")
 
 	// Assert.
 	if err == nil {
 		t.Fatal("expected a parse error, got nil")
 	}
-	if !strings.Contains(err.Error(), `invalid argument "bogus" for --metadata: expected key=value`) {
+	if !strings.Contains(err.Error(), `invalid argument "bogus" for --custom-field: expected key=value`) {
 		t.Errorf("error = %q, want the value and flag named", err)
 	}
 	if harness.Store.Saves != 0 {
@@ -177,26 +179,27 @@ func TestAddDeviceRejectsMalformedMetadata(t *testing.T) {
 	}
 }
 
-// TestAddDeviceAppliesMetadataAndStatus verifies the corrected form of the
-// same command parses --metadata and --status and persists both.
+// TestAddDeviceAppliesCustomFieldAndStatus verifies the well-formed form of
+// the same command stores the custom field and the status that follows it.
 //
-// Why it matters: this is the regression guard for the report's intent, and
-// it proves the stricter flag does not reject well-formed input.
-// Inputs: the reviewer's argv without the stray --metadata.
-// Outputs: one Save, exactly one device with status Active, and the role pair
-// available to providers. No provider is registered here; the dispatch of the
-// pairs to MetadataApplier is covered by the cmdtest capability tests.
+// Why it matters: it proves the stricter flag does not reject well-formed
+// input, and that a flag after --custom-field is still seen.
+// Inputs: one --custom-field pair for a field defined for devices, then
+// --status.
+// Outputs: one Save, exactly one device with status Active and the field.
 // Data choice: "Active" is a built-in status so no status definition is
-// needed in the inventory.
-func TestAddDeviceAppliesMetadataAndStatus(t *testing.T) {
+// needed in the inventory; the value holds an "=" to prove the pair is split
+// at the first one only.
+func TestAddDeviceAppliesCustomFieldAndStatus(t *testing.T) {
 	// Arrange.
 	inventory, _ := cmdtest.InventoryWithRack("rack-01")
+	cmdtest.DefineCustomField(inventory, "site_code", "text", devicetypes.ContentTypeDevice)
 	harness := cmdtest.New(t, NewCommand(), newDeviceCommand(), inventory)
 
 	// Act.
 	err := harness.Execute(t, "add", "device", cmdtest.DeviceSlug,
 		"--rack", "rack-01", "--position", "10", "--name", "cn-01",
-		"--metadata", "role=SpineSwitch", "--status", "Active")
+		"--custom-field", "site_code=dc1=east", "--status", "Active")
 
 	// Assert.
 	if err != nil {
@@ -213,9 +216,9 @@ func TestAddDeviceAppliesMetadataAndStatus(t *testing.T) {
 		if device.Status != "Active" {
 			t.Errorf("Status = %q, want %q", device.Status, "Active")
 		}
-	}
-	if got := collectProviderMetadata(harness.Target); got["role"] != "SpineSwitch" {
-		t.Errorf("metadata = %v, want role=SpineSwitch", got)
+		if got := device.CustomFields["site_code"]; got != "dc1=east" {
+			t.Errorf("custom field site_code = %v, want dc1=east", got)
+		}
 	}
 }
 

@@ -30,6 +30,7 @@ import (
 	"log"
 
 	"github.com/Cray-HPE/cani/internal/cli"
+	"github.com/Cray-HPE/cani/internal/util/customfields"
 	"github.com/Cray-HPE/cani/internal/util/resolve"
 	"github.com/Cray-HPE/cani/internal/util/store"
 	"github.com/Cray-HPE/cani/pkg/datastores"
@@ -79,6 +80,9 @@ func addVRF(cmd *cli.Command, args []string) error {
 		Name: name,
 	}
 	applyVRFFlags(cmd, vrf)
+	if err := customfields.Apply(cmd, inventory, &vrf.ObjectMeta, devicetypes.ContentTypeVRF); err != nil {
+		return err
+	}
 
 	if err := resolveVRFDevices(cmd, inventory, vrf); err != nil {
 		return err
