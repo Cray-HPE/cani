@@ -167,9 +167,10 @@ func (inv *Inventory) countSparesStoredIn(id uuid.UUID) int {
 	return n
 }
 
-// RemoveRack deletes a rack. The devices it held keep the rack's location and
-// lose the rack, as a device unracked in Nautobot does; they are orphans only
-// when the rack had no location to leave them in.
+// RemoveRack deletes a rack. The devices it held keep the location they were
+// in, the rack's or one they recorded that holds it, and lose the rack, as a
+// device unracked in Nautobot does; they are orphans only when the rack had
+// no location to leave them in.
 func (inv *Inventory) RemoveRack(id uuid.UUID) error {
 	rack, exists := inv.Racks[id]
 	if !exists {
@@ -178,8 +179,8 @@ func (inv *Inventory) RemoveRack(id uuid.UUID) error {
 	// Unlink devices from rack
 	for _, deviceID := range rack.Devices {
 		if device, ok := inv.Devices[deviceID]; ok {
+			device.Location = inv.rackedDeviceLocation(device.Location, rack)
 			device.Parent = uuid.Nil
-			device.Location = rack.Location
 		}
 	}
 	// Unlink from location

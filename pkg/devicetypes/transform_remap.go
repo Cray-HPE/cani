@@ -163,6 +163,11 @@ func (result *TransformResult) syncResolvedDevice(
 		return
 	}
 	if incoming.Parent != uuid.Nil {
+		if resolved.Parent != incoming.Parent {
+			// A re-parented device follows its new rack unless the
+			// incoming record names a location of its own, set below.
+			resolved.Location = uuid.Nil
+		}
 		resolved.Parent = incoming.Parent
 	}
 	if incoming.Rack != uuid.Nil {

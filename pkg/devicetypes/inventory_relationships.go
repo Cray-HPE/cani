@@ -235,7 +235,7 @@ func (inv *Inventory) linkDeviceToRack(id uuid.UUID, device *CaniDeviceType) (bo
 	}
 	rack.addDevice(id)
 	device.Rack = device.Parent
-	device.Location = rack.Location
+	device.Location = inv.rackedDeviceLocation(device.Location, rack)
 
 	// Rebuild OccupiedSlots from the device's stored position.
 	if device.RackPosition > 0 {

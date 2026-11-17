@@ -33,8 +33,10 @@ import (
 )
 
 // clearDeviceReverseLists resets the derived fields on racks and devices
-// so they can be rebuilt from Parent fields. A device placed directly in a
-// location (no Parent) keeps its Location: nothing would re-derive it.
+// so they can be rebuilt from Parent fields. Two kinds of device keep the
+// Location they record: one placed directly in a location (no Parent),
+// which nothing would re-derive, and one mounted in a rack, whose recorded
+// location linkDeviceToRack keeps only when it holds the rack's.
 func (inv *Inventory) clearDeviceReverseLists() {
 	for _, rack := range inv.Racks {
 		if rack != nil {
@@ -47,7 +49,7 @@ func (inv *Inventory) clearDeviceReverseLists() {
 			device.Children = nil
 			device.Rack = uuid.Nil
 			device.ParentDevice = uuid.Nil
-			if device.Parent != uuid.Nil {
+			if _, racked := inv.Racks[device.Parent]; device.Parent != uuid.Nil && !racked {
 				device.Location = uuid.Nil
 			}
 		}

@@ -181,7 +181,7 @@ This type conflates **template fields** (from the YAML library, used to auto-cre
 | `RackPosition` | `int` | `Device.Position` | **Mapped** | Only when parent resolves to a rack; omitted for child devices (`isChildDevice()`) |
 | `Face` | `string` | `Device.Face` | **Mapped** | Written by `setDeviceFace()`: `"front"`, `"rear"`, or nil if empty; omitted for child devices, which Nautobot rejects |
 | `Rack` | `uuid.UUID` | `Device.Rack` (FK) | Cani-Internal | Explicit FK; rebuilt from `Parent` at load time |
-| `Location` | `uuid.UUID` | `Device.Location` (FK) | **Mapped** | Export: provider metadata override, then parent rack location, then the device's own `Location`, then provider default. Import sets it from `Device.location`; it is persisted for a device with no rack and re-derived from the rack otherwise |
+| `Location` | `uuid.UUID` | `Device.Location` (FK) | **Mapped** | Export: provider metadata override, then the location a racked device records when it holds its rack's and its type holds devices, then the parent rack's location, then the location of a device with no rack, then provider default. Import sets it from `Device.location`. A device with no parent is placed directly in it. A racked device keeps it only while it is the rack's location or an ancestor of it, which is what `Device.clean()` accepts; any other value is replaced by the rack's on rebuild, and it is cleared when the rack moves (`Inventory.MoveRack`, a rack merge) or the device is given another parent, because Nautobot puts the devices of a rack in the rack's location whenever the rack is saved (`handle_rack_location_change`). A device installed in another device takes that device's. Set with `add device --location` and `update device --location` (`Inventory.SetDeviceLocation`) |
 | `ParentDevice` | `uuid.UUID` | `Device.ParentBay` | Cani-Internal | Explicit FK; rebuilt from `Parent` at load time |
 | `AssignedVLANs` | `[]uuid.UUID` | Relationship association | **Mapped** | Device↔VLAN; exported in Phase 10 by `loadRelationships()` in `load_relationships.go`. Set by `update device --assign-vlan` |
 | `BMCParent` | `uuid.UUID` | Relationship association | **Mapped** | Marks this device as the BMC of the target device; exported in Phase 10. Set by `update device --bmc-of` |
@@ -784,7 +784,7 @@ All relationships are expressed as single-direction FKs on the child object — 
 The `rebuildDeviceRelationships()` function in `inventory_relationships.go` performs the same logic at load time, setting the explicit FK fields:
 - `device.Rack = device.Parent` (when parent is a rack)
 - `device.ParentDevice = device.Parent` (when parent is a device)
-- `device.Location` is inherited from the rack or parent device
+- `device.Location` is the rack's unless the device records a location that holds the rack's, and the parent device's for a device installed in one (`device_location.go`)
 
 ### 4.3 Relationship Verification
 

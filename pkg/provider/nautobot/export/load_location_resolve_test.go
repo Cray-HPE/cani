@@ -391,3 +391,48 @@ func TestResolveContentLocationSiblingResolution(t *testing.T) {
 		t.Errorf("resolveContentLocation() = %q, want Row-1", result)
 	}
 }
+
+// ---------- locationFromInventory ----------
+
+// TestLocationFromInventoryUsesRecordedLocationThatHoldsTheRack verifies
+// which location a rack-mounted device is exported in: the one it records
+// when that holds its rack's and may hold devices, and the rack's otherwise.
+//
+// Why it matters: Nautobot accepts a racked device in any location that
+// holds its rack's; exporting the rack's location instead moved every such
+// device on a --merge, and exporting a location that does not hold the rack
+// makes Nautobot refuse the device.
+// Inputs: a rack in a room under a campus; devices recording the campus, the
+// room, an unrelated annex, and a campus-level location of the library's
+// "dc" type, which holds no devices.
+// Outputs: campus, room, room, room.
+// Data choice: campus and room use a type the library does not define, which
+// export leaves to the provider's judgement; the "dc" case shows a recorded
+// location falls back to the rack's rather than descending somewhere else.
+func TestLocationFromInventoryUsesRecordedLocationThatHoldsTheRack(t *testing.T) {
+	// Arrange.
+	campus, hall, room, annex, rackID := uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	inv := devicetypes.NewInventory()
+	inv.Locations[campus] = &devicetypes.CaniLocationType{ID: campus, Name: "campus", LocationType: "site-unregistered"}
+	inv.Locations[hall] = &devicetypes.CaniLocationType{ID: hall, Name: "hall", LocationType: "dc", Parent: campus}
+	inv.Locations[room] = &devicetypes.CaniLocationType{ID: room, Name: "room", LocationType: "site-unregistered", Parent: hall}
+	inv.Locations[annex] = &devicetypes.CaniLocationType{ID: annex, Name: "annex", LocationType: "site-unregistered"}
+	inv.Racks[rackID] = &devicetypes.CaniRackType{ID: rackID, Name: "rack-01", Location: room}
+	mapper := NewDeviceMapper(NewLookupCache(nil), &MapperOpts{})
+	mapper.SetInventory(inv)
+	recorded := map[string]uuid.UUID{"at-campus": campus, "at-room": room, "at-annex": annex, "at-hall": hall}
+
+	for name, location := range recorded {
+		// Act.
+		got := mapper.locationFromInventory(&devicetypes.CaniDeviceType{Name: name, Parent: rackID, Location: location})
+
+		// Assert.
+		want := "room"
+		if name == "at-campus" {
+			want = "campus"
+		}
+		if got != want {
+			t.Errorf("%s: exported location = %q, want %q", name, got, want)
+		}
+	}
+}
