@@ -26,23 +26,44 @@
 package add
 
 import (
+	"slices"
+
 	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
+
+// labels holds the role and tags an add stamps on each device, rack or
+// module, read once from the --role and --tag flags.
+type labels struct {
+	role string
+	tags []string
+}
+
+// labelsFromFlags reads --role and --tag; an unset flag leaves the item's
+// field as the hardware type defines it.
+func labelsFromFlags(cmd *cli.Command) labels {
+	role, _ := cmd.Flags().GetString(flagRole)
+	tags, _ := cmd.Flags().GetStringArray("tag")
+	return labels{role: role, tags: tags}
+}
+
+// apply sets the role that was given and appends the tags. The tag list is
+// copied, so items built from one hardware type never share it.
+func (l labels) apply(meta *devicetypes.ObjectMeta) {
+	if l.role != "" {
+		meta.Role = l.role
+	}
+	if len(l.tags) > 0 {
+		meta.Tags = slices.Concat(meta.Tags, l.tags)
+	}
+}
 
 // collectProviderMetadata returns the --metadata key=value pairs, already
 // validated by the flag parser, or nil when the flag was not set.
 func collectProviderMetadata(cmd *cli.Command) map[string]string {
 	meta, _ := cmd.Flags().GetStringToString("metadata")
 	return meta
-}
-
-// applyTagsToDevice appends tags to a device.
-func applyTagsToDevice(device *devicetypes.CaniDeviceType, tags []string) {
-	if len(tags) > 0 {
-		device.Tags = append(device.Tags, tags...)
-	}
 }
 
 // applyProviderMetadataMap lets each registered provider merge metadata
@@ -61,13 +82,6 @@ func applyProviderMetadataMap(pm *map[string]any, meta map[string]string) {
 // applyProviderMetadataToDevice merges metadata into the device's provider metadata.
 func applyProviderMetadataToDevice(device *devicetypes.CaniDeviceType, meta map[string]string) {
 	applyProviderMetadataMap(&device.ProviderMetadata, meta)
-}
-
-// applyTagsToRack appends tags to a rack.
-func applyTagsToRack(rack *devicetypes.CaniRackType, tags []string) {
-	if len(tags) > 0 {
-		rack.Tags = append(rack.Tags, tags...)
-	}
 }
 
 // applyProviderMetadataToRack merges metadata into the rack's provider metadata.

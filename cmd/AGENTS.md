@@ -156,6 +156,7 @@ Persistent flags inherited by all `add` subcommands:
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
 | `--location` | string | `""` | Parent location UUID or name |
+| `--role` | string | `""` | Role, stored in the rack's `role` field |
 
 #### `add device <slug-or-part-number>`
 
@@ -164,6 +165,7 @@ Persistent flags inherited by all `add` subcommands:
 | `--rack` | string | `""` | Parent rack UUID or name |
 | `--position` | int | 0 | Rack U position |
 | `--face` | string | `""` | Rack face (front, rear) |
+| `--role` | string | `""` | Role, stored in the device's `role` field |
 
 #### `add module <slug-or-part-number>`
 
@@ -174,6 +176,9 @@ Persistent flags inherited by all `add` subcommands:
 | `--spare` | bool | false | Store the module at `--location` instead of installing it in a device; refused together with `--device` or `--bay`. `--name` is optional, and an unnamed module is listed by its model and the `--serial`/`--asset-tag` it records |
 | `--location` | string | `""` | Location filter for device selection, or the storage location of a `--spare` module |
 | `--dry-run` | bool | false | Print the planned placements (or the spare's storage location) without saving; honored on every placement path |
+| `--role` | string | `""` | Role, stored in the module's `role` field |
+
+The bare `add <slug-or-part-number>` form also takes `--role` and stamps it on the rack, device or module the slug resolves to; a cable has no role, so the flag is refused for one.
 
 #### `add cable <slug-or-part-number>`
 

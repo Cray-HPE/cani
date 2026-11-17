@@ -44,4 +44,33 @@ Describe 'cani alpha add rack'
     End
   End
 
+  # ── --role ──────────────────────────────────────────────────────
+  # The role belongs in the rack's role field, where show, update and every
+  # exporter read it, not in a provider's metadata.
+
+  Describe '--role flag'
+    Before 'setup_crud_env'
+
+    # Prints "<role> <provider metadata role>" for each rack that has either,
+    # straight from the datastore.
+    rack_roles() {
+      DS="$CANI_DS" python3 - <<'PY'
+import json, os
+with open(os.environ["DS"]) as fh:
+    racks = json.load(fh)["racks"].values()
+for rack in racks:
+    buckets = (rack.get("providerMetadata") or {}).values()
+    stray = [b.get("role") for b in buckets if isinstance(b, dict) and b.get("role")]
+    if rack.get("role") or stray:
+        print(rack.get("role"), stray)
+PY
+    }
+
+    It 'stores the role in the role field and nowhere else'
+      bin/cani alpha add rack hpe-48u-800mmx1200mm-g2-enterprise-shock-rack --name role-rack --role StorageRack --config "$CANI_CONF" >/dev/null 2>&1
+      When call rack_roles
+      The output should equal 'StorageRack []'
+    End
+  End
+
 End

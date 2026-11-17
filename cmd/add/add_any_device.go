@@ -73,12 +73,11 @@ func addAnyDevice(cmd *cli.Command, args []string, device *devicetypes.CaniDevic
 		return err
 	}
 
-	tags, _ := cmd.Flags().GetStringArray("tag")
 	attrs := deviceAttrs{
 		parentArg: parentArg,
 		statusArg: statusArg,
 		ident:     ident,
-		tags:      tags,
+		labels:    labelsFromFlags(cmd),
 		provMeta:  collectProviderMetadata(cmd),
 	}
 
@@ -101,7 +100,7 @@ type deviceAttrs struct {
 	parentArg string
 	statusArg string
 	ident     identity
-	tags      []string
+	labels    labels
 	provMeta  map[string]string
 }
 
@@ -132,7 +131,7 @@ func buildDevicesToAdd(
 }
 
 // buildOneDevice constructs a single device from the resolved type, applying
-// the supplied parent, name, status, serial, tags, and provider metadata.
+// the supplied parent, name, status, serial, role, tags, and provider metadata.
 func buildOneDevice(
 	device *devicetypes.CaniDeviceType,
 	name string,
@@ -149,7 +148,7 @@ func buildOneDevice(
 		d.Status = attrs.statusArg
 	}
 	attrs.ident.apply(&d.Serial, &d.AssetTag)
-	applyTagsToDevice(&d, attrs.tags)
+	attrs.labels.apply(&d.ObjectMeta)
 	applyProviderMetadataToDevice(&d, attrs.provMeta)
 	return &d
 }

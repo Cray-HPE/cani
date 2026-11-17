@@ -49,6 +49,7 @@ func newRackAddCommand() *cli.Command {
 
 	cmd.Flags().String("location", "", "Parent location UUID or name")
 	cmd.Flags().String("name", "", "Rack name")
+	cmd.Flags().String(flagRole, "", roleFlagHelp)
 
 	return cmd
 }
@@ -98,7 +99,7 @@ func addRack(cmd *cli.Command, args []string) error {
 
 	locationID := resolveLocation(inventory, locationArg)
 
-	tags, _ := cmd.Flags().GetStringArray("tag")
+	lbl := labelsFromFlags(cmd)
 	provMeta := collectProviderMetadata(cmd)
 
 	for i := range qty {
@@ -114,7 +115,7 @@ func addRack(cmd *cli.Command, args []string) error {
 			rack.Status = statusArg
 		}
 		ident.apply(&rack.Serial, &rack.AssetTag)
-		applyTagsToRack(&rack, tags)
+		lbl.apply(&rack.ObjectMeta)
 		applyProviderMetadataToRack(&rack, provMeta)
 
 		// Let registered providers apply post-add logic.

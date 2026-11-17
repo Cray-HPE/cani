@@ -40,7 +40,7 @@ type rackAttrs struct {
 	statusArg  string
 	ident      identity
 	locationID uuid.UUID
-	tags       []string
+	labels     labels
 	provMeta   map[string]string
 }
 
@@ -65,12 +65,11 @@ func addAnyRack(cmd *cli.Command, args []string, rack *devicetypes.CaniRackType,
 		return err
 	}
 
-	tags, _ := cmd.Flags().GetStringArray("tag")
 	attrs := rackAttrs{
 		statusArg:  statusArg,
 		ident:      ident,
 		locationID: resolveLocation(inventory, locationArg),
-		tags:       tags,
+		labels:     labelsFromFlags(cmd),
 		provMeta:   collectProviderMetadata(cmd),
 	}
 
@@ -97,7 +96,7 @@ func addRacks(inventory *devicetypes.Inventory, rack *devicetypes.CaniRackType, 
 			r.Status = attrs.statusArg
 		}
 		attrs.ident.apply(&r.Serial, &r.AssetTag)
-		applyTagsToRack(&r, attrs.tags)
+		attrs.labels.apply(&r.ObjectMeta)
 		applyProviderMetadataToRack(&r, attrs.provMeta)
 
 		// Let registered providers apply post-add logic.

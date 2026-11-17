@@ -29,7 +29,7 @@ package export
 // authored without being errors.
 func lossyExportCount(result *LoadResult) int {
 	return result.IfacesUnsupported + result.IfacesUnresolvedRefs + result.CablesConflicted +
-		result.ModulesMisplaced + result.CustomFieldsDropped
+		result.ModulesMisplaced + result.CustomFieldsDropped + result.RackRolesSkipped
 }
 
 // printLossyExportWarning closes the summary with an explicit warning when

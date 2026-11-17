@@ -38,8 +38,7 @@ import (
 // addAnyModule adds module(s) using the resolved module type.
 func addAnyModule(cmd *cli.Command, args []string, mod *devicetypes.CaniModuleType, qty int) error {
 	parentArg, _ := cmd.Flags().GetString("parent")
-	statusArg, _ := cmd.Flags().GetString("status")
-	ident := identityFromFlags(cmd)
+	attrs := moduleAttrsFromFlags(cmd)
 
 	names, err := resolveNamesFromFlags(cmd, qty)
 	if err != nil {
@@ -51,12 +50,11 @@ func addAnyModule(cmd *cli.Command, args []string, mod *devicetypes.CaniModuleTy
 		return err
 	}
 
-	statusArg, err = normalizeStatus(statusArg, inventory)
-	if err != nil {
+	if attrs.status, err = normalizeStatus(attrs.status, inventory); err != nil {
 		return err
 	}
 
-	if err := addModules(inventory, mod, names, parentArg, statusArg, ident, qty); err != nil {
+	if err := addModules(inventory, mod, names, parentArg, attrs, qty); err != nil {
 		return err
 	}
 
@@ -69,7 +67,7 @@ func addAnyModule(cmd *cli.Command, args []string, mod *devicetypes.CaniModuleTy
 }
 
 // addModules builds and adds qty modules to the inventory.
-func addModules(inventory *devicetypes.Inventory, mod *devicetypes.CaniModuleType, names []string, parentArg, statusArg string, ident identity, qty int) error {
+func addModules(inventory *devicetypes.Inventory, mod *devicetypes.CaniModuleType, names []string, parentArg string, attrs moduleAttrs, qty int) error {
 	for i := range qty {
 		m := *mod
 		m.ID = uuid.New()
@@ -77,10 +75,7 @@ func addModules(inventory *devicetypes.Inventory, mod *devicetypes.CaniModuleTyp
 		if names != nil {
 			m.Name = names[i]
 		}
-		if statusArg != "" {
-			m.Status = statusArg
-		}
-		ident.apply(&m.Serial, &m.AssetTag)
+		attrs.apply(&m)
 
 		if err := inventory.AddModule(&m); err != nil {
 			return fmt.Errorf("failed to add module: %w", err)
@@ -101,8 +96,12 @@ func setModuleParent(m *devicetypes.CaniModuleType, parentArg string) {
 	}
 }
 
-// addAnyCable adds cable(s) using the resolved cable type.
+// addAnyCable adds cable(s) using the resolved cable type. A cable has no
+// role, so --role is refused rather than dropped.
 func addAnyCable(cmd *cli.Command, args []string, cable *devicetypes.CaniCableType, qty int) error {
+	if role, _ := cmd.Flags().GetString(flagRole); role != "" {
+		return fmt.Errorf("--%s does not apply to a cable", flagRole)
+	}
 	statusArg, _ := cmd.Flags().GetString("status")
 
 	names, err := resolveNamesFromFlags(cmd, qty)

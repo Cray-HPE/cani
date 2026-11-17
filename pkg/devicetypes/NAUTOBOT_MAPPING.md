@@ -137,7 +137,7 @@ Nautobot does **not** have a separate `RackType` model — it uses an enum on th
 | `BottomZoneHeight` | `int` | — | Cani-Internal | CANI rack-layout metadata |
 | `Location` | `uuid.UUID` | `Rack.Location` (FK) | **Mapped** | Resolves the inventory location; descends to a child type that supports racks, then falls back to provider default |
 | `Status` | `string` | `Rack.Status` (FK) | **Mapped** | Falls back to provider default |
-| `Role` | `string` | `Rack.Role` (FK) | Not Mapped | |
+| `Role` | `string` | `Rack.Role` (FK) | **Mapped** | Sent on create, resolved by name (`setRackRole()` in `export/rack_role.go`). A role must list `dcim.rack` before a rack may use it; the content type is added when `create_roles` is set (`GetRoleFor()`), and otherwise a role without it is named in a warning, left off the rack and counted (`RackRolesSkipped`) so the rack and its devices are still created. Import resolves the role name. An existing rack is not updated, so its role is not reconciled |
 | `RackType` | `string` | `Rack.Type` | **Mapped** | Nautobot enum: `2-post-frame`, `4-post-cabinet`, etc. |
 | `Serial` | `string` | `Rack.Serial` | **Mapped** | Mapped when non-empty |
 | `AssetTag` | `string` | `Rack.AssetTag` | **Mapped** | Mapped when non-empty |
@@ -855,7 +855,7 @@ Iterates `inventory.Racks`. For each rack:
 - Reuses a recorded Nautobot ID only when the destination holds it (`DcimRacksRetrieve`; a 404 drops the stale ID with a warning, as for devices and modules), otherwise finds the rack by name and creates it when missing, so an inventory imported from one Nautobot seeds another
 - Resolves `rack.Location` through the inventory hierarchy, descending to the deepest child location that supports racks; falls back to the provider default or `"Default"`
 - Resolves status (`rack.Status` → default → `"Active"`)
-- Creates via `DcimRacksCreate` with `Name`, `Location`, `Status`, dimensions/unit, width, rack type, facility ID, serial, asset tag, descending-units flag, comments, and tags
+- Creates via `DcimRacksCreate` with `Name`, `Location`, `Status`, `Role`, dimensions/unit, width, rack type, facility ID, serial, asset tag, descending-units flag, comments, and tags
 - Also checks `inventory.Devices` for legacy rack-type devices (fallback)
 
 ### Phase 2: Devices

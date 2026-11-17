@@ -134,6 +134,11 @@ type LookupCache struct {
 	ipAddressesMu   sync.RWMutex
 	vrfsMu          sync.RWMutex
 
+	// roleKinds records, per run, each role and content type GetRoleFor
+	// confirmed, keyed by roleKindKey.
+	roleKindsMu sync.Mutex
+	roleKinds   map[string]bool
+
 	// Track if full list has been fetched
 	deviceTypesLoaded bool
 	locationsLoaded   bool
