@@ -45,7 +45,7 @@ Describe 'cani alpha update'
     End
 
     Describe 'persistent flags'
-      Parameters:value --set --tag --metadata
+      Parameters:value --set --tag --custom-field --clear-custom-field
       It "has $1 flag"
         When call bin/cani alpha update --help
         The stdout should include "$1"

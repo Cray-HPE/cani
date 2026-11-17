@@ -148,17 +148,6 @@ type RackPostAddHook interface {
 	OnRackAdded(rack *devicetypes.CaniRackType, inventory *devicetypes.Inventory) error
 }
 
-// MetadataApplier is an optional interface that providers can implement to
-// merge generic --metadata key=value pairs into provider-specific storage.
-// The command layer parses the flag into a map and lets each registered
-// provider decide where to store it (typically its own Slug() sub-map), so
-// no provider name is hard-coded in cmd/.
-type MetadataApplier interface {
-	// ApplyMetadata merges meta into the provider's section of pm,
-	// allocating the map if necessary.
-	ApplyMetadata(pm *map[string]any, meta map[string]string)
-}
-
 // DeviceUpdateFlagProvider is an optional interface that providers can
 // implement to contribute provider-specific flags to the generic
 // "update device" command and apply them to a device.  This keeps

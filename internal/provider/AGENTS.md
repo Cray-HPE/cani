@@ -37,7 +37,6 @@ type-asserts each one, so unimplemented interfaces degrade gracefully:
 | `DeviceStager` | Auto-stage an existing device during `add` |
 | `RackStager` | Create a new device hierarchy under a staged rack |
 | `RackPostAddHook` | Run provider logic after a rack is added |
-| `MetadataApplier` | Merge generic `--metadata` pairs into provider storage |
 | `DeviceUpdateFlagProvider` | Contribute provider-specific `update device` flags |
 | `StagedDeviceDescriber` | Supply human-readable staged-device description lines |
 | `ExportDryRunner` | Report a dry run resolved from the provider's own config so `export` skips the save |

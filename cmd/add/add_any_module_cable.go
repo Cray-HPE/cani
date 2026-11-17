@@ -50,7 +50,7 @@ func addAnyModule(cmd *cli.Command, args []string, mod *devicetypes.CaniModuleTy
 		return err
 	}
 
-	if attrs.status, err = normalizeStatus(attrs.status, inventory); err != nil {
+	if attrs, err = attrs.resolve(cmd, inventory); err != nil {
 		return err
 	}
 
@@ -118,8 +118,12 @@ func addAnyCable(cmd *cli.Command, args []string, cable *devicetypes.CaniCableTy
 	if err != nil {
 		return err
 	}
+	lbl, err := labelsFromFlags(cmd).withCustomFields(cmd, inventory, devicetypes.ContentTypeCable)
+	if err != nil {
+		return err
+	}
 
-	if err := addCables(inventory, cable, names, statusArg, labelsFromFlags(cmd), qty); err != nil {
+	if err := addCables(inventory, cable, names, statusArg, lbl, qty); err != nil {
 		return err
 	}
 

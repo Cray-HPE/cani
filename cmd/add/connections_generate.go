@@ -78,7 +78,7 @@ Examples:
 
 func generateTopology(cmd *cli.Command, args []string) error {
 	// A generated map describes links, not inventory items.
-	if err := validate.RejectFlags(cmd, "tag", "status"); err != nil {
+	if err := validate.RejectFlags(cmd, itemFlags...); err != nil {
 		return err
 	}
 	pattern := args[0]

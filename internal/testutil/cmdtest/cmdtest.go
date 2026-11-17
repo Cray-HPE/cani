@@ -148,8 +148,8 @@ func New(t *testing.T, parent, target *cli.Command, inventory *devicetypes.Inven
 // Run sets the given flags then executes the target's Args, PreRunE and RunE
 // hooks in the same order as (*cli.Command).runPipeline.
 //
-// Each flag maps to a slice so repeatable flags (--tag, --metadata, --set) can
-// be set more than once, which is how providers receive generic CLI input.
+// Each flag maps to a slice so repeatable flags (--tag, --custom-field, --set)
+// can be set more than once.
 //
 // Two pipeline steps are absent. PersistentPreRunE is skipped deliberately: the
 // real root uses it to load configuration and provider state, which is exactly

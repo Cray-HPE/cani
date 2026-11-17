@@ -31,6 +31,7 @@ import (
 	"strings"
 
 	"github.com/Cray-HPE/cani/internal/cli"
+	"github.com/Cray-HPE/cani/internal/util/customfields"
 	"github.com/Cray-HPE/cani/internal/util/store"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
@@ -80,6 +81,9 @@ func addIP(cmd *cli.Command, args []string) error {
 	}
 
 	applyIPFlags(cmd, addr)
+	if err := customfields.Apply(cmd, inventory, &addr.ObjectMeta, devicetypes.ContentTypeIPAddress); err != nil {
+		return err
+	}
 
 	if err := inventory.AddIPAddress(addr); err != nil {
 		return fmt.Errorf("failed to add ip address: %w", err)

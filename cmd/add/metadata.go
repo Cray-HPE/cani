@@ -44,8 +44,9 @@ func newMetadataCommand() *cli.Command {
 		Short: "Create metadata definitions (roles, statuses, tags, custom fields) in the local inventory.",
 		Long: `Create metadata definitions in the local inventory.
 
-Metadata definitions are stored under providerMetadata in the datastore
-and are used during export to create the corresponding objects in Nautobot.
+Metadata definitions are stored in the inventory's metadata catalog. Items
+refer to them by name or key, and an export creates the corresponding
+objects in Nautobot.
 
 Use a subcommand to create a specific metadata type:
   cani alpha add metadata role <name>
@@ -66,14 +67,10 @@ Use a subcommand to create a specific metadata type:
 	return cmd
 }
 
-// rejectMetadataFlag refuses the flags `add` hands to every subcommand that a
-// definition has nothing to store in: --metadata, which names the same thing
-// as this subcommand, and --tag and --status, which describe inventory items.
-func rejectMetadataFlag(cmd *cli.Command) error {
-	if f := cmd.Flags().Lookup("metadata"); f != nil && f.Changed {
-		return fmt.Errorf("--metadata flag cannot be used with the 'add metadata' subcommand; they are mutually exclusive")
-	}
-	return validate.RejectFlags(cmd, "tag", "status")
+// rejectItemFlags refuses the flags `add` hands to every subcommand that
+// describe an inventory item; a definition has nothing to store them in.
+func rejectItemFlags(cmd *cli.Command) error {
+	return validate.RejectFlags(cmd, itemFlags...)
 }
 
 func newMetadataRoleCommand() *cli.Command {
@@ -104,7 +101,7 @@ func newMetadataTagCommand() *cli.Command {
 }
 
 func addMetadataRole(cmd *cli.Command, args []string) error {
-	if err := rejectMetadataFlag(cmd); err != nil {
+	if err := rejectItemFlags(cmd); err != nil {
 		return err
 	}
 	entry := buildEntry(cmd, args[0])
@@ -113,7 +110,7 @@ func addMetadataRole(cmd *cli.Command, args []string) error {
 }
 
 func addMetadataStatus(cmd *cli.Command, args []string) error {
-	if err := rejectMetadataFlag(cmd); err != nil {
+	if err := rejectItemFlags(cmd); err != nil {
 		return err
 	}
 	normalized, err := devicetypes.ValidateUserStatus(args[0])
@@ -125,7 +122,7 @@ func addMetadataStatus(cmd *cli.Command, args []string) error {
 }
 
 func addMetadataTag(cmd *cli.Command, args []string) error {
-	if err := rejectMetadataFlag(cmd); err != nil {
+	if err := rejectItemFlags(cmd); err != nil {
 		return err
 	}
 	return saveMetadata(cmd, "tags", buildEntry(cmd, args[0]))
@@ -201,7 +198,7 @@ Examples:
 }
 
 func addMetadataCustomField(cmd *cli.Command, args []string) error {
-	if err := rejectMetadataFlag(cmd); err != nil {
+	if err := rejectItemFlags(cmd); err != nil {
 		return err
 	}
 

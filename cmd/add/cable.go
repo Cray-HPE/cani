@@ -132,7 +132,10 @@ func addCable(cmd *cli.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("termination B: %w", err)
 	}
-	lbl := labelsFromFlags(cmd)
+	lbl, err := labelsFromFlags(cmd).withCustomFields(cmd, inventory, devicetypes.ContentTypeCable)
+	if err != nil {
+		return err
+	}
 
 	for i := range count {
 		cable := *result.Cable

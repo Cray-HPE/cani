@@ -45,7 +45,7 @@ Describe 'cani alpha add'
     End
 
     Describe 'persistent flags'
-      Parameters:value --auto --accept --list-supported-types --qty --parent --prefix --start --pad-width --tag --metadata --status --serial
+      Parameters:value --auto --accept --list-supported-types --qty --parent --prefix --start --pad-width --tag --custom-field --status --serial
       It "has $1 flag"
         When call bin/cani alpha add --help
         The stdout should include "$1"

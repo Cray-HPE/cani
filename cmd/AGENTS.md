@@ -145,8 +145,11 @@ Persistent flags inherited by all `add` subcommands:
 | `--asset-tag` | | string | `""` | Asset tag, stamped on each device, rack or module added |
 | `--tag` | | string (repeatable) | none | Tag, stamped on each item added: device, rack, module, location, cable, VLAN, prefix, IP address, VRF, interface |
 | `--status` | | string | `""` | Status of each item added; the same nouns as `--tag` |
+| `--custom-field` | | key=value (repeatable) | none | Custom field, stamped on each item added: device, rack, module, location, cable, VLAN, prefix, IP address, VRF |
 
-An inherited flag either changes what a noun stores or is refused by name; no noun parses one and drops it. `add metadata ...` and `add connections ...` have nothing to store `--tag` or `--status` in and refuse both (`validate.RejectFlags` in `internal/util/validate`). `TestAddInheritedFlagsTakeEffectOrFail` and `TestUpdateInheritedFlagsTakeEffectOrFail` run every noun with each flag, so a new noun or a new inherited flag is covered when it is added to their tables.
+An inherited flag either changes what a noun stores or is refused by name; no noun parses one and drops it. `add metadata ...` and `add connections ...` have nothing to store `--tag`, `--status` or `--custom-field` in and refuse all three (`validate.RejectFlags` in `internal/util/validate`); `add interface` refuses `--custom-field`, because an interface's custom fields are not exchanged with any provider. `TestAddInheritedFlagsTakeEffectOrFail` and `TestUpdateInheritedFlagsTakeEffectOrFail` run every noun with each flag, so a new noun or a new inherited flag is covered when it is added to their tables.
+
+`--custom-field key=value` sets an operator-defined attribute. The key must be a custom field the inventory's metadata catalog defines for the kind of item the noun creates (`add metadata custom-field <key> --content-types ...`, or a definition imported from a provider); the value is parsed into the type the definition declares, so an integer field stores a number and a multi-select field a list. An undefined key, a key defined for another kind of item and a value of the wrong type are refused before anything is added. The pair is split at the first `=` only, so a value may hold `=` and commas. `internal/util/customfields` reads the flag for `add` and `update` alike, through `Inventory.SetCustomField`; a noun passes its own content type (`devicetypes.ContentType*`), and `TestAddChecksCustomFieldAgainstTheNounsOwnKind` fails a noun that passes another's. It replaces `--metadata`, which stored its pairs in one provider's metadata; a role is set with `--role` and a device's location with `--location`.
 
 #### `add location <name>`
 
@@ -224,6 +227,8 @@ Each takes `<uuid-or-name>` as a positional arg; a module may also be named by i
 
 `--tag` (repeatable) replaces the tags of a location, rack, device, module, cable, interface, prefix or VRF. `--set` applies to the five nouns in the table; `update interface`, `update prefix` and `update vrf` refuse it, and `update orphans` refuses both.
 
+`--custom-field key=value` (repeatable) sets a custom field of a location, rack, device, module, cable, prefix or VRF, under the rules it follows on `add`. `--clear-custom-field key` (repeatable) clears one: a field the catalog defines for the item's kind is set to an explicit null, because a system that already holds the item keeps the value of a key a write leaves out; a key with no definition, such as one a migration carried over, is deleted. A required field, and a key that is neither defined nor held, cannot be cleared, and one key cannot be set and cleared at once. A refused edit fails the whole update, so nothing is saved. `update interface` and `update orphans` refuse both flags.
+
 `update device --location` records where a device is, under the rule `add device --location` follows. A racked device stops recording a location of its own when `update device --parent` moves it or `update rack --location` moves its rack (`Inventory.MoveRack`), so it is in the rack's location again.
 
 ### `swap` Subcommands
@@ -281,6 +286,7 @@ Providers implement `NewProviderCmd()` to decorate commands. Registered via blan
 | `add/validate_noun.go` | Slug/part-number validation and `--list-supported-types` |
 | `add/table.go` | Type-listing table printer |
 | `update/set.go` | `--set key=value` parser |
+| `internal/util/customfields/customfields.go` | `--custom-field` and `--clear-custom-field` for `add` and `update` |
 | `internal/util/resolve/resolve.go` | UUID-or-name resolution helper |
 | `pkg/devicetypes/inventory_add_remove.go` | Inventory CRUD for location, rack, module, cable |
 | `pkg/devicetypes/inventory_crud.go` | Inventory CRUD for devices |

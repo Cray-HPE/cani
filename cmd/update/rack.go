@@ -82,7 +82,9 @@ func updateRack(cmd *cli.Command, args []string) error {
 	if err := applyRackLocation(cmd, inventory, id); err != nil {
 		return err
 	}
-	applyRackTagsMetadata(cmd, rack)
+	if _, err := applyLabelFlags(cmd, inventory, &rack.ObjectMeta, devicetypes.ContentTypeRack); err != nil {
+		return err
+	}
 
 	if err := applySetToRack(cmd, rack); err != nil {
 		return err
@@ -139,15 +141,6 @@ func applyRackLocation(cmd *cli.Command, inventory *devicetypes.Inventory, rackI
 		return fmt.Errorf("resolving location: %w", lerr)
 	}
 	return inventory.MoveRack(rackID, locID)
-}
-
-// applyRackTagsMetadata applies the --tag and --metadata flags when set.
-func applyRackTagsMetadata(cmd *cli.Command, rack *devicetypes.CaniRackType) {
-	applyTagFlag(cmd, &rack.ObjectMeta)
-	if cmd.Flags().Changed("metadata") {
-		meta, _ := cmd.Flags().GetStringToString("metadata")
-		applyProviderMetadata(&rack.ProviderMetadata, meta)
-	}
 }
 
 func applySetToRack(cmd *cli.Command, rack *devicetypes.CaniRackType) error {

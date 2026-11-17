@@ -101,7 +101,10 @@ func applyVRFUpdates(cmd *cli.Command, inventory *devicetypes.Inventory, vrf *de
 		return false, err
 	}
 	changed := applyVRFFields(cmd, vrf)
-	changed = applyTagFlag(cmd, &vrf.ObjectMeta) || changed
+	labelled, err := applyLabelFlags(cmd, inventory, &vrf.ObjectMeta, devicetypes.ContentTypeVRF)
+	if err != nil {
+		return false, err
+	}
 	added, err := addVRFDevices(cmd, inventory, vrf)
 	if err != nil {
 		return false, err
@@ -110,7 +113,7 @@ func applyVRFUpdates(cmd *cli.Command, inventory *devicetypes.Inventory, vrf *de
 	if err != nil {
 		return false, err
 	}
-	return changed || added || removed, nil
+	return changed || labelled || added || removed, nil
 }
 
 // applyVRFFields copies the description and RD flags when set.

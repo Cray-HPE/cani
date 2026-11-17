@@ -26,6 +26,7 @@
 package devicetypes
 
 import (
+	"errors"
 	"reflect"
 	"strings"
 	"testing"
@@ -134,6 +135,33 @@ func TestSetCustomFieldRejectsWhatTheDefinitionForbids(t *testing.T) {
 	}
 	if want := map[string]any{"vsx_role": "primary"}; !reflect.DeepEqual(meta.CustomFields, want) {
 		t.Errorf("custom fields = %v, want them untouched: %v", meta.CustomFields, want)
+	}
+}
+
+// TestCustomFieldForTellsUndefinedFromMisapplied verifies only a key with no
+// definition at all reports ErrCustomFieldNotDefined.
+//
+// Why it matters: a command tells the operator to define a field that has
+// no definition; saying so about a field that is defined for another kind
+// of object would send them to create a second definition of the same key.
+// Inputs: a key no definition has, and a rack-only key looked up for a
+// device. Outputs: the sentinel for the first, and for the second an error
+// that is not the sentinel and names the kind the field applies to.
+// Data choice: the misspelling is one character short of a defined key.
+func TestCustomFieldForTellsUndefinedFromMisapplied(t *testing.T) {
+	// Arrange.
+	inv := customFieldInventory(t)
+
+	// Act.
+	_, undefined := inv.CustomFieldFor(ContentTypeDevice, "vsx_rol")
+	_, misapplied := inv.CustomFieldFor(ContentTypeDevice, "row")
+
+	// Assert.
+	if !errors.Is(undefined, ErrCustomFieldNotDefined) {
+		t.Errorf("undefined key error = %v, want ErrCustomFieldNotDefined", undefined)
+	}
+	if misapplied == nil || errors.Is(misapplied, ErrCustomFieldNotDefined) || !strings.Contains(misapplied.Error(), ContentTypeRack) {
+		t.Errorf("rack-only key error = %v, want one naming %s and not ErrCustomFieldNotDefined", misapplied, ContentTypeRack)
 	}
 }
 

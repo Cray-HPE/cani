@@ -117,3 +117,12 @@ func AddChassisWithBays(inventory *devicetypes.Inventory, rackID uuid.UUID, name
 	}
 	return chassisID
 }
+
+// DefineCustomField adds a custom-field definition of the given type to the
+// inventory's catalog for the given content types, for tests that set or
+// clear the field on an item.
+func DefineCustomField(inventory *devicetypes.Inventory, key, fieldType string, contentTypes ...string) {
+	inventory.Metadata.CustomFields = append(inventory.Metadata.CustomFields, devicetypes.CustomFieldDefinition{
+		Key: key, Label: key, Type: fieldType, ContentTypes: contentTypes,
+	})
+}
