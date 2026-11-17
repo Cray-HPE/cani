@@ -24,7 +24,7 @@ type Inventory struct {
     VLANs       map[uuid.UUID]*CaniVLAN
     VRFs        map[uuid.UUID]*CaniVRF
 
-    Metadata *InventoryMetadata // catalog of roles, statuses, tags
+    Metadata *InventoryMetadata // catalog of roles, statuses, tags, custom fields
 }
 ```
 
@@ -61,6 +61,17 @@ moves each of those values to the one place it is read from afterwards:
 A device with an empty `role` field also takes the role the export read from
 another provider's bucket, which keeps its copy. Other providers' buckets are
 not changed otherwise.
+
+Each custom field the upgrade creates this way is defined, so that it is
+checked on load and exported like any other. A key the catalog does not
+define is defined for the kinds of item that hold it, with the type the
+values share: `text`, `integer`, `boolean`, or `json` when they are of
+several kinds or are maps or lists. A key you had already defined keeps your
+definition, gains the kinds of item that now hold it, and has each moved text
+value parsed as the definition's type, as if typed with `--custom-field`; a
+value the definition does not accept is left as it is and reported. Only the
+keys the upgrade moves are defined: a custom field that already had no
+definition is left alone (see below).
 
 Another provider's bucket (`providerMetadata.csm`, `providerMetadata.redfish`
 and so on) is no longer sent to Nautobot as custom fields. Its values stay
@@ -99,6 +110,9 @@ key and never by value, on the load that upgrades the file:
 | `provider metadata "location" was dropped: it is not a location name, so export never read it` | The value was not text. | Nothing. |
 | `provider metadata "u_height"` or `"rack_position" was dropped: export never sent it` | Typed on a rack that is stored as a device. | Set the height on the rack itself with `update rack --set u_height=N`. |
 | `N custom field(s) the HPCM import wrote on modules, locations and inventory items moved to providerMetadata.hpcm` | They are HPCM's own records and are no longer sent to Nautobot as custom fields. | Nothing, unless Nautobot should keep receiving one; list it as `hpcm.<key>` in `provider_metadata_fields`. |
+| `custom field "K" is now defined for T as a Y field, from the values moved into it` | The upgrade created the definition, typed by the moved values. | Nothing, unless the type should be another; change it in the datastore file's `metadata.customFields`, then set the values again with `--custom-field`. |
+| `custom field "K" is now also defined for T, which hold values moved into it` | Your definition gained the kinds of item that hold the key. | Nothing. |
+| `custom field "K" holds a value its definition does not accept; it was left as it is` | A moved text value could not be parsed as your definition's type. | Set it again with `--custom-field`, or clear it. The load check reports it until then. |
 
 A location stored on a device that has a parent is kept only when it is its
 rack's. Earlier generations re-derived it on every load; from `v1alpha10` a
@@ -109,9 +123,16 @@ would otherwise be read as one.
 `add` and `update`, `--role` sets a role and `--location` a device's location.
 A custom field has to be defined for the kind of item it is set on
 (`add metadata custom-field`, or a definition imported from Nautobot). A key
-the upgrade carried over without a definition is kept and exported as before;
-define it to change its value with `--custom-field`, or remove it with
-`update <noun> --clear-custom-field <key>`.
+the upgrade carried over without a definition, as releases through v0.8.4
+imported from Nautobot, is kept and exported as before, and reported on each
+command that changes the inventory (see
+[Stored Values Are Checked](metadata.md#stored-values-are-checked)); define it,
+or import its definition from Nautobot, to change its value with
+`--custom-field`, or remove it with `update <noun> --clear-custom-field <key>`.
+
+From `v1alpha10` on, a value stored in `providerMetadata` outside every bucket
+is reported by each command that changes the inventory; see
+[A Value Outside Every Bucket](metadata.md#a-value-outside-every-bucket).
 
 ### Placement validation on load
 
@@ -237,6 +258,6 @@ All types embed `ObjectMeta`, providing a uniform set of metadata fields:
 - `role` — functional role (e.g. `Compute`, `Spine Switch`)
 - `tags` — arbitrary string labels
 - `tenant` — tenant or ownership group
-- `customFields` — free-form key/value map
+- `customFields` — attributes you define, typed by a definition in the catalog (see [Custom Fields](metadata.md#custom-fields))
 - `externalIDs` — maps a provider name to that provider's remote UUID
-- `providerMetadata` — provider-specific data (see [Metadata](metadata.md))
+- `providerMetadata` — one bucket per provider, holding what that provider records for its own use (see [Provider Metadata](metadata.md#provider-metadata))
