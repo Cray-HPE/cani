@@ -30,6 +30,7 @@ import (
 	"os"
 
 	"github.com/Cray-HPE/cani/internal/cli"
+	"github.com/Cray-HPE/cani/internal/util/customfields"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
 )
@@ -90,7 +91,7 @@ to a specific type; subcommands reject slugs that do not match their type.`,
 	cmd.PersistentFlags().Int("start", 1, "Starting number for sequential names (used with --prefix).")
 	cmd.PersistentFlags().Int("pad-width", 0, "Zero-pad width for sequential names (0 = auto).")
 	cmd.PersistentFlags().StringArray("tag", nil, "Tag(s) to apply to the item (repeatable)")
-	cmd.PersistentFlags().StringToString("metadata", nil, "Provider metadata key=value pairs (repeatable)")
+	customfields.RegisterSet(cmd.PersistentFlags())
 	cmd.PersistentFlags().String("status", "", "Status (Active, Available, Connected, Decommissioned, Decommissioning, Deprecated, Deprovisioning, Down, End-of-Life, Extended Support, Failed, Inventory, Maintenance, Offline, Planned, Primary, Provisioning, Reserved, Retired, Secondary, Staging, or any custom status)")
 	cmd.PersistentFlags().String(flagSerial, "", "Serial number")
 	cmd.PersistentFlags().String(flagAssetTag, "", "Asset tag")

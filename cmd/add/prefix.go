@@ -30,6 +30,7 @@ import (
 	"log"
 
 	"github.com/Cray-HPE/cani/internal/cli"
+	"github.com/Cray-HPE/cani/internal/util/customfields"
 	"github.com/Cray-HPE/cani/internal/util/store"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
@@ -82,6 +83,9 @@ func addPrefix(cmd *cli.Command, args []string) error {
 		Namespace: devicetypes.NamespaceOrDefault(namespace),
 	}
 	applyPrefixFlags(cmd, inventory, prefix)
+	if err := customfields.Apply(cmd, inventory, &prefix.ObjectMeta, devicetypes.ContentTypePrefix); err != nil {
+		return err
+	}
 	if err := resolvePrefixVRFs(cmd, inventory, prefix); err != nil {
 		return err
 	}

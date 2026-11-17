@@ -128,6 +128,10 @@ func addDeviceStrategy(cmd *cli.Command, result *lookupResult, qty int, nameArg 
 		}
 		statusArg = normalized
 	}
+	lbl, err := labelsFromFlags(cmd).withCustomFields(cmd, inventory, devicetypes.ContentTypeDevice)
+	if err != nil {
+		return err
+	}
 
 	var racks []*devicetypes.CaniRackType
 	if locationArg != "" {
@@ -153,9 +157,6 @@ func addDeviceStrategy(cmd *cli.Command, result *lookupResult, qty int, nameArg 
 		return nil
 	}
 
-	lbl := labelsFromFlags(cmd)
-	provMeta := collectProviderMetadata(cmd)
-
 	devicesToAdd := make(map[uuid.UUID]*devicetypes.CaniDeviceType, qty)
 	for i, e := range entries {
 		device := result.Device.NewInstance()
@@ -170,7 +171,6 @@ func addDeviceStrategy(cmd *cli.Command, result *lookupResult, qty int, nameArg 
 		}
 		ident.apply(&device.Serial, &device.AssetTag)
 		lbl.apply(&device.ObjectMeta)
-		applyProviderMetadataToDevice(device, provMeta)
 		devicesToAdd[device.ID] = device
 
 		// Expand child devices from device-bay defaults.
@@ -248,8 +248,10 @@ func addDeviceLiteral(cmd *cli.Command, result *lookupResult, qty int, nameArg, 
 		statusArg = normalized
 	}
 
-	lbl := labelsFromFlags(cmd)
-	provMeta := collectProviderMetadata(cmd)
+	lbl, err := labelsFromFlags(cmd).withCustomFields(cmd, inventory, devicetypes.ContentTypeDevice)
+	if err != nil {
+		return err
+	}
 
 	devicesToAdd := make(map[uuid.UUID]*devicetypes.CaniDeviceType)
 	for i := range qty {
@@ -286,7 +288,6 @@ func addDeviceLiteral(cmd *cli.Command, result *lookupResult, qty int, nameArg, 
 		}
 		ident.apply(&device.Serial, &device.AssetTag)
 		lbl.apply(&device.ObjectMeta)
-		applyProviderMetadataToDevice(device, provMeta)
 		if err := placeDevice(inventory, device, placeIn); err != nil {
 			return err
 		}

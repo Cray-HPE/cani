@@ -45,23 +45,66 @@ Describe 'cani alpha update device'
   End
 
   # update shares add's key=value flag type, so the same typo fails the same way.
-  Describe '--metadata'
-    It 'applies a key=value pair'
-      When call bin/cani alpha update device test-device --metadata role=SpineSwitch --config "$CANI_CONF"
-      The status should equal 0
-      The stderr should include 'Updated device'
+  Describe '--custom-field and --clear-custom-field'
+    setup_custom_field_env() {
+      setup_crud_env
+      bin/cani alpha add metadata custom-field site_code --label "Site code" --type text --content-types dcim.device --config "$CANI_CONF" >/dev/null 2>&1
+    }
+    Before 'setup_custom_field_env'
+
+    # Prints the custom fields of test-device as sorted JSON.
+    device_custom_fields() {
+      DS="$CANI_DS" python3 - <<'PY'
+import json, os
+with open(os.environ["DS"]) as fh:
+    devices = json.load(fh)["devices"].values()
+for device in devices:
+    if device["name"] == "test-device":
+        print(json.dumps(device.get("customFields"), sort_keys=True))
+PY
+    }
+
+    It 'sets a custom field'
+      bin/cani alpha update device test-device --custom-field site_code=dc1 --config "$CANI_CONF" >/dev/null 2>&1
+      When call device_custom_fields
+      The output should equal '{"site_code": "dc1"}'
+    End
+
+    It 'clears a custom field to an explicit null'
+      bin/cani alpha update device test-device --custom-field site_code=dc1 --config "$CANI_CONF" >/dev/null 2>&1
+      bin/cani alpha update device test-device --clear-custom-field site_code --config "$CANI_CONF" >/dev/null 2>&1
+      When call device_custom_fields
+      The output should equal '{"site_code": null}'
+    End
+
+    It 'refuses a custom field the inventory does not define'
+      When call bin/cani alpha update device test-device --custom-field site_cod=dc1 --config "$CANI_CONF"
+      The status should equal 1
+      The stderr should include '--custom-field: custom field "site_cod" is not defined in the inventory'
+    End
+
+    It 'refuses to set and clear one key at once'
+      When call bin/cani alpha update device test-device --custom-field site_code=dc1 --clear-custom-field site_code --config "$CANI_CONF"
+      The status should equal 1
+      The stderr should include '--custom-field and --clear-custom-field both name "site_code"'
     End
 
     It 'rejects a value without key=value'
-      When call bin/cani alpha update device test-device --metadata bogus --config "$CANI_CONF"
+      When call bin/cani alpha update device test-device --custom-field bogus --config "$CANI_CONF"
       The status should equal 1
-      The stderr should include 'invalid argument "bogus" for --metadata: expected key=value'
+      The stderr should include 'invalid argument "bogus" for --custom-field: expected key=value'
     End
 
-    It 'rejects a --metadata that swallowed the next flag'
-      When call bin/cani alpha update device test-device --metadata --status Active --config "$CANI_CONF"
+    It 'rejects a --custom-field that swallowed the next flag'
+      When call bin/cani alpha update device test-device --custom-field --status Active --config "$CANI_CONF"
       The status should equal 1
-      The stderr should include 'flag needs an argument: --metadata'
+      The stderr should include 'flag needs an argument: --custom-field'
+    End
+
+    It 'no longer accepts --metadata'
+      When call bin/cani alpha update device test-device --metadata role=SpineSwitch --config "$CANI_CONF"
+      The status should equal 1
+      The stderr should include 'unknown flag: --metadata'
     End
   End
 

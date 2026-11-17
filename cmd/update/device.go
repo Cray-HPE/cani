@@ -97,7 +97,9 @@ func updateDevice(cmd *cli.Command, args []string) error {
 	if err := applyLocationUpdate(cmd, inventory, device); err != nil {
 		return err
 	}
-	applyTagsAndMetadata(cmd, device)
+	if _, err := applyLabelFlags(cmd, inventory, &device.ObjectMeta, devicetypes.ContentTypeDevice); err != nil {
+		return err
+	}
 	if err := applyProviderDeviceFlags(cmd, device); err != nil {
 		return err
 	}

@@ -73,8 +73,8 @@ key and never by value, on the load that upgrades the file:
 
 | Log line | Meaning | What to do |
 | --- | --- | --- |
-| `custom field "K" held another value; the provider metadata value took precedence and replaced it` | The custom field now holds what the export sent. | Nothing, unless the replaced value was the right one; it is in the `.canisave` backup. |
-| `provider metadata "K" was dropped: another copy of that key took precedence` | A copy the export never used. | Nothing, unless it was the right one. |
+| `custom field "K" held another value; the provider metadata value took precedence and replaced it` | The custom field now holds what the export sent. | Nothing, unless the replaced value was the right one; it is in the `.canisave` backup and can be set again with `--custom-field`. |
+| `provider metadata "K" was dropped: another copy of that key took precedence` | A copy the export never used. | Nothing, unless it was the right one; set it with `--custom-field`, or with `--role` or `--location` for those two keys. |
 | `provider metadata "role" was dropped: it was not the role export sent` | The `role` field was already set, or the value was not text. | Set the role with `update device --role` if the dropped one was intended. |
 | `provider metadata "location" replaced the location the device recorded, as it did on export` | The device had no parent and both placements were set. | Re-import, or set the location with `update device --location`, if the recorded one was right. |
 | `provider metadata "location" was not applied: ...` | A device in a rack can only record a location that holds its rack's, and a device installed in another device takes that device's. | Nothing; Nautobot did not keep such a placement either. |
@@ -86,6 +86,14 @@ A location stored on a device that has a parent is kept only when it is its
 rack's. Earlier generations re-derived it on every load; from `v1alpha10` a
 device in a rack may record a location of its own, so a stale stored value
 would otherwise be read as one.
+
+`--metadata` itself is gone. `--custom-field key=value` sets a custom field on
+`add` and `update`, `--role` sets a role and `--location` a device's location.
+A custom field has to be defined for the kind of item it is set on
+(`add metadata custom-field`, or a definition imported from Nautobot). A key
+the upgrade carried over without a definition is kept and exported as before;
+define it to change its value with `--custom-field`, or remove it with
+`update <noun> --clear-custom-field <key>`.
 
 ### Placement validation on load
 

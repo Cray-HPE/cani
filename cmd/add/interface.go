@@ -32,8 +32,10 @@ import (
 	"strings"
 
 	"github.com/Cray-HPE/cani/internal/cli"
+	"github.com/Cray-HPE/cani/internal/util/customfields"
 	"github.com/Cray-HPE/cani/internal/util/resolve"
 	"github.com/Cray-HPE/cani/internal/util/store"
+	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
@@ -76,6 +78,10 @@ Examples:
 func addInterface(cmd *cli.Command, args []string) error {
 	name := args[0]
 
+	// An interface's custom fields are not exchanged with any provider.
+	if err := validate.RejectFlags(cmd, customfields.FlagSet); err != nil {
+		return err
+	}
 	deviceRef, _ := cmd.Flags().GetString("device")
 	if deviceRef == "" {
 		return fmt.Errorf("--device is required")
@@ -157,9 +163,6 @@ func addInterface(cmd *cli.Command, args []string) error {
 	tags, _ := cmd.Flags().GetStringArray("tag")
 	if len(tags) > 0 {
 		iface.Tags = tags
-	}
-	if meta := collectProviderMetadata(cmd); len(meta) > 0 {
-		applyProviderMetadataMap(&iface.ProviderMetadata, meta)
 	}
 
 	if err := inventory.AddInterface(iface); err != nil {

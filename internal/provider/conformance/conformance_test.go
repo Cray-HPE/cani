@@ -59,7 +59,7 @@ var expectedProviders = []string{
 var capabilityOrder = []string{
 	"Importer", "Exporter", "HasOptions", "Configurer",
 	"HasImportOptions", "HasExportOptions", "DeviceStager", "RackStager",
-	"RackPostAddHook", "MetadataApplier", "DeviceUpdateFlagProvider",
+	"RackPostAddHook", "DeviceUpdateFlagProvider",
 	"StagedDeviceDescriber", "ExportDryRunner",
 }
 
@@ -77,7 +77,6 @@ func optionalCapabilities(p provider.Provider) map[string]bool {
 	_, caps["DeviceStager"] = p.(provider.DeviceStager)
 	_, caps["RackStager"] = p.(provider.RackStager)
 	_, caps["RackPostAddHook"] = p.(provider.RackPostAddHook)
-	_, caps["MetadataApplier"] = p.(provider.MetadataApplier)
 	_, caps["DeviceUpdateFlagProvider"] = p.(provider.DeviceUpdateFlagProvider)
 	_, caps["StagedDeviceDescriber"] = p.(provider.StagedDeviceDescriber)
 	_, caps["ExportDryRunner"] = p.(provider.ExportDryRunner)
@@ -164,7 +163,7 @@ func TestNewProviderCmdGraceful(t *testing.T) {
 // plugin system; emitting the matrix turns "which provider supports what" into
 // reviewable evidence (kept in sync with CAPABILITIES.md) and guards against the
 // interface set growing without anyone noticing which providers actually use it.
-// Inputs: every registered provider type-asserted against all thirteen optional
+// Inputs: every registered provider type-asserted against all twelve optional
 // interfaces. Outputs: a logged matrix and a failure if fewer than the expected
 // providers are present. Data choice: capabilityOrder fixes the column order so
 // the logged matrix is stable and diffable against the documentation.

@@ -33,10 +33,15 @@ import (
 	"testing"
 
 	"github.com/Cray-HPE/cani/internal/testutil/cmdtest"
+	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
 
 // inheritedFlagSite is the location the inherited-flag inventory holds.
 const inheritedFlagSite = "audit-site"
+
+// inheritedFlagField is a custom field the inherited-flag inventory defines
+// for every kind of item `add` creates.
+const inheritedFlagField = "audit_note"
 
 // addNounCase is one `add` invocation, after the word "add", that succeeds
 // on its own against the inventory runAddNoun builds.
@@ -71,41 +76,74 @@ func addNounCases(t *testing.T) []addNounCase {
 		{"connections", []string{"connections", emptyMap}},
 		{"connections generate", []string{"connections", "generate", "star", "--hub", "dev-00", "--spokes", "node-{01..02}"}},
 		{"bare device slug", []string{cmdtest.DeviceSlug, "--name", "dev-02"}},
+		{"bare rack slug", []string{roleTestRackSlug, "--name", "rack-03"}},
+		{"bare module slug", []string{roleTestModuleSlug, "--name", "mod-02"}},
 		{"bare cable slug", []string{roleTestCableSlug, "--name", "cab-02"}},
 	}
 }
 
+// itemContentTypes lists the content type of every kind of item `add`
+// creates, an interface included.
+var itemContentTypes = []string{
+	devicetypes.ContentTypeDevice, devicetypes.ContentTypeRack, devicetypes.ContentTypeModule,
+	devicetypes.ContentTypeLocation, devicetypes.ContentTypeCable, devicetypes.ContentTypeVLAN,
+	devicetypes.ContentTypePrefix, devicetypes.ContentTypeIPAddress, devicetypes.ContentTypeVRF,
+	devicetypes.ContentTypeInterface,
+}
+
 // runAddNoun runs `add <argv>` through the full parser against a fresh
-// inventory holding one location, one rack and one device, and returns the
-// resulting inventory's fingerprint.
+// inventory holding one location, one rack, one device and a definition of
+// inheritedFlagField for every kind of item, and returns the resulting
+// inventory's fingerprint.
 func runAddNoun(t *testing.T, argv []string) (string, error) {
+	t.Helper()
+	return runAddNounDefining(t, argv, itemContentTypes...)
+}
+
+// runAddNounDefining is runAddNoun with inheritedFlagField defined for the
+// given content types only.
+func runAddNounDefining(t *testing.T, argv []string, contentTypes ...string) (string, error) {
+	t.Helper()
+	harness := addNounHarness(t, contentTypes...)
+	err := harness.Execute(t, append([]string{"add"}, argv...)...)
+	return cmdtest.Fingerprint(harness.Inventory()), err
+}
+
+// addNounHarness returns a harness over a fresh inventory holding one
+// location, one rack, one device and a definition of inheritedFlagField for
+// the given content types.
+func addNounHarness(t *testing.T, contentTypes ...string) *cmdtest.Harness {
 	t.Helper()
 	inventory, rackID := cmdtest.InventoryWithRack("rack-01")
 	for _, location := range inventory.Locations {
 		location.Name = inheritedFlagSite
 	}
 	cmdtest.AddDevice(inventory, rackID, "dev-00", 1)
-	harness := cmdtest.New(t, NewCommand(), newDeviceCommand(), inventory)
-	err := harness.Execute(t, append([]string{"add"}, argv...)...)
-	return cmdtest.Fingerprint(harness.Inventory()), err
+	cmdtest.DefineCustomField(inventory, inheritedFlagField, "text", contentTypes...)
+	return cmdtest.New(t, NewCommand(), newDeviceCommand(), inventory)
 }
 
-// TestAddInheritedFlagsTakeEffectOrFail verifies that --tag and --status,
-// which `add` hands to every subcommand, change what each noun stores or are
-// refused by name; no noun parses one and drops it.
+// TestAddInheritedFlagsTakeEffectOrFail verifies that --tag, --status and
+// --custom-field, which `add` hands to every subcommand, change what each
+// noun stores or are refused by name; no noun parses one and drops it.
 //
 // Why it matters: `add module --tag`, `add location --status` and
 // `add cable --tag` exited 0 and stored nothing, so a value an operator
 // typed vanished without a word and only an export showed it was missing.
 // Inputs: every `add` noun and the bare slug form, run with no extra flag,
-// then with --tag audit, then with --status Planned.
+// then with --tag audit, then with --status Planned, then with
+// --custom-field audit_note=checked.
 // Outputs: for each noun and flag, either an inventory that differs from
 // the flagless run or an error naming the flag.
 // Data choice: the flagless run is repeated to prove the fingerprint is
 // stable, so a difference can only come from the flag; Planned is no
-// noun's default status.
+// noun's default status; the custom field is defined for every kind of
+// item, an interface included, so a noun that refuses it does so because
+// it has nowhere to send it and not for want of a definition.
 func TestAddInheritedFlagsTakeEffectOrFail(t *testing.T) {
-	inherited := [][]string{{"--tag", "audit"}, {"--status", "Planned"}}
+	inherited := [][]string{
+		{"--tag", "audit"}, {"--status", "Planned"}, {"--custom-field", inheritedFlagField + "=checked"},
+	}
 
 	for _, tc := range addNounCases(t) {
 		// Arrange.

@@ -27,6 +27,7 @@ package update
 
 import (
 	"github.com/Cray-HPE/cani/internal/cli"
+	"github.com/Cray-HPE/cani/internal/util/customfields"
 )
 
 // NewCommand creates the parent "update" command.
@@ -54,7 +55,8 @@ func NewCommand() *cli.Command {
 
 	cmd.PersistentFlags().StringArray("set", nil, "Set field value as key=value (repeatable)")
 	cmd.PersistentFlags().StringArray("tag", nil, "Tag(s) to apply to the item (repeatable)")
-	cmd.PersistentFlags().StringToString("metadata", nil, "Provider metadata key=value pairs (repeatable)")
+	customfields.RegisterSet(cmd.PersistentFlags())
+	customfields.RegisterClear(cmd.PersistentFlags())
 
 	return cmd
 }

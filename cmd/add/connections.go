@@ -85,7 +85,7 @@ func addConnections(cmd *cli.Command, args []string) error {
 		return cmd.Help()
 	}
 	// The connection map carries each cable's own attributes.
-	if err := validate.RejectFlags(cmd, "tag", "status"); err != nil {
+	if err := validate.RejectFlags(cmd, itemFlags...); err != nil {
 		return err
 	}
 

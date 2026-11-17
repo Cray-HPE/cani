@@ -27,6 +27,7 @@ package devicetypes
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -60,6 +61,10 @@ const (
 	customFieldTypeMultiSelect = "multi-select"
 )
 
+// ErrCustomFieldNotDefined reports a custom-field key the metadata catalog
+// holds no definition of, for any kind of object.
+var ErrCustomFieldNotDefined = errors.New("is not defined in the inventory")
+
 // CustomFieldFor returns the definition of the custom field key when the
 // metadata catalog defines it for objects of contentType.
 func (inv *Inventory) CustomFieldFor(contentType, key string) (CustomFieldDefinition, error) {
@@ -73,7 +78,7 @@ func (inv *Inventory) CustomFieldFor(contentType, key string) (CustomFieldDefini
 		}
 		return def, nil
 	}
-	return CustomFieldDefinition{}, fmt.Errorf("custom field %q is not defined in the inventory", key)
+	return CustomFieldDefinition{}, fmt.Errorf("custom field %q %w", key, ErrCustomFieldNotDefined)
 }
 
 // SetCustomField parses raw, as it would be typed on a command line, into the

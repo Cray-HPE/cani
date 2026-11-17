@@ -92,12 +92,8 @@ func addLocation(cmd *cli.Command, args []string) error {
 	}
 
 	resolveParent(cmd, loc, inventory)
-	if err := applyLocationStatusAndTags(cmd, loc, inventory); err != nil {
+	if err := applyInheritedLocationFlags(cmd, loc, inventory); err != nil {
 		return err
-	}
-
-	if meta := collectProviderMetadata(cmd); len(meta) > 0 {
-		applyProviderMetadataMap(&loc.ProviderMetadata, meta)
 	}
 
 	if err := inventory.AddLocation(loc); err != nil {
@@ -143,18 +139,23 @@ func applyLocationFlags(cmd *cli.Command, loc *devicetypes.CaniLocationType) {
 	}
 }
 
-// applyLocationStatusAndTags stamps the inherited --status and --tag flags on
-// the location; the status is checked against the inventory's statuses first.
-func applyLocationStatusAndTags(cmd *cli.Command, loc *devicetypes.CaniLocationType, inv *devicetypes.Inventory) error {
+// applyInheritedLocationFlags stamps the inherited --status, --tag and
+// --custom-field flags on the location. The status is checked against the
+// inventory's statuses and the custom fields against its definitions first.
+func applyInheritedLocationFlags(cmd *cli.Command, loc *devicetypes.CaniLocationType, inv *devicetypes.Inventory) error {
 	statusArg, _ := cmd.Flags().GetString("status")
 	status, err := normalizeStatus(statusArg, inv)
+	if err != nil {
+		return err
+	}
+	lbl, err := labelsFromFlags(cmd).withCustomFields(cmd, inv, devicetypes.ContentTypeLocation)
 	if err != nil {
 		return err
 	}
 	if status != "" {
 		loc.Status = status
 	}
-	labelsFromFlags(cmd).apply(&loc.ObjectMeta)
+	lbl.apply(&loc.ObjectMeta)
 	return nil
 }
 

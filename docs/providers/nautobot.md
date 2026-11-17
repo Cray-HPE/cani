@@ -59,11 +59,10 @@ the same key the provider value is sent and the export logs the collision by
 object and key. `false`, `0` and empty strings are sent as written, because
 Nautobot fills an omitted key from the definition's default. Import keeps
 the two in step: a custom field read back from Nautobot replaces the copy of
-that key set earlier with `--metadata`, so an edit made in Nautobot is not
-reverted by the next export, and a `--metadata` change made after the import
-is what the next export sends. A device's
-`role` and `location` provider metadata (for example `--metadata role=...`)
-set the device's role and location and are not sent as custom fields.
+that key held in `providerMetadata.nautobot`, so an edit made in Nautobot is
+not reverted by the next export. A device's `role` and `location` provider
+metadata set the device's role and location and are not sent as custom
+fields.
 
 Import fetches the custom-field definitions and their choices into the
 inventory metadata catalog, and export creates any definition the destination

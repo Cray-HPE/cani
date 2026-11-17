@@ -29,15 +29,18 @@ import (
 	"slices"
 
 	"github.com/Cray-HPE/cani/internal/cli"
-	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/Cray-HPE/cani/internal/util/customfields"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
 
-// labels holds the role and tags an add stamps on each item, read once from
-// the --role and --tag flags. A noun without a --role flag stamps tags only.
+// labels holds the role, tags and custom fields an add stamps on each item.
+// The role and tags are read once from --role and --tag; a noun without a
+// --role flag stamps none. The custom fields are added by withCustomFields
+// once the inventory that defines them is loaded.
 type labels struct {
-	role string
-	tags []string
+	role   string
+	tags   []string
+	fields customfields.Edit
 }
 
 // labelsFromFlags reads --role and --tag; an unset flag leaves the item's
@@ -48,8 +51,17 @@ func labelsFromFlags(cmd *cli.Command) labels {
 	return labels{role: role, tags: tags}
 }
 
-// apply sets the role that was given and appends the tags. The tag list is
-// copied, so items built from one hardware type never share it.
+// withCustomFields adds the --custom-field values, checked against the
+// inventory's definitions for objects of contentType.
+func (l labels) withCustomFields(cmd *cli.Command, inv *devicetypes.Inventory, contentType string) (labels, error) {
+	fields, err := customfields.FromFlags(cmd, inv, contentType)
+	l.fields = fields
+	return l, err
+}
+
+// apply sets the role that was given, appends the tags and sets the custom
+// fields. The tag list and each custom-field value are copied, so items
+// built from one hardware type never share them.
 func (l labels) apply(meta *devicetypes.ObjectMeta) {
 	if l.role != "" {
 		meta.Role = l.role
@@ -57,34 +69,5 @@ func (l labels) apply(meta *devicetypes.ObjectMeta) {
 	if len(l.tags) > 0 {
 		meta.Tags = slices.Concat(meta.Tags, l.tags)
 	}
-}
-
-// collectProviderMetadata returns the --metadata key=value pairs, already
-// validated by the flag parser, or nil when the flag was not set.
-func collectProviderMetadata(cmd *cli.Command) map[string]string {
-	meta, _ := cmd.Flags().GetStringToString("metadata")
-	return meta
-}
-
-// applyProviderMetadataMap lets each registered provider merge metadata
-// into its own section of the given provider-metadata map.
-func applyProviderMetadataMap(pm *map[string]any, meta map[string]string) {
-	if len(meta) == 0 {
-		return
-	}
-	for _, p := range provider.GetProviders() {
-		if ma, ok := p.(provider.MetadataApplier); ok {
-			ma.ApplyMetadata(pm, meta)
-		}
-	}
-}
-
-// applyProviderMetadataToDevice merges metadata into the device's provider metadata.
-func applyProviderMetadataToDevice(device *devicetypes.CaniDeviceType, meta map[string]string) {
-	applyProviderMetadataMap(&device.ProviderMetadata, meta)
-}
-
-// applyProviderMetadataToRack merges metadata into the rack's provider metadata.
-func applyProviderMetadataToRack(rack *devicetypes.CaniRackType, meta map[string]string) {
-	applyProviderMetadataMap(&rack.ProviderMetadata, meta)
+	l.fields.Stamp(meta)
 }

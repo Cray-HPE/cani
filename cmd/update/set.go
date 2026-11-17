@@ -30,7 +30,7 @@ import (
 	"strings"
 
 	"github.com/Cray-HPE/cani/internal/cli"
-	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/Cray-HPE/cani/internal/util/customfields"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
 
@@ -44,6 +44,18 @@ func applyTagFlag(cmd *cli.Command, meta *devicetypes.ObjectMeta) bool {
 	return true
 }
 
+// applyLabelFlags applies the flags `update` hands to every subcommand that
+// edit what an item is labelled with: --tag replaces its tags, and
+// --custom-field and --clear-custom-field edit its custom fields as an
+// object of contentType. It reports whether any of them was given.
+func applyLabelFlags(cmd *cli.Command, inv *devicetypes.Inventory, meta *devicetypes.ObjectMeta, contentType string) (bool, error) {
+	if err := customfields.Apply(cmd, inv, meta, contentType); err != nil {
+		return false, err
+	}
+	tagged := applyTagFlag(cmd, meta)
+	return tagged || cmd.Flags().Changed(customfields.FlagSet) || cmd.Flags().Changed(customfields.FlagClear), nil
+}
+
 // parseSetFlags splits --set key=value pairs into a map.
 func parseSetFlags(pairs []string) (map[string]string, error) {
 	result := make(map[string]string, len(pairs))
@@ -55,15 +67,4 @@ func parseSetFlags(pairs []string) (map[string]string, error) {
 		result[parts[0]] = parts[1]
 	}
 	return result, nil
-}
-
-// applyProviderMetadata lets each registered provider merge the --metadata
-// pairs, already validated by the flag parser, into its own section of the
-// metadata map.
-func applyProviderMetadata(pm *map[string]any, meta map[string]string) {
-	for _, p := range provider.GetProviders() {
-		if ma, ok := p.(provider.MetadataApplier); ok {
-			ma.ApplyMetadata(pm, meta)
-		}
-	}
 }
