@@ -23,7 +23,7 @@ matter of taste. Cite files and line numbers; show the offending import or call.
 main.go                  entrypoint: blank-imports providers (self-registration), Init() + Execute()
 cmd/                     orchestration / CLI verbs (add remove update show import export classify serve init)
 internal/cli/            stdlib command framework (Command/FlagSet) — replaced cobra/viper/pflag
-internal/provider/       PLUGIN CONTRACTS: interface.go (1 required + 11 optional ifaces) + registry.go
+internal/provider/       PLUGIN CONTRACTS: interface.go (1 required + 13 optional ifaces) + registry.go
 internal/config/         configuration (YAML node tree, env precedence, Cfg.Providers sub-maps)
 internal/core/           app constants
 pkg/provider/<name>/     provider implementations: csm hpcm nautobot ochami redfish example
@@ -53,7 +53,10 @@ Verify the layers above are real, acyclic, and pointing inward — no shortcuts,
 - **Red flags:** any `import ".../pkg/provider/<name>"` inside `cmd/`; `switch providerName`
   or provider-name string literals in `cmd/`; the data model or datastore importing a
   provider; import cycles; files >300 lines or functions with cognitive complexity >10
-  (the repo's stated budgets); business logic living inside `internal/cli`.
+  (the repo's stated budgets); business logic living inside `internal/cli`. A datastore
+  migration may name the provider buckets older builds wrote (`pkg/datastores/migrate*.go`
+  names `csm`, `hpcm` and `nautobot`): it describes a file format, not provider behavior,
+  and is not a breach.
 
 ### 2. Separation of data & responsibility  (`--pillar=data`)
 
@@ -62,13 +65,13 @@ decoupled from transport, persistence, configuration, and rendering.
 
 - **Inspect:** `grep -rnE "net/http|internal/cli|spf13" pkg/devicetypes/`;
   `grep -rn "provider" pkg/datastores/`; review `pkg/devicetypes` types, `pkg/datastores`
-  `DeviceStore`, `internal/config` save path, and how `--metadata`/`--tag` flow from `cmd/`
-  into providers.
+  `DeviceStore`, `internal/config` save path, and how `--custom-field`/`--tag` are applied to
+  the model in `cmd/` while provider-contributed flags are handed to providers.
 - **Look for:** `pkg/devicetypes` as pure domain types + library loading (no HTTP, no CLI,
   no provider specifics); `pkg/datastores` provider-agnostic behind `DeviceStore` so the
   backend can be swapped; config persistence that is lossless (comments/key order preserved
   via the YAML node tree) and writes token-bearing files `0600`; generic CLI concerns parsed
-  in `cmd/` then *handed* to providers (e.g. `MetadataApplier`) so no provider name is
+  in `cmd/` then *handed* to providers (e.g. `DeviceUpdateFlagProvider`) so no provider name is
   hard-coded; the ETL stages **Import (Extract) → Transform → Load (Export)** kept distinct,
   with the provider holding extracted state between stages.
 - **Red flags:** provider-specific fields baked into the shared model (e.g. xname/auth
@@ -83,11 +86,11 @@ The extensibility core. Judge the contract, registration, command injection, cap
 dispatch, and how a new provider is onboarded.
 
 - **Inspect:** `internal/provider/interface.go` (required `Provider` = `Transform` /
-  `NewProviderCmd` / `Slug`, plus the 11 optional capability interfaces: `Exporter`,
-  `Importer`, `HasOptions`, `HasImportOptions`, `HasExportOptions`, `DeviceStager`,
-  `RackStager`, `RackPostAddHook`, `MetadataApplier`, `DeviceUpdateFlagProvider`,
-  `StagedDeviceDescriber`); `internal/provider/registry.go` (`Register`/`GetProvider`/
-  `GetProviders`); the `NewProviderCmd(base)` call sites and RunE-wrapping in
+  `NewProviderCmd` / `Slug`, plus the 13 optional capability interfaces: `Exporter`,
+  `Importer`, `HasOptions`, `Configurer`, `HasImportOptions`, `HasExportOptions`,
+  `DeviceStager`, `RackStager`, `RackPostAddHook`, `DeviceUpdateFlagProvider`,
+  `StagedDeviceDescriber`, `ExportDryRunner`, `IdentityKeyProvider`); `internal/provider/registry.go`
+  (`Register`/`GetProvider`/`GetProviders`/`IdentityKeys`); the `NewProviderCmd(base)` call sites and RunE-wrapping in
   `cmd/import` and `cmd/export`; the optional-interface type-asserts in `cmd/`
   (`grep -rn "p.(provider\." cmd/` and `GetProviders()` loops); the `cani init` scaffolder.
 - **Look for:** every integration point reached through an interface or a type-assert on an
@@ -141,8 +144,10 @@ of the schema's source of truth.
     (`Children`, `Racks`, `Devices`, `OccupiedSlots`, `Interfaces`) are **rebuilt** by
     `VerifyParentChildRelationships()` and marked non-serialized, never hand-set and
     persisted. Parent-chain cycle detection is preserved.
-  - **Provider escape hatch** — provider-only attributes live in `ProviderMetadata`
-    (exported as Nautobot CustomFields), not as new columns on the shared types. `Transform`
+  - **Provider escape hatch** — provider-only attributes live in the provider's own
+    `ProviderMetadata` bucket (private to that provider; sent to Nautobot only when listed in
+    `export.provider_metadata_fields`), not as new columns on the shared types and not as
+    `CustomFields`, which hold operator-defined attributes. `Transform`
     emits a `TransformResult` of shared types and calls `EnsureUniqueDeviceNames`.
   - **Lossless round-trip** — the datastore serializes/deserializes the portable schema
     without loss; transient caches (e.g. `pkIndex`) are `yaml:"-" json:"-"` and rebuilt after

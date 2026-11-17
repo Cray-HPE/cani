@@ -23,6 +23,14 @@
   is declared for that device instead of being cleared by the merge
 - leave out a record you cannot translate and list it in `TransformResult.Warnings` rather than
   inventing a value for it
+- put each value in its one home (see the Transform output contract): a modeled attribute in its
+  field, an attribute the source system's operators define in `CustomFields`, and what only this
+  provider needs in its own bucket, with `SetProviderMeta(<slug>, key, value)`; never write
+  another provider's bucket or a key beside the buckets
+- declare on `TransformResult.IdentityKeys` the keys in your bucket that identify one physical
+  device, and return the same list from `IdentityKeys()` (`provider.IdentityKeyProvider`); the
+  merge matches a device of an existing name only when those keys agree, and declaring a key
+  asserts it means the same in every provider's bucket. Declare none to merge by name alone
 
 ## Don't
 
