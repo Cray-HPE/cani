@@ -34,16 +34,17 @@ import (
 
 // Schema version constants for the inventory datastore.
 const (
-	SchemaVersionV1Alpha1 = "v1alpha1"
-	SchemaVersionV1Alpha2 = "v1alpha2"
-	SchemaVersionV1Alpha3 = "v1alpha3"
-	SchemaVersionV1Alpha4 = "v1alpha4"
-	SchemaVersionV1Alpha5 = "v1alpha5"
-	SchemaVersionV1Alpha6 = "v1alpha6"
-	SchemaVersionV1Alpha7 = "v1alpha7"
-	SchemaVersionV1Alpha8 = "v1alpha8"
-	SchemaVersionV1Alpha9 = "v1alpha9"
-	CurrentSchemaVersion  = SchemaVersionV1Alpha9
+	SchemaVersionV1Alpha1  = "v1alpha1"
+	SchemaVersionV1Alpha2  = "v1alpha2"
+	SchemaVersionV1Alpha3  = "v1alpha3"
+	SchemaVersionV1Alpha4  = "v1alpha4"
+	SchemaVersionV1Alpha5  = "v1alpha5"
+	SchemaVersionV1Alpha6  = "v1alpha6"
+	SchemaVersionV1Alpha7  = "v1alpha7"
+	SchemaVersionV1Alpha8  = "v1alpha8"
+	SchemaVersionV1Alpha9  = "v1alpha9"
+	SchemaVersionV1Alpha10 = "v1alpha10"
+	CurrentSchemaVersion   = SchemaVersionV1Alpha10
 )
 
 // Inventory represents the entire inventory of devices, racks, locations, etc.

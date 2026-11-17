@@ -72,20 +72,67 @@ print("vrf_fields=" + str(vrf["name"] == "management" and vrf["rd"] == "65000:1"
 PY
 }
 
+# Loads a datastore the v1alpha9 writer produced from pairs typed with
+# --metadata, and prints where each value is held after the upgrade.
+#shellcheck disable=SC2317
+v1alpha9_metadata_summary() {
+	setup_datastore_migration_env canitestdb_v1alpha9_metadata.json
+	_migration_fixture="$FIXTURES/cani/legacy/canitestdb_v1alpha9_metadata.json"
+
+	bin/cani alpha show --config "$CANI_CONF" >/dev/null || return $?
+
+	if cmp -s "$_migration_fixture" "$CANI_DS.canisave"; then
+		printf 'backup_matches=True\n'
+	else
+		printf 'backup_matches=False\n'
+		return 1
+	fi
+
+	CANI_DS_PATH="$CANI_DS" python3 - <<'PY'
+import json
+import os
+
+with open(os.environ["CANI_DS_PATH"], encoding="utf-8") as datastore:
+    inventory = json.load(datastore)
+
+devices = {device["name"]: device for device in inventory["devices"].values()}
+locations = {location["name"]: location for location in inventory["locations"].values()}
+rack = next(iter(inventory["racks"].values()))
+left_typed = sorted(
+    (record["name"], record["providerMetadata"]["nautobot"])
+    for collection in ("devices", "racks", "locations")
+    for record in inventory[collection].values()
+    if "nautobot" in (record.get("providerMetadata") or {})
+)
+
+print("schema=" + inventory["schemaVersion"])
+print("typed_role=" + devices["typed-role"]["role"])
+print("kept_role=" + devices["test-device-2"]["role"])
+print("device_custom_fields=" + json.dumps(devices["typed-role"]["customFields"], sort_keys=True))
+print("conflict_custom_fields=" + json.dumps(devices["test-device-2"]["customFields"], sort_keys=True))
+print("rack_custom_fields=" + json.dumps(rack["customFields"], sort_keys=True))
+print("rack_keeps_csm_bucket=" + str(sorted(rack["providerMetadata"]) == ["csm"]))
+print("location_custom_fields=" + json.dumps(locations["test-site"]["customFields"], sort_keys=True))
+print("placed=" + str(devices["loose-dev"]["location"] == locations["removable-location"]["id"]))
+print("racked_stays=" + str(devices["test-device"]["location"] == locations["test-site"]["id"]))
+print("left_typed=" + json.dumps(left_typed, sort_keys=True))
+PY
+}
+
 Describe 'INTEGRATION:'
 
-It 'migrates a v1alpha1 datastore to v1alpha9'
+It 'migrates a v1alpha1 datastore to v1alpha10'
 	BeforeCall 'setup_datastore_migration_env canitestdb_v1alpha1.json'
 	When call bin/cani alpha show --config "$CANI_CONF"
 	The status should equal 0
 	The stdout should be present
 	The stderr should include 'creating default config'
-	The stderr should include 'Migrated datastore from v1alpha1 to v1alpha9'
+	The stderr should include 'Migrated datastore from v1alpha1 to v1alpha10'
 	The file "$CANI_CONF" should be exist
 	The file "$CANI_DS" should be exist
 	The file "$CANI_DS.canisave" should be exist
 	The contents of file "$CANI_DS" should include '"schemaVersion"'
-	The contents of file "$CANI_DS" should include '"v1alpha9"'
+	The contents of file "$CANI_DS" should include '"v1alpha10"'
 	The contents of file "$CANI_DS" should include '"devices"'
 	The contents of file "$CANI_DS" should include '"locations"'
 	The contents of file "$CANI_DS" should include '"racks"'
@@ -93,16 +140,40 @@ It 'migrates a v1alpha1 datastore to v1alpha9'
 	The contents of file "$CANI_DS" should not include '"v1alpha1"'
 End
 
-It 'migrates released v1alpha3 additions to v1alpha9 without loss'
+It 'migrates released v1alpha3 additions to v1alpha10 without loss'
 	When call v1alpha3_migration_summary
 	The status should equal 0
-	The stderr should include 'Migrated datastore from v1alpha3 to v1alpha9'
+	The stderr should include 'Migrated datastore from v1alpha3 to v1alpha10'
 	The output should include 'backup_matches=True'
-	The output should include 'schema=v1alpha9'
+	The output should include 'schema=v1alpha10'
 	The output should include 'device_fields=True'
 	The output should include 'interface_spec_fields=True'
 	The output should include 'interface_fields=True'
 	The output should include 'vrf_fields=True'
+End
+
+It 'moves v1alpha9 provider metadata to the fields and custom fields that own it'
+	When call v1alpha9_metadata_summary
+	The status should equal 0
+	The stderr should include 'Migrated datastore from v1alpha9 to v1alpha10'
+	The stderr should include 'device "test-device-2"'
+	The stderr should include 'provider metadata "role" was dropped: it was not the role export sent'
+	The stderr should include 'device "test-device" ('
+	The stderr should include 'provider metadata "location" was not applied'
+	The stderr should include 'device "unplaced-dev"'
+	The stderr should include 'provider metadata "location" names no location in the inventory'
+	The output should include 'backup_matches=True'
+	The output should include 'schema=v1alpha10'
+	The output should include 'typed_role=Compute'
+	The output should include 'kept_role=Storage'
+	The output should include 'device_custom_fields={"asset_owner": "hpc-ops"}'
+	The output should include 'conflict_custom_fields={"rack_unit_note": "front"}'
+	The output should include 'rack_custom_fields={"cost_center": "cc-4411"}'
+	The output should include 'rack_keeps_csm_bucket=True'
+	The output should include 'location_custom_fields={"region": "emea"}'
+	The output should include 'placed=True'
+	The output should include 'racked_stays=True'
+	The output should include 'left_typed=[["unplaced-dev", {"location": "dc-nowhere"}]]'
 End
 
 End

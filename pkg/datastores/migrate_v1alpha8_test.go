@@ -123,8 +123,8 @@ func TestMigrateV1Alpha8PreservesInventory(t *testing.T) {
 //
 // Why it matters: the version boundary must not cost an operator any data.
 // Inputs: a v1alpha8 datastore with a spare and a bay-less installed module.
-// Outputs: a v1alpha9 file differing only in its version, a byte-identical
-// .canisave backup, and no further rewrite on a repeated load.
+// Outputs: a current-generation file differing only in its version, a
+// byte-identical .canisave backup, and no further rewrite on a repeated load.
 // Data choice: clearing the installed module's bay proves the step does not
 // invent one from the module name, and the spare proves it is not given a
 // parent device.
@@ -142,7 +142,8 @@ func TestJSONStoreMigratesV1Alpha8WithoutDataLoss(t *testing.T) {
 // Why it matters: a v1alpha8 writer had no moduleId field, so the upgrade must
 // derive ownership rather than leave module ports looking device-owned.
 // Inputs: a v1alpha8 datastore whose indexed interfaces carry no moduleId.
-// Outputs: the saved v1alpha9 file records the declaring module on its port.
+// Outputs: the saved file, at the current generation, records the declaring
+// module on its port.
 // Data choice: deleting the key from the marshaled document reproduces what an
 // earlier cani release persisted; clearing the field would still serialize it.
 func TestJSONStoreRebuildsModuleOwnershipForV1Alpha8(t *testing.T) {
@@ -161,8 +162,8 @@ func TestJSONStoreRebuildsModuleOwnershipForV1Alpha8(t *testing.T) {
 	if err := json.Unmarshal(readSchemaMigrationFile(t, path), &saved); err != nil {
 		t.Fatal(err)
 	}
-	if saved.SchemaVersion != devicetypes.SchemaVersionV1Alpha9 {
-		t.Fatalf("saved version=%q, want %q", saved.SchemaVersion, devicetypes.SchemaVersionV1Alpha9)
+	if saved.SchemaVersion != devicetypes.CurrentSchemaVersion {
+		t.Fatalf("saved version=%q, want %q", saved.SchemaVersion, devicetypes.CurrentSchemaVersion)
 	}
 	if port := saved.Interfaces[portID]; port == nil || port.ModuleID != module.ID {
 		t.Fatalf("saved port %s = %+v, want ModuleID %s", portID, port, module.ID)

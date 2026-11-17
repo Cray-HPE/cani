@@ -34,7 +34,7 @@ import json
 import os
 
 inventory = {
-    "schemaVersion": "v1alpha9",
+    "schemaVersion": "v1alpha10",
     "locations": {},
     "racks": {
         "00000000-0000-0000-0001-000000000001": {
