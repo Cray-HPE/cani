@@ -208,6 +208,44 @@ func TestSetDeviceFields(t *testing.T) {
 	}
 }
 
+// TestSetDeviceFields_RoleAlsoSetsTheRoleField verifies that a role the CSV
+// changes is written to the device's role field as well as to the CSM
+// bucket, and that a role the CSV leaves as it was changes neither.
+//
+// Why it matters: the role field is what commands and every other
+// provider's export read. A role held only in the CSM bucket used to reach
+// Nautobot through a fallback that is gone, so a node given its role by CSV
+// would be exported with the default role.
+// Inputs: a node with no role and a row naming Compute; then a node whose
+// bucket already says Compute and whose role field says Login, with the
+// same row.
+// Outputs: field and bucket both Compute and a change reported; then the
+// field still Login and no change reported.
+// Data choice: the second node's field differs from its bucket, so a write
+// to the field on every row, changed or not, would show.
+func TestSetDeviceFields_RoleAlsoSetsTheRoleField(t *testing.T) {
+	// Arrange.
+	row := map[string]string{"Role": "Compute"}
+	unset := newTestDevice()
+	settled := newTestDevice()
+	settled.SetProviderMeta("csm", "role", "Compute")
+	settled.Role = "Login"
+
+	// Act.
+	changedUnset := setDeviceFields(unset, row)
+	changedSettled := setDeviceFields(settled, row)
+
+	// Assert.
+	bucket, _ := unset.GetProviderSubMap("csm")
+	if !changedUnset || unset.Role != "Compute" || bucket["role"] != "Compute" {
+		t.Errorf("new role: changed = %t, role field = %q, csm role = %v; want true, Compute, Compute",
+			changedUnset, unset.Role, bucket["role"])
+	}
+	if changedSettled || settled.Role != "Login" {
+		t.Errorf("unchanged role: changed = %t, role field = %q; want false and Login", changedSettled, settled.Role)
+	}
+}
+
 func TestSetCSMMetaString(t *testing.T) {
 	tests := []struct {
 		name    string

@@ -235,7 +235,7 @@ func buildNewNodeEntry(
 	if nid, ok := getIntMeta(sub, "nid"); ok && nid != 0 {
 		ep["NID"] = nid
 	}
-	if role, _ := sub["role"].(string); role != "" {
+	if role, _ := sub["role"].(string); role != "" { // FIXME: deprecated csm.role wins over the role field; see csm/transform/metadata.go
 		ep["Role"] = role
 	} else if dev.Role != "" {
 		ep["Role"] = dev.Role
