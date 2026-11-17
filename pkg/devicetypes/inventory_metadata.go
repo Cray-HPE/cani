@@ -71,9 +71,9 @@ var ValidCustomFieldTypes = []string{
 
 // ValidContentTypes lists the content-type strings accepted for metadata definitions.
 var ValidContentTypes = []string{
-	"dcim.device", "dcim.rack", "dcim.location", "dcim.module",
-	"dcim.interface", "dcim.inventoryitem", "dcim.cable",
-	"ipam.vlan", "ipam.prefix", "ipam.ipaddress", "ipam.vrf",
+	ContentTypeDevice, ContentTypeRack, ContentTypeLocation, ContentTypeModule,
+	ContentTypeInterface, ContentTypeInventoryItem, ContentTypeCable,
+	ContentTypeVLAN, ContentTypePrefix, ContentTypeIPAddress, ContentTypeVRF,
 }
 
 // validateContentTypes returns an error if any content type is not recognized.
