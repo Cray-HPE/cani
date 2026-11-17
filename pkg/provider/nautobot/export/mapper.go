@@ -40,6 +40,9 @@ type MapperOpts struct {
 	DefaultRole     string
 	DefaultStatus   string
 	Strict          bool // when false, devices without a slug are skipped rather than errored
+	// ProviderMetadataFields are the provider-metadata keys sent as custom
+	// fields; see ExporterOpts.
+	ProviderMetadataFields []ProviderMetadataField
 }
 
 // DeviceMapper converts CaniDeviceType to Nautobot API requests
@@ -47,6 +50,15 @@ type DeviceMapper struct {
 	cache     *LookupCache
 	defaults  *MapperOpts
 	inventory *devicetypes.Inventory
+}
+
+// customFields returns the custom-field projection the mapper's options ask
+// for.
+func (m *DeviceMapper) customFields() customFieldProjection {
+	if m == nil || m.defaults == nil {
+		return nil
+	}
+	return m.defaults.ProviderMetadataFields
 }
 
 func setDeviceRequestRefs(
@@ -123,7 +135,7 @@ func (m *DeviceMapper) MapToNautobotDevice(device *devicetypes.CaniDeviceType) (
 		return nil, fmt.Errorf("failed to build references for %s: %w", device.Name, err)
 	}
 
-	req.CustomFields = customFieldsPayload(kindDevice, device.Name, &device.ObjectMeta)
+	req.CustomFields = m.customFields().payload(kindDevice, device.Name, &device.ObjectMeta)
 
 	// Map serial number if available
 	if device.Serial != "" {
@@ -181,7 +193,7 @@ func (m *DeviceMapper) MapToWritableDeviceRequest(device *devicetypes.CaniDevice
 		return nil, fmt.Errorf("failed to build references for %s: %w", device.Name, err)
 	}
 
-	req.CustomFields = customFieldsPayload(kindDevice, device.Name, &device.ObjectMeta)
+	req.CustomFields = m.customFields().payload(kindDevice, device.Name, &device.ObjectMeta)
 
 	// Map serial number if available
 	if device.Serial != "" {
@@ -272,7 +284,9 @@ func (m *DeviceMapper) MapToPatchRequest(device *devicetypes.CaniDeviceType, exi
 		}
 	}
 
-	req.CustomFields = customFieldsPayload(kindDevice, device.Name, &device.ObjectMeta)
+	// The comparison that leads to an update has already noted what a listed
+	// provider key replaced.
+	req.CustomFields = m.customFields().of(&device.ObjectMeta).payload()
 
 	// Map serial number if available
 	if device.Serial != "" {
@@ -356,26 +370,11 @@ func (m *DeviceMapper) resolveDeviceType(device *devicetypes.CaniDeviceType) (*C
 }
 
 // resolveLocation gets the location ID, using default if device doesn't specify one.
-// Priority: device ProviderMetadata["location"] → parent rack's location → the
-// device's own Location (a device placed directly in a location) → DefaultLocation.
+// Priority: the device's placement in the inventory (its own location when it
+// may record one, its rack's otherwise) → DefaultLocation.
 // A device with no resolvable location is an error; the exporter never invents one.
 func (m *DeviceMapper) resolveLocation(device *devicetypes.CaniDeviceType) (*CachedItem, error) {
-	name := ""
-	if device.ProviderMetadata != nil {
-		if loc, _ := device.GetProviderMeta("location"); loc != nil {
-			if locStr, ok := loc.(string); ok {
-				name = locStr
-			}
-		}
-	}
-
-	// Inherit location from parent rack so the device stays in the rack's
-	// location hierarchy (Nautobot rejects devices whose location does not
-	// contain their rack).
-	if name == "" {
-		name = m.locationFromInventory(device)
-	}
-
+	name := m.locationFromInventory(device)
 	if name == "" {
 		name = m.defaults.DefaultLocation
 	}
@@ -405,20 +404,10 @@ func (m *DeviceMapper) resolveStatus(device *devicetypes.CaniDeviceType) (*Cache
 }
 
 // resolveRole gets the role ID, using default if device doesn't specify one.
-// Checks the explicit Role field first, then falls back to ProviderMetadata["role"],
-// then to the provider default, then to "Generic" if auto-creation is enabled.
+// The device's role field is the only source; without one the provider
+// default applies, then "Generic" if auto-creation is enabled.
 func (m *DeviceMapper) resolveRole(device *devicetypes.CaniDeviceType) (*CachedItem, error) {
-	// Prefer the explicit Role field
 	name := device.Role
-
-	// Fall back to ProviderMetadata["role"] for backwards compatibility
-	if name == "" && device.ProviderMetadata != nil {
-		if role, _ := device.GetProviderMeta("role"); role != nil {
-			if roleStr, ok := role.(string); ok {
-				name = roleStr
-			}
-		}
-	}
 	if name == "" {
 		name = m.defaults.DefaultRole
 	}

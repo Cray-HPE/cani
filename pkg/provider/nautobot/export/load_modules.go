@@ -226,7 +226,7 @@ func (e *Exporter) applyModuleOptionalFields(req *nautobotapi.ModuleRequest, mod
 	if module.AssetTag != "" {
 		req.AssetTag = &module.AssetTag
 	}
-	req.CustomFields = customFieldsPayload("module", module.Label(), &module.ObjectMeta)
+	req.CustomFields = e.customFields().payload("module", module.Label(), &module.ObjectMeta)
 	if module.Role == "" {
 		return nil
 	}

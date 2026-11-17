@@ -179,15 +179,15 @@ func TestMapToWritableDeviceRequestWithRack(t *testing.T) {
 
 // TestMapToWritableDeviceRequestCustomFields verifies that
 // MapToWritableDeviceRequest populates the request's CustomFields from the
-// device's flattened ProviderMetadata (e.g. "custom_key").
+// device's custom fields (e.g. "custom_key").
 //
 // Why it matters: the single-create export path (not just bulk) must also carry
-// cani provider metadata into Nautobot custom fields for parity and traceability.
-// Inputs: a classified CaniDeviceType with ProviderMetadata {"custom_key":
+// a device's custom fields into Nautobot.
+// Inputs: a classified CaniDeviceType with CustomFields {"custom_key":
 // "custom_val"} and a fully seeded mapper. Outputs: a WritableDeviceRequest whose
 // *CustomFields contains custom_key.
-// Data choice: a flat top-level metadata key (no "nautobot" nesting) confirms the
-// mapper passes through simple custom fields on the single-create request.
+// Data choice: one plain text field confirms the mapper passes custom fields
+// through on the single-create request.
 func TestMapToWritableDeviceRequestCustomFields(t *testing.T) {
 	cache := NewLookupCache(nil)
 	dtID := uuid.New()
@@ -219,7 +219,7 @@ func TestMapToWritableDeviceRequestCustomFields(t *testing.T) {
 		Name: "wr-cf-device",
 		Slug: "cf-slug",
 		ObjectMeta: devicetypes.ObjectMeta{
-			ProviderMetadata: map[string]any{
+			CustomFields: map[string]any{
 				"custom_key": "custom_val",
 			},
 		},

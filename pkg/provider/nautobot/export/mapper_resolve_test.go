@@ -224,24 +224,30 @@ func TestResolveRoleExplicit(t *testing.T) {
 	}
 }
 
-// TestResolveRoleFromMetadata verifies that resolveRole falls back to
-// ProviderMetadata["role"] when the explicit Role field is empty.
+// TestResolveRoleIgnoresProviderMetadata verifies that resolveRole takes the
+// export default for a device with no role field, whatever its provider
+// metadata names.
 //
-// Why it matters: legacy/provider-sourced records carry the role in metadata;
-// honoring it preserves role assignments during export without a default.
-// Inputs: a device with no Role but ProviderMetadata{"role":"Gateway"} and no
-// DefaultRole; cache holds "Gateway". Outputs: the cached "Gateway" item.
-// Data choice: omitting DefaultRole forces resolution via metadata alone.
-func TestResolveRoleFromMetadata(t *testing.T) {
+// Why it matters: provider metadata used to supply the role when the field
+// was empty, so one Nautobot field had two sources and the one no command
+// showed could win; the role field is now the only one.
+// Inputs: a device with no Role whose provider metadata names "Gateway"
+// outside a bucket and in two buckets, with DefaultRole "Compute"; the cache
+// holds both roles. Outputs: the cached "Compute" item.
+// Data choice: both roles exist, so reading provider metadata would resolve
+// cleanly to the wrong one rather than fail.
+func TestResolveRoleIgnoresProviderMetadata(t *testing.T) {
 	cache := NewLookupCache(nil)
 	roleID := uuid.New()
 	cache.rolesMu.Lock()
-	cache.roles["Gateway"] = &CachedItem{ID: roleID, Name: "Gateway"}
+	cache.roles["Gateway"] = &CachedItem{ID: uuid.New(), Name: "Gateway"}
+	cache.roles["Compute"] = &CachedItem{ID: roleID, Name: "Compute"}
 	cache.rolesMu.Unlock()
 
-	mapper := NewDeviceMapper(cache, &MapperOpts{})
+	mapper := NewDeviceMapper(cache, &MapperOpts{DefaultRole: "Compute"})
+	named := map[string]any{"role": "Gateway"}
 	dev := &devicetypes.CaniDeviceType{
-		ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{"role": "Gateway"}},
+		ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{"role": "Gateway", "csm": named, "nautobot": named}},
 	}
 
 	item, err := mapper.resolveRole(dev)
@@ -249,7 +255,7 @@ func TestResolveRoleFromMetadata(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if item.ID != roleID {
-		t.Errorf("expected ID %s, got %s", roleID, item.ID)
+		t.Errorf("expected the default role %s, got %s (%s)", roleID, item.ID, item.Name)
 	}
 }
 
@@ -284,24 +290,31 @@ func TestResolveLocationDefault(t *testing.T) {
 	}
 }
 
-// TestResolveLocationFromMetadata verifies that resolveLocation prefers
-// ProviderMetadata["location"] over the mapper's DefaultLocation.
+// TestResolveLocationIgnoresProviderMetadata verifies that resolveLocation
+// takes the export default for a device with no placement, whatever its
+// provider metadata names.
 //
-// Why it matters: per-device location metadata must win so devices land in the
-// correct Nautobot location instead of the global default.
-// Inputs: a device with ProviderMetadata{"location":"Room-B"} while
-// DefaultLocation is "Site-A"; cache holds "Room-B". Outputs: the "Room-B" item.
-// Data choice: a differing default proves the metadata path takes priority.
-func TestResolveLocationFromMetadata(t *testing.T) {
+// Why it matters: a location named in provider metadata used to win over
+// the inventory's own placement, so a device could be exported somewhere the
+// inventory did not show it; the device's placement is now the only source.
+// Inputs: a device with no location whose provider metadata names "Room-B"
+// outside a bucket and in the nautobot bucket, with DefaultLocation
+// "Site-A"; the cache holds both. Outputs: the "Site-A" item.
+// Data choice: both locations exist, so reading provider metadata would
+// resolve cleanly to the wrong one rather than fail.
+func TestResolveLocationIgnoresProviderMetadata(t *testing.T) {
 	cache := NewLookupCache(nil)
 	locID := uuid.New()
 	cache.locationsMu.Lock()
-	cache.locations["Room-B"] = &CachedItem{ID: locID, Name: "Room-B"}
+	cache.locations["Room-B"] = &CachedItem{ID: uuid.New(), Name: "Room-B"}
+	cache.locations["Site-A"] = &CachedItem{ID: locID, Name: "Site-A"}
 	cache.locationsMu.Unlock()
 
 	mapper := NewDeviceMapper(cache, &MapperOpts{DefaultLocation: "Site-A"})
 	dev := &devicetypes.CaniDeviceType{
-		ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{"location": "Room-B"}},
+		ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{
+			"location": "Room-B", "nautobot": map[string]any{"location": "Room-B"},
+		}},
 	}
 
 	item, err := mapper.resolveLocation(dev)
@@ -309,7 +322,7 @@ func TestResolveLocationFromMetadata(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if item.ID != locID {
-		t.Errorf("expected ID %s, got %s", locID, item.ID)
+		t.Errorf("expected the default location %s, got %s (%s)", locID, item.ID, item.Name)
 	}
 }
 

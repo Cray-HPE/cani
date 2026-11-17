@@ -96,14 +96,13 @@ func TestMapToWritableRackRequestBasic(t *testing.T) {
 }
 
 // TestMapToWritableRackRequestCustomHeight verifies that MapToWritableRackRequest
-// honors ProviderMetadata["u_height"] instead of the 48U default.
+// honors the device's own height instead of the 48U default.
 //
 // Why it matters: non-standard racks (e.g. 42U) must export with their real
 // height so device positions remain valid in Nautobot.
-// Inputs: a rack device with ProviderMetadata{"u_height":42} and cached
-// location/status. Outputs: a request with UHeight 42.
-// Data choice: 42 (not the 48 default) proves the metadata value overrides the
-// default.
+// Inputs: a rack device with UHeight 42 and cached location/status. Outputs: a
+// request with UHeight 42.
+// Data choice: 42 (not the 48 default) proves the field overrides the default.
 func TestMapToWritableRackRequestCustomHeight(t *testing.T) {
 	cache := NewLookupCache(nil)
 	locID := uuid.New()
@@ -122,11 +121,9 @@ func TestMapToWritableRackRequestCustomHeight(t *testing.T) {
 	})
 
 	dev := &devicetypes.CaniDeviceType{
-		ID:   uuid.New(),
-		Name: "Rack-B02",
-		ObjectMeta: devicetypes.ObjectMeta{
-			ProviderMetadata: map[string]any{"u_height": 42},
-		},
+		ID:      uuid.New(),
+		Name:    "Rack-B02",
+		UHeight: 42,
 	}
 
 	req, err := mapper.MapToWritableRackRequest(dev)
@@ -192,21 +189,21 @@ func TestMapToWritableRackRequestNoStatus(t *testing.T) {
 	}
 }
 
-// ---------- MapToWritableRackRequest custom fields filtering ----------
+// ---------- MapToWritableRackRequest custom fields ----------
 
-// TestMapToWritableRackRequestCustomFieldsFiltered verifies
-// MapToWritableRackRequest drops u_height and rack_position from CustomFields
-// while preserving genuine custom keys.
+// TestMapToWritableRackRequestCustomFields verifies MapToWritableRackRequest
+// sends the rack device's custom fields and nothing from its provider
+// metadata.
 //
 // Why it matters: u_height/rack_position map to first-class Nautobot rack
 // fields, so leaking them into CustomFields would duplicate data and risk a
 // schema-invalid rack create.
-// Inputs: a CaniDeviceType whose ProviderMetadata mixes the reserved keys with
-// custom_key/site_code. Outputs: a WritableRackRequest with filtered
-// CustomFields.
-// Data choice: the metadata deliberately blends reserved and arbitrary keys to
-// prove only the reserved ones are stripped.
-func TestMapToWritableRackRequestCustomFieldsFiltered(t *testing.T) {
+// Inputs: a CaniDeviceType with custom fields custom_key/site_code whose
+// ProviderMetadata holds u_height and rack_position. Outputs: a
+// WritableRackRequest with only the two custom fields.
+// Data choice: provider metadata holds the two keys a rack mapper is most
+// likely to pick up by mistake.
+func TestMapToWritableRackRequestCustomFields(t *testing.T) {
 	cache := NewLookupCache(nil)
 	locID := uuid.New()
 	statusID := uuid.New()
@@ -226,11 +223,13 @@ func TestMapToWritableRackRequestCustomFieldsFiltered(t *testing.T) {
 	dev := &devicetypes.CaniDeviceType{
 		Name: "Rack-CF",
 		ObjectMeta: devicetypes.ObjectMeta{
+			CustomFields: map[string]any{
+				"custom_key": "custom_val",
+				"site_code":  "S01",
+			},
 			ProviderMetadata: map[string]any{
 				"u_height":      42,
 				"rack_position": 5,
-				"custom_key":    "custom_val",
-				"site_code":     "S01",
 			},
 		},
 	}
@@ -239,16 +238,16 @@ func TestMapToWritableRackRequestCustomFieldsFiltered(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// u_height and rack_position should be filtered out of CustomFields
+	// u_height and rack_position are provider metadata and must not be sent.
 	if req.CustomFields == nil {
 		t.Fatal("expected non-nil CustomFields")
 	}
 	cf := derefCustomFields(req.CustomFields)
 	if _, ok := cf["u_height"]; ok {
-		t.Error("u_height should be filtered from CustomFields")
+		t.Error("u_height should not be in CustomFields")
 	}
 	if _, ok := cf["rack_position"]; ok {
-		t.Error("rack_position should be filtered from CustomFields")
+		t.Error("rack_position should not be in CustomFields")
 	}
 	if cf["custom_key"] != "custom_val" {
 		t.Errorf("custom_key = %v, want 'custom_val'", cf["custom_key"])
@@ -259,14 +258,14 @@ func TestMapToWritableRackRequestCustomFieldsFiltered(t *testing.T) {
 }
 
 // TestMapToWritableRackRequestDefaultHeight verifies MapToWritableRackRequest
-// defaults UHeight to 48 when the device carries no u_height metadata.
+// defaults UHeight to 48 when the device records no height.
 //
 // Why it matters: a rack created in Nautobot needs a sane height, so cani must
 // supply a default rather than emit a zero-height rack.
-// Inputs: a CaniDeviceType with no ProviderMetadata. Outputs: a
+// Inputs: a CaniDeviceType with no height. Outputs: a
 // WritableRackRequest whose UHeight is 48.
-// Data choice: omitting all metadata isolates the default-height branch with no
-// other fields interfering.
+// Data choice: a device with only a name isolates the default-height branch
+// with no other fields interfering.
 func TestMapToWritableRackRequestDefaultHeight(t *testing.T) {
 	cache := NewLookupCache(nil)
 	locID := uuid.New()
@@ -284,7 +283,7 @@ func TestMapToWritableRackRequestDefaultHeight(t *testing.T) {
 		DefaultStatus:   "Active",
 	})
 
-	// No ProviderMetadata → default to 48U
+	// No height on the device → default to 48U
 	dev := &devicetypes.CaniDeviceType{Name: "Rack-DH"}
 
 	req, err := mapper.MapToWritableRackRequest(dev)

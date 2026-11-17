@@ -70,6 +70,9 @@ type NautobotExportOpts struct {
 	CreateRoles         bool `yaml:"create_roles" json:"create_roles" line_comment:"Create missing roles in Nautobot"`
 	Merge               bool `yaml:"merge" json:"merge" line_comment:"Merge with existing devices instead of skipping conflicts"`
 	DryRun              bool `yaml:"dry_run" json:"dry_run" line_comment:"Log planned actions without making API calls"`
+	// ProviderMetadataFields lists the provider-metadata keys to send as
+	// custom fields. Provider metadata is not exported otherwise.
+	ProviderMetadataFields []string `yaml:"provider_metadata_fields" json:"provider_metadata_fields" line_comment:"Provider metadata to send as custom fields: provider.key or provider.key=custom_field"`
 }
 
 // --- HasOptions interface implementation ---
@@ -123,6 +126,8 @@ func (p *Nautobot) GetExportDefaults() map[string]any {
 		CreateRoles:         true,
 		Merge:               false,
 		DryRun:              false,
+		// An empty list rather than nil, so the config file shows the key.
+		ProviderMetadataFields: []string{},
 	})
 }
 

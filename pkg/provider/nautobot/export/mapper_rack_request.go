@@ -62,19 +62,15 @@ func (m *DeviceMapper) MapToWritableRackRequest(device *devicetypes.CaniDeviceTy
 		return nil, fmt.Errorf("set status reference for rack %s: %w", device.Name, err)
 	}
 
-	// Set rack height (default to 48U if not specified)
+	// A rack kept as a device is as tall as the device says, and 48U when it
+	// does not say.
 	uHeight := 48
-	if device.ProviderMetadata != nil {
-		if h, _ := device.GetProviderMeta("u_height"); h != nil {
-			if hInt, ok := h.(int); ok && hInt > 0 {
-				uHeight = hInt
-			}
-		}
+	if device.UHeight > 0 {
+		uHeight = device.UHeight
 	}
 	req.UHeight = &uHeight
 
-	// Rack geometry and location travel in dedicated fields, not as custom fields.
-	req.CustomFields = customFieldsPayload(kindRackDevice, device.Name, &device.ObjectMeta)
+	req.CustomFields = m.customFields().payload(kindRackDevice, device.Name, &device.ObjectMeta)
 
 	return req, nil
 }

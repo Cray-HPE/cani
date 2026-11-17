@@ -172,7 +172,7 @@ The full field-by-field mapping lives in `NAUTOBOT_MAPPING.md`. Quick reference:
 
 | Cani Type | Nautobot Object(s) | Approx. Test Coverage | Notes |
 |---|---|---|---|
-| `CaniLocationType` | `Location` + `LocationType` | ~79.2% | Topological sort; custom fields and provider metadata mapped; Tags/Tenant not mapped |
+| `CaniLocationType` | `Location` + `LocationType` | ~79.2% | Topological sort; custom fields mapped; Tags/Tenant not mapped |
 | `CaniRackType` | `Rack` | ~79.2% | Physical fields, type, serial, asset tag, facility ID, comments, location, and create-time role and tags mapped |
 | `CaniDeviceType` | `Device` + `DeviceType` | ~79.2% | Role and location hierarchy mapped; create-time tags mapped; Platform/Tenant not mapped |
 | `CaniModuleType` | `Module` + `ModuleType` + `ModuleBay` | ~79.2% | ModuleType + ModuleBay auto-created; module interfaces created on parent device |

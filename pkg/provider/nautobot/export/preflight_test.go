@@ -136,20 +136,23 @@ func TestPreflightSkipsKindsThePhasesWillCreate(t *testing.T) {
 // Why it matters: a pre-flight that looked up different names than the phases
 // would refuse exports the phases could complete, or pass ones they could not.
 // Inputs: a location and VLAN without status, a device without status or role
-// whose interfaces are a declared "uplink" port and a management-only port, a
-// module without status, a connected and a planned cable, a prefix with a
-// role, and a default status of "Planned" with no default role.
+// whose provider metadata names a role and whose interfaces are a declared
+// "uplink" port and a management-only port, a module without status, a
+// connected and a planned cable, a prefix with a role, and a default status
+// of "Planned" with no default role.
 // Outputs: statuses {Planned, Active, Connected}, roles {network, uplink,
 // management}, device type {probe-slug}, module type {probe-module}, location
 // types {Site}.
-// Data choice: the device's empty role must not surface as "", the module
-// shares the location's fallback, and the management port shows an inferred
-// role is collected like a declared one.
+// Data choice: the device's empty role must not surface as "" nor as the
+// role its provider metadata names, which the device phase does not send;
+// the module shares the location's fallback; and the management port shows
+// an inferred role is collected like a declared one.
 func TestCollectCatalogRefsAppliesLoaderDefaults(t *testing.T) {
 	inv := preflightInventory()
 	mgmtOnly := true
 	for _, device := range inv.Devices {
 		device.Status, device.Role = "", ""
+		device.ProviderMetadata = map[string]any{"role": "Storage", "csm": map[string]any{"role": "Storage"}}
 		device.Interfaces = []devicetypes.InterfaceSpec{
 			{Name: "eth0", Type: ifaceType1000BaseT, Role: "uplink"},
 			{Name: "bmc", Type: ifaceType1000BaseT, MgmtOnly: &mgmtOnly},

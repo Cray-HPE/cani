@@ -86,7 +86,7 @@ func compareDeviceFields(
 		diffs = append(diffs, compareFace(device, remote)...)
 	}
 	diffs = append(diffs, compareScalarFields(device, remote)...)
-	diffs = append(diffs, compareCustomFields(customFieldsOf(kindDevice, &device.ObjectMeta).values, remote.CustomFields)...)
+	diffs = append(diffs, compareCustomFields(mapper.customFields().noted(kindDevice, device.Name, &device.ObjectMeta).values, remote.CustomFields)...)
 
 	return diffs
 }

@@ -44,7 +44,7 @@ func (e *Exporter) mergeLocation(ctx context.Context, loc *devicetypes.CaniLocat
 		return false, err
 	}
 
-	req, drifted := buildLocationPatch(loc, remote)
+	req, drifted := buildLocationPatch(loc, remote, e.customFields())
 	if !drifted {
 		return false, nil
 	}
@@ -84,7 +84,7 @@ func (e *Exporter) fetchLocationByID(ctx context.Context, id uuid.UUID) (*nautob
 
 // buildLocationPatch compares local location intent against the remote state
 // and returns a PATCH request with drifted fields.
-func buildLocationPatch(loc *devicetypes.CaniLocationType, remote *nautobotapi.Location) (*nautobotapi.PatchedLocationRequest, bool) {
+func buildLocationPatch(loc *devicetypes.CaniLocationType, remote *nautobotapi.Location, fields customFieldProjection) (*nautobotapi.PatchedLocationRequest, bool) {
 	req := &nautobotapi.PatchedLocationRequest{}
 	drifted := false
 
@@ -100,11 +100,11 @@ func buildLocationPatch(loc *devicetypes.CaniLocationType, remote *nautobotapi.L
 	drifted = driftStr(loc.Longitude, remote.Longitude, &req.Longitude) || drifted
 	drifted = driftStr(loc.Comments, remote.Comments, &req.Comments) || drifted
 
-	// Compare custom fields through the same projection a create sends, so a
-	// key set both explicitly and by provider metadata is reported here too.
-	localCF := customFieldsOf("location", &loc.ObjectMeta).values
-	if len(localCF) > 0 && customFieldsDrifted(localCF, remote.CustomFields) {
-		req.CustomFields = customFieldsPayload("location", loc.Name, &loc.ObjectMeta)
+	// Compare custom fields through the same projection a create sends, so
+	// the comparison and the write cannot disagree.
+	local := fields.noted("location", loc.Name, &loc.ObjectMeta)
+	if len(local.values) > 0 && customFieldsDrifted(local.values, remote.CustomFields) {
+		req.CustomFields = local.payload()
 		drifted = true
 	}
 

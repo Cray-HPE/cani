@@ -95,18 +95,6 @@ func printDeviceDiffs(deviceName string, diffs []FieldDiff) {
 	}
 }
 
-// mergedCustomFields combines explicit custom fields and flattened provider metadata.
-func mergedCustomFields(explicit map[string]any, flat map[string]any) map[string]interface{} {
-	cf := make(map[string]interface{}, len(explicit)+len(flat))
-	for k, v := range explicit {
-		cf[k] = v
-	}
-	for k, v := range flat {
-		cf[k] = v
-	}
-	return cf
-}
-
 // customFieldsDrifted returns true if any local custom field value differs from remote.
 func customFieldsDrifted(local map[string]interface{}, remote *map[string]*interface{}) bool {
 	remoteMap := derefCustomFields(remote)

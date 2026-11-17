@@ -48,7 +48,7 @@ func TestBuildLocationPatch_DetectsDescriptionDrift(t *testing.T) {
 	remoteDesc := "old desc"
 	remote := &nautobotapi.Location{Name: "DC1", Description: &remoteDesc}
 
-	req, drifted := buildLocationPatch(loc, remote)
+	req, drifted := buildLocationPatch(loc, remote, nil)
 	if !drifted {
 		t.Fatal("expected drift for changed description")
 	}
@@ -66,7 +66,7 @@ func TestBuildLocationPatch_DetectsFacilityDrift(t *testing.T) {
 	remoteFac := "fac-1"
 	remote := &nautobotapi.Location{Name: "DC1", Facility: &remoteFac}
 
-	req, drifted := buildLocationPatch(loc, remote)
+	req, drifted := buildLocationPatch(loc, remote, nil)
 	if !drifted {
 		t.Fatal("expected drift for changed facility")
 	}
@@ -93,7 +93,7 @@ func TestBuildLocationPatch_DetectsContactDrift(t *testing.T) {
 		ContactEmail: &oldEmail,
 	}
 
-	req, drifted := buildLocationPatch(loc, remote)
+	req, drifted := buildLocationPatch(loc, remote, nil)
 	if !drifted {
 		t.Fatal("expected drift for changed contact fields")
 	}
@@ -119,7 +119,7 @@ func TestBuildLocationPatch_DetectsCustomFieldDrift(t *testing.T) {
 	remoteCF := map[string]interface{}{"tier": "silver"}
 	remote := &nautobotapi.Location{Name: "DC1", CustomFields: nbCF(remoteCF)}
 
-	req, drifted := buildLocationPatch(loc, remote)
+	req, drifted := buildLocationPatch(loc, remote, nil)
 	if !drifted {
 		t.Fatal("expected drift for changed custom fields")
 	}
@@ -142,7 +142,7 @@ func TestBuildLocationPatch_NoDriftWhenIdentical(t *testing.T) {
 	fac := "fac-1"
 	remote := &nautobotapi.Location{Name: "DC1", Description: &desc, Facility: &fac}
 
-	_, drifted := buildLocationPatch(loc, remote)
+	_, drifted := buildLocationPatch(loc, remote, nil)
 	if drifted {
 		t.Error("expected no drift when all fields match")
 	}
@@ -157,7 +157,7 @@ func TestBuildLocationPatch_EmptyLocalClearsRemote(t *testing.T) {
 	desc := "remote has desc"
 	remote := &nautobotapi.Location{Name: "DC1", Description: &desc}
 
-	req, drifted := buildLocationPatch(loc, remote)
+	req, drifted := buildLocationPatch(loc, remote, nil)
 	if !drifted {
 		t.Error("should detect drift when local is empty but remote is not")
 	}
@@ -174,7 +174,7 @@ func TestBuildVLANPatch_DetectsNameDrift(t *testing.T) {
 	vlan := &devicetypes.CaniVLAN{ID: uuid.New(), VID: 100, Name: "new-name"}
 	remote := &nautobotapi.VLAN{Name: "old-name", Vid: 100}
 
-	req, drifted := buildVLANPatch(vlan, remote)
+	req, drifted := buildVLANPatch(vlan, remote, nil)
 	if !drifted {
 		t.Fatal("expected drift for changed name")
 	}
@@ -188,7 +188,7 @@ func TestBuildVLANPatch_DetectsDescriptionDrift(t *testing.T) {
 	oldDesc := "original"
 	remote := &nautobotapi.VLAN{Name: "mgmt", Vid: 200, Description: &oldDesc}
 
-	req, drifted := buildVLANPatch(vlan, remote)
+	req, drifted := buildVLANPatch(vlan, remote, nil)
 	if !drifted {
 		t.Fatal("expected drift for changed description")
 	}
@@ -209,7 +209,7 @@ func TestBuildVLANPatch_DetectsCustomFieldDrift(t *testing.T) {
 	remoteCF := map[string]interface{}{"priority": "low"}
 	remote := &nautobotapi.VLAN{Name: "storage", Vid: 300, CustomFields: nbCF(remoteCF)}
 
-	req, drifted := buildVLANPatch(vlan, remote)
+	req, drifted := buildVLANPatch(vlan, remote, nil)
 	if !drifted {
 		t.Fatal("expected drift for changed custom fields")
 	}
@@ -223,103 +223,147 @@ func TestBuildVLANPatch_NoDriftWhenIdentical(t *testing.T) {
 	desc := "same"
 	remote := &nautobotapi.VLAN{Name: "mgmt", Vid: 100, Description: &desc}
 
-	_, drifted := buildVLANPatch(vlan, remote)
+	_, drifted := buildVLANPatch(vlan, remote, nil)
 	if drifted {
 		t.Error("expected no drift when all fields match")
 	}
 }
 
-// TestMergePatchesSendTheProjectionAndNameACollision verifies that the
-// location and VLAN merge paths send the same custom-field projection a
-// create sends: on a key set both explicitly and by provider metadata the
-// provider value is patched and the collision is logged by object and key,
-// never by value.
+// TestMergePatchesSendTheProjection verifies that the location and VLAN
+// merge paths send the same custom-field projection a create sends: the
+// object's own custom field, unless the operator listed a provider key for
+// it, in which case the provider's value is patched and the replaced custom
+// field is noted by object, key and provider, never by value.
 //
-// Why it matters: the merge paths used to take the projection's values
-// without its collision report, so a key an operator set two ways was
-// resolved silently on --merge and named only on create.
-// Inputs: a location and a VLAN whose explicit custom field "owner" and
-// provider metadata "owner" disagree, each against a remote that holds a
-// third value.
-// Outputs: the patch carries the provider value; the log names the object
-// and the key and contains neither value.
+// Why it matters: a merge that projected differently from a create would
+// patch one value and compare another, so every --merge would report a
+// change; and a note that printed a value could leak a credential.
+// Inputs: a location and a VLAN whose custom field "owner" and CSM
+// metadata "owner" disagree, each against a remote that holds a third
+// value, merged with no listed key and then with csm.owner listed.
+// Outputs: the patch carries the custom field, then the provider value; the
+// note appears only in the second run and contains none of the values.
 // Data choice: three distinct values make the precedence visible in the
 // patch and prove the log carries none of them.
-func TestMergePatchesSendTheProjectionAndNameACollision(t *testing.T) {
+func TestMergePatchesSendTheProjection(t *testing.T) {
 	meta := func() devicetypes.ObjectMeta {
 		return devicetypes.ObjectMeta{
-			CustomFields:     map[string]any{"owner": "explicit-team"},
-			ProviderMetadata: map[string]any{"nautobot": map[string]any{"owner": "provider-team"}},
+			CustomFields:     map[string]any{"owner": "own-team"},
+			ProviderMetadata: map[string]any{"csm": map[string]any{"owner": "provider-team"}},
 		}
 	}
-	cases := map[string]struct {
-		patch    func() *map[string]*interface{}
-		wantLine string
+	remoteFields := nbCF(map[string]interface{}{"owner": "remote-team"})
+	listed := customFieldProjection{{Provider: "csm", Key: "owner", CustomField: "owner"}}
+	patches := map[string]struct {
+		patch    func(fields customFieldProjection) *map[string]*interface{}
+		wantNote string
 	}{
 		"location": {
-			patch: func() *map[string]*interface{} {
+			patch: func(fields customFieldProjection) *map[string]*interface{} {
 				loc := &devicetypes.CaniLocationType{ID: uuid.New(), Name: "DC1", ObjectMeta: meta()}
-				req, _ := buildLocationPatch(loc, &nautobotapi.Location{Name: "DC1", CustomFields: nbCF(map[string]interface{}{"owner": "remote-team"})})
+				req, _ := buildLocationPatch(loc, &nautobotapi.Location{Name: "DC1", CustomFields: remoteFields}, fields)
 				return req.CustomFields
 			},
-			wantLine: `location DC1: custom field "owner" is set both explicitly and by provider metadata`,
+			wantNote: `location DC1: custom field "owner" comes from csm provider metadata`,
 		},
 		"VLAN": {
-			patch: func() *map[string]*interface{} {
+			patch: func(fields customFieldProjection) *map[string]*interface{} {
 				vlan := &devicetypes.CaniVLAN{ID: uuid.New(), VID: 300, Name: "storage", ObjectMeta: meta()}
-				req, _ := buildVLANPatch(vlan, &nautobotapi.VLAN{Name: "storage", Vid: 300, CustomFields: nbCF(map[string]interface{}{"owner": "remote-team"})})
+				req, _ := buildVLANPatch(vlan, &nautobotapi.VLAN{Name: "storage", Vid: 300, CustomFields: remoteFields}, fields)
 				return req.CustomFields
 			},
-			wantLine: `VLAN storage: custom field "owner" is set both explicitly and by provider metadata`,
+			wantNote: `VLAN storage: custom field "owner" comes from csm provider metadata`,
 		},
 	}
-	for name, tc := range cases {
+	for name, tc := range patches {
 		t.Run(name, func(t *testing.T) {
+			// Arrange.
 			logged := captureClog(t)
 
-			sent := derefCustomFields(tc.patch())
+			// Act.
+			own := derefCustomFields(tc.patch(nil))
+			unlistedLog := logged.String()
+			fromProvider := derefCustomFields(tc.patch(listed))
 
-			if sent["owner"] != "provider-team" {
-				t.Errorf("patched owner = %v, want the provider value", sent["owner"])
+			// Assert.
+			if own["owner"] != "own-team" || strings.Contains(unlistedLog, "provider metadata") {
+				t.Errorf("no key listed: patched owner = %v, log = %q; want the custom field and no note", own["owner"], unlistedLog)
 			}
-			if !strings.Contains(logged.String(), tc.wantLine) {
-				t.Errorf("log = %q, want it to contain %q", logged.String(), tc.wantLine)
+			if fromProvider["owner"] != "provider-team" {
+				t.Errorf("csm.owner listed: patched owner = %v, want the provider value", fromProvider["owner"])
 			}
-			for _, value := range []string{"explicit-team", "provider-team", "remote-team"} {
+			if !strings.Contains(logged.String(), tc.wantNote) {
+				t.Errorf("log = %q, want it to contain %q", logged.String(), tc.wantNote)
+			}
+			for _, value := range []string{"own-team", "provider-team", "remote-team"} {
 				if strings.Contains(logged.String(), value) {
-					t.Errorf("log names the value %q; a finding must name only the object and the key", value)
+					t.Errorf("log names the value %q; a note must name only the object, the key and the provider", value)
 				}
 			}
 		})
 	}
 }
 
-// -----------------------------------------------------------------------------
-// mergedCustomFields — pure logic
-// -----------------------------------------------------------------------------
-
-func TestMergedCustomFields_CombinesBothMaps(t *testing.T) {
-	explicit := map[string]any{"a": "1"}
-	flat := map[string]any{"b": "2"}
-	merged := mergedCustomFields(explicit, flat)
-	if merged["a"] != "1" || merged["b"] != "2" {
-		t.Errorf("merged = %v, want {a:1, b:2}", merged)
+// TestMergeComparisonsNoteAReplacedCustomFieldWithoutAWrite verifies that
+// each merge comparison names a custom field a listed provider key replaces
+// even when the remote already holds the provider's value and nothing is
+// patched, and that a device update that follows does not name it twice.
+//
+// Why it matters: with Nautobot already holding the provider's value there
+// is nothing to send, so a custom field an operator had just set was passed
+// over without a word. The note used to be made only while a write was
+// built; an export against a live Nautobot showed the gap.
+// Inputs: a location, a VLAN and a device whose custom field "owner" says
+// own-team and whose CSM metadata says provider-team, each compared with a
+// remote that holds provider-team, with csm.owner listed.
+// Outputs: no custom-field change to send, and one note per object, still
+// one after the device's patch request is built.
+// Data choice: the remote equals the provider value, the one case in which
+// the comparison finds nothing to write.
+func TestMergeComparisonsNoteAReplacedCustomFieldWithoutAWrite(t *testing.T) {
+	// Arrange.
+	logged := captureClog(t)
+	e, cleanup := newExporterWithServer(t, jsonHandler(new(int), 200, `{}`))
+	defer cleanup()
+	seedDeviceRefs(t, e)
+	listed := customFieldProjection{{Provider: "csm", Key: "owner", CustomField: "owner"}}
+	meta := devicetypes.ObjectMeta{
+		CustomFields:     map[string]any{"owner": "own-team"},
+		ProviderMetadata: map[string]any{"csm": map[string]any{"owner": "provider-team"}},
 	}
-}
+	remoteFields := nbCF(map[string]interface{}{"owner": "provider-team"})
+	loc := &devicetypes.CaniLocationType{ID: uuid.New(), Name: "DC1", ObjectMeta: meta}
+	vlan := &devicetypes.CaniVLAN{ID: uuid.New(), VID: 300, Name: "storage", ObjectMeta: meta}
+	dev := newMappableDevice("compute-010")
+	dev.CustomFields, dev.ProviderMetadata = meta.CustomFields, meta.ProviderMetadata
+	mapper := NewDeviceMapper(e.Cache, &MapperOpts{
+		DefaultLocation: "DC1", DefaultStatus: "Active", DefaultRole: "Compute", ProviderMetadataFields: listed,
+	})
 
-func TestMergedCustomFields_FlatOverridesExplicit(t *testing.T) {
-	explicit := map[string]any{"key": "explicit"}
-	flat := map[string]any{"key": "flat"}
-	merged := mergedCustomFields(explicit, flat)
-	if merged["key"] != "flat" {
-		t.Errorf("merged[key] = %v, want 'flat'", merged["key"])
+	// Act.
+	locPatch, _ := buildLocationPatch(loc, &nautobotapi.Location{Name: "DC1", CustomFields: remoteFields}, listed)
+	vlanPatch, _ := buildVLANPatch(vlan, &nautobotapi.VLAN{Name: "storage", Vid: 300, CustomFields: remoteFields}, listed)
+	diffs := compareDeviceFields(dev, &nautobotapi.Device{Name: &dev.Name, CustomFields: remoteFields}, mapper)
+	_, patchErr := mapper.MapToPatchRequest(dev, uuid.New())
+
+	// Assert.
+	if patchErr != nil {
+		t.Fatalf("MapToPatchRequest: %v", patchErr)
 	}
-}
-
-func TestMergedCustomFields_EmptyInputs(t *testing.T) {
-	merged := mergedCustomFields(nil, nil)
-	if len(merged) != 0 {
-		t.Errorf("expected empty map, got %v", merged)
+	if locPatch.CustomFields != nil || vlanPatch.CustomFields != nil {
+		t.Errorf("patched custom fields = %v, %v; want none, the remote already holds the provider value",
+			locPatch.CustomFields, vlanPatch.CustomFields)
+	}
+	for _, d := range diffs {
+		if strings.HasPrefix(d.Field, "custom_field:") {
+			t.Errorf("unexpected device diff %s: %q over %q", d.Field, d.LocalVal, d.RemoteVal)
+		}
+	}
+	for _, object := range []string{"location DC1", "VLAN storage", "device compute-010"} {
+		note := object + `: custom field "owner" comes from csm provider metadata`
+		if got := strings.Count(logged.String(), note); got != 1 {
+			t.Errorf("%q noted %d times, want once; log = %q", object, got, logged.String())
+		}
 	}
 }
 

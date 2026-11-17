@@ -199,7 +199,7 @@ func (e *Exporter) createPrefix(
 			}
 		}
 	}
-	req.CustomFields = customFieldsPayload("prefix", prefix.Prefix, &prefix.ObjectMeta)
+	req.CustomFields = e.customFields().payload("prefix", prefix.Prefix, &prefix.ObjectMeta)
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create prefix: %s", prefix.Prefix)
