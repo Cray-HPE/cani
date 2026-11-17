@@ -92,6 +92,9 @@ func addLocation(cmd *cli.Command, args []string) error {
 	}
 
 	resolveParent(cmd, loc, inventory)
+	if err := applyLocationStatusAndTags(cmd, loc, inventory); err != nil {
+		return err
+	}
 
 	if meta := collectProviderMetadata(cmd); len(meta) > 0 {
 		applyProviderMetadataMap(&loc.ProviderMetadata, meta)
@@ -138,6 +141,21 @@ func applyLocationFlags(cmd *cli.Command, loc *devicetypes.CaniLocationType) {
 			loc.ContentTypes = strings.Split(raw, ",")
 		}
 	}
+}
+
+// applyLocationStatusAndTags stamps the inherited --status and --tag flags on
+// the location; the status is checked against the inventory's statuses first.
+func applyLocationStatusAndTags(cmd *cli.Command, loc *devicetypes.CaniLocationType, inv *devicetypes.Inventory) error {
+	statusArg, _ := cmd.Flags().GetString("status")
+	status, err := normalizeStatus(statusArg, inv)
+	if err != nil {
+		return err
+	}
+	if status != "" {
+		loc.Status = status
+	}
+	labelsFromFlags(cmd).apply(&loc.ObjectMeta)
+	return nil
 }
 
 // resolveParent sets the parent UUID from the --parent flag.

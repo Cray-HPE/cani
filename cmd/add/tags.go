@@ -33,8 +33,8 @@ import (
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
 
-// labels holds the role and tags an add stamps on each device, rack or
-// module, read once from the --role and --tag flags.
+// labels holds the role and tags an add stamps on each item, read once from
+// the --role and --tag flags. A noun without a --role flag stamps tags only.
 type labels struct {
 	role string
 	tags []string

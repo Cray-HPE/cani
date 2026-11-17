@@ -88,6 +88,7 @@ func updateModule(cmd *cli.Command, args []string) error {
 	if cmd.Flags().Changed("bay") {
 		mod.ModuleBayName, _ = cmd.Flags().GetString("bay")
 	}
+	applyTagFlag(cmd, &mod.ObjectMeta)
 
 	if err := applySetToModule(cmd, mod); err != nil {
 		return err

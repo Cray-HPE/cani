@@ -143,6 +143,10 @@ Persistent flags inherited by all `add` subcommands:
 | `--parent` | `-p` | string | nil UUID | Parent item UUID |
 | `--serial` | | string | `""` | Serial number, stamped on each device, rack or module added |
 | `--asset-tag` | | string | `""` | Asset tag, stamped on each device, rack or module added |
+| `--tag` | | string (repeatable) | none | Tag, stamped on each item added: device, rack, module, location, cable, VLAN, prefix, IP address, VRF, interface |
+| `--status` | | string | `""` | Status of each item added; the same nouns as `--tag` |
+
+An inherited flag either changes what a noun stores or is refused by name; no noun parses one and drops it. `add metadata ...` and `add connections ...` have nothing to store `--tag` or `--status` in and refuse both (`validate.RejectFlags` in `internal/util/validate`). `TestAddInheritedFlagsTakeEffectOrFail` and `TestUpdateInheritedFlagsTakeEffectOrFail` run every noun with each flag, so a new noun or a new inherited flag is covered when it is added to their tables.
 
 #### `add location <name>`
 
@@ -216,6 +220,8 @@ Each takes `<uuid-or-name>` as a positional arg; a module may also be named by i
 | `device` | `--name`, `--status`, `--role`, `--description`, `--position`, `--face` | name, status, role, description, rack_position, face, serial, asset_tag |
 | `module` | `--name`, `--status`, `--role`, `--description`, `--bay` | name, status, role, description, module_bay_name, serial, asset_tag |
 | `cable` | `--label`, `--status`, `--color`, `--description` | label, status, color, description |
+
+`--tag` (repeatable) replaces the tags of a location, rack, device, module, cable, interface, prefix or VRF. `--set` applies to the five nouns in the table; `update interface`, `update prefix` and `update vrf` refuse it, and `update orphans` refuses both.
 
 ### `swap` Subcommands
 

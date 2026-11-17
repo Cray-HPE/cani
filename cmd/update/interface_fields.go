@@ -28,10 +28,12 @@ package update
 import (
 	"fmt"
 	"log"
+	"slices"
 	"strconv"
 	"strings"
 
 	"github.com/Cray-HPE/cani/internal/cli"
+	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
 
@@ -46,6 +48,7 @@ type interfaceUpdates struct {
 	taggedVLANs  []int
 	vrf          string
 	description  string
+	tags         []string
 }
 
 // interfaceField binds a mutating flag to the setter that writes its value onto
@@ -115,6 +118,12 @@ var interfaceFields = []interfaceField{
 			t.spec.Description = u.description
 		}
 	}},
+	{"tag", func(t interfaceTarget, u interfaceUpdates) {
+		t.instance.Tags = slices.Clone(u.tags)
+		if t.spec != nil {
+			t.spec.Tags = slices.Clone(u.tags)
+		}
+	}},
 }
 
 // registeredInterfaceRoles returns the set of role names registered in the
@@ -151,6 +160,9 @@ func anyInterfaceFlagChanged(cmd *cli.Command) bool {
 
 // parseInterfaceUpdates reads and validates the interface update flags.
 func parseInterfaceUpdates(cmd *cli.Command, inventory *devicetypes.Inventory) (interfaceUpdates, error) {
+	if err := validate.RejectFlags(cmd, "set"); err != nil {
+		return interfaceUpdates{}, err
+	}
 	u := interfaceUpdates{}
 	u.role, _ = cmd.Flags().GetString("role")
 	u.label, _ = cmd.Flags().GetString("label")
@@ -160,9 +172,10 @@ func parseInterfaceUpdates(cmd *cli.Command, inventory *devicetypes.Inventory) (
 	u.untaggedVLAN, _ = cmd.Flags().GetInt("untagged-vlan")
 	u.vrf, _ = cmd.Flags().GetString("vrf")
 	u.description, _ = cmd.Flags().GetString(flagDescription)
+	u.tags, _ = cmd.Flags().GetStringArray("tag")
 
 	if !anyInterfaceFlagChanged(cmd) {
-		return interfaceUpdates{}, fmt.Errorf("at least one interface field flag must be specified (e.g. --role, --mac, --lag, --mode, --untagged-vlan, --tagged-vlan, --vrf, --description)")
+		return interfaceUpdates{}, fmt.Errorf("at least one interface field flag must be specified (e.g. --role, --mac, --lag, --mode, --untagged-vlan, --tagged-vlan, --vrf, --description, --tag)")
 	}
 
 	if u.role != "" {
