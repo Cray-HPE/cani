@@ -26,6 +26,7 @@ this table in sync when a provider gains or drops a capability.
 | `DeviceUpdateFlagProvider` | ✓ |  |  |  |  |  |
 | `StagedDeviceDescriber` | ✓ |  |  |  |  |  |
 | `ExportDryRunner` |  |  |  | ✓ |  |  |
+| `IdentityKeyProvider` | ✓ |  |  |  | ✓ | ✓ |
 
 ## Notes
 
@@ -39,6 +40,10 @@ this table in sync when a provider gains or drops a capability.
 - `ExportDryRunner` is implemented only by Nautobot, whose `export.dry_run`
   config setting can request a dry run the generic `--dry-run` flag never
   sees; `cmd/export` asks it before saving the inventory.
+- `IdentityKeyProvider` is implemented by the providers whose `Transform`
+  declares identity keys on its result (CSM and OChaMi: `xname`; Redfish:
+  `bmc_fqdn`, `bmc_hostname`). The merge reads the keys from the result; the
+  interface lets `cmd/update orphans` ask for the union outside a transform.
 - `Configurer` is currently implemented by **no** provider. The interface exists
   for startup config validation but is unused — a candidate to either adopt or
   remove.

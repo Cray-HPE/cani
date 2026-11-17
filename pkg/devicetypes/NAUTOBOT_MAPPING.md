@@ -686,11 +686,13 @@ validation errors reject the complete transform without partially applying it.
   follows. The list defines nothing: the custom field needs a definition for
   the object's content type, in the inventory or already in Nautobot, like
   any other.
-- **Import retires the superseded provider copy.** When import reads a custom
-  field back, `ObjectMeta.Merge` removes the same key from the source's own
-  provider-metadata bucket (`providerMetadata.nautobot`). A value held there
-  therefore cannot outlive an edit made in Nautobot. Buckets of other
-  providers are not touched.
+- **Import leaves provider metadata alone.** A custom field that import reads
+  back sets the custom field and nothing else. No provider's bucket is
+  touched, the importing system's own included. A bucket key that is not
+  listed is not exported, so there is no copy to retire. A listed key stays
+  its provider's: an edit made to that custom field in Nautobot is imported
+  as the object's custom field and overwritten by the next export, which
+  makes the note described above.
 - **Falsy values travel.** `false`, `0` and `""` are sent. Nautobot fills an
   *omitted* key from the definition's default, so omission and `false` are
   different writes.

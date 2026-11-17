@@ -3,6 +3,7 @@ package transform
 import (
 	"fmt"
 	"log"
+	"slices"
 	"strings"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
@@ -22,33 +23,6 @@ func SetProviderGetter(getter func() interface {
 	GetRecords() []import_.JSONDeviceRecord
 }) {
 	providerGetter = getter
-}
-
-// hardwareTypeMap maps ochami deviceType strings to CANI canonical hardware types.
-var hardwareTypeMap = map[string]string{
-	"rack":         "rack",
-	"chassis":      "chassis",
-	"blade":        "blade",
-	"node":         "node",
-	"mgmt-switch":  "mgmt-switch",
-	"hsn-switch":   "hsn-switch",
-	"cabinet-pdu":  "pdu",
-	"cdu":          "cdu",
-	"cpu":          "cpu",
-	"dimm":         "memory",
-	"gpu":          "gpu",
-	"nic":          "nic",
-	"power-supply": "psu",
-	"cable":        "cable",
-	"bmc":          "bmc",
-}
-
-// normaliseHardwareType maps an ochami deviceType string to a CANI canonical hardware type.
-func normaliseHardwareType(deviceType string) string {
-	if canonical, ok := hardwareTypeMap[strings.ToLower(deviceType)]; ok {
-		return canonical
-	}
-	return strings.ToLower(deviceType)
 }
 
 type classifiedRecords struct {
@@ -131,9 +105,10 @@ func Transform(existing devicetypes.Inventory) (*devicetypes.TransformResult, er
 		len(createdRacks), len(createdDevices), len(createdCables))
 
 	return &devicetypes.TransformResult{
-		Racks:   createdRacks,
-		Devices: createdDevices,
-		Cables:  createdCables,
+		Racks:        createdRacks,
+		Devices:      createdDevices,
+		Cables:       createdCables,
+		IdentityKeys: slices.Clone(IdentityKeys),
 	}, nil
 }
 

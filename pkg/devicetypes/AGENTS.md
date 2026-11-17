@@ -17,7 +17,7 @@ The devicetypes package is a **foundational piece** of CANI. It defines the data
 | `cani_location_types.go` | `CaniLocationType` struct — locations (site, building, floor, room) |
 | `inventory.go` | `Inventory` struct — DCIM, interface, IPAM, and metadata collections + `TransformResult` dedup helper |
 | `inventory_crud.go` | Shared add/remove operations and relationship verification |
-| `inventory_merge_devices.go` | Device merge and provider-identity lookup |
+| `inventory_merge_devices.go` | Device merge; `IdentityValue` reads a declared identity key from whichever bucket holds it |
 | `inventory_merge_locations.go` | Location and rack natural-key merges |
 | `inventory_merge_components.go` | Module and FRU natural-key merges |
 | `inventory_merge_cables.go` | Cable identity and endpoint-based merge |
@@ -39,12 +39,14 @@ The devicetypes package is a **foundational piece** of CANI. It defines the data
 | `classify.go` | `SuggestTypes()` — query decomposition and hardware-type fallback for unclassified devices |
 | `classify_interactive.go` | Interactive classification prompt (`PromptForDeviceType`, `searchSlugs`) |
 | `constructors.go` | Factory functions for creating typed inventory entries |
-| `suggest_parent.go` | `SuggestParents()` — scored parent suggestions for orphan devices/racks |
+| `suggest_parent.go` | `SuggestParents(inv, orphan, max, identityKeys)` — scored parent suggestions for orphan devices/racks; a declared identity key both record in one provider's bucket scores by prefix |
 | `reparent_interactive.go` | Interactive parent assignment prompt (`PromptForParent`) |
 | `resolve_plan.go` | `ResolvePlan` — serializable parent assignment plan (write, read, apply) |
-| `provider_metadata.go` | Provider metadata helpers (`GetProviderMeta`, `SetProviderMeta`, `FlattenProviderMetadata`) |
+| `provider_metadata.go` | Provider metadata helpers, each scoped to one provider's bucket (`GetProviderSubMap`, `SetProviderMeta`, `SetImportSource`, `GetImportSource`) |
+| `provider_metadata_validate.go` | Reports provider metadata that is in no provider's bucket, and buckets no registered provider owns (part of `RebuildDerivedState`) |
+| `provider_buckets.go` | `RegisterProviderBucket` — the providers that are built in, told by `provider.Register`, so a bucket can be judged owned or not |
 | `custom_field_values.go` | Content-type constants; parses a custom-field value by its definition's type and sets or clears it on an object (`SetCustomField`, `ClearCustomField`) |
-| `custom_field_validate.go` | Checks every stored custom-field value against the catalog on `RebuildDerivedState`, one line per field and content type; `eachObjectMeta` is the walk over every object's metadata |
+| `custom_field_validate.go` | Checks every stored custom-field value against the catalog on `RebuildDerivedState`, one line per field and content type; `eachObjectMeta` is the walk over every object's metadata the validators share |
 | `loader.go` | Loads embedded YAML definitions at init |
 | `embed.go` | `embed.FS` directives for YAML directories |
 | `gitloader.go` | Loads definitions from a git repository |
@@ -135,8 +137,8 @@ Key relationships:
 **Inventory CRUD** (in `inventory_crud.go` and `inventory_add_remove.go`):
 - `EnsureLocation()` — Guarantee at least one location exists
 - `AssignRacksToLocation(locID)` — Link orphan racks to a location
-- `AddDevices(batch)` / `MergeDevices(incoming)` / `MergeDevicesStrict(incoming, strict)` — Batch device operations
-- `MergeTransformResult(result)` — atomically clone, merge, remap, validate, and commit a complete provider transform result
+- `AddDevices(batch)` / `MergeDevices(incoming)` / `MergeDevicesStrict(incoming, strict)` — Batch device operations; devices are matched by UUID, then by name
+- `MergeTransformResult(result)` — atomically clone, merge, remap, validate, and commit a complete provider transform result. A device is matched by name only when the identity keys the result declares (`TransformResult.IdentityKeys`) agree: for the first declared key both devices hold, in any bucket, the values are equal
 - `MergeRacks(incoming)` / `MergeLocations(incoming)` / `MergeModules(incoming)` / `MergeFrus(incoming)` / `MergeCables(incoming)` — Merge by UUID → external identity → natural key → insert
 - `MergeVLANs(incoming)` / `MergePrefixes(incoming)` / `MergeIPAddresses(incoming)` / `MergeVRFs(incoming)` — IPAM natural-key merges returning canonical UUID remaps
 - `RemoveDevice(id)` — Cascading delete (unlinks parent, removes cables/modules/children)
@@ -156,9 +158,10 @@ Key relationships:
 - `ClearCustomField(meta, contentType, key)` — a defined field becomes an explicit null (a required one is refused); a key with no definition is deleted
 
 **Provider Metadata** (in `provider_metadata.go`):
-- `GetProviderMeta(key)` / `SetProviderMeta(provider, key, value)` / `GetProviderSubMap(provider)`
-- `FlattenProviderMetadata()` — Merge all provider sub-maps into a flat map
+- `SetProviderMeta(provider, key, value)` / `GetProviderSubMap(provider)` — write and read one provider's bucket. There is no lookup across buckets and no flattened view: a bucket belongs to its provider, and what another system should receive is a base field or a custom field
 - `FindDeviceByProviderKey(provider, key, value)` — O(1) index lookup for dedup
+- A value stored in `ProviderMetadata` outside a bucket has no owner; `RebuildDerivedState` reports it as unresolved (`provider_metadata_validate.go`). A bucket is owned by the registered provider of that name; `provider.Register` tells the model which those are (`RegisterProviderBucket`), and a bucket named for none is reported once per name. With no provider registered, as in this package's tests, buckets are not judged
+- `IdentityValue(key)` on a device is the one read across buckets: a provider declares on its `TransformResult` which keys in its bucket identify a device (CSM and OChaMi `xname`, Redfish `bmc_fqdn` and `bmc_hostname`), and declaring a key asserts it means the same in every bucket. The merge, `SuggestParents` and the OChaMi export read declared keys this way and nothing else
 
 **Orphan Management** (in `suggest_parent.go`, `reparent_interactive.go`, `resolve_plan.go`):
 - `SuggestParents(inv, orphan)` — Scored parent suggestions for devices/racks
@@ -203,7 +206,8 @@ go test ./pkg/devicetypes/... -v
 | `cani_fru_types_test.go` | `CaniFruType` methods | Validate, getters |
 | `cani_location_types_test.go` | `CaniLocationType` methods | `AddRack`, `AddChild`, validate |
 | `inventory_test.go` | `NewInventory`, `EnsureUniqueDeviceNames` | Map initialization, name dedup suffixes |
-| `inventory_crud_test.go` | CRUD operations | `EnsureLocation`, `MergeDevices`, `MergeRacks`, `MergeLocations`, `RemoveDevice`, `providerIdentityCompatible` |
+| `inventory_crud_test.go` | CRUD operations | `EnsureLocation`, `MergeDevices`, `MergeRacks`, `MergeLocations`, `RemoveDevice` |
+| `inventory_merge_devices_test.go` | Device identity | `providerIdentityCompatible` with declared, undeclared and no keys and across providers' buckets; `MergeTransformResult` keeping devices apart by a declared key |
 | `inventory_add_remove_test.go` | Single-item add/remove | `AddLocation`/`AddRack`/`AddModule`/`AddCable`, `RemoveLocation` constraints |
 | `inventory_queries_test.go` | Find/Exists/Validate queries | Referential integrity: `validateModuleRefs`, `validateCableRefs`, `validateFruRefs` |
 | `inventory_relationships_test.go` | Relationship rebuild | Location/rack/device rebuild, cycle detection, cable/FRU validation |
@@ -217,10 +221,11 @@ go test ./pkg/devicetypes/... -v
 | `lookups_test.go` | Scored lookups | `Lookup`, `LookupScored`, `LookupModule`, `LookupModuleScored`, `scoreFields`, `FuzzyMatchAll`, `tokenizeCamelNum` |
 | `lookup_any_test.go` | Cross-registry lookup | `LookupAny` by slug, PN, empty key, no match |
 | `registry_test.go` | Type/Category enums | `ClassifyForNautobot`, `ListCaniDeviceTypes`, `ListAllAvailableTypes` |
-| `component_specs_test.go` | Spec types | JSON round-trip, unmarshal, interface constants |
-| `provider_metadata_test.go` | Provider metadata | `GetProviderMeta`, `SetProviderMeta`, `FlattenProviderMetadata`, `FindDeviceByProviderKey` |
-| `custom_field_values_test.go` | Custom-field values | One value per field type, each refusal, and the three outcomes of clearing |
+| `component_specs_test.go` | Spec types | JSON round-trip, unmarshal, interface constants, YAML keys (templates; `provider_metadata` spelled alike on a type and its interfaces) |
+| `provider_metadata_test.go` | Provider metadata | `GetProviderSubMap`, `SetProviderMeta`, `GetImportSource`, `FindDeviceByProviderKey` |
+| `provider_metadata_validate_test.go` | Provider metadata ownership | A value outside a bucket is reported by object and key, on DCIM and IPAM objects and interface specs, without failing the inventory; a bucket no registered provider owns is reported once with a count, and not at all when no provider is registered |
 | `custom_field_validate_test.go` | Stored custom-field values | Each kind of problem (undefined key, other content type, wrong kind of value, bad choice, required null), aggregation across objects, interface specs, and the run from `RebuildDerivedState` |
+| `custom_field_values_test.go` | Custom-field values | One value per field type, each refusal, and the three outcomes of clearing |
 | `suggest_parent_test.go` | Parent suggestions | `SuggestParents`, `nameSimilarity`, `SearchParentCandidates` |
 | `reparent_interactive_test.go` | Interactive reparent | `PromptForParent` with simulated input |
 | `resolve_plan_test.go` | Resolve plans | `WritePlan`/`ReadPlan` round-trip, `ApplyPlan`, `PlaceDeviceInRack` |

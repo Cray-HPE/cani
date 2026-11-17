@@ -2,6 +2,7 @@ package csm
 
 import (
 	"context"
+	"slices"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/provider/csm/transform"
@@ -14,4 +15,10 @@ func (p *Csm) Transform(ctx context.Context, existing devicetypes.Inventory) (*d
 		return nil, err
 	}
 	return transform.Transform(existing)
+}
+
+// IdentityKeys returns the identity keys Transform declares; see
+// provider.IdentityKeyProvider.
+func (p *Csm) IdentityKeys() []string {
+	return slices.Clone(transform.IdentityKeys)
 }

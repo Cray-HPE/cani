@@ -2,6 +2,7 @@ package ochami
 
 import (
 	"context"
+	"slices"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/provider/ochami/transform"
@@ -14,4 +15,10 @@ func (p *Ochami) Transform(ctx context.Context, existing devicetypes.Inventory) 
 		return nil, err
 	}
 	return transform.Transform(existing)
+}
+
+// IdentityKeys returns the identity keys Transform declares; see
+// provider.IdentityKeyProvider.
+func (p *Ochami) IdentityKeys() []string {
+	return slices.Clone(transform.IdentityKeys)
 }

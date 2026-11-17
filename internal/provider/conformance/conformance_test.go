@@ -32,11 +32,15 @@
 package conformance
 
 import (
+	"reflect"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/Cray-HPE/cani/pkg/devicetypes"
+	"github.com/google/uuid"
 
 	_ "github.com/Cray-HPE/cani/pkg/provider/csm"
 	_ "github.com/Cray-HPE/cani/pkg/provider/example"
@@ -60,7 +64,7 @@ var capabilityOrder = []string{
 	"Importer", "Exporter", "HasOptions", "Configurer",
 	"HasImportOptions", "HasExportOptions", "DeviceStager", "RackStager",
 	"RackPostAddHook", "DeviceUpdateFlagProvider",
-	"StagedDeviceDescriber", "ExportDryRunner",
+	"StagedDeviceDescriber", "ExportDryRunner", "IdentityKeyProvider",
 }
 
 // optionalCapabilities reports which optional provider interfaces p implements,
@@ -80,6 +84,7 @@ func optionalCapabilities(p provider.Provider) map[string]bool {
 	_, caps["DeviceUpdateFlagProvider"] = p.(provider.DeviceUpdateFlagProvider)
 	_, caps["StagedDeviceDescriber"] = p.(provider.StagedDeviceDescriber)
 	_, caps["ExportDryRunner"] = p.(provider.ExportDryRunner)
+	_, caps["IdentityKeyProvider"] = p.(provider.IdentityKeyProvider)
 	return caps
 }
 
@@ -163,7 +168,7 @@ func TestNewProviderCmdGraceful(t *testing.T) {
 // plugin system; emitting the matrix turns "which provider supports what" into
 // reviewable evidence (kept in sync with CAPABILITIES.md) and guards against the
 // interface set growing without anyone noticing which providers actually use it.
-// Inputs: every registered provider type-asserted against all twelve optional
+// Inputs: every registered provider type-asserted against all thirteen optional
 // interfaces. Outputs: a logged matrix and a failure if fewer than the expected
 // providers are present. Data choice: capabilityOrder fixes the column order so
 // the logged matrix is stable and diffable against the documentation.
@@ -191,5 +196,79 @@ func TestCapabilityMatrix(t *testing.T) {
 			row += " | " + mark
 		}
 		t.Log(row)
+	}
+}
+
+// TestIdentityKeysAreDeclaredByTheProvidersThatRecordThem verifies which
+// providers declare identity keys, which keys, and that the registry's union
+// of them is what the command layer gets.
+//
+// Why it matters: the merge compares only the keys a provider declares, and
+// the command layer scores orphans' parents by the union. A provider that
+// records an identity in its bucket but declares nothing would merge by name
+// alone; one that declared a key with another meaning than its peers would
+// join unrelated records. Pinning the declarations here makes either change
+// a deliberate one.
+// Inputs: the registry produced by this package's blank imports.
+// Outputs: csm and ochami declare xname, redfish declares bmc_fqdn and
+// bmc_hostname, no other provider implements IdentityKeyProvider, and
+// provider.IdentityKeys() is the sorted union of the three.
+// Data choice: the expected map lists every provider so an added declaration
+// is caught as well as a dropped one.
+func TestIdentityKeysAreDeclaredByTheProvidersThatRecordThem(t *testing.T) {
+	want := map[string][]string{
+		"csm":     {"xname"},
+		"ochami":  {"xname"},
+		"redfish": {"bmc_fqdn", "bmc_hostname"},
+	}
+	for name, p := range provider.GetProviders() {
+		declarer, declares := p.(provider.IdentityKeyProvider)
+		if !declares {
+			if _, expected := want[name]; expected {
+				t.Errorf("provider %q does not implement IdentityKeyProvider, want keys %v", name, want[name])
+			}
+			continue
+		}
+		if got := declarer.IdentityKeys(); !reflect.DeepEqual(got, want[name]) {
+			t.Errorf("provider %q IdentityKeys() = %v, want %v", name, got, want[name])
+		}
+	}
+	if got, union := provider.IdentityKeys(), []string{"bmc_fqdn", "bmc_hostname", "xname"}; !reflect.DeepEqual(got, union) {
+		t.Errorf("provider.IdentityKeys() = %v, want %v", got, union)
+	}
+}
+
+// TestRegisteredProvidersOwnTheirBuckets verifies that registering a provider
+// makes its bucket in provider metadata a known one, so that an inventory
+// holding a bucket per built-in provider reports none of them and a bucket
+// named for no provider is reported.
+//
+// Why it matters: the model learns which providers exist only through
+// Register; if registration stopped telling it, every bucket would be
+// reported as unowned on every load, or none would.
+// Inputs: the registry produced by this package's blank imports; one device
+// holding an empty bucket per expected provider and one named "acme".
+// Outputs: exactly one unresolved line about a bucket, naming "acme".
+// Data choice: every expected provider is on the one device, so a provider
+// whose registration missed the model shows up by name.
+func TestRegisteredProvidersOwnTheirBuckets(t *testing.T) {
+	inv := devicetypes.NewInventory()
+	buckets := map[string]any{"acme": map[string]any{}}
+	for _, name := range expectedProviders {
+		buckets[name] = map[string]any{}
+	}
+	id := uuid.New()
+	inv.Devices[id] = &devicetypes.CaniDeviceType{ID: id, Name: "n1", ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: buckets}}
+
+	result := inv.RebuildDerivedState()
+
+	var about []string
+	for _, line := range result.Unresolved {
+		if strings.Contains(line, "provider metadata bucket") {
+			about = append(about, line)
+		}
+	}
+	if len(about) != 1 || !strings.Contains(about[0], `bucket "acme"`) {
+		t.Errorf("bucket lines = %q, want one about acme alone", about)
 	}
 }

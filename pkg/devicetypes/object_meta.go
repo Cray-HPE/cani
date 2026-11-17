@@ -41,22 +41,3 @@ type ObjectMeta struct {
 	ExternalIDs      map[string]uuid.UUID `json:"externalIDs,omitempty"       yaml:"external_ids,omitempty"`
 	ProviderMetadata map[string]any       `json:"providerMetadata,omitempty"  yaml:"provider_metadata,omitempty"`
 }
-
-// GetRole returns the effective role: the explicit Role field if set,
-// otherwise the first "role" value found in ProviderMetadata, scanning
-// provider sub-maps in deterministic (sorted) order.
-func (m ObjectMeta) GetRole() string {
-	if m.Role != "" {
-		return m.Role
-	}
-	for _, name := range sortedKeys(m.ProviderMetadata) {
-		bucket, ok := m.ProviderMetadata[name].(map[string]any)
-		if !ok {
-			continue
-		}
-		if r, ok := bucket["role"].(string); ok && r != "" {
-			return r
-		}
-	}
-	return ""
-}

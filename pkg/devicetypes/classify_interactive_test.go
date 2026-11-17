@@ -389,19 +389,21 @@ func TestPrintTypeSuggestions(t *testing.T) {
 	}
 }
 
-// TestPrintProviderMetadata verifies printProviderMetadata renders selected keys
-// for map-typed provider entries and skips empty maps, non-map values, and
-// entries with no recognized keys.
+// TestPrintProviderMetadata verifies printProviderMetadata renders each
+// bucket's keys in a stable order, skips non-map values and nested maps,
+// and prints nothing for empty metadata.
 //
 // Why it matters: provider metadata (CSM xname, class, role) is decisive for
-// classification, but the renderer must defend against the heterogeneous
-// any-typed values that arrive from different providers.
-// Inputs: a nil map; a CSM map with xname/class; a provider whose value is a
-// plain string (non-map); and a provider map containing only unrecognized keys.
-// Outputs: empty output for the nil, non-map, and unrecognized-key cases, and a
-// line containing "xname=" for the CSM map.
-// Data choice: the four shapes correspond one-to-one with the function's guard
-// branches (empty, type-assert failure, no-parts, and the happy path).
+// classification, but which keys a provider records is the provider's to
+// say; the renderer must show what is there without naming CSM's keys, and
+// in an order that does not change from one run to the next.
+// Inputs: a nil map; CSM and OChaMi buckets whose keys are given out of
+// order; a provider whose value is a plain string; a bucket holding only a
+// nested map.
+// Outputs: nothing for the nil map and the last two; for the buckets, the
+// csm line before the ochami line, each with its keys in key order.
+// Data choice: two buckets and out-of-order keys prove both sorts; the
+// nested map proves it is left out rather than printed as a map literal.
 func TestPrintProviderMetadata(t *testing.T) {
 	_, _, _, gray, _ := noColorFuncs()
 
@@ -413,10 +415,12 @@ func TestPrintProviderMetadata(t *testing.T) {
 
 	var ok strings.Builder
 	printProviderMetadata(&ok, map[string]any{
-		"csm": map[string]any{"xname": "x1", "class": "River"},
+		"ochami": map[string]any{"xname": "x1", "ip": "10.0.0.1"},
+		"csm":    map[string]any{"xname": "x1", "class": "River"},
 	}, gray)
-	if !strings.Contains(ok.String(), "xname=x1") {
-		t.Errorf("expected xname in output, got %q", ok.String())
+	want := "  csm:  class=River, xname=x1\n  ochami:  ip=10.0.0.1, xname=x1\n"
+	if ok.String() != want {
+		t.Errorf("output = %q, want %q", ok.String(), want)
 	}
 
 	var nonMap strings.Builder
@@ -425,10 +429,10 @@ func TestPrintProviderMetadata(t *testing.T) {
 		t.Errorf("non-map provider value produced output: %q", nonMap.String())
 	}
 
-	var noKeys strings.Builder
-	printProviderMetadata(&noKeys, map[string]any{"csm": map[string]any{"other": "v"}}, gray)
-	if noKeys.String() != "" {
-		t.Errorf("provider with no recognized keys produced output: %q", noKeys.String())
+	var nested strings.Builder
+	printProviderMetadata(&nested, map[string]any{"hpcm": map[string]any{"location": map[string]any{"rack": 1}}}, gray)
+	if nested.String() != "" {
+		t.Errorf("bucket holding only a nested map produced output: %q", nested.String())
 	}
 }
 

@@ -106,6 +106,45 @@ func TestPrintDeviceTableWithRoles(t *testing.T) {
 	assertExactOutput(t, output, want)
 }
 
+// TestRoleDisplayReadsTheRoleFieldOnly verifies the device table and the
+// device tree show a device's role field and nothing a provider's metadata
+// names.
+//
+// Why it matters: both views used to fall back to the first provider bucket
+// that held a role, so they showed a role no export sends and no command
+// sets.
+// Inputs: a device with no role whose CSM bucket names Compute, rendered as
+// a table and as a tree node with roles on; then the same device with its
+// role field set to Storage.
+// Outputs: no role in either view at first, then Storage in both.
+// Data choice: the bucket's role differs from the field's, so each view
+// shows which one it read.
+func TestRoleDisplayReadsTheRoleFieldOnly(t *testing.T) {
+	// Arrange.
+	inventory := devicetypes.NewInventory()
+	device := &devicetypes.CaniDeviceType{ID: uuid.New(), Name: "nid000001", ObjectMeta: devicetypes.ObjectMeta{
+		ProviderMetadata: map[string]any{"csm": map[string]any{"role": "Compute"}},
+	}}
+	filter := TreeFilter{Roles: true, NoColor: true}
+	render := func() (string, string) {
+		table := captureStdout(t, func() { PrintDeviceTable([]*devicetypes.CaniDeviceType{device}, inventory, filter) })
+		return table, deviceBaseNode(device, filter).Detail
+	}
+
+	// Act.
+	tableBefore, treeBefore := render()
+	device.Role = "Storage"
+	tableAfter, treeAfter := render()
+
+	// Assert.
+	if strings.Contains(tableBefore, "Compute") || strings.Contains(treeBefore, "role:") {
+		t.Errorf("with no role field: table = %q, tree = %q; want no role shown", tableBefore, treeBefore)
+	}
+	if !strings.Contains(tableAfter, "Storage") || !strings.Contains(treeAfter, "role:Storage") {
+		t.Errorf("with role Storage: table = %q, tree = %q; want Storage in both", tableAfter, treeAfter)
+	}
+}
+
 // TestPrintCableTableResolvesTerminations verifies cable table rendering resolves
 // endpoint device names and ports into fixed-width termination columns.
 //

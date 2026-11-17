@@ -101,8 +101,8 @@ func (inv *Inventory) AddDevices(batch map[uuid.UUID]*CaniDeviceType) error {
 //
 // It also rebuilds the derived Device.Rack/Location/ParentDevice FK fields,
 // rebuilds interface IP assignments, validates module, FRU, cable and IPAM
-// references and stored custom-field values, and detects circular parent
-// chains.
+// references and stored custom-field values, detects circular parent chains,
+// and reports provider metadata that is in no provider's bucket.
 //
 // The reverse lists are cleared and rebuilt from scratch so that only setting a
 // Parent field is required; all other references are derived. Unlike
@@ -125,6 +125,7 @@ func (inv *Inventory) RebuildDerivedState() *RelationshipResult {
 	result.merge(inv.validateIPAMRelationships())
 	result.merge(inv.detectCircularLocationRefs())
 	result.merge(inv.detectCircularDeviceRefs())
+	result.merge(inv.validateProviderMetadata())
 
 	return result
 }

@@ -3,6 +3,7 @@ package transform
 import (
 	"fmt"
 	"log"
+	"slices"
 
 	"github.com/Cray-HPE/cani/internal/config"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
@@ -45,8 +46,18 @@ func Transform(existing devicetypes.Inventory) (*devicetypes.TransformResult, er
 		log.Println("No raw ServiceRoots to transform")
 		return &devicetypes.TransformResult{}, nil
 	}
-	return transformRoots(roots, &existing)
+	result, err := transformRoots(roots, &existing)
+	if err != nil {
+		return nil, err
+	}
+	result.IdentityKeys = slices.Clone(IdentityKeys)
+	return result, nil
 }
+
+// IdentityKeys names the keys in the Redfish bucket that identify one
+// physical device: the BMC's FQDN and host name. Transform declares them on
+// its result.
+var IdentityKeys = []string{"bmc_fqdn", "bmc_hostname"}
 
 // transformRoots converts raw ServiceRoots into devices and modules.
 // existing is used for idempotent deduplication against the current inventory.

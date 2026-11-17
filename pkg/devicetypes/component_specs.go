@@ -31,7 +31,7 @@ type InterfaceSpec struct {
 	CustomFields     map[string]any       `yaml:"custom_fields,omitempty" json:"customFields,omitempty"`
 	ExternalIDs      map[string]uuid.UUID `yaml:"external_ids,omitempty" json:"externalIDs,omitempty"`
 	ContentType      string               `yaml:"content_type,omitempty" json:"contentType,omitempty"`
-	ProviderMetadata map[string]any       `yaml:"providerMetadata,omitempty" json:"providerMetadata,omitempty"`
+	ProviderMetadata map[string]any       `yaml:"provider_metadata,omitempty" json:"providerMetadata,omitempty"`
 }
 
 // CaniInterface represents an instantiated interface on a specific device.
