@@ -43,6 +43,8 @@ The devicetypes package is a **foundational piece** of CANI. It defines the data
 | `reparent_interactive.go` | Interactive parent assignment prompt (`PromptForParent`) |
 | `resolve_plan.go` | `ResolvePlan` — serializable parent assignment plan (write, read, apply) |
 | `provider_metadata.go` | Provider metadata helpers (`GetProviderMeta`, `SetProviderMeta`, `FlattenProviderMetadata`) |
+| `custom_field_values.go` | Content-type constants; parses a custom-field value by its definition's type and sets or clears it on an object (`SetCustomField`, `ClearCustomField`) |
+| `custom_field_validate.go` | Checks every stored custom-field value against the catalog on `RebuildDerivedState`, one line per field and content type; `eachObjectMeta` is the walk over every object's metadata |
 | `loader.go` | Loads embedded YAML definitions at init |
 | `embed.go` | `embed.FS` directives for YAML directories |
 | `gitloader.go` | Loads definitions from a git repository |
@@ -148,6 +150,11 @@ Key relationships:
 - `GetInterfaceByID(ifaceID)` / `GetInterfacesByDevice(devID)`
 - `Validate()` — Full referential integrity check across all maps
 
+**Custom Fields** (in `custom_field_values.go`):
+- `CustomFieldFor(contentType, key)` — the definition of a key when the metadata catalog defines it for that object kind
+- `SetCustomField(meta, contentType, key, raw)` — parse text into the type the definition declares (`integer`, `boolean`, `date`, `json`, `select`, `multi-select`, or text) and store it; an undefined key, a wrong type and a value outside the choices are errors
+- `ClearCustomField(meta, contentType, key)` — a defined field becomes an explicit null (a required one is refused); a key with no definition is deleted
+
 **Provider Metadata** (in `provider_metadata.go`):
 - `GetProviderMeta(key)` / `SetProviderMeta(provider, key, value)` / `GetProviderSubMap(provider)`
 - `FlattenProviderMetadata()` — Merge all provider sub-maps into a flat map
@@ -212,6 +219,8 @@ go test ./pkg/devicetypes/... -v
 | `registry_test.go` | Type/Category enums | `ClassifyForNautobot`, `ListCaniDeviceTypes`, `ListAllAvailableTypes` |
 | `component_specs_test.go` | Spec types | JSON round-trip, unmarshal, interface constants |
 | `provider_metadata_test.go` | Provider metadata | `GetProviderMeta`, `SetProviderMeta`, `FlattenProviderMetadata`, `FindDeviceByProviderKey` |
+| `custom_field_values_test.go` | Custom-field values | One value per field type, each refusal, and the three outcomes of clearing |
+| `custom_field_validate_test.go` | Stored custom-field values | Each kind of problem (undefined key, other content type, wrong kind of value, bad choice, required null), aggregation across objects, interface specs, and the run from `RebuildDerivedState` |
 | `suggest_parent_test.go` | Parent suggestions | `SuggestParents`, `nameSimilarity`, `SearchParentCandidates` |
 | `reparent_interactive_test.go` | Interactive reparent | `PromptForParent` with simulated input |
 | `resolve_plan_test.go` | Resolve plans | `WritePlan`/`ReadPlan` round-trip, `ApplyPlan`, `PlaceDeviceInRack` |
