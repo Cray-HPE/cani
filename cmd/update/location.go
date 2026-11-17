@@ -95,6 +95,7 @@ func updateLocation(cmd *cli.Command, args []string) error {
 		}
 	}
 
+	applyTagFlag(cmd, &loc.ObjectMeta)
 	if cmd.Flags().Changed("metadata") {
 		meta, _ := cmd.Flags().GetStringToString("metadata")
 		applyProviderMetadata(&loc.ProviderMetadata, meta)

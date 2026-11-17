@@ -35,6 +35,7 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/store"
+	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/Cray-HPE/cani/pkg/devicetypes/connections"
@@ -82,6 +83,10 @@ Examples:
 func addConnections(cmd *cli.Command, args []string) error {
 	if len(args) == 0 {
 		return cmd.Help()
+	}
+	// The connection map carries each cable's own attributes.
+	if err := validate.RejectFlags(cmd, "tag", "status"); err != nil {
+		return err
 	}
 
 	dryRun, _ := cmd.Flags().GetBool("dry-run")

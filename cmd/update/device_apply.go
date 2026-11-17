@@ -100,10 +100,7 @@ func applyParentUpdate(cmd *cli.Command, inventory *devicetypes.Inventory, devic
 
 // applyTagsAndMetadata handles --tag and --metadata changes.
 func applyTagsAndMetadata(cmd *cli.Command, device *devicetypes.CaniDeviceType) {
-	if cmd.Flags().Changed("tag") {
-		tags, _ := cmd.Flags().GetStringArray("tag")
-		device.Tags = tags
-	}
+	applyTagFlag(cmd, &device.ObjectMeta)
 	if cmd.Flags().Changed("metadata") {
 		meta, _ := cmd.Flags().GetStringToString("metadata")
 		applyProviderMetadata(&device.ProviderMetadata, meta)

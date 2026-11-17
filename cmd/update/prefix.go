@@ -31,6 +31,7 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/store"
+	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
@@ -98,10 +99,14 @@ func updatePrefix(cmd *cli.Command, args []string) error {
 // applyPrefixUpdates applies the description and VRF flags and reports
 // whether anything changed.
 func applyPrefixUpdates(cmd *cli.Command, inventory *devicetypes.Inventory, prefix *devicetypes.CaniPrefix) (bool, error) {
+	if err := validate.RejectFlags(cmd, "set"); err != nil {
+		return false, err
+	}
 	changed := cmd.Flags().Changed(flagDescription)
 	if changed {
 		prefix.Description, _ = cmd.Flags().GetString(flagDescription)
 	}
+	changed = applyTagFlag(cmd, &prefix.ObjectMeta) || changed
 	added, err := addPrefixVRFs(cmd, inventory, prefix)
 	if err != nil {
 		return false, err

@@ -132,6 +132,7 @@ func addCable(cmd *cli.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("termination B: %w", err)
 	}
+	lbl := labelsFromFlags(cmd)
 
 	for i := range count {
 		cable := *result.Cable
@@ -154,6 +155,7 @@ func addCable(cmd *cli.Command, args []string) error {
 		if statusArg != "" {
 			cable.Status = statusArg
 		}
+		lbl.apply(&cable.ObjectMeta)
 
 		if err := inventory.AddCable(&cable); err != nil {
 			return fmt.Errorf("failed to add cable: %w", err)
