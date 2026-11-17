@@ -21,7 +21,7 @@ func TestSuggestParentsDeviceToRack(t *testing.T) {
 		Kind: "device",
 	}
 
-	suggestions := SuggestParents(inv, orphan, 5)
+	suggestions := SuggestParents(inv, orphan, 5, nil)
 	if len(suggestions) == 0 {
 		t.Fatal("expected at least one suggestion")
 	}
@@ -58,7 +58,7 @@ func TestSuggestParentsDevicesOnlySuggestRacks(t *testing.T) {
 		DeviceType: "blade",
 	}
 
-	suggestions := SuggestParents(inv, orphan, 10)
+	suggestions := SuggestParents(inv, orphan, 10, nil)
 	for _, s := range suggestions {
 		if s.Kind == "device" {
 			t.Errorf("device %q should not be suggested as parent for a device", s.Name)
@@ -86,7 +86,7 @@ func TestSuggestParentsRackToLocation(t *testing.T) {
 		Kind: "rack",
 	}
 
-	suggestions := SuggestParents(inv, orphan, 5)
+	suggestions := SuggestParents(inv, orphan, 5, nil)
 	if len(suggestions) != 1 {
 		t.Fatalf("expected 1 suggestion, got %d", len(suggestions))
 	}
@@ -99,7 +99,7 @@ func TestSuggestParentsRackToLocation(t *testing.T) {
 }
 
 func TestSuggestParentsNilInventory(t *testing.T) {
-	suggestions := SuggestParents(nil, OrphanItem{Kind: "device"}, 5)
+	suggestions := SuggestParents(nil, OrphanItem{Kind: "device"}, 5, nil)
 	if len(suggestions) != 0 {
 		t.Errorf("expected 0 suggestions for nil inventory, got %d", len(suggestions))
 	}
@@ -164,29 +164,43 @@ func TestSearchParentCandidates(t *testing.T) {
 	}
 }
 
+// TestProviderPrefixScore verifies the prefix score reads the identity keys
+// the providers declare, in the bucket of the provider that wrote both
+// sides, and nothing else.
+//
+// Why it matters: which keys identify a device is the providers' to say;
+// the scorer used to name xname and the CSM and Redfish buckets itself, and
+// read values outside every bucket, which no provider owns. A key that is
+// not declared, or held by different providers on the two sides, must not
+// score.
+// Inputs: CSM buckets whose xnames share a prefix, scored with xname
+// declared, with no keys, with nil metadata on one side, with xnames that
+// share no prefix, with the candidate's xname in another provider's bucket,
+// and with both xnames outside any bucket.
+// Outputs: 30 for the first, 0 for every other.
+// Data choice: the same xnames are reused across cases, so only the
+// declaration and the placement of the values decide the score.
 func TestProviderPrefixScore(t *testing.T) {
-	meta1 := map[string]any{
-		"csm": map[string]any{"xname": "x3000c0s1b0"},
-	}
-	meta2 := map[string]any{
-		"csm": map[string]any{"xname": "x3000c0"},
-	}
-	score := providerPrefixScore(meta1, meta2)
-	if score != 30 {
-		t.Errorf("expected 30 for matching xname prefix, got %d", score)
-	}
+	xname := []string{"xname"}
+	csm := func(value string) map[string]any { return map[string]any{"csm": map[string]any{"xname": value}} }
+	node, cabinet := csm("x3000c0s1b0"), csm("x3000c0")
 
-	score = providerPrefixScore(nil, meta2)
-	if score != 0 {
-		t.Errorf("expected 0 for nil metadata, got %d", score)
+	cases := map[string]struct {
+		orphan, candidate map[string]any
+		keys              []string
+		want              int
+	}{
+		"declared key with a shared prefix":      {node, cabinet, xname, 30},
+		"no key declared":                        {node, cabinet, nil, 0},
+		"nil metadata":                           {nil, cabinet, xname, 0},
+		"no shared prefix":                       {csm("aaa111"), csm("zzz999"), xname, 0},
+		"same key in another provider's bucket":  {node, map[string]any{"redfish": map[string]any{"xname": "x3000c0"}}, xname, 0},
+		"values outside any bucket are not read": {map[string]any{"xname": "x3000c0s1b0"}, map[string]any{"xname": "x3000c0"}, xname, 0},
 	}
-
-	// Sub-maps present on both sides but values share no 3-char prefix: the
-	// scorer must iterate every provider/key and fall through to 0.
-	noShare1 := map[string]any{"csm": map[string]any{"xname": "aaa111"}}
-	noShare2 := map[string]any{"csm": map[string]any{"xname": "zzz999"}}
-	if score := providerPrefixScore(noShare1, noShare2); score != 0 {
-		t.Errorf("expected 0 for non-matching xname prefixes, got %d", score)
+	for name, tc := range cases {
+		if got := providerPrefixScore(tc.orphan, tc.candidate, tc.keys); got != tc.want {
+			t.Errorf("%s: providerPrefixScore = %d, want %d", name, got, tc.want)
+		}
 	}
 }
 
@@ -228,36 +242,6 @@ func TestMetaString(t *testing.T) {
 	}
 	if got := metaString(m, "missing"); got != "" {
 		t.Errorf("metaString missing = %q, want empty", got)
-	}
-}
-
-// TestExtractProviderSub verifies extractProviderSub returns the whole map for an
-// empty provider, the nested map for a provider key, and nil when the key is
-// absent or not a map.
-//
-// Why it matters: the prefix scorer walks both provider-scoped ("csm") and
-// flat ("") metadata shapes, so this accessor must correctly disambiguate them
-// to avoid comparing the wrong fields.
-// Inputs: a metadata map queried with "" (flat), "csm" (nested map present),
-// "redfish" (absent), and a "bad" key whose value is a non-map. Outputs: the
-// original map, the nested map, and nil for the last two. Data choice: the
-// non-map value exercises the failed type-assertion branch distinct from the
-// simple missing-key branch.
-func TestExtractProviderSub(t *testing.T) {
-	sub := map[string]any{"xname": "x1"}
-	meta := map[string]any{"csm": sub, "bad": "not-a-map"}
-
-	if got := extractProviderSub(meta, ""); got["csm"] == nil {
-		t.Error("empty provider should return the whole metadata map")
-	}
-	if got := extractProviderSub(meta, "csm"); got["xname"] != "x1" {
-		t.Errorf("csm sub = %v, want xname=x1", got)
-	}
-	if got := extractProviderSub(meta, "redfish"); got != nil {
-		t.Errorf("absent provider = %v, want nil", got)
-	}
-	if got := extractProviderSub(meta, "bad"); got != nil {
-		t.Errorf("non-map provider = %v, want nil", got)
 	}
 }
 
@@ -377,7 +361,7 @@ func TestSuggestDeviceParentsMinScoreAndNilSkip(t *testing.T) {
 	realID := uuid.New()
 	inv.Racks[realID] = &CaniRackType{ID: realID, Name: "zzz-no-match"}
 
-	out := suggestDeviceParents(inv, OrphanItem{Name: "aaa-orphan", Kind: "device"})
+	out := suggestDeviceParents(inv, OrphanItem{Name: "aaa-orphan", Kind: "device"}, nil)
 	if len(out) != 1 {
 		t.Fatalf("expected 1 suggestion (nil skipped), got %d", len(out))
 	}

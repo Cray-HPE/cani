@@ -566,46 +566,6 @@ func TestMergeLocationsKeepsSameNameDifferentSourceIDs(t *testing.T) {
 	}
 }
 
-// ---------- providerIdentityCompatible ----------
-
-func TestProviderIdentityCompatibleMatch(t *testing.T) {
-	a := &CaniDeviceType{
-		Name: "server-1",
-		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
-			"redfish": map[string]any{"bmc_fqdn": "bmc1.example.com"},
-		}},
-	}
-	b := &CaniDeviceType{
-		Name: "server-1",
-		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
-			"redfish": map[string]any{"bmc_fqdn": "bmc1.example.com"},
-		}},
-	}
-
-	if !providerIdentityCompatible(a, b) {
-		t.Error("expected compatible when bmc_fqdn values match")
-	}
-}
-
-func TestProviderIdentityCompatibleConflict(t *testing.T) {
-	a := &CaniDeviceType{
-		Name: "server-1",
-		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
-			"redfish": map[string]any{"bmc_fqdn": "bmc1.example.com"},
-		}},
-	}
-	b := &CaniDeviceType{
-		Name: "server-1",
-		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
-			"redfish": map[string]any{"bmc_fqdn": "bmc2.example.com"},
-		}},
-	}
-
-	if providerIdentityCompatible(a, b) {
-		t.Error("expected incompatible when bmc_fqdn values differ")
-	}
-}
-
 // ---------- mergeRackProperties ----------
 
 func TestMergeRackPropertiesCopiesNonEmpty(t *testing.T) {

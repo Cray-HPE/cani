@@ -15,6 +15,7 @@ package devicetypes
 
 import (
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -101,6 +102,55 @@ func TestInterfaceTemplateYAMLFields(t *testing.T) {
 	}
 	if fields["name_template"] != name || fields["label_template"] != "" {
 		t.Fatalf("template values or snake_case YAML keys lost: %s", data)
+	}
+}
+
+// TestProviderMetadataYAMLKeyIsTheSameOnATypeAndItsInterfaces verifies that
+// a YAML document spells provider metadata the same way on a device type and
+// on one of its interfaces.
+//
+// Why it matters: the interface key was the one camelCase key among the
+// snake_case YAML keys, and differed from the same field on the type. The
+// YAML readers skip a key they do not know, so an author who wrote the key
+// on an interface the way it is written on the type lost the value.
+// Inputs: one device-type document with provider_metadata on the type and on
+// one interface.
+// Outputs: both decode into ProviderMetadata.
+// Data choice: a different provider's bucket at each level, so a value read
+// into the wrong level would be seen.
+func TestProviderMetadataYAMLKeyIsTheSameOnATypeAndItsInterfaces(t *testing.T) {
+	// Arrange.
+	const document = `
+manufacturer: HPE
+model: Probe
+provider_metadata:
+  csm:
+    class: River
+interfaces:
+  - name: eth0
+    type: 1000base-t
+    provider_metadata:
+      redfish:
+        id: nic-1
+`
+	var deviceType CaniDeviceType
+
+	// Act.
+	if err := yaml.Unmarshal([]byte(document), &deviceType); err != nil {
+		t.Fatalf("Unmarshal() error = %v", err)
+	}
+
+	// Assert.
+	wantType := map[string]any{"csm": map[string]any{"class": "River"}}
+	if !reflect.DeepEqual(deviceType.ProviderMetadata, wantType) {
+		t.Errorf("type ProviderMetadata = %v, want %v", deviceType.ProviderMetadata, wantType)
+	}
+	if len(deviceType.Interfaces) != 1 {
+		t.Fatalf("interfaces = %d, want 1", len(deviceType.Interfaces))
+	}
+	wantInterface := map[string]any{"redfish": map[string]any{"id": "nic-1"}}
+	if got := deviceType.Interfaces[0].ProviderMetadata; !reflect.DeepEqual(got, wantInterface) {
+		t.Errorf("interface ProviderMetadata = %v, want %v", got, wantInterface)
 	}
 }
 

@@ -96,6 +96,16 @@ type TransformResult struct {
 	// left out of the result, one line each, for the caller to report.
 	// The merge does not read it.
 	Warnings []string
+
+	// IdentityKeys names the keys in the provider's bucket that identify
+	// one physical device, such as a CSM xname or a Redfish BMC FQDN. The
+	// merge joins an incoming device to a record of the same name only
+	// when, for the first declared key both hold, their values agree.
+	// Declaring a key asserts it means the same thing in any provider's
+	// bucket, so the value is read from whichever bucket holds it: an
+	// xname CSM recorded is compared with the one OChaMi did. A provider
+	// that declares none merges by name alone.
+	IdentityKeys []string
 }
 
 // EnsureUniqueDeviceNames detects duplicate names within the transform

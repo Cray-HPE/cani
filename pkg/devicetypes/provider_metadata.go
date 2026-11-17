@@ -2,9 +2,8 @@ package devicetypes
 
 import "sort"
 
-// sortedKeys returns the keys of m in deterministic, ascending order so that
-// lookups and flattening over ProviderMetadata do not depend on Go's
-// randomized map iteration order.
+// sortedKeys returns the keys of m in ascending order, so that a scan of
+// ProviderMetadata does not depend on Go's randomized map iteration order.
 func sortedKeys(m map[string]any) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
@@ -12,33 +11,6 @@ func sortedKeys(m map[string]any) []string {
 	}
 	sort.Strings(keys)
 	return keys
-}
-
-// GetProviderMeta searches all provider sub-maps in ProviderMetadata for the
-// given key and returns the first match. Top-level keys are checked first,
-// then each provider sub-map is scanned.
-func (m *ObjectMeta) GetProviderMeta(key string) (any, bool) {
-	if m == nil || m.ProviderMetadata == nil {
-		return nil, false
-	}
-	// Check top-level keys first.
-	if v, ok := m.ProviderMetadata[key]; ok {
-		// Skip provider sub-maps when searching for a plain key.
-		if _, isMap := v.(map[string]any); !isMap {
-			return v, true
-		}
-	}
-	// Search inside each provider sub-map, in deterministic provider order.
-	for _, name := range sortedKeys(m.ProviderMetadata) {
-		sub, ok := m.ProviderMetadata[name].(map[string]any)
-		if !ok {
-			continue
-		}
-		if val, found := sub[key]; found {
-			return val, true
-		}
-	}
-	return nil, false
 }
 
 // GetProviderSubMap returns the provider-specific sub-map for the given
@@ -90,28 +62,4 @@ func (m *ObjectMeta) GetImportSource(provider string) string {
 		return ""
 	}
 	return v
-}
-
-// FlattenProviderMetadata returns a flat map of all provider metadata,
-// combining all provider sub-maps and top-level keys. Provider sub-map
-// keys are NOT prefixed. If multiple providers define the same key, the
-// value from the highest-sorted provider name wins (and within a provider,
-// the highest-sorted sub-key), so the result is deterministic and does not
-// depend on Go's randomized map iteration order.
-func (m *ObjectMeta) FlattenProviderMetadata() map[string]any {
-	if m == nil || m.ProviderMetadata == nil {
-		return nil
-	}
-	flat := make(map[string]any)
-	for _, k := range sortedKeys(m.ProviderMetadata) {
-		sub, ok := m.ProviderMetadata[k].(map[string]any)
-		if !ok {
-			flat[k] = m.ProviderMetadata[k]
-			continue
-		}
-		for _, sk := range sortedKeys(sub) {
-			flat[sk] = sub[sk]
-		}
-	}
-	return flat
 }

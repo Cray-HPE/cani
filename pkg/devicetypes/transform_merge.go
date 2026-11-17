@@ -70,7 +70,7 @@ func (inv *Inventory) MergeTransformResult(result *TransformResult) (*TransformM
 	incoming.RemapReferences(working, remaps)
 	remaps.Racks = working.MergeRacks(incoming.Racks)
 	incoming.RemapReferences(working, remaps)
-	remaps.Devices, _ = working.MergeDevicesStrict(incoming.Devices, false)
+	remaps.Devices, _ = working.mergeDevices(incoming.Devices, false, incoming.IdentityKeys)
 	incoming.RemapReferences(working, remaps)
 	if remaps.Modules, err = working.MergeModules(incoming.Modules); err != nil {
 		return nil, fmt.Errorf("merge modules: %w", err)

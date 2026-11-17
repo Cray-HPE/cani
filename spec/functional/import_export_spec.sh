@@ -38,8 +38,9 @@
 # Unique datastore path per test to avoid interference.
 ie_ds() { echo "/tmp/.cani/ie_test_${1}.json"; }
 
-# Write a tiny CANI datastore that exercises OpenCHAMI export from legacy CSM
-# metadata without requiring an external provider.
+# Write a tiny CANI datastore that exercises OpenCHAMI export of a node whose
+# xname CSM recorded and whose network fields OChaMi did, without requiring
+# an external provider.
 #shellcheck disable=SC2317
 write_ochami_boot_mac_inventory() {
   _ie_ds="$1"
@@ -58,10 +59,12 @@ write_ochami_boot_mac_inventory() {
       "providerMetadata": {
         "csm": {
           "xname": "x9000c1s0b0n0",
-          "ip": "10.9.0.1",
-          "boot_mac": "aa:bb:cc:dd:ee:09",
           "nid": 1000,
           "aliases": ["nid001000"]
+        },
+        "ochami": {
+          "ip": "10.9.0.1",
+          "boot_mac": "aa:bb:cc:dd:ee:09"
         }
       }
     }

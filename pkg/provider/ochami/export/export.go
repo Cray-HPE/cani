@@ -46,34 +46,21 @@ func Export(inventory devicetypes.Inventory, w io.Writer) error {
 	return err
 }
 
-// effectiveMeta builds a merged metadata map for the given device.
-// Ochami-specific keys take priority; CSM keys are used as fallback.
+// effectiveMeta builds the metadata map an entry is written from: the
+// device's xname, which is an identity key any provider's bucket may hold,
+// and then everything in the OChaMi bucket, which wins. The network fields
+// come from the OChaMi bucket alone; no other provider records them.
 func effectiveMeta(dev *devicetypes.CaniDeviceType) map[string]any {
 	result := map[string]any{}
-
-	// Start with CSM metadata as the base.
-	if csm, ok := dev.GetProviderSubMap("csm"); ok {
-		copyCsmKey(result, csm, "xname")
-		copyCsmKey(result, csm, "ip")
-		copyCsmKey(result, csm, "mac")
-		copyCsmKey(result, csm, "boot_mac")
+	if xname, ok := dev.IdentityValue("xname"); ok {
+		result["xname"] = xname
 	}
-
-	// Overlay ochami-specific keys (always win).
 	if ochami, ok := dev.GetProviderSubMap(providerName); ok {
 		for k, v := range ochami {
 			result[k] = v
 		}
 	}
-
 	return result
-}
-
-// copyCsmKey copies a single key from CSM metadata into the result map.
-func copyCsmKey(dst, csm map[string]any, key string) {
-	if v, ok := csm[key]; ok {
-		dst[key] = v
-	}
 }
 
 func buildEntry(dev *devicetypes.CaniDeviceType, meta map[string]any) openChamiEntry {

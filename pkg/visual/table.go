@@ -250,7 +250,7 @@ func PrintDeviceTable(devices []*devicetypes.CaniDeviceType, inv *devicetypes.In
 			Col(rackName, ColRack) + "  " +
 			Col(uPos, ColUPos)
 		if tf.Roles {
-			row += "  " + Col(d.GetRole(), ColRole)
+			row += "  " + Col(d.Role, ColRole)
 		}
 		fmt.Println(row)
 	}

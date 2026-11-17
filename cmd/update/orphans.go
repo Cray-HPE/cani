@@ -33,6 +33,7 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/config"
+	"github.com/Cray-HPE/cani/internal/provider"
 	"github.com/Cray-HPE/cani/internal/util/customfields"
 	"github.com/Cray-HPE/cani/internal/util/store"
 	"github.com/Cray-HPE/cani/internal/util/validate"
@@ -221,9 +222,10 @@ func applyOrphanPlanFromFile(cmd *cli.Command, inv *devicetypes.Inventory, path 
 }
 
 // promptOrphanParent shows suggestions and prompts the user for a parent choice.
-// Returns the selected parent's UUID, name, and kind.
+// Returns the selected parent's UUID, name, and kind. Candidates are scored
+// by the identity keys the registered providers declare.
 func promptOrphanParent(inv *devicetypes.Inventory, orphan devicetypes.OrphanItem, opts devicetypes.ClassifyOptions) (uuid.UUID, string, string, error) {
-	suggestions := devicetypes.SuggestParents(inv, orphan, 8)
+	suggestions := devicetypes.SuggestParents(inv, orphan, 8, provider.IdentityKeys())
 	id, err := devicetypes.PromptForParent(inv, orphan, suggestions, opts)
 	if err != nil {
 		return uuid.Nil, "", "", err

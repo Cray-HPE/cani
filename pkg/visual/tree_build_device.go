@@ -85,8 +85,8 @@ func deviceBaseNode(dev *devicetypes.CaniDeviceType, tf TreeFilter) TreeNode {
 		Label:  TreeIcon(IconDevice, ColorWhite, "device", uPos, tf.NoColor),
 		Detail: PipeSep(name, slug),
 	}
-	if tf.Roles && dev.GetRole() != "" {
-		node.Detail = PipeSep(name, slug, "role:"+dev.GetRole())
+	if tf.Roles && dev.Role != "" {
+		node.Detail = PipeSep(name, slug, "role:"+dev.Role)
 	}
 	return node
 }
