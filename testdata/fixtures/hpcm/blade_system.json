@@ -1,0 +1,40 @@
+[
+  {
+    "name": "admin",
+    "uuid": "aaaaaaaa-0000-4000-8000-000000000001",
+    "type": "admin"
+  },
+  {
+    "name": "x9000c1",
+    "uuid": "cccccccc-0000-4000-8000-000000000001",
+    "type": "chassis",
+    "location": {"rack": 9000, "chassis": 1}
+  },
+  {
+    "name": "x9000c1s0b0n0",
+    "uuid": "bbbbbbbb-0000-4000-8000-000000000001",
+    "type": "compute",
+    "aliases": {"cm-geo-name": "x9000c1s0b0n0", "host": "nid000001"},
+    "location": {"rack": 9000, "chassis": 1, "tray": 0, "node": 0},
+    "inventory": {
+      "geoloc": "x9000c1s0b0n0",
+      "cpu.cpu0.model": "EPYC 7763",
+      "cpu.cpu0.cores": "64",
+      "dimm.dimm0.serial": "DIMM-S1",
+      "dimm.dimm0.size": "64GB"
+    }
+  },
+  {
+    "name": "node001",
+    "uuid": "11111111-1111-4111-8111-111111111111",
+    "type": "compute",
+    "aliases": {"host": "login1"},
+    "location": {"rack": 1},
+    "platform": {"type": "ProLiant DL380 Gen11", "manufacturer": "HPE"},
+    "inventory": {
+      "disk.disk0.model": "MZ7L3960",
+      "disk.disk0.size": "960GB",
+      "nic.nic0.mac": "aa:bb:cc:dd:ee:01"
+    }
+  }
+]
