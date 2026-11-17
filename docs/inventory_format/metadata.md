@@ -114,7 +114,17 @@ The top-level key (`"csm"`, `"redfish"`, etc.) identifies which provider wrote t
 
 #### HPCM
 
-The HPCM provider stores a free-form map under the `"hpcm"` key. Common fields include `node_uuid`, `location`, aliases, and other node attributes from the HPCM JSON export.
+The HPCM provider keeps what HPCM records about an object, and the inventory has no field for, under the `"hpcm"` key. None of it is stored as a custom field.
+
+| Key | On | Type | Description |
+|-----|----|------|-------------|
+| `hpcm_uuid` | devices, modules, locations | string | UUID of the HPCM node |
+| `aliases` | devices, modules | map | The node's HPCM aliases |
+| `location` | devices, modules | map | The node's HPCM location: `rack`, `chassis`, `tray`, `node`, `controller` |
+| `geoloc` | modules | string | The geolocation xname the module's chassis was found by |
+| `rack_number` | racks | int | The HPCM rack number |
+| `import_source` | devices | string | The node file the device was read from |
+| any other key | inventory items | string | An inventory field HPCM reported that the inventory has no field for, such as a disk's `size` |
 
 ### Custom Providers
 

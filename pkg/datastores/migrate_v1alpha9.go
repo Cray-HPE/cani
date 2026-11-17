@@ -68,7 +68,9 @@ const (
 //   - A copy the exporter passed over for another is dropped.
 //   - A rack number outside a bucket goes to the HPCM bucket, which wrote it.
 //
-// Other providers' buckets are left alone.
+// Other providers' buckets are left alone. The custom fields the HPCM import
+// wrote are its own records too, and move to its bucket (see
+// moveHPCMCustomFields).
 //
 // From this generation a rack-mounted device may record a location of its
 // own, so a location stored on a parented device, which earlier generations
@@ -99,6 +101,9 @@ func foldProviderMetadata(inv *devicetypes.Inventory) []string {
 	for _, ref := range otherMetadata(inv) {
 		fold.store(ref, fold.take(ref.owner, ref.provider))
 	}
+	// HPCM's records move out of the custom fields before any are defined:
+	// a field with no definition is how its step tells them apart.
+	fold.moveHPCMCustomFields()
 	fold.defineMigratedFields()
 	slices.Sort(fold.report)
 	return slices.Compact(fold.report)
