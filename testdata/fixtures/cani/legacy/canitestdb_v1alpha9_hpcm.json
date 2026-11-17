@@ -1,0 +1,193 @@
+{
+  "schemaVersion": "v1alpha9",
+  "locations": {
+    "519ddb72-f7c6-4f70-bec8-b247600516e6": {
+      "id": "519ddb72-f7c6-4f70-bec8-b247600516e6",
+      "name": "admin",
+      "locationType": "site",
+      "parent": "00000000-0000-0000-0000-000000000000",
+      "status": "Active",
+      "customFields": {
+        "hpcm_uuid": "aaaaaaaa-0000-4000-8000-000000000001"
+      }
+    }
+  },
+  "racks": {
+    "4168355b-45f4-4eec-9d4c-b5fed809f311": {
+      "id": "4168355b-45f4-4eec-9d4c-b5fed809f311",
+      "name": "rack-9000",
+      "slug": "",
+      "type": "rack",
+      "uHeight": 42,
+      "status": "Active",
+      "providerMetadata": {
+        "rack_number": 9000
+      },
+      "location": "00000000-0000-0000-0000-000000000000"
+    },
+    "e6693889-7d25-479f-ab5e-3aaa4d99cc10": {
+      "id": "e6693889-7d25-479f-ab5e-3aaa4d99cc10",
+      "name": "rack-1",
+      "slug": "",
+      "type": "rack",
+      "uHeight": 42,
+      "status": "Active",
+      "providerMetadata": {
+        "rack_number": 1
+      },
+      "location": "00000000-0000-0000-0000-000000000000"
+    }
+  },
+  "devices": {
+    "d546b4eb-0f41-4dac-bb2b-25655c5d7820": {
+      "id": "d546b4eb-0f41-4dac-bb2b-25655c5d7820",
+      "name": "node001",
+      "slug": "",
+      "partNumber": "",
+      "manufacturer": "",
+      "model": "",
+      "type": "node",
+      "status": "",
+      "providerMetadata": {
+        "hpcm": {
+          "aliases": {
+            "host": "login1"
+          },
+          "hpcm_uuid": "11111111-1111-4111-8111-111111111111",
+          "import_source": "blade_system.json",
+          "location": {
+            "rack": 1
+          }
+        }
+      },
+      "parent": "e6693889-7d25-479f-ab5e-3aaa4d99cc10",
+      "frus": [
+        "9ba7b9b5-05c4-444e-a43c-1bd2b833caa5",
+        "cf84faa4-a353-4858-b4f5-18f83ad61cbe"
+      ],
+      "location": "00000000-0000-0000-0000-000000000000",
+      "primaryIpv4": "00000000-0000-0000-0000-000000000000",
+      "primaryIpv6": "00000000-0000-0000-0000-000000000000",
+      "bmcParent": "00000000-0000-0000-0000-000000000000"
+    },
+    "ea860d21-60cf-4143-8f43-fa3126a3bff2": {
+      "id": "ea860d21-60cf-4143-8f43-fa3126a3bff2",
+      "name": "x9000c1",
+      "slug": "",
+      "partNumber": "",
+      "manufacturer": "",
+      "model": "",
+      "type": "chassis",
+      "status": "",
+      "providerMetadata": {
+        "hpcm": {
+          "hpcm_uuid": "cccccccc-0000-4000-8000-000000000001",
+          "import_source": "blade_system.json",
+          "location": {
+            "chassis": 1,
+            "rack": 9000
+          }
+        }
+      },
+      "parent": "4168355b-45f4-4eec-9d4c-b5fed809f311",
+      "location": "00000000-0000-0000-0000-000000000000",
+      "primaryIpv4": "00000000-0000-0000-0000-000000000000",
+      "primaryIpv6": "00000000-0000-0000-0000-000000000000",
+      "bmcParent": "00000000-0000-0000-0000-000000000000"
+    }
+  },
+  "modules": {
+    "851a68fa-9cdb-448e-8658-6be50cd288cf": {
+      "id": "851a68fa-9cdb-448e-8658-6be50cd288cf",
+      "name": "x9000c1s0b0n0",
+      "slug": "",
+      "type": "compute",
+      "parentDevice": "ea860d21-60cf-4143-8f43-fa3126a3bff2",
+      "moduleBayName": "tray-0-node-0",
+      "status": "Active",
+      "customFields": {
+        "aliases": {
+          "cm-geo-name": "x9000c1s0b0n0",
+          "host": "nid000001"
+        },
+        "geoloc": "x9000c1s0b0n0",
+        "hpcm_uuid": "bbbbbbbb-0000-4000-8000-000000000001",
+        "location": {
+          "chassis": 1,
+          "node": 0,
+          "rack": 9000,
+          "tray": 0
+        }
+      },
+      "location": "00000000-0000-0000-0000-000000000000",
+      "frus": [
+        "07fb0ae6-495c-4082-b400-8a15b4e3ec9e",
+        "0baca3da-0beb-47b9-880c-7a996094c9d5"
+      ]
+    }
+  },
+  "cables": {},
+  "frus": {
+    "07fb0ae6-495c-4082-b400-8a15b4e3ec9e": {
+      "id": "07fb0ae6-495c-4082-b400-8a15b4e3ec9e",
+      "name": "x9000c1s0b0n0-cpu.cpu0",
+      "slug": "",
+      "partNumber": "",
+      "model": "EPYC 7763",
+      "type": "cpu",
+      "status": "Active",
+      "customFields": {
+        "cores": "64"
+      },
+      "device": "851a68fa-9cdb-448e-8658-6be50cd288cf",
+      "parent": "851a68fa-9cdb-448e-8658-6be50cd288cf",
+      "discovered": true
+    },
+    "0baca3da-0beb-47b9-880c-7a996094c9d5": {
+      "id": "0baca3da-0beb-47b9-880c-7a996094c9d5",
+      "name": "x9000c1s0b0n0-dimm.dimm0",
+      "slug": "",
+      "partNumber": "",
+      "type": "dimm",
+      "serial": "DIMM-S1",
+      "status": "Active",
+      "customFields": {
+        "size": "64GB"
+      },
+      "device": "851a68fa-9cdb-448e-8658-6be50cd288cf",
+      "parent": "851a68fa-9cdb-448e-8658-6be50cd288cf",
+      "discovered": true
+    },
+    "9ba7b9b5-05c4-444e-a43c-1bd2b833caa5": {
+      "id": "9ba7b9b5-05c4-444e-a43c-1bd2b833caa5",
+      "name": "node001-disk.disk0",
+      "slug": "",
+      "partNumber": "",
+      "model": "MZ7L3960",
+      "type": "disk",
+      "status": "Active",
+      "customFields": {
+        "size": "960GB"
+      },
+      "device": "d546b4eb-0f41-4dac-bb2b-25655c5d7820",
+      "parent": "d546b4eb-0f41-4dac-bb2b-25655c5d7820",
+      "discovered": true
+    },
+    "cf84faa4-a353-4858-b4f5-18f83ad61cbe": {
+      "id": "cf84faa4-a353-4858-b4f5-18f83ad61cbe",
+      "name": "node001-nic.nic0",
+      "slug": "",
+      "partNumber": "",
+      "type": "nic",
+      "status": "Active",
+      "customFields": {
+        "mac": "aa:bb:cc:dd:ee:01"
+      },
+      "device": "d546b4eb-0f41-4dac-bb2b-25655c5d7820",
+      "parent": "d546b4eb-0f41-4dac-bb2b-25655c5d7820",
+      "discovered": true
+    }
+  },
+  "interfaces": {},
+  "metadata": {}
+}

@@ -68,6 +68,17 @@ where they are. To keep sending one, list its key in the Nautobot export
 option `provider_metadata_fields`; see
 [Sending provider metadata as custom fields](../providers/nautobot.md#sending-provider-metadata-as-custom-fields).
 
+The same holds for what the HPCM import used to store as custom fields: a
+module's `hpcm_uuid`, `aliases`, `location` and `geoloc`, a location's
+`hpcm_uuid`, and every field of an inventory item HPCM reported that the
+inventory has no field for. The import now writes them to
+`providerMetadata.hpcm`, and the upgrade moves the stored copies there too.
+One moves only when it can be told to be HPCM's: on a module or location by
+its key and the kind of value it holds, and on an inventory item by the item
+being one the import built, named after its node and typed by its inventory
+group (`node001-disk.disk0`, a `disk`). A custom field of a key the inventory
+defines stays a custom field.
+
 A value moves only when it is the one an export was already sending, so the
 upgrade never makes a value live that was not. Where a key was held more than
 once, the export used one copy: the `role` field over provider metadata, a
@@ -87,6 +98,7 @@ key and never by value, on the load that upgrades the file:
 | `provider metadata "location" names no location in the inventory` (or `more than one`) | The name was looked up in Nautobot on export, and cannot be turned into a placement here. It is kept in `providerMetadata.nautobot.location`. | Add or import the location, then `update device --location`. |
 | `provider metadata "location" was dropped: it is not a location name, so export never read it` | The value was not text. | Nothing. |
 | `provider metadata "u_height"` or `"rack_position" was dropped: export never sent it` | Typed on a rack that is stored as a device. | Set the height on the rack itself with `update rack --set u_height=N`. |
+| `N custom field(s) the HPCM import wrote on modules, locations and inventory items moved to providerMetadata.hpcm` | They are HPCM's own records and are no longer sent to Nautobot as custom fields. | Nothing, unless Nautobot should keep receiving one; list it as `hpcm.<key>` in `provider_metadata_fields`. |
 
 A location stored on a device that has a parent is kept only when it is its
 rack's. Earlier generations re-derived it on every load; from `v1alpha10` a

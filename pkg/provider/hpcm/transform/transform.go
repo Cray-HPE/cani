@@ -308,57 +308,41 @@ func logUnmatched(nodes []UnmatchedNode) {
 // buildDeviceFromNode creates a CaniDeviceType from a classified node.
 // All HPCM-specific metadata is nested under the "hpcm" provider key.
 func buildDeviceFromNode(node import_.Node, cl Classification, existing *devicetypes.Inventory) (devicetypes.CaniDeviceType, []devicetypes.CaniFruType) {
-	hpcmMeta := make(map[string]any)
-	if node.UUID != "" {
-		hpcmMeta[metaKeyHpcmUUID] = node.UUID
-	}
-	if len(node.Aliases) > 0 {
-		hpcmMeta[metaKeyAliases] = node.Aliases
-	}
-	if node.Location != nil {
-		hpcmMeta["location"] = locationToMap(node.Location)
-	}
-
 	id := resolveExistingDeviceID(node.Name, node.UUID, existing)
 
 	dev := devicetypes.CaniDeviceType{
-		ID:   id,
-		Name: node.Name,
-		Type: cl.DeviceTypeHint,
-		ObjectMeta: devicetypes.ObjectMeta{
-			ProviderMetadata: map[string]any{
-				"hpcm": hpcmMeta,
-			},
-		},
-		Parent: uuid.Nil,
+		ID:         id,
+		Name:       node.Name,
+		Type:       cl.DeviceTypeHint,
+		ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: inBucket(nodeMetadata(node))},
+		Parent:     uuid.Nil,
 	}
 
 	// Set import source from the --node-json-file flag value.
-	dev.SetImportSource("hpcm", commands.NodeJsonFile)
+	dev.SetImportSource(hpcmBucket, commands.NodeJsonFile)
 
 	frus := buildFrusFromInventory(node, dev.ID)
 	return dev, frus
 }
 
-// buildModuleFromNode creates a CaniModuleType from a classified node.
+// buildModuleFromNode creates a CaniModuleType from a classified node. Like
+// a device, it keeps what HPCM records about the node in the HPCM bucket.
 // chassisByXname provides fallback parent lookup via geoloc xnames.
 func buildModuleFromNode(node import_.Node, cl Classification, chassisByLoc, chassisByXname map[string]uuid.UUID) (devicetypes.CaniModuleType, []devicetypes.CaniFruType) {
+	meta := nodeMetadata(node)
+	// The geoloc xname is kept for traceability.
+	geo := nodeGeolocXname(node.Inventory, node.Aliases)
+	if geo != "" {
+		meta["geoloc"] = geo
+	}
 	mod := devicetypes.CaniModuleType{
 		ID:         uuid.New(),
 		Name:       node.Name,
 		Type:       devicetypes.Type(node.Type),
-		ObjectMeta: devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), CustomFields: make(map[string]any)},
+		ObjectMeta: devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), ProviderMetadata: inBucket(meta)},
 	}
 
-	if node.UUID != "" {
-		mod.CustomFields[metaKeyHpcmUUID] = node.UUID
-	}
-	if len(node.Aliases) > 0 {
-		mod.CustomFields[metaKeyAliases] = node.Aliases
-	}
 	if node.Location != nil {
-		mod.CustomFields["location"] = locationToMap(node.Location)
-
 		// Set parent device to the chassis, and module-bay from tray/node.
 		if node.Location.Rack != nil && node.Location.Chassis != nil {
 			key := chassisKey(*node.Location.Rack, *node.Location.Chassis)
@@ -372,13 +356,7 @@ func buildModuleFromNode(node import_.Node, cl Classification, chassisByLoc, cha
 	// Fallback: resolve parent from geoloc xname when location-based
 	// lookup did not find a chassis.
 	if mod.ParentDevice == uuid.Nil {
-		geo := nodeGeolocXname(node.Inventory, node.Aliases)
 		mod.ParentDevice = resolveGeolocParent(geo, chassisByLoc, chassisByXname)
-	}
-
-	// Store geoloc xname in module metadata for traceability.
-	if geo := nodeGeolocXname(node.Inventory, node.Aliases); geo != "" {
-		mod.CustomFields["geoloc"] = geo
 	}
 
 	frus := buildFrusFromInventory(node, uuid.Nil)
@@ -412,7 +390,7 @@ func buildLocationFromNode(node import_.Node) devicetypes.CaniLocationType {
 		ID:           uuid.New(),
 		Name:         node.Name,
 		LocationType: "site",
-		ObjectMeta:   devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), CustomFields: map[string]any{metaKeyHpcmUUID: node.UUID}},
+		ObjectMeta:   devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), ProviderMetadata: inBucket(map[string]any{metaKeyHpcmUUID: node.UUID})},
 	}
 }
 
@@ -746,7 +724,7 @@ func buildRack(node import_.Node, racksByNumber map[int32]uuid.UUID, existing *d
 		ID:         id,
 		Name:       name,
 		Type:       devicetypes.TypeRack,
-		ObjectMeta: devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), ProviderMetadata: map[string]any{"rack_number": rackNum}},
+		ObjectMeta: devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), ProviderMetadata: inBucket(map[string]any{"rack_number": rackNum})},
 		UHeight:    42,
 	}
 	racksByNumber[rackNum] = rack.ID
@@ -809,14 +787,15 @@ func splitInventoryKey(key string) (string, string) {
 	}
 }
 
-// buildCaniFru constructs a CaniFruType from grouped inventory entries.
+// buildCaniFru constructs a CaniFruType from grouped inventory entries. A
+// field the inventory has no place for is kept in the HPCM bucket.
 func buildCaniFru(parentName, groupID string, entries []kvEntry) devicetypes.CaniFruType {
 	hwType := strings.SplitN(groupID, ".", 2)[0]
 	fru := devicetypes.CaniFruType{
 		ID:         uuid.New(),
 		Name:       fmt.Sprintf("%s-%s", parentName, groupID),
 		Type:       devicetypes.Type(hwType),
-		ObjectMeta: devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive), CustomFields: make(map[string]any)},
+		ObjectMeta: devicetypes.ObjectMeta{Status: string(devicetypes.StatusActive)},
 		Discovered: true,
 	}
 
@@ -833,7 +812,7 @@ func buildCaniFru(parentName, groupID string, entries []kvEntry) devicetypes.Can
 		case "name":
 			fru.Label = e.value
 		default:
-			fru.CustomFields[e.key] = e.value
+			fru.SetProviderMeta(hpcmBucket, e.key, e.value)
 		}
 	}
 

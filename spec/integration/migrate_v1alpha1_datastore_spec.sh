@@ -119,6 +119,59 @@ print("left_typed=" + json.dumps(left_typed, sort_keys=True))
 PY
 }
 
+# Loads a datastore the v1alpha9 HPCM import wrote, imports the same nodes
+# into a second datastore with this build, and prints whether every upgraded
+# object holds its HPCM values where a fresh import puts them.
+#shellcheck disable=SC2317
+v1alpha9_hpcm_summary() {
+	setup_datastore_migration_env canitestdb_v1alpha9_hpcm.json
+	_migration_fixture="$FIXTURES/cani/legacy/canitestdb_v1alpha9_hpcm.json"
+	_fresh_ds="$CANI_DIR/fresh.json"
+
+	bin/cani alpha show --config "$CANI_CONF" >/dev/null || return $?
+	bin/cani alpha import hpcm --node-json-file "$FIXTURES/hpcm/blade_system.json" \
+		--config "$CANI_CONF" --datastore-path "$_fresh_ds" >/dev/null 2>&1 || return $?
+
+	if cmp -s "$_migration_fixture" "$CANI_DS.canisave"; then
+		printf 'backup_matches=True\n'
+	else
+		printf 'backup_matches=False\n'
+		return 1
+	fi
+
+	CANI_DS_PATH="$CANI_DS" CANI_FRESH_PATH="$_fresh_ds" python3 - <<'PY'
+import json
+import os
+
+
+def held(path):
+    """Custom fields and provider metadata of every object, by kind and name."""
+    with open(path, encoding="utf-8") as datastore:
+        inventory = json.load(datastore)
+    objects = {}
+    for kind in ("locations", "racks", "devices", "modules", "frus"):
+        for record in (inventory.get(kind) or {}).values():
+            provider = json.loads(json.dumps(record.get("providerMetadata") or {}))
+            # The two imports read the nodes from different paths.
+            (provider.get("hpcm") or {}).pop("import_source", None)
+            objects[kind + "/" + record["name"]] = {
+                "customFields": record.get("customFields") or {},
+                "providerMetadata": provider,
+            }
+    return inventory["schemaVersion"], objects
+
+
+schema, upgraded = held(os.environ["CANI_DS_PATH"])
+_, fresh = held(os.environ["CANI_FRESH_PATH"])
+differing = sorted(key for key in set(upgraded) | set(fresh) if upgraded.get(key) != fresh.get(key))
+
+print("schema=" + schema)
+print("objects=" + str(len(upgraded)))
+print("custom_fields_left=" + str(sum(len(entry["customFields"]) for entry in upgraded.values())))
+print("differs_from_fresh_import=" + json.dumps(differing))
+PY
+}
+
 Describe 'INTEGRATION:'
 
 It 'migrates a v1alpha1 datastore to v1alpha10'
@@ -174,6 +227,18 @@ It 'moves v1alpha9 provider metadata to the fields and custom fields that own it
 	The output should include 'placed=True'
 	The output should include 'racked_stays=True'
 	The output should include 'left_typed=[["unplaced-dev", {"location": "dc-nowhere"}]]'
+End
+
+It 'moves what the v1alpha9 HPCM import stored as custom fields to the HPCM bucket'
+	When call v1alpha9_hpcm_summary
+	The status should equal 0
+	The stderr should include 'Migrated datastore from v1alpha9 to v1alpha10'
+	The stderr should include '9 custom field(s) the HPCM import wrote on modules, locations and inventory items moved to providerMetadata.hpcm'
+	The output should include 'backup_matches=True'
+	The output should include 'schema=v1alpha10'
+	The output should include 'objects=10'
+	The output should include 'custom_fields_left=0'
+	The output should include 'differs_from_fresh_import=[]'
 End
 
 End

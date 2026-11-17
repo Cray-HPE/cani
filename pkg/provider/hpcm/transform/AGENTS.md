@@ -45,3 +45,13 @@ when `location.rack`/`location.chassis` are not available.
 `buildRack` deduplicates by rack number using `racksByNumber`. Multiple chassis
 in the same physical rack (e.g. chassis 1 and chassis 3 both in rack 9000)
 produce a single rack entry.
+
+### Where HPCM's Own Data Goes
+
+Everything HPCM records about an object that the inventory has no field for
+goes in `ProviderMetadata["hpcm"]` (`metadata.go`): a node's UUID, aliases and
+location on devices and modules, a module's geoloc, a rack's number, a
+location's UUID, and every inventory field of an inventory item that is not
+its serial, part number, model, manufacturer or name. Nothing is written to
+`CustomFields`, which hold attributes an operator defines and which every
+export sends, and nothing is written to `ProviderMetadata` outside the bucket.

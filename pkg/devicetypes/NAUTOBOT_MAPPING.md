@@ -250,6 +250,7 @@ Exported in Phase 4 by `loadModules()` in `export/load_modules.go`, spares first
 | `Tags` | `[]string` | `Module.Tags` | Not Mapped | |
 | `CustomFields` | `map[string]any` | `Module.CustomFields` | **Mapped** | One projection for every write (`customFieldProjection`): the object's custom fields as they are, plus any provider-metadata key `export.provider_metadata_fields` lists; `false`, `0` and `""` are sent; keys the response does not echo are counted as lossy |
 | `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Import records the source Nautobot UUID for stable re-import identity |
+| `ProviderMetadata` | `map[string]any` | — | Cani-Internal | Private to the provider that wrote it; not exported unless `export.provider_metadata_fields` lists the key (§2a.6) |
 | `Source` | `string` | — | Cani-Internal | |
 
 ---
@@ -290,6 +291,7 @@ Cables use a library mechanism identical to devices: a slug/part-number resolves
 | `Tags` | `[]string` | `Cable.Tags` | Not Mapped | |
 | `CustomFields` | `map[string]any` | `Cable.CustomFields` | **Mapped** | One projection for every write (`customFieldProjection`): the object's custom fields as they are, plus any provider-metadata key `export.provider_metadata_fields` lists; `false`, `0` and `""` are sent; keys the response does not echo are counted as lossy |
 | `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Import records the source Nautobot UUID; merge falls back to label or unordered endpoints |
+| `ProviderMetadata` | `map[string]any` | — | Cani-Internal | Private to the provider that wrote it; not exported unless `export.provider_metadata_fields` lists the key (§2a.6) |
 | `Source` | `string` | — | Cani-Internal | |
 
 **Cable type derivation** (`resolveCableType()` in `load_cable_types.go`):
@@ -330,6 +332,7 @@ Exported in Phase 5 by `loadFrus()` in `export/load_frus.go`. Uses a topological
 | `Tags` | `[]string` | `InventoryItem.Tags` | **Mapped** | Resolved by name on create |
 | `CustomFields` | `map[string]any` | `InventoryItem.CustomFields` | **Mapped** | One projection for every write (`customFieldProjection`): the object's custom fields as they are, plus any provider-metadata key `export.provider_metadata_fields` lists; `false`, `0` and `""` are sent; keys the response does not echo are counted as lossy |
 | `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Import records the source Nautobot UUID for stable nested-FRU re-imports |
+| `ProviderMetadata` | `map[string]any` | — | Cani-Internal | Private to the provider that wrote it; not exported unless `export.provider_metadata_fields` lists the key (§2a.6) |
 | `Source` | `string` | — | Cani-Internal | |
 
 ---
