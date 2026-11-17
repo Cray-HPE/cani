@@ -297,36 +297,3 @@ func TestResolveLocationNoAutoCreateFails(t *testing.T) {
 		t.Fatal("expected error when no location and no auto-create")
 	}
 }
-
-// TestResolveLocationFromMetadataExplicit verifies resolveLocation honors an
-// explicit ProviderMetadata["location"] over any default.
-//
-// Why it matters: when cani data names a specific location, the export must place
-// the device there rather than at a fallback.
-// Inputs: a device whose ProviderMetadata sets location="Lab-42", with "Lab-42"
-// seeded in the cache. Outputs: the CachedItem whose ID matches the seeded one.
-// Data choice: asserting on the seeded UUID proves the named location (not a
-// default) was selected.
-func TestResolveLocationFromMetadataExplicit(t *testing.T) {
-	cache := NewLookupCache(nil)
-	locID := uuid.New()
-	cache.locationsMu.Lock()
-	cache.locations["Lab-42"] = &CachedItem{ID: locID, Name: "Lab-42"}
-	cache.locationsMu.Unlock()
-
-	mapper := NewDeviceMapper(cache, &MapperOpts{})
-	dev := &devicetypes.CaniDeviceType{
-		ObjectMeta: devicetypes.ObjectMeta{
-			ProviderMetadata: map[string]any{
-				"location": "Lab-42",
-			},
-		},
-	}
-	item, err := mapper.resolveLocation(dev)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if item.ID != locID {
-		t.Errorf("expected location ID %s, got %s", locID, item.ID)
-	}
-}

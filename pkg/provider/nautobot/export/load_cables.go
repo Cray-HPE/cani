@@ -77,7 +77,7 @@ func (e *Exporter) createCaniCableType(ctx context.Context, cableID uuid.UUID, c
 	if err != nil {
 		return err
 	}
-	req, err := cableRequest(cable, a, b, statusID)
+	req, err := cableRequest(cable, a, b, statusID, e.customFields())
 	if err != nil {
 		return err
 	}

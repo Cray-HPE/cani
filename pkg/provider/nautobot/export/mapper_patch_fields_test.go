@@ -194,8 +194,8 @@ func TestMapToPatchRequestNoSlugSkipsDeviceType(t *testing.T) {
 //
 // Why it matters: an in-place update of an existing Nautobot device must
 // propagate edits to these tracking fields, not just structural ones.
-// Inputs: a resolvable device with serial/asset/comments and a custom_key in
-// ProviderMetadata. Outputs: a patch request mirroring all four values.
+// Inputs: a resolvable device with serial/asset/comments and a custom_key
+// custom field. Outputs: a patch request mirroring all four values.
 // Data choice: distinct "PATCH" sentinel strings make a dropped field obvious.
 func TestMapToPatchRequestSerialAssetComments(t *testing.T) {
 	cache := NewLookupCache(nil)
@@ -225,7 +225,7 @@ func TestMapToPatchRequestSerialAssetComments(t *testing.T) {
 		AssetTag: "TAG-PATCH-1",
 		Comments: "updated via patch",
 		ObjectMeta: devicetypes.ObjectMeta{
-			ProviderMetadata: map[string]any{
+			CustomFields: map[string]any{
 				"custom_key": "custom_val",
 			},
 		},

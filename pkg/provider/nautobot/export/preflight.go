@@ -177,7 +177,7 @@ func (refs catalogRefs) collectDevices(inventory *devicetypes.Inventory, default
 		}
 		refs.deviceTypes[device.Slug] = true
 		refs.statuses[firstSet(device.Status, defaultStatus)] = true
-		refs.roles[firstSet(device.GetRole(), defaultRole)] = true
+		refs.roles[firstSet(device.Role, defaultRole)] = true
 		refs.collectInterfaces(getDeviceInterfaceSpecs(device))
 	}
 	delete(refs.deviceTypes, "")

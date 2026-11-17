@@ -182,7 +182,7 @@ func (e *Exporter) createIPAddress(
 			}
 		}
 	}
-	req.CustomFields = customFieldsPayload("IP address", addr.Address, &addr.ObjectMeta)
+	req.CustomFields = e.customFields().payload("IP address", addr.Address, &addr.ObjectMeta)
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create IP address: %s", addr.Address)

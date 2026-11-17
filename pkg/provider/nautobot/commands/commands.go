@@ -54,6 +54,8 @@ func NewExportCommand(base *cli.Command) (*cli.Command, error) {
 	cmd.Flags().Bool("create-roles", true, "Create missing roles in Nautobot")
 	cmd.Flags().Bool("merge", false, "Merge with existing devices instead of skipping conflicts")
 	cmd.Flags().Bool("dry-run", false, "Log planned actions without making API calls")
+	cmd.Flags().StringSlice("provider-metadata-field", nil,
+		"Provider metadata to send as a custom field, as provider.key or provider.key=custom_field (comma-separated or repeatable; replaces the configured list)")
 
 	return cmd, nil
 }

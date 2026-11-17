@@ -72,7 +72,7 @@ func extractRackID(t *testing.T, id json.Marshaler) uuid.UUID {
 // dropped the optional fields, the remote device would be created floating and
 // stripped of its provenance, breaking placement and audit.
 // Inputs: a fully populated CaniDeviceType (rack FK, RackPosition=12, Face=rear,
-// serial, asset tag, comments, provider metadata) whose references are seeded in
+// serial, asset tag, comments, a custom field) whose references are seeded in
 // the cache, with the parent rack resolved by a fake server. Outputs: a
 // WritableDeviceRequest whose Rack decodes to the Nautobot rack UUID, Position
 // is 12, Face is rear, and Serial/AssetTag/Comments/CustomFields are set.
@@ -96,9 +96,9 @@ func TestMapToWritableDeviceRequest_FullRackPlacement(t *testing.T) {
 		RackPosition: 12,
 		Face:         "rear",
 		ObjectMeta: devicetypes.ObjectMeta{
-			Status:           "Active",
-			Role:             "Compute",
-			ProviderMetadata: map[string]any{"nautobot": map[string]any{"nid": "42"}},
+			Status:       "Active",
+			Role:         "Compute",
+			CustomFields: map[string]any{"nid": "42"},
 		},
 	}
 
@@ -199,7 +199,7 @@ func TestMapToWritableDeviceRequest_LegacyRackDevice(t *testing.T) {
 // re-placed or re-tagged device must carry its new rack slot and metadata into
 // the PATCH; dropping them would silently revert remote state on every sync.
 // Inputs: a device whose Rack points at a rack in inv.Racks, with
-// RackPosition=7, Face=rear, serial, asset tag, comments and provider metadata,
+// RackPosition=7, Face=rear, serial, asset tag, comments and a custom field,
 // references seeded in the cache, rack resolved via the fake server, and an
 // existing device UUID. Outputs: a PatchedWritableDeviceRequest whose Rack
 // decodes to the Nautobot rack UUID, Position is 7, Face is rear, and the
@@ -222,9 +222,9 @@ func TestMapToPatchRequest_FullRackPlacement(t *testing.T) {
 		RackPosition: 7,
 		Face:         "rear",
 		ObjectMeta: devicetypes.ObjectMeta{
-			Status:           "Active",
-			Role:             "Compute",
-			ProviderMetadata: map[string]any{"nautobot": map[string]any{"alias": "c3"}},
+			Status:       "Active",
+			Role:         "Compute",
+			CustomFields: map[string]any{"alias": "c3"},
 		},
 	}
 

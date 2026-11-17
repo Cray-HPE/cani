@@ -166,7 +166,7 @@ func (e *Exporter) createVLAN(
 		}
 	}
 
-	if req.CustomFields = customFieldsPayload("VLAN", vlan.Name, &vlan.ObjectMeta); req.CustomFields != nil {
+	if req.CustomFields = e.customFields().payload("VLAN", vlan.Name, &vlan.ObjectMeta); req.CustomFields != nil {
 		clog.Info("  VLAN %d custom_fields: %d key(s)", vlan.VID, len(*req.CustomFields))
 	}
 

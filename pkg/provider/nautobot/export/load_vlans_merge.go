@@ -43,7 +43,7 @@ func (e *Exporter) mergeVLAN(ctx context.Context, vlan *devicetypes.CaniVLAN, na
 		return false, err
 	}
 
-	req, drifted := buildVLANPatch(vlan, remote)
+	req, drifted := buildVLANPatch(vlan, remote, e.customFields())
 	if !drifted {
 		return false, nil
 	}
@@ -83,7 +83,7 @@ func (e *Exporter) fetchVLANByID(ctx context.Context, id uuid.UUID) (*nautobotap
 
 // buildVLANPatch compares local VLAN intent against the remote state
 // and returns a PATCH request with drifted fields.
-func buildVLANPatch(vlan *devicetypes.CaniVLAN, remote *nautobotapi.VLAN) (*nautobotapi.PatchedVLANRequest, bool) {
+func buildVLANPatch(vlan *devicetypes.CaniVLAN, remote *nautobotapi.VLAN, fields customFieldProjection) (*nautobotapi.PatchedVLANRequest, bool) {
 	req := &nautobotapi.PatchedVLANRequest{}
 	drifted := false
 
@@ -96,11 +96,11 @@ func buildVLANPatch(vlan *devicetypes.CaniVLAN, remote *nautobotapi.VLAN) (*naut
 		drifted = true
 	}
 
-	// Compare custom fields through the same projection a create sends, so a
-	// key set both explicitly and by provider metadata is reported here too.
-	localCF := customFieldsOf("VLAN", &vlan.ObjectMeta).values
-	if len(localCF) > 0 && customFieldsDrifted(localCF, remote.CustomFields) {
-		req.CustomFields = customFieldsPayload("VLAN", vlan.Name, &vlan.ObjectMeta)
+	// Compare custom fields through the same projection a create sends, so
+	// the comparison and the write cannot disagree.
+	local := fields.noted("VLAN", vlan.Name, &vlan.ObjectMeta)
+	if len(local.values) > 0 && customFieldsDrifted(local.values, remote.CustomFields) {
+		req.CustomFields = local.payload()
 		drifted = true
 	}
 

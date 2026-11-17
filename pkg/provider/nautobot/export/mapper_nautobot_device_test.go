@@ -106,19 +106,17 @@ func TestMapToNautobotDeviceFull(t *testing.T) {
 	}
 }
 
-// ---------- MapToNautobotDevice with ProviderMetadata (custom fields) ----------
+// ---------- MapToNautobotDevice with custom fields ----------
 
 // TestMapToNautobotDeviceWithCustomFields verifies that MapToNautobotDevice
-// flattens a device's nested ProviderMetadata ("nautobot" map) into the request's
-// CustomFields, surfacing keys like "xname" and "import_date" at top level.
+// carries a device's custom fields into the request's CustomFields, keys such
+// as "xname" and "import_date".
 //
-// Why it matters: cani provider metadata (e.g. HPC xnames, import dates) must be
-// carried into Nautobot custom fields so exported devices stay traceable to source.
-// Inputs: a fully classified CaniDeviceType whose ProviderMetadata nests a
-// "nautobot" map. Outputs: a BulkWritableDeviceRequest whose *CustomFields holds
-// the flattened keys.
-// Data choice: nesting under "nautobot" exercises FlattenProviderMetadata's
-// lifting of nested keys; all reference caches are seeded so mapping reaches the
+// Why it matters: a device's custom fields must reach Nautobot on a bulk
+// create, so exported devices stay traceable to their source.
+// Inputs: a fully classified CaniDeviceType with two custom fields. Outputs: a
+// BulkWritableDeviceRequest whose *CustomFields holds both keys.
+// Data choice: all reference caches are seeded so mapping reaches the
 // custom-field step without resolution errors.
 func TestMapToNautobotDeviceWithCustomFields(t *testing.T) {
 	cache := NewLookupCache(nil)
@@ -151,11 +149,9 @@ func TestMapToNautobotDeviceWithCustomFields(t *testing.T) {
 		Name: "custom-fields-device",
 		Slug: "test-dt",
 		ObjectMeta: devicetypes.ObjectMeta{
-			ProviderMetadata: map[string]any{
-				"nautobot": map[string]any{
-					"xname":       "x3000c0s1b0",
-					"import_date": "2026-01-01",
-				},
+			CustomFields: map[string]any{
+				"xname":       "x3000c0s1b0",
+				"import_date": "2026-01-01",
 			},
 		},
 	}

@@ -300,32 +300,6 @@ func TestRackLocationIgnored(t *testing.T) {
 	t.Log("BUG #2: createRackFromCaniRack ignores rack.Location UUID; always uses DefaultLocation string")
 }
 
-// ---------- bug #3: device location from ProviderMetadata ----------
-
-func TestDeviceLocationFromProviderMetadata(t *testing.T) {
-	inv := loadFixture(t)
-
-	devID := uuid.MustParse("00000000-0000-0000-0000-000000000025")
-	dev, ok := inv.Devices[devID]
-	if !ok {
-		t.Fatal("meta-location device not found in fixture")
-	}
-
-	if dev.Location != uuid.Nil {
-		t.Fatal("fixture setup error: expected empty Location UUID")
-	}
-	if dev.ProviderMetadata == nil {
-		t.Fatal("fixture setup error: expected non-nil ProviderMetadata")
-	}
-
-	nautobotMeta, _ := dev.ProviderMetadata["nautobot"].(map[string]any)
-	locStr, _ := nautobotMeta["location"].(string)
-	if locStr == "" {
-		t.Fatal("fixture setup error: expected ProviderMetadata.nautobot.location string")
-	}
-	t.Logf("BUG #3: device location resolved from ProviderMetadata[\"location\"]=%q instead of Location UUID FK", locStr)
-}
-
 // ---------- bug #7: inventory.Interfaces ignored ----------
 
 func TestInventoryInterfacesIgnored(t *testing.T) {

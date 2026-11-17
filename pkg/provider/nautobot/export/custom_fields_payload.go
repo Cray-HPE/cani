@@ -27,59 +27,61 @@ package export
 
 import (
 	"encoding/json"
+	"fmt"
+	"maps"
 	"sort"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
 
 // customFieldSet is the custom-field projection of one inventory object: the
-// values a write sends, and the keys that both the explicit CustomFields and
-// the flattened ProviderMetadata supplied.
+// values a write sends, and the keys whose value comes from a provider's
+// metadata in place of a different one the object's own custom fields hold.
 type customFieldSet struct {
 	values     map[string]any
-	collisions []string
+	overridden []ProviderMetadataField
 }
 
-// Object kinds whose mappers read provider-metadata keys into dedicated
-// Nautobot fields. The kind also labels the object in log lines.
+// Object kinds that label a device and a rack kept as a device in log lines.
 const (
 	kindDevice     = "device"
 	kindRackDevice = "rack device"
 )
 
-// reservedProviderKeys names, per object kind, the provider-metadata keys
-// the kind's mapper already sends as a dedicated Nautobot field: a device's
-// role and location, and the legacy device-as-rack's geometry and location.
-// They are never projected as custom fields, on a write or in the --merge
-// comparison. An explicit custom field of the same name is unaffected.
-var reservedProviderKeys = map[string][]string{
-	kindDevice:     {"role", "location"},
-	kindRackDevice: {"u_height", "rack_position", "location"},
-}
+// customFieldProjection is the one projection from an object's metadata to
+// the custom_fields Nautobot receives, shared by every create, merge and
+// compare path. It holds the provider-metadata keys the operator asked to
+// export; with none, an object's custom fields are all that is sent.
+type customFieldProjection []ProviderMetadataField
 
-// customFieldsOf is the one projection from an object's metadata to the
-// custom_fields Nautobot receives, shared by every create, merge and compare
-// path. Explicit CustomFields are merged with the flattened ProviderMetadata;
-// on a shared key the provider value wins, which is the documented
-// precedence, and the key is reported rather than resolved differently.
-// Explicit false, zero and empty values are kept: Nautobot fills an omitted
-// key from the definition's default, so omission and false are different
-// writes. The provider-metadata keys reserved for the kind are left out.
-func customFieldsOf(kind string, meta *devicetypes.ObjectMeta) customFieldSet {
+// of projects one object. Its custom fields are sent as they are: false,
+// zero and empty values are kept, because Nautobot fills an omitted key from
+// the definition's default, and an explicit null is kept, because it is how
+// a field is cleared. Provider metadata is not sent, except the keys the
+// projection lists, each under its custom-field key. Such a key belongs to
+// its provider, so its value replaces a custom field of the same key. That
+// custom field is usually the copy an import read back; were it to win, the
+// field would stay at the first value exported. A custom field that is null
+// holds no value to replace: an import reads every unset field back as null.
+func (p customFieldProjection) of(meta *devicetypes.ObjectMeta) customFieldSet {
 	if meta == nil {
 		return customFieldSet{}
 	}
-	flat := meta.FlattenProviderMetadata()
-	for _, k := range reservedProviderKeys[kind] {
-		delete(flat, k)
-	}
-	set := customFieldSet{values: mergedCustomFields(meta.CustomFields, flat)}
-	for k := range flat {
-		if _, dup := meta.CustomFields[k]; dup {
-			set.collisions = append(set.collisions, k)
+	set := customFieldSet{values: maps.Clone(meta.CustomFields)}
+	for _, field := range p {
+		bucket, _ := meta.ProviderMetadata[field.Provider].(map[string]any)
+		value, held := bucket[field.Key]
+		if !held {
+			continue
 		}
+		if own := set.values[field.CustomField]; own != nil && fmt.Sprint(own) != fmt.Sprint(value) {
+			set.overridden = append(set.overridden, field)
+		}
+		if set.values == nil {
+			set.values = make(map[string]any)
+		}
+		set.values[field.CustomField] = value
 	}
-	sort.Strings(set.collisions)
 	return set
 }
 
@@ -91,15 +93,24 @@ func (s customFieldSet) payload() *map[string]*interface{} {
 	return toNautobotCustomFields(s.values)
 }
 
-// customFieldsPayload projects one object's custom fields for a write and
-// warns once per colliding key, naming the object and the key but never the
-// value.
-func customFieldsPayload(kind, name string, meta *devicetypes.ObjectMeta) *map[string]*interface{} {
-	set := customFieldsOf(kind, meta)
-	for _, key := range set.collisions {
-		clog.Warn("%s %s: custom field %q is set both explicitly and by provider metadata; the provider value is sent", kind, name, key)
+// noted projects one object and notes each custom field a listed provider
+// key replaced with a different value, naming the object, the key and the
+// provider but never a value. A path that compares before it writes notes
+// here, so the note is made once whether or not a write follows; a custom
+// field that had no effect would otherwise go unmentioned.
+func (p customFieldProjection) noted(kind, name string, meta *devicetypes.ObjectMeta) customFieldSet {
+	set := p.of(meta)
+	for _, field := range set.overridden {
+		clog.Detail("%s %s: custom field %q comes from %s provider metadata; the %s's own value differs and is not sent",
+			kind, name, field.CustomField, field.Provider, kind)
 	}
-	return set.payload()
+	return set
+}
+
+// payload projects one object's custom fields for a create and notes what a
+// listed provider key replaced.
+func (p customFieldProjection) payload(kind, name string, meta *devicetypes.ObjectMeta) *map[string]*interface{} {
+	return p.noted(kind, name, meta).payload()
 }
 
 // recordDroppedCustomFields counts the custom-field keys a write sent that

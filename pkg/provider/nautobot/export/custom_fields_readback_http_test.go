@@ -69,26 +69,26 @@ func deviceCreateEchoingDefined(defined []string, sent *map[string]any) http.Han
 // key it will never expose, so a green create log is not evidence the value arrived;
 // the Story requires every object that did not arrive as authored to be
 // accounted for.
-// Inputs: a device with explicit {decommissioned: false, spare_slots: 0,
-// tier} and provider {xname}; a fake Nautobot that has definitions for
-// decommissioned, spare_slots and xname only.
-// Outputs: the request carried all four keys, result.CustomFieldsDropped
+// Inputs: a device with custom fields {decommissioned: false, spare_slots: 0,
+// tier}; a fake Nautobot that has definitions for decommissioned and
+// spare_slots only.
+// Outputs: the request carried all three keys, result.CustomFieldsDropped
 // == 1 and the device is still recorded as created.
 // Data choice: the dropped key is the plain string so the two falsy values
 // are shown to round-trip through the real JSON encoding.
 func TestCreateDevice_CountsCustomFieldsNautobotDropped(t *testing.T) {
 	var sent map[string]any
-	e, cleanup := newExporterWithServer(t, deviceCreateEchoingDefined([]string{"decommissioned", "spare_slots", "xname"}, &sent))
+	e, cleanup := newExporterWithServer(t, deviceCreateEchoingDefined([]string{"decommissioned", "spare_slots"}, &sent))
 	defer cleanup()
 	seedDeviceRefs(t, e)
 
 	result := &LoadResult{}
-	if err := e.createDevice(context.Background(), explicitCustomFieldDevice("compute-001"), newCrudMapper(e), result); err != nil {
+	if err := e.createDevice(context.Background(), customFieldDevice("compute-001"), newCrudMapper(e), result); err != nil {
 		t.Fatalf("createDevice() error = %v", err)
 	}
 
-	if len(sent) != 4 || sent["decommissioned"] != false || sent["spare_slots"] != float64(0) {
-		t.Errorf("request custom_fields = %v, want all four keys with false and 0 intact", sent)
+	if len(sent) != 3 || sent["decommissioned"] != false || sent["spare_slots"] != float64(0) {
+		t.Errorf("request custom_fields = %v, want all three keys with false and 0 intact", sent)
 	}
 	if result.CustomFieldsDropped != 1 {
 		t.Errorf("CustomFieldsDropped = %d, want 1 (tier has no definition)", result.CustomFieldsDropped)

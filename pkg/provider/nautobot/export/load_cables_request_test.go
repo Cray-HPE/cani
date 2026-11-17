@@ -55,7 +55,7 @@ func TestCableRequestCarriesOptionalFields(t *testing.T) {
 		Length: &length, LengthUnit: "ft", Color: "green",
 	}
 
-	req, err := cableRequest(cable, a, b, uuid.New())
+	req, err := cableRequest(cable, a, b, uuid.New(), nil)
 
 	if err != nil {
 		t.Fatalf("cableRequest() error = %v", err)
@@ -85,7 +85,7 @@ func TestCableRequestCarriesOptionalFields(t *testing.T) {
 func TestCableRequestDefaultsBareCable(t *testing.T) {
 	a, b := requestEnds()
 
-	req, err := cableRequest(&devicetypes.CaniCableType{Label: "bare"}, a, b, uuid.New())
+	req, err := cableRequest(&devicetypes.CaniCableType{Label: "bare"}, a, b, uuid.New(), nil)
 
 	if err != nil {
 		t.Fatalf("cableRequest() error = %v", err)

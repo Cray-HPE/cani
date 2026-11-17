@@ -178,16 +178,13 @@ func TestMapToPatchRequestNoSlug(t *testing.T) {
 }
 
 // TestMapToPatchRequestWithCustomFields verifies that MapToPatchRequest copies
-// flattened ProviderMetadata into the request's CustomFields, e.g. a nested
-// nautobot.xname becomes the "xname" custom field.
+// a device's custom fields into the request's CustomFields, e.g. "xname".
 //
-// Why it matters: cani stores Nautobot-specific attributes (like xname) in
-// provider metadata; flattening them into custom fields is how that data reaches
-// Nautobot on update.
-// Inputs: a device whose ProviderMetadata nests {"nautobot":{"xname":...}}.
+// Why it matters: a merge is how a changed custom field reaches a device that
+// already exists in Nautobot.
+// Inputs: a device with the custom field xname.
 // Outputs: CustomFields["xname"]=="x1000c0s0b0".
-// Data choice: a nested map proves FlattenProviderMetadata unwraps the
-// "nautobot" namespace into a top-level custom field.
+// Data choice: one text field is enough to show the patch carries them.
 func TestMapToPatchRequestWithCustomFields(t *testing.T) {
 	cache := NewLookupCache(nil)
 	locID := uuid.New()
@@ -214,10 +211,8 @@ func TestMapToPatchRequestWithCustomFields(t *testing.T) {
 		ID:   uuid.New(),
 		Name: "cf-device",
 		ObjectMeta: devicetypes.ObjectMeta{
-			ProviderMetadata: map[string]any{
-				"nautobot": map[string]any{
-					"xname": "x1000c0s0b0",
-				},
+			CustomFields: map[string]any{
+				"xname": "x1000c0s0b0",
 			},
 		},
 	}
