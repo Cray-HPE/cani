@@ -30,6 +30,7 @@ import (
 	"strconv"
 
 	"github.com/Cray-HPE/cani/internal/cli"
+	"github.com/Cray-HPE/cani/internal/util/resolve"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	"github.com/google/uuid"
 )
@@ -93,9 +94,28 @@ func applyParentUpdate(cmd *cli.Command, inventory *devicetypes.Inventory, devic
 	if bayArg != "" {
 		return fmt.Errorf("--bay requires the parent to be a device with device bays")
 	}
+	if device.Parent != parentID {
+		// A device follows the rack it moves to unless --location says otherwise.
+		device.Location = uuid.Nil
+	}
 	device.Parent = parentID
 	device.ParentBay = ""
 	return nil
+}
+
+// applyLocationUpdate records --location on the device through the model,
+// which refuses a location that does not hold the device's rack and any
+// location for a device installed in another device.
+func applyLocationUpdate(cmd *cli.Command, inventory *devicetypes.Inventory, device *devicetypes.CaniDeviceType) error {
+	if !cmd.Flags().Changed(flagLocation) {
+		return nil
+	}
+	ref, _ := cmd.Flags().GetString(flagLocation)
+	locationID, err := resolve.Location(inventory, ref)
+	if err != nil {
+		return fmt.Errorf("resolving --location: %w", err)
+	}
+	return inventory.SetDeviceLocation(device, locationID)
 }
 
 // applyTagsAndMetadata handles --tag and --metadata changes.

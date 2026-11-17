@@ -104,6 +104,31 @@ func literalDeviceParent(cmd *cli.Command, inv *devicetypes.Inventory, rackArg, 
 	return parent, bayArg, checkBayArgs(parent, bayArg)
 }
 
+// literalDeviceLocation resolves --location for an add that names its rack
+// or has no parent. It returns uuid.Nil when the flag is unset, which leaves
+// a racked device in its rack's location.
+func literalDeviceLocation(cmd *cli.Command, inv *devicetypes.Inventory) (uuid.UUID, error) {
+	ref, _ := cmd.Flags().GetString(flagLocation)
+	if ref == "" {
+		return uuid.Nil, nil
+	}
+	id, err := resolve.Location(inv, ref)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("resolving --location: %w", err)
+	}
+	return id, nil
+}
+
+// placeDevice records the location on a device being added through the
+// model, which refuses one that does not hold the device's rack; uuid.Nil
+// leaves the location to be derived.
+func placeDevice(inv *devicetypes.Inventory, device *devicetypes.CaniDeviceType, locationID uuid.UUID) error {
+	if locationID == uuid.Nil {
+		return nil
+	}
+	return inv.SetDeviceLocation(device, locationID)
+}
+
 // logAddedDevices reports each added device, noting its bay when installed
 // in a parent device.
 func logAddedDevices(devices map[uuid.UUID]*devicetypes.CaniDeviceType, qty int) {

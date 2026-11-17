@@ -82,8 +82,29 @@ func addAnyDevice(cmd *cli.Command, args []string, device *devicetypes.CaniDevic
 	}
 
 	devicesToAdd := buildDevicesToAdd(device, names, attrs, qty)
+	if err := placeNewDevices(cmd, inventory, devicesToAdd); err != nil {
+		return err
+	}
 
 	return saveAndLogDevices(inventory, devicesToAdd, qty)
+}
+
+// placeNewDevices records --location on each device the bare form built.
+// The children it expanded from device-bay defaults take their parent's.
+func placeNewDevices(cmd *cli.Command, inv *devicetypes.Inventory, devices map[uuid.UUID]*devicetypes.CaniDeviceType) error {
+	locationID, err := literalDeviceLocation(cmd, inv)
+	if err != nil {
+		return err
+	}
+	for _, device := range devices {
+		if _, expanded := devices[device.Parent]; expanded {
+			continue
+		}
+		if err := placeDevice(inv, device, locationID); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // normalizeStatus validates a non-empty status against the inventory and

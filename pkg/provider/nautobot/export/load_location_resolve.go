@@ -131,8 +131,12 @@ func locationTypeSupports(locTypeSlug string, contentType string) bool {
 }
 
 // locationFromInventory returns the location the inventory places the device
-// in: its parent rack's, or, for a device with no Parent, its own Location.
+// in: the one a racked device records when it holds its rack's, else its
+// parent rack's, or, for a device with no Parent, its own Location.
 func (m *DeviceMapper) locationFromInventory(device *devicetypes.CaniDeviceType) string {
+	if name := m.recordedRackedLocation(device); name != "" {
+		return name
+	}
 	if name := m.locationFromParentRack(device); name != "" {
 		return name
 	}
@@ -140,6 +144,26 @@ func (m *DeviceMapper) locationFromInventory(device *devicetypes.CaniDeviceType)
 		return ""
 	}
 	return resolveContentLocation(device.Location, "device", m.inventory)
+}
+
+// recordedRackedLocation returns the location a rack-mounted device records
+// when it is not the rack's own: Nautobot accepts a racked device in any
+// location that holds its rack's. A location that does not hold the rack's,
+// or whose type holds no devices, is left to the rack's resolution, which
+// descends to a location that does.
+func (m *DeviceMapper) recordedRackedLocation(device *devicetypes.CaniDeviceType) string {
+	if m.inventory == nil {
+		return ""
+	}
+	rack := m.inventory.Racks[device.Parent]
+	if rack == nil || device.Location == rack.Location || !m.inventory.LocationHolds(device.Location, rack.Location) {
+		return ""
+	}
+	location := m.inventory.Locations[device.Location]
+	if location == nil || !locationTypeSupports(location.LocationType, "device") {
+		return ""
+	}
+	return location.Name
 }
 
 // locationFromParentRack returns the location name of the device's parent rack,

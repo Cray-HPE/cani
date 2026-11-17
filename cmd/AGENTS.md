@@ -170,6 +170,7 @@ An inherited flag either changes what a noun stores or is refused by name; no no
 | `--position` | int | 0 | Rack U position |
 | `--face` | string | `""` | Rack face (front, rear) |
 | `--role` | string | `""` | Role, stored in the device's `role` field |
+| `--location` | string | `""` | Location UUID or name. With a `%{FILL}`/`%{SPREAD}` rack strategy it filters the racks. Otherwise it is where the device is placed: any location for a device with no rack, and the rack's location or one that holds it for a racked device; a device installed in another device takes that device's and the flag is refused |
 
 #### `add module <slug-or-part-number>`
 
@@ -216,12 +217,14 @@ Each takes `<uuid-or-name>` as a positional arg; a module may also be named by i
 | Noun | Typed Flags | `--set` Keys |
 |------|-------------|--------------|
 | `location` | `--name`, `--status`, `--type`, `--description`, `--facility`, `--address` | name, status, location_type, description, facility, physical_address |
-| `rack` | `--name`, `--status`, `--role`, `--description`, `--u-height` | name, status, role, description, u_height |
-| `device` | `--name`, `--status`, `--role`, `--description`, `--position`, `--face` | name, status, role, description, rack_position, face, serial, asset_tag |
+| `rack` | `--name`, `--status`, `--role`, `--description`, `--u-height`, `--location` | name, status, role, description, u_height |
+| `device` | `--name`, `--status`, `--role`, `--description`, `--position`, `--face`, `--location` | name, status, role, description, rack_position, face, serial, asset_tag |
 | `module` | `--name`, `--status`, `--role`, `--description`, `--bay` | name, status, role, description, module_bay_name, serial, asset_tag |
 | `cable` | `--label`, `--status`, `--color`, `--description` | label, status, color, description |
 
 `--tag` (repeatable) replaces the tags of a location, rack, device, module, cable, interface, prefix or VRF. `--set` applies to the five nouns in the table; `update interface`, `update prefix` and `update vrf` refuse it, and `update orphans` refuses both.
+
+`update device --location` records where a device is, under the rule `add device --location` follows. A racked device stops recording a location of its own when `update device --parent` moves it or `update rack --location` moves its rack (`Inventory.MoveRack`), so it is in the rack's location again.
 
 ### `swap` Subcommands
 

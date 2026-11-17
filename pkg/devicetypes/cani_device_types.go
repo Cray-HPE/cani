@@ -54,8 +54,10 @@ type CaniDeviceType struct {
 
 	// Explicit FK fields for Nautobot export. Rack and ParentDevice are
 	// derived from Parent at load time and never persisted. Location is
-	// derived the same way when the device has a Parent; a device placed
-	// directly in a location (no rack) keeps the persisted value.
+	// persisted: a device with no Parent is placed directly in it, a device
+	// in a rack keeps it only while it holds the rack's location and is
+	// otherwise given the rack's, and a device installed in another device
+	// takes that device's (see device_location.go).
 	Rack         uuid.UUID `json:"-" yaml:"-"`                                   // FK to CaniRackType
 	Location     uuid.UUID `json:"location,omitempty" yaml:"location,omitempty"` // FK to CaniLocationType
 	ParentDevice uuid.UUID `json:"-" yaml:"-"`                                   // FK to parent device (blade→chassis)
@@ -116,13 +118,24 @@ func (c *CaniDeviceType) MergeProperties(other *CaniDeviceType) bool {
 		c.mergeStrings(other),
 		mergeSet(&c.UHeight, other.UHeight),
 		c.mergePlacement(other),
-		mergeSet(&c.Parent, other.Parent),
+		c.mergeParent(other.Parent),
 		mergeSet(&c.ParentBay, other.ParentBay),
 		mergeSet(&c.Location, other.Location),
 		c.mergeModuleBays(other.ModuleBays),
 		c.ObjectMeta.Merge(other.ObjectMeta),
 	}
 	return slices.Contains(changes, true)
+}
+
+// mergeParent takes the incoming parent. A device that moves to another
+// parent stops recording a location of its own, so it follows the new rack
+// unless the incoming record names a location, which is merged next.
+func (c *CaniDeviceType) mergeParent(incoming uuid.UUID) bool {
+	if !mergeSet(&c.Parent, incoming) {
+		return false
+	}
+	c.Location = uuid.Nil
+	return true
 }
 
 // mergeModuleBays takes the bays the source system declares for the device,

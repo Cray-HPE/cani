@@ -43,8 +43,8 @@ import (
 // Inputs: one location and one device with Location set and Parent nil.
 // Outputs: Location unchanged after RebuildDerivedState, present in the
 // serialized form, no orphan or error reported.
-// Data choice: a racked device alongside shows the derived case still clears
-// and re-derives Location from its rack.
+// Data choice: a racked device alongside records a location that does not
+// hold its rack's, which the rebuild still replaces with the rack's.
 func TestRebuildKeepsLocationOfDeviceWithoutRack(t *testing.T) {
 	inv := NewInventory()
 	locID, rackID, loose, racked := uuid.New(), uuid.New(), uuid.New(), uuid.New()
@@ -194,19 +194,25 @@ func TestRemoveRackLeavesDevicesInItsLocation(t *testing.T) {
 }
 
 // TestClearDeviceReverseListsResetsFields verifies that the reset before a
-// rebuild clears every derived field of a racked device and its rack's
-// device list.
+// rebuild clears every derived field and the rack's device list, clears the
+// location of a device installed in another device, and leaves a
+// rack-mounted device the location it records.
 //
 // Why it matters: a stale derived value would survive into the rebuild and
-// mask a changed Parent.
-// Inputs: a rack listing one device; that device with Parent, Children, Rack,
-// Location and ParentDevice all set.
-// Outputs: the rack lists no devices and every derived device field is nil.
-// Data choice: Parent is set so Location counts as derived here; the
-// rack-less case is covered by TestRebuildKeepsLocationOfDeviceWithoutRack.
+// mask a changed Parent, while a racked device's recorded location is input
+// the rebuild still has to judge against its rack.
+// Inputs: a rack listing one device with Parent, Children, Rack, Location and
+// ParentDevice all set, and a second device installed in the first with a
+// Location of its own.
+// Outputs: the rack lists no devices; both devices lose Children, Rack and
+// ParentDevice; the racked device keeps its Location and the installed one
+// loses it.
+// Data choice: both devices carry a Location, so the kind of parent is the
+// only thing that decides which survives.
 func TestClearDeviceReverseListsResetsFields(t *testing.T) {
 	rackID := uuid.New()
 	deviceID := uuid.New()
+	childID := uuid.New()
 	locID := uuid.New()
 	parentDevID := uuid.New()
 
@@ -218,21 +224,28 @@ func TestClearDeviceReverseListsResetsFields(t *testing.T) {
 	inv.Devices[deviceID] = &CaniDeviceType{
 		Name:         "d1",
 		Parent:       rackID,
-		Children:     []uuid.UUID{uuid.New()},
+		Children:     []uuid.UUID{childID},
 		Rack:         rackID,
 		Location:     locID,
 		ParentDevice: parentDevID,
 	}
+	inv.Devices[childID] = &CaniDeviceType{Name: "blade", Parent: deviceID, Rack: rackID, Location: locID, ParentDevice: deviceID}
 
 	inv.clearDeviceReverseLists()
 
 	if len(inv.Racks[rackID].Devices) != 0 {
 		t.Fatal("expected rack devices to be cleared")
 	}
-	dev := inv.Devices[deviceID]
-	if len(dev.Children) != 0 || dev.Rack != uuid.Nil ||
-		dev.Location != uuid.Nil || dev.ParentDevice != uuid.Nil {
-		t.Fatal("expected all device reverse fields to be cleared")
+	for _, dev := range []*CaniDeviceType{inv.Devices[deviceID], inv.Devices[childID]} {
+		if len(dev.Children) != 0 || dev.Rack != uuid.Nil || dev.ParentDevice != uuid.Nil {
+			t.Fatalf("expected the derived fields of %s to be cleared", dev.Name)
+		}
+	}
+	if got := inv.Devices[deviceID].Location; got != locID {
+		t.Errorf("racked device location = %s, want the recorded one kept for the rebuild to judge", got)
+	}
+	if got := inv.Devices[childID].Location; got != uuid.Nil {
+		t.Errorf("installed device location = %s, want it cleared", got)
 	}
 }
 
@@ -246,4 +259,214 @@ func TestClearDeviceReverseListsResetsFields(t *testing.T) {
 func TestClearDeviceReverseListsEmptyInventory(t *testing.T) {
 	inv := NewInventory()
 	inv.clearDeviceReverseLists()
+}
+
+// locationTree is an inventory with a site that holds two rooms and one rack
+// in the first room.
+type locationTree struct {
+	inv                         *Inventory
+	site, room, otherRoom, rack uuid.UUID
+}
+
+func newLocationTree() locationTree {
+	tree := locationTree{inv: NewInventory(), site: uuid.New(), room: uuid.New(), otherRoom: uuid.New(), rack: uuid.New()}
+	tree.inv.Locations[tree.site] = &CaniLocationType{ID: tree.site, Name: "site"}
+	tree.inv.Locations[tree.room] = &CaniLocationType{ID: tree.room, Name: "room-1", Parent: tree.site}
+	tree.inv.Locations[tree.otherRoom] = &CaniLocationType{ID: tree.otherRoom, Name: "room-2", Parent: tree.site}
+	tree.inv.Racks[tree.rack] = &CaniRackType{ID: tree.rack, Name: "rack-01", Location: tree.room}
+	return tree
+}
+
+// addDevice puts a device with the given parent and recorded location into
+// the tree's inventory and returns it.
+func (tree locationTree) addDevice(name string, parent, location uuid.UUID) *CaniDeviceType {
+	device := &CaniDeviceType{ID: uuid.New(), Name: name, Parent: parent, Location: location}
+	tree.inv.Devices[device.ID] = device
+	return device
+}
+
+// TestRebuildKeepsRackedDeviceLocationThatHoldsItsRack verifies which
+// recorded location a rack-mounted device keeps across a rebuild: the rack's
+// own or an ancestor of it, and nothing else; a device installed in another
+// device takes that device's location whatever it records.
+//
+// Why it matters: Nautobot accepts a racked device in any location that
+// holds its rack's, so replacing a recorded parent location with the rack's
+// made every re-export move such a device.
+// Inputs: a rack in room-1 under site, with devices recording the site, the
+// room, the sibling room and nothing, and a blade installed in the first
+// that records the sibling room.
+// Outputs: site, room-1, room-1, room-1, and site for the blade.
+// Data choice: the sibling room is a real location that does not hold the
+// rack's, so existence alone cannot be what keeps a location.
+func TestRebuildKeepsRackedDeviceLocationThatHoldsItsRack(t *testing.T) {
+	// Arrange.
+	tree := newLocationTree()
+	atSite := tree.addDevice("at-site", tree.rack, tree.site)
+	atRoom := tree.addDevice("at-room", tree.rack, tree.room)
+	elsewhere := tree.addDevice("elsewhere", tree.rack, tree.otherRoom)
+	unrecorded := tree.addDevice("unrecorded", tree.rack, uuid.Nil)
+	blade := tree.addDevice("blade", atSite.ID, tree.otherRoom)
+
+	// Act.
+	res := tree.inv.rebuildDeviceRelationships()
+
+	// Assert.
+	if res.HasErrors() {
+		t.Fatalf("rebuild errors: %v", res.Errors)
+	}
+	want := map[*CaniDeviceType]uuid.UUID{
+		atSite: tree.site, atRoom: tree.room, elsewhere: tree.room, unrecorded: tree.room, blade: tree.site,
+	}
+	for device, location := range want {
+		if device.Location != location {
+			t.Errorf("%s location = %s, want %s (site %s, room-1 %s, room-2 %s)",
+				device.Name, device.Location, location, tree.site, tree.room, tree.otherRoom)
+		}
+	}
+}
+
+// TestSetDeviceLocationFollowsThePlacementRules verifies each outcome of
+// placing a device: any existing location for a device with no parent, the
+// rack's location or one that holds it for a racked device, and a refusal
+// for every other case.
+//
+// Why it matters: a location the rebuild would silently replace, or one that
+// does not exist, must be refused when it is typed, not discovered at the
+// next export.
+// Inputs: a device with no parent, a racked device and a blade installed in
+// it, each given the site, the sibling room or an unknown location.
+// Outputs: the loose device takes the site; the racked device takes the site
+// and keeps it when the sibling room and the unknown location are refused;
+// the blade is refused.
+// Data choice: the refused calls follow an accepted one, so an unchanged
+// location proves a refusal writes nothing.
+func TestSetDeviceLocationFollowsThePlacementRules(t *testing.T) {
+	// Arrange.
+	tree := newLocationTree()
+	loose := tree.addDevice("loose", uuid.Nil, uuid.Nil)
+	racked := tree.addDevice("racked", tree.rack, uuid.Nil)
+	blade := tree.addDevice("blade", racked.ID, uuid.Nil)
+
+	// Act.
+	looseErr := tree.inv.SetDeviceLocation(loose, tree.site)
+	rackedErr := tree.inv.SetDeviceLocation(racked, tree.site)
+	siblingErr := tree.inv.SetDeviceLocation(racked, tree.otherRoom)
+	unknownErr := tree.inv.SetDeviceLocation(racked, uuid.New())
+	bladeErr := tree.inv.SetDeviceLocation(blade, tree.site)
+
+	// Assert.
+	if looseErr != nil || loose.Location != tree.site {
+		t.Errorf("loose device: error = %v, location = %s; want the site", looseErr, loose.Location)
+	}
+	if rackedErr != nil || racked.Location != tree.site {
+		t.Errorf("racked device: error = %v, location = %s; want the site kept", rackedErr, racked.Location)
+	}
+	if siblingErr == nil || !strings.Contains(siblingErr.Error(), "room-2") {
+		t.Errorf("sibling room error = %v, want a refusal naming room-2", siblingErr)
+	}
+	if unknownErr == nil || bladeErr == nil || blade.Location != uuid.Nil {
+		t.Errorf("unknown location error = %v, blade error = %v, blade location = %s; want two refusals and no location",
+			unknownErr, bladeErr, blade.Location)
+	}
+}
+
+// TestMoveRackTakesItsDevicesAlong verifies that moving a rack moves every
+// device mounted in it, including one that recorded a location of its own,
+// and that an unknown rack or location is refused without moving anything.
+//
+// Why it matters: the site still holds the rack's new room, so without the
+// reset a device recorded at the site would stay there; Nautobot moves the
+// devices of a rack to the rack's location whenever the rack is saved.
+// Inputs: a rack in room-1 with one device recorded at the site and one that
+// records nothing; the rack is moved to room-2, then to an unknown location.
+// Outputs: both devices in room-2 after a rebuild; an error and the rack
+// still in room-2 for the unknown location; an error for an unknown rack.
+// Data choice: both rooms share the site, which is the case where a recorded
+// ancestor would otherwise survive the move.
+func TestMoveRackTakesItsDevicesAlong(t *testing.T) {
+	// Arrange.
+	tree := newLocationTree()
+	atSite := tree.addDevice("at-site", tree.rack, tree.site)
+	unrecorded := tree.addDevice("unrecorded", tree.rack, uuid.Nil)
+	tree.inv.rebuildDeviceRelationships()
+
+	// Act.
+	moveErr := tree.inv.MoveRack(tree.rack, tree.otherRoom)
+	tree.inv.rebuildDeviceRelationships()
+	unknownLocationErr := tree.inv.MoveRack(tree.rack, uuid.New())
+	unknownRackErr := tree.inv.MoveRack(uuid.New(), tree.room)
+
+	// Assert.
+	if moveErr != nil || atSite.Location != tree.otherRoom || unrecorded.Location != tree.otherRoom {
+		t.Errorf("after the move: error = %v, locations = %s, %s; want both in room-2",
+			moveErr, atSite.Location, unrecorded.Location)
+	}
+	if unknownLocationErr == nil || unknownRackErr == nil || tree.inv.Racks[tree.rack].Location != tree.otherRoom {
+		t.Errorf("unknown location error = %v, unknown rack error = %v, rack location = %s; want two refusals and room-2",
+			unknownLocationErr, unknownRackErr, tree.inv.Racks[tree.rack].Location)
+	}
+}
+
+// TestMergeReleasesRecordedLocationWhenRackOrParentChanges verifies that a
+// merge which moves a rack, or gives a device another parent, clears the
+// location the device recorded unless the incoming device names one.
+//
+// Why it matters: an import that moves a rack must move its devices, as a
+// rack move at the command line does; a location recorded under the old
+// placement would otherwise outlive it whenever it still held the new one.
+// Inputs: a device recorded at the site in a rack in room-1. The rack is
+// merged with a copy in room-2; then the device is merged with a copy in a
+// second rack, without and with a location.
+// Outputs: no recorded location after the rack merge and after the first
+// device merge; the incoming location after the second.
+// Data choice: the incoming device names the sibling room, which is not
+// where it was, so the merge is seen to take it rather than keep the old.
+func TestMergeReleasesRecordedLocationWhenRackOrParentChanges(t *testing.T) {
+	// Arrange.
+	tree := newLocationTree()
+	device := tree.addDevice("at-site", tree.rack, tree.site)
+	rack2, rack3 := uuid.New(), uuid.New()
+
+	// Act.
+	tree.inv.MergeRacks(map[uuid.UUID]*CaniRackType{tree.rack: {ID: tree.rack, Name: "rack-01", Location: tree.otherRoom}})
+	afterRackMerge := device.Location
+	device.Location = tree.site
+	device.MergeProperties(&CaniDeviceType{Name: "at-site", Parent: rack2})
+	afterReparent := device.Location
+	device.Location = tree.site
+	device.MergeProperties(&CaniDeviceType{Name: "at-site", Parent: rack3, Location: tree.otherRoom})
+
+	// Assert.
+	if afterRackMerge != uuid.Nil || afterReparent != uuid.Nil {
+		t.Errorf("recorded location after rack merge = %s, after re-parenting = %s; want none for both", afterRackMerge, afterReparent)
+	}
+	if device.Parent != rack3 || device.Location != tree.otherRoom {
+		t.Errorf("device = {parent %s, location %s}, want the incoming rack and location", device.Parent, device.Location)
+	}
+}
+
+// TestRemoveRackKeepsRecordedLocationThatHeldIt verifies that a device which
+// recorded a location holding its rack's stays there when the rack is
+// removed.
+//
+// Why it matters: the device was in that location, not the rack's, before
+// the rack went away; replacing it with the rack's would move the device.
+// Inputs: a rack in room-1 holding a device recorded at the site.
+// Outputs: the device has no parent and is still in the site.
+// Data choice: the complementary case, a device that records nothing, is
+// TestRemoveRackLeavesDevicesInItsLocation.
+func TestRemoveRackKeepsRecordedLocationThatHeldIt(t *testing.T) {
+	// Arrange.
+	tree := newLocationTree()
+	device := tree.addDevice("at-site", tree.rack, tree.site)
+	tree.inv.rebuildDeviceRelationships()
+
+	// Act.
+	err := tree.inv.RemoveRack(tree.rack)
+
+	// Assert.
+	if err != nil || device.Parent != uuid.Nil || device.Location != tree.site {
+		t.Errorf("error = %v, parent = %s, location = %s; want no parent and the site", err, device.Parent, device.Location)
+	}
 }

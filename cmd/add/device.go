@@ -55,7 +55,7 @@ func newDeviceCommand() *cli.Command {
 	cmd.Flags().Int("position", 0, "Rack U position")
 	cmd.Flags().String("face", "", "Rack face (front, rear)")
 	cmd.Flags().String("name", "", "Device name, expansion pattern, or template (%{RACK}, %{U}, %{SEQ}, %{ZONE})")
-	cmd.Flags().String("location", "", "Location filter for rack selection (name or UUID)")
+	cmd.Flags().String("location", "", "Location (name or UUID): filters the racks of a %{FILL}/%{SPREAD} placement; otherwise where the device is placed, which for a racked device must hold the rack")
 	cmd.Flags().String("zone", "", "Rack zone (top, middle, bottom) — overrides auto-detection from hardware type")
 	cmd.Flags().Bool("dry-run", false, "Show placement plan without committing changes")
 	cmd.Flags().String("bay", "", "Device bay in the --parent device (default: first free bay)")
@@ -235,6 +235,10 @@ func addDeviceLiteral(cmd *cli.Command, result *lookupResult, qty int, nameArg, 
 	if err != nil {
 		return err
 	}
+	placeIn, err := literalDeviceLocation(cmd, inventory)
+	if err != nil {
+		return err
+	}
 
 	if statusArg != "" {
 		normalized, verr := validate.StatusWithInventory(statusArg, inventory)
@@ -283,6 +287,9 @@ func addDeviceLiteral(cmd *cli.Command, result *lookupResult, qty int, nameArg, 
 		ident.apply(&device.Serial, &device.AssetTag)
 		lbl.apply(&device.ObjectMeta)
 		applyProviderMetadataToDevice(device, provMeta)
+		if err := placeDevice(inventory, device, placeIn); err != nil {
+			return err
+		}
 
 		// Place in rack OccupiedSlots so the rack view is accurate.
 		if rack := inventory.Racks[device.Parent]; rack != nil && device.RackPosition > 0 {
