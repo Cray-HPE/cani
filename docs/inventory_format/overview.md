@@ -28,16 +28,64 @@ type Inventory struct {
 }
 ```
 
-The current schema generation is `v1alpha9`. It records the owning module of a
-module interface (`moduleId`) and admits spare modules, which are stored at a
-location with no parent device. `v1alpha8` added optional device parent-bay
-placement and unresolved module-interface name/label templates. Older
-inventories are migrated through each generation on load, with the original
-file backed up to `.canisave`. The `v1alpha7` to `v1alpha8` and `v1alpha8` to
-`v1alpha9` steps only advance the version: they preserve existing values without
-inferring bay assignments or missing templates, and module ownership is rebuilt
-from the module specs on every load. Earlier cani releases refuse a `v1alpha9`
-inventory rather than load and rewrite one that may contain spares.
+The current schema generation is `v1alpha10`. It gives every value one home: a
+modeled attribute is a field, an operator-defined attribute is a custom field,
+and `providerMetadata` holds one bucket per provider and nothing else (see
+[Provider metadata on upgrade](#provider-metadata-on-upgrade)). `v1alpha9`
+records the owning module of a module interface (`moduleId`) and admits spare
+modules, which are stored at a location with no parent device. `v1alpha8`
+added optional device parent-bay placement and unresolved module-interface
+name/label templates. Older inventories are migrated through each generation
+on load, with the original file backed up to `.canisave`. The `v1alpha7` to
+`v1alpha8` and `v1alpha8` to `v1alpha9` steps only advance the version: they
+preserve existing values without inferring bay assignments or missing
+templates, and module ownership is rebuilt from the module specs on every
+load. Earlier cani releases refuse a newer inventory rather than load and
+rewrite one that may contain data they do not preserve.
+
+### Provider metadata on upgrade
+
+Through `v1alpha9`, a value typed with `--metadata` was stored under
+`providerMetadata.nautobot`, some values were stored in `providerMetadata`
+outside any provider's bucket, and the Nautobot export read both: as custom
+fields, and as a device's role and location. Loading a `v1alpha9` inventory
+moves each of those values to the one place it is read from afterwards:
+
+| Value | Where it goes |
+| --- | --- |
+| `role` on a device | the device's `role` field, when that field is empty |
+| `location` on a device | the device's `location`, found by the location's name |
+| `rack_number` outside a bucket | `providerMetadata.hpcm.rack_number`, the provider that wrote it |
+| any other key | the object's `customFields`, replacing a custom field of the same key |
+
+A device with an empty `role` field also takes the role the export read from
+another provider's bucket, which keeps its copy. Other providers' buckets are
+not changed otherwise.
+
+A value moves only when it is the one an export was already sending, so the
+upgrade never makes a value live that was not. Where a key was held more than
+once, the export used one copy: the `role` field over provider metadata, a
+key outside the buckets over a bucket for `role` and `location`, and for every
+other key the holder whose name sorts last. The other copies are dropped.
+
+Everything dropped, replaced or left unplaced is logged once, by object and
+key and never by value, on the load that upgrades the file:
+
+| Log line | Meaning | What to do |
+| --- | --- | --- |
+| `custom field "K" held another value; the provider metadata value took precedence and replaced it` | The custom field now holds what the export sent. | Nothing, unless the replaced value was the right one; it is in the `.canisave` backup. |
+| `provider metadata "K" was dropped: another copy of that key took precedence` | A copy the export never used. | Nothing, unless it was the right one. |
+| `provider metadata "role" was dropped: it was not the role export sent` | The `role` field was already set, or the value was not text. | Set the role with `update device --role` if the dropped one was intended. |
+| `provider metadata "location" replaced the location the device recorded, as it did on export` | The device had no parent and both placements were set. | Re-import, or set the location with `update device --location`, if the recorded one was right. |
+| `provider metadata "location" was not applied: ...` | A device in a rack can only record a location that holds its rack's, and a device installed in another device takes that device's. | Nothing; Nautobot did not keep such a placement either. |
+| `provider metadata "location" names no location in the inventory` (or `more than one`) | The name was looked up in Nautobot on export, and cannot be turned into a placement here. It is kept in `providerMetadata.nautobot.location`. | Add or import the location, then `update device --location`. |
+| `provider metadata "location" was dropped: it is not a location name, so export never read it` | The value was not text. | Nothing. |
+| `provider metadata "u_height"` or `"rack_position" was dropped: export never sent it` | Typed on a rack that is stored as a device. | Set the height on the rack itself with `update rack --set u_height=N`. |
+
+A location stored on a device that has a parent is kept only when it is its
+rack's. Earlier generations re-derived it on every load; from `v1alpha10` a
+device in a rack may record a location of its own, so a stale stored value
+would otherwise be read as one.
 
 ### Placement validation on load
 
