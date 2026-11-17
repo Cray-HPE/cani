@@ -40,7 +40,7 @@ import (
 // termination types default to dcim.interface, the type comes from the
 // cable's own fields or its slug, and length, colour, unit and custom fields
 // are sent only when the cable carries them.
-func cableRequest(cable *devicetypes.CaniCableType, a, b cableEnd, statusID uuid.UUID) (nautobotapi.WritableCableRequest, error) {
+func cableRequest(cable *devicetypes.CaniCableType, a, b cableEnd, statusID uuid.UUID, fields customFieldProjection) (nautobotapi.WritableCableRequest, error) {
 	termAID, termBID := openapi_types.UUID(a.iface.ID), openapi_types.UUID(b.iface.ID)
 	termAType, termBType := terminationType(cable.TerminationAType), terminationType(cable.TerminationBType)
 	req := nautobotapi.WritableCableRequest{
@@ -61,7 +61,7 @@ func cableRequest(cable *devicetypes.CaniCableType, a, b cableEnd, statusID uuid
 		req.Color = &hex
 	}
 	req.LengthUnit = lengthUnit(cable.LengthUnit)
-	req.CustomFields = customFieldsPayload("cable", cable.Label, &cable.ObjectMeta)
+	req.CustomFields = fields.payload("cable", cable.Label, &cable.ObjectMeta)
 	return req, nil
 }
 

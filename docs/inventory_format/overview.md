@@ -62,6 +62,12 @@ A device with an empty `role` field also takes the role the export read from
 another provider's bucket, which keeps its copy. Other providers' buckets are
 not changed otherwise.
 
+Another provider's bucket (`providerMetadata.csm`, `providerMetadata.redfish`
+and so on) is no longer sent to Nautobot as custom fields. Its values stay
+where they are. To keep sending one, list its key in the Nautobot export
+option `provider_metadata_fields`; see
+[Sending provider metadata as custom fields](../providers/nautobot.md#sending-provider-metadata-as-custom-fields).
+
 A value moves only when it is the one an export was already sending, so the
 upgrade never makes a value live that was not. Where a key was held more than
 once, the export used one copy: the `role` field over provider metadata, a

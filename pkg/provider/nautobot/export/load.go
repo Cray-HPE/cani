@@ -197,10 +197,11 @@ func (e *Exporter) Load(inventory *devicetypes.Inventory) error {
 
 	// Create mapper with defaults from provider-global settings
 	mapper := NewDeviceMapper(e.Cache, &MapperOpts{
-		DefaultLocation: e.Options.DefaultLocation,
-		DefaultRole:     e.Options.DefaultRole,
-		DefaultStatus:   e.Options.DefaultStatus,
-		Strict:          e.Options.Strict,
+		DefaultLocation:        e.Options.DefaultLocation,
+		DefaultRole:            e.Options.DefaultRole,
+		DefaultStatus:          e.Options.DefaultStatus,
+		Strict:                 e.Options.Strict,
+		ProviderMetadataFields: e.Options.ProviderMetadataFields,
 	})
 
 	// Set inventory reference so mapper can resolve parent devices for rack positions
@@ -735,7 +736,7 @@ func (e *Exporter) createRackFromCaniRack(ctx context.Context, rack *devicetypes
 	if rack.DescUnits {
 		req.DescUnits = &rack.DescUnits
 	}
-	req.CustomFields = customFieldsPayload("rack", rack.Name, &rack.ObjectMeta)
+	req.CustomFields = e.customFields().payload("rack", rack.Name, &rack.ObjectMeta)
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create rack: %s", rack.Name)

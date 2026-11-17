@@ -161,7 +161,7 @@ func (e *Exporter) createFruFromCani(
 		return uuid.Nil, fmt.Errorf("set inventory item tag references: %w", err)
 	}
 
-	req.CustomFields = customFieldsPayload("inventory item", fru.Name, &fru.ObjectMeta)
+	req.CustomFields = e.customFields().payload("inventory item", fru.Name, &fru.ObjectMeta)
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create inventory item: %s (device: %s)",

@@ -39,6 +39,9 @@ type ExporterOpts struct {
 	CreateLocations     bool
 	CreateStatuses      bool
 	CreateRoles         bool
+	// ProviderMetadataFields are the provider-metadata keys an export sends
+	// as custom fields. Provider metadata is otherwise not exported.
+	ProviderMetadataFields []ProviderMetadataField
 }
 
 // Exporter orchestrates the Nautobot export pipeline.
@@ -47,6 +50,15 @@ type Exporter struct {
 	Client  *NautobotClient
 	Cache   *LookupCache
 	Options *ExporterOpts
+}
+
+// customFields returns the custom-field projection the export options ask
+// for.
+func (e *Exporter) customFields() customFieldProjection {
+	if e == nil || e.Options == nil {
+		return nil
+	}
+	return e.Options.ProviderMetadataFields
 }
 
 // NewExporter creates a new Exporter with the given client, cache and options.

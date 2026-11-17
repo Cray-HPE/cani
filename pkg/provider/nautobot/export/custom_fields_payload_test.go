@@ -33,152 +33,264 @@ import (
 	"github.com/google/uuid"
 )
 
-// explicitAndProviderMeta builds metadata whose explicit custom fields and
-// provider metadata overlap on "owner" and otherwise differ.
-func explicitAndProviderMeta() *devicetypes.ObjectMeta {
-	return &devicetypes.ObjectMeta{
-		CustomFields:     map[string]any{"owner": "explicit", "tier": "gold"},
-		ProviderMetadata: map[string]any{"csm": map[string]any{"owner": "provider", "xname": "x3000c0s1b0"}},
-	}
-}
-
-// TestCustomFieldsOf_ProviderMetadataWinsAndNamesTheCollision verifies that
-// a key supplied by both sources takes the provider value and is listed as
-// a collision, while keys from either source alone pass through.
+// TestCustomFieldProjection_SendsCustomFieldsAndNoProviderMetadata verifies
+// that, with no provider-metadata key listed, an object's custom fields are
+// all an export sends, whatever its provider metadata holds.
 //
-// Why it matters: the mapping guide documents provider-metadata-over-explicit
-// precedence; the Story requires collisions to be reported, not resolved
-// differently, so an operator can see which explicit value did not arrive.
-// Inputs: explicit {owner, tier} and provider {owner, xname}.
-// Outputs: values {owner: provider, tier, xname} and collisions ["owner"].
-// Data choice: one overlapping key and one unique key per source separate
-// the precedence rule from plain pass-through.
-func TestCustomFieldsOf_ProviderMetadataWinsAndNamesTheCollision(t *testing.T) {
-	set := customFieldsOf(kindDevice, explicitAndProviderMeta())
+// Why it matters: provider metadata used to be sent as custom fields over
+// the object's own, so one value had two homes and the copy in provider
+// metadata silently won; a value another provider imported could overwrite
+// a field an operator set, and nothing said which was sent.
+// Inputs: custom fields {owner, tier} beside a CSM bucket that holds owner
+// and xname, a nautobot bucket, and a key outside any bucket.
+// Outputs: exactly the two custom fields, and nothing reported as replaced.
+// Data choice: "owner" is in both, so a projection that still merged
+// provider metadata would change it.
+func TestCustomFieldProjection_SendsCustomFieldsAndNoProviderMetadata(t *testing.T) {
+	// Arrange.
+	meta := &devicetypes.ObjectMeta{
+		CustomFields: map[string]any{"owner": "ops", "tier": "gold"},
+		ProviderMetadata: map[string]any{
+			"csm":      map[string]any{"owner": "csm-owner", "xname": "x3000c0s1b0"},
+			"nautobot": map[string]any{"location": "dc-9"},
+			"cost":     "cc-4411",
+		},
+	}
 
-	want := map[string]any{"owner": "provider", "tier": "gold", "xname": "x3000c0s1b0"}
-	if !reflect.DeepEqual(set.values, want) {
+	// Act.
+	set := customFieldProjection(nil).of(meta)
+
+	// Assert.
+	if want := map[string]any{"owner": "ops", "tier": "gold"}; !reflect.DeepEqual(set.values, want) {
 		t.Errorf("values = %v, want %v", set.values, want)
 	}
-	if !reflect.DeepEqual(set.collisions, []string{"owner"}) {
-		t.Errorf("collisions = %v, want [owner]", set.collisions)
+	if len(set.overridden) != 0 {
+		t.Errorf("overridden = %v, want none", set.overridden)
 	}
 }
 
-// TestCustomFieldsOf_KeepsFalseZeroAndEmptyValues verifies that explicit
-// false, 0 and "" survive the projection and reach the request payload.
+// TestCustomFieldProjection_SendsListedProviderKeys verifies that a
+// provider-metadata key the operator listed is sent as a custom field, under
+// its own name or the one given, and that no unlisted key comes with it.
+//
+// Why it matters: listing a key is the only way another provider's metadata
+// reaches Nautobot, so it has to send exactly the listed key of exactly the
+// listed provider; and because the listed key belongs to its provider, its
+// value has to win over the copy an import read back, or the first import
+// would freeze the field at its old value.
+// Inputs: an object with custom fields, CSM and Redfish buckets and a key
+// outside any bucket, and one list per case.
+// Outputs: the values sent, and the listed keys whose value replaced a
+// different custom field.
+// Data choice: the Redfish bucket holds the same key as the CSM one, a
+// provider with no bucket is asked for a key the other two hold, and the
+// agreeing custom field is the float64 a JSON import yields for CSM's int.
+func TestCustomFieldProjection_SendsListedProviderKeys(t *testing.T) {
+	tests := []struct {
+		name           string
+		list           []string
+		custom         map[string]any
+		want           map[string]any
+		wantOverridden []string
+	}{
+		{
+			name: "listed key under its own name",
+			list: []string{"csm.xname"},
+			want: map[string]any{"tier": "gold", "xname": "x3000c0s1b0"},
+		},
+		{
+			name: "listed key under another name",
+			list: []string{"csm.nid=node_id"},
+			want: map[string]any{"tier": "gold", "node_id": 1001},
+		},
+		{
+			name: "only the listed provider's copy of a key",
+			list: []string{"redfish.owner"},
+			want: map[string]any{"tier": "gold", "owner": "bmc-team"},
+		},
+		{
+			name: "key the object's provider metadata does not hold",
+			list: []string{"hpcm.hpcm_uuid", "csm.subRole"},
+			want: map[string]any{"tier": "gold"},
+		},
+		{
+			name: "key held only by another provider or outside any bucket",
+			list: []string{"hpcm.owner", "csm.cost"},
+			want: map[string]any{"tier": "gold"},
+		},
+		{
+			name:           "replaces a different custom field and says so",
+			list:           []string{"csm.owner"},
+			custom:         map[string]any{"owner": "edited-in-nautobot"},
+			want:           map[string]any{"tier": "gold", "owner": "csm-team"},
+			wantOverridden: []string{"owner"},
+		},
+		{
+			name:   "custom field an import read back agrees",
+			list:   []string{"csm.nid=node_id"},
+			custom: map[string]any{"node_id": float64(1001)},
+			want:   map[string]any{"tier": "gold", "node_id": 1001},
+		},
+		{
+			name:   "custom field an import read back as unset is not a different value",
+			list:   []string{"csm.nid=node_id"},
+			custom: map[string]any{"node_id": nil},
+			want:   map[string]any{"tier": "gold", "node_id": 1001},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// Arrange.
+			fields, err := ParseProviderMetadataFields(tc.list)
+			if err != nil {
+				t.Fatalf("ParseProviderMetadataFields(%v): %v", tc.list, err)
+			}
+			meta := &devicetypes.ObjectMeta{
+				CustomFields: map[string]any{"tier": "gold"},
+				ProviderMetadata: map[string]any{
+					"csm":     map[string]any{"owner": "csm-team", "xname": "x3000c0s1b0", "nid": 1001},
+					"redfish": map[string]any{"owner": "bmc-team"},
+					"cost":    "cc-4411",
+				},
+			}
+			for key, value := range tc.custom {
+				meta.CustomFields[key] = value
+			}
+
+			// Act.
+			set := customFieldProjection(fields).of(meta)
+
+			// Assert.
+			if !reflect.DeepEqual(set.values, tc.want) {
+				t.Errorf("values = %#v\nwant %#v", set.values, tc.want)
+			}
+			var overridden []string
+			for _, field := range set.overridden {
+				overridden = append(overridden, field.CustomField)
+			}
+			if !reflect.DeepEqual(overridden, tc.wantOverridden) {
+				t.Errorf("overridden = %v, want %v", overridden, tc.wantOverridden)
+			}
+		})
+	}
+}
+
+// TestCustomFieldProjection_LeavesTheObjectsOwnFieldsAlone verifies that
+// projecting an object with a listed provider key does not write that key
+// into the object's custom fields.
+//
+// Why it matters: the projection runs on every create, merge and
+// comparison; if it wrote into the inventory, an export would turn provider
+// metadata into custom fields that the next save persists.
+// Inputs: an object with one custom field and a listed CSM key.
+// Outputs: the object's custom fields unchanged after the projection.
+// Data choice: the object already has a custom-field map, the case in which
+// a projection that skipped the copy would write into it.
+func TestCustomFieldProjection_LeavesTheObjectsOwnFieldsAlone(t *testing.T) {
+	// Arrange.
+	meta := &devicetypes.ObjectMeta{
+		CustomFields:     map[string]any{"tier": "gold"},
+		ProviderMetadata: map[string]any{"csm": map[string]any{"xname": "x3000c0s1b0"}},
+	}
+	projection := customFieldProjection{{Provider: "csm", Key: "xname", CustomField: "xname"}}
+
+	// Act.
+	projection.payload(kindDevice, "cn-01", meta)
+
+	// Assert.
+	if want := map[string]any{"tier": "gold"}; !reflect.DeepEqual(meta.CustomFields, want) {
+		t.Errorf("custom fields = %v, want them untouched: %v", meta.CustomFields, want)
+	}
+}
+
+// TestCustomFieldProjection_KeepsFalseZeroEmptyAndNullValues verifies that
+// false, 0, "" and an explicit null survive the projection and reach the
+// request payload.
 //
 // Why it matters: Nautobot fills an omitted key from the definition's
 // default, so dropping a falsy value would silently change it to the default
-// on a fresh destination; the Story names false and zero explicitly.
-// Inputs: explicit {active: false, slots: 0, note: ""}, no provider metadata.
-// Outputs: a payload carrying all three keys with their original values.
+// on a fresh destination; and an explicit null is how a field is cleared, so
+// dropping it would leave the old value in place.
+// Inputs: custom fields {active: false, slots: 0, note: "", retired: nil}.
+// Outputs: a payload carrying all four keys with their original values.
 // Data choice: one value per falsy Go kind that a len() or truthiness check
-// would discard.
-func TestCustomFieldsOf_KeepsFalseZeroAndEmptyValues(t *testing.T) {
-	meta := &devicetypes.ObjectMeta{CustomFields: map[string]any{"active": false, "slots": 0, "note": ""}}
+// would discard, and the nil --clear-custom-field stores.
+func TestCustomFieldProjection_KeepsFalseZeroEmptyAndNullValues(t *testing.T) {
+	// Arrange.
+	meta := &devicetypes.ObjectMeta{CustomFields: map[string]any{"active": false, "slots": 0, "note": "", "retired": nil}}
 
-	payload := customFieldsOf(kindDevice, meta).payload()
+	// Act.
+	payload := customFieldProjection(nil).of(meta).payload()
+
+	// Assert.
 	if payload == nil {
-		t.Fatal("payload = nil, want three keys")
+		t.Fatal("payload = nil, want four keys")
 	}
-	for key, want := range map[string]any{"active": false, "slots": 0, "note": ""} {
+	for key, want := range map[string]any{"active": false, "slots": 0, "note": "", "retired": nil} {
 		got, ok := (*payload)[key]
 		if !ok || got == nil || *got != want {
-			t.Errorf("payload[%q] = %v, want %v", key, got, want)
+			t.Errorf("payload[%q] = %v, want a pointer to %v", key, got, want)
 		}
 	}
 }
 
-// TestCustomFieldsOf_ReservedProviderKeyIsNotACustomField verifies that a
-// provider-metadata key the kind's mapper sends as a dedicated field is
-// absent from the values and is not reported as a collision, while an
-// explicit custom field of the same name is still sent.
+// TestCustomFieldProjection_SendsTheValueImportReadBack verifies that after
+// an import refreshes a custom field, the projection sends the imported
+// value even though another provider's metadata holds the same key.
 //
-// Why it matters: a device's role and location are read from provider
-// metadata into Device.role and Device.location; projecting them again as
-// custom fields made Nautobot drop an undefined key on every device, and an
-// operator's own custom field named "role" must not be lost to the fix.
-// Inputs: provider {role, location, color} with explicit {role}, projected
-// for a device and for a kind with no reserved keys.
-// Outputs: the device keeps explicit role and color with no collisions; the
-// other kind sends all three provider values and reports the role collision.
-// Data choice: the reserved key collides so the test proves the provider
-// side is removed before precedence and collision reporting apply.
-func TestCustomFieldsOf_ReservedProviderKeyIsNotACustomField(t *testing.T) {
-	meta := &devicetypes.ObjectMeta{
-		CustomFields:     map[string]any{"role": "explicit"},
-		ProviderMetadata: map[string]any{"csm": map[string]any{"role": "Compute", "location": "DC1", "color": "black"}},
-	}
-
-	set := customFieldsOf(kindDevice, meta)
-	if want := map[string]any{"role": "explicit", "color": "black"}; !reflect.DeepEqual(set.values, want) {
-		t.Errorf("device values = %v, want %v", set.values, want)
-	}
-	if len(set.collisions) != 0 {
-		t.Errorf("device collisions = %v, want none", set.collisions)
-	}
-
-	other := customFieldsOf("VLAN", meta)
-	if want := map[string]any{"role": "Compute", "location": "DC1", "color": "black"}; !reflect.DeepEqual(other.values, want) {
-		t.Errorf("VLAN values = %v, want %v", other.values, want)
-	}
-	if !reflect.DeepEqual(other.collisions, []string{"role"}) {
-		t.Errorf("VLAN collisions = %v, want [role]", other.collisions)
-	}
-}
-
-// TestCustomFieldsOf_SendsTheValueImportReadBack verifies that after an
-// import refreshes a custom field, the projection sends the imported value
-// and reports no collision, and that a later provider-metadata write of the
-// same key is sent again.
-//
-// Why it matters: a field first set with --metadata was reverted in Nautobot
-// by the next --merge export, because the stale provider copy outlived the
-// import and won the shared key.
-// Inputs: a device with provider nautobot {vsx_role: secondary}, merged with
-// an imported record carrying custom field vsx_role=primary; then a local
-// provider write of vsx_role=tertiary.
-// Outputs: primary with no collision, then tertiary with the collision named.
-// Data choice: the round trip from the bug report, plus the opposite edit
-// to show whichever side wrote last is what the export sends.
-func TestCustomFieldsOf_SendsTheValueImportReadBack(t *testing.T) {
+// Why it matters: this is the round trip that reverted an edit made in
+// Nautobot. A stale copy of the key in provider metadata outlived the import
+// and won on the next --merge export.
+// Inputs: a device whose custom field and CSM bucket both hold vsx_role,
+// merged with an imported record carrying the value edited in Nautobot.
+// Outputs: the imported value, with nothing reported as replaced.
+// Data choice: the stale copy is in another provider's bucket, the case the
+// import cannot retire because that provider did not report the field.
+func TestCustomFieldProjection_SendsTheValueImportReadBack(t *testing.T) {
+	// Arrange.
 	meta := &devicetypes.ObjectMeta{
 		CustomFields:     map[string]any{"vsx_role": "secondary"},
-		ProviderMetadata: map[string]any{"nautobot": map[string]any{"vsx_role": "secondary"}},
+		ProviderMetadata: map[string]any{"csm": map[string]any{"vsx_role": "secondary"}},
 	}
 	meta.Merge(devicetypes.ObjectMeta{
 		CustomFields: map[string]any{"vsx_role": "primary"},
 		ExternalIDs:  map[string]uuid.UUID{"nautobot": uuid.New()},
 	})
 
-	set := customFieldsOf(kindDevice, meta)
-	if set.values["vsx_role"] != "primary" || len(set.collisions) != 0 {
-		t.Errorf("after import: values = %v, collisions = %v, want primary and none", set.values, set.collisions)
-	}
+	// Act.
+	set := customFieldProjection(nil).of(meta)
 
-	meta.SetProviderMeta("nautobot", "vsx_role", "tertiary")
-	set = customFieldsOf(kindDevice, meta)
-	if set.values["vsx_role"] != "tertiary" || !reflect.DeepEqual(set.collisions, []string{"vsx_role"}) {
-		t.Errorf("after local edit: values = %v, collisions = %v, want tertiary and [vsx_role]", set.values, set.collisions)
+	// Assert.
+	if set.values["vsx_role"] != "primary" || len(set.overridden) != 0 {
+		t.Errorf("values = %v, overridden = %v, want primary and none", set.values, set.overridden)
 	}
 }
 
-// TestCustomFieldsOf_NothingToSendYieldsNilPayload verifies that nil
-// metadata and metadata without custom fields both produce a nil payload.
+// TestCustomFieldProjection_NothingToSendYieldsNilPayload verifies that nil
+// metadata, metadata without custom fields, and metadata holding only
+// unlisted provider metadata all produce a nil payload.
 //
 // Why it matters: a nil CustomFields pointer keeps custom_fields out of the
-// request body, which is how every writer behaved before the shared helper.
-// Inputs: a nil *ObjectMeta and an ObjectMeta with only a status.
-// Outputs: nil payloads from both.
-// Data choice: the second case carries unrelated metadata so the test shows
-// only custom-field sources are consulted.
-func TestCustomFieldsOf_NothingToSendYieldsNilPayload(t *testing.T) {
-	if got := customFieldsOf(kindDevice, nil).payload(); got != nil {
+// request body altogether; an empty object would be read by Nautobot as a
+// write.
+// Inputs: a nil *ObjectMeta, an ObjectMeta with only a status, and one with
+// only a CSM bucket.
+// Outputs: nil payloads from all three.
+// Data choice: the last case is the common one for a CSM-imported device.
+func TestCustomFieldProjection_NothingToSendYieldsNilPayload(t *testing.T) {
+	// Arrange.
+	projection := customFieldProjection(nil)
+	providerOnly := &devicetypes.ObjectMeta{ProviderMetadata: map[string]any{"csm": map[string]any{"xname": "x3000"}}}
+
+	// Act and assert.
+	if got := projection.of(nil).payload(); got != nil {
 		t.Errorf("payload(nil meta) = %v, want nil", got)
 	}
-	if got := customFieldsOf(kindDevice, &devicetypes.ObjectMeta{Status: "Active"}).payload(); got != nil {
+	if got := projection.of(&devicetypes.ObjectMeta{Status: "Active"}).payload(); got != nil {
 		t.Errorf("payload(no custom fields) = %v, want nil", got)
+	}
+	if got := projection.payload(kindDevice, "cn-01", providerOnly); got != nil {
+		t.Errorf("payload(provider metadata only) = %v, want nil", got)
 	}
 }
 

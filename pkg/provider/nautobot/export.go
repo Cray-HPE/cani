@@ -62,6 +62,11 @@ func (p *Nautobot) setupExportFromConfig(cmd *cli.Command) error {
 
 	p.applyFlagOverrides(cmd)
 
+	providerFields, err := p.providerMetadataFields(cmd)
+	if err != nil {
+		return fmt.Errorf("nautobot export: %w", err)
+	}
+
 	if p.Options.URL == "" {
 		return fmt.Errorf("nautobot URL not configured; set nautobot.url in the config file")
 	}
@@ -102,6 +107,8 @@ func (p *Nautobot) setupExportFromConfig(cmd *cli.Command) error {
 		CreateLocations:     p.Options.Export.CreateLocations,
 		CreateStatuses:      p.Options.Export.CreateStatuses,
 		CreateRoles:         p.Options.Export.CreateRoles,
+
+		ProviderMetadataFields: providerFields,
 	})
 
 	return nil

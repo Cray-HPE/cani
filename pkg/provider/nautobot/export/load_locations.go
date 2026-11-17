@@ -184,7 +184,7 @@ func (e *Exporter) createLocationFromCani(
 	if loc.Comments != "" {
 		req.Comments = &loc.Comments
 	}
-	req.CustomFields = customFieldsPayload("location", loc.Name, &loc.ObjectMeta)
+	req.CustomFields = e.customFields().payload("location", loc.Name, &loc.ObjectMeta)
 
 	if e.Options.DryRun {
 		clog.DryRun("Would create location: %s (type: %s)", loc.Name, locTypeName)

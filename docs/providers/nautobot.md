@@ -53,16 +53,57 @@ rolled back. Re-export after correcting the failure to finish reconciliation.
 
 Every object family that carries custom fields in the inventory (locations,
 racks, devices, modules, cables, inventory items, VLANs, prefixes, IP
-addresses, VRFs) sends them on create and on `--merge`, through one projection:
-explicit custom fields merged with flattened provider metadata. When both set
-the same key the provider value is sent and the export logs the collision by
-object and key. `false`, `0` and empty strings are sent as written, because
-Nautobot fills an omitted key from the definition's default. Import keeps
-the two in step: a custom field read back from Nautobot replaces the copy of
-that key held in `providerMetadata.nautobot`, so an edit made in Nautobot is
-not reverted by the next export. A device's `role` and `location` provider
-metadata set the device's role and location and are not sent as custom
-fields.
+addresses, VRFs) sends them on create and on `--merge` through one
+projection, and `--merge` compares with the same set. An object's custom
+fields are sent as they are: `false`, `0` and empty strings are sent as
+written, because Nautobot fills an omitted key from the definition's default.
+
+Provider metadata is not exported. It belongs to the provider that wrote it
+(`providerMetadata.csm`, `providerMetadata.redfish`, and so on), and a role,
+location or height held there sets nothing in Nautobot: a device's role comes
+from its role, its location from where the inventory places it, and the
+height of a rack from its height. Give Nautobot a value with the field's own
+flag or with `--custom-field`.
+
+#### Sending provider metadata as custom fields
+
+To send a provider's value to Nautobot, list its key in the export options.
+An entry is `provider.key`, sent as the custom field `key`, or
+`provider.key=custom_field`, sent under another name:
+
+```yaml
+providers:
+  nautobot:
+    export:
+      provider_metadata_fields:
+        - csm.xname        # providerMetadata.csm.xname as custom field "xname"
+        - csm.nid=node_id  # providerMetadata.csm.nid as custom field "node_id"
+```
+
+`--provider-metadata-field` (comma-separated or repeatable) replaces the
+configured list for one export:
+
+```shell
+cani alpha export nautobot --provider-metadata-field csm.xname,csm.nid=node_id
+```
+
+- The provider is the text before the first dot, and only that provider's
+  bucket is read. An object whose bucket does not hold the key sends nothing
+  for it.
+- The list defines nothing. The custom field needs a definition for each
+  object type that holds the key, in the inventory
+  (`cani alpha add metadata custom-field`, which the export creates in
+  Nautobot) or already in Nautobot. Without one Nautobot drops the value, and
+  the export reports the object and the key each time; with `--merge` it also
+  updates the object again on every export.
+- A listed key belongs to its provider. Its value is sent in place of a
+  custom field of the same name, and while the two differ the export names
+  the object and the key and does not send the object's own value. An edit
+  made to such a field in Nautobot is overwritten by the next export with
+  `--merge`, and one made with `--custom-field` has no effect; change the
+  value where the provider reads it.
+- An entry that names no provider or no key, or two keys sent as the same
+  custom field, stops the export before it connects to Nautobot.
 
 Import fetches the custom-field definitions and their choices into the
 inventory metadata catalog, and export creates any definition the destination

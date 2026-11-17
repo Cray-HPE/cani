@@ -192,7 +192,7 @@ func (e *Exporter) vrfRequest(vrf *devicetypes.CaniVRF, namespaceID uuid.UUID) (
 	if err := setRefSlice(&req.Tags, e.Cache.resolveTagRefs(vrf.Tags)); err != nil {
 		return req, fmt.Errorf("set VRF tag references: %w", err)
 	}
-	req.CustomFields = customFieldsPayload("VRF", vrf.Name, &vrf.ObjectMeta)
+	req.CustomFields = e.customFields().payload("VRF", vrf.Name, &vrf.ObjectMeta)
 	return req, nil
 }
 

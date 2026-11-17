@@ -100,8 +100,8 @@ Locations are **exported as first-class objects** in Phase 0. `loadLocations()` 
 | `Comments` | `string` | `Location.Comments` | **Mapped** | Mapped when non-empty |
 | `Tenant` | `string` | `Location.Tenant` (FK) | Not Mapped | |
 | `Tags` | `[]string` | `Location.Tags` | Partial | Import resolves tag names through the tag catalog (`LinkTags`); export does not send them |
-| `CustomFields` | `map[string]any` | `Location.CustomFields` | **Mapped** | One projection for every write (`customFieldsPayload`): merged with flattened `ProviderMetadata`, provider value wins a shared key and the collision is reported; `false`, `0` and `""` are sent; keys the response does not echo are counted as lossy |
-| `ProviderMetadata` | `map[string]any` | `Location.CustomFields` | **Mapped** | Flattened and merged into `custom_fields` through the same projection |
+| `CustomFields` | `map[string]any` | `Location.CustomFields` | **Mapped** | One projection for every write (`customFieldProjection`): the object's custom fields as they are, plus any provider-metadata key `export.provider_metadata_fields` lists; `false`, `0` and `""` are sent; keys the response does not echo are counted as lossy |
+| `ProviderMetadata` | `map[string]any` | — | Cani-Internal | Private to the provider that wrote it; not exported unless `export.provider_metadata_fields` lists the key (§2a.6) |
 | `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Tracks source object UUIDs |
 | `Source` | `string` | — | Cani-Internal | Tracks library/import origin |
 
@@ -148,8 +148,8 @@ Nautobot does **not** have a separate `RackType` model — it uses an enum on th
 | `OccupiedSlots` | `map[int]map[string]uuid.UUID` | — | Cani-Internal | Rebuilt from device RackPosition + Face |
 | `Tenant` | `string` | `Rack.Tenant` (FK) | Not Mapped | |
 | `Tags` | `[]string` | `Rack.Tags` | Partial | Import resolves tag names (`LinkTags`); export resolves and sends them on create, not on merge PATCH |
-| `CustomFields` | `map[string]any` | `Rack.CustomFields` | **Mapped** | One projection for every write (`customFieldsPayload`): merged with flattened `ProviderMetadata`, provider value wins a shared key and the collision is reported; `false`, `0` and `""` are sent; keys the response does not echo are counted as lossy |
-| `ProviderMetadata` | `map[string]any` | `Rack.CustomFields` | **Mapped** | Flattened and merged into `custom_fields` through the same projection; the legacy device-as-rack path keeps `u_height`, `rack_position` and `location` out of it |
+| `CustomFields` | `map[string]any` | `Rack.CustomFields` | **Mapped** | One projection for every write (`customFieldProjection`): the object's custom fields as they are, plus any provider-metadata key `export.provider_metadata_fields` lists; `false`, `0` and `""` are sent; keys the response does not echo are counted as lossy |
+| `ProviderMetadata` | `map[string]any` | — | Cani-Internal | Private to the provider that wrote it; not exported unless `export.provider_metadata_fields` lists the key (§2a.6). A rack kept as a device takes its height from the device's `UHeight` (48 when unset), never from a `u_height` held here |
 | `ProviderDefaults` | `map[string]any` | — | Cani-Internal | Provider-specific hardware-library defaults |
 | `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Tracks source Nautobot UUIDs |
 | `Source` | `string` | — | Cani-Internal | |
@@ -174,14 +174,14 @@ This type conflates **template fields** (from the YAML library, used to auto-cre
 | `Serial` | `string` | `Device.Serial` | **Mapped** | |
 | `AssetTag` | `string` | `Device.AssetTag` | **Mapped** | |
 | `Status` | `string` | `Device.Status` (FK) | **Mapped** | Falls back to provider default, then "Active" |
-| `Role` | `string` | `Device.Role` (FK) | **Mapped** | Explicit `Role` field checked first, then `ProviderMetadata["role"]` fallback |
+| `Role` | `string` | `Device.Role` (FK) | **Mapped** | The `Role` field is the only source; without one the provider default applies, then `Generic` when roles are created. A role held in `ProviderMetadata` is not read |
 | `Parent` | `uuid.UUID` | `Device.Rack` (FK) or `Device.ParentBay` | **Mapped** | Overloaded: mapper checks Racks first, then Devices. A device parent is exported by installing the child in the parent's bay (Phase 2b) |
 | `ParentBay` | `string` | `Device.parent_bay` (read) / `DeviceBay.Name`, `DeviceBay.InstalledDevice` (write) | **Mapped** | Bay occupied in the parent device. Export: Phase 2b sets the named bay's `installed_device`. Import: `ApplyDeviceBays()` sets `Parent` + `ParentBay` from each occupied bay |
 | `ModuleBays` | `[]ModuleBaySpec` | `ModuleBay` objects on the device (read) | **Mapped** (import) | Import records the bays Nautobot declares on the device instance (`ApplyModuleBays()`), name and position, and `MergeProperties` carries them onto an existing device, so `Inventory.ReconcileModuleBays()` resolves a module's bay against the source system's names rather than clearing a bay the library spells differently. A device that declares none takes the library template's bays (`moduleBaysOf()`). Export creates a module's bay when placing the module (Phase 4), never from this field |
 | `RackPosition` | `int` | `Device.Position` | **Mapped** | Only when parent resolves to a rack; omitted for child devices (`isChildDevice()`) |
 | `Face` | `string` | `Device.Face` | **Mapped** | Written by `setDeviceFace()`: `"front"`, `"rear"`, or nil if empty; omitted for child devices, which Nautobot rejects |
 | `Rack` | `uuid.UUID` | `Device.Rack` (FK) | Cani-Internal | Explicit FK; rebuilt from `Parent` at load time |
-| `Location` | `uuid.UUID` | `Device.Location` (FK) | **Mapped** | Export: provider metadata override, then the location a racked device records when it holds its rack's and its type holds devices, then the parent rack's location, then the location of a device with no rack, then provider default. Import sets it from `Device.location`. A device with no parent is placed directly in it. A racked device keeps it only while it is the rack's location or an ancestor of it, which is what `Device.clean()` accepts; any other value is replaced by the rack's on rebuild, and it is cleared when the rack moves (`Inventory.MoveRack`, a rack merge) or the device is given another parent, because Nautobot puts the devices of a rack in the rack's location whenever the rack is saved (`handle_rack_location_change`). A device installed in another device takes that device's. Set with `add device --location` and `update device --location` (`Inventory.SetDeviceLocation`) |
+| `Location` | `uuid.UUID` | `Device.Location` (FK) | **Mapped** | Export: the location a racked device records when it holds its rack's and its type holds devices, then the parent rack's location, then the location of a device with no rack, then provider default; a location held in `ProviderMetadata` is not read. Import sets it from `Device.location`. A device with no parent is placed directly in it. A racked device keeps it only while it is the rack's location or an ancestor of it, which is what `Device.clean()` accepts; any other value is replaced by the rack's on rebuild, and it is cleared when the rack moves (`Inventory.MoveRack`, a rack merge) or the device is given another parent, because Nautobot puts the devices of a rack in the rack's location whenever the rack is saved (`handle_rack_location_change`). A device installed in another device takes that device's. Set with `add device --location` and `update device --location` (`Inventory.SetDeviceLocation`) |
 | `ParentDevice` | `uuid.UUID` | `Device.ParentBay` | Cani-Internal | Explicit FK; rebuilt from `Parent` at load time |
 | `AssignedVLANs` | `[]uuid.UUID` | Relationship association | **Mapped** | Device↔VLAN; exported in Phase 10 by `loadRelationships()` in `load_relationships.go`. Set by `update device --assign-vlan` |
 | `BMCParent` | `uuid.UUID` | Relationship association | **Mapped** | Marks this device as the BMC of the target device; exported in Phase 10. Set by `update device --bmc-of` |
@@ -197,8 +197,8 @@ This type conflates **template fields** (from the YAML library, used to auto-cre
 | `Platform` | `string` | `Device.Platform` (FK) | Not Mapped | |
 | `Tenant` | `string` | `Device.Tenant` (FK) | Not Mapped | |
 | `Tags` | `[]string` | `Device.Tags` | Partial | Import resolves tag names (`LinkTags`); export resolves and sends them on create, not on merge PATCH |
-| `CustomFields` | `map[string]any` | `Device.CustomFields` | **Mapped** | One projection for every write (`customFieldsPayload`): merged with flattened `ProviderMetadata`, provider value wins a shared key and the collision is reported; `false`, `0` and `""` are sent; keys the response does not echo are counted as lossy; identical on create, bulk create and `--merge` PATCH, and compared by `--merge` |
-| `ProviderMetadata` | `map[string]any` | `Device.CustomFields` | **Mapped** | Flattened and merged into `custom_fields` through the same projection, except the `location` and `role` keys: those are used for FK resolution only and are never sent or compared as custom fields |
+| `CustomFields` | `map[string]any` | `Device.CustomFields` | **Mapped** | One projection for every write (`customFieldProjection`): the object's custom fields as they are, plus any provider-metadata key `export.provider_metadata_fields` lists; `false`, `0` and `""` are sent; keys the response does not echo are counted as lossy; identical on create, bulk create and `--merge` PATCH, and compared by `--merge` |
+| `ProviderMetadata` | `map[string]any` | — | Cani-Internal | Private to the provider that wrote it; not exported unless `export.provider_metadata_fields` lists the key (§2a.6). A `role` or `location` held here sets neither Nautobot field |
 | `Source` | `string` | — | Cani-Internal | |
 
 #### DeviceType template fields (auto-creation)
@@ -248,7 +248,7 @@ Exported in Phase 4 by `loadModules()` in `export/load_modules.go`, spares first
 | `Role` | `string` | `Module.Role` (FK) | **Mapped** | Resolved by name when non-empty |
 | `Tenant` | `string` | `Module.Tenant` (FK) | Not Mapped | |
 | `Tags` | `[]string` | `Module.Tags` | Not Mapped | |
-| `CustomFields` | `map[string]any` | `Module.CustomFields` | **Mapped** | One projection for every write (`customFieldsPayload`): merged with flattened `ProviderMetadata`, provider value wins a shared key and the collision is reported; `false`, `0` and `""` are sent; keys the response does not echo are counted as lossy |
+| `CustomFields` | `map[string]any` | `Module.CustomFields` | **Mapped** | One projection for every write (`customFieldProjection`): the object's custom fields as they are, plus any provider-metadata key `export.provider_metadata_fields` lists; `false`, `0` and `""` are sent; keys the response does not echo are counted as lossy |
 | `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Import records the source Nautobot UUID for stable re-import identity |
 | `Source` | `string` | — | Cani-Internal | |
 
@@ -288,7 +288,7 @@ Cables use a library mechanism identical to devices: a slug/part-number resolves
 | `TerminationAPort` | `string` | — | Cani-Internal | Port name; used for fuzzy interface lookup |
 | `TerminationBPort` | `string` | — | Cani-Internal | Same |
 | `Tags` | `[]string` | `Cable.Tags` | Not Mapped | |
-| `CustomFields` | `map[string]any` | `Cable.CustomFields` | **Mapped** | One projection for every write (`customFieldsPayload`): merged with flattened `ProviderMetadata`, provider value wins a shared key and the collision is reported; `false`, `0` and `""` are sent; keys the response does not echo are counted as lossy |
+| `CustomFields` | `map[string]any` | `Cable.CustomFields` | **Mapped** | One projection for every write (`customFieldProjection`): the object's custom fields as they are, plus any provider-metadata key `export.provider_metadata_fields` lists; `false`, `0` and `""` are sent; keys the response does not echo are counted as lossy |
 | `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Import records the source Nautobot UUID; merge falls back to label or unordered endpoints |
 | `Source` | `string` | — | Cani-Internal | |
 
@@ -328,7 +328,7 @@ Exported in Phase 5 by `loadFrus()` in `export/load_frus.go`. Uses a topological
 | `Parent` | `uuid.UUID` | `InventoryItem.Parent` (FK) | **Mapped** | Resolved to parent InventoryItem ID (topological sort ensures order) |
 | `Discovered` | `bool` | `InventoryItem.Discovered` | **Mapped** | |
 | `Tags` | `[]string` | `InventoryItem.Tags` | **Mapped** | Resolved by name on create |
-| `CustomFields` | `map[string]any` | `InventoryItem.CustomFields` | **Mapped** | One projection for every write (`customFieldsPayload`): merged with flattened `ProviderMetadata`, provider value wins a shared key and the collision is reported; `false`, `0` and `""` are sent; keys the response does not echo are counted as lossy |
+| `CustomFields` | `map[string]any` | `InventoryItem.CustomFields` | **Mapped** | One projection for every write (`customFieldProjection`): the object's custom fields as they are, plus any provider-metadata key `export.provider_metadata_fields` lists; `false`, `0` and `""` are sent; keys the response does not echo are counted as lossy |
 | `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Import records the source Nautobot UUID for stable nested-FRU re-imports |
 | `Source` | `string` | — | Cani-Internal | |
 
@@ -547,9 +547,9 @@ namespace, which is resolved first).
 | `Devices` | `[]uuid.UUID` | `VRFDeviceAssignment` (M2M) | **Mapped** | Exported via `ensureVRFDeviceAssignment()` in `load_vrfs.go`; imported via `FetchVRFDeviceAssignments()` + `MapVRFs()` |
 | `Status` | `string` | `VRF.status` (FK) | **Mapped** | Resolved by name |
 | `Tags` | `[]string` | `VRF.tags` | **Mapped** | Import resolves tag names (`LinkTags`); export sends them via the shared tag resolver |
-| `CustomFields` | `map[string]any` | `VRF.custom_fields` | **Mapped** | One projection for every write (`customFieldsPayload`): merged with flattened `ProviderMetadata`, provider value wins a shared key and the collision is reported; `false`, `0` and `""` are sent; keys the response does not echo are counted as lossy |
+| `CustomFields` | `map[string]any` | `VRF.custom_fields` | **Mapped** | One projection for every write (`customFieldProjection`): the object's custom fields as they are, plus any provider-metadata key `export.provider_metadata_fields` lists; `false`, `0` and `""` are sent; keys the response does not echo are counted as lossy |
 | `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Tracks the source Nautobot UUID |
-| `ProviderMetadata` | `map[string]any` | `VRF.custom_fields` | **Mapped** | Flattened and merged into `custom_fields` through the same projection |
+| `ProviderMetadata` | `map[string]any` | — | Cani-Internal | Private to the provider that wrote it; not exported unless `export.provider_metadata_fields` lists the key (§2a.6) |
 
 ### 2a.3 `CaniVLAN` → Nautobot `VLAN`
 
@@ -568,9 +568,9 @@ location).
 | `Status` | `string` | `VLAN.status` (FK) | **Mapped** | Resolved by name; falls back to provider default then `"Active"` |
 | `Role` | `string` | `VLAN.role` (FK) | **Mapped** | Resolved by name when non-empty |
 | `Tags` | `[]string` | `VLAN.tags` | Partial | Import resolves tag names (`LinkTags`); export does not send them |
-| `CustomFields` | `map[string]any` | `VLAN.custom_fields` | **Mapped** | One projection for every write (`customFieldsPayload`): merged with flattened `ProviderMetadata`, provider value wins a shared key and the collision is reported; `false`, `0` and `""` are sent; keys the response does not echo are counted as lossy |
+| `CustomFields` | `map[string]any` | `VLAN.custom_fields` | **Mapped** | One projection for every write (`customFieldProjection`): the object's custom fields as they are, plus any provider-metadata key `export.provider_metadata_fields` lists; `false`, `0` and `""` are sent; keys the response does not echo are counted as lossy |
 | `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Tracks the source Nautobot UUID |
-| `ProviderMetadata` | `map[string]any` | `VLAN.custom_fields` | **Mapped** | Flattened and merged into `custom_fields` through the same projection |
+| `ProviderMetadata` | `map[string]any` | — | Cani-Internal | Private to the provider that wrote it; not exported unless `export.provider_metadata_fields` lists the key (§2a.6) |
 
 ### 2a.4 `CaniPrefix` → Nautobot `Prefix`
 
@@ -603,9 +603,9 @@ Its VRF memberships become `VRFPrefixAssignment` records
 | `Role` | `string` | `Prefix.role` (FK) | **Mapped** | Resolved by name when non-empty |
 | `Tenant` | `string` | `Prefix.tenant` (FK) | Not Mapped | |
 | `Tags` | `[]string` | `Prefix.tags` | Partial | Import resolves tag names (`LinkTags`); export does not send them |
-| `CustomFields` | `map[string]any` | `Prefix.custom_fields` | **Mapped** | One projection for every write (`customFieldsPayload`): merged with flattened `ProviderMetadata`, provider value wins a shared key and the collision is reported; `false`, `0` and `""` are sent; keys the response does not echo are counted as lossy |
+| `CustomFields` | `map[string]any` | `Prefix.custom_fields` | **Mapped** | One projection for every write (`customFieldProjection`): the object's custom fields as they are, plus any provider-metadata key `export.provider_metadata_fields` lists; `false`, `0` and `""` are sent; keys the response does not echo are counted as lossy |
 | `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Tracks the source Nautobot UUID |
-| `ProviderMetadata` | `map[string]any` | `Prefix.custom_fields` | **Mapped** | Flattened and merged into `custom_fields` through the same projection |
+| `ProviderMetadata` | `map[string]any` | — | Cani-Internal | Private to the provider that wrote it; not exported unless `export.provider_metadata_fields` lists the key (§2a.6) |
 
 ### 2a.5 `CaniIPAddress` → Nautobot `IPAddress`
 
@@ -637,9 +637,9 @@ intended namespace, and the parent is remapped to its canonical inventory UUID.
 | `NATInside` | `uuid.UUID` | `IPAddress.nat_inside` | Not Mapped | Remapped when supplied by another provider, but Nautobot import/export does not populate it |
 | `Status` | `string` | `IPAddress.status` (FK) | **Mapped** | Resolved by name |
 | `Tags` | `[]string` | `IPAddress.tags` | Partial | Import resolves tag names (`LinkTags`); export does not send them |
-| `CustomFields` | `map[string]any` | `IPAddress.custom_fields` | **Mapped** | One projection for every write (`customFieldsPayload`): merged with flattened `ProviderMetadata`, provider value wins a shared key and the collision is reported; `false`, `0` and `""` are sent; keys the response does not echo are counted as lossy |
+| `CustomFields` | `map[string]any` | `IPAddress.custom_fields` | **Mapped** | One projection for every write (`customFieldProjection`): the object's custom fields as they are, plus any provider-metadata key `export.provider_metadata_fields` lists; `false`, `0` and `""` are sent; keys the response does not echo are counted as lossy |
 | `ExternalIDs` | `map[string]uuid.UUID` | — | Cani-Internal | Tracks the source Nautobot UUID |
-| `ProviderMetadata` | `map[string]any` | `IPAddress.custom_fields` | **Mapped** | Flattened and merged into `custom_fields` through the same projection |
+| `ProviderMetadata` | `map[string]any` | — | Cani-Internal | Private to the provider that wrote it; not exported unless `export.provider_metadata_fields` lists the key (§2a.6) |
 
 ### 2a.6 `InventoryMetadata` / `CustomFieldDefinition` → Nautobot Custom Fields
 
@@ -662,24 +662,32 @@ validation errors reject the complete transform without partially applying it.
 #### Custom-field value semantics (every object family)
 
 - **One projection.** Every create, bulk-create and `--merge` PATCH builds its
-  `custom_fields` with `customFieldsPayload` (`export/custom_fields_payload.go`),
+  `custom_fields` with `customFieldProjection` (`export/custom_fields_payload.go`),
   and `--merge` compares with the same set, so the write and the comparison
   cannot disagree.
-- **Precedence.** Explicit `CustomFields` are merged with flattened
-  `ProviderMetadata`; on a shared key the provider value is sent. The collision
-  is reported per object and key (never the value) rather than resolved
-  differently.
+- **Custom fields are the only source.** An object's `CustomFields` are sent
+  as they are. `ProviderMetadata` is not exported: it belongs to the provider
+  that wrote it. A role, location or height named there sets nothing either;
+  `Role`, the device's placement and `UHeight` are the only sources of those
+  Nautobot fields.
+- **Opting provider metadata in.** The export option `provider_metadata_fields`
+  lists the provider-metadata keys to send as custom fields, and
+  `--provider-metadata-field` replaces that list for one export. An entry is
+  `provider.key`, which sends `providerMetadata.<provider>.<key>` as the
+  custom field `key`, or `provider.key=custom_field`, which sends it under
+  another name. The provider is the text before the first dot, and only that
+  provider's bucket is read. A listed key belongs to its provider, so its
+  value is sent in place of a custom field of the same name; while the two
+  differ the export names the object and the key (never the value), at the
+  comparison when there is one, so the note is made whether or not a write
+  follows. The list defines nothing: the custom field needs a definition for
+  the object's content type, in the inventory or already in Nautobot, like
+  any other.
 - **Import retires the superseded provider copy.** When import reads a custom
   field back, `ObjectMeta.Merge` removes the same key from the source's own
   provider-metadata bucket (`providerMetadata.nautobot`). A value held there
   therefore cannot outlive an edit made in Nautobot. Buckets of other
   providers are not touched.
-- **Reserved provider keys.** A provider-metadata key that a mapper already
-  sends as a dedicated Nautobot field is not a custom field: `role` and
-  `location` on a device, and `u_height`, `rack_position` and `location` on
-  the legacy device-as-rack. The projection drops them per object kind
-  (`reservedProviderKeys`), so no writer or comparison has to remember to.
-  An explicit `CustomFields` entry with one of those names is still sent.
 - **Falsy values travel.** `false`, `0` and `""` are sent. Nautobot fills an
   *omitted* key from the definition's default, so omission and `false` are
   different writes.
@@ -920,7 +928,7 @@ Implemented in `loadVRFs()` in `load_vrfs.go`. Iterates `inventory.VRFs`. Resolv
 
 ### Phase 7: VLANs
 
-Implemented in `loadVLANs()` in `load_vlans.go`. Iterates `inventory.VLANs`. Find-or-create scoped to the VLAN's location; the create request's `location` field materializes a Nautobot 3.2 `VLANLocationAssignment`. Caches created VLAN IDs for interface enrichment and prefix FK resolution. Merges `CustomFields` and flattened `ProviderMetadata` into the `custom_fields` payload on create.
+Implemented in `loadVLANs()` in `load_vlans.go`. Iterates `inventory.VLANs`. Find-or-create scoped to the VLAN's location; the create request's `location` field materializes a Nautobot 3.2 `VLANLocationAssignment`. Caches created VLAN IDs for interface enrichment and prefix FK resolution. Sends the VLAN's `CustomFields`, and any provider-metadata key the export options list, as the `custom_fields` payload on create.
 
 ### Phase 7b: Interface enrichment
 
@@ -979,7 +987,7 @@ Implemented in `loadPrimaryIPs()` in `load_primary_ips.go`. PATCHes devices that
 
 ### Medium Impact — IMPLEMENTED
 
-5. **~~Promote `Role` from `ProviderMetadata` to first-class field~~** — ✅ Implemented in `resolveRole()` in `mapper.go`. Now checks `device.Role` first, falls back to `ProviderMetadata["role"]` for backwards compatibility, then to provider default, then `"Generic"`.
+5. **~~Promote `Role` from `ProviderMetadata` to first-class field~~** — ✅ Implemented in `resolveRole()` in `mapper.go`. `device.Role` is the only source, then the provider default, then `"Generic"`; a role held in `ProviderMetadata` is no longer read.
 
 6. **~~Add `SubdeviceRole` to DeviceType auto-creation~~** — ✅ Implemented in `CreateDeviceTypeFromLocal()` in `lookup.go`. Maps `"parent"` → `nautobotapi.Parent` and `"child"` → `nautobotapi.Child` via `ParentChildStatus.FromSubdeviceRoleEnum()`.
 

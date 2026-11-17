@@ -114,9 +114,7 @@ func TestSortedMapKeys_EmptyMap(t *testing.T) {
 func TestCompareDeviceFields_IncludesCustomFieldDiffs(t *testing.T) {
 	device := &devicetypes.CaniDeviceType{
 		ObjectMeta: devicetypes.ObjectMeta{
-			ProviderMetadata: map[string]any{
-				"nautobot": map[string]any{"rack_elevation": "top"},
-			},
+			CustomFields: map[string]any{"rack_elevation": "top"},
 		},
 	}
 
@@ -149,9 +147,7 @@ func TestCompareDeviceFields_IncludesCustomFieldDiffs(t *testing.T) {
 func TestCompareDeviceFields_NoDiffWhenCustomFieldsMatch(t *testing.T) {
 	device := &devicetypes.CaniDeviceType{
 		ObjectMeta: devicetypes.ObjectMeta{
-			ProviderMetadata: map[string]any{
-				"nautobot": map[string]any{"tier": "1"},
-			},
+			CustomFields: map[string]any{"tier": "1"},
 		},
 	}
 

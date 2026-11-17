@@ -31,21 +31,44 @@ import (
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	nautobotapi "github.com/Cray-HPE/cani/pkg/nautobot"
+	"github.com/Cray-HPE/cani/pkg/provider/nautobot/transform"
 	"github.com/google/uuid"
 )
 
-// explicitCustomFieldDevice is a mappable device with one explicit custom
-// field of each falsy kind and one provider-metadata key.
-func explicitCustomFieldDevice(name string) *devicetypes.CaniDeviceType {
+// customFieldDevice is a mappable device with one custom field of each falsy
+// kind and a CSM bucket that holds an xname.
+func customFieldDevice(name string) *devicetypes.CaniDeviceType {
 	dev := newMappableDevice(name)
 	dev.CustomFields = map[string]any{"decommissioned": false, "spare_slots": 0, "tier": "gold"}
 	dev.ProviderMetadata = map[string]any{"csm": map[string]any{"xname": "x3000c0s1b0"}}
 	return dev
 }
 
-// wantDeviceCustomFields is what every device mapper must send for
-// explicitCustomFieldDevice.
-var wantDeviceCustomFields = map[string]any{"decommissioned": false, "spare_slots": 0, "tier": "gold", "xname": "x3000c0s1b0"}
+// deviceRequests names the three device mappers; each returns the
+// custom_fields of the request it builds.
+var deviceRequests = map[string]func(*DeviceMapper, *devicetypes.CaniDeviceType) (*map[string]*interface{}, error){
+	"single create": func(m *DeviceMapper, dev *devicetypes.CaniDeviceType) (*map[string]*interface{}, error) {
+		req, err := m.MapToWritableDeviceRequest(dev)
+		if err != nil {
+			return nil, err
+		}
+		return req.CustomFields, nil
+	},
+	"bulk create": func(m *DeviceMapper, dev *devicetypes.CaniDeviceType) (*map[string]*interface{}, error) {
+		req, err := m.MapToNautobotDevice(dev)
+		if err != nil {
+			return nil, err
+		}
+		return req.CustomFields, nil
+	},
+	"merge patch": func(m *DeviceMapper, dev *devicetypes.CaniDeviceType) (*map[string]*interface{}, error) {
+		req, err := m.MapToPatchRequest(dev, uuid.New())
+		if err != nil {
+			return nil, err
+		}
+		return req.CustomFields, nil
+	},
+}
 
 // assertCustomFields fails unless got carries exactly the want keys with the
 // want values.
@@ -65,129 +88,144 @@ func assertCustomFields(t *testing.T, got *map[string]*interface{}, want map[str
 	}
 }
 
-// TestMapToWritableDeviceRequest_SendsExplicitCustomFields verifies that
-// the single-create mapper carries explicit custom fields, including false
-// and zero, alongside flattened provider metadata.
+// TestDeviceMappers_SendCustomFieldsAndNoProviderMetadata verifies that
+// every device mapper sends the device's custom fields, including false and
+// zero, and none of its provider metadata.
 //
-// Why it matters: before the shared projection the device create sent only
-// provider metadata, so an inventory imported from one Nautobot lost every
-// explicit custom field when seeded into another.
-// Inputs: a mappable device with explicit {decommissioned: false,
-// spare_slots: 0, tier} and provider {xname}.
-// Outputs: custom_fields with all four keys and original values.
-// Data choice: the falsy values prove nothing filters on truthiness.
-func TestMapToWritableDeviceRequest_SendsExplicitCustomFields(t *testing.T) {
-	e, cleanup := newExporterWithServer(t, jsonHandler(new(int), 200, `{}`))
-	defer cleanup()
-	seedDeviceRefs(t, e)
+// Why it matters: the three mappers are every way a device is written, so
+// one that projected differently would make what Nautobot receives depend
+// on batch size or on --merge; and provider metadata sent as custom fields
+// is what let another provider's value overwrite a field set in Nautobot.
+// Inputs: a mappable device with custom fields {decommissioned: false,
+// spare_slots: 0, tier} and a CSM bucket {xname}, through each mapper.
+// Outputs: custom_fields with the three custom fields and no xname.
+// Data choice: the falsy values prove nothing filters on truthiness, and
+// one fixture for all three makes any divergence a direct failure.
+func TestDeviceMappers_SendCustomFieldsAndNoProviderMetadata(t *testing.T) {
+	want := map[string]any{"decommissioned": false, "spare_slots": 0, "tier": "gold"}
+	for name, request := range deviceRequests {
+		t.Run(name, func(t *testing.T) {
+			// Arrange.
+			e, cleanup := newExporterWithServer(t, jsonHandler(new(int), 200, `{}`))
+			defer cleanup()
+			seedDeviceRefs(t, e)
 
-	req, err := newCrudMapper(e).MapToWritableDeviceRequest(explicitCustomFieldDevice("compute-001"))
-	if err != nil {
-		t.Fatalf("MapToWritableDeviceRequest() error = %v", err)
+			// Act.
+			fields, err := request(newCrudMapper(e), customFieldDevice("compute-001"))
+
+			// Assert.
+			if err != nil {
+				t.Fatalf("mapper error = %v", err)
+			}
+			assertCustomFields(t, fields, want)
+		})
 	}
-	assertCustomFields(t, req.CustomFields, wantDeviceCustomFields)
 }
 
-// TestMapToNautobotDevice_SendsExplicitCustomFields verifies that the
-// bulk-create mapper sends the same custom-field set as the single create.
+// TestDeviceMappers_SendAListedProviderKey verifies that every device
+// mapper sends a provider-metadata key the export options list, beside the
+// device's own custom fields.
 //
-// Why it matters: the Story requires one projection for every write; a bulk
-// path that diverged would make fidelity depend on batch size.
-// Inputs: the same device as the single-create test.
-// Outputs: an identical custom_fields map.
-// Data choice: reusing the fixture makes any divergence between the two
-// mappers a direct assertion failure.
-func TestMapToNautobotDevice_SendsExplicitCustomFields(t *testing.T) {
-	e, cleanup := newExporterWithServer(t, jsonHandler(new(int), 200, `{}`))
-	defer cleanup()
-	seedDeviceRefs(t, e)
+// Why it matters: the list is the only way a provider's metadata reaches
+// Nautobot; a mapper that ignored it would drop the field from creates,
+// bulk creates or merges without a word.
+// Inputs: the same device, through each mapper built with csm.xname listed.
+// Outputs: custom_fields with the three custom fields and the xname.
+// Data choice: the fixture of the test above, so the listed key is the
+// only difference between the two outcomes.
+func TestDeviceMappers_SendAListedProviderKey(t *testing.T) {
+	want := map[string]any{"decommissioned": false, "spare_slots": 0, "tier": "gold", "xname": "x3000c0s1b0"}
+	for name, request := range deviceRequests {
+		t.Run(name, func(t *testing.T) {
+			// Arrange.
+			e, cleanup := newExporterWithServer(t, jsonHandler(new(int), 200, `{}`))
+			defer cleanup()
+			seedDeviceRefs(t, e)
+			mapper := NewDeviceMapper(e.Cache, &MapperOpts{
+				DefaultLocation: "DC1", DefaultStatus: "Active", DefaultRole: "Compute",
+				ProviderMetadataFields: []ProviderMetadataField{{Provider: "csm", Key: "xname", CustomField: "xname"}},
+			})
 
-	req, err := newCrudMapper(e).MapToNautobotDevice(explicitCustomFieldDevice("compute-002"))
-	if err != nil {
-		t.Fatalf("MapToNautobotDevice() error = %v", err)
+			// Act.
+			fields, err := request(mapper, customFieldDevice("compute-002"))
+
+			// Assert.
+			if err != nil {
+				t.Fatalf("mapper error = %v", err)
+			}
+			assertCustomFields(t, fields, want)
+		})
 	}
-	assertCustomFields(t, req.CustomFields, wantDeviceCustomFields)
 }
 
-// TestMapToPatchRequest_SendsExplicitCustomFields verifies that the merge
-// PATCH mapper carries explicit custom fields.
+// TestMapToWritableRackRequest_SendsCustomFieldsAndTheDevicesHeight verifies
+// that a rack kept as a device is created with the device's own custom
+// fields and height, and with nothing from its provider metadata.
 //
-// Why it matters: --merge is how a changed explicit custom field reaches an
-// object that already exists; without it the create and merge paths send
-// different sets, which the Story forbids.
-// Inputs: the same device as the create tests and an arbitrary existing ID.
-// Outputs: an identical custom_fields map on the PATCH request.
-// Data choice: the existing ID is irrelevant to the payload and is random.
-func TestMapToPatchRequest_SendsExplicitCustomFields(t *testing.T) {
+// Why it matters: the rack mapper read a height from provider metadata that
+// no stored inventory could supply, so every such rack was created 48U
+// tall, and it sent the rest of the provider metadata as custom fields.
+// Inputs: a rack-category device with a custom field, a height of 42 and
+// provider metadata holding u_height, rack_position and a CSM bucket.
+// Outputs: custom_fields {owner} and UHeight 42.
+// Data choice: the provider-metadata height differs from the field, so
+// reading it again would show.
+func TestMapToWritableRackRequest_SendsCustomFieldsAndTheDevicesHeight(t *testing.T) {
+	// Arrange.
 	e, cleanup := newExporterWithServer(t, jsonHandler(new(int), 200, `{}`))
 	defer cleanup()
 	seedDeviceRefs(t, e)
-
-	req, err := newCrudMapper(e).MapToPatchRequest(explicitCustomFieldDevice("compute-003"), uuid.New())
-	if err != nil {
-		t.Fatalf("MapToPatchRequest() error = %v", err)
-	}
-	assertCustomFields(t, req.CustomFields, wantDeviceCustomFields)
-}
-
-// TestMapToWritableRackRequest_SendsExplicitCustomFieldsButNotGeometry
-// verifies that the legacy rack mapper carries explicit custom fields while
-// still keeping u_height and rack_position out of custom_fields.
-//
-// Why it matters: rack geometry has dedicated Nautobot fields; sending it as
-// a custom field would create spurious definitions, but the exclusion must
-// not take explicit custom fields with it.
-// Inputs: a rack-category device with explicit {owner} and provider
-// {u_height: 42, rack_position: 1, color}.
-// Outputs: custom_fields {owner, color} and UHeight 42.
-// Data choice: one excluded key of each name next to one key that must
-// survive from each source.
-func TestMapToWritableRackRequest_SendsExplicitCustomFieldsButNotGeometry(t *testing.T) {
-	e, cleanup := newExporterWithServer(t, jsonHandler(new(int), 200, `{}`))
-	defer cleanup()
-	seedDeviceRefs(t, e)
-
 	rack := &devicetypes.CaniDeviceType{
-		Name: "x3000",
-		Type: devicetypes.Rack,
+		Name:    "x3000",
+		Type:    devicetypes.Rack,
+		UHeight: 42,
 		ObjectMeta: devicetypes.ObjectMeta{
-			Status:           "Active",
-			CustomFields:     map[string]any{"owner": "ops"},
-			ProviderMetadata: map[string]any{"u_height": 42, "rack_position": 1, "color": "black"},
+			Status:       "Active",
+			CustomFields: map[string]any{"owner": "ops"},
+			ProviderMetadata: map[string]any{
+				"u_height": 47, "rack_position": 1, "csm": map[string]any{"xname": "x3000"},
+			},
 		},
 	}
 
+	// Act.
 	req, err := newCrudMapper(e).MapToWritableRackRequest(rack)
+
+	// Assert.
 	if err != nil {
 		t.Fatalf("MapToWritableRackRequest() error = %v", err)
 	}
-	assertCustomFields(t, req.CustomFields, map[string]any{"owner": "ops", "color": "black"})
-	if req.UHeight == nil || *req.UHeight != 42 {
-		t.Errorf("UHeight = %v, want 42", req.UHeight)
+	assertCustomFields(t, req.CustomFields, map[string]any{"owner": "ops"})
+	if req.UHeight == nil {
+		t.Fatal("UHeight is unset, want 42")
+	}
+	if *req.UHeight != 42 {
+		t.Errorf("UHeight = %d, want 42", *req.UHeight)
 	}
 }
 
-// TestCompareDeviceFields_ReportsExplicitCustomFieldDrift verifies that the
-// --merge comparison sees a changed explicit custom field.
+// TestCompareDeviceFields_ReportsCustomFieldDrift verifies that the --merge
+// comparison sees a changed custom field.
 //
-// Why it matters: compareDeviceFields drove the merge decision from provider
-// metadata alone, so an explicit value that differed remotely produced no
-// diff and no PATCH; the compare must use the same projection as the write.
-// Inputs: a device with explicit {tier: gold} and a remote device whose
+// Why it matters: compareDeviceFields drives the merge decision, so a value
+// that differs remotely must produce a diff and a PATCH; the compare has to
+// use the same projection as the write.
+// Inputs: a device with custom field {tier: gold} and a remote device whose
 // custom_fields say tier silver.
 // Outputs: exactly one diff, for custom_field:tier, gold over silver.
 // Data choice: no provider metadata at all, so the diff can only come from
-// the explicit map.
-func TestCompareDeviceFields_ReportsExplicitCustomFieldDrift(t *testing.T) {
+// the device's custom fields.
+func TestCompareDeviceFields_ReportsCustomFieldDrift(t *testing.T) {
+	// Arrange.
 	e, cleanup := newExporterWithServer(t, jsonHandler(new(int), 200, `{}`))
 	defer cleanup()
 	seedDeviceRefs(t, e)
 	mapper := newCrudMapper(e)
-
 	dev := newMappableDevice("compute-004")
 	dev.CustomFields = map[string]any{"tier": "gold"}
 	remote := &nautobotapi.Device{Name: &dev.Name, CustomFields: nbCF(map[string]any{"tier": "silver"})}
 
+	// Act.
 	var found *FieldDiff
 	for _, d := range compareDeviceFields(dev, remote, mapper) {
 		if d.Field == "custom_field:tier" {
@@ -195,123 +233,200 @@ func TestCompareDeviceFields_ReportsExplicitCustomFieldDrift(t *testing.T) {
 			found = &d
 		}
 	}
+
+	// Assert.
 	if found == nil {
-		t.Fatal("no diff for custom_field:tier; explicit custom fields are not compared")
+		t.Fatal("no diff for custom_field:tier; custom fields are not compared")
 	}
 	if found.LocalVal != "gold" || found.RemoteVal != "silver" {
 		t.Errorf("diff = %q over %q, want gold over silver", found.LocalVal, found.RemoteVal)
 	}
 }
 
-// metadataRoleDevice is a device whose role and location come only from
-// provider metadata, next to one genuine provider custom field.
-func metadataRoleDevice(name string) *devicetypes.CaniDeviceType {
+// providerRoleDevice is a device with no role field whose provider metadata
+// holds a role and a location in two buckets and outside any.
+func providerRoleDevice(name string) *devicetypes.CaniDeviceType {
 	dev := newMappableDevice(name)
 	dev.Role = ""
-	dev.ProviderMetadata = map[string]any{"nautobot": map[string]any{"role": "Compute", "location": "DC1", "xname": "x3000c0s1b0"}}
+	named := map[string]any{"role": "Storage", "location": "DC9"}
+	dev.ProviderMetadata = map[string]any{"csm": named, "nautobot": named, "role": "Storage", "location": "DC9"}
 	return dev
 }
 
-// TestDeviceMappers_ProviderRoleAndLocationAreNotCustomFields verifies that
-// every device mapper resolves role and location from provider metadata but
-// sends neither as a custom field.
+// TestDeviceMappers_ProviderMetadataSetsNeitherRoleNorLocation verifies
+// that every device mapper takes a device's role and location from the
+// device and the export defaults, never from provider metadata, and sends
+// neither as a custom field.
 //
-// Why it matters: `add device --metadata role=X` is how a role is set, and
-// the mapper already sends it as Device.role; sending it again as
-// custom_fields.role made Nautobot silently drop the key and the export
-// warn "did not arrive" on every device.
-// Inputs: a device with no Role and provider {role, location, xname}, and a
-// mapper with no default role or location.
-// Outputs: each mapper succeeds and sends custom_fields {xname} only.
-// Data choice: no defaults, so the create mappers succeed only if role and
-// location were taken from the metadata; xname proves other keys still
-// travel.
-func TestDeviceMappers_ProviderRoleAndLocationAreNotCustomFields(t *testing.T) {
+// Why it matters: a role or location in provider metadata used to override
+// the inventory's own, so two places could set one Nautobot field and the
+// one a command could not show won. The role field and the device's
+// placement are now the only sources.
+// Inputs: a device with no role field and no placement whose provider
+// metadata names role Storage and location DC9, through each mapper with
+// defaults Compute and DC1.
+// Outputs: role Compute and location DC1 on each request, and no custom
+// fields.
+// Data choice: the names in provider metadata are ones the destination
+// does not have, so a mapper that read them would fail or create them.
+func TestDeviceMappers_ProviderMetadataSetsNeitherRoleNorLocation(t *testing.T) {
+	// Arrange.
 	e, cleanup := newExporterWithServer(t, jsonHandler(new(int), 200, `{}`))
 	defer cleanup()
 	seedDeviceRefs(t, e)
-	mapper := NewDeviceMapper(e.Cache, &MapperOpts{DefaultStatus: "Active"})
-	want := map[string]any{"xname": "x3000c0s1b0"}
+	mapper := newCrudMapper(e)
+	wantRole, wantLocation := e.Cache.roles["Compute"].ID, e.Cache.locations["DC1"].ID
 
-	single, err := mapper.MapToWritableDeviceRequest(metadataRoleDevice("compute-005"))
-	if err != nil {
-		t.Fatalf("MapToWritableDeviceRequest() error = %v", err)
+	// Act.
+	single, singleErr := mapper.MapToWritableDeviceRequest(providerRoleDevice("compute-005"))
+	bulk, bulkErr := mapper.MapToNautobotDevice(providerRoleDevice("compute-006"))
+	patch, patchErr := mapper.MapToPatchRequest(providerRoleDevice("compute-007"), uuid.New())
+
+	// Assert.
+	if singleErr != nil || bulkErr != nil || patchErr != nil {
+		t.Fatalf("mapper errors = %v, %v, %v", singleErr, bulkErr, patchErr)
 	}
-	assertCustomFields(t, single.CustomFields, want)
-
-	bulk, err := mapper.MapToNautobotDevice(metadataRoleDevice("compute-006"))
-	if err != nil {
-		t.Fatalf("MapToNautobotDevice() error = %v", err)
+	if role, location := transform.RefUUID(single.Role.Id), transform.RefUUID(single.Location.Id); role != wantRole || location != wantLocation {
+		t.Errorf("single create: role = %s, location = %s, want the defaults %s and %s", role, location, wantRole, wantLocation)
 	}
-	assertCustomFields(t, bulk.CustomFields, want)
-
-	patch, err := mapper.MapToPatchRequest(metadataRoleDevice("compute-007"), uuid.New())
-	if err != nil {
-		t.Fatalf("MapToPatchRequest() error = %v", err)
+	if role, location := transform.RefUUID(bulk.Role.Id), transform.RefUUID(bulk.Location.Id); role != wantRole || location != wantLocation {
+		t.Errorf("bulk create: role = %s, location = %s, want the defaults %s and %s", role, location, wantRole, wantLocation)
 	}
 	if patch.Role == nil || patch.Location == nil {
-		t.Errorf("PATCH role = %v, location = %v, want both resolved from provider metadata", patch.Role, patch.Location)
+		t.Fatalf("merge patch: role = %v, location = %v, want both set from the defaults", patch.Role, patch.Location)
 	}
-	assertCustomFields(t, patch.CustomFields, want)
+	if role, location := transform.RefUUID(patch.Role.Id), transform.RefUUID(patch.Location.Id); role != wantRole || location != wantLocation {
+		t.Errorf("merge patch: role = %s, location = %s, want the defaults %s and %s", role, location, wantRole, wantLocation)
+	}
+	if single.CustomFields != nil || bulk.CustomFields != nil || patch.CustomFields != nil {
+		t.Errorf("custom fields = %v, %v, %v, want none", single.CustomFields, bulk.CustomFields, patch.CustomFields)
+	}
 }
 
-// TestCompareDeviceFields_ProviderRoleIsNotACustomFieldDiff verifies that
-// the --merge comparison reports no custom-field diff for a provider role
-// or location the remote does not carry as a custom field.
+// TestCompareDeviceFields_ProviderMetadataIsNotACustomFieldDiff verifies
+// that the --merge comparison reports no custom-field diff for provider
+// metadata the remote does not carry.
 //
-// Why it matters: Nautobot never returns an undefined custom-field key, so
-// comparing the provider role as a custom field produced a diff and a PATCH
-// on every --merge run and the export never settled.
-// Inputs: a device with provider {role, location, xname} and a remote whose
-// custom_fields hold the matching xname only.
+// Why it matters: Nautobot never returns a custom-field key it has no
+// definition for, so comparing provider metadata as custom fields produced
+// a diff and a PATCH on every --merge run and the export never settled.
+// Inputs: a device whose provider metadata holds a role, a location and an
+// xname, and a remote with no custom fields.
 // Outputs: no diff whose field starts with custom_field:.
-// Data choice: the matching xname shows the comparison still runs and that
-// only the reserved keys were left out.
-func TestCompareDeviceFields_ProviderRoleIsNotACustomFieldDiff(t *testing.T) {
+// Data choice: three keys the old projection treated three different ways.
+func TestCompareDeviceFields_ProviderMetadataIsNotACustomFieldDiff(t *testing.T) {
+	// Arrange.
 	e, cleanup := newExporterWithServer(t, jsonHandler(new(int), 200, `{}`))
 	defer cleanup()
 	seedDeviceRefs(t, e)
-	mapper := NewDeviceMapper(e.Cache, &MapperOpts{DefaultStatus: "Active"})
+	dev := providerRoleDevice("compute-008")
+	dev.ProviderMetadata["csm"] = map[string]any{"xname": "x3000c0s1b0"}
+	remote := &nautobotapi.Device{Name: &dev.Name}
 
-	dev := metadataRoleDevice("compute-008")
-	remote := &nautobotapi.Device{Name: &dev.Name, CustomFields: nbCF(map[string]any{"xname": "x3000c0s1b0"})}
+	// Act.
+	diffs := compareDeviceFields(dev, remote, newCrudMapper(e))
 
-	for _, d := range compareDeviceFields(dev, remote, mapper) {
+	// Assert.
+	for _, d := range diffs {
 		if strings.HasPrefix(d.Field, "custom_field:") {
 			t.Errorf("unexpected diff %s: %q over %q", d.Field, d.LocalVal, d.RemoteVal)
 		}
 	}
 }
 
-// TestMapToWritableRackRequest_ProviderLocationIsNotACustomField verifies
-// that the legacy rack mapper resolves its location from provider metadata
-// without also sending it as a custom field.
+// TestCompareDeviceFields_ComparesListedProviderKeys verifies that the
+// --merge comparison sees a listed provider-metadata key the way the write
+// sends it: a diff when the remote value differs, none when it agrees.
 //
-// Why it matters: the rack mapper shares resolveLocation with the device
-// mappers, so it duplicated the location the same way a device duplicated
-// its role.
-// Inputs: a rack-category device with provider {location, color} and a
-// mapper with no default location.
-// Outputs: custom_fields {color} only.
-// Data choice: no default location, so the request can only be built if the
-// metadata location was used for the dedicated field.
-func TestMapToWritableRackRequest_ProviderLocationIsNotACustomField(t *testing.T) {
+// Why it matters: the comparison decides whether a device is patched at
+// all; if it left listed keys out, a device whose only change was a
+// provider's value would never be updated, and if it compared unlisted
+// ones the export would never settle.
+// Inputs: a device whose CSM bucket holds xname and nid, a mapper listing
+// csm.xname, and a remote whose xname differs in one case and agrees in
+// the other.
+// Outputs: one custom-field diff, for xname, in the first case and none in
+// the second.
+// Data choice: nid is in the same bucket and not listed, so a comparison
+// of the whole bucket would add a second diff.
+func TestCompareDeviceFields_ComparesListedProviderKeys(t *testing.T) {
+	// Arrange.
 	e, cleanup := newExporterWithServer(t, jsonHandler(new(int), 200, `{}`))
 	defer cleanup()
 	seedDeviceRefs(t, e)
-
-	rack := &devicetypes.CaniDeviceType{
-		Name: "x3001",
-		Type: devicetypes.Rack,
-		ObjectMeta: devicetypes.ObjectMeta{
-			Status:           "Active",
-			ProviderMetadata: map[string]any{"location": "DC1", "color": "black"},
-		},
+	mapper := NewDeviceMapper(e.Cache, &MapperOpts{
+		DefaultLocation: "DC1", DefaultStatus: "Active", DefaultRole: "Compute",
+		ProviderMetadataFields: []ProviderMetadataField{{Provider: "csm", Key: "xname", CustomField: "xname"}},
+	})
+	dev := newMappableDevice("compute-009")
+	dev.ProviderMetadata = map[string]any{"csm": map[string]any{"xname": "x3000c0s1b0", "nid": 1001}}
+	customFieldDiffs := func(remoteXname string) []string {
+		remote := &nautobotapi.Device{Name: &dev.Name, CustomFields: nbCF(map[string]any{"xname": remoteXname})}
+		var fields []string
+		for _, d := range compareDeviceFields(dev, remote, mapper) {
+			if strings.HasPrefix(d.Field, "custom_field:") {
+				fields = append(fields, d.Field)
+			}
+		}
+		return fields
 	}
 
-	req, err := NewDeviceMapper(e.Cache, &MapperOpts{DefaultStatus: "Active"}).MapToWritableRackRequest(rack)
+	// Act.
+	drifted := customFieldDiffs("x3000c0s9b0")
+	settled := customFieldDiffs("x3000c0s1b0")
+
+	// Assert.
+	if len(drifted) != 1 || drifted[0] != "custom_field:xname" {
+		t.Errorf("remote xname differs: custom-field diffs = %v, want custom_field:xname alone", drifted)
+	}
+	if len(settled) != 0 {
+		t.Errorf("remote xname agrees: custom-field diffs = %v, want none", settled)
+	}
+}
+
+// TestMapToWritableRackRequest_ProviderMetadataDoesNotPlaceTheRack verifies
+// that a rack kept as a device is placed by the export default when it has
+// no placement of its own, whatever provider metadata names.
+//
+// Why it matters: the rack mapper shares resolveLocation with the device
+// mappers, so it took a location from provider metadata the same way.
+// Inputs: a rack-category device with no location whose provider metadata
+// names DC9, mapped with default location DC1 and then with none.
+// Outputs: location DC1 in the first request; an error asking for a
+// location in the second; no custom fields.
+// Data choice: DC9 is not in the destination, and with no default the
+// request can only be built if provider metadata was read.
+func TestMapToWritableRackRequest_ProviderMetadataDoesNotPlaceTheRack(t *testing.T) {
+	// Arrange.
+	e, cleanup := newExporterWithServer(t, jsonHandler(new(int), 200, `{}`))
+	defer cleanup()
+	seedDeviceRefs(t, e)
+	rack := func() *devicetypes.CaniDeviceType {
+		return &devicetypes.CaniDeviceType{
+			Name: "x3001",
+			Type: devicetypes.Rack,
+			ObjectMeta: devicetypes.ObjectMeta{
+				Status:           "Active",
+				ProviderMetadata: map[string]any{"location": "DC9", "nautobot": map[string]any{"location": "DC9"}},
+			},
+		}
+	}
+
+	// Act.
+	placed, err := newCrudMapper(e).MapToWritableRackRequest(rack())
+	_, unplacedErr := NewDeviceMapper(e.Cache, &MapperOpts{DefaultStatus: "Active"}).MapToWritableRackRequest(rack())
+
+	// Assert.
 	if err != nil {
 		t.Fatalf("MapToWritableRackRequest() error = %v", err)
 	}
-	assertCustomFields(t, req.CustomFields, map[string]any{"color": "black"})
+	if got, want := transform.RefUUID(placed.Location.Id), e.Cache.locations["DC1"].ID; got != want {
+		t.Errorf("location = %s, want the default %s", got, want)
+	}
+	if placed.CustomFields != nil {
+		t.Errorf("custom fields = %v, want none", derefCustomFields(placed.CustomFields))
+	}
+	if unplacedErr == nil || !strings.Contains(unplacedErr.Error(), "location is required") {
+		t.Errorf("no default location: error = %v, want one asking for a location", unplacedErr)
+	}
 }
