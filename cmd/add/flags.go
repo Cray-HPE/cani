@@ -38,7 +38,11 @@ const (
 	flagSpare       = "spare"
 	flagBayFilter   = "bay-filter"
 	flagDryRun      = "dry-run"
+	flagRole        = "role"
 )
+
+// roleFlagHelp describes --role on the nouns that stamp it on what they add.
+const roleFlagHelp = "Role (e.g. LeafSwitch, ComputeNode)"
 
 // Asset-tracking flags shared by every noun that records them.
 const (
