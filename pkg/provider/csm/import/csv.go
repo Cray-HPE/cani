@@ -170,16 +170,16 @@ func normalizeHeader(h string) string {
 	}
 }
 
-// setDeviceFields updates the CSM provider metadata on a device
-// from CSV values. Returns true if any field was modified.
+// setDeviceFields updates the CSM provider metadata on a device from CSV
+// values and returns true if any field was modified. A changed role is also
+// written to the device's role field, which commands and other providers read.
 func setDeviceFields(dev *devicetypes.CaniDeviceType, values map[string]string) bool {
 	changed := false
 
 	// Node-specific fields: Role, SubRole, Nid, Alias
-	if v, ok := values["Role"]; ok {
-		if setCSMMetaString(dev, "role", v) {
-			changed = true
-		}
+	if v, ok := values["Role"]; ok && setCSMMetaString(dev, "role", v) { // FIXME: deprecated csm.role is what the CSV is compared with; see csm/transform/metadata.go
+		dev.Role = v
+		changed = true
 	}
 	if v, ok := values["SubRole"]; ok {
 		if setCSMMetaString(dev, "subRole", v) {

@@ -199,7 +199,7 @@ func getField(dev *devicetypes.CaniDeviceType, header string) string {
 	case "Vlan":
 		return getCSMMetaString(dev, "hmnVlan")
 	case "Role":
-		return getCSMMetaString(dev, "role")
+		return getCSMMetaString(dev, "role") // FIXME: deprecated csm.role wins over the role field; see csm/transform/metadata.go
 	case subRoleKey:
 		return getCSMMetaString(dev, "subRole")
 	case "Nid":
@@ -282,7 +282,7 @@ func getRackField(rack *devicetypes.CaniRackType, header string) string {
 	case "Vlan":
 		return metaString(&rack.ObjectMeta, "hmnVlan")
 	case "Role":
-		return metaString(&rack.ObjectMeta, "role")
+		return metaString(&rack.ObjectMeta, "role") // FIXME: deprecated csm.role wins over the role field; see csm/transform/metadata.go
 	case subRoleKey:
 		return metaString(&rack.ObjectMeta, "subRole")
 	case "Nid":
