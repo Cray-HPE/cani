@@ -32,6 +32,7 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/store"
+	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
@@ -65,13 +66,14 @@ Use a subcommand to create a specific metadata type:
 	return cmd
 }
 
-// rejectMetadataFlag enforces mutual exclusivity: the "add metadata"
-// subcommand cannot be combined with the --metadata flag.
+// rejectMetadataFlag refuses the flags `add` hands to every subcommand that a
+// definition has nothing to store in: --metadata, which names the same thing
+// as this subcommand, and --tag and --status, which describe inventory items.
 func rejectMetadataFlag(cmd *cli.Command) error {
 	if f := cmd.Flags().Lookup("metadata"); f != nil && f.Changed {
 		return fmt.Errorf("--metadata flag cannot be used with the 'add metadata' subcommand; they are mutually exclusive")
 	}
-	return nil
+	return validate.RejectFlags(cmd, "tag", "status")
 }
 
 func newMetadataRoleCommand() *cli.Command {

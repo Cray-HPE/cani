@@ -119,7 +119,7 @@ func addAnyCable(cmd *cli.Command, args []string, cable *devicetypes.CaniCableTy
 		return err
 	}
 
-	if err := addCables(inventory, cable, names, statusArg, qty); err != nil {
+	if err := addCables(inventory, cable, names, statusArg, labelsFromFlags(cmd), qty); err != nil {
 		return err
 	}
 
@@ -132,7 +132,7 @@ func addAnyCable(cmd *cli.Command, args []string, cable *devicetypes.CaniCableTy
 }
 
 // addCables builds and adds qty cables to the inventory.
-func addCables(inventory *devicetypes.Inventory, cable *devicetypes.CaniCableType, names []string, statusArg string, qty int) error {
+func addCables(inventory *devicetypes.Inventory, cable *devicetypes.CaniCableType, names []string, statusArg string, lbl labels, qty int) error {
 	for i := range qty {
 		c := *cable
 		c.ID = uuid.New()
@@ -143,6 +143,7 @@ func addCables(inventory *devicetypes.Inventory, cable *devicetypes.CaniCableTyp
 		if statusArg != "" {
 			c.Status = statusArg
 		}
+		lbl.apply(&c.ObjectMeta)
 
 		if err := inventory.AddCable(&c); err != nil {
 			return fmt.Errorf("failed to add cable: %w", err)

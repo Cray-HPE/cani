@@ -31,6 +31,7 @@ import (
 
 	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/util/nameexpand"
+	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/devicetypes/connections"
 	"gopkg.in/yaml.v3"
 )
@@ -76,6 +77,10 @@ Examples:
 }
 
 func generateTopology(cmd *cli.Command, args []string) error {
+	// A generated map describes links, not inventory items.
+	if err := validate.RejectFlags(cmd, "tag", "status"); err != nil {
+		return err
+	}
 	pattern := args[0]
 	cableType, _ := cmd.Flags().GetString("cable-type")
 	cableColor, _ := cmd.Flags().GetString("cable-color")

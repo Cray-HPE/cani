@@ -83,6 +83,7 @@ func updateCable(cmd *cli.Command, args []string) error {
 	if cmd.Flags().Changed(flagDescription) {
 		cable.Description, _ = cmd.Flags().GetString(flagDescription)
 	}
+	applyTagFlag(cmd, &cable.ObjectMeta)
 
 	if err := applySetToCable(cmd, cable); err != nil {
 		return err

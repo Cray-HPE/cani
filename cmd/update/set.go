@@ -29,8 +29,20 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Cray-HPE/cani/internal/cli"
 	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
+
+// applyTagFlag replaces the item's tags with the --tag values when the flag
+// was given, and reports whether it was.
+func applyTagFlag(cmd *cli.Command, meta *devicetypes.ObjectMeta) bool {
+	if !cmd.Flags().Changed("tag") {
+		return false
+	}
+	meta.Tags, _ = cmd.Flags().GetStringArray("tag")
+	return true
+}
 
 // parseSetFlags splits --set key=value pairs into a map.
 func parseSetFlags(pairs []string) (map[string]string, error) {

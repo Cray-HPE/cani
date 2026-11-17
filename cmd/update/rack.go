@@ -142,10 +142,7 @@ func applyRackLocation(cmd *cli.Command, inventory *devicetypes.Inventory, rack 
 
 // applyRackTagsMetadata applies the --tag and --metadata flags when set.
 func applyRackTagsMetadata(cmd *cli.Command, rack *devicetypes.CaniRackType) {
-	if cmd.Flags().Changed("tag") {
-		tags, _ := cmd.Flags().GetStringArray("tag")
-		rack.Tags = tags
-	}
+	applyTagFlag(cmd, &rack.ObjectMeta)
 	if cmd.Flags().Changed("metadata") {
 		meta, _ := cmd.Flags().GetStringToString("metadata")
 		applyProviderMetadata(&rack.ProviderMetadata, meta)
