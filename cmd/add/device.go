@@ -59,6 +59,7 @@ func newDeviceCommand() *cli.Command {
 	cmd.Flags().String("zone", "", "Rack zone (top, middle, bottom) — overrides auto-detection from hardware type")
 	cmd.Flags().Bool("dry-run", false, "Show placement plan without committing changes")
 	cmd.Flags().String("bay", "", "Device bay in the --parent device (default: first free bay)")
+	cmd.Flags().String(flagRole, "", roleFlagHelp)
 
 	return cmd
 }
@@ -152,7 +153,7 @@ func addDeviceStrategy(cmd *cli.Command, result *lookupResult, qty int, nameArg 
 		return nil
 	}
 
-	tags, _ := cmd.Flags().GetStringArray("tag")
+	lbl := labelsFromFlags(cmd)
 	provMeta := collectProviderMetadata(cmd)
 
 	devicesToAdd := make(map[uuid.UUID]*devicetypes.CaniDeviceType, qty)
@@ -168,7 +169,7 @@ func addDeviceStrategy(cmd *cli.Command, result *lookupResult, qty int, nameArg 
 			device.Status = statusArg
 		}
 		ident.apply(&device.Serial, &device.AssetTag)
-		applyTagsToDevice(device, tags)
+		lbl.apply(&device.ObjectMeta)
 		applyProviderMetadataToDevice(device, provMeta)
 		devicesToAdd[device.ID] = device
 
@@ -243,7 +244,7 @@ func addDeviceLiteral(cmd *cli.Command, result *lookupResult, qty int, nameArg, 
 		statusArg = normalized
 	}
 
-	tags, _ := cmd.Flags().GetStringArray("tag")
+	lbl := labelsFromFlags(cmd)
 	provMeta := collectProviderMetadata(cmd)
 
 	devicesToAdd := make(map[uuid.UUID]*devicetypes.CaniDeviceType)
@@ -280,7 +281,7 @@ func addDeviceLiteral(cmd *cli.Command, result *lookupResult, qty int, nameArg, 
 			device.Status = statusArg
 		}
 		ident.apply(&device.Serial, &device.AssetTag)
-		applyTagsToDevice(device, tags)
+		lbl.apply(&device.ObjectMeta)
 		applyProviderMetadataToDevice(device, provMeta)
 
 		// Place in rack OccupiedSlots so the rack view is accurate.

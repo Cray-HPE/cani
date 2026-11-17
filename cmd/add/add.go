@@ -98,6 +98,7 @@ to a specific type; subcommands reject slugs that do not match their type.`,
 	// Flags for slug-based adds (not persistent – subcommands define their own).
 	cmd.Flags().String("location", "", "Parent location UUID or name")
 	cmd.Flags().String("name", "", "Name for the added item")
+	cmd.Flags().String(flagRole, "", roleFlagHelp)
 
 	return cmd
 }

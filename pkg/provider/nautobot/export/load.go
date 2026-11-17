@@ -76,6 +76,7 @@ type LoadResult struct {
 	LocationsSkipped            []string       // Names of locations skipped (already exist)
 	RacksCreated                []string       // Names of racks created
 	RacksSkipped                int            // Number of racks skipped (already exist)
+	RackRolesSkipped            int            // Number of rack roles left off a rack (Nautobot holds no role racks may use)
 	IfacesCreated               int            // Number of interfaces created
 	IfacesSkipped               int            // Number of interfaces skipped (already exist)
 	IfacesUnsupported           int            // Number of interfaces skipped (type not in Nautobot's InterfaceTypeChoices enum)
@@ -678,6 +679,7 @@ func (e *Exporter) createRackFromCaniRack(ctx context.Context, rack *devicetypes
 	if err := setRefSlice(&req.Tags, e.Cache.resolveTagRefs(rack.Tags)); err != nil {
 		return uuid.Nil, fmt.Errorf("set rack tag references: %w", err)
 	}
+	e.setRackRole(&req, rack, result)
 
 	// Map OuterWidth, OuterDepth, and OuterUnit if present.
 	if rack.OuterWidth > 0 {
@@ -989,6 +991,9 @@ func (e *Exporter) printLoadSummary(result *LoadResult) {
 	}
 	if result.RacksSkipped > 0 {
 		clog.Skipped("Skipped racks (already exist): %d", result.RacksSkipped)
+	}
+	if result.RackRolesSkipped > 0 {
+		clog.Warn("Rack roles not sent (no role in Nautobot that racks may use): %d", result.RackRolesSkipped)
 	}
 
 	// Devices

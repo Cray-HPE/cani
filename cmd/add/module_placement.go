@@ -57,7 +57,7 @@ func addModuleMultiDevice(inventory *devicetypes.Inventory, base *devicetypes.Ca
 		return nil
 	}
 
-	if err := commitPlannedModules(inventory, base, entries, names, opts.statusArg, opts.ident); err != nil {
+	if err := commitPlannedModules(inventory, base, entries, names, opts.attrs); err != nil {
 		return err
 	}
 	log.Printf("%d module(s) added", len(entries))
@@ -96,7 +96,7 @@ func addModuleSingleDevice(inventory *devicetypes.Inventory, base *devicetypes.C
 		if names != nil {
 			mod.Name = names[i]
 		}
-		applyModuleStatusIdentity(mod, opts.statusArg, opts.ident)
+		opts.attrs.apply(mod)
 		if err := inventory.AddModule(mod); err != nil {
 			return fmt.Errorf(errAddModule, err)
 		}
@@ -117,7 +117,7 @@ func addModuleSingleDevice(inventory *devicetypes.Inventory, base *devicetypes.C
 func printSingleDevicePlan(w io.Writer, inventory *devicetypes.Inventory, base *devicetypes.CaniModuleType,
 	devices []*devicetypes.CaniDeviceType, names []string, opts moduleAddOpts) {
 	for i := range opts.qty {
-		label := plannedModuleLabel(base, names, i, opts.ident)
+		label := plannedModuleLabel(base, names, i, opts.attrs.ident)
 		switch {
 		case opts.spareLocation != uuid.Nil:
 			fmt.Fprintf(w, "Would store module %s at location %s\n", label, inventory.Locations[opts.spareLocation].Name)

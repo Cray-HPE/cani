@@ -75,6 +75,7 @@ Template variables for --name: %{DEVICE}, %{BAY}, %{SEQ}`,
 	cmd.Flags().String(flagLocation, "", "Location filter for device selection, or the storage location of a --spare module (name or UUID)")
 	cmd.Flags().Bool(flagSpare, false, "Store the module as a spare at --location instead of installing it in a device")
 	cmd.Flags().Bool(flagDryRun, false, "Show placement plan without committing changes")
+	cmd.Flags().String(flagRole, "", roleFlagHelp)
 
 	return cmd
 }
@@ -117,8 +118,7 @@ type moduleAddOpts struct {
 	prefix        string
 	start         int
 	padWidth      int
-	statusArg     string
-	ident         identity
+	attrs         moduleAttrs
 	dryRun        bool
 	spareLocation uuid.UUID // set when the module is stored as a spare rather than installed
 }
@@ -144,17 +144,32 @@ func normalizeModuleStatus(statusArg string, inventory *devicetypes.Inventory) (
 	return validate.StatusWithInventory(statusArg, inventory)
 }
 
-// applyModuleStatusIdentity copies the optional status, serial and asset
-// tag onto a module.
-func applyModuleStatusIdentity(mod *devicetypes.CaniModuleType, statusArg string, ident identity) {
-	if statusArg != "" {
-		mod.Status = statusArg
+// moduleAttrs is what an add stamps on every module it creates: the status,
+// the asset-tracking identity, and the role and tags.
+type moduleAttrs struct {
+	status string
+	ident  identity
+	labels labels
+}
+
+// moduleAttrsFromFlags reads the flags that fill moduleAttrs. The caller
+// validates the status once the inventory is loaded.
+func moduleAttrsFromFlags(cmd *cli.Command) moduleAttrs {
+	status, _ := cmd.Flags().GetString("status")
+	return moduleAttrs{status: status, ident: identityFromFlags(cmd), labels: labelsFromFlags(cmd)}
+}
+
+// apply copies the attributes that were given onto a module.
+func (a moduleAttrs) apply(mod *devicetypes.CaniModuleType) {
+	if a.status != "" {
+		mod.Status = a.status
 	}
-	ident.apply(&mod.Serial, &mod.AssetTag)
+	a.ident.apply(&mod.Serial, &mod.AssetTag)
+	a.labels.apply(&mod.ObjectMeta)
 }
 
 // commitPlannedModules creates and saves a module for each placement entry.
-func commitPlannedModules(inventory *devicetypes.Inventory, base *devicetypes.CaniModuleType, entries []placement.ModulePlacementEntry, names []string, statusArg string, ident identity) error {
+func commitPlannedModules(inventory *devicetypes.Inventory, base *devicetypes.CaniModuleType, entries []placement.ModulePlacementEntry, names []string, attrs moduleAttrs) error {
 	for i, e := range entries {
 		mod := base.NewInstance()
 		mod.ParentDevice = e.DeviceID
@@ -162,7 +177,7 @@ func commitPlannedModules(inventory *devicetypes.Inventory, base *devicetypes.Ca
 		if i < len(names) {
 			mod.Name = names[i]
 		}
-		applyModuleStatusIdentity(mod, statusArg, ident)
+		attrs.apply(mod)
 		if err := inventory.AddModule(mod); err != nil {
 			return fmt.Errorf(errAddModule, err)
 		}
@@ -179,8 +194,7 @@ func addModuleStrategy(cmd *cli.Command, result *lookupResult, qty int, nameArg,
 	bayFilterArg, _ := cmd.Flags().GetString(flagBayFilter)
 	locationArg, _ := cmd.Flags().GetString(flagLocation)
 	dryRun, _ := cmd.Flags().GetBool(flagDryRun)
-	statusArg, _ := cmd.Flags().GetString("status")
-	ident := identityFromFlags(cmd)
+	attrs := moduleAttrsFromFlags(cmd)
 
 	strategy, _ := placement.ParseStrategy(deviceArg)
 
@@ -192,7 +206,7 @@ func addModuleStrategy(cmd *cli.Command, result *lookupResult, qty int, nameArg,
 	if err != nil {
 		return err
 	}
-	if statusArg, err = normalizeModuleStatus(statusArg, inventory); err != nil {
+	if attrs.status, err = normalizeModuleStatus(attrs.status, inventory); err != nil {
 		return err
 	}
 
@@ -213,7 +227,7 @@ func addModuleStrategy(cmd *cli.Command, result *lookupResult, qty int, nameArg,
 		return nil
 	}
 
-	if err := commitPlannedModules(inventory, result.Module, entries, names, statusArg, ident); err != nil {
+	if err := commitPlannedModules(inventory, result.Module, entries, names, attrs); err != nil {
 		return err
 	}
 
@@ -230,7 +244,7 @@ func addModuleLiteral(cmd *cli.Command, result *lookupResult, qty int, nameArg, 
 	if err != nil {
 		return err
 	}
-	if opts.statusArg, err = normalizeModuleStatus(opts.statusArg, inventory); err != nil {
+	if opts.attrs.status, err = normalizeModuleStatus(opts.attrs.status, inventory); err != nil {
 		return err
 	}
 	if spare, _ := cmd.Flags().GetBool(flagSpare); spare {
@@ -253,8 +267,7 @@ func parseModuleOpts(cmd *cli.Command, qty int, nameArg, deviceArg string) modul
 	opts.bayName, _ = cmd.Flags().GetString("bay")
 	opts.bayFilterArg, _ = cmd.Flags().GetString(flagBayFilter)
 	opts.dryRun, _ = cmd.Flags().GetBool(flagDryRun)
-	opts.statusArg, _ = cmd.Flags().GetString("status")
-	opts.ident = identityFromFlags(cmd)
+	opts.attrs = moduleAttrsFromFlags(cmd)
 	opts.prefix, _ = cmd.Flags().GetString("prefix")
 	opts.start, _ = cmd.Flags().GetInt("start")
 	opts.padWidth, _ = cmd.Flags().GetInt("pad-width")
