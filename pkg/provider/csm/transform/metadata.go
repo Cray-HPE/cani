@@ -22,6 +22,10 @@ func toProviderMetadata(m CsmMetadata) map[string]any {
 	if m.Class != "" {
 		md["class"] = m.Class
 	}
+	// FIXME: providerMetadata.csm.role is deprecated; the role field is the
+	// device's role. CSM still writes this copy, and its CSV and SLS exports
+	// send it in preference to the field, so a role set with --role does not
+	// reach them. Stop writing it, and read the field there instead.
 	if m.Role != "" {
 		md["role"] = m.Role
 	}
