@@ -39,8 +39,16 @@ func (inv *Inventory) MergeDevices(incoming map[uuid.UUID]*CaniDeviceType) {
 }
 
 // MergeDevicesStrict behaves like MergeDevices but when strict is true it
-// skips any device whose Slug and Model are both empty.
+// skips any device whose Slug and Model are both empty. A device is matched
+// by name alone; MergeTransformResult also compares the identity keys the
+// provider declared.
 func (inv *Inventory) MergeDevicesStrict(incoming map[uuid.UUID]*CaniDeviceType, strict bool) (map[uuid.UUID]uuid.UUID, []UnclassifiedDevice) {
+	return inv.mergeDevices(incoming, strict, nil)
+}
+
+// mergeDevices merges incoming devices by UUID match, then by name where
+// the identity keys agree, then insert.
+func (inv *Inventory) mergeDevices(incoming map[uuid.UUID]*CaniDeviceType, strict bool, identityKeys []string) (map[uuid.UUID]uuid.UUID, []UnclassifiedDevice) {
 	if inv.Devices == nil {
 		inv.Devices = make(map[uuid.UUID]*CaniDeviceType)
 	}
@@ -73,7 +81,7 @@ func (inv *Inventory) MergeDevicesStrict(incoming map[uuid.UUID]*CaniDeviceType,
 			remap[id] = id
 			continue
 		}
-		if matchedID, changed, matched := inv.mergeByName(device); matched {
+		if matchedID, changed, matched := inv.mergeByName(device, identityKeys); matched {
 			changesDetected = changesDetected || changed
 			remap[id] = matchedID
 			continue
@@ -90,9 +98,12 @@ func (inv *Inventory) MergeDevicesStrict(incoming map[uuid.UUID]*CaniDeviceType,
 	return remap, skipped
 }
 
-func (inv *Inventory) mergeByName(device *CaniDeviceType) (uuid.UUID, bool, bool) {
+// mergeByName merges device onto the record of the same name whose identity
+// keys agree with it, and reports the record's ID, whether it changed, and
+// whether there was one.
+func (inv *Inventory) mergeByName(device *CaniDeviceType, identityKeys []string) (uuid.UUID, bool, bool) {
 	for id, existing := range inv.Devices {
-		if existing == nil || existing.Name != device.Name || !providerIdentityCompatible(existing, device) {
+		if existing == nil || existing.Name != device.Name || !providerIdentityCompatible(existing, device, identityKeys) {
 			continue
 		}
 		inv.unindexDevice(id, existing)
@@ -103,17 +114,33 @@ func (inv *Inventory) mergeByName(device *CaniDeviceType) (uuid.UUID, bool, bool
 	return uuid.Nil, false, false
 }
 
-var providerIdentityKeys = []string{"bmc_fqdn", "bmc_hostname", "xname"}
-
-func providerIdentityCompatible(left, right *CaniDeviceType) bool {
-	for _, key := range providerIdentityKeys {
-		leftValue, leftOK := left.GetProviderMeta(key)
-		rightValue, rightOK := right.GetProviderMeta(key)
+// providerIdentityCompatible reports whether two devices of one name may be
+// the same device: for the first identity key both hold, the values agree.
+// With no keys declared, any two devices of one name may be.
+func providerIdentityCompatible(left, right *CaniDeviceType, identityKeys []string) bool {
+	for _, key := range identityKeys {
+		leftValue, leftOK := left.IdentityValue(key)
+		rightValue, rightOK := right.IdentityValue(key)
 		if leftOK && rightOK {
 			return fmt.Sprintf("%v", leftValue) == fmt.Sprintf("%v", rightValue)
 		}
 	}
 	return true
+}
+
+// IdentityValue returns the value the device holds for an identity key (see
+// TransformResult.IdentityKeys): the one in the first provider bucket, by
+// provider name, that has the key. The key is looked for in every bucket on
+// purpose, because declaring it asserts it means the same thing in each; a
+// value outside every bucket is not read, since no provider owns it.
+func (d *CaniDeviceType) IdentityValue(key string) (any, bool) {
+	for _, provider := range sortedKeys(d.ProviderMetadata) {
+		bucket, _ := d.ProviderMetadata[provider].(map[string]any)
+		if value, held := bucket[key]; held {
+			return value, true
+		}
+	}
+	return nil, false
 }
 
 // FindDeviceByProviderKey finds a device by one provider metadata value.

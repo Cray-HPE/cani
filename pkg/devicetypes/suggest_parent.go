@@ -46,7 +46,10 @@ type ParentSuggestion struct {
 // SuggestParents returns ranked candidate parents for an orphan.
 // The hierarchy is strictly: location → rack → device → module → FRU.
 // Orphan devices suggest racks only; orphan racks suggest locations only.
-func SuggestParents(inv *Inventory, orphan OrphanItem, maxResults int) []ParentSuggestion {
+// identityKeys are the keys the providers declare as identifying a device
+// (see TransformResult.IdentityKeys); a rack whose bucket holds one with the
+// same prefix as the orphan's scores higher.
+func SuggestParents(inv *Inventory, orphan OrphanItem, maxResults int, identityKeys []string) []ParentSuggestion {
 	if inv == nil {
 		return nil
 	}
@@ -54,7 +57,7 @@ func SuggestParents(inv *Inventory, orphan OrphanItem, maxResults int) []ParentS
 	var candidates []ParentSuggestion
 	switch orphan.Kind {
 	case "device":
-		candidates = suggestDeviceParents(inv, orphan)
+		candidates = suggestDeviceParents(inv, orphan, identityKeys)
 	case "rack":
 		candidates = suggestRackParents(inv, orphan)
 	}
@@ -70,14 +73,14 @@ func SuggestParents(inv *Inventory, orphan OrphanItem, maxResults int) []ParentS
 
 // suggestDeviceParents scores racks as potential parents for a device.
 // Following the strict hierarchy: location → rack → device.
-func suggestDeviceParents(inv *Inventory, orphan OrphanItem) []ParentSuggestion {
+func suggestDeviceParents(inv *Inventory, orphan OrphanItem, identityKeys []string) []ParentSuggestion {
 	var out []ParentSuggestion
 
 	for id, rack := range inv.Racks {
 		if rack == nil {
 			continue
 		}
-		score, reasons := scoreDeviceToRack(orphan, rack)
+		score, reasons := scoreDeviceToRack(orphan, rack, identityKeys)
 		if score < 1 {
 			score = 1 // minimum so every rack appears
 		}
@@ -159,7 +162,7 @@ func locationDetail(loc *CaniLocationType) string {
 
 // --- scoring helpers ---
 
-func scoreDeviceToRack(orphan OrphanItem, rack *CaniRackType) (int, []string) {
+func scoreDeviceToRack(orphan OrphanItem, rack *CaniRackType, identityKeys []string) (int, []string) {
 	score := 0
 	var reasons []string
 
@@ -169,8 +172,8 @@ func scoreDeviceToRack(orphan OrphanItem, rack *CaniRackType) (int, []string) {
 		reasons = append(reasons, "name similarity")
 	}
 
-	// Provider metadata: xname prefix match
-	if ps := providerPrefixScore(orphan.ProviderMetadata, rack.ProviderMetadata); ps > 0 {
+	// Provider metadata: identity key prefix match
+	if ps := providerPrefixScore(orphan.ProviderMetadata, rack.ProviderMetadata, identityKeys); ps > 0 {
 		score += ps
 		reasons = append(reasons, "provider key prefix")
 	}
@@ -238,49 +241,42 @@ func longestCommonPrefix(a, b string) int {
 	return n
 }
 
-// providerPrefixScore checks if xname/bmc_fqdn values share a common prefix.
-// Returns up to 30 points.
-func providerPrefixScore(orphanMeta, candidateMeta map[string]any) int {
-	if len(orphanMeta) == 0 || len(candidateMeta) == 0 {
-		return 0
-	}
-
-	keys := []string{"xname", "bmc_fqdn", "bmc_hostname"}
-	for _, provider := range []string{"csm", "redfish", ""} {
-		orphanSub := extractProviderSub(orphanMeta, provider)
-		candidateSub := extractProviderSub(candidateMeta, provider)
+// providerPrefixScore reports whether an identity key the orphan and the
+// candidate both record in one provider's bucket shares a prefix of at least
+// three characters, as the xname of a node does with its cabinet's. Buckets
+// are compared by name, so a key is only read where the same provider wrote
+// both sides. Returns 30 points for a match and 0 otherwise.
+func providerPrefixScore(orphanMeta, candidateMeta map[string]any, identityKeys []string) int {
+	for _, provider := range sortedKeys(orphanMeta) {
+		orphanSub, _ := orphanMeta[provider].(map[string]any)
+		candidateSub, _ := candidateMeta[provider].(map[string]any)
 		if orphanSub == nil || candidateSub == nil {
 			continue
 		}
-		for _, key := range keys {
-			ov := metaString(orphanSub, key)
-			cv := metaString(candidateSub, key)
-			if ov == "" || cv == "" {
-				continue
-			}
-			prefixLen := longestCommonPrefix(
-				strings.ToLower(ov),
-				strings.ToLower(cv),
-			)
-			if prefixLen >= 3 {
-				return 30
-			}
+		if sharesIdentityPrefix(orphanSub, candidateSub, identityKeys) {
+			return 30
 		}
 	}
 	return 0
 }
 
-// extractProviderSub returns the sub-map for a provider key.
-// If provider is empty, returns the metadata itself.
-func extractProviderSub(meta map[string]any, provider string) map[string]any {
-	if provider == "" {
-		return meta
+// minIdentityPrefix is how many leading characters two identity values must
+// share to count as related.
+const minIdentityPrefix = 3
+
+// sharesIdentityPrefix reports whether, for some identity key both buckets
+// hold, the values share at least minIdentityPrefix characters, case aside.
+func sharesIdentityPrefix(orphanSub, candidateSub map[string]any, identityKeys []string) bool {
+	for _, key := range identityKeys {
+		ov, cv := metaString(orphanSub, key), metaString(candidateSub, key)
+		if ov == "" || cv == "" {
+			continue
+		}
+		if longestCommonPrefix(strings.ToLower(ov), strings.ToLower(cv)) >= minIdentityPrefix {
+			return true
+		}
 	}
-	sub, ok := meta[provider].(map[string]any)
-	if ok {
-		return sub
-	}
-	return nil
+	return false
 }
 
 func metaString(m map[string]any, key string) string {

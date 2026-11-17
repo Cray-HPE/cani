@@ -24,7 +24,6 @@ pkg/provider/hpcm/transform/transform.go 859
 pkg/provider/nautobot/export/load_interfaces.go 316
 pkg/provider/nautobot/export/load.go 1292
 pkg/provider/nautobot/export/mapper.go 547
-pkg/provider/ochami/transform/transform.go 304
 pkg/visual/etl.go 502
 pkg/visual/rack_interactive.go 363
 pkg/visual/rack_minimap_detail.go 340

@@ -27,7 +27,10 @@ package provider
 
 import (
 	"fmt"
+	"slices"
 	"sync"
+
+	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
 
 var (
@@ -35,8 +38,9 @@ var (
 	providers = map[string]Provider{}
 )
 
-// Register makes a plugin available under name.
-// This should be called in the plugin's init() function.
+// Register makes a plugin available under name, and tells the model that
+// the provider's bucket in provider metadata, which name is also the name
+// of, has an owner. This should be called in the plugin's init() function.
 //
 // Register panics if p is nil or if name was already registered: both indicate
 // a wiring bug that should fail loudly at startup rather than silently
@@ -51,6 +55,7 @@ func Register(name string, p Provider) {
 		panic(fmt.Sprintf("provider: Register called twice for provider %q", name))
 	}
 	providers[name] = p
+	devicetypes.RegisterProviderBucket(name)
 }
 
 // GetProvider returns a registered plugin or nil.
@@ -71,4 +76,19 @@ func GetProviders() map[string]Provider {
 		out[name] = p
 	}
 	return out
+}
+
+// IdentityKeys returns, sorted and once each, every identity key a
+// registered IdentityKeyProvider declares.
+func IdentityKeys() []string {
+	mu.RLock()
+	defer mu.RUnlock()
+	var keys []string
+	for _, p := range providers {
+		if declarer, ok := p.(IdentityKeyProvider); ok {
+			keys = append(keys, declarer.IdentityKeys()...)
+		}
+	}
+	slices.Sort(keys)
+	return slices.Compact(keys)
 }

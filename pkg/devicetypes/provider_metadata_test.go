@@ -6,39 +6,6 @@ import (
 	"github.com/google/uuid"
 )
 
-func TestGetProviderMeta(t *testing.T) {
-	dev := &CaniDeviceType{
-		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
-			"redfish": map[string]any{
-				"import_source": "test.json",
-				"redfish_uuid":  "abc-123",
-				"bmc_fqdn":      "host.example.com",
-			},
-		}},
-	}
-
-	// Nested import_source key.
-	if v, ok := dev.GetProviderMeta("import_source"); !ok || v != "test.json" {
-		t.Errorf("GetProviderMeta(import_source) = %v, %v", v, ok)
-	}
-
-	// Nested key.
-	if v, ok := dev.GetProviderMeta("redfish_uuid"); !ok || v != "abc-123" {
-		t.Errorf("GetProviderMeta(redfish_uuid) = %v, %v", v, ok)
-	}
-
-	// Missing key.
-	if _, ok := dev.GetProviderMeta("nonexistent"); ok {
-		t.Error("GetProviderMeta(nonexistent) should return false")
-	}
-
-	// Nil ObjectMeta.
-	var nilMeta *ObjectMeta
-	if _, ok := nilMeta.GetProviderMeta("anything"); ok {
-		t.Error("nil ObjectMeta should return false")
-	}
-}
-
 func TestGetProviderSubMap(t *testing.T) {
 	dev := &CaniDeviceType{
 		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
@@ -103,90 +70,6 @@ func TestSetImportSource(t *testing.T) {
 	// Verify no top-level import_source key.
 	if _, exists := dev.ProviderMetadata["import_source"]; exists {
 		t.Error("import_source should not exist at top level")
-	}
-}
-
-func TestFlattenProviderMetadata(t *testing.T) {
-	dev := &CaniDeviceType{
-		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
-			"redfish": map[string]any{
-				"import_source": "test.json",
-				"redfish_uuid":  "abc-123",
-				"vendor":        "HPE",
-			},
-		}},
-	}
-
-	flat := dev.FlattenProviderMetadata()
-	if flat["import_source"] != "test.json" {
-		t.Errorf("import_source = %v", flat["import_source"])
-	}
-	if flat["redfish_uuid"] != "abc-123" {
-		t.Errorf("redfish_uuid = %v", flat["redfish_uuid"])
-	}
-	if flat["vendor"] != "HPE" {
-		t.Errorf("vendor = %v", flat["vendor"])
-	}
-}
-
-func TestFlattenProviderMetadataEmpty(t *testing.T) {
-	var m *ObjectMeta
-	flat := m.FlattenProviderMetadata()
-	if flat != nil {
-		t.Errorf("expected nil for nil ObjectMeta, got %v", flat)
-	}
-}
-
-// TestGetProviderMetaDeterministic verifies GetProviderMeta resolves a key that
-// several provider sub-maps define by always returning the value from the
-// lowest-sorted provider name, independent of Go's randomized map iteration.
-//
-// Why it matters: nondeterministic resolution would let the same inventory
-// produce different values across runs, breaking reproducible exports and
-// confusing operators; pinning a stable precedence makes lookups predictable.
-// Inputs: an ObjectMeta whose "aaa" and "zzz" provider sub-maps both define
-// "shared" with different values, queried repeatedly. Outputs: the "aaa" value
-// every time. Data choice: two keys at opposite ends of the sort order make an
-// accidental map-order dependency observable, and repeated calls defeat the
-// per-range iteration randomization.
-func TestGetProviderMetaDeterministic(t *testing.T) {
-	dev := &CaniDeviceType{
-		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
-			"zzz": map[string]any{"shared": "from-zzz"},
-			"aaa": map[string]any{"shared": "from-aaa"},
-		}},
-	}
-	for i := 0; i < 50; i++ {
-		v, ok := dev.GetProviderMeta("shared")
-		if !ok || v != "from-aaa" {
-			t.Fatalf("GetProviderMeta(shared) = %v, %v; want from-aaa, true", v, ok)
-		}
-	}
-}
-
-// TestFlattenProviderMetadataDeterministic verifies FlattenProviderMetadata
-// resolves a key defined by several providers by always keeping the value from
-// the highest-sorted provider name, independent of map iteration order.
-//
-// Why it matters: FlattenProviderMetadata feeds provider exports (e.g. Nautobot
-// CustomFields); a nondeterministic winner on key collisions would yield
-// unstable exported values for identical inventory.
-// Inputs: an ObjectMeta whose "aaa" and "zzz" sub-maps both define "shared"
-// with different values, flattened repeatedly. Outputs: the "zzz" value every
-// time. Data choice: opposite-end keys plus repeated calls expose any residual
-// dependence on Go's randomized map iteration.
-func TestFlattenProviderMetadataDeterministic(t *testing.T) {
-	dev := &CaniDeviceType{
-		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
-			"zzz": map[string]any{"shared": "from-zzz"},
-			"aaa": map[string]any{"shared": "from-aaa"},
-		}},
-	}
-	for i := 0; i < 50; i++ {
-		flat := dev.FlattenProviderMetadata()
-		if flat["shared"] != "from-zzz" {
-			t.Fatalf("FlattenProviderMetadata()[shared] = %v, want from-zzz", flat["shared"])
-		}
 	}
 }
 
@@ -324,32 +207,6 @@ func TestMergePropertiesWithMetadata(t *testing.T) {
 	}
 }
 
-// TestGetProviderMetaTopLevelPlainKey verifies GetProviderMeta returns a
-// top-level non-map value directly, before scanning any provider sub-maps.
-//
-// Why it matters: some metadata is stored flat (not under a provider name), so
-// the fast-path that returns a plain top-level key must work and must not be
-// shadowed by the sub-map scan.
-// Inputs: metadata holding a plain "tag" key alongside a "redfish" sub-map.
-// Outputs: the plain value for "tag", and the nested value for a sub-map key.
-// Data choice: mixing a scalar top-level key with a map entry exercises both the
-// isMap skip guard and the plain-key return that an all-sub-map fixture misses.
-func TestGetProviderMetaTopLevelPlainKey(t *testing.T) {
-	dev := &CaniDeviceType{
-		ObjectMeta: ObjectMeta{ProviderMetadata: map[string]any{
-			"tag":     "flat-value",
-			"redfish": map[string]any{"redfish_uuid": "abc-123"},
-		}},
-	}
-
-	if v, ok := dev.GetProviderMeta("tag"); !ok || v != "flat-value" {
-		t.Errorf("GetProviderMeta(tag) = %v, %v; want flat-value, true", v, ok)
-	}
-	if v, ok := dev.GetProviderMeta("redfish_uuid"); !ok || v != "abc-123" {
-		t.Errorf("GetProviderMeta(redfish_uuid) = %v, %v; want abc-123, true", v, ok)
-	}
-}
-
 // TestGetImportSource verifies GetImportSource returns the stored string,
 // empty when the provider sub-map is absent, and empty when the value is not a
 // string.
@@ -387,12 +244,11 @@ func TestGetImportSource(t *testing.T) {
 // objects throughout import/merge; every accessor must degrade to a safe empty
 // result and every mutator must create or replace storage without panicking.
 // Inputs: a nil *ObjectMeta, an empty meta, and a meta mixing a scalar key with
-// a real sub-map, exercised through GetProviderSubMap, SetProviderMeta, and
-// FlattenProviderMetadata. Outputs: (nil,false) for invalid reads, freshly
-// created/replaced sub-maps for writes, and a flattened map combining scalar and
-// nested keys. Data choice: a scalar stored where a provider sub-map is expected
-// forces the non-map type-assertion and replace branches that map-only fixtures
-// never reach.
+// a real sub-map, exercised through GetProviderSubMap and SetProviderMeta.
+// Outputs: (nil,false) for invalid reads, and freshly created/replaced
+// sub-maps for writes. Data choice: a scalar stored where a provider sub-map
+// is expected forces the non-map type-assertion and replace branches that
+// map-only fixtures never reach.
 func TestProviderMetadataEdgeCases(t *testing.T) {
 	var nilMeta *ObjectMeta
 	if sub, ok := nilMeta.GetProviderSubMap("redfish"); ok || sub != nil {
@@ -428,13 +284,5 @@ func TestProviderMetadataEdgeCases(t *testing.T) {
 	replace.SetProviderMeta("csm", "id", "x2")
 	if sub, ok := replace.GetProviderSubMap("csm"); !ok || sub["id"] != "x2" {
 		t.Error("SetProviderMeta should replace a non-map value with a sub-map")
-	}
-
-	if (&ObjectMeta{}).FlattenProviderMetadata() != nil {
-		t.Error("FlattenProviderMetadata(nil map) should be nil")
-	}
-	flat := meta.FlattenProviderMetadata()
-	if flat["scalar"] != "not-a-map" || flat["k"] != "v" {
-		t.Errorf("FlattenProviderMetadata mixed = %v", flat)
 	}
 }

@@ -59,17 +59,23 @@ func TestExportMatchesOpenCHAMIFileFormat(t *testing.T) {
 	assertOnlyOpenCHAMIEntryKeys(t, output)
 }
 
-// TestExportUsesCsmFallbackAndBootMACAsMAC verifies CSM metadata can populate
-// the minimal OpenCHAMI entry fields when ochami metadata is absent.
+// TestExportReadsTheXnameFromCSMAndBootMACAsMAC verifies a node's xname is
+// read from the CSM bucket when the OChaMi bucket has none, that boot_mac in
+// the OChaMi bucket is written as mac, and that the legacy node fields are
+// not written.
 //
-// Why it matters: inventories transformed from CSM often store node NIC identity
-// as boot_mac, but OpenCHAMI expects the output field to be mac.
-// Inputs: a node with CSM xname, ip, boot_mac, nid, and aliases metadata.
-// Outputs: one node entry whose mac equals boot_mac and whose YAML omits nid,
-// hostname, and host_aliases.
-// Data choice: including legacy extra CSM keys proves they are ignored rather
-// than serialized into the OpenCHAMI file.
-func TestExportUsesCsmFallbackAndBootMACAsMAC(t *testing.T) {
+// Why it matters: the xname is an identity key, and declaring it asserts it
+// means the same in every provider's bucket, so a node CSM imported can be
+// exported to OpenCHAMI by its xname. The network fields are OChaMi's own
+// records: CSM never writes them, so they are read from the OChaMi bucket
+// alone, and a boot_mac there is what OpenCHAMI expects as mac.
+// Inputs: a node whose CSM bucket holds the xname, nid and aliases and
+// whose OChaMi bucket holds ip and boot_mac.
+// Outputs: one node entry with the CSM xname and the OChaMi ip and boot_mac
+// as mac; the YAML omits nid, hostname and host_aliases.
+// Data choice: the CSM bucket also holds legacy keys, which proves they are
+// ignored rather than serialized into the OpenCHAMI file.
+func TestExportReadsTheXnameFromCSMAndBootMACAsMAC(t *testing.T) {
 	inv := devicetypes.NewInventory()
 	nodeID := uuid.New()
 	inv.Devices[nodeID] = &devicetypes.CaniDeviceType{
@@ -78,11 +84,13 @@ func TestExportUsesCsmFallbackAndBootMACAsMAC(t *testing.T) {
 		Type: devicetypes.Type("node"),
 		ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{
 			"csm": map[string]any{
-				"xname":    "x9000c1s0b0n0",
+				"xname":   "x9000c1s0b0n0",
+				"nid":     1000,
+				"aliases": []string{"nid001000"},
+			},
+			"ochami": map[string]any{
 				"ip":       "10.9.0.1",
 				"boot_mac": "aa:bb:cc:dd:ee:09",
-				"nid":      1000,
-				"aliases":  []string{"nid001000"},
 			},
 		}},
 	}
@@ -98,15 +106,51 @@ func TestExportUsesCsmFallbackAndBootMACAsMAC(t *testing.T) {
 	assertOnlyOpenCHAMIEntryKeys(t, output)
 }
 
-// TestExportOchamiOverridesCsm verifies ochami metadata wins over CSM fallback
-// values for the minimal entry fields.
+// TestExportDoesNotReadNetworkFieldsFromCSM verifies that ip, mac and
+// boot_mac in the CSM bucket are not written, since they are not CSM's
+// records.
 //
-// Why it matters: provider-specific ochami metadata represents the export target
-// contract and must not be overwritten by legacy CSM values when both exist.
-// Inputs: one node with conflicting csm and ochami xname, mac/boot_mac, and ip
-// values. Outputs: one node entry containing the ochami values only.
-// Data choice: every exported field differs between providers, so any precedence
-// regression is visible.
+// Why it matters: a provider reads another's bucket only for a key the
+// other declares as an identity; a network field in the CSM bucket was
+// never written by CSM and would be a stray value, which the export must
+// not give meaning to.
+// Inputs: a node whose CSM bucket holds an xname and the three network keys
+// and which has no OChaMi bucket.
+// Outputs: one node entry with the xname and empty mac and ip.
+// Data choice: the same values the test above reads from the OChaMi bucket,
+// so the bucket alone decides.
+func TestExportDoesNotReadNetworkFieldsFromCSM(t *testing.T) {
+	inv := devicetypes.NewInventory()
+	nodeID := uuid.New()
+	inv.Devices[nodeID] = &devicetypes.CaniDeviceType{
+		ID:   nodeID,
+		Name: "node-stray",
+		Type: devicetypes.Type("node"),
+		ObjectMeta: devicetypes.ObjectMeta{ProviderMetadata: map[string]any{
+			"csm": map[string]any{
+				"xname":    "x9000c1s0b0n0",
+				"ip":       "10.9.0.1",
+				"mac":      "aa:bb:cc:dd:ee:08",
+				"boot_mac": "aa:bb:cc:dd:ee:09",
+			},
+		}},
+	}
+
+	payload := decodePayload(t, exportToString(t, *inv))
+
+	assertEntries(t, "nodes", payload.Nodes, []openChamiEntry{{Xname: "x9000c1s0b0n0"}})
+}
+
+// TestExportOchamiOverridesCsm verifies the OChaMi bucket's xname wins over
+// the CSM bucket's for the minimal entry fields.
+//
+// Why it matters: the OChaMi bucket is the export target's own record and
+// must not be overwritten by another provider's value when both exist.
+// Inputs: one node with conflicting csm and ochami xname values, the CSM
+// bucket also holding network keys the export does not read. Outputs: one
+// node entry containing the ochami values only.
+// Data choice: every exported field differs between buckets, so any
+// precedence regression is visible.
 func TestExportOchamiOverridesCsm(t *testing.T) {
 	inv := devicetypes.NewInventory()
 	nodeID := uuid.New()

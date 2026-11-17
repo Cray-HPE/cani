@@ -236,30 +236,32 @@ func colorFuncs(noColor bool) (cyan, yellow, green, gray, bold func(string) stri
 	return
 }
 
-// printProviderMetadata writes a compact representation of provider metadata.
+// maxProviderKeysShown caps the keys shown per provider bucket, so a bucket
+// with many records fits on one line.
+const maxProviderKeysShown = 7
+
+// printProviderMetadata writes a compact representation of provider
+// metadata: one line per bucket, in name order, with the bucket's first
+// keys in key order. Nested maps are left out; a line shows what a provider
+// recorded about the device, and which keys that is, is the provider's to
+// say.
 func printProviderMetadata(w io.Writer, pm map[string]any, gray func(string) string) {
-	if len(pm) == 0 {
-		return
+	for _, provider := range sortedKeys(pm) {
+		meta, _ := pm[provider].(map[string]any)
+		if parts := bucketSummary(meta); len(parts) > 0 {
+			fmt.Fprintf(w, "  %s:  %s\n", provider, gray(strings.Join(parts, ", ")))
+		}
 	}
-	for provider, raw := range pm {
-		meta, ok := raw.(map[string]any)
-		if !ok {
+}
+
+// bucketSummary renders a bucket's first keys, in key order, as key=value.
+func bucketSummary(meta map[string]any) []string {
+	var parts []string
+	for _, key := range sortedKeys(meta) {
+		if _, nested := meta[key].(map[string]any); nested || len(parts) == maxProviderKeysShown {
 			continue
 		}
-		// Display selected useful keys in a compact line.
-		var parts []string
-		for _, key := range []string{"xname", "class", "role", "subRole", "nid", "state", "aliases"} {
-			v, exists := meta[key]
-			if !exists {
-				continue
-			}
-			parts = append(parts, fmt.Sprintf("%s=%v", key, v))
-		}
-		if len(parts) > 0 {
-			fmt.Fprintf(w, "  %s:  %s\n",
-				provider,
-				gray(strings.Join(parts, ", ")),
-			)
-		}
+		parts = append(parts, fmt.Sprintf("%s=%v", key, meta[key]))
 	}
+	return parts
 }

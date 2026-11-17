@@ -27,6 +27,7 @@ package provider
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/Cray-HPE/cani/internal/cli"
@@ -145,4 +146,49 @@ func TestRegisterPanicsOnNil(t *testing.T) {
 		}
 	}()
 	Register("fake-nil-test", nil)
+}
+
+// declaringProvider is a fakeProvider that also declares identity keys.
+type declaringProvider struct {
+	fakeProvider
+	keys []string
+}
+
+func (d declaringProvider) IdentityKeys() []string { return d.keys }
+
+// TestIdentityKeysUnitesWhatRegisteredProvidersDeclare verifies IdentityKeys
+// returns every key a registered IdentityKeyProvider declares, sorted and
+// once each, and ignores providers that declare none.
+//
+// Why it matters: the command layer scores an orphan's candidate parents by
+// this union; a key one provider declares but the union drops would stop
+// that provider's devices from being matched to their cabinets, and a
+// duplicate or unsorted list would make the scoring order depend on
+// registration order.
+// Inputs: two declaring providers whose key lists overlap and arrive out of
+// order, and one provider that declares nothing, registered under unique
+// names. Outputs: the union holds each of the three keys once, in order.
+// Data choice: the overlap proves deduplication, the order proves sorting,
+// and the silent provider proves the type assertion filters it.
+func TestIdentityKeysUnitesWhatRegisteredProvidersDeclare(t *testing.T) {
+	names := []string{"fake-identity-a", "fake-identity-b", "fake-identity-none"}
+	Register(names[0], declaringProvider{fakeProvider{slug: names[0]}, []string{"xname", "bmc_fqdn"}})
+	Register(names[1], declaringProvider{fakeProvider{slug: names[1]}, []string{"bmc_hostname", "xname"}})
+	Register(names[2], fakeProvider{slug: names[2]})
+	t.Cleanup(func() {
+		for _, name := range names {
+			delete(providers, name)
+		}
+	})
+
+	got := IdentityKeys()
+
+	for _, want := range []string{"bmc_fqdn", "bmc_hostname", "xname"} {
+		if !slices.Contains(got, want) {
+			t.Errorf("IdentityKeys() = %v, want it to hold %q", got, want)
+		}
+	}
+	if !slices.IsSorted(got) || len(slices.Compact(slices.Clone(got))) != len(got) {
+		t.Errorf("IdentityKeys() = %v, want sorted with no repeats", got)
+	}
 }

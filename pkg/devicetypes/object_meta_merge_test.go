@@ -82,26 +82,27 @@ func TestObjectMetaMergeKeepsAndOverwritesKeys(t *testing.T) {
 	}
 }
 
-// TestObjectMetaMergeRetiresSupersededProviderKeys verifies a custom field
-// reported by a source system removes the same key from that system's
-// provider-metadata bucket and nothing else.
+// TestObjectMetaMergeLeavesProviderBucketsAlone verifies a custom field an
+// import reports sets the custom field and changes nothing in provider
+// metadata, whichever bucket holds a key of that name.
 //
-// Why it matters: a value first set with --metadata lives in the provider
-// bucket and wins on export, so an edit made in the source system and read
-// back by import was reverted by the next export.
-// Inputs: a receiver whose nautobot bucket holds vsx_role=secondary and
-// role, and whose csm bucket holds vsx_role too; incoming identified by a
-// nautobot external ID with custom field vsx_role=primary.
-// Expected: custom field primary; the nautobot bucket keeps only role; the
-// csm bucket is untouched; a change is reported. A second receiver whose
-// bucket held only the superseded key loses the bucket.
-func TestObjectMetaMergeRetiresSupersededProviderKeys(t *testing.T) {
+// Why it matters: custom fields and provider metadata are separate stores
+// with separate owners. A merge used to delete the key from the importing
+// system's own bucket, so that copy could not override the custom field on
+// the next export; no export reads a bucket that way any more, and the
+// deletion would only destroy a provider's record.
+// Inputs: a receiver whose nautobot and csm buckets both hold vsx_role;
+// incoming identified by a nautobot external ID with custom field
+// vsx_role=primary.
+// Expected: custom field primary, a change reported, and both buckets as
+// they were.
+func TestObjectMetaMergeLeavesProviderBucketsAlone(t *testing.T) {
 	in := ObjectMeta{
 		CustomFields: map[string]any{"vsx_role": "primary"},
 		ExternalIDs:  map[string]uuid.UUID{"nautobot": uuid.New()},
 	}
 	m := ObjectMeta{ProviderMetadata: map[string]any{
-		"nautobot": map[string]any{"vsx_role": "secondary", "role": "LeafSwitch"},
+		"nautobot": map[string]any{"vsx_role": "secondary"},
 		"csm":      map[string]any{"vsx_role": "kept"},
 	}}
 
@@ -111,18 +112,11 @@ func TestObjectMetaMergeRetiresSupersededProviderKeys(t *testing.T) {
 	if m.CustomFields["vsx_role"] != "primary" {
 		t.Errorf("custom field = %v, want primary", m.CustomFields["vsx_role"])
 	}
-	nb, _ := m.ProviderMetadata["nautobot"].(map[string]any)
-	if _, stale := nb["vsx_role"]; stale || nb["role"] != "LeafSwitch" {
-		t.Errorf("nautobot bucket = %v, want only role", nb)
+	if nb, _ := m.ProviderMetadata["nautobot"].(map[string]any); nb["vsx_role"] != "secondary" {
+		t.Errorf("nautobot bucket = %v, want it untouched", m.ProviderMetadata["nautobot"])
 	}
 	if csm, _ := m.ProviderMetadata["csm"].(map[string]any); csm["vsx_role"] != "kept" {
-		t.Errorf("csm bucket = %v, want it untouched", csm)
-	}
-
-	only := ObjectMeta{ProviderMetadata: map[string]any{"nautobot": map[string]any{"vsx_role": "secondary"}}}
-	only.Merge(in)
-	if _, left := only.ProviderMetadata["nautobot"]; left {
-		t.Errorf("emptied bucket was kept: %v", only.ProviderMetadata)
+		t.Errorf("csm bucket = %v, want it untouched", m.ProviderMetadata["csm"])
 	}
 }
 

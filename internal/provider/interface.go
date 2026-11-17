@@ -179,3 +179,12 @@ type ExportDryRunner interface {
 	// ExportDryRun reports whether the export that just ran was a dry run.
 	ExportDryRun() bool
 }
+
+// IdentityKeyProvider is an optional interface for a provider whose Transform
+// declares identity keys (see devicetypes.TransformResult.IdentityKeys). It
+// lets the command layer ask for them outside a transform, as when it scores
+// candidate parents for an orphan by the keys the providers record.
+type IdentityKeyProvider interface {
+	// IdentityKeys returns the keys the provider's Transform declares.
+	IdentityKeys() []string
+}

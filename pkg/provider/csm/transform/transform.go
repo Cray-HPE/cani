@@ -2,6 +2,7 @@ package transform
 
 import (
 	"log"
+	"slices"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 	import_ "github.com/Cray-HPE/cani/pkg/provider/csm/import"
@@ -23,6 +24,10 @@ func SetProviderGetter(getter func() interface {
 	providerGetter = getter
 }
 
+// IdentityKeys names the keys in the CSM bucket that identify one physical
+// device: the xname alone. Transform declares them on its result.
+var IdentityKeys = []string{"xname"}
+
 // Transform converts imported SLS/SMD data into CANI's inventory format.
 func Transform(existing devicetypes.Inventory) (*devicetypes.TransformResult, error) {
 	p := providerGetter()
@@ -32,7 +37,12 @@ func Transform(existing devicetypes.Inventory) (*devicetypes.TransformResult, er
 		return emptyResult(), nil
 	}
 	smdMap := buildSmdMap(p.GetSmd())
-	return transformSls(sls, smdMap, &existing)
+	result, err := transformSls(sls, smdMap, &existing)
+	if err != nil {
+		return nil, err
+	}
+	result.IdentityKeys = slices.Clone(IdentityKeys)
+	return result, nil
 }
 
 func emptyResult() *devicetypes.TransformResult {
