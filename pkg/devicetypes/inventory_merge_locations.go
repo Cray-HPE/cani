@@ -38,7 +38,7 @@ func (inv *Inventory) MergeRacks(incoming map[uuid.UUID]*CaniRackType) map[uuid.
 			continue
 		}
 		if existing, ok := inv.Racks[incomingID]; ok {
-			mergeRackProperties(existing, rack)
+			inv.mergeRack(incomingID, existing, rack)
 			continue
 		}
 		matched := false
@@ -46,7 +46,7 @@ func (inv *Inventory) MergeRacks(incoming map[uuid.UUID]*CaniRackType) map[uuid.
 			if existing != nil && (sharedExternalID(existing.ExternalIDs, rack.ExternalIDs) ||
 				(!conflictingExternalID(existing.ExternalIDs, rack.ExternalIDs) && existing.Name == rack.Name)) {
 				rack.ID = existingID
-				mergeRackProperties(existing, rack)
+				inv.mergeRack(existingID, existing, rack)
 				remap[incomingID] = existingID
 				matched = true
 				break
@@ -57,6 +57,17 @@ func (inv *Inventory) MergeRacks(incoming map[uuid.UUID]*CaniRackType) map[uuid.
 		}
 	}
 	return remap
+}
+
+// mergeRack merges incoming into an existing rack. When that moves the rack
+// to another location, the devices mounted in it stop recording a location
+// of their own and follow the rack, unless the same result gives them one.
+func (inv *Inventory) mergeRack(id uuid.UUID, existing, incoming *CaniRackType) {
+	before := existing.Location
+	mergeRackProperties(existing, incoming)
+	if existing.Location != before {
+		inv.releaseRackedDevices(id)
+	}
 }
 
 func mergeRackProperties(existing, incoming *CaniRackType) {

@@ -153,6 +153,39 @@ PY
     End
   End
 
+  # ── --location ──────────────────────────────────────────────────
+  # With a literal rack, or no rack, --location is where the device is
+  # placed; it used to be read only to filter racks for a placement strategy.
+
+  Describe '--location flag'
+    Before 'setup_crud_env'
+
+    # Prints the name of the location the named device records, straight
+    # from the datastore.
+    device_location() {
+      DEVICE_NAME="$1" DS="$CANI_DS" python3 - <<'PY'
+import json, os
+with open(os.environ["DS"]) as fh:
+    inventory = json.load(fh)
+for device in inventory["devices"].values():
+    if device["name"] == os.environ["DEVICE_NAME"]:
+        print(inventory["locations"].get(device.get("location"), {}).get("name"))
+PY
+    }
+
+    It 'places a device that has no rack in the location'
+      bin/cani alpha add device cray-xd225v --name loose-01 --location removable-location --config "$CANI_CONF" >/dev/null 2>&1
+      When call device_location loose-01
+      The output should equal 'removable-location'
+    End
+
+    It 'refuses a location that does not hold the rack'
+      When call bin/cani alpha add device cray-xd225v --rack test-rack --name stray-01 --location removable-location --config "$CANI_CONF"
+      The status should equal 1
+      The stderr should include "its location must be the rack's or one that holds it"
+    End
+  End
+
   Describe 'positional arguments'
     Before 'setup_crud_env'
 

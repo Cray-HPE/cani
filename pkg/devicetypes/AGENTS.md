@@ -104,7 +104,7 @@ Location
 
 Key relationships:
 - `CaniDeviceType.Parent` is overloaded: can point to a rack UUID or a parent device UUID. The rebuild logic resolves which.
-- `CaniDeviceType.Rack`, `.Location`, `.ParentDevice` are explicit FK fields set during rebuild for unambiguous export.
+- `CaniDeviceType.Rack` and `.ParentDevice` are explicit FK fields set during rebuild for unambiguous export. `.Location` is persisted: a device with no parent is placed in it, a racked device keeps it only while it holds the rack's location (otherwise the rebuild gives it the rack's), and a device installed in another device takes that device's. `Inventory.SetDeviceLocation` records one and `Inventory.MoveRack` moves a rack with its devices (`device_location.go`).
 - `CaniRackType.Devices` and `.OccupiedSlots` are derived from device references, not stored.
 
 ## Key Functions

@@ -36,6 +36,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/util/validate"
 	"github.com/Cray-HPE/cani/pkg/datastores"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
+	"github.com/google/uuid"
 )
 
 // newRackUpdateCommand creates the "update rack" subcommand.
@@ -78,7 +79,7 @@ func updateRack(cmd *cli.Command, args []string) error {
 	if err := applyRackScalarFlags(cmd, rack); err != nil {
 		return err
 	}
-	if err := applyRackLocation(cmd, inventory, rack); err != nil {
+	if err := applyRackLocation(cmd, inventory, id); err != nil {
 		return err
 	}
 	applyRackTagsMetadata(cmd, rack)
@@ -126,8 +127,9 @@ func applyRackScalarFlags(cmd *cli.Command, rack *devicetypes.CaniRackType) erro
 	return nil
 }
 
-// applyRackLocation resolves and applies the --location flag when set.
-func applyRackLocation(cmd *cli.Command, inventory *devicetypes.Inventory, rack *devicetypes.CaniRackType) error {
+// applyRackLocation resolves and applies the --location flag when set. The
+// devices mounted in the rack move with it.
+func applyRackLocation(cmd *cli.Command, inventory *devicetypes.Inventory, rackID uuid.UUID) error {
 	if !cmd.Flags().Changed(flagLocation) {
 		return nil
 	}
@@ -136,8 +138,7 @@ func applyRackLocation(cmd *cli.Command, inventory *devicetypes.Inventory, rack 
 	if lerr != nil {
 		return fmt.Errorf("resolving location: %w", lerr)
 	}
-	rack.Location = locID
-	return nil
+	return inventory.MoveRack(rackID, locID)
 }
 
 // applyRackTagsMetadata applies the --tag and --metadata flags when set.
