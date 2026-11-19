@@ -1,0 +1,180 @@
+/* Drawer content, cabling tables, highlight state and print rules; appended
+   to rack_html.css by the renderer. Layer order is declared there. */
+@layer detail {
+  .vh { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .weak { color: var(--c-text-weak); }
+  .detail {
+    & a { color: var(--c-text-link); text-decoration: underline; text-decoration-color: color-mix(in oklab, currentColor 40%, transparent); text-underline-offset: .15em;
+      &:hover { text-decoration-color: currentColor; }
+      &:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; border-radius: 2px; } }
+    & .mgmt {
+      justify-self: start; display: inline-flex; align-items: center; gap: .375rem; min-block-size: 24px; margin-block-start: .125rem; padding: .125rem .625rem .125rem .5rem;
+      font-size: 12px; text-decoration: none; color: var(--c-text-link);
+      background: var(--c-bg-card); border: 1px solid var(--c-border-weak); border-radius: 999px;
+      &:hover { border-color: var(--c-accent); background: color-mix(in oklab, var(--c-accent) 8%, var(--c-bg-card)); }
+      & .mgmt-label { font-weight: 600; }
+      & .ext { font-size: 11px; color: var(--c-text-weak); }
+    }
+    & .note {
+      margin: .875rem 1rem 0; padding: .625rem .75rem; border-radius: 6px; line-height: 1.45;
+      background: var(--c-bg-tint); color: var(--c-text-strong); overflow-wrap: anywhere;
+      &.warn { background: var(--c-bg-warn); }
+      & .note-label { display: block; margin-block-end: .125rem; font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--c-text-weak); }
+      &.warn .note-label { color: var(--c-warn); }
+    }
+    & .facts { display: grid; grid-template-columns: max-content 1fr; gap: .375rem 1rem; padding: .875rem 1rem; }
+    & dt { color: var(--c-text-weak); }
+    & dd { overflow-wrap: anywhere; color: var(--c-text-strong); }
+    & .nodes { display: flex; flex-wrap: wrap; gap: .375rem .75rem; margin: .375rem 0 0; padding: 0; list-style: none; }
+    & .nodes li { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .375rem; }
+    & .nodes .mgmt { min-block-size: 22px; margin: 0; font-size: 11px; }
+    & .sect {
+      border-block-start: 1px solid var(--c-border-weak);
+      & > summary {
+        display: flex; align-items: baseline; gap: .5rem; padding: .75rem 1rem .625rem; cursor: pointer; list-style: none;
+        &::-webkit-details-marker { display: none; }
+        &::before { content: ""; align-self: start; inline-size: 6px; block-size: 6px; margin-block-start: .3em; margin-inline-end: .125rem; border: solid var(--c-text-weak); border-width: 0 1.5px 1.5px 0; rotate: -45deg; transition: rotate 120ms; }
+        &:hover .sect-title { color: var(--c-text-link); }
+        &:focus-visible { outline: 2px solid var(--c-accent); outline-offset: -2px; }
+      }
+      &[open] > summary::before { rotate: 45deg; }
+      & .sect-title { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--c-text-strong); }
+      & .sect-meta { font-size: 12px; color: var(--c-text-weak); }
+      & .sect-link { margin-inline-start: auto; font-size: 11.5px; white-space: nowrap; }
+    }
+    & .hw { margin: 0; padding: 0 1rem .875rem; list-style: none; display: grid; gap: .5rem; }
+    & .hw li { display: grid; grid-template-columns: 2.25rem 1fr; column-gap: .4rem; }
+    & .hw-line { display: contents; line-height: 1.35; }
+    & .hw-count { grid-column: 1; font: 600 12.5px/1.35 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--c-text-strong); }
+    & .hw-text { grid-column: 2; color: var(--c-text-strong); overflow-wrap: anywhere; }
+    & .hw-meta { font-size: 11.5px; color: var(--c-text-weak); white-space: nowrap; }
+    & .serials {
+      grid-column: 2; margin: .125rem 0 0;
+      & > summary { display: inline-block; font-size: 11px; color: var(--c-text-link); cursor: pointer; list-style: none; padding-block: .125rem;
+        &::-webkit-details-marker { display: none; } &::after { content: " \25B8"; } &:hover { text-decoration: underline; } }
+      &[open] > summary::after { content: " \25BE"; }
+      & table { margin-block: .25rem .375rem; font-size: 11.5px; }
+    }
+    & table { inline-size: 100%; border-collapse: collapse; }
+    & th, & td { padding: .375rem .5rem; text-align: start; vertical-align: top; }
+    & thead th { padding-block: .25rem; font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--c-text-weak); border-block-end: 1px solid var(--c-border-weak); }
+    & tbody tr:nth-child(even) { background: var(--c-bg-tint); }
+    & tbody th { font-weight: 500; color: var(--c-text-strong); }
+    & .ports { margin-block-end: .5rem; }
+    & .ports th:first-child, & .ports td:first-child { padding-inline-start: 1rem; }
+    & .ports th:last-child, & .ports td:last-child { padding-inline-end: 1rem; }
+    & .port-name, & .port-hint, & .vlan, & .ip, & .mac { display: block; }
+    & .port-hint, & .vlan, & .mac { font-size: 11px; color: var(--c-text-weak); }
+    & .vlan { margin-block-start: .25rem; }
+    & .ip { font-weight: 600; color: var(--c-text-strong); }
+    & .mac { margin-block-start: .125rem; }
+  }
+  .peer {
+    appearance: none; display: inline-flex; align-items: baseline; gap: .375rem; min-block-size: 24px; margin: 0; padding: .125rem .625rem;
+    font: inherit; font-size: 12px; line-height: 1.3; color: var(--c-text-strong); text-align: start; cursor: pointer;
+    background: var(--c-bg-tint); border: 1px solid transparent; border-radius: 999px;
+    &:hover { background: color-mix(in oklab, var(--c-accent) 12%, var(--c-bg-card)); border-color: color-mix(in oklab, var(--c-accent) 40%, transparent); }
+    &:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 1px; }
+    & .peer-dev { font-weight: 600; }
+    & .peer-port { color: var(--c-text); }
+  }
+}
+
+@layer cabling {
+  .cabling { display: grid; gap: 1rem; padding-inline: clamp(1rem, 3vw, 2.5rem); padding-block: 0 2rem; }
+  .cabling-head h2 { font-size: 16px; font-weight: 600; color: var(--c-text-strong); }
+  .cabling-head p { font-size: 13px; color: var(--c-text-weak); max-inline-size: 70ch; }
+  .cabling-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 38rem), 1fr)); gap: 1rem; align-items: start; }
+  .swt {
+    min-inline-size: 0; background: var(--c-bg-card); border: 1px solid var(--c-border-weak); border-radius: var(--radius-l);
+    box-shadow: 0 1px 2px var(--c-shadow);
+    & > summary {
+      display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .75rem; padding: .75rem 1rem; cursor: pointer; list-style: none;
+      &::-webkit-details-marker { display: none; }
+      &::before { content: ""; align-self: start; inline-size: 7px; block-size: 7px; margin-block-start: .4em; border: solid var(--c-text-weak); border-width: 0 1.5px 1.5px 0; rotate: -45deg; transition: rotate 120ms; }
+      &:hover .sw-name { color: var(--c-text-link); }
+      &:focus-visible { outline: 2px solid var(--c-accent); outline-offset: -2px; border-radius: var(--radius-l); }
+    }
+    &[open] > summary { border-block-end: 1px solid var(--c-border-weak); }
+    &[open] > summary::before { rotate: 45deg; }
+    & > summary { background: color-mix(in oklab, var(--c-accent) calc(var(--hl-self, 0) * 10%), transparent); }
+    &:target > summary { background: color-mix(in oklab, var(--c-accent) 10%, var(--c-bg-card)); }
+    & .sw-name { font-size: 14px; font-weight: 600; color: var(--c-text-strong); }
+    & .sw-meta { font-size: 12px; color: var(--c-text-weak); font-variant-numeric: tabular-nums; }
+    & .scroll { overflow-x: auto; }
+    & .wiring { inline-size: 100%; border-collapse: collapse; font-size: 12.5px; }
+    & th, & td { padding: .4rem .625rem; text-align: start; vertical-align: top; white-space: nowrap; }
+    & th:first-child, & td:first-child { padding-inline-start: 1rem; }
+    & th:last-child, & td:last-child { padding-inline-end: 1rem; }
+    & thead th { font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--c-text-weak); border-block-end: 1px solid var(--c-border-weak); }
+    & tbody th { font-weight: 500; color: var(--c-text-strong); }
+    & .desc { white-space: normal; min-inline-size: 9rem; overflow-wrap: anywhere; }
+    & .num { text-align: end; font-variant-numeric: tabular-nums; }
+    & .peer { background: transparent; border-color: var(--c-border-weak); }
+    & a { color: var(--c-text-link); text-decoration: underline; text-decoration-color: color-mix(in oklab, currentColor 40%, transparent); text-underline-offset: .15em;
+      &:hover { text-decoration-color: currentColor; } }
+    & .free { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .5rem; padding: .625rem 1rem .75rem; font-size: 12px; border-block-start: 1px solid var(--c-border-weak); }
+    & .free-label { font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--c-text-weak); }
+  }
+}
+
+@layer state {
+  body:has(#show-cabling:not(:checked)) .cabling { display: none; }
+  .dev, .bay { outline: 2px var(--hl, none) var(--c-accent); outline-offset: 1px; }
+  .bay { --hl: initial; --hl-badge: initial; outline-offset: -2px; }
+  .bay:focus-visible { outline: 2px solid var(--c-accent); outline-offset: -2px; }
+  .marks::before, .bay::after { content: var(--hl-badge, none); }
+  .marks::before, .bay::after, .badge, .swt > summary::after {
+    align-self: center; padding: 1px 4px; border-radius: 3px;
+    font: 600 9px/1.2 var(--font-sans); letter-spacing: .04em; text-transform: uppercase;
+    color: var(--c-text-on-strong); background: var(--c-accent);
+  }
+  .bay::after { margin-inline-start: auto; }
+  .badge { display: inline-block; }
+  .hl-subject { outline: 2px solid var(--c-accent); outline-offset: 1px; }
+  .hl-peer { outline: 2px dashed var(--c-accent); outline-offset: 1px; }
+
+  /* Cabling tables read the generated custom properties too: --hl frames a
+     switch's table (solid: own card open; dashed + "link" summary badge:
+     cabled to the open card), --hl-self lights up the rows leading to the open
+     device. Rows reset --hl-self so a framed table does not light up every row;
+     the generated rule on a matching row is unlayered and still wins. */
+  .swt { outline: 2px var(--hl, none) var(--c-accent); outline-offset: 2px; }
+  .swt > summary::after { content: var(--hl-badge, none); margin-inline-start: .25rem; }
+  .swt tbody tr {
+    --hl-self: initial; --zebra: transparent;
+    background: color-mix(in oklab, var(--c-accent) calc(var(--hl-self, 0) * 14%), var(--zebra));
+    & > th { position: relative; font-weight: calc(500 + 200 * var(--hl-self, 0)); }
+    & > th::before {
+      content: "\25cf"; position: absolute; inset-block: 0; inset-inline-start: .3rem; display: grid; align-content: center;
+      font-size: 9px; color: var(--c-accent); opacity: var(--hl-self, 0);
+    }
+  }
+  .swt tbody tr:nth-child(even) { --zebra: var(--c-bg-tint); }
+  .key-row {
+    position: relative; padding: 1px 6px 1px 1rem; border-radius: 3px; font-weight: 700; font-size: 11px; color: var(--c-text-strong);
+    background: color-mix(in oklab, var(--c-accent) 14%, transparent);
+    &::before { content: "\25cf"; position: absolute; inset-block: 0; inset-inline-start: .3rem; display: grid; align-content: center; font-size: 8px; color: var(--c-accent); }
+  }
+}
+
+@layer print {
+  @media print {
+    [popover] { display: none !important; transition: none; }
+    .cabling { break-before: page; padding: 0; }
+    .cabling-grid { grid-template-columns: 1fr; gap: 4mm; }
+    .cabling-head h2 { font-size: 12pt; }
+    .cabling-head p { font-size: 8pt; }
+    .swt { box-shadow: none; break-inside: auto; }
+    .swt > summary { break-after: avoid; }
+    .swt > summary::before { display: none; }
+    .swt .wiring { font-size: 8pt; }
+    .swt th, .swt td { padding: 1mm 2mm; }
+    .swt thead { display: table-header-group; }
+    .swt tr { break-inside: avoid; }
+    .swt .free { font-size: 8pt; }
+    .peer { padding: 0; border: 0; background: none; min-block-size: 0; font-size: inherit; }
+    .swt a, .detail a { color: inherit; text-decoration: none; }
+    details:not([open])::details-content { content-visibility: visible; }
+  }
+}

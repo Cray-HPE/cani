@@ -47,6 +47,7 @@ func showSingleRack(cmd *cli.Command, inv *devicetypes.Inventory, arg string) er
 	columns, _ := cmd.Flags().GetInt("columns")
 	showLabels, _ := cmd.Flags().GetBool("labels")
 	interactive, _ := cmd.Flags().GetBool("interactive")
+	theme, _ := cmd.Flags().GetString("theme")
 
 	// Default to detail view when no explicit format was set.
 	if !cmd.Flags().Changed("format") {
@@ -57,7 +58,8 @@ func showSingleRack(cmd *cli.Command, inv *devicetypes.Inventory, arg string) er
 	if rf := visual.RackFormat(format); rf == visual.RackFormatClassic ||
 		rf == visual.RackFormatMinimap ||
 		rf == visual.RackFormatDetail ||
-		rf == visual.RackFormatRouting {
+		rf == visual.RackFormatRouting ||
+		rf == visual.RackFormatHTML {
 		return visual.RenderRack(inv, rf, visual.CompactRenderOptions{
 			NoColor:     noColor,
 			RackFilter:  rack.Name,
@@ -65,6 +67,7 @@ func showSingleRack(cmd *cli.Command, inv *devicetypes.Inventory, arg string) er
 			Verbose:     verbose,
 			ShowLabels:  showLabels,
 			Interactive: interactive,
+			Theme:       theme,
 			Inventory:   inv,
 		})
 	}

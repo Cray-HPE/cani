@@ -1,0 +1,102 @@
+/* Theme "hpe" (default): HPE Design System, hpe-design-tokens 2.4.0.
+   A theme is plain CSS that sets color-scheme and every semantic token below
+   on :root; the component stylesheets use nothing else for colour and type.
+   The renderer wraps the file in @layer theme (the lowest layer), so the
+   component print rules can still force a light scheme on paper.
+   Token contract (every token is required; values may be light-dark() pairs):
+     --c-bg-page         page background behind the racks
+     --c-bg-card         raised surfaces: header, cards, drawer, tables, slots
+     --c-bg-tint         faint tint on a surface: control tracks, zebra rows, hover, kbd
+     --c-bg-warn         warning fill: callouts, spotlighted unverified tiles
+     --c-text            default text
+     --c-text-strong     headings, names, emphasised cells
+     --c-text-weak       secondary text, labels, metadata
+     --c-text-link       links and hover titles
+     --c-text-on-strong  text on strong fills: rail numbers, selected control, badges
+     --c-border          default control border
+     --c-border-weak     hairlines, dividers, tile edges
+     --c-border-strong   rack rail material and hover borders
+     --c-accent          focus rings, selection outlines, highlight tints, badge fill
+     --c-accent-fill     fill of the checked segment or chip
+     --c-brand           brand bar on the header and the guide
+     --c-ok, --c-warn, --c-crit, --c-info, --c-unknown   status dots and marks
+     --c-kind-{server,chassis,switch,hsn,other}          device-type edge colour
+     --c-kind-{server,chassis,switch,hsn,other}-weak     device-type tile fill
+     --c-shadow          shadow colour of frames, cards and the drawer
+     --font-sans         text font stack
+     --font-mono         U numbers, serials, ports and addresses
+   This theme keeps the HPE token names internally and maps them. */
+@font-face { font-family: 'HPE Graphik'; font-weight: 400; font-display: swap;
+  src: local('HPE Graphik'), local('HPEGraphik-Regular'), url('https://www.hpe.com/content/dam/hpe/fonts/graphik/HPEGraphik-Regular-Web.woff2') format('woff2'); }
+@font-face { font-family: 'HPE Graphik'; font-weight: 500; font-display: swap;
+  src: local('HPE Graphik Medium'), local('HPEGraphik-Medium'), url('https://www.hpe.com/content/dam/hpe/fonts/graphik/HPEGraphik-Medium-Web.woff2') format('woff2'); }
+@font-face { font-family: 'HPE Graphik'; font-weight: 600; font-display: swap;
+  src: local('HPE Graphik Semibold'), local('HPEGraphik-Semibold'), url('https://www.hpe.com/content/dam/hpe/fonts/graphik/HPEGraphik-Semibold-Web.woff2') format('woff2'); }
+@font-face { font-family: 'HPE Graphik'; font-weight: 700; font-display: swap;
+  src: local('HPE Graphik Bold'), local('HPEGraphik-Bold'), url('https://www.hpe.com/content/dam/hpe/fonts/graphik/HPEGraphik-Bold-Web.woff2') format('woff2'); }
+
+:root {
+  color-scheme: light dark;
+  --hpe-color-decorative-brand: light-dark(#01a982, #01a982);
+  --hpe-color-decorative-green: light-dark(#05cc93, #068667);
+  --hpe-color-decorative-neutral: light-dark(#7d8a92, #b1b9be);
+  --hpe-color-background-back: light-dark(#f7f7f7, #1d1f27);
+  --hpe-color-background-front: light-dark(#ffffff, #292d3a);
+  --hpe-color-background-contrast: light-dark(rgba(0, 0, 0, .04), rgba(255, 255, 255, .06));
+  --hpe-color-background-primary-strong: light-dark(#068667, #05cc93);
+  --hpe-color-background-warning: light-dark(#fff3dd, #3c361e);
+  --hpe-color-background-accent-blue-strong: light-dark(#0069e8, #65aef9);
+  --hpe-color-background-accent-blue-weak: light-dark(#e3f1ff, #1c3053);
+  --hpe-color-background-accent-cyan-strong: light-dark(#00838f, #00a4b3);
+  --hpe-color-background-accent-cyan-weak: light-dark(#c7f9ff, #163a3e);
+  --hpe-color-background-accent-purple-strong: light-dark(#6751ff, #9b84fc);
+  --hpe-color-background-accent-purple-weak: light-dark(#ece7ff, #32275c);
+  --hpe-color-border-default: light-dark(#b1b9be, rgba(255, 255, 255, .36));
+  --hpe-color-border-weak: light-dark(#d4d8db, rgba(255, 255, 255, .12));
+  --hpe-color-border-strong: light-dark(#3e4550, rgba(255, 255, 255, .72));
+  --hpe-color-border-selected: light-dark(#006750, #05cc93);
+  --hpe-color-text-default: light-dark(#3e4550, #e6e8e9);
+  --hpe-color-text-strong: light-dark(#292d3a, #ffffff);
+  --hpe-color-text-weak: light-dark(#606a70, #b1b9be);
+  --hpe-color-text-primary: light-dark(#006750, #05cc93);
+  --hpe-color-text-onStrong: light-dark(#ffffff, #292d3a);
+  --hpe-color-foreground-ok: light-dark(#009a71, #05cc93);
+  --hpe-color-foreground-warning: light-dark(#d36d00, #ec8c25);
+  --hpe-color-foreground-critical: light-dark(#ec3331, #fc6161);
+  --hpe-color-foreground-info: light-dark(#0055da, #65aef9);
+  --hpe-color-foreground-unknown: light-dark(#7d8a92, #7d8a92);
+
+  --c-bg-page: var(--hpe-color-background-back);
+  --c-bg-card: var(--hpe-color-background-front);
+  --c-bg-tint: var(--hpe-color-background-contrast);
+  --c-bg-warn: var(--hpe-color-background-warning);
+  --c-text: var(--hpe-color-text-default);
+  --c-text-strong: var(--hpe-color-text-strong);
+  --c-text-weak: var(--hpe-color-text-weak);
+  --c-text-link: var(--hpe-color-text-primary);
+  --c-text-on-strong: var(--hpe-color-text-onStrong);
+  --c-border: var(--hpe-color-border-default);
+  --c-border-weak: var(--hpe-color-border-weak);
+  --c-border-strong: var(--hpe-color-border-strong);
+  --c-accent: var(--hpe-color-border-selected);
+  --c-accent-fill: var(--hpe-color-background-primary-strong);
+  --c-brand: var(--hpe-color-decorative-brand);
+  --c-ok: var(--hpe-color-foreground-ok);
+  --c-warn: var(--hpe-color-foreground-warning);
+  --c-crit: var(--hpe-color-foreground-critical);
+  --c-info: var(--hpe-color-foreground-info);
+  --c-unknown: var(--hpe-color-foreground-unknown);
+  --c-kind-server: var(--hpe-color-background-accent-blue-strong);
+  --c-kind-server-weak: var(--hpe-color-background-accent-blue-weak);
+  --c-kind-chassis: var(--hpe-color-background-accent-purple-strong);
+  --c-kind-chassis-weak: var(--hpe-color-background-accent-purple-weak);
+  --c-kind-switch: var(--hpe-color-background-accent-cyan-strong);
+  --c-kind-switch-weak: var(--hpe-color-background-accent-cyan-weak);
+  --c-kind-hsn: var(--hpe-color-decorative-green);
+  --c-kind-hsn-weak: color-mix(in oklab, var(--hpe-color-decorative-green) 22%, var(--hpe-color-background-front));
+  --c-kind-other: var(--hpe-color-decorative-neutral);
+  --c-kind-other-weak: var(--hpe-color-background-contrast);
+  --c-shadow: light-dark(color-mix(in srgb, var(--hpe-color-text-strong) 16%, transparent), color-mix(in srgb, var(--hpe-color-background-back) 70%, transparent));
+  --font-sans: 'HPE Graphik', Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
