@@ -25,8 +25,6 @@
  */
 package core
 
-import "path/filepath"
-
 const (
 	App              = "cani"
 	DsFile           = App + "db.json"
@@ -37,9 +35,4 @@ const (
 	LongDescription  = `Continious And Never-ending Inventory`
 	InitShort        = `Initialize a session and import from the chosen provider.`
 	InitLong         = `Initialize a session. This will perform an import using provider-defined logic.`
-)
-
-var (
-	DsPath  = filepath.Join(CfgDir, DsFile)
-	CfgPath = filepath.Join(CfgDir, CfgFile)
 )
