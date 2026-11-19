@@ -1,0 +1,60 @@
+{{define "detail"}}
+<div popover id="p-{{.ID}}" class="detail kind-{{.Kind}}" role="dialog" aria-labelledby="h-{{.ID}}" tabindex="-1" autofocus>
+  <header class="card-head">
+    <div class="card-title">
+      <p class="eyebrow">{{kindLabel .Kind}}{{if .Rack}} · {{.Rack}}{{end}} · {{.Position}}</p>
+      <h3 id="h-{{.ID}}">{{.Name}}</h3>
+      {{if .Mgmt}}{{template "mgmt" .Mgmt}}{{end}}
+    </div>
+    <button type="button" class="close" popovertarget="p-{{.ID}}" popovertargetaction="hide">Close</button>
+  </header>
+  {{if .Note}}<p class="note{{if .Unverified}} warn{{end}}"><span class="note-label">{{if .Unverified}}Unverified · {{end}}Note</span>{{.Note}}</p>{{end}}
+  <dl class="facts">
+    <dt>Model</dt><dd>{{or .Model "unknown"}}</dd>
+    <dt>Manufacturer</dt><dd>{{or .Manufacturer "unknown"}}</dd>
+    <dt>Serial</dt><dd class="mono">{{or .Serial "unknown"}}</dd>
+    <dt>Type</dt><dd>{{or .Type "unknown"}}</dd>
+    <dt>Position</dt><dd>{{if .ParentLink}}in {{template "ref" .ParentLink}} ({{.Position}}){{else}}{{.Position}}{{end}}{{if .ChildLinks}}<ul class="nodes">{{range .ChildLinks}}<li>{{template "ref" .}}{{if .Mgmt}}{{template "mgmt" .Mgmt}}{{end}}</li>{{end}}</ul>{{end}}</dd>
+    <dt>Status</dt><dd>{{or .Status "unknown"}}</dd>
+    <dt>Tags</dt><dd>{{or .TagList "none"}}</dd>
+    <dt>IPv4</dt><dd class="mono">{{or .IPv4 "unknown"}}</dd>
+  </dl>
+  {{if .Hardware}}{{template "hardware" .}}{{end}}
+  {{if .Ports}}{{template "ports" .}}{{end}}
+</div>
+{{end}}
+{{define "mgmt"}}<a class="mgmt" href="{{.URL}}" target="_blank" rel="noopener noreferrer"><span class="mgmt-label">{{.Label}}</span> <span class="mono">{{.Host}}</span> <span class="ext" aria-hidden="true">&#8599;</span></a>{{end}}
+{{define "ref"}}<button type="button" class="peer" popovertarget="p-{{.ID}}" popovertargetaction="show">{{.Name}}</button>{{end}}
+{{define "peer"}}{{if .PeerID}}<button type="button" class="peer" popovertarget="p-{{.PeerID}}" popovertargetaction="show"><span class="peer-dev">{{.PeerName}}</span> <span class="peer-port mono">{{.PeerPort}}</span></button>{{else}}<span class="peer-dev">{{.PeerName}}</span> <span class="mono">{{.PeerPort}}</span>{{end}}{{end}}
+{{define "hardware"}}
+<details open class="sect">
+  <summary><span class="sect-title">Hardware</span> <span class="sect-meta">{{.HardwareSummary}}</span></summary>
+  <ul class="hw">
+  {{range .Hardware}}<li>
+    <p class="hw-line"><span class="hw-count">{{.Count}}&#215;</span> <span class="hw-text">{{.Title}}{{if .Meta}} <span class="hw-meta">{{.Meta}}</span>{{end}}{{if .Total}} <span class="hw-meta">({{.Total}})</span>{{end}}</span></p>
+    {{if .HasSerials}}<details class="serials"><summary>serials</summary>
+      <table><caption class="vh">Serial numbers</caption>
+        <thead><tr><th scope="col">Slot</th><th scope="col">Part no.</th><th scope="col">Serial</th></tr></thead>
+        <tbody>{{range .Items}}<tr><td>{{.Slot}}</td><td class="mono">{{if .PartNumber}}{{.PartNumber}}{{else}}<span class="weak">&#8212;</span>{{end}}</td><td class="mono">{{if .Serial}}{{.Serial}}{{else}}<span class="weak">&#8212;</span>{{end}}</td></tr>{{end}}</tbody>
+      </table>
+    </details>{{end}}
+  </li>{{end}}
+  </ul>
+</details>
+{{end}}
+{{define "ports"}}
+<details open class="sect">
+  <summary><span class="sect-title">Ports</span> <span class="sect-meta">{{.PortsCabled}} cabled of {{.PortsTotal}}</span>{{if .CablingTable}} <a class="sect-link" href="#sw-{{.ID}}">Cabling table &#8595;</a>{{end}}</summary>
+  <table class="ports">
+    <caption class="vh">Ports of {{.Name}}</caption>
+    <thead><tr><th scope="col">Port</th><th scope="col">Peer</th><th scope="col">Address</th></tr></thead>
+    <tbody>
+    {{range .Ports}}<tr>
+      <th scope="row"><span class="port-name">{{.Name}}</span>{{if .Hint}}<span class="port-hint">{{.Hint}}</span>{{end}}</th>
+      <td>{{if .Cabled}}{{template "peer" .}}{{if .VLAN}}<span class="vlan">{{.VLAN}}</span>{{end}}{{else if .ViaID}}<span class="weak">via</span> <button type="button" class="peer" popovertarget="p-{{.ViaID}}" popovertargetaction="show"><span class="peer-dev">{{.ViaName}}</span> <span class="peer-port mono">{{.ViaPort}}</span></button> {{template "peer" .}}{{if .VLAN}}<span class="vlan">{{.VLAN}}</span>{{end}}{{else}}<span class="weak">not cabled</span>{{end}}</td>
+      <td class="addr">{{if .IP}}<span class="ip mono">{{if .IPURL}}<a href="{{.IPURL}}" target="_blank" rel="noopener noreferrer">{{.IP}}</a>{{else}}{{.IP}}{{end}}{{if .IPNote}} <span class="weak">{{.IPNote}}</span>{{end}}</span>{{else}}<span class="ip weak">&#8212;</span>{{end}}{{if .MAC}}<span class="mac mono">{{.MAC}}</span>{{end}}</td>
+    </tr>{{end}}
+    </tbody>
+  </table>
+</details>
+{{end}}

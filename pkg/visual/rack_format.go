@@ -27,6 +27,7 @@ package visual
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
@@ -40,6 +41,7 @@ const (
 	RackFormatMinimap RackFormat = "minimap"
 	RackFormatDetail  RackFormat = "detail"
 	RackFormatRouting RackFormat = "routing"
+	RackFormatHTML    RackFormat = "html"
 )
 
 // ValidRackFormats returns the rack-specific format names.
@@ -49,6 +51,7 @@ func ValidRackFormats() []string {
 		string(RackFormatMinimap),
 		string(RackFormatDetail),
 		string(RackFormatRouting),
+		string(RackFormatHTML),
 	}
 }
 
@@ -73,6 +76,8 @@ func RenderRack(inv *devicetypes.Inventory, format RackFormat, opts CompactRende
 			return RunInteractiveRouting(inv, opts)
 		}
 		return RenderRoutingView(inv, opts)
+	case RackFormatHTML:
+		return RenderRackHTML(os.Stdout, inv, opts)
 	default:
 		return fmt.Errorf("invalid rack format %q; valid options: %s",
 			format, strings.Join(ValidRackFormats(), ", "))

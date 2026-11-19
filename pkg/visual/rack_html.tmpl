@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{.Title}}{{if .Location}} - {{.Location}}{{end}}</title>
+<style>{{.ThemeCSS}}</style>
+<style>{{.CSS}}</style>
+<style>{{.PeerCSS}}</style>
+</head>
+<body>
+<header class="page-head">
+  <div class="title-row">
+    <div class="title">
+      <h1>{{.Title}}</h1>
+      <p class="sub">{{if .Location}}<span>{{.Location}}</span>{{end}}<span>{{plural .RackCount "rack"}}, {{plural .DeviceCount "device"}}, {{plural .CableCount "cable"}}</span></p>
+    </div>
+    <div class="controls">
+      <fieldset class="seg">
+        <legend>Tile label</legend>
+        <input type="radio" name="show" id="show-both" checked><label for="show-both">Both</label>
+        <input type="radio" name="show" id="show-name"><label for="show-name">Name</label>
+        <input type="radio" name="show" id="show-model"><label for="show-model">Model</label>
+      </fieldset>
+      <label class="chip"><input type="checkbox" id="dim-not-ours"><span>Dim not ours</span></label>
+      <label class="chip"><input type="checkbox" id="hl-unverified"><span>Highlight unverified</span></label>
+      <label class="chip"><input type="checkbox" id="show-cabling" checked><span>Cabling tables</span></label>
+    </div>
+  </div>
+  <div class="legend">
+    <ul aria-label="Device type">
+      <li class="legend-title">Type</li>
+      <li><span class="sw kind-server"></span>Server</li>
+      <li><span class="sw kind-chassis"></span>Chassis</li>
+      <li><span class="sw kind-switch"></span>Switch</li>
+      <li><span class="sw kind-hsn"></span>HSN switch</li>
+      <li><span class="sw kind-other"></span>Other</li>
+    </ul>
+    <ul aria-label="Status">
+      <li class="legend-title">Status</li>
+      <li class="status-active"><span class="dot"></span>Active</li>
+      <li class="status-offline"><span class="sw kind-server"></span><span class="dot"></span>Offline</li>
+      <li class="status-planned"><span class="dot"></span>Planned or staged</li>
+      <li class="status-failed"><span class="dot"></span>Other status</li>
+    </ul>
+    <ul aria-label="Tags and depth">
+      <li class="legend-title">Tags</li>
+      <li><span class="sw kind-server tag-not-ours"></span>Not ours</li>
+      <li><span class="sw kind-server tag-unverified"></span>Unverified</li>
+      <li><span class="mark mark-reach">&#8644;</span>Reachable</li>
+      <li><span class="mark mark-ok">&#10003;</span>Verified</li>
+      <li><span class="mark">&#189;</span>Half depth</li>
+    </ul>
+    <ul aria-label="Open card">
+      <li class="legend-title">Open card</li>
+      <li><span class="sw kind-server hl-subject"></span>Selected</li>
+      <li><span class="sw kind-server hl-peer"></span><span class="badge">link</span>Cabled to it</li>
+    </ul>
+  </div>
+</header>
+{{template "guide"}}
+<main class="racks">
+{{range .Racks}}{{template "rack" .}}{{end}}
+</main>
+{{if .Switches}}
+<section class="cabling" aria-labelledby="cabling-title">
+  <header class="cabling-head">
+    <h2 id="cabling-title">Cabling tables</h2>
+    <p>{{plural (len .Switches) "switch"}} with cables. Rows follow the switch port order; the description is the port label configured on the switch. Rows that lead to the open card are marked.</p>
+  </header>
+  <div class="cabling-grid">
+  {{range .Switches}}{{template "switch" .}}{{end}}
+  </div>
+</section>
+{{end}}
+<footer class="page-foot">Generated {{.Generated}} by cani</footer>
+</body>
+</html>
+{{define "guide"}}
+<aside class="guide" aria-labelledby="guide-title">
+  <div class="guide-card">
+    <p class="guide-eyebrow">Getting started</p>
+    <h2 id="guide-title">Click a device to open its card</h2>
+    <p>Every tile and chassis node opens a card in this pane with the hardware, ports and management link (iLO, BMC or switch web UI) of that device.</p>
+    <ul class="guide-steps">
+      <li>While a card is open, the devices cabled to it get a dashed outline and a <span class="badge">link</span> badge on the elevation, and the rows that lead to it light up in the cabling tables below.</li>
+      <li>Peer buttons inside a card stack the next card on top. <kbd>Esc</kbd> or Close goes back one card; a click outside closes them all.</li>
+      <li><b>Both</b>, <b>Name</b> and <b>Model</b> pick the tile label. The chips dim devices that are not ours, spotlight unverified ones, or hide the cabling tables.</li>
+      <li>Printing (<kbd>Ctrl</kbd>/<kbd>&#8984;</kbd> <kbd>P</kbd>) puts the elevation first and the cabling tables on the following pages; open cards and this pane stay off paper.</li>
+    </ul>
+    <ul class="guide-key" aria-label="Highlight styles">
+      <li><span class="sw kind-server hl-subject"></span>Solid outline: the device whose card is open</li>
+      <li><span class="sw kind-switch hl-peer"></span><span class="badge">link</span>Dashed outline: cabled to the open device</li>
+      <li><span class="key-row mono">1/1/1</span>Bold port with a dot: table row that leads to the open device</li>
+    </ul>
+  </div>
+</aside>
+{{end}}
+{{define "rack"}}
+<section class="rack" style="--u:{{.Height}}">
+  <header class="rack-head">
+    <h2>{{.Name}}</h2>
+    <p>{{plural .DeviceCount "device"}}, {{.Occupied}}/{{.Height}} U occupied, {{sub .Height .Occupied}} U free</p>
+  </header>
+  <div class="frame">
+    {{range .Units}}<span class="u rail-l" style="--row:{{.Row}}" aria-hidden="true">{{.U}}</span><span class="slot" style="--row:{{.Row}}" aria-hidden="true"></span><span class="u rail-r" style="--row:{{.Row}}" aria-hidden="true">{{.U}}</span>
+    {{end}}{{range .Devices}}{{template "device" .}}{{end}}
+  </div>
+  {{template "rack-list" .}}
+  {{range .Devices}}{{template "detail" .}}{{range .Children}}{{template "detail" .}}{{end}}{{end}}
+</section>
+{{end}}
+{{define "device"}}
+<article class="dev {{.Classes}}" style="--row:{{.Row}};--span:{{.Height}}" data-u-start="{{.UStart}}" data-u-end="{{.UEnd}}" data-dev="{{.ID}}">
+  <button type="button" class="face" popovertarget="p-{{.ID}}" title="{{.Tooltip}}">
+    <span class="dev-name">{{.Name}}</span><span class="dev-model">{{.Model}}</span>
+    <span class="marks">{{if .HalfDepth}}<span class="mark">&#189;</span>{{end}}{{if .Reachable}}<span class="mark mark-reach">&#8644;</span>{{end}}{{if .Verified}}<span class="mark mark-ok">&#10003;</span>{{end}}<span class="dot"></span></span>
+  </button>
+  {{if .Children}}<div class="bays" style="--cols:{{.Cols}}">{{range .Children}}<button type="button" class="bay {{.Classes}}" popovertarget="p-{{.ID}}" data-dev="{{.ID}}" title="{{.Tooltip}}"><span class="dev-name">{{.Name}}</span><span class="dev-model">{{.Model}}</span></button>{{end}}</div>{{end}}
+</article>
+{{end}}
+{{define "switch"}}
+<details open id="sw-{{.ID}}" class="swt" data-dev="{{.ID}}">
+  <summary><span class="sw-name">{{.Name}}</span> <span class="sw-meta">{{.Cabled}} cabled of {{.Total}} ports · {{.Where}}</span></summary>
+  <div class="scroll">
+  <table class="wiring">
+    <caption class="vh">Cabling of {{.Name}}</caption>
+    <thead><tr><th scope="col">Port</th><th scope="col">Description</th><th scope="col">Peer</th>{{if .HasVLAN}}<th scope="col" class="num">VLAN</th>{{end}}<th scope="col">Peer IP</th></tr></thead>
+    <tbody>
+    {{range .Rows}}<tr{{if .PeerID}} data-dev="{{.PeerID}}"{{end}}>
+      <th scope="row" class="mono">{{.Port}}</th>
+      <td class="desc">{{.Description}}</td>
+      <td>{{template "peer" .}}</td>
+      {{if $.HasVLAN}}<td class="num">{{if .VLAN}}{{.VLAN}}{{else}}<span class="weak">&#8212;</span>{{end}}</td>{{end}}
+      <td class="mono">{{if .PeerIP}}{{if .PeerIPURL}}<a href="{{.PeerIPURL}}" target="_blank" rel="noopener noreferrer">{{.PeerIP}}</a>{{else}}{{.PeerIP}}{{end}}{{else}}<span class="weak">&#8212;</span>{{end}}</td>
+    </tr>{{end}}
+    </tbody>
+  </table>
+  </div>
+  {{if .FreeCount}}<p class="free"><span class="free-label">Free</span><span class="mono">{{.Free}}</span><span class="weak">({{.FreeCount}})</span></p>{{end}}
+</details>
+{{end}}
