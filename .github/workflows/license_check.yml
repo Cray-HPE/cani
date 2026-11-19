@@ -28,6 +28,9 @@ on:
 
 jobs:
   license-check:
+    # Pull requests from forks do not receive repository secrets, so the
+    # private container registry login below would fail before any step runs.
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
 
     container:
