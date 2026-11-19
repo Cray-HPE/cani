@@ -1,0 +1,17 @@
+{{define "rack-list"}}
+<details class="rack-list">
+  <summary><span class="rl-title">Rack contents</span> <span class="rl-meta">{{plural .DeviceCount "device"}}{{if .NodeCount}}, {{plural .NodeCount "chassis node"}}{{end}}, top first</span></summary>
+  <table>
+    <caption class="vh">Contents of {{.Name}}, top of rack first</caption>
+    <thead><tr><th scope="col">U</th><th scope="col">Device</th><th scope="col">Type / Status</th><th scope="col">Access</th></tr></thead>
+    <tbody>
+    {{range .Rows}}<tr{{if .Parent}} class="rl-child"{{end}}>
+      <th scope="row" class="mono">{{.U}}</th>
+      <td class="rl-dev"><span class="rl-name">{{.Name}}</span>{{if .Model}} <span class="rl-model">{{.Model}}</span>{{end}}{{if .Parent}}<span class="vh">, in {{.Parent}}</span>{{end}}</td>
+      <td><span class="rl-kind">{{kindLabel .Kind}}</span> <span class="rl-status">{{or .Status "unknown"}}</span></td>
+      <td>{{if .Mgmt}}<a class="rl-mgmt" href="{{.Mgmt.URL}}" target="_blank" rel="noopener noreferrer">{{.Mgmt.Label}}<span class="vh"> {{.Mgmt.Host}}</span></a>{{else}}<span class="weak">&#8212;</span>{{end}}</td>
+    </tr>{{end}}
+    </tbody>
+  </table>
+</details>
+{{end}}

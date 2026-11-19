@@ -1,0 +1,42 @@
+/* Theme "neutral": system fonts, a plain grey palette with one blue accent,
+   no external assets. Same token contract as themes/hpe.css (see its header
+   for the meaning of every token); light-dark() pairs throughout, so the page
+   follows the OS scheme and prints light. Contrast: body and weak text keep
+   at least 4.5:1 on both surfaces, on-strong text at least 4.5:1 on the
+   accent and rail fills, in both schemes. */
+:root {
+  color-scheme: light dark;
+  --c-bg-page: light-dark(#f3f4f6, #0f1115);
+  --c-bg-card: light-dark(#ffffff, #1a1d24);
+  --c-bg-tint: light-dark(rgba(0, 0, 0, .045), rgba(255, 255, 255, .06));
+  --c-bg-warn: light-dark(#fff4d6, #3b2f12);
+  --c-text: light-dark(#374151, #d1d5db);
+  --c-text-strong: light-dark(#111827, #f9fafb);
+  --c-text-weak: light-dark(#5f6b7a, #9ca3af);
+  --c-text-link: light-dark(#1d4ed8, #93c5fd);
+  --c-text-on-strong: light-dark(#ffffff, #0f1115);
+  --c-border: light-dark(#9ca3af, rgba(255, 255, 255, .3));
+  --c-border-weak: light-dark(#e5e7eb, rgba(255, 255, 255, .12));
+  --c-border-strong: light-dark(#374151, #cbd5e1);
+  --c-accent: light-dark(#2563eb, #60a5fa);
+  --c-accent-fill: light-dark(#1d4ed8, #60a5fa);
+  --c-brand: light-dark(#1f2937, #e5e7eb);
+  --c-ok: light-dark(#15803d, #4ade80);
+  --c-warn: light-dark(#b45309, #fbbf24);
+  --c-crit: light-dark(#b91c1c, #f87171);
+  --c-info: light-dark(#1d4ed8, #60a5fa);
+  --c-unknown: light-dark(#6b7280, #9ca3af);
+  --c-kind-server: light-dark(#2563eb, #60a5fa);
+  --c-kind-server-weak: light-dark(#dbeafe, #1c2f55);
+  --c-kind-chassis: light-dark(#7c3aed, #a78bfa);
+  --c-kind-chassis-weak: light-dark(#ede9fe, #2e2554);
+  --c-kind-switch: light-dark(#0f766e, #2dd4bf);
+  --c-kind-switch-weak: light-dark(#ccfbf1, #123f3b);
+  --c-kind-hsn: light-dark(#15803d, #4ade80);
+  --c-kind-hsn-weak: light-dark(#dcfce7, #14362a);
+  --c-kind-other: light-dark(#6b7280, #9ca3af);
+  --c-kind-other-weak: var(--c-bg-tint);
+  --c-shadow: light-dark(rgba(0, 0, 0, .16), rgba(0, 0, 0, .6));
+  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
