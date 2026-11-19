@@ -27,6 +27,12 @@ func LoadFromGitRepo(repoURL string, clone, pull bool) error {
 	if err := ensureGitRepo(repoURL, cacheDir, clone, pull); err != nil {
 		return err
 	}
+	// Without a checkout there is nothing to load. Loading anyway would write
+	// an empty types cache into cacheDir, and that leftover directory would
+	// make every later clone fail because git refuses a non-empty target.
+	if !dirExists(filepath.Join(cacheDir, ".git")) {
+		return nil
+	}
 
 	source := "git:" + repoURL
 	return LoadFromDir(cacheDir, source)
@@ -66,7 +72,31 @@ func ensureGitRepo(repoURL, cacheDir string, clone, pull bool) error {
 		}
 		return nil
 	}
+	if err := removeStaleCacheDir(cacheDir); err != nil {
+		return err
+	}
 	return gitClone(repoURL, cacheDir)
+}
+
+// removeStaleCacheDir clears a cache directory that is not a git checkout so
+// a clone can take its place. Earlier releases wrote the types cache file
+// into the directory even when cloning was disabled; that file alone is safe
+// to drop. Anything else is left in place and reported, so a directory the
+// user put there is never deleted.
+func removeStaleCacheDir(cacheDir string) error {
+	entries, err := os.ReadDir(cacheDir)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("reading types cache dir %s: %w", cacheDir, err)
+	}
+	for _, e := range entries {
+		if e.Name() != cacheFileName {
+			return fmt.Errorf("types cache dir %s exists but is not a git checkout; remove it to clone the repository again", cacheDir)
+		}
+	}
+	return os.RemoveAll(cacheDir)
 }
 
 // requireGit checks that the git binary is on PATH.
