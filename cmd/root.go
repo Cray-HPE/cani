@@ -29,7 +29,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -37,6 +36,7 @@ import (
 	"github.com/Cray-HPE/cani/internal/config"
 	"github.com/Cray-HPE/cani/internal/core"
 	"github.com/Cray-HPE/cani/internal/provider"
+	"github.com/Cray-HPE/cani/internal/xdg"
 	"github.com/Cray-HPE/cani/pkg/devicetypes"
 )
 
@@ -52,8 +52,7 @@ func newRootCommand() *cli.Command {
 		Version:           version(),
 	}
 	// allow user to override config file path
-	home, _ := os.UserHomeDir()
-	defaultCfg := filepath.Join(home, "."+core.App, core.App+".yml")
+	defaultCfg := xdg.ConfigFilePath()
 	cmd.PersistentFlags().StringVar(&cfgFile, "config", defaultCfg, "config file")
 	cmd.PersistentFlags().Bool("debug", false, "enable debug mode")
 	cmd.PersistentFlags().String("datastore", "json", "datastore type (json, postgres)")
