@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/Cray-HPE/cani/internal/xdg"
 )
 
 // LoadFromGitRepo clones or pulls a git repository into a local cache
@@ -40,12 +42,8 @@ func LoadFromGitRepo(repoURL string, clone, pull bool) error {
 
 // gitCacheDir returns the local cache path for a given repo URL.
 func gitCacheDir(repoURL string) (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("determining home directory: %w", err)
-	}
 	name := sanitizeRepoName(repoURL)
-	return filepath.Join(home, ".cani", "types-cache", name), nil
+	return filepath.Join(xdg.TypesCacheDir(), name), nil
 }
 
 // ensureGitRepo clones the repository if it doesn't exist locally,

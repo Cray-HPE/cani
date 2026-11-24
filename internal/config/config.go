@@ -30,7 +30,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/Cray-HPE/cani/internal/core"
+	"github.com/Cray-HPE/cani/internal/xdg"
 	"gopkg.in/yaml.v3"
 )
 
@@ -133,7 +133,7 @@ func HasTopLevelKey(name string) bool {
 func Load(path string) error {
 	Cfg = &Config{Providers: map[string]map[string]any{}}
 	Cfg.Path = path
-	Cfg.Datastore = core.DsPath
+	Cfg.Datastore = xdg.DatastorePath()
 
 	f, err := os.Open(path)
 	if err != nil {
