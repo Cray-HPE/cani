@@ -118,12 +118,15 @@ Output formats (-o):
   minimap   Compact 2-character-wide rack columns
   detail    Single-rack minimap with right-side annotations
   routing   Cable routing with branching visualization
+  html      Self-contained HTML rack elevation (write to a file)
 
 Examples:
   cani show rack                        # table of all racks
   cani show rack MyRack                 # detail view of one rack
   cani show rack -o minimap             # compact minimap of all racks
   cani show rack -o routing -VV         # cable routing with all cables
+  cani show rack -o html > racks.html   # HTML elevation of all racks
+  cani show rack -o html --theme neutral > racks.html
   cani show rack -o json                # JSON output
 
 Valid formats: %s`, strings.Join(rackFormats, ", ")),
@@ -143,6 +146,8 @@ Valid formats: %s`, strings.Join(rackFormats, ", ")),
 	cmd.Flags().CountP("verbose", "V", "Verbose output: -V shows legend, -VV shows all cables")
 	cmd.Flags().BoolP("labels", "l", false, "Show A/B termination labels on routing view")
 	cmd.Flags().BoolP("interactive", "I", false, "Interactive toggle mode for routing view")
+	cmd.Flags().String("theme", visual.RackThemeHPE, fmt.Sprintf("Theme for the html format: %s, or the path of a CSS file that defines the token set",
+		strings.Join(visual.ValidRackThemes(), ", ")))
 
 	return cmd
 }
@@ -163,18 +168,21 @@ func showRacks(cmd *cli.Command, args []string) error {
 	columns, _ := cmd.Flags().GetInt("columns")
 	showLabels, _ := cmd.Flags().GetBool("labels")
 	interactive, _ := cmd.Flags().GetBool("interactive")
+	theme, _ := cmd.Flags().GetString("theme")
 
 	// Handle rack-specific visual formats.
 	if rf := visual.RackFormat(format); rf == visual.RackFormatClassic ||
 		rf == visual.RackFormatMinimap ||
 		rf == visual.RackFormatDetail ||
-		rf == visual.RackFormatRouting {
+		rf == visual.RackFormatRouting ||
+		rf == visual.RackFormatHTML {
 		return visual.RenderRack(inv, rf, visual.CompactRenderOptions{
 			NoColor:     noColor,
 			Columns:     columns,
 			Verbose:     verbose,
 			ShowLabels:  showLabels,
 			Interactive: interactive,
+			Theme:       theme,
 			Inventory:   inv,
 		})
 	}

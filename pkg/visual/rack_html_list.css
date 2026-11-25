@@ -1,0 +1,47 @@
+/* Rack contents: the collapsed text twin of each elevation. Reader views
+   and screen readers get this table (the tiles are buttons, the U rails are
+   decorative); appended to rack_html.css by the renderer, layer order is
+   declared there. Mirrors the cabling table card at rack-column width: only
+   the device cell may break inside words, the other columns keep their
+   natural width, and the management host is read but not drawn. */
+@layer rack {
+  .rack-list {
+    margin-block-start: .75rem; font-size: 11.5px;
+    background: var(--c-bg-card); border: 1px solid var(--c-border-weak); border-radius: var(--radius-l);
+    box-shadow: 0 1px 2px var(--c-shadow);
+    & > summary {
+      display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .5rem; padding: .625rem .875rem; cursor: pointer; list-style: none;
+      &::-webkit-details-marker { display: none; }
+      &::before { content: ""; align-self: start; inline-size: 6px; block-size: 6px; margin-block-start: .35em; border: solid var(--c-text-weak); border-width: 0 1.5px 1.5px 0; rotate: -45deg; transition: rotate 120ms; }
+      &:hover .rl-title { color: var(--c-text-link); }
+      &:focus-visible { outline: 2px solid var(--c-accent); outline-offset: -2px; border-radius: var(--radius-l); }
+    }
+    &[open] > summary { border-block-end: 1px solid var(--c-border-weak); }
+    &[open] > summary::before { rotate: 45deg; }
+    & .rl-title { font-size: 12px; font-weight: 600; color: var(--c-text-strong); }
+    & .rl-meta { font-size: 11px; color: var(--c-text-weak); font-variant-numeric: tabular-nums; }
+    & table { inline-size: 100%; border-collapse: collapse; }
+    & th, & td { padding: .375rem .3rem; text-align: start; vertical-align: top; }
+    & th:first-child, & td:first-child { padding-inline-start: .875rem; }
+    & th:last-child, & td:last-child { padding-inline-end: .875rem; }
+    & thead th { padding-block: .3rem; font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--c-text-weak); border-block-end: 1px solid var(--c-border-weak); }
+    & tbody tr:nth-child(even) { background: var(--c-bg-tint); }
+    & tbody th { font-weight: 500; color: var(--c-text-strong); white-space: nowrap; font-variant-numeric: tabular-nums; }
+    & .rl-dev { inline-size: 100%; overflow-wrap: anywhere; }
+    & .rl-name, & .rl-model, & .rl-kind, & .rl-status { display: block; }
+    & .rl-name { font-weight: 600; color: var(--c-text-strong); }
+    & .rl-model, & .rl-status { font-size: 10.5px; color: var(--c-text-weak); }
+    & .rl-child th { font-weight: 400; color: var(--c-text-weak); }
+    & .rl-child .rl-dev { padding-inline-start: 1rem; }
+    & .rl-mgmt {
+      white-space: nowrap; font-weight: 600; color: var(--c-text-link);
+      text-decoration: underline; text-decoration-color: color-mix(in oklab, currentColor 40%, transparent); text-underline-offset: .15em;
+      &:hover { text-decoration-color: currentColor; }
+      &:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; border-radius: 2px; }
+    }
+  }
+}
+
+@layer print {
+  @media print { .rack-list { display: none; } }
+}

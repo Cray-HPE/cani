@@ -100,15 +100,23 @@ func buildAnnotation(inv *devicetypes.Inventory, rv *CompactRackView, u int, cab
 
 	uHeight := dev.GetUHeight()
 	isStart := dev.RackPosition == u
+	children := detailChildrenLabel(dev, inv)
 
 	if !isStart {
+		// First continuation row of a parent lists its children: grey "↳ c1, c2 | model"
+		if children != "" && u == dev.RackPosition+1 {
+			return cf.gray("↳ " + children)
+		}
 		// Continuation row: grey "↓ name Nu"
 		return cf.gray(fmt.Sprintf("↓ %s %du", dev.Name, uHeight))
 	}
 
-	// Start row: white "name Nu" + grey supplemental
-	whitePart := cf.white(fmt.Sprintf("%s %du", dev.Name, uHeight))
+	// Start row: white "name Nu" + grey "| model" + grey supplemental
+	whitePart := detailStartLabel(dev, uHeight, cf)
 	greyPart := buildSupplemental(inv, dev, cableMap, cf)
+	if children != "" && uHeight < 2 {
+		greyPart = strings.TrimSpace(greyPart + " ↳ " + children)
+	}
 
 	if greyPart != "" {
 		return whitePart + " " + cf.gray(greyPart)

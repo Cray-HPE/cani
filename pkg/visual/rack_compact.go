@@ -62,6 +62,7 @@ type CompactRenderOptions struct {
 	Detail      bool                   // Show single-rack detail with annotations
 	ShowLabels  bool                   // Show A/B termination labels on routing view
 	Interactive bool                   // Enter interactive toggle mode for routing view
+	Theme       string                 // HTML theme: a built-in name (hpe when empty, neutral) or the path of a CSS file
 	Inventory   *devicetypes.Inventory // Full inventory for module/cable lookups
 }
 
